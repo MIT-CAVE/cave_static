@@ -1,0 +1,7 @@
+[production]
+> 2% and not dead and not ie <= 11 and not op_mini all and not firefox > 0
+
+[development]
+last 1 chrome version
+not firefox > 0
+last 1 safari version

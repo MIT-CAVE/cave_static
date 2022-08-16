@@ -1,0 +1,416 @@
+import { quantileSorted } from 'd3-array'
+import { color } from 'd3-color'
+import { scaleLinear } from 'd3-scale'
+import { Parser } from 'expr-eval'
+import PropTypes from 'prop-types'
+import * as R from 'ramda'
+import { GenIcon } from 'react-icons'
+
+import { DEFAULT_ICON_URL } from './constants'
+
+const getQuantiles = R.curry((n, values) => {
+  const percentiles = R.times((i) => i / (n - 1), n)
+  return R.map((pct) => quantileSorted(values, pct))(percentiles)
+})
+
+const iconPrefix = {
+  ANT_DESIGN_ICONS: 'Ai',
+  BOX_ICONS: 'Bi',
+  BOOTSTRAP_ICONS: 'Bs',
+  DEV_ICONS: 'Di',
+  FEATHER: 'Fi',
+  FLAT_COLOR_ICONS: 'Fc',
+  FONT_AWESOME: 'Fa',
+  GAME_ICONS: 'Gi',
+  GITHUB_OCTICONS_ICONS: 'Go',
+  GROMMET_ICONS: 'Gr',
+  HERO_ICONS: 'Hi',
+  ICOMOON_FREE: 'Im',
+  IONICONS_FOUR: 'IoIos',
+  IONICONS_FIVE: 'Io',
+  MATERIAL_DESIGN_ICONS: 'Md',
+  REMIX_ICON: 'Ri',
+  SIMPLE_ICON: 'Si',
+  TYPICONS: 'Ti',
+  VS_CODE_ICONS: 'Vsc',
+  WEATHER_ICONS: 'Wi',
+  CSS_DOT_GG: 'Cg',
+}
+
+// checks if paths contains the given path, or a path to one of its parents
+export const includesPath = (paths, path) => {
+  return R.any((sub) => path.join(',').indexOf(sub.join(',')) === 0)(paths)
+}
+
+// simplified combineReducers to allow for localMutation
+export const combineReducers = (reducers) => {
+  const reducerKeys = R.keys(reducers)
+  return (state = {}, action) => {
+    let hasChanged = false
+    const nextState = R.clone(state)
+    for (let i = 0; i < reducerKeys.length; i++) {
+      const key = reducerKeys[i]
+      const reducer = reducers[key]
+      const previousStateForKey = state[key]
+      const nextStateForKey = reducer(previousStateForKey, action)
+      nextState[key] = nextStateForKey
+      hasChanged = hasChanged || nextStateForKey !== previousStateForKey
+    }
+    hasChanged = hasChanged || reducerKeys.length !== Object.keys(state).length
+    return hasChanged ? nextState : state
+  }
+}
+
+export const renameProp = R.curry((oldProp, newProp, obj) =>
+  R.pipe(R.assoc(newProp, R.prop(oldProp)(obj)), R.dissoc(oldProp))(obj)
+)
+
+export const forcePath = (pathOrProp) =>
+  R.is(Array, pathOrProp) ? pathOrProp : [pathOrProp]
+export const forceArray = forcePath // Just an alias
+
+export const passLog = (val) => {
+  console.log(val)
+  return val
+}
+
+export const getLabelFn = R.curry((data, item) =>
+  R.pathOr(item, [item, 'name'])(data)
+)
+export const getSubLabelFn = R.curry((data, item, subItem) =>
+  R.pathOr(subItem, [item, 'nestedStructure', subItem, 'name'])(data)
+)
+
+/**
+ * Adjust a given icon class
+ * @function
+ * @returns {function} A function that returns an icon that matches CAVE
+ * standards.
+ * @private
+ */
+const toIconInstance = (IconClass, className) => (
+  <IconClass className={className} size={36} />
+)
+toIconInstance.propTypes = {
+  className: PropTypes.string,
+  IconClass: PropTypes.node,
+}
+
+export { toIconInstance }
+
+export const parseArray = (input) => {
+  var s = input
+  // remove leading [ and trailing ] if present
+  if (input[0] === '[') {
+    s = R.drop(1, s)
+  }
+  if (R.last(input) === ']') {
+    s = R.dropLast(1, s)
+  }
+  // create an arrray, splitting on every ,
+  var items = s.split(',')
+  return R.map(R.trim)(items)
+}
+
+export const calculateStatSingleGroup = (statistics) => {
+  const parser = new Parser()
+  return (groupBy, calculation) =>
+    R.pipe(
+      R.flip(R.groupBy)(statistics),
+      R.map((group) => {
+        // define groupSum for each group
+        const preSummed = {}
+        parser.functions.groupSum = (statName) => {
+          // groupSum only works for non-derived stats
+          // dont recalculate sum for each stat
+          if (R.isNil(R.prop(statName, preSummed))) {
+            preSummed[statName] = R.sum(
+              R.map(R.path(['values', statName]), group)
+            )
+          }
+          return R.prop(statName, preSummed)
+        }
+        const calculated = group.map((obj) => {
+          try {
+            return parser.parse(calculation).evaluate(
+              // evaluate each list item
+              R.prop('values', obj)
+            )
+          } catch {
+            // if calculation is malformed return simplified array
+            return parseArray(
+              parser
+                .parse(calculation)
+                .simplify(
+                  // evaluate each list item
+                  R.prop('values', obj)
+                )
+                .toString()
+            )
+          }
+        })
+        return calculated
+      })
+    )(groupBy)
+}
+
+export const calculateStatSubGroup = (statistics) => {
+  const parser = new Parser()
+
+  return (groupBy, secondaryGroupBy, calculation) =>
+    R.pipe(
+      R.flip(R.groupBy)(statistics),
+      R.map((group) => R.groupBy(secondaryGroupBy, group)),
+      R.map((group) =>
+        R.map((subGroup) => {
+          // define groupSum for each subGroup
+          const preSummed = {}
+          parser.functions.groupSum = (statName) => {
+            // groupSum only works for non-derived stats
+            // dont recalculate sum for each stat
+            if (R.isNil(R.prop(statName, preSummed))) {
+              preSummed[statName] = R.sum(
+                R.map(R.path(['values', statName]), subGroup)
+              )
+            }
+            return R.prop(statName, preSummed)
+          }
+          return subGroup.map((obj) => {
+            try {
+              return parser.parse(calculation).evaluate(
+                // evaluate each list item
+                R.prop('values', obj)
+              )
+            } catch {
+              // if calculation is malformed return simpliefied array
+              return parseArray(
+                parser
+                  .parse(calculation)
+                  .simplify(
+                    // evaluate each list item
+                    R.prop('values', obj)
+                  )
+                  .toString()
+              )
+            }
+          })
+        })(group)
+      )
+    )(groupBy)
+}
+
+export const prettifyValue = (value, numDec = 2, nilValue = 'N/A') =>
+  value == null
+    ? nilValue
+    : value.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: numDec,
+      })
+
+export const getScaledValue = (minVal, maxVal, minScale, maxScale, value) => {
+  if (minVal === maxVal) return maxScale
+  const clampedVal = R.gt(maxVal, minVal)
+    ? R.clamp(minVal, maxVal, value)
+    : R.clamp(maxVal, minVal, value)
+  const pctVal = (clampedVal - minVal) / (maxVal - minVal)
+  return pctVal * (maxScale - minScale) + minScale
+}
+
+export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
+  if (minVal === maxVal) return maxArray
+  const clampedVal = R.gt(maxVal, minVal)
+    ? R.clamp(minVal, maxVal, value)
+    : R.clamp(maxVal, minVal, value)
+  const pctVal = (clampedVal - minVal) / (maxVal - minVal)
+  return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
+}
+
+/**
+ * Converts a d3-color RGB object into a conventional RGBA array.
+ * @function
+ * @param {Object} rgbObj - The d3-color RGB object.
+ * @returns {Array} A RGBA equivalent array of the given color.
+ * @private
+ */
+const rgbObjToRgbaArray = (rgbObj) =>
+  R.append(
+    R.prop('opacity')(rgbObj) * 255, // Alpha
+    R.props(['r', 'g', 'b'])(rgbObj) // RGB array
+  )
+
+export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
+  const getColor = scaleLinear()
+    .domain(colorDomain)
+    .range(colorRange)
+    .clamp(true)
+  return rgbObjToRgbaArray(color(getColor(value)))
+})
+
+export const getContrastYIQ = (rgbArray) => {
+  const yiq = (rgbArray[0] * 299 + rgbArray[1] * 587 + rgbArray[2] * 114) / 1000
+  return yiq >= 128 ? [0, 0, 0] : [255, 255, 255]
+}
+
+export const addExtraProps = (Component, extraProps) => {
+  return <Component.type {...Component.props} {...extraProps} />
+}
+export const removeExtraProps = (Component, extraProps) => {
+  return <Component.type {...R.omit(extraProps, Component.props)} />
+}
+
+export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {
+  const prefixLength = R.cond([
+    [R.pipe(R.take(5), R.equals(iconPrefix.IONICONS_FOUR)), R.always(5)],
+    [R.pipe(R.take(3), R.equals(iconPrefix.VS_CODE_ICONS)), R.always(3)],
+    [R.T, R.always(2)],
+  ])(iconName)
+  const lib = R.toLower(R.take(prefixLength, iconName))
+
+  const cache = await caches.open('icons')
+  const url = `${iconUrl}/${lib}/${iconName}.js`
+  const response = await cache.match(url)
+  // If not in cache, fetch from cdn
+  if (R.isNil(response)) {
+    await cache.add(url)
+    const nowCached = await cache.match(url)
+    const item = await nowCached.json()
+    return GenIcon(item)
+  } else {
+    const item = await response.json()
+    return GenIcon(item)
+  }
+}
+
+/**
+ * Creates a list of all values that a given internal
+ * key can take within a given object.
+ */
+export const getAllValuesForKey = R.curry((prop, obj, acc = []) =>
+  R.pipe(
+    R.mapObjIndexed((value, key) =>
+      R.is(Object)(value)
+        ? getAllValuesForKey(prop, value, acc)
+        : prop === key
+        ? R.append(value)(acc)
+        : acc
+    ),
+    R.values,
+    R.unnest
+  )(obj)
+)
+
+export const toListWithKey = (key) =>
+  R.pipe(
+    R.mapObjIndexed((v, k) => R.assoc(key, k)(v)),
+    R.values
+  )
+
+export const sortedListById = R.pipe(
+  toListWithKey('id'),
+  R.sortBy(R.prop('id'))
+)
+
+/**
+ * list - a list of items with 'order' props to specify their position in the
+ * list.
+ * @returns {Array} An ascending list that contains the items sorted first
+ * followed by the rest of the items without an `order` prop in alphabetical
+ * `order`.
+ * @private
+ */
+export const customSort = R.pipe(
+  toListWithKey('id'),
+  R.sortWith([
+    // Infinity due to the fact that non-existent
+    // `order` props move items forward in the list
+    R.ascend(R.propOr(Infinity, 'order')),
+    R.ascend(R.prop('name')),
+    R.ascend(R.prop('id')),
+  ])
+)
+
+export const getCategoryItems = R.cond([
+  [
+    R.has('nestedStructure'),
+    R.pipe(R.prop('nestedStructure'), customSort, R.pluck('id')),
+  ],
+  // The category value has not been loaded yet or is empty
+  [R.isEmpty, R.always([])],
+  // `nestedStructure` must be specified
+  [
+    R.T,
+    () => {
+      // This should be part of a full validation mechanism for the data struct
+      throw Error('Missing the `nestedStructure` property')
+    },
+    // Optionally, we might want to retrieve the level names from the data
+    // R.pipe(R.prop('data'), R.values, R.head, R.keys)
+  ],
+])
+
+export const filterItems = (items, filteredList, categories) => {
+  const acceptable = (category, categoryKey) => {
+    const categoryItems = getCategoryItems(R.propOr({}, category)(categories))
+    return (
+      R.isEmpty(R.propOr([], category, filteredList)) ||
+      R.includes(
+        R.path([category, 'data', categoryKey, R.last(categoryItems)])(
+          categories
+        ),
+        R.prop(category, filteredList)
+      )
+    )
+  }
+  return R.filter((item) => {
+    return R.all((object) =>
+      R.any((item) => {
+        return acceptable(object[0], item)
+      }, object[1])
+    )(R.toPairs(R.prop('category', item)))
+  })(items)
+}
+
+// sorts sub objects in obj by order prop - ascending
+export const sortProps = (obj) => {
+  const sortBy = (a, b) =>
+    R.pathOr(0, [a, 'order'], obj) - R.pathOr(0, [b, 'order'], obj)
+  return R.pipe(
+    R.keys,
+    R.sort(sortBy),
+    R.reduce((res, key) => R.assoc(key, obj[key], res), {})
+  )(obj)
+}
+
+export const getSliderMarks = R.curry(
+  (min, max, numMarks, getLabelFormat, extraValues = []) =>
+    R.pipe(
+      R.unfold((value) =>
+        value > max ? false : [value, value + (max - min) / (numMarks - 1)]
+      ),
+      R.concat(extraValues),
+      R.map(R.applySpec({ value: R.identity, label: getLabelFormat }))
+    )(min)
+)
+
+export const getQuartilesData = R.mapObjIndexed(
+  R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
+)
+
+// checks that range is either min/max or list of strings
+export const checkValidRange = R.pipe(
+  R.mapObjIndexed((value, key) =>
+    key === 'min' || key === 'max'
+      ? R.is(Number, value)
+      : key === 'startGradientColor' || key === 'endGradientColor'
+      ? R.is(Object, value)
+      : R.is(String, value)
+  ),
+  R.values,
+  R.all(R.identity)
+)
+
+export const getTimeValue = (timeIndex) =>
+  R.when(
+    R.prop('timeObject'), // check that this is time object
+    R.path(['value', timeIndex])
+  )

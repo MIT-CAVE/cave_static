@@ -1,0 +1,56 @@
+{
+  "name": "cave_static",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "export $(cat .env | xargs) && react-scripts build",
+    "prettier": "npx prettier --write .",
+    "reset": "npx rimraf ./package-lock.json && npm run setup",
+    "setup": "npx rimraf ./node_modules && npm install",
+    "start": "BROWSER=none react-scripts start"
+  },
+  "dependencies": {
+    "@deck.gl/core": "^8.8.8",
+    "@deck.gl/extensions": "^8.8.8",
+    "@deck.gl/layers": "^8.8.8",
+    "@deck.gl/react": "^8.8.8",
+    "@emotion/react": "^11.10.0",
+    "@emotion/styled": "^11.10.0",
+    "@mui/material": "^5.10.0",
+    "@mui/styles": "^5.9.3",
+    "@mui/x-data-grid": "^5.15.2",
+    "@reduxjs/toolkit": "^1.8.4",
+    "crypto-js": "^4.1.1",
+    "d3-array": "^3.2.0",
+    "d3-color": "^3.1.0",
+    "d3-scale": "^4.0.2",
+    "echarts": "^5.3.3",
+    "echarts-for-react": "^3.0.2",
+    "expr-eval": "^2.0.2",
+    "isomorphic-fetch": "^3.0.0",
+    "mapbox-gl": "^2.9.2",
+    "prop-types": "^15.8.1",
+    "ramda": "^0.28.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-double-marquee": "^1.1.0",
+    "react-icons": "^4.4.0",
+    "react-map-gl": "^7.0.18",
+    "react-redux": "^7.2.6",
+    "react-scripts": "^5.0.1",
+    "react-virtualized-auto-sizer": "^1.0.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.18.10",
+    "@emotion/eslint-plugin": "^11.10.0",
+    "babel-loader": "^8.2.5",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-compat": "^4.0.2",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-ramda": "^2.5.1",
+    "prettier": "2.7.1"
+  },
+  "engines": {
+    "node": "^12.13.0 || ^14.0.0",
+    "npm": "^7.0.0 || ^8.0.0"
+  }
+}

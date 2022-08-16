@@ -1,0 +1,46 @@
+html {
+  --trackBG: #4a4e5a;
+  --thumbBG: #1c1e24;
+}
+body::-webkit-scrollbar {
+  width: 1em;
+}
+body::-webkit-scrollbar-thumb {
+  background-color: var(--thumbBG);
+  border-radius: 2px;
+  border: 3px solid var(--trackBG);
+}
+body::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  background-color: var(--trackBG);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* overflow: hidden;
+  touch-action: none; */
+}
+
+/* .mapboxgl-control-container {
+  display: none;
+} */
+
+.mapboxgl-ctrl-bottom-left {
+  z-index: 101;
+}
+
+.map-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}
