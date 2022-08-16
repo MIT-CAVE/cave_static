@@ -1,4 +1,5 @@
 # cave_static
+A react based static web app to be used as a data consumer for the `cave_app`.
 
 ## License Notice
 
