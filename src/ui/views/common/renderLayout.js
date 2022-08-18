@@ -14,7 +14,7 @@ import {
   sortedListById,
 } from '../../../utils'
 
-const renderLayoutProp = ({
+const renderPropItem = ({
   layoutItem,
   item: prop,
   resolveTime = R.identity,
@@ -31,19 +31,19 @@ const renderLayoutProp = ({
   })
 }
 
-const renderLayoutKpi = ({ item }) =>
+const renderKpiItem = ({ item }) =>
   renderKpi({
     title: item.name || item.itemId,
     ...R.pick(['value', 'icon', 'unit', 'style'])(item),
   })
 
 const getItemRenderFn = R.cond([
-  [R.equals('prop'), R.always(renderLayoutProp)],
-  [R.equals('kpi'), R.always(renderLayoutKpi)],
+  [R.equals('prop'), R.always(renderPropItem)],
+  [R.equals('kpi'), R.always(renderKpiItem)],
   [R.T, null],
 ])
 
-const renderLayoutItem = ({
+const renderItem = ({
   keyName,
   layout: layoutItem,
   items,
@@ -81,7 +81,7 @@ const getLayoutItems = ({ data, fillerItems, ...other }) =>
     })
   )(data)
 
-const renderGridLayout = ({ keyName, layout, unusedItems, ...other }) => {
+const renderGrid = ({ layout, unusedItems, ...other }) => {
   const {
     num_columns = 'auto',
     num_rows = 'auto',
@@ -123,7 +123,7 @@ const renderGridLayout = ({ keyName, layout, unusedItems, ...other }) => {
           width,
         }}
       >
-        {getLayoutItems({ keyName, data, fillerItems, unusedItems, ...other })}
+        {getLayoutItems({ data, fillerItems, unusedItems, ...other })}
       </Box>
     ),
   }
@@ -134,8 +134,8 @@ const renderUndefLayout = () => null
 const getLayoutRenderFn = (layout = {}) => {
   const type = R.prop('type')(layout)
   return R.cond([
-    [R.equals(layoutType.GRID), R.always(renderGridLayout)],
-    [R.equals(layoutType.ITEM), R.always(renderLayoutItem)],
+    [R.equals(layoutType.GRID), R.always(renderGrid)],
+    [R.equals(layoutType.ITEM), R.always(renderItem)],
     [R.pipe(R.isNil, R.and(R.isEmpty(layout))), R.always(renderUndefLayout)],
     // Will break for non-empty layouts missing their types
     [
@@ -153,7 +153,6 @@ const renderLayout = ({ layout, ...other }) => {
 }
 
 const getLayoutComponent = ({
-  keyName,
   layout = {
     type: 'grid',
     num_columns: 'auto',
@@ -162,9 +161,8 @@ const getLayoutComponent = ({
   items,
   ...other
 }) => {
-  const usedItemsInLayout = getAllValuesForKey(keyName, layout)
+  const usedItemsInLayout = getAllValuesForKey('itemId', layout)
   const { component } = renderLayout({
-    keyName,
     layout,
     items,
     unusedItems: R.pipe(
