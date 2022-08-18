@@ -54,14 +54,9 @@ export const propVariant = {
   SLIDER: 'slider',
 }
 
-export const propLayout = {
+export const layoutType = {
   GRID: 'grid',
-  PROP: 'prop',
-}
-
-export const kpiLayout = {
-  GRID: 'grid',
-  KPI: 'kpi',
+  ITEM: 'item',
 }
 
 export const propContainer = {

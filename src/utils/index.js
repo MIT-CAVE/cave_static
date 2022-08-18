@@ -207,6 +207,29 @@ export const prettifyValue = (value, numDec = 2, nilValue = 'N/A') =>
         maximumFractionDigits: numDec,
       })
 
+export const getOptimalGridSize = (numColumns, numRows, n) => {
+  const r = Math.sqrt(n)
+  return numColumns === 'auto' && numRows === 'auto'
+    ? {
+        numColumns: Math.floor(r),
+        numRows: Math.ceil(n / Math.floor(r)),
+      }
+    : numColumns === 'auto'
+    ? {
+        numColumns: Math.ceil(n / numRows),
+        numRows,
+      }
+    : numRows === 'auto'
+    ? {
+        numColumns,
+        numRows: Math.ceil(n / numColumns),
+      }
+    : {
+        numColumns,
+        numRows,
+      }
+}
+
 export const getScaledValue = (minVal, maxVal, minScale, maxScale, value) => {
   if (minVal === maxVal) return maxScale
   const clampedVal = R.gt(maxVal, minVal)
