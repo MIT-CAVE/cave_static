@@ -1,5 +1,4 @@
 import { Box } from '@mui/material'
-import * as R from 'ramda'
 import { useSelector } from 'react-redux'
 
 import { selectKpis } from '../../../data/selectors'
@@ -17,13 +16,13 @@ const style = (theme) => ({
 })
 
 const Kpi = ({ ...props }) => {
-  const { layout, data } = useSelector(selectKpis)
+  const { layout, data: items } = useSelector(selectKpis)
   return (
     <Box sx={style} {...props}>
       <Box sx={{ width: 'min-content' }}>
         {renderKpisLayout({
           layout,
-          items: R.reject(R.prop('map_kpi'))(data), // Exclude map KPIs
+          items,
           onChangeProp: () => {},
         })}
       </Box>
