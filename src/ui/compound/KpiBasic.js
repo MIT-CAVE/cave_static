@@ -29,11 +29,13 @@ const styles = {
 
 const KpiBasic = ({ title, value, icon, unit, style, sx = [], ...props }) => (
   <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]} {...props}>
-    <Grid container xs flexDirection="column" spacing={3}>
+    <Grid container flexDirection="column" spacing={3}>
       <Grid container item spacing={1} flexWrap="nowrap">
-        <Grid item alignSelf="center">
-          {icon && <FetchedIcon iconName={icon} size={24} />}
-        </Grid>
+        {icon && (
+          <Grid item alignSelf="center">
+            <FetchedIcon iconName={icon} size={24} />
+          </Grid>
+        )}
         <Grid item xs={11}>
           <Typography sx={styles.title}>
             <OverflowText text={title} />
