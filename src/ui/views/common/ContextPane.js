@@ -202,7 +202,7 @@ const ContextPane = () => {
                                 value: null,
                                 sync: !includesPath(R.values(sync), [
                                   'appBar',
-                                  'paneSate',
+                                  'paneState',
                                 ]),
                               })
                             )
