@@ -39,7 +39,7 @@ const getDrawerStyle = (width) => ({
     left: `${APP_BAR_WIDTH + 1}px`,
     height: `calc(100vh - ${theme.spacing(5)})`,
     p: 2.5,
-    overflow: 'hidden',
+    overflow: 'auto',
   }),
 })
 
@@ -118,9 +118,7 @@ const Pane = ({
 }) => (
   <PaneRoot open={!!open} {...props}>
     <PaneHeader title={name} {...{ iconName, leftButton, rightButton }} />
-    <Box sx={{ overflow: 'auto', height: '100%' }}>
-      <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
-    </Box>
+    <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
   </PaneRoot>
 )
 Pane.propTypes = {
