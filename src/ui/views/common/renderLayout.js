@@ -118,6 +118,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
           gridTemplateRows: `repeat(${numRows},minmax(min-content,1fr))`,
           gridColumnStart: column,
           gridRowStart: row,
+          gridAutoFlow: 'dense',
           gap: 1.5,
           height,
           width,
