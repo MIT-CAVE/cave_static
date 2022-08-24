@@ -7,12 +7,13 @@ import {
   MIN_ZOOM,
   MAX_ZOOM,
 } from '../../utils/constants'
+import { kpiId } from '../../utils/enums'
 
 import {
   checkValidRange,
   filterItems,
   getTimeValue,
-  sortProps,
+  sortedListById,
 } from '../../utils'
 
 // Tokens
@@ -91,9 +92,14 @@ export const selectSettingsData = createSelector(selectSettings, (data) =>
 export const selectLegendData = createSelector(selectMapData, (data) =>
   R.propOr([], 'legendGroups', data)
 )
-export const selectKeys = createSelector(
+export const selectMapKpis = createSelector(
   selectKpisData,
-  R.pipe(R.filter(R.prop('map_kpi')), sortProps, R.values)
+  R.pipe(
+    R.filter(R.prop('map_kpi')),
+    R.map(R.assoc('type', kpiId.MAP)),
+    sortedListById,
+    R.values
+  )
 )
 
 const getMergedAllProps = (data, localData) =>

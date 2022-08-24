@@ -20,11 +20,7 @@ const Kpi = ({ ...props }) => {
   return (
     <Box sx={style} {...props}>
       <Box sx={{ width: 'min-content' }}>
-        {renderKpisLayout({
-          layout,
-          items,
-          onChangeProp: () => {},
-        })}
+        {renderKpisLayout({ layout, items })}
       </Box>
     </Box>
   )

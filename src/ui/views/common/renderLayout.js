@@ -34,6 +34,7 @@ const renderPropItem = ({
 const renderKpiItem = ({ item }) =>
   renderKpi({
     title: item.name || item.itemId,
+    type: item.type,
     ...R.pick(['value', 'icon', 'unit', 'style'])(item),
   })
 
@@ -90,6 +91,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     column,
     row,
     data,
+    min_column_width: minColumnWidth = `${GRID_COLUMN_WIDTH}px`,
   } = layout
   const numItems = R.pipe(R.defaultTo(unusedItems), R.values, R.length)(data)
   const { numColumns, numRows } = getOptimalGridSize(
@@ -114,7 +116,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${numColumns},minmax(${GRID_COLUMN_WIDTH}px,auto))`,
+          gridTemplateColumns: `repeat(${numColumns},minmax(${minColumnWidth},auto))`,
           gridTemplateRows: `repeat(${numRows},minmax(min-content,1fr))`,
           gridColumnStart: column,
           gridRowStart: row,
@@ -155,7 +157,7 @@ const renderLayout = ({ layout, ...other }) => {
 
 const getLayoutComponent = ({
   layout = {
-    type: 'grid',
+    type: layoutType.GRID,
     num_columns: 'auto',
     num_rows: 'auto',
   },

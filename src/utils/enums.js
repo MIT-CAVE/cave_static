@@ -54,15 +54,20 @@ export const propVariant = {
   SLIDER: 'slider',
 }
 
-export const layoutType = {
-  GRID: 'grid',
-  ITEM: 'item',
-}
-
 export const propContainer = {
   HORIZONTAL: 'horizontal',
   NONE: 'none',
   UNTITLED: 'untitled',
   TITLED: 'titled',
   VERTICAL: 'vertical',
+}
+
+export const kpiId = {
+  BASIC: 'basic',
+  MAP: 'map',
+}
+
+export const layoutType = {
+  GRID: 'grid',
+  ITEM: 'item',
 }
