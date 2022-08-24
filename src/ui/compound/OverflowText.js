@@ -1,37 +1,39 @@
-/** @jsxImportSource @emotion/react */
-import * as R from 'ramda'
-import React, { useCallback, useRef } from 'react'
-import Marquee from 'react-double-marquee'
+import { Box } from '@mui/material'
+import PropTypes from 'prop-types'
+import React, { useCallback, useState } from 'react'
+import Marquee from 'react-fast-marquee'
 
-export const OverflowText = ({ css, text, speed = 0.02 }) => {
-  const divRef = useRef(false)
+const OverflowText = ({ text, speed = 20 }) => {
+  const [isOverflowing, setIsOverflowing] = useState(false)
 
-  const isOverflow = useCallback((e) => {
-    if (R.has('offsetHeight', e)) return false
-    return e.offsetHeight < e.scrollHeight || e.offsetWidth < e.scrollWidth
+  const divRef = useCallback((node) => {
+    if (node == null) return
+
+    const overflowX = node.offsetWidth < node.scrollWidth
+    const overflowY = node.offsetHeight < node.scrollHeight
+    setIsOverflowing(overflowX || overflowY)
   }, [])
-
   return (
-    <div
-      css={{
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        ...css,
-      }}
-      ref={(ref) => (divRef.current = ref)}
-    >
-      {isOverflow(divRef.current) ? (
+    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden' }} ref={divRef}>
+      {isOverflowing ? (
         <Marquee
           direction="left"
-          speed={speed}
-          childMargin={40}
-          css={{ overflowY: 'hidden' }}
+          delay={0.5}
+          gradient={false}
+          pauseOnHover
+          {...{ speed }}
         >
-          {text}
+          <Box sx={{ pr: 6 }}>{text}</Box>
         </Marquee>
       ) : (
-        <span>{text}</span>
+        <>{text}</>
       )}
     </div>
   )
 }
+OverflowText.propTypes = {
+  text: PropTypes.string,
+  speed: PropTypes.number,
+}
+
+export default OverflowText

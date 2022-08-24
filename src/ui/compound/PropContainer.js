@@ -1,8 +1,8 @@
 import { Box, Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
-import Marquee from 'react-double-marquee'
 
 import InfoButton from './InfoButton'
+import OverflowText from './OverflowText'
 
 import { PROP_WIDTH } from '../../utils/constants'
 import { propContainer } from '../../utils/enums'
@@ -52,7 +52,7 @@ const PropTitle = ({
 }) => (
   <Grid container xs alignSelf="center" {...props}>
     {marquee ? (
-      <Marquee scrollWhen="overflow">{title}</Marquee>
+      <OverflowText scrollWhen="overflow" text={title} />
     ) : (
       <Typography noWrap={marquee} variant={titleVariant}>
         {title}

@@ -2,7 +2,7 @@ import { Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 
 import FetchedIcon from './FetchedIcon'
-import { OverflowText } from './OverflowText'
+import OverflowText from './OverflowText'
 
 import { KPI_WIDTH } from '../../utils/constants'
 

@@ -2,7 +2,7 @@ import { Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 
 import FetchedIcon from './FetchedIcon'
-import { OverflowText } from './OverflowText'
+import OverflowText from './OverflowText'
 
 import { forceArray, prettifyValue } from '../../utils'
 
@@ -18,10 +18,10 @@ const KpiMap = ({ title, value, icon, unit, style, sx = [], ...props }) => (
       <OverflowText text={title} />
     </Typography>
     <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
-      <Grid item>
+      <Grid item xs>
         <FetchedIcon iconName={icon} />
       </Grid>
-      <Grid item xs sx={{ pr: 2.5 }}>
+      <Grid item xs={10}>
         <OverflowText text={`${prettifyValue(value)} ${unit}`} />
       </Grid>
     </Grid>
