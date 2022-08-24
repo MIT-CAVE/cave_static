@@ -11,7 +11,7 @@ export const themeId = {
 }
 
 export const viewId = {
-  DASHBOARD: 'dashboards',
+  DASHBOARD: 'stats',
   MAP: 'map',
   KPI: 'kpi',
 }

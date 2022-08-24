@@ -3,9 +3,7 @@ import * as R from 'ramda'
 
 import {
   DEFAULT_VIEWPORT,
-  MAX_PITCH,
   MAX_ZOOM,
-  MIN_PITCH,
   MIN_ZOOM,
   STYLE_URL_BASE,
 } from '../../../utils/constants'
@@ -13,14 +11,7 @@ import { overrideState } from '../actions'
 
 export const mapControlSlice = createSlice({
   name: 'map',
-  initialState: {
-    viewport: {
-      minZoom: MIN_ZOOM,
-      maxZoom: MAX_ZOOM,
-      minPitch: MIN_PITCH,
-      maxPitch: MAX_PITCH,
-    },
-  },
+  initialState: {},
   reducers: {
     bearingSliderToggle: (state) => {
       state.showBearingSlider = !state.showBearingSlider
@@ -53,10 +44,14 @@ export const mapControlSlice = createSlice({
       const zoom = R.clamp(
         minZoom,
         maxZoom,
-        R.propOr(0, 'zoom', action.payload)
+        R.propOr(0, 'zoom', action.payload.viewport)
       )
-      const clampedViewport = R.assoc('zoom', zoom, action.payload)
-      state.viewport = R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport)
+      const clampedViewport = R.assoc('zoom', zoom, action.payload.viewport)
+      return R.assocPath(
+        [action.payload.appBarId, 'viewport'],
+        R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport),
+        state
+      )
     },
     setZoom: (state, action) => {
       const minZoom = R.clamp(

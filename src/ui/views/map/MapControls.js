@@ -42,6 +42,8 @@ import {
   selectTime,
   selectTimeUnits,
   selectTimeLength,
+  selectStaticMap,
+  selectAppBarId,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -175,7 +177,7 @@ TooltipButton.propTypes = {
   children: PropTypes.node,
 }
 
-const MapControls = ({ isStatic }) => {
+const MapControls = () => {
   const [hover, setHover] = useState(false)
   const [animation, setAnimation] = useState(false)
   const activeAnimation = useRef()
@@ -190,6 +192,8 @@ const MapControls = ({ isStatic }) => {
   const currentTime = useSelector(selectTime)
   const timeUnits = useSelector(selectTimeUnits)
   const timeLength = useSelector(selectTimeLength)
+  const isStatic = useSelector(selectStaticMap)
+  const appBarId = useSelector(selectAppBarId)
 
   const classes = useStyles()
   const dispatch = useDispatch()
@@ -409,7 +413,9 @@ const MapControls = ({ isStatic }) => {
               title={tooltipTitles.defaultViewport}
               placement="bottom-start"
               onClick={() => {
-                dispatch(viewportUpdate(defaultViewport))
+                dispatch(
+                  viewportUpdate({ viewport: defaultViewport, appBarId })
+                )
               }}
             >
               <MdHome />

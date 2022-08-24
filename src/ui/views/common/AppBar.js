@@ -138,7 +138,9 @@ const getAppBarItem = ({
     <ButtonInTabs
       key={key}
       className={`${classes.navBtn} ${
-        selectedView === viewId.MAP ? classes.navBtnActive : ''
+        selectedView === viewId.MAP && R.equals(appBarId, key)
+          ? classes.navBtnActive
+          : ''
       }`}
       onClick={() => {
         dispatch(

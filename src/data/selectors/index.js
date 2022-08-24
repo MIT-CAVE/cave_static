@@ -13,6 +13,7 @@ import {
   checkValidRange,
   filterItems,
   getTimeValue,
+  sortProps,
   sortedListById,
 } from '../../utils'
 
@@ -202,14 +203,86 @@ export const selectMapLayers = createSelector(selectLocalMap, (data) =>
 export const selectMapLegend = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLegend')(data)
 )
+// Local -> appBar (Custom)
+export const selectLocalAppBar = createSelector(selectLocal, (data) =>
+  R.prop('appBar', data)
+)
+export const selectLocalAppBarData = createSelector(selectLocalAppBar, (data) =>
+  R.prop('data', data)
+)
+export const selectFiltered = createSelector(
+  [selectAppBar, selectLocalAppBar],
+  (appBar, localAppBar) =>
+    R.propOr(R.propOr({}, 'filtered', appBar), 'filtered', localAppBar),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectPaneState = createSelector(
+  [selectLocalAppBar, selectAppBar],
+  (localData, data) =>
+    R.propOr(R.propOr({}, 'paneState', data), 'paneState', localData)
+)
+export const selectOpenPane = createSelector(selectPaneState, (data) =>
+  R.propOr('', 'open', data)
+)
+export const selectSecondaryOpenPane = createSelector(selectPaneState, (data) =>
+  R.propOr('', 'secondaryOpen', data)
+)
+export const selectGroupedAppBar = createSelector(
+  [selectLocalAppBarData, selectAppBarData],
+  R.pipe(
+    R.mergeDeepRight,
+    R.toPairs,
+    R.groupBy(R.path([1, 'bar'])),
+    R.map(R.fromPairs)
+  ),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectAppBarId = createSelector(
+  [selectLocalAppBarData, selectAppBarData, selectView],
+  (localAppBarData, appBarData, view) => {
+    const foundId = R.pipe(
+      sortProps,
+      R.toPairs,
+      R.find(R.pathEq([1, 'type'], view)),
+      R.prop(0)
+    )(appBarData)
+    return R.propOr(
+      R.propOr(foundId, 'appBarId', appBarData),
+      'appBarId',
+      localAppBarData
+    )
+  }
+)
+export const selectStaticMap = createSelector(
+  [selectAppBarId, selectAppBarData],
+  (appBarId, appBarData) => R.pathOr(false, [appBarId, 'static'], appBarData)
+)
+export const selectDashboard = createSelector(
+  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
+  (appBarId, appBarData, localAppBarData) =>
+    R.propOr(R.propOr({}, appBarId, appBarData), appBarId, localAppBarData)
+)
+export const selectDashboardLayout = createSelector(
+  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
+  (appBarId, appBarData, localAppBarData) =>
+    R.pathOr(
+      R.pathOr({}, [appBarId, 'dashboardLayout'], appBarData),
+      [appBarId, 'dashboardLayout'],
+      localAppBarData
+    )
+)
+export const selectDashboardLockedLayout = createSelector(
+  selectDashboard,
+  (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
+)
 // Local -> Map -> mapControls
 export const selectViewport = createSelector(
-  [selectMapControls, selectDefaultViewport],
-  (mapControls, defaultViewport) =>
+  [selectMapControls, selectDefaultViewport, selectAppBarId],
+  (mapControls, defaultViewport, appBarId) =>
     R.mergeAll([
       DEFAULT_VIEWPORT,
       defaultViewport,
-      R.propOr({}, 'viewport')(mapControls),
+      R.pathOr({}, [appBarId, 'viewport'])(mapControls),
     ])
 )
 export const selectBearing = createSelector(selectViewport, (data) =>
@@ -294,79 +367,18 @@ export const selectMergedGeos = createSelector(
 )
 export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
-  (nodeTypes, localNodes) => R.propOr(nodeTypes, 'types', localNodes)
+  (nodeTypes, localNodes) => R.propOr(nodeTypes, 'types', localNodes),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
-  (arcTypes, localArcs) => R.propOr(arcTypes, 'types', localArcs)
+  (arcTypes, localArcs) => R.propOr(arcTypes, 'types', localArcs),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
-  (geoTypes, localGeos) => R.propOr(geoTypes, 'types', localGeos)
-)
-// Local -> appBar (Custom)
-export const selectLocalAppBar = createSelector(selectLocal, (data) =>
-  R.prop('appBar', data)
-)
-export const selectLocalAppBarData = createSelector(selectLocalAppBar, (data) =>
-  R.prop('data', data)
-)
-export const selectFiltered = createSelector(
-  [selectAppBar, selectLocalAppBar],
-  (appBar, localAppBar) =>
-    R.propOr(R.propOr({}, 'filtered', appBar), 'filtered', localAppBar),
+  (geoTypes, localGeos) => R.propOr(geoTypes, 'types', localGeos),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
-)
-export const selectPaneState = createSelector(
-  [selectLocalAppBar, selectAppBar],
-  (localData, data) =>
-    R.propOr(R.propOr({}, 'paneState', data), 'paneState', localData)
-)
-export const selectOpenPane = createSelector(selectPaneState, (data) =>
-  R.propOr('', 'open', data)
-)
-export const selectSecondaryOpenPane = createSelector(selectPaneState, (data) =>
-  R.propOr('', 'secondaryOpen', data)
-)
-export const selectGroupedAppBar = createSelector(
-  [selectLocalAppBarData, selectAppBarData],
-  R.pipe(
-    R.mergeDeepRight,
-    R.toPairs,
-    R.groupBy(R.path([1, 'bar'])),
-    R.map(R.fromPairs)
-  )
-)
-export const selectAppBarId = createSelector(
-  [selectLocalAppBarData, selectAppBarData],
-  (localAppBarData, appBarData) =>
-    R.propOr(
-      R.propOr('', 'appBarId', appBarData),
-      'appBarId',
-      localAppBarData
-    )
-)
-export const selectDashboard = createSelector(
-  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
-  (appBarId, appBarData, localAppBarData) =>
-    R.propOr(
-      R.propOr({}, appBarId, appBarData),
-      appBarId,
-      localAppBarData
-    )
-)
-export const selectDashboardLayout = createSelector(
-  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
-  (appBarId, appBarData, localAppBarData) =>
-    R.pathOr(
-      R.pathOr({}, [appBarId, 'dashboardLayout'], appBarData),
-      [appBarId, 'dashboardLayout'],
-      localAppBarData
-    )
-)
-export const selectDashboardLockedLayout = createSelector(
-  selectDashboard,
-  (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
 )
 // General
 export const selectResolveTime = createSelector([selectTime], (currentTime) =>

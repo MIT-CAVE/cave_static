@@ -20,6 +20,8 @@ import {
   selectTheme,
   selectViewport,
   selectMapModal,
+  selectStaticMap,
+  selectAppBarId,
 } from '../../../data/selectors'
 import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
 
@@ -34,12 +36,14 @@ const viewportKeys = [
   'minZoom',
 ]
 
-const Map = ({ mapboxToken, isStatic }) => {
+const Map = ({ mapboxToken }) => {
   const dispatch = useDispatch()
   const viewport = useSelector(selectViewport)
   const theme = useSelector(selectTheme)
   const mapStyle = useSelector(selectMapStyle)
   const mapModal = useSelector(selectMapModal)
+  const isStatic = useSelector(selectStaticMap)
+  const appBarId = useSelector(selectAppBarId)
 
   const onViewStateChange = useCallback(
     (nextViewport) => {
@@ -56,15 +60,15 @@ const Map = ({ mapboxToken, isStatic }) => {
         !R.equals(updatedViewport, oldViewport) &&
         !isStatic
       ) {
-        dispatch(viewportUpdate(updatedViewport))
+        dispatch(viewportUpdate({ appBarId, viewport: updatedViewport }))
       }
     },
-    [dispatch, mapModal.isOpen, isStatic]
+    [mapModal.isOpen, isStatic, dispatch, appBarId]
   )
 
   return (
     <Fragment>
-      <MapControls isStatic={isStatic} />
+      <MapControls />
       <ReactMapGL
         {...viewport}
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
@@ -97,6 +101,6 @@ const Map = ({ mapboxToken, isStatic }) => {
     </Fragment>
   )
 }
-Map.propTypes = { mapboxToken: PropTypes.string, isStatic: PropTypes.bool }
+Map.propTypes = { mapboxToken: PropTypes.string }
 
 export default Map

@@ -15,7 +15,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { mutateLocal } from './data/local'
 import {
   selectAppBarData,
-  selectAppBarId,
   selectMapboxToken,
   selectOpenPane,
   selectSecondaryOpenPane,
@@ -59,29 +58,19 @@ const App = () => {
   const mapboxToken = useSelector(selectMapboxToken)
   const themeId = useSelector(selectTheme)
   const selectedView = useSelector(selectView)
-  const appBarData = useSelector(selectAppBarData)
   const open = useSelector(selectOpenPane)
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const sync = useSelector(selectSync)
-  const appBarId = useSelector(selectAppBarId)
-  const pane = R.propOr({}, open)(appBarData)
+  const appBarData = useSelector(selectAppBarData)
 
   const dispatch = useDispatch()
   const theme = getTheme(themeId)
+  const pane = R.propOr({}, open)(appBarData)
 
   const renderAppPage = R.cond([
     [
       R.equals(viewId.MAP),
-      R.always(
-        mapboxToken ? (
-          <Map
-            {...{
-              mapboxToken,
-              isStatic: R.pathOr(false, [appBarId, 'static'], appBarData),
-            }}
-          />
-        ) : null
-      ),
+      R.always(mapboxToken ? <Map {...{ mapboxToken }} /> : null),
     ],
     [R.equals(viewId.DASHBOARD), R.always(<Dashboard />)],
     [R.equals(viewId.KPI), R.always(<Kpi />)],

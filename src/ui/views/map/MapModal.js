@@ -30,6 +30,7 @@ import {
   selectTime,
   selectResolveTime,
   selectData,
+  selectAppBarId,
 } from '../../../data/selectors'
 import { styleId } from '../../../utils/enums'
 import SimpleModal from '../../compound/SimpleModal'
@@ -202,6 +203,7 @@ const MapModal = () => {
   const optionalViewports = useSelector(selectOptionalViewports)
   const timeUnits = useSelector(selectTimeUnits)
   const timeLength = useSelector(selectTimeLength)
+  const appBarId = useSelector(selectAppBarId)
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
 
@@ -226,7 +228,7 @@ const MapModal = () => {
               // added by `customSort` as a helper property
               R.omit(['name', 'icon'])
             )(optionalViewports)
-            dispatch(viewportUpdate(viewport))
+            dispatch(viewportUpdate({ viewport, appBarId }))
             dispatch(closeMapModal())
           }}
         />
