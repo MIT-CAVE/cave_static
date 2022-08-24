@@ -64,11 +64,11 @@ const App = () => {
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
-  const pane = useSelector(selectOpenPane)
+  const pane = R.propOr({}, open)(appBarData)
 
   const dispatch = useDispatch()
   const theme = getTheme(themeId)
-  
+
   const renderAppPage = R.cond([
     [
       R.equals(viewId.MAP),
