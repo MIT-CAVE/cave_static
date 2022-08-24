@@ -50,14 +50,10 @@ const PropTitle = ({
   titleVariant = 'subtitle1',
   ...props
 }) => (
-  <Grid container xs alignSelf="center" {...props}>
-    {marquee ? (
-      <OverflowText scrollWhen="overflow" text={title} />
-    ) : (
-      <Typography noWrap={marquee} variant={titleVariant}>
-        {title}
-      </Typography>
-    )}
+  <Grid container alignSelf="center" {...props}>
+    <Typography noWrap={marquee} variant={titleVariant}>
+      {marquee ? <OverflowText text={title} /> : title}
+    </Typography>
   </Grid>
 )
 
