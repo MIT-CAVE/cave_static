@@ -25,7 +25,7 @@ import DashboardKpi from './DashboardKpi'
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectDashboardId,
+  selectAppBarId,
   selectDashboardLayout,
   selectDashboardLockedLayout,
   selectSync,
@@ -103,10 +103,10 @@ const Dashboard = () => {
   const sync = useSelector(selectSync)
   const dashboardLayout = useSelector(selectDashboardLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
-  const dashboardId = useSelector(selectDashboardId)
+  const appBarId = useSelector(selectAppBarId)
 
   const DashboardHeader = ({ obj, index }) => {
-    const path = ['appBar', 'data', dashboardId, 'dashboardLayout', index]
+    const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
     return (
       <Grid
         container
@@ -246,7 +246,7 @@ const Dashboard = () => {
     R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
   )(dashboardLayout)
 
-  const path = ['appBar', 'data', dashboardId, 'dashboardLayout']
+  const path = ['appBar', 'data', appBarId, 'dashboardLayout']
   return (
     <Container className={classes.root} disableGutters>
       {!isDashboardEmpty && (

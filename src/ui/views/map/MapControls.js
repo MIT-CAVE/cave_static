@@ -175,7 +175,7 @@ TooltipButton.propTypes = {
   children: PropTypes.node,
 }
 
-const MapControls = () => {
+const MapControls = ({ isStatic }) => {
   const [hover, setHover] = useState(false)
   const [animation, setAnimation] = useState(false)
   const activeAnimation = useRef()
@@ -261,38 +261,42 @@ const MapControls = () => {
         )}
 
         {/* Map controls */}
-        <ButtonGroup
-          classes={{ root }}
-          className={classes.mapControls}
-          orientation="vertical"
-          variant="contained"
-          size="small"
-        >
-          <TooltipButton
-            title={tooltipTitles.pitch}
-            onClick={() => dispatch(pitchSliderToggle())}
+        {isStatic ? (
+          []
+        ) : (
+          <ButtonGroup
+            classes={{ root }}
+            className={classes.mapControls}
+            orientation="vertical"
+            variant="contained"
+            size="small"
           >
-            <MdHeight />
-          </TooltipButton>
-          <TooltipButton
-            title={tooltipTitles.zoomIn}
-            onClick={() => dispatch(setZoom(zoom + 0.5))}
-          >
-            <MdAdd />
-          </TooltipButton>
-          <TooltipButton
-            title={tooltipTitles.zoomOut}
-            onClick={() => dispatch(setZoom(zoom - 0.5))}
-          >
-            <MdRemove />
-          </TooltipButton>
-          <TooltipButton
-            title={tooltipTitles.bearing}
-            onClick={() => dispatch(bearingSliderToggle())}
-          >
-            <Md360 />
-          </TooltipButton>
-        </ButtonGroup>
+            <TooltipButton
+              title={tooltipTitles.pitch}
+              onClick={() => dispatch(pitchSliderToggle())}
+            >
+              <MdHeight />
+            </TooltipButton>
+            <TooltipButton
+              title={tooltipTitles.zoomIn}
+              onClick={() => dispatch(setZoom(zoom + 0.5))}
+            >
+              <MdAdd />
+            </TooltipButton>
+            <TooltipButton
+              title={tooltipTitles.zoomOut}
+              onClick={() => dispatch(setZoom(zoom - 0.5))}
+            >
+              <MdRemove />
+            </TooltipButton>
+            <TooltipButton
+              title={tooltipTitles.bearing}
+              onClick={() => dispatch(bearingSliderToggle())}
+            >
+              <Md360 />
+            </TooltipButton>
+          </ButtonGroup>
+        )}
 
         <div className={classes.rowButtons}>
           {/*Animation Controls*/}

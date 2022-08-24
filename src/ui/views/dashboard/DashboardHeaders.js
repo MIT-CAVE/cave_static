@@ -25,7 +25,7 @@ import {
   selectStatisticTypes,
   selectCategoriesData,
   selectSync,
-  selectDashboardId,
+  selectAppBarId,
 } from '../../../data/selectors'
 
 import {
@@ -67,10 +67,10 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const statisticTypes = useSelector(selectStatisticTypes)
   const sortedStatistics = customSort(statisticTypes)
   const sortedCategories = customSort(categories)
-  const dashboardId = useSelector(selectDashboardId)
+  const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
-  const path = ['appBar', 'data', dashboardId, 'dashboardLayout', index]
+  const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
 
   return (
     <Fragment>
@@ -285,10 +285,10 @@ const KpiHeader = memo(({ obj, index }) => {
   const classes = useStyles()
 
   const kpis = useSelector(selectAssociatedData)
-  const dashboardId = useSelector(selectDashboardId)
+  const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
-  const path = ['appBar', 'data', dashboardId, 'dashboardLayout', index]
+  const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
 
   return (
     <Fragment>

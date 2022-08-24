@@ -11,7 +11,7 @@ import { viewSelection } from '../../../data/local/settingsSlice'
 import {
   selectTheme,
   selectView,
-  selectDashboardId,
+  selectAppBarId,
   selectSync,
   selectGroupedAppBar,
   selectOpenPane,
@@ -90,7 +90,7 @@ const getAppBarItem = ({
   key,
   classes,
   selectedView,
-  dashboardId,
+  appBarId,
   changePane,
   sync,
   dispatch,
@@ -98,7 +98,7 @@ const getAppBarItem = ({
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
 
-  const path = ['appBar', 'data', 'dashboardId']
+  const path = ['appBar', 'data', 'appBarId']
 
   return type === 'pane' ? (
     <Tab
@@ -140,7 +140,16 @@ const getAppBarItem = ({
       className={`${classes.navBtn} ${
         selectedView === viewId.MAP ? classes.navBtnActive : ''
       }`}
-      onClick={() => dispatch(viewSelection(viewId.MAP))}
+      onClick={() => {
+        dispatch(
+          mutateLocal({
+            path,
+            value: key,
+            sync: !includesPath(R.values(sync), path),
+          })
+        )
+        dispatch(viewSelection(viewId.MAP))
+      }}
       icon={icon}
       color={color}
     />
@@ -158,7 +167,7 @@ const getAppBarItem = ({
     <ButtonInTabs
       key={key}
       className={`${classes.navBtn} ${
-        selectedView === viewId.DASHBOARD && R.equals(dashboardId, key)
+        selectedView === viewId.DASHBOARD && R.equals(appBarId, key)
           ? classes.navBtnActive
           : ''
       }`}
@@ -187,7 +196,7 @@ const AppBar = () => {
   const currentThemeId = useSelector(selectTheme)
   const open = useSelector(selectOpenPane)
   const appBar = useSelector(selectGroupedAppBar)
-  const dashboardId = useSelector(selectDashboardId)
+  const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
   const getValue = useCallback(
@@ -237,7 +246,7 @@ const AppBar = () => {
                 classes,
                 obj,
                 selectedView,
-                dashboardId,
+                appBarId,
                 changePane,
                 sync,
                 dispatch,
@@ -269,7 +278,7 @@ const AppBar = () => {
                 classes,
                 obj,
                 selectedView,
-                dashboardId,
+                appBarId,
                 changePane,
                 sync,
                 dispatch,

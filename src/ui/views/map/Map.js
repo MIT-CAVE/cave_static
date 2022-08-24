@@ -2,7 +2,7 @@ import { MapView } from '@deck.gl/core'
 import { DeckGL } from '@deck.gl/react'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { Fragment } from 'react'
+import { Fragment, useCallback } from 'react'
 import ReactMapGL, { ScaleControl } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -21,10 +21,7 @@ import {
   selectViewport,
   selectMapModal,
 } from '../../../data/selectors'
-import {
-  STYLE_URL_BASE,
-  APP_BAR_WIDTH,
-} from '../../../utils/constants'
+import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
 
 const viewportKeys = [
   'longitude',
@@ -37,30 +34,37 @@ const viewportKeys = [
   'minZoom',
 ]
 
-const Map = ({ mapboxToken }) => {
+const Map = ({ mapboxToken, isStatic }) => {
   const dispatch = useDispatch()
   const viewport = useSelector(selectViewport)
   const theme = useSelector(selectTheme)
   const mapStyle = useSelector(selectMapStyle)
   const mapModal = useSelector(selectMapModal)
 
-  const onViewStateChange = (nextViewport) => {
-    const updatedViewport = R.pipe(
-      R.propOr({}, 'viewState'),
-      R.pick(viewportKeys)
-    )(nextViewport)
-    const oldViewport = R.pipe(
-      R.propOr({}, 'oldViewState'),
-      R.pick(viewportKeys)
-    )(nextViewport)
-    if (!mapModal.isOpen && !R.equals(updatedViewport, oldViewport)) {
-      dispatch(viewportUpdate(updatedViewport))
-    }
-  }
+  const onViewStateChange = useCallback(
+    (nextViewport) => {
+      const updatedViewport = R.pipe(
+        R.propOr({}, 'viewState'),
+        R.pick(viewportKeys)
+      )(nextViewport)
+      const oldViewport = R.pipe(
+        R.propOr({}, 'oldViewState'),
+        R.pick(viewportKeys)
+      )(nextViewport)
+      if (
+        !mapModal.isOpen &&
+        !R.equals(updatedViewport, oldViewport) &&
+        !isStatic
+      ) {
+        dispatch(viewportUpdate(updatedViewport))
+      }
+    },
+    [dispatch, mapModal.isOpen, isStatic]
+  )
 
   return (
     <Fragment>
-      <MapControls />
+      <MapControls isStatic={isStatic} />
       <ReactMapGL
         {...viewport}
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
@@ -72,7 +76,13 @@ const Map = ({ mapboxToken }) => {
         <DeckGL
           views={new MapView({ repeat: true })}
           getCursor={({ isDragging, isHovering }) =>
-            isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab'
+            isDragging
+              ? 'grabbing'
+              : isHovering
+              ? 'pointer'
+              : !isStatic
+              ? 'grab'
+              : 'auto'
           }
           viewState={viewport}
           onViewStateChange={onViewStateChange}
@@ -87,6 +97,6 @@ const Map = ({ mapboxToken }) => {
     </Fragment>
   )
 }
-Map.propTypes = { mapboxToken: PropTypes.string }
+Map.propTypes = { mapboxToken: PropTypes.string, isStatic: PropTypes.bool }
 
 export default Map

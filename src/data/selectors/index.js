@@ -331,30 +331,30 @@ export const selectGroupedAppBar = createSelector(
     R.map(R.fromPairs)
   )
 )
-export const selectDashboardId = createSelector(
+export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData],
   (localAppBarData, appBarData) =>
     R.propOr(
-      R.propOr('', 'dashboardId', appBarData),
-      'dashboardId',
+      R.propOr('', 'appBarId', appBarData),
+      'appBarId',
       localAppBarData
     )
 )
 export const selectDashboard = createSelector(
-  [selectDashboardId, selectAppBarData, selectLocalAppBarData],
-  (dashboardId, appBarData, localAppBarData) =>
+  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
+  (appBarId, appBarData, localAppBarData) =>
     R.propOr(
-      R.propOr({}, dashboardId, appBarData),
-      dashboardId,
+      R.propOr({}, appBarId, appBarData),
+      appBarId,
       localAppBarData
     )
 )
 export const selectDashboardLayout = createSelector(
-  [selectDashboardId, selectAppBarData, selectLocalAppBarData],
-  (dashboardId, appBarData, localAppBarData) =>
+  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
+  (appBarId, appBarData, localAppBarData) =>
     R.pathOr(
-      R.pathOr({}, [dashboardId, 'dashboardLayout'], appBarData),
-      [dashboardId, 'dashboardLayout'],
+      R.pathOr({}, [appBarId, 'dashboardLayout'], appBarData),
+      [appBarId, 'dashboardLayout'],
       localAppBarData
     )
 )
