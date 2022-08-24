@@ -18,8 +18,8 @@ const styles = {
   content: {
     p: 2.5,
     height: '100%',
-    maxWidth: (theme) =>
-      `calc(100vw - ${APP_BAR_WIDTH + 1}px - ${theme.spacing(5)})`,
+    boxSizing: 'border-box',
+    maxWidth: `calc(100vw - ${APP_BAR_WIDTH + 1}px)`,
     overflow: 'auto',
   },
   header: {

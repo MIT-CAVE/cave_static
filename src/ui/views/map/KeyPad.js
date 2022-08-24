@@ -14,9 +14,7 @@ import { renderKpisLayout } from '../common/renderLayout'
 
 const getStyle = (open, secondaryOpen) => ({
   position: 'absolute',
-  left:
-    // TODO: Remove `+ 40` when `MIT-CAVE/cave_static#30` is solved.
-    65 + (open ? PANE_WIDTH + 40 : 0) + (secondaryOpen ? PANE_WIDTH + 40 : 0),
+  left: 65 + (open ? PANE_WIDTH : 0) + (secondaryOpen ? PANE_WIDTH : 0),
   top: '10px',
   p: 1.5,
   bgcolor: 'background.paper',

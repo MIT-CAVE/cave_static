@@ -24,10 +24,11 @@ import { getCategoryItems, includesPath } from '../../../utils'
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
     width: PANE_WIDTH,
-    left: `${APP_BAR_WIDTH + PANE_WIDTH + 40}px`,
+    left: `${APP_BAR_WIDTH + 1 + PANE_WIDTH}px`,
     borderLeft: `1px solid ${theme.palette.text.secondary}`,
     padding: '20px',
-    height: 'calc(100vh - 40px)', // Since the top and bottom padding change the height
+    boxSizing: 'border-box',
+    height: '100vh',
     overflow: 'visible',
     overflowY: 'auto',
   },
