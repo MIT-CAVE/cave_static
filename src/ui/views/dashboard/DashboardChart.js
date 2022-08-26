@@ -153,6 +153,10 @@ const DashboardChart = ({ obj, length }) => {
 
         setFormattedData(formattedData)
       } else {
+        const groupByIdx = R.addIndex(R.groupBy)(
+          (val, idx) => idx % R.length(actualStat)
+        )
+
         const getSubGroupedTableData = R.mapObjIndexed((val, key) =>
           R.values(
             R.mapObjIndexed(
@@ -171,7 +175,7 @@ const DashboardChart = ({ obj, length }) => {
                       ),
                       R.identity
                     )
-                  )(R.reduce(R.zip, R.head(stats))(R.tail(stats)))
+                  )(R.pipe(R.unnest, groupByIdx, R.values)(stats))
                 ),
               }),
               val
@@ -192,7 +196,7 @@ const DashboardChart = ({ obj, length }) => {
               ),
               R.identity
             )
-          )(R.reduce(R.zip, R.head(val))(R.tail(val))),
+          )(R.pipe(R.unnest, groupByIdx, R.values)(val)),
         }))
 
         const tableData = R.pipe(
