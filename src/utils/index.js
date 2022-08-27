@@ -275,10 +275,12 @@ export const getContrastYIQ = (rgbArray) => {
 }
 
 export const addExtraProps = (Component, extraProps) => {
-  return <Component.type {...Component.props} {...extraProps} />
+  const ComponentType = Component.type
+  return <ComponentType {...Component.props} {...extraProps} />
 }
 export const removeExtraProps = (Component, extraProps) => {
-  return <Component.type {...R.omit(extraProps, Component.props)} />
+  const ComponentType = Component.type
+  return <ComponentType {...R.omit(extraProps, Component.props)} />
 }
 
 export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {

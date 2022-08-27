@@ -165,15 +165,14 @@ const DashboardChart = ({ obj, length }) => {
                 y: R.prepend(
                   subLabel,
                   R.map(
-                    R.ifElse(
+                    R.when(
                       R.is(Array),
                       R.pipe(
                         R.flatten,
                         R.map((d) => +d),
                         R.filter((d) => !isNaN(d)),
                         mergeFuncs[obj.grouping]
-                      ),
-                      R.identity
+                      )
                     )
                   )(R.pipe(R.unnest, groupByIdx, R.values)(stats))
                 ),
@@ -186,15 +185,14 @@ const DashboardChart = ({ obj, length }) => {
         const getTableData = R.mapObjIndexed((val, key) => ({
           x: key,
           y: R.map(
-            R.ifElse(
+            R.when(
               R.is(Array),
               R.pipe(
                 R.flatten,
                 R.map((d) => +d),
                 R.filter((d) => !isNaN(d)),
                 mergeFuncs[obj.grouping]
-              ),
-              R.identity
+              )
             )
           )(R.pipe(R.unnest, groupByIdx, R.values)(val)),
         }))

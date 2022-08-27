@@ -160,7 +160,8 @@ const localCss = {
 }
 
 const addExtraProps = (Component, extraProps) => {
-  return <Component.type {...Component.props} {...extraProps} />
+  const ComponentType = Component.type
+  return <ComponentType {...Component.props} {...extraProps} />
 }
 
 const CategoricalBox = ({ title, color, getLabel = R.identity }) => (

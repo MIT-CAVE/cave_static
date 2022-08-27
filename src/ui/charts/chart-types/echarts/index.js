@@ -105,7 +105,7 @@ const EchartsPlot = ({
   const series = R.pipe(R.head, R.is(Object))(yData)
     ? R.map((yKey) => ({
         name: yKey,
-        data: R.map(R.prop(yKey))(yData),
+        data: R.pluck(yKey)(yData),
         type: chartType,
         ...(stack && { stack: stack }),
         smooth: true,
@@ -403,8 +403,8 @@ const EchartsBoxPlot = ({
 const LinePlot = ({ data, xAxisTitle, yAxisTitle, theme }) => {
   return (
     <EchartsPlot
-      xData={R.map(R.prop('x'))(data)}
-      yData={R.map(R.prop('y'))(data)}
+      xData={R.pluck('x')(data)}
+      yData={R.pluck('y')(data)}
       chartType="line"
       {...{ theme, xAxisTitle, yAxisTitle }}
     />
@@ -420,8 +420,8 @@ LinePlot.propTypes = {
 const BarPlot = ({ data, xAxisTitle, yAxisTitle, theme, stack = false }) => {
   return (
     <EchartsPlot
-      xData={R.map(R.prop('x'))(data)}
-      yData={R.map(R.prop('y'))(data)}
+      xData={R.pluck('x')(data)}
+      yData={R.pluck('y')(data)}
       chartType="bar"
       stack={stack}
       {...{ theme, xAxisTitle, yAxisTitle }}

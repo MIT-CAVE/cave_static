@@ -482,7 +482,7 @@ export const selectArcRange = createSelector(
             return { min: 0, max: 0 }
           }
         : R.identity,
-      R.ifElse(checkValidRange, R.identity, R.always({ min: 0, max: 0 }))
+      R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
     )(arcs)
 )
 export const selectNodeRange = createSelector(
@@ -490,7 +490,7 @@ export const selectNodeRange = createSelector(
   (nodeTypes, timePath) => (type, prop, size) =>
     R.pipe(
       timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
-      R.ifElse(checkValidRange, R.identity, R.always({ min: 0, max: 0 }))
+      R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
     )(nodeTypes)
 )
 export const selectGeoColorRange = createSelector(
@@ -498,6 +498,6 @@ export const selectGeoColorRange = createSelector(
   (geoTypes, timePath) => (type, prop) =>
     R.pipe(
       timePath([type, 'colorByOptions', prop]),
-      R.ifElse(checkValidRange, R.identity, R.always({ min: 0, max: 0 }))
+      R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
     )(geoTypes)
 )
