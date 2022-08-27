@@ -5,6 +5,11 @@ module.exports = {
   plugins: ['@emotion', 'ramda'],
   extends: [
     'react-app',
+    'plugin:import/errors',
+    'plugin:import/warnings',
+    'plugin:compat/recommended',
+    'plugin:ramda/recommended',
+    'plugin:prettier/recommended',
   ],
   rules: {
     // General
@@ -13,15 +18,15 @@ module.exports = {
     'prefer-template': 'warn',
 
     // Error on unused vars to force proper development
-    "no-unused-vars": [
-      "error",
+    'no-unused-vars': [
+      'error',
       {
-        "vars": "all",
-        "args": "after-used",
-        "ignoreRestSiblings": false,
-        "argsIgnorePattern": "props",
+        vars: 'all',
+        args: 'after-used',
+        ignoreRestSiblings: false,
+        argsIgnorePattern: 'props',
         // "varsIgnorePattern": ""
-      }
+      },
     ],
 
     // Import Rules
@@ -76,14 +81,14 @@ module.exports = {
 
     // react rules
     // allow specifying true explicitly for boolean props
-    'react/jsx-boolean-value': 'off',
-    // turn off this rule as its options are not consistent with Prettier
-    'react/jsx-curly-newline': 'off',
-    // TODO: ADD PROP TYPES ACROSS THE BOARD
-    // For now, do not warn on missing prop types
-    'react/prop-types': 'off',
-    // Dont Force React Pascal Case
-    'react/jsx-pascal-case': 'off',
+    // 'react/jsx-boolean-value': 'off',
+    // // turn off this rule as its options are not consistent with Prettier
+    // 'react/jsx-curly-newline': 'off',
+    // // TODO: ADD PROP TYPES ACROSS THE BOARD
+    // // For now, do not warn on missing prop types
+    // 'react/prop-types': 'off',
+    // // Dont Force React Pascal Case
+    // 'react/jsx-pascal-case': 'off',
 
     // prettier rules
     // complies with Prettier '--jsx-single-quote' default value
@@ -95,11 +100,11 @@ module.exports = {
     '@emotion/styled-import': 'error',
     '@emotion/syntax-preference': ['error', 'object'],
 
-    // material-ui rules
+    // mui rules
     'no-restricted-imports': [
       'error',
       {
-        patterns: ['@material-ui/*/*/*', '!@material-ui/core/test-utils/*'],
+        patterns: ['@mui/*/*/*', '!@mui/material/test-utils/*'],
       },
     ],
   },
