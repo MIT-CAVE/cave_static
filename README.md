@@ -19,7 +19,7 @@ Before you begin we suggest you use the version of node that this application ve
 
 You can install all dependencies and run the app by running `npm run setup` from the root of the project.
 
-```
+```sh
 npm run setup
 ```
 
@@ -31,13 +31,13 @@ npm run setup
 ## Clean Code
 [ESLint](https://github.com/eslint/eslint) and [Prettier](https://github.com/prettier/prettier) should lint your staged changes before committing. Please add a [`pre-commit` hook](https://git-scm.com/docs/githooks#_pre_commit) that we set up for this purpose by running:
 
-```
+```sh
 npx simple-git-hooks
 ```
 
 At any time, you can apply the `prettier` package to format your code to our standards by running:
 
-```
+```sh
 npm run prettier
 ```
 
@@ -45,21 +45,21 @@ npm run prettier
 
 From the project root:
 
-```
+```sh
 npm start
 ```
 
 - Compiles `client`, available in the browser at `localhost:3000`
 - Notes:
-  - cave-test-app does NOT currently support a standalone mode. For functionality you should have an instance of [cave_app_server](https://github.com/MIT-CAVE/cave_app_server) running.
-    - The `cave_app_static` should be accessed through the `cave_app_server` ui at `localhost:8000`, and not directly at `localhost:3000`.
+  - cave-test-app does NOT currently support a standalone mode. For functionality you should have an instance of [cave_server](https://github.com/MIT-CAVE/cave_app_server) running.
+  - The `cave_static` should be accessed through the `cave_server` UI at `localhost:8000`, and not directly at `localhost:3000`.
 
 ## Create a static build
 
 1. Edit your `.env` file accordingly
 2. Build the app
 
-```
+```sh
 npm run build
 ```
 
@@ -88,7 +88,7 @@ npm run build
 1. Edit your `.env` file accordingly
 2. Deploy your static build:
 
-```
+```sh
 ./deploy.sh
 ```
 
