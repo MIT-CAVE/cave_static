@@ -47,10 +47,12 @@
     "eslint-plugin-compat": "^4.0.2",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-ramda": "^2.5.1",
-    "prettier": "2.7.1"
+    "lint-staged": "^12.5.0",
+    "prettier": "2.7.1",
+    "simple-git-hooks": "^2.8.0"
   },
   "engines": {
-    "node": "^12.13.0 || ^14.0.0",
+    "node": "^12.20.0 || ^14.13.1",
     "npm": "^7.0.0 || ^8.0.0"
   }
 }
