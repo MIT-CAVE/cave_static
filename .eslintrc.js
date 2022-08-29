@@ -40,7 +40,19 @@ module.exports = {
         groups: [
           ['builtin', 'external', 'internal'],
           ['index', 'sibling'],
-          ['parent'],
+          'parent',
+        ],
+        pathGroups: [
+          {
+            pattern: '../../*',
+            group: 'parent',
+            position: 'after',
+          },
+          {
+            pattern: '../../../*',
+            group: 'parent',
+            position: 'after',
+          },
         ],
         'newlines-between': 'always',
       },

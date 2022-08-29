@@ -9,10 +9,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getDefaultStyleId } from '.'
 import ErrorPad from './ErrorPad'
 import KeyPad from './KeyPad'
+import { getLayers } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
-import { getLayers } from './layers'
 
 import { viewportUpdate } from '../../../data/local/map/mapControlSlice'
 import {
