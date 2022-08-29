@@ -33,23 +33,14 @@ module.exports = {
     'import/order': [
       'error',
       {
-        alphabetize: { order: 'asc' },
+        alphabetize: {
+          order: 'asc',
+          caseInsensitive: true
+        },
         groups: [
           ['builtin', 'external', 'internal'],
           ['index', 'sibling'],
-          'parent',
-        ],
-        pathGroups: [
-          {
-            pattern: '../../*',
-            group: 'parent',
-            position: 'after',
-          },
-          {
-            pattern: '../../../*',
-            group: 'parent',
-            position: 'after',
-          },
+          ['parent'],
         ],
         'newlines-between': 'always',
       },

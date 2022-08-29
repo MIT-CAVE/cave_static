@@ -6,7 +6,7 @@
     "prettier": "npx prettier --write .",
     "reset": "npx rimraf ./package-lock.json && npm run setup",
     "setup": "npx rimraf ./node_modules && npm install",
-    "start": "ESLINT_NO_DEV_ERRORS=true BROWSER=none react-scripts start"
+    "start": "BROWSER=none react-scripts start"
   },
   "dependencies": {
     "@deck.gl/core": "^8.8.9",
