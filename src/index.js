@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom'
 import { Provider, useDispatch } from 'react-redux'
 
 import './index.css'
-import App from './App' // eslint-disable-line
+import App from './App'
 import { fetchData, mutateData } from './data/data'
 import { tokensSet } from './data/tokens/tokensSlice'
 // Must import store prior to any slice items to prevent

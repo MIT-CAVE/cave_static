@@ -4,7 +4,6 @@ import * as R from 'ramda'
 
 import { prettifyValue } from '../../../../utils'
 
-// eslint-disable-next-line
 const TableChart = ({ labels, colTypes, formattedData, theme, ...props }) => {
   // const classes = useStyles()
   // labels = R.map(R.replace(/->/, '&rarr;'))(labels)

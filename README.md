@@ -1,4 +1,5 @@
 # cave_static
+
 A react based static web app to be used as a data consumer for the `cave_app`.
 
 ## License Notice
@@ -29,6 +30,7 @@ npm run setup
   - To ensure good practices and a consistent style code, the following packages for the Atom IDE are strongly suggested: `linter`,` linter-eslint`.
 
 ## Clean Code
+
 [ESLint](https://github.com/eslint/eslint) and [Prettier](https://github.com/prettier/prettier) automatically lint your staged changes before committing.
 
 At any time, you can apply the `lint` command to format your code to our standards by running:
