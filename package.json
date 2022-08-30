@@ -3,9 +3,9 @@
   "version": "0.2.0",
   "scripts": {
     "build": "export $(cat .env | xargs) && react-scripts build",
-    "prettier": "npx prettier --write .",
+    "lint": "npx lint-staged",
     "reset": "npx rimraf ./package-lock.json && npm run setup",
-    "setup": "npx rimraf ./node_modules && npm install",
+    "setup": "npx rimraf ./node_modules && npm install && npx simple-git-hooks",
     "start": "BROWSER=none react-scripts start"
   },
   "dependencies": {

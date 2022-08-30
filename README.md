@@ -29,16 +29,12 @@ npm run setup
   - To ensure good practices and a consistent style code, the following packages for the Atom IDE are strongly suggested: `linter`,` linter-eslint`.
 
 ## Clean Code
-[ESLint](https://github.com/eslint/eslint) and [Prettier](https://github.com/prettier/prettier) should lint your staged changes before committing. Please add a [`pre-commit` hook](https://git-scm.com/docs/githooks#_pre_commit) that we set up for this purpose by running:
+[ESLint](https://github.com/eslint/eslint) and [Prettier](https://github.com/prettier/prettier) automatically lint your staged changes before committing.
+
+At any time, you can apply the `lint` command to format your code to our standards by running:
 
 ```sh
-npx simple-git-hooks
-```
-
-At any time, you can apply the `prettier` package to format your code to our standards by running:
-
-```sh
-npm run prettier
+npm run lint
 ```
 
 ## Run in development
