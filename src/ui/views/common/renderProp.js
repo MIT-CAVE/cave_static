@@ -47,7 +47,7 @@ const getHeaderPropRenderFn = R.ifElse(
   invalidVariant('head')
 )
 
-export const getRendererFn = R.cond([
+const getRendererFn = R.cond([
   [R.equals(propId.TEXT), R.always(getTextPropRenderFn)],
   [R.equals(propId.NUMBER), R.always(getNumberPropRenderFn)],
   [R.equals(propId.TOGGLE), R.always(getTogglePropRenderFn)],
