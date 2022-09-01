@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
-import { TextInput } from './TextInput'
+import NumberInput from './NumberInput'
 
 import { forceArray } from '../../utils'
 
@@ -26,8 +26,7 @@ const PropNumberField = ({
   const enabled = prop.enabled || false
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <TextInput
-        number
+      <NumberInput
         {...{ enabled, max, min, prettify }}
         value={R.clamp(min, max, currentVal || prop.value)}
         unit={R.prop('unit')(prop)}

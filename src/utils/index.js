@@ -199,13 +199,60 @@ export const calculateStatSubGroup = (statistics) => {
     )(groupBy)
 }
 
-export const prettifyValue = (value, numDec = 2, nilValue = 'N/A') =>
+export const prettifyValue = (
+  value,
+  numDec = 2,
+  nilValue = 'N/A',
+  locale = 'en-Us'
+) =>
   value == null
     ? nilValue
-    : value.toLocaleString(undefined, {
+    : value.toLocaleString(locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: numDec,
       })
+
+// Adapted from Mike Bostock's:
+// https://observablehq.com/@mbostock/localized-number-parsing
+export const getLocaleNumberParts = R.memoizeWith(
+  String,
+  (locale = 'en-Us') => {
+    const parts = new Intl.NumberFormat(locale).formatToParts(12345.6)
+    return {
+      group: parts.find((d) => d.type === 'group').value,
+      decimal: parts.find((d) => d.type === 'decimal').value,
+    }
+  }
+)
+const getLocaleNumberPartsRegEx = R.memoizeWith(String, (locale) => {
+  const { group, decimal } = getLocaleNumberParts(locale)
+  const numerals = [
+    ...new Intl.NumberFormat(locale, { useGrouping: false }).format(9876543210),
+  ].reverse()
+
+  return {
+    group: new RegExp(`[${group}]`, 'g'),
+    decimal: new RegExp(`[${decimal}]`),
+    numeral: new RegExp(`[${numerals.join('')}]`, 'g'),
+    index: new Map(numerals.map((d, i) => [d, i])),
+  }
+})
+export const parseNumber = (numberString, locale = 'en-Us') => {
+  const { group, decimal, numeral, index } = getLocaleNumberPartsRegEx(locale)
+  const num = numberString
+    .trim()
+    .replace(group, '')
+    .replace(decimal, '.')
+    .replace(numeral, (d) => index.get(d))
+
+  return num ? Number(num) : NaN
+}
+
+export const isValidNumericInput = (valueStr, locale = 'en-Us') => {
+  const { decimal } = getLocaleNumberParts(locale)
+  const pattern = new RegExp(`^(-|\\+)?(0|[1-9]\\d*)?(\\${decimal})?(\\d+)?$`)
+  return R.test(pattern)(valueStr)
+}
 
 export const getOptimalGridSize = (numColumns, numRows, n) => {
   const r = Math.sqrt(n)
