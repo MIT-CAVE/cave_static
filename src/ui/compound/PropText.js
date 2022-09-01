@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
-import { TextInput } from './TextInput'
+import TextInput from './TextInput'
 
 import { forceArray } from '../../utils'
 

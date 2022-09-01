@@ -17,7 +17,7 @@ const getStatusIcon = (color) => {
   return IconClass ? IconClass : null
 }
 
-export class TextInput extends React.Component {
+export default class TextInput extends React.Component {
   state = { text: this.props.value }
 
   constructor(props) {
