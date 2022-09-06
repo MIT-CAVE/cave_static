@@ -2,25 +2,14 @@ import { InputAdornment, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useMemo, useState } from 'react'
-import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
 import {
   getLocaleNumberParts,
+  getStatusIcon,
   isNumericInputValid,
   parseNumber,
   prettifyValue,
 } from '../../utils'
-
-const getStatusIcon = (color) => {
-  const IconClass = R.cond([
-    [R.equals('error'), BiError],
-    [R.equals('info'), BiInfoCircle],
-    [R.equals('success'), BiCheckCircle],
-    [R.equals('warning'), BiError],
-    [R.equals(R.T), null],
-  ])(color)
-  return IconClass ? IconClass : null
-}
 
 const NumberInput = ({
   color = 'default',
@@ -29,7 +18,6 @@ const NumberInput = ({
   min,
   max,
   placeholder,
-  type,
   unit,
   value: defaultValue,
   formatOnChange = false,
@@ -67,7 +55,7 @@ const NumberInput = ({
   return (
     <TextField
       sx={{ width: '100%' }}
-      {...{ placeholder, type }}
+      {...{ placeholder }}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
       value={valueText}
@@ -106,9 +94,8 @@ NumberInput.propTypes = {
   min: PropTypes.number,
   max: PropTypes.number,
   placeholder: PropTypes.string,
-  type: PropTypes.string,
   unit: PropTypes.string,
-  value: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   formatOnChange: PropTypes.bool,
   onClickAway: PropTypes.func,
 }
