@@ -1,6 +1,5 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 
 import TextInput from './TextInput'
 
@@ -21,9 +20,9 @@ const PropText = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <TextInput
         {...{ enabled }}
         value={currentVal || prop.value}
-        unit={R.prop('unit')(prop)}
         onClickAway={(value) => {
-          if (enabled) onChange(value)
+          if (!enabled) return
+          onChange(value)
         }}
       />
     </Box>

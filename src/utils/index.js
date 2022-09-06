@@ -5,6 +5,7 @@ import { Parser } from 'expr-eval'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
+import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
 import { DEFAULT_ICON_URL } from './constants'
 
@@ -351,6 +352,17 @@ export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {
     const item = await response.json()
     return GenIcon(item)
   }
+}
+
+export const getStatusIcon = (color) => {
+  const IconClass = R.cond([
+    [R.equals('error'), BiError],
+    [R.equals('info'), BiInfoCircle],
+    [R.equals('success'), BiCheckCircle],
+    [R.equals('warning'), BiError],
+    [R.equals(R.T), null],
+  ])(color)
+  return IconClass ? IconClass : null
 }
 
 /**
