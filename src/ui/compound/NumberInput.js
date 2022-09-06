@@ -6,7 +6,7 @@ import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
 import {
   getLocaleNumberParts,
-  isValidNumericInput,
+  isNumericInputValid,
   parseNumber,
   prettifyValue,
 } from '../../utils'
@@ -40,6 +40,7 @@ const NumberInput = ({
     defaultValue ? prettifyValue(defaultValue) : ''
   )
   const [{ decimal }] = useState(getLocaleNumberParts())
+  // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
   const validNaNs = useMemo(
     () => new RegExp(`^(-|\\+)?0?\\${decimal}?$`),
     [decimal]
@@ -48,10 +49,9 @@ const NumberInput = ({
   const handleChange = (event) => {
     const rawValueText = event.target.value
     const rawValue = parseNumber(rawValueText)
-    if (!isValidNumericInput(rawValue) && !R.test(validNaNs)(rawValueText))
+    if (!isNumericInputValid(rawValue) && !R.test(validNaNs)(rawValueText))
       return
 
-    // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
     if (isNaN(rawValue)) {
       setValue(defaultValue) // Go back to default in case blur occurs prematurely
       setValueText(rawValueText)

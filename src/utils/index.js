@@ -248,7 +248,7 @@ export const parseNumber = (numberString, locale = 'en-Us') => {
   return num ? Number(num) : NaN
 }
 
-export const isValidNumericInput = (valueStr, locale = 'en-Us') => {
+export const isNumericInputValid = (valueStr, locale = 'en-Us') => {
   const { decimal } = getLocaleNumberParts(locale)
   const pattern = new RegExp(`^(-|\\+)?(0|[1-9]\\d*)?(\\${decimal})?(\\d+)?$`)
   return R.test(pattern)(valueStr)
