@@ -27,7 +27,6 @@ const renderPropItem = ({
     prop: container ? { container, ...prop } : prop,
     currentVal: resolveTime(currentValue),
     onChange: onChangeProp(prop, prop.id),
-    prettify: true,
   })
 }
 

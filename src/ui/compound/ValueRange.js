@@ -40,7 +40,6 @@ export class ValueRange extends React.Component {
       enabled,
       help,
       valueStart,
-      prettify,
       ...props
     } = this.props
     const step = (this.state.max - this.state.min) / 100
@@ -52,11 +51,9 @@ export class ValueRange extends React.Component {
     }
 
     const getLabelFormat = (value) =>
-      `${
-        prettify
-          ? prettifyValue(Number(value), this.state.roundValue ? 4 : 0)
-          : value
-      }${unit ? ` ${unit}` : ''}`
+      `${prettifyValue(Number(value), this.state.roundValue ? 4 : 0)}${
+        unit ? ` ${unit}` : ''
+      }`
 
     return (
       <>

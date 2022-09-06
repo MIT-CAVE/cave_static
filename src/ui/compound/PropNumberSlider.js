@@ -19,13 +19,7 @@ const styles = (theme) => ({
   },
 })
 
-const PropNumberSlider = ({
-  prop,
-  currentVal,
-  prettify,
-  onChange,
-  ...props
-}) => {
+const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
   const max = R.propOr(Infinity, 'maxValue', prop)
   const min = R.propOr(-Infinity, 'minValue', prop)
   return (
@@ -35,7 +29,6 @@ const PropNumberSlider = ({
       enabled={R.propOr(false, 'enabled', prop)}
       label={R.prop('label', prop)}
       number
-      prettify={prettify}
       minValue={min}
       maxValue={max}
       unit={R.prop('unit')(prop)}
@@ -55,7 +48,6 @@ const PropNumberSlider = ({
 PropNumberSlider.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.number,
-  prettify: PropTypes.bool,
   onChange: PropTypes.func,
 }
 

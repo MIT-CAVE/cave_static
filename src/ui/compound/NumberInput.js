@@ -20,7 +20,7 @@ const NumberInput = ({
   placeholder,
   unit,
   value: defaultValue,
-  formatOnChange = false,
+  formatWhenTyping = false,
   onClickAway,
 }) => {
   const [value, setValue] = useState(defaultValue)
@@ -44,7 +44,7 @@ const NumberInput = ({
       setValue(defaultValue) // Go back to default in case blur occurs prematurely
       setValueText(rawValueText)
     } else {
-      const newValueText = formatOnChange ? prettifyValue(rawValue) : rawValue
+      const newValueText = formatWhenTyping ? prettifyValue(rawValue) : rawValue
       setValue(rawValue)
       setValueText(
         `${newValueText}${rawValueText.endsWith(decimal) ? decimal : ''}`

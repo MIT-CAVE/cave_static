@@ -16,7 +16,7 @@ const getStyles = (enabled) => ({
 const PropNumberField = ({
   prop,
   currentVal,
-  prettify,
+  formatWhenTyping,
   sx = [],
   onChange,
   ...props
@@ -27,7 +27,7 @@ const PropNumberField = ({
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <NumberInput
-        {...{ enabled, max, min, prettify }}
+        {...{ enabled, max, min, formatWhenTyping }}
         value={R.clamp(min, max, currentVal || prop.value)}
         unit={R.prop('unit')(prop)}
         onClickAway={(value) => {
@@ -42,7 +42,7 @@ const PropNumberField = ({
 PropNumberField.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.number,
-  prettify: PropTypes.bool,
+  formatWhenTyping: PropTypes.bool,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
