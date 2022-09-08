@@ -8,7 +8,7 @@ import {
   getStatusIcon,
   isNumericInputValid,
   parseNumber,
-  prettifyValue,
+  formatNumber,
 } from '../../utils'
 
 const NumberInput = ({
@@ -18,14 +18,15 @@ const NumberInput = ({
   min,
   max,
   placeholder,
-  unit,
   value: defaultValue,
-  formatWhenTyping = false,
+  // Here, units are excluded from `formatNumber`
+  // as they are rendered as `InputAdornment`s
+  numberFormat: { unit, whenTyping, currency, ...numberFormat },
   onClickAway,
 }) => {
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
-    defaultValue ? prettifyValue(defaultValue) : ''
+    defaultValue == null ? '' : formatNumber(defaultValue, numberFormat)
   )
   const [{ decimal }] = useState(getLocaleNumberParts())
   // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
@@ -44,14 +45,20 @@ const NumberInput = ({
       setValue(defaultValue) // Go back to default in case blur occurs prematurely
       setValueText(rawValueText)
     } else {
-      const newValueText = formatWhenTyping ? prettifyValue(rawValue) : rawValue
+      const forceInt = numberFormat.precision === 0 // Decimals not allowed
+      const newValueText = whenTyping
+        ? formatNumber(rawValue, numberFormat)
+        : rawValue
       setValue(rawValue)
       setValueText(
-        `${newValueText}${rawValueText.endsWith(decimal) ? decimal : ''}`
+        `${newValueText}${
+          rawValueText.endsWith(decimal) && !forceInt ? decimal : ''
+        }`
       )
     }
   }
 
+  const unitPos = currency ? 'start' : 'end'
   return (
     <TextField
       sx={{ width: '100%' }}
@@ -65,7 +72,7 @@ const NumberInput = ({
 
         const clampedVal = R.clamp(min, max, value)
         setValue(clampedVal)
-        setValueText(prettifyValue(clampedVal))
+        setValueText(formatNumber(clampedVal, numberFormat))
         onClickAway(clampedVal)
       }}
       helperText={help}
@@ -79,8 +86,8 @@ const NumberInput = ({
           ),
         }),
         ...(unit && {
-          startAdornment: (
-            <InputAdornment position="start">{unit}</InputAdornment>
+          [`${unitPos}Adornment`]: (
+            <InputAdornment position={unitPos}>{unit}</InputAdornment>
           ),
         }),
       }}
@@ -94,9 +101,8 @@ NumberInput.propTypes = {
   min: PropTypes.number,
   max: PropTypes.number,
   placeholder: PropTypes.string,
-  unit: PropTypes.string,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  formatOnChange: PropTypes.bool,
+  numberFormat: PropTypes.object,
   onClickAway: PropTypes.func,
 }
 

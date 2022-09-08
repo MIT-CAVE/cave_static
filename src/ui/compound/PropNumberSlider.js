@@ -1,7 +1,11 @@
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useMemo } from 'react'
+import { useSelector } from 'react-redux'
 
 import { ValueRange } from './ValueRange'
+
+import { selectNumberFormat } from '../../data/selectors'
 
 const styles = (theme) => ({
   pt: 3,
@@ -22,6 +26,23 @@ const styles = (theme) => ({
 const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
   const max = R.propOr(Infinity, 'maxValue', prop)
   const min = R.propOr(-Infinity, 'minValue', prop)
+  const {
+    numberFormat: numberFormatRaw = {},
+    // NOTE: The `unit` prop is deprecated in favor of
+    // `numberFormat.unit` and will be removed on 1.0.0
+    unit: deprecatUnit,
+  } = prop
+  const numberFormatDefault = useSelector(selectNumberFormat)
+  // TODO: Pass `numberFormat` to `ValueRange` after this component is refactored
+  const numberFormat = useMemo(
+    () =>
+      R.pipe(
+        R.mergeRight(numberFormatDefault),
+        R.when(R.pipe(R.prop('unit'), R.isNil), R.assoc('unit', deprecatUnit))
+      )(numberFormatRaw),
+    [deprecatUnit, numberFormatDefault, numberFormatRaw]
+  )
+
   return (
     <ValueRange
       {...props}
@@ -31,7 +52,7 @@ const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
       number
       minValue={min}
       maxValue={max}
-      unit={R.prop('unit')(prop)}
+      unit={numberFormat.unit || deprecatUnit}
       valueStart={R.clamp(
         min,
         max,

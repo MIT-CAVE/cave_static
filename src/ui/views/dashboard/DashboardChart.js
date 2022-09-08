@@ -11,6 +11,7 @@ import {
   selectTheme,
   selectDebug,
   selectCategoryFunc,
+  selectNumberFormat,
 } from '../../../data/selectors'
 
 import { BarPlot, BoxPlot, LinePlot, TableChart } from '../../charts'
@@ -68,6 +69,7 @@ const DashboardChart = ({ obj, length }) => {
   const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectStatisticTypes)
   const categoryFunc = useSelector(selectCategoryFunc)
+  const numberFormatDefault = useSelector(selectNumberFormat)
 
   const [tableData, setTableData] = useState([])
   const [formattedData, setFormattedData] = useState([])
@@ -228,16 +230,25 @@ const DashboardChart = ({ obj, length }) => {
           : ''
       }`
     : ''
-  const yAxisTitle = `${getLabelFn(statisticTypes)(obj.statistic)} [${R.path([
-    obj.statistic,
-    'unit',
-  ])(statisticTypes)}]`
+  const stat = R.propOr({}, obj.statistic)(statisticTypes)
+  const { numberFormat = {}, unit: deprecatUnit } = stat
+  // NOTE: The `unit` prop is deprecated in favor of
+  // `numberFormat.unit` and will be removed on 1.0.0
+  const unit = numberFormat.unit || deprecatUnit || numberFormatDefault.unit
+
+  const yAxisTitle = `${getLabelFn(statisticTypes)(obj.statistic)}${
+    unit ? ` [${unit}]` : ''
+  }`
 
   const labels = { xAxisTitle, yAxisTitle }
 
   const tableStatLabels = R.map((item) => {
-    const unit = R.path([item, 'unit'])(statisticTypes)
-    return `${getLabelFn(statisticTypes)(item)}${unit && ` [${unit}]`}`
+    const stat = R.propOr({}, item)(statisticTypes)
+    const { numberFormat = {}, unit: deprecatUnit } = stat
+    // NOTE: The `unit` prop is deprecated in favor of
+    // `numberFormat.unit` and will be removed on 1.0.0
+    const unit = numberFormat.unit || deprecatUnit || numberFormatDefault.unit
+    return `${getLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
   })(actualStat)
 
   const tableLabels = R.prepend(
@@ -264,11 +275,20 @@ const DashboardChart = ({ obj, length }) => {
     R.when(R.always(R.has('level')(obj)), R.prepend('string')),
     R.when(R.always(R.has('level2')(obj)), R.prepend('string'))
   )([])
+
+  // For simplicity, `numberFormatDefault` is used to apply number
+  // formatting to all values in a chart, as some statistics may
+  // be the result of combining different number formats. Although
+  // unlikely in a general `numberFormat` definition, `unit`s are
+  // excluded as they will be represented in the header or as part
+  // of the axis labels.
+  const commonFormat = R.dissoc('unit')(numberFormatDefault)
   return (
     <div className={classes.chart_container}>
       {obj.chart === 'Table' && obj.category ? (
         <TableChart
           formattedData={tableData}
+          numberFormat={commonFormat}
           length={length}
           labels={tableLabels}
           colTypes={tableColTypes}
@@ -277,16 +297,33 @@ const DashboardChart = ({ obj, length }) => {
       ) : obj.chart === 'Box Plot' ? (
         <BoxPlot
           data={formattedData}
+          numberFormat={commonFormat}
           theme={themeId}
           subGrouped={R.has('level2')(obj)}
           {...labels}
         />
       ) : obj.chart === 'Bar' ? (
-        <BarPlot data={formattedData} theme={themeId} {...labels} />
+        <BarPlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
+        />
       ) : obj.chart === 'Stacked Bar' ? (
-        <BarPlot data={formattedData} theme={themeId} stack={'x'} {...labels} />
+        <BarPlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          stack={'x'}
+          {...labels}
+        />
       ) : obj.chart === 'Line' ? (
-        <LinePlot data={formattedData} theme={themeId} {...labels} />
+        <LinePlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
+        />
       ) : (
         <></>
       )}

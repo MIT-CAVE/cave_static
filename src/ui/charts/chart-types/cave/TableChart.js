@@ -2,9 +2,17 @@
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
 
-import { prettifyValue } from '../../../../utils'
+import { formatNumber } from '../../../../utils'
 
-const TableChart = ({ labels, colTypes, formattedData, theme, ...props }) => {
+const TableChart = ({
+  labels,
+  colTypes,
+  formattedData,
+  numberFormat,
+  theme,
+  ...props
+}) => {
+  console.log({ numberFormat })
   // const classes = useStyles()
   // labels = R.map(R.replace(/->/, '&rarr;'))(labels)
   const rows = formattedData.map((d, index) =>
@@ -28,7 +36,7 @@ const TableChart = ({ labels, colTypes, formattedData, theme, ...props }) => {
     field: `${index}`,
     minWidth: 150,
     flex: 1,
-    valueFormatter: ({ value }) => `${prettifyValue(value, 4)}`,
+    valueFormatter: ({ value }) => formatNumber(value, numberFormat),
     ...(colTypes[index] === 'number' && {
       headerAlign: 'center',
       align: 'center',

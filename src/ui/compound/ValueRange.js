@@ -3,7 +3,7 @@ import { Grid, Input, Slider } from '@mui/material'
 import * as R from 'ramda'
 import React from 'react'
 
-import { getSliderMarks, prettifyValue } from '../../utils'
+import { getSliderMarks, formatNumber } from '../../utils'
 
 // TODO: Convert to a functional component
 
@@ -51,9 +51,10 @@ export class ValueRange extends React.Component {
     }
 
     const getLabelFormat = (value) =>
-      `${prettifyValue(Number(value), this.state.roundValue ? 4 : 0)}${
-        unit ? ` ${unit}` : ''
-      }`
+      `${formatNumber(Number(value), {
+        precision: this.state.roundValue ? 4 : 0,
+        unit,
+      })}`
 
     return (
       <>

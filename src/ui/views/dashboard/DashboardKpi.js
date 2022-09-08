@@ -4,7 +4,11 @@ import { memo, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { fetchData } from '../../../data/data'
-import { selectAssociatedData, selectTheme } from '../../../data/selectors'
+import {
+  selectAssociatedData,
+  selectNumberFormat,
+  selectTheme,
+} from '../../../data/selectors'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
@@ -29,6 +33,7 @@ const DashboardKpi = ({ obj, length }) => {
   const classes = useStyles()
   const themeId = useSelector(selectTheme)
   const kpis = useSelector(selectAssociatedData)
+  const numberFormatDefault = useSelector(selectNumberFormat)
 
   useEffect(() => {
     if (R.isEmpty(kpis)) {
@@ -48,39 +53,26 @@ const DashboardKpi = ({ obj, length }) => {
 
   const actualKpi = forcePath(R.propOr([], 'kpi', obj))
 
-  const tableUnit = R.pipe(
+  const kpiData = R.pipe(
     R.values,
     R.head,
     R.path(['data', 'kpis', 'data']),
-    R.values,
-    (values) =>
-      R.map(
-        (item) =>
-          `${item} [${R.propOr(
-            'Units',
-            'unit',
-            R.find(R.propEq('name', item), values)
-          )}]`,
-        actualKpi
-      )
+    R.values
   )(kpis)
 
-  const unit = R.pipe(
-    R.values,
-    R.head,
-    R.path(['data', 'kpis', 'data']),
-    R.values,
-    (values) =>
-      R.map(
-        (item) =>
-          `${R.propOr(
-            'Units',
-            'unit',
-            R.find(R.propEq('name', item), values)
-          )}`,
-        actualKpi
-      )
-  )(kpis)
+  const kpiUnits = R.map((item) => {
+    const kpi = R.find(R.propEq('name', item))(kpiData)
+    const { numberFormat = {}, unit: deprecatUnit } = R.defaultTo({})(kpi)
+    // NOTE: The `unit` prop is deprecated in favor of
+    // `numberFormat.unit` and will be removed on 1.0.0
+    return numberFormat.unit || deprecatUnit || numberFormatDefault.unit
+  })(actualKpi)
+
+  const tableUnit = R.zipWith(
+    (a, b) => `${a}${b ? ` [${b}]` : ''} `,
+    actualKpi,
+    kpiUnits
+  )
 
   const preFormattedKpis = R.pipe(
     R.values,
@@ -131,11 +123,19 @@ const DashboardKpi = ({ obj, length }) => {
       )([])
     : []
 
+  // For simplicity, `numberFormatDefault` is used to apply number
+  // formatting to all values in a chart, as some statistics may
+  // be the result of combining different number formats. Although
+  // unlikely in a general `numberFormat` definition, `unit`s are
+  // excluded as they will be represented in the header or as part
+  // of the axis labels.
+  const commonFormat = R.dissoc('unit')(numberFormatDefault)
   return (
     <div className={classes.chart_container}>
       {obj.chart === 'Table' ? (
         <TableChart
           formattedData={formattedKpis}
+          numberFormat={commonFormat}
           colTypes={tableColTypes}
           length={length}
           labels={R.prepend('Session')(tableUnit)}
@@ -144,15 +144,17 @@ const DashboardKpi = ({ obj, length }) => {
       ) : obj.chart === 'Bar' ? (
         <BarPlot
           data={kpiChartData}
+          numberFormat={commonFormat}
           xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(unit)}
+          yAxisTitle={R.join(', ')(kpiUnits)}
           theme={themeId}
         />
       ) : obj.chart === 'Line' ? (
         <LinePlot
           data={kpiChartData}
+          numberFormat={commonFormat}
           xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(unit)}
+          yAxisTitle={R.join(', ')(kpiUnits)}
           theme={themeId}
         />
       ) : null}

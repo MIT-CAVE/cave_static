@@ -63,7 +63,7 @@ import * as R from 'ramda'
 import React from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { prettifyValue } from '../../../../utils'
+import { formatNumber } from '../../../../utils'
 
 // Register the required components
 echarts.use([
@@ -97,6 +97,7 @@ const EchartsPlot = ({
   yData,
   xAxisTitle,
   yAxisTitle,
+  numberFormat,
   chartType,
   theme,
   stack = false,
@@ -179,7 +180,7 @@ const EchartsPlot = ({
     series,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value) => prettifyValue(value, 4),
+      valueFormatter: (value) => formatNumber(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
@@ -210,6 +211,7 @@ const EchartsBoxPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
+  numberFormat,
   theme,
   subGrouped,
 }) => {
@@ -366,7 +368,7 @@ const EchartsBoxPlot = ({
     legend,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value) => prettifyValue(value, 4),
+      valueFormatter: (value) => formatNumber(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',

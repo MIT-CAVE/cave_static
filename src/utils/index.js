@@ -200,18 +200,37 @@ export const calculateStatSubGroup = (statistics) => {
     )(groupBy)
 }
 
-export const prettifyValue = (
+// Units will be handled outside the ECMAScript 2020 spec,
+// as custom units are not supported by this specification.
+// See: https://tc39.es/proposal-unified-intl-numberformat/section6/locales-currencies-tz_proposed_out.html#sec-measurement-unit-identifiers
+export const formatNumber = (
   value,
-  numDec = 2,
-  nilValue = 'N/A',
-  locale = 'en-Us'
-) =>
-  value == null
-    ? nilValue
-    : value.toLocaleString(locale, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: numDec,
-      })
+  {
+    precision = 2,
+    unit,
+    unitSpace,
+    currency = false,
+    trailingZeros = true,
+    nilValue = 'N/A',
+    locale = 'en-Us',
+  } = {}
+) => {
+  if (value == null) return nilValue
+
+  const valueText = value.toLocaleString(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: precision,
+    trailingZeroDisplay: trailingZeros ? 'auto' : 'stripIfInteger',
+  })
+  // Unless explicitly specified, there should be
+  // no space between a currency unit and its value.
+  const gap = unitSpace ? ' ' : currency ? '' : ' '
+  return unit
+    ? currency
+      ? `${unit}${gap}${valueText}`
+      : `${valueText}${gap}${unit}`
+    : valueText
+}
 
 // Adapted from Mike Bostock's:
 // https://observablehq.com/@mbostock/localized-number-parsing

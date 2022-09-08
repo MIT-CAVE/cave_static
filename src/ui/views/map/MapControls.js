@@ -52,7 +52,7 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 
-import { getSliderMarks, prettifyValue } from '../../../utils'
+import { getSliderMarks, formatNumber } from '../../../utils'
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -198,7 +198,8 @@ const MapControls = () => {
   const classes = useStyles()
   const dispatch = useDispatch()
 
-  const getDegreeFormat = (value) => `${prettifyValue(value)}º`
+  const getDegreeFormat = (value) =>
+    formatNumber(value, { unit: 'º', unitSpace: false })
 
   const root = classes.root
 

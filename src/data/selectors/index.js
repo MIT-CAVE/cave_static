@@ -144,6 +144,10 @@ export const selectDebug = createSelector(
   selectSettingsData,
   R.propOr(false, 'debug')
 )
+export const selectNumberFormat = createSelector(
+  selectSettingsData,
+  R.propOr({}, 'numberFormat')
+)
 export const selectTimeLength = createSelector(selectSettingsData, (data) =>
   R.propOr(0, 'timeLength')(data)
 )
