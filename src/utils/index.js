@@ -7,7 +7,7 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { DEFAULT_ICON_URL } from './constants'
+import { DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
@@ -212,7 +212,7 @@ export const formatNumber = (
     currency = false,
     trailingZeros = true,
     nilValue = 'N/A',
-    locale = 'en-Us',
+    locale = DEFAULT_LOCALE,
   },
   isTyping = false
 ) => {
@@ -236,7 +236,7 @@ export const formatNumber = (
 // https://observablehq.com/@mbostock/localized-number-parsing
 export const getLocaleNumberParts = R.memoizeWith(
   String,
-  (locale = 'en-Us') => {
+  (locale = DEFAULT_LOCALE) => {
     const parts = new Intl.NumberFormat(locale).formatToParts(12345.6)
     return {
       group: parts.find((d) => d.type === 'group').value,
@@ -257,18 +257,19 @@ const getLocaleNumberPartsRegEx = R.memoizeWith(String, (locale) => {
     index: new Map(numerals.map((d, i) => [d, i])),
   }
 })
-export const parseNumber = (numberString, locale = 'en-Us') => {
+export const parseNumber = (numberString, locale = DEFAULT_LOCALE) => {
+  const { decimal: decimalRaw } = getLocaleNumberParts(locale)
   const { group, decimal, numeral, index } = getLocaleNumberPartsRegEx(locale)
   const num = numberString
     .trim()
     .replace(group, '')
-    .replace(decimal, '.')
+    .replace(decimal, decimalRaw)
     .replace(numeral, (d) => index.get(d))
 
   return num ? Number(num) : NaN
 }
 
-export const isNumericInputValid = (valueStr, locale = 'en-Us') => {
+export const isNumericInputValid = (valueStr, locale = DEFAULT_LOCALE) => {
   const { decimal } = getLocaleNumberParts(locale)
   const pattern = new RegExp(`^(-|\\+)?(0|[1-9]\\d*)?(\\${decimal})?(\\d+)?$`)
   return R.test(pattern)(valueStr)
