@@ -21,7 +21,7 @@ const NumberInput = ({
   value: defaultValue,
   // Here, units are excluded from `formatNumber`
   // as they are rendered as `InputAdornment`s
-  numberFormat: { unit, whenTyping, currency, ...numberFormat },
+  numberFormat: { unit, currency, ...numberFormat },
   onClickAway,
 }) => {
   const [value, setValue] = useState(defaultValue)
@@ -50,8 +50,8 @@ const NumberInput = ({
     } else {
       const forceInt = numberFormat.precision === 0 // Decimals not allowed
       const trailingZeros = R.pipe(R.match(zerosMatch), R.nth(1))(rawValueText)
-      const newValueText = whenTyping
-        ? formatNumber(rawValue, numberFormat, true)
+      const newValueText = numberFormat.whenTyping
+        ? formatNumber(rawValue, numberFormat)
         : rawValue.toString()
 
       setValue(rawValue)
