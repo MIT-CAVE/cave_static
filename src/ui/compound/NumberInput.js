@@ -30,8 +30,11 @@ const NumberInput = ({
   )
   const [{ decimal }] = useState(getLocaleNumberParts())
   // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
-  const validNaNs = useMemo(
-    () => new RegExp(`^(-|\\+)?0?\\${decimal}?$`),
+  const { validNaNs, zerosMatch } = useMemo(
+    () => ({
+      validNaNs: new RegExp(`^(-|\\+)?0?\\${decimal}?$`),
+      zerosMatch: new RegExp(`\\${decimal}\\d*?[1-9]*(0+)?$`),
+    }),
     [decimal]
   )
 
@@ -46,14 +49,21 @@ const NumberInput = ({
       setValueText(rawValueText)
     } else {
       const forceInt = numberFormat.precision === 0 // Decimals not allowed
+      const trailingZeros = R.pipe(R.match(zerosMatch), R.nth(1))(rawValueText)
       const newValueText = whenTyping
         ? formatNumber(rawValue, numberFormat)
-        : rawValue
+        : rawValue.toString()
+
       setValue(rawValue)
       setValueText(
         `${newValueText}${
-          rawValueText.endsWith(decimal) && !forceInt ? decimal : ''
-        }`
+          !forceInt &&
+          // was the decimal lost in formatting?
+          rawValueText.includes(decimal) &&
+          !newValueText.includes(decimal)
+            ? decimal
+            : ''
+        }${trailingZeros != null ? trailingZeros : ''}`
       )
     }
   }
