@@ -51,7 +51,7 @@ const NumberInput = ({
       const forceInt = numberFormat.precision === 0 // Decimals not allowed
       const trailingZeros = R.pipe(R.match(zerosMatch), R.nth(1))(rawValueText)
       const newValueText = whenTyping
-        ? formatNumber(rawValue, numberFormat)
+        ? formatNumber(rawValue, numberFormat, true)
         : rawValue.toString()
 
       setValue(rawValue)

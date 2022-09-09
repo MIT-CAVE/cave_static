@@ -213,14 +213,14 @@ export const formatNumber = (
     trailingZeros = true,
     nilValue = 'N/A',
     locale = 'en-Us',
-  } = {}
+  },
+  disableTrailing = false // Required for `whenTyping = true`
 ) => {
   if (value == null) return nilValue
 
   const valueText = value.toLocaleString(locale, {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: trailingZeros && !disableTrailing ? precision : 0,
     maximumFractionDigits: precision,
-    trailingZeroDisplay: trailingZeros ? 'auto' : 'stripIfInteger',
   })
   // Unless explicitly specified, there should be
   // no space between a currency unit and its value.
