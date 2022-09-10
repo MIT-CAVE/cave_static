@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Card } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Box, Card } from '@mui/material'
 import * as R from 'ramda'
 import React from 'react'
 import { MdClose, MdEdit } from 'react-icons/md'
@@ -18,41 +17,46 @@ import { findHighestTruth } from '../../compound'
 
 import { getCategoryItems, includesPath } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    padding: theme.spacing(0.5),
-    textAlign: 'center',
-    marginBottom: theme.spacing(2),
-  },
-  categoryPaper: {
-    padding: theme.spacing(1),
-    textAlign: 'left',
-  },
-  paddedDiv: theme.spacing(2.5),
-  categoryTitle: {
-    fontSize: '22px',
-    textAlign: 'center',
-    padding: '10px',
-  },
+const nonSx = {
   contextClose: {
     position: 'absolute',
-    right: 25,
+    right: '16px',
     cursor: 'pointer',
   },
-}))
+}
+
+const styles = {
+  root: {
+    position: 'relative',
+    mb: 2,
+    p: 2.5,
+    textAlign: 'center',
+  },
+  categoryPaper: {
+    p: 1,
+    textAlign: 'left',
+  },
+  paddedDiv: {
+    p: 0.5,
+  },
+  categoryTitle: {
+    p: 0.5,
+    fontSize: '22px',
+    textAlign: 'center',
+  },
+}
 
 const FilterPane = () => {
   const categories = useSelector(selectCategoriesData)
   const filteredData = useSelector(selectFiltered)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
-  const classes = useStyles()
 
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const filterableCategories = R.filter(R.propOr(true, 'filter'))(categories)
   return (
-    <div css={{ marginBottom: '30px' }}>
-      <div css={{ width: '100%', textAlign: 'center' }}>
+    <Box sx={{ mb: 4 }}>
+      <Box sx={{ width: '100%', textAlign: 'center' }}>
         {R.values(
           R.mapObjIndexed((val, key) => {
             const filtered = R.propOr([], key, filteredData)
@@ -88,10 +92,10 @@ const FilterPane = () => {
             )
 
             return (
-              <Card raised={true} className={classes.root} key={key}>
+              <Card raised sx={styles.root} key={key}>
                 {R.equals(secondaryOpen, { key: 'Filter', category: key }) ? (
                   <MdClose
-                    className={classes.contextClose}
+                    css={nonSx.contextClose}
                     onClick={() =>
                       dispatch(
                         mutateLocal({
@@ -107,7 +111,7 @@ const FilterPane = () => {
                   />
                 ) : (
                   <MdEdit
-                    className={classes.contextClose}
+                    css={nonSx.contextClose}
                     onClick={() =>
                       dispatch(
                         mutateLocal({
@@ -122,20 +126,20 @@ const FilterPane = () => {
                     }
                   />
                 )}
-                <div className={classes.categoryTitle}>
+                <Box sx={styles.categoryTitle}>
                   {R.pathOr(key, [key, 'name'])(categories)}
-                </div>
-                <div className={classes.paddedDiv}>
+                </Box>
+                <Box sx={styles.paddedDiv}>
                   {filtered.length === 0
                     ? 'All items'
                     : R.join(', ', highestTruths.filter(Boolean))}
-                </div>
+                </Box>
               </Card>
             )
           })(filterableCategories)
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }
 

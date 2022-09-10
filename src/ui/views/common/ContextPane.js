@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Button, Card, Paper } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Box, Button, Card, Paper } from '@mui/material'
 import * as R from 'ramda'
 import React from 'react'
 import { MdClose, MdEdit } from 'react-icons/md'
@@ -23,26 +22,27 @@ import { SimpleDropdown, findHighestTruth } from '../../compound'
 
 import { getCategoryItems, includesPath } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   root: {
-    padding: theme.spacing(0.5),
+    p: 1,
     textAlign: 'center',
-    marginBottom: theme.spacing(2),
+    mb: 2,
   },
   categoryPaper: {
-    padding: theme.spacing(1),
+    p: 1,
+    mt: 1,
     textAlign: 'left',
   },
-}))
-
-const localCss = {
   contextButton: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginTop: '10px',
-    marginBottom: '30px',
+    ml: 'auto',
+    mr: 'auto',
+    mt: 1,
+    mb: 4,
     width: '75%',
   },
+}
+
+const localCss = {
   contextClose: {
     position: 'absolute',
     right: 25,
@@ -61,7 +61,6 @@ const ContextPane = () => {
   const appBarData = useSelector(selectAppBarData)
   const categories = useSelector(selectCategoriesData)
   const dispatch = useDispatch()
-  const classes = useStyles()
 
   const open = useSelector(selectOpenPane)
   const pane = R.propOr({}, open)(appBarData)
@@ -81,10 +80,10 @@ const ContextPane = () => {
   )(pane)
 
   return (
-    <div css={{ marginBottom: '30px' }}>
+    <Box sx={{ mb: 4 }}>
       {R.values(
         R.mapObjIndexed((val, key, obj) => (
-          <Card raised={true} className={classes.root} key={key}>
+          <Card raised sx={styles.root} key={key}>
             <div>
               <MdClose
                 css={localCss.contextClose}
@@ -147,7 +146,7 @@ const ContextPane = () => {
                     })
                   ),
               })}
-            <Paper elevation={7} className={classes.categoryPaper}>
+            <Paper elevation={7} sx={styles.categoryPaper}>
               {R.map((category) => {
                 const categoryObj = R.propOr({}, category)(categories)
                 const data = R.propOr({}, 'data', categoryObj)
@@ -240,11 +239,11 @@ const ContextPane = () => {
           </Card>
         ))(R.propOr({}, 'data', pane))
       )}
-      <div css={{ textAlign: 'center' }}>
+      <Box sx={{ textAlign: 'center' }}>
         <Button
+          sx={styles.contextButton}
           variant="contained"
           color="success"
-          css={localCss.contextButton}
           onClick={() =>
             dispatch(
               fetchData({
@@ -267,8 +266,8 @@ const ContextPane = () => {
         >
           {'Add Context'}
         </Button>
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }
 
