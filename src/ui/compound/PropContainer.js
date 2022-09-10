@@ -57,7 +57,7 @@ const PropTitle = ({
   </Grid>
 )
 
-const HorizontalContainer = ({ title, marquee, children, ...props }) => (
+const HorizontalContainer = ({ title, marquee = true, children, ...props }) => (
   <BaseContainer {...props}>
     <Grid container alignItems="center">
       <Grid item maxWidth={PROP_WIDTH / 2} paddingLeft={1} marginRight={3}>

@@ -21,10 +21,10 @@ const renderPropItem = ({
   getCurrentVal,
   onChangeProp,
 }) => {
-  const { container } = layoutItem
+  const { container, elevation, marquee } = layoutItem
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
   return renderProp({
-    prop: container ? { container, ...prop } : prop,
+    prop: container ? { container, elevation, marquee, ...prop } : prop,
     currentVal: resolveTime(currentValue),
     onChange: onChangeProp(prop, prop.id),
   })

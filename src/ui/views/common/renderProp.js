@@ -73,6 +73,8 @@ const PropBase = ({ prop, children }) => {
         R.always(propContainer.NONE),
       ],
     ]),
+    marquee: R.prop('marquee'),
+    elevation: R.prop('elevation'),
     style: R.prop('style'),
   })(prop)
   return <PropContainer {...containerProps}>{children}</PropContainer>
