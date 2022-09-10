@@ -110,46 +110,45 @@ const SelectAccordion = ({
         {/* HACK: Drop warning for non-existing value */}
         {values !== '' && <MenuItem value={values} css={{ display: 'none' }} />}
 
-        {Object.keys(items).map((item, index) => {
-          return (
-            <MenuItem key={index}>
-              <Accordion
-                // defaultExpanded
-                className={classes.accordionRoot}
-                onChange={(event) =>
-                  // Prevents other Select components from capturing
-                  // the event when expanding/collapsing the accordion
-                  event.stopPropagation()
-                }
+        {Object.keys(items).map((item, index) => (
+          <MenuItem key={index}>
+            <Accordion
+              // defaultExpanded
+              className={classes.accordionRoot}
+              onChange={(event) =>
+                // Prevents other Select components from capturing
+                // the event when expanding/collapsing the accordion
+                event.stopPropagation()
+              }
+            >
+              <AccordionSummary expandIcon={<MdExpandMore />}>
+                <Typography className={classes.heading}>
+                  {getLabel(item)}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails
+                css={{
+                  display: 'flex',
+                  flexDirection:
+                    subItemLayouts[index] === 'horizontal' ? 'row' : 'column',
+                }}
               >
-                <AccordionSummary expandIcon={<MdExpandMore />}>
-                  <Typography className={classes.heading}>
-                    {getLabel(item)}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails
-                  css={{
-                    flexDirection:
-                      subItemLayouts[index] === 'horizontal' ? 'row' : 'column',
-                  }}
-                >
-                  {items[item].map((subItem, idx) => (
-                    <MenuItem
-                      key={idx}
-                      component="div"
-                      onClick={() => {
-                        onSelect && onSelect(item, subItem)
-                        setOpen(false)
-                      }}
-                    >
-                      {getSubLabel(item, subItem)}
-                    </MenuItem>
-                  ))}
-                </AccordionDetails>
-              </Accordion>
-            </MenuItem>
-          )
-        })}
+                {items[item].map((subItem, idx) => (
+                  <MenuItem
+                    key={idx}
+                    component="div"
+                    onClick={() => {
+                      onSelect && onSelect(item, subItem)
+                      setOpen(false)
+                    }}
+                  >
+                    {getSubLabel(item, subItem)}
+                  </MenuItem>
+                ))}
+              </AccordionDetails>
+            </Accordion>
+          </MenuItem>
+        ))}
       </Select>
     </FormControl>
   )
