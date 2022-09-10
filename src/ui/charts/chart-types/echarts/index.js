@@ -402,36 +402,44 @@ const EchartsBoxPlot = ({
  * @todo Implement this component.
  * @todo Write the documentation by following JSDoc 3.
  */
-const LinePlot = ({ data, xAxisTitle, yAxisTitle, theme }) => {
+const LinePlot = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
   return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
       yData={R.pluck('y')(data)}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
     />
   )
 }
 LinePlot.propTypes = {
   data: PropTypes.array,
+  numberFormat: PropTypes.object,
   theme: PropTypes.string,
   xAxisTitle: PropTypes.string,
   yAxisTitle: PropTypes.string,
 }
 
-const BarPlot = ({ data, xAxisTitle, yAxisTitle, theme, stack = false }) => {
+const BarPlot = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  stack = false,
+}) => {
   return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
       yData={R.pluck('y')(data)}
       chartType="bar"
-      stack={stack}
-      {...{ theme, xAxisTitle, yAxisTitle }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack }}
     />
   )
 }
 BarPlot.propTypes = {
   data: PropTypes.array,
+  numberFormat: PropTypes.object,
   theme: PropTypes.string,
   xAxisTitle: PropTypes.string,
   yAxisTitle: PropTypes.string,
