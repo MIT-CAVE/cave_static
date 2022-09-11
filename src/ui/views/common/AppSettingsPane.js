@@ -1,3 +1,4 @@
+// TODO: Refactor in terms of props and `PropContainer`
 import {
   FormControl,
   FormControlLabel,
@@ -6,8 +7,8 @@ import {
   Switch,
   Typography,
   Grid,
+  Box,
 } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
@@ -25,56 +26,55 @@ import { themeId } from '../../../utils/enums'
 
 import { InfoButton, OverflowText } from '../../compound'
 
-const localCss = {
-  overflow_align_left: {
+const styles = {
+  paperRoot: {
+    pt: 1,
+    pb: 0.5,
+    pl: 2,
+    pr: 2,
+    mt: 2,
+  },
+  field: {
+    mt: 2,
+    mb: 2,
+  },
+  title: {
+    display: 'flex',
+    position: 'relative',
+    alignItems: 'flex-start',
+  },
+  info: {
+    top: 0,
+    right: 0,
+    position: 'absolute',
+  },
+  overflowAlignLeft: {
     textAlign: 'left',
-    fontSize: '20px',
+    // fontSize: '20px',
   },
 }
 
-const FieldTitle = ({ title, titleVariant = 'h6', help }) => {
-  const classes = useStyles()
-  return (
-    <div
-      css={{
-        display: 'flex',
-        position: 'relative',
-        alignItems: 'flex-start',
-      }}
-    >
-      <Typography variant={titleVariant}>{title}</Typography>
-      {help && (
-        <div className={classes.info}>
-          <InfoButton text={help} />
-        </div>
-      )}
-    </div>
-  )
-}
+const FieldTitle = ({ title, titleVariant = 'h6', help }) => (
+  <Box sx={styles.title}>
+    <Typography variant={titleVariant}>{title}</Typography>
+    {help && (
+      <Box sx={styles.info}>
+        <InfoButton text={help} />
+      </Box>
+    )}
+  </Box>
+)
 FieldTitle.propTypes = {
   title: PropTypes.string,
   help: PropTypes.string,
 }
 
-const useStyles = makeStyles((theme) => ({
-  paperRoot: {
-    padding: theme.spacing(0.5, 2),
-    marginTop: theme.spacing(2),
-  },
-  field: {
-    margin: theme.spacing(2, 0),
-  },
-}))
-
-const FieldContainer = ({ title, help, children }) => {
-  const classes = useStyles()
-  return (
-    <Paper elevation={3} className={classes.paperRoot}>
-      <FieldTitle {...{ title, help }} />
-      <div className={classes.field}>{children}</div>
-    </Paper>
-  )
-}
+const FieldContainer = ({ title, help, children }) => (
+  <Paper elevation={3} sx={styles.paperRoot}>
+    <FieldTitle {...{ title, help }} />
+    <Box sx={styles.field}>{children}</Box>
+  </Paper>
+)
 FieldContainer.propTypes = {
   title: PropTypes.string,
   help: PropTypes.string,
@@ -84,13 +84,12 @@ FieldContainer.propTypes = {
 const ThemeSwitch = ({ onClick, ...props }) => {
   const selectedTheme = useSelector(selectTheme)
   const isDark = selectedTheme === themeId.DARK
-
   return (
     <FormControl component="fieldset">
       <FormGroup aria-label="position" row>
         <FormControlLabel
           value="start"
-          control={<Switch checked={isDark} {...{ onClick }} {...props} />}
+          control={<Switch checked={isDark} {...{ onClick, ...props }} />}
           label={`${isDark ? 'Dark' : 'Light'} mode`}
           labelPlacement="start"
         />
@@ -100,22 +99,20 @@ const ThemeSwitch = ({ onClick, ...props }) => {
 }
 ThemeSwitch.propTypes = { onClick: PropTypes.func }
 
-const SyncSwitch = ({ onClick, checked, label, ...props }) => {
-  return (
-    <Grid container spacing={0} alignItems="center" {...props}>
-      <Grid item xs={2}>
-        <Switch checked={checked} {...{ onClick }} {...props} />
-      </Grid>
-      <Grid item>
-        <OverflowText css={localCss.overflow_align_left} text={label} />
-      </Grid>
+const SyncSwitch = ({ checked, label, onClick, ...props }) => (
+  <Grid container spacing={0} alignItems="center" {...props}>
+    <Grid item xs={2}>
+      <Switch {...{ checked, onClick, ...props }} />
     </Grid>
-  )
-}
+    <Grid item>
+      <OverflowText sx={styles.overflowAlignLeft} text={label} />
+    </Grid>
+  </Grid>
+)
 SyncSwitch.propTypes = {
-  onClick: PropTypes.func,
   checked: PropTypes.bool,
   label: PropTypes.string,
+  onClick: PropTypes.func,
 }
 
 const AppSettingsPane = ({ ...props }) => {

@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
 import { Button, Divider, Grid, IconButton } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import * as R from 'ramda'
 import { Fragment, memo } from 'react'
 import {
@@ -43,35 +41,35 @@ import {
   includesPath,
 } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
-  kpi_refresh_btn: {
-    margin: theme.spacing(1),
+const styles = {
+  kpiRefreshBtn: {
+    m: 1,
   },
   divider: {
-    margin: theme.spacing(1, 2),
+    m: (theme) => theme.spacing(1, 2),
   },
   secondaryClose: {
     top: '-30%',
     left: '-12%',
     '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0)',
+      bgcolor: 'rgba(255, 255, 255, 0)',
     },
   },
-}))
+  statSelect: {
+    // FIXME
+  },
+}
 
 const StatisticsHeader = memo(({ obj, index }) => {
-  const dispatch = useDispatch()
-  const classes = useStyles()
-
   const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectStatisticTypes)
   const sortedStatistics = customSort(statisticTypes)
   const sortedCategories = customSort(categories)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
+  const dispatch = useDispatch()
 
   const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
-
   return (
     <Fragment>
       <Grid display="flex" item>
@@ -167,7 +165,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
         />
       </Grid>
 
-      <Divider flexItem orientation="vertical" className={classes.divider} />
+      <Divider flexItem orientation="vertical" sx={styles.divider} />
 
       <HeaderSelectWrapper>
         {R.prop('chart', obj) === 'Table' ? (
@@ -260,6 +258,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
           }}
         />
         <IconButton
+          sx={[
+            styles.secondaryClose,
+            { display: R.has('level2', obj) ? '' : 'None' },
+          ]}
+          size="small"
           onClick={() => {
             dispatch(
               mutateLocal({
@@ -269,9 +272,6 @@ const StatisticsHeader = memo(({ obj, index }) => {
               })
             )
           }}
-          size={'small'}
-          css={{ display: R.has('level2', obj) ? '' : 'None' }}
-          className={classes.secondaryClose}
         >
           <MdOutlineCancel fontSize="small" />
         </IconButton>
@@ -282,7 +282,6 @@ const StatisticsHeader = memo(({ obj, index }) => {
 
 const KpiHeader = memo(({ obj, index }) => {
   const dispatch = useDispatch()
-  const classes = useStyles()
 
   const kpis = useSelector(selectAssociatedData)
   const appBarId = useSelector(selectAppBarId)
@@ -329,7 +328,7 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper className={classes.stat_select}>
+      <HeaderSelectWrapper sx={styles.statSelect}>
         <SelectMulti
           value={R.propOr([], 'sessions', obj)}
           header="Select Sessions"
@@ -345,7 +344,7 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper className={classes.stat_select}>
+      <HeaderSelectWrapper sx={styles.statSelect}>
         {R.propOr('Bar', 'chart', obj) === 'Table' ? (
           <SelectMulti
             value={R.propOr([], 'kpi', obj)}
@@ -395,7 +394,7 @@ const KpiHeader = memo(({ obj, index }) => {
       <Button
         variant="outlined"
         color="greyscale"
-        className={classes.kpi_refresh_btn}
+        sx={styles.kpiRefreshBtn}
         onClick={() => {
           dispatch(
             fetchData({

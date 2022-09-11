@@ -1,19 +1,9 @@
-/** @jsxImportSource @emotion/react */
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
 
 import { formatNumber } from '../../../../utils'
 
-const TableChart = ({
-  labels,
-  colTypes,
-  formattedData,
-  numberFormat,
-  theme,
-  ...props
-}) => {
-  console.log({ numberFormat })
-  // const classes = useStyles()
+const TableChart = ({ labels, colTypes, formattedData, numberFormat }) => {
   // labels = R.map(R.replace(/->/, '&rarr;'))(labels)
   const rows = formattedData.map((d, index) =>
     R.converge(
@@ -46,9 +36,8 @@ const TableChart = ({
 
   return (
     <DataGrid
-      css={{ backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff' }}
-      rows={rows}
-      columns={columns}
+      sx={{ bgcolor: 'background.paper' }}
+      {...{ rows, columns }}
       rowsPerPageOptions={[25, 50, 100]}
     />
   )

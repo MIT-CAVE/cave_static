@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Grid, Switch } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Box, Grid, Switch } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
@@ -27,6 +26,7 @@ import {
   selectLocalizedNodeTypes,
   selectLocalizedGeoTypes,
   selectSync,
+  selectPitchSliderToggle,
 } from '../../../data/selectors'
 
 import {
@@ -38,100 +38,54 @@ import {
 
 import { includesPath } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    height: '100px',
-    flexGrow: 1,
-    minWidth: 300,
-    transform: 'translateZ(0)',
-    // The position fixed scoping doesn't work in IE 11.
-    '@media all and (-ms-high-contrast: none)': {
-      display: 'none',
-    },
-  },
-  modal: {
-    display: 'flex',
-    padding: '20px',
-    alignItems: 'right',
-    justifyContent: 'center',
-  },
+const styles = {
   paper: {
     width: 500,
-    backgroundColor: theme.palette.background.paper,
-    color: theme.palette.text.primary,
-    border: `1px solid ${theme.palette.text.secondary}`,
-    borderRadius: theme.shape.borderRadius,
-    boxShadow: theme.shadows[5],
-    padding: theme.spacing(0, 4, 3),
+    bgcolor: 'background.paper',
+    color: 'text.primary',
+    border: 1,
+    borderColor: 'text.secondary',
+    borderRadius: 1,
+    boxShadow: 5,
+    p: (theme) => theme.spacing(0, 4, 3),
     overflowY: 'auto',
   },
-  react_icon: {
-    color: theme.palette.text.primary,
-    cursor: 'pointer',
-  },
-}))
-
-const localCss = {
-  legend_root: {
-    overflowY: 'hidden',
+  root: {
     position: 'absolute',
     top: '10px',
-    right: '65px',
+    overflowY: 'hidden',
     zIndex: 1,
   },
-  flex_space_between: {
-    marginBottom: '-20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
-  toggle_layer_icon: {
-    marginLeft: '10px',
-  },
-  overflow_align_left: {
+  overflowAlignLeft: {
     textAlign: 'left',
-    fontSize: '20px',
+    // fontSize: '20px',
   },
-  list_title: {
-    fontSize: '25px',
-    fontWeight: 700,
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    textAlign: 'center',
-  },
-  type_wrapper: {
-    border: '1px solid',
-    padding: '5px',
-    paddingTop: '10px',
-    marginTop: '10px',
-    borderRadius: '8px',
-  },
-  right_bold: {
+  rightBold: {
     textAlign: 'right',
     fontWeight: 700,
   },
   bold: {
     fontWeight: 700,
   },
-  section_header: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '15px',
-    fontWeight: 600,
-    marginTop: '10px',
-    marginBottom: '10px',
-  },
-  section_header_child: {
-    flex: '1 1 auto',
-  },
-  item_summary: {
+}
+
+const nonSx = {
+  itemSummary: {
     cursor: 'pointer',
     display: 'block',
   },
-  categorical_box: {
-    marginLeft: '5px',
-    marginRight: '5px',
+  listTitle: {
+    fontSize: '25px',
+    fontWeight: 700,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    textAlign: 'center',
   },
-  primary_details: {
+  minusOffset: {
+    position: 'relative',
+    top: '-5px',
+  },
+  primaryDetails: {
     marginTop: '20px',
     '& > summary': {
       display: 'block',
@@ -153,9 +107,12 @@ const localCss = {
       },
     },
   },
-  minus_offset: {
-    position: 'relative',
-    top: '-5px',
+  typeWrapper: {
+    border: '1px solid',
+    padding: '5px',
+    paddingTop: '10px',
+    marginTop: '10px',
+    borderRadius: '8px',
   },
 }
 
@@ -165,11 +122,11 @@ const addExtraProps = (Component, extraProps) => {
 }
 
 const CategoricalBox = ({ title, color, getLabel = R.identity }) => (
-  <div css={localCss.categorical_box}>
+  <Box sx={{ mx: 0.5 }}>
     {getLabel(title)}
     <br />
     <BsSquareFill css={{ color: color, marginTop: '5px' }} />
-  </div>
+  </Box>
 )
 
 const GradientBox = ({ gradientBox }) => (
@@ -194,13 +151,13 @@ const MapLegendGroupRowToggleLayer = ({
   return (
     <Grid container spacing={0} alignItems="center" {...props}>
       <Grid item xs={1} className="my-auto text-center">
-        <div css={localCss.toggle_layer_icon}>{icon}</div>
+        <Box sx={{ ml: 1 }}>{icon}</Box>
       </Grid>
       <Grid item xs={2} className="my-auto ml-0">
         {toggle}
       </Grid>
       <Grid item xs={9} className="my-auto">
-        <OverflowText css={localCss.overflow_align_left} text={legendName} />
+        <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
       </Grid>
     </Grid>
   )
@@ -220,9 +177,7 @@ const MapLegendSizeBySection = ({
   const sync = useSelector(selectSync)
 
   const path = [feature, 'types', typeName, 'sizeBy']
-
   const syncSize = !includesPath(R.values(sync), path)
-
   return (
     <>
       <Grid
@@ -244,7 +199,7 @@ const MapLegendSizeBySection = ({
           />
         </Grid>
       </Grid>
-      <div
+      <Box
         css={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -253,59 +208,53 @@ const MapLegendSizeBySection = ({
           marginBottom: '8px',
         }}
       >
-        <div
-          css={{
-            textAlign: 'left',
-            marginRight: '10px',
-            marginLeft: '10px',
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            ...localCss.right_bold,
-          }}
+        <Box
+          sx={[
+            {
+              textAlign: 'left',
+              marginRight: '10px',
+              marginLeft: '10px',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            },
+            styles.rightBold,
+          ]}
         >
           {R.ifElse(
             R.equals(Infinity),
             () => (
               <span>
-                <span css={localCss.minus_offset}>-</span>
+                <span css={nonSx.minusOffset}>-</span>
                 <FaInfinity />
               </span>
             ),
             (x) => x.toFixed(1)
           )(timeProp('min', sizeRange))}
-        </div>
-        <div>
+        </Box>
+        <Box>
           {addExtraProps(icon, {
             css: {
               width: R.prop('startSize')(typeObj),
               height: R.prop('startSize')(typeObj),
             },
           })}
-        </div>
-        <div css={{ marginLeft: '10px', ...localCss.right_bold }}>
+        </Box>
+        <Box sx={[{ ml: 1 }, styles.rightBold]}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('endSize')(typeObj),
               height: R.prop('endSize')(typeObj),
             },
           })}
-        </div>
-        <div
-          css={{
-            textAlign: 'right',
-            marginRight: '10px',
-            marginLeft: '10px',
-            fontWeight: 700,
-            ...localCss.bold,
-          }}
-        >
+        </Box>
+        <Box sx={[{ textAlign: 'right', mx: 1, fontWeight: 700 }, styles.bold]}>
           {R.ifElse(
             R.equals(-Infinity),
             () => <FaInfinity />,
             (x) => x.toFixed(1)
           )(timeProp('max', sizeRange))}
-        </div>
-      </div>
+        </Box>
+      </Box>
     </>
   )
 }
@@ -335,8 +284,8 @@ const MapLegendGeoToggle = ({ geoType, typeObj }) => {
   )
 
   return (
-    <details key={geoType} css={localCss.type_wrapper} open>
-      <summary css={localCss.item_summary}>
+    <details key={geoType} css={nonSx.typeWrapper} open>
+      <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
           icon={<FetchedIcon iconName={typeObj.icon} />}
           legendName={R.propOr(geoType, 'name')(typeObj)}
@@ -442,8 +391,8 @@ const MapLegendNodeToggle = ({ nodeType, typeObj }) => {
   )
 
   return (
-    <details key={nodeType} css={localCss.type_wrapper} open>
-      <summary css={localCss.item_summary}>
+    <details key={nodeType} css={nonSx.typeWrapper} open>
+      <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
           icon={<FetchedIcon iconName={typeObj.icon} />}
           legendName={R.propOr(nodeType, 'name')(typeObj)}
@@ -580,8 +529,8 @@ const MapLegendArcToggle = ({ arcType, typeObj }) => {
   )
 
   return (
-    <details key={arcType} css={localCss.type_wrapper} open>
-      <summary css={localCss.item_summary}>
+    <details key={arcType} css={nonSx.typeWrapper} open>
+      <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
           icon={<IconClass />}
           legendName={R.propOr(arcType, 'name')(typeObj)}
@@ -690,8 +639,8 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
   const geoTypes = useSelector(selectLocalizedGeoTypes)
 
   return (
-    <details {...props} open css={localCss.primary_details}>
-      <summary css={localCss.list_title}>
+    <details {...props} open css={nonSx.primaryDetails}>
+      <summary css={nonSx.listTitle}>
         <span>{R.prop('name', legendObj)}</span>
         <MdExpandMore />
         <MdExpandLess />
@@ -728,33 +677,38 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
 }
 
 const MapLegend = () => {
-  const classes = useStyles()
   const legendData = useSelector(selectLegendData)
 
+  const showPitchSlider = useSelector(selectPitchSliderToggle)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
   const mapLegend = useSelector(selectMapLegend)
   if (!mapLegend.isOpen) return null
 
   return (
-    <div key="Map Legend" css={localCss.legend_root}>
-      <div
-        className={classes.paper}
-        css={{
-          maxHeight: showBearingSlider
-            ? 'calc(100vh - 210px)'
-            : 'calc(100vh - 120px)',
-        }}
+    <Box
+      key="map-legend"
+      sx={[styles.root, { right: showPitchSlider ? 100 : 65 }]}
+    >
+      <Box
+        sx={[
+          styles.paper,
+          {
+            maxHeight: showBearingSlider
+              ? 'calc(100vh - 195px)'
+              : 'calc(100vh - 110px)',
+          },
+        ]}
       >
-        <div css={{ marginLeft: 0, marginRight: 0 }}>
+        <Box sx={{ mx: 0 }}>
           {R.map((legendObj) => (
             <MapLegendToggleList
               legendObj={legendObj}
               key={R.prop('name', legendObj)}
             />
           ))(legendData)}
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   )
 }
 

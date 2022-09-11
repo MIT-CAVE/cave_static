@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { Drawer } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Box, Drawer } from '@mui/material'
 import * as R from 'ramda'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -21,69 +19,30 @@ import { createNestedList, findBaseItems, findValue } from '../../compound'
 
 import { getCategoryItems, includesPath } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   drawerPaper: {
-    width: PANE_WIDTH,
-    left: `${APP_BAR_WIDTH + 1 + PANE_WIDTH}px`,
-    borderLeft: `1px solid ${theme.palette.text.secondary}`,
-    padding: '20px',
-    boxSizing: 'border-box',
-    height: '100vh',
-    overflow: 'visible',
-    overflowY: 'auto',
-  },
-  root: {
-    padding: '5px',
-    textAlign: 'center',
-    marginBottom: '15px',
-  },
-  categoryPaper: {
-    padding: '10px',
-    textAlign: 'left',
+    '& .MuiPaper-root': {
+      width: PANE_WIDTH,
+      left: `${APP_BAR_WIDTH + 1 + PANE_WIDTH}px`,
+      borderLeft: 1,
+      borderColor: 'text.secondary',
+      p: 2.5,
+      boxSizing: 'border-box',
+      height: '100vh',
+      overflow: 'visible',
+      overflowY: 'auto',
+    },
   },
   titleDiv: {
     fontSize: '25px',
     textAlign: 'center',
-    borderBottom: `2px solid ${theme.palette.text.secondary}`,
-    paddingBottom: '10px',
-    marginBottom: '25px',
+    borderBottom: 2,
+    borderColor: 'text.secondary',
+    pb: 1,
+    mb: 3,
   },
-}))
-
-const localCss = {
   titleText: {
-    marginRight: '5px',
-  },
-  contextButton: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginTop: '10px',
-    marginBottom: '30px',
-    width: '75%',
-  },
-  bottomButton: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginTop: '10px',
-    marginBottom: '30px',
-    width: '55%',
-  },
-  resetButton: {
-    marginLeft: '15px',
-    marginRight: 'auto',
-    marginTop: '10px',
-    marginBottom: '30px',
-    width: '25%',
-  },
-  contextClose: {
-    position: 'absolute',
-    right: 25,
-  },
-  contextEdit: {
-    float: 'right',
-  },
-  smallText: {
-    fontSize: '14px',
+    mr: 0.5,
   },
 }
 
@@ -211,11 +170,11 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
   }
 
   return (
-    <div css={{ marginLeft: '-30px' }}>
+    <Box sx={{ ml: '-30px' }}>
       {R.map((val) => createNestedList(val, formattedItems, selectFunction))(
         R.toPairs(formattedCategory)
       )}
-    </div>
+    </Box>
   )
 }
 
@@ -293,16 +252,15 @@ const FilterPane = ({ filteredData, category, dispatch }) => {
   )
 
   return (
-    <div css={{ marginLeft: '-30px' }}>
+    <Box sx={{ ml: '-30px' }}>
       {R.map((val) => createNestedList(val, selectedItems, selectFunction))(
         R.toPairs(formattedCategory)
       )}
-    </div>
+    </Box>
   )
 }
 
 const SecondaryPane = () => {
-  const classes = useStyles()
   const categories = useSelector(selectCategoriesData)
   const open = useSelector(selectSecondaryOpenPane)
   const filteredData = useSelector(selectFiltered)
@@ -314,30 +272,20 @@ const SecondaryPane = () => {
   const title = R.pathOr(category, [category, 'name'])(categories)
   return (
     <Drawer
+      sx={styles.drawerPaper}
       anchor="left"
       open={!!open}
       variant={open ? 'permanent' : 'persistent'}
-      classes={{
-        paper: classes.drawerPaper,
-      }}
     >
-      <div className={classes.titleDiv}>
-        <span css={localCss.titleText}>{title}</span>
-      </div>
+      <Box sx={styles.titleDiv}>
+        <Box sx={styles.titleText}>{title}</Box>
+      </Box>
       {R.prop('key', open) === 'Filter' ? (
-        <FilterPane
-          filteredData={filteredData}
-          dispatch={dispatch}
-          category={category}
-        />
+        <FilterPane {...{ filteredData, category, dispatch }} />
       ) : (
         <ContextPane
-          category={category}
           context={R.prop('key', open)}
-          pane={pane}
-          primaryPane={primaryPane}
-          dispatch={dispatch}
-          classes={classes}
+          {...{ category, pane, primaryPane, dispatch }}
         />
       )}
     </Drawer>

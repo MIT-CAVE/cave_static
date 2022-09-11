@@ -1,8 +1,17 @@
-/** @jsxImportSource @emotion/react */
 import { Grid } from '@mui/material'
+import PropTypes from 'prop-types'
 
-const HeaderSelectWrapper = ({ ...props }) => (
-  <Grid display="flex" item zeroMinWidth {...props} />
+const HeaderSelectWrapper = ({ sx = [], ...props }) => (
+  <Grid display="flex" item zeroMinWidth {...{ sx, ...props }} />
 )
+HeaderSelectWrapper.propTypes = {
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
+}
 
-export { HeaderSelectWrapper }
+export default HeaderSelectWrapper

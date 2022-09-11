@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { ButtonGroup, IconButton, Slider, Tooltip } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Box, ButtonGroup, IconButton, Slider, Tooltip } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useState, useRef, useEffect, memo } from 'react'
@@ -54,67 +52,96 @@ import {
 
 import { getSliderMarks, formatNumber } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    backgroundColor: theme.palette.background.paper,
+const styles = {
+  getRoot: (hover) => ({
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    'button,.MuiSlider-root': {
+      opacity: hover ? 1 : 0.8,
+    },
+    button: {
+      width: '48px',
+    },
+  }),
+  rootBtns: {
+    position: 'absolute',
+    right: '6px',
+    bottom: '24px',
+    zIndex: 1,
+    textAlign: 'right',
+  },
+  btnGroup: {
+    bgcolor: 'background.paper',
   },
   mapControls: {
-    marginBottom: theme.spacing(1.5),
+    mb: 1.5,
   },
   rowButtons: {
     display: 'flex',
-    columnGap: theme.spacing(1.5),
+    columnGap: 1.5,
     zIndex: 1,
   },
   tooltip: {
-    maxWidth: 200,
-    margin: theme.spacing(1),
-    ...theme.typography.caption,
+    '.MuiTooltip-tooltip': (theme) => ({
+      maxWidth: 200,
+      m: 1,
+      ...theme.typography.caption,
+    }),
   },
-}))
-
-const localCss = {
   iconButton: {
-    padding: 5,
-    // borderRadius: 0,
-    // height: 48,
-    // maxHeight: 48,
-    // minHeight: 48,
-    // width: 50,
-    // minWidth: 50,
+    p: 0.5,
     opacity: 1,
     borderRadius: 'inherit',
   },
+  pitch: {
+    position: 'relative',
+    height: '100px',
+    mb: 5,
+    width: 'auto',
+  },
   pitchSlider: {
+    mr: 1,
     '.MuiSlider-thumb': {
       height: 20,
       width: 20,
-      // backgroundColor: '#00f',
-      border: '2px solid currentColor',
+      border: 2,
+      borderColor: 'currentcolor',
       '&:focus, &:hover, &$active': {
         boxShadow: 'inherit',
       },
     },
     '.MuiSlider-track': {
       width: 3,
-      borderRadius: '4px',
+      borderRadius: 1,
     },
     '.MuiSlider-rail': {
       width: 3,
-      borderRadius: '4px',
+      borderRadius: 1,
+    },
+    '.MuiSlider-markLabel': {
+      left: 'auto',
+      right: 36,
     },
   },
+  bearing: {
+    position: 'absolute',
+    right: '84px',
+    bottom: '64px',
+    width: '150px',
+    zIndex: 1,
+  },
   bearingSlider: {
-    '.MuiSlider-thumb': {
+    '& .MuiSlider-thumb': {
       height: 20,
       width: 20,
-      // backgroundColor: '#00f',
-      border: '2px solid currentColor',
+      border: 2,
+      borderColor: 'currentcolor',
       '&:focus, &:hover, &$active': {
         boxShadow: 'inherit',
       },
     },
-    '.MuiSlider-rail': {
+    '& .MuiSlider-rail': {
       height: 3,
       borderRadius: '4px',
     },
@@ -141,13 +168,13 @@ const TooltipButton = ({
   ...props
 }) => (
   <Tooltip
-    classes={{ tooltip: useStyles().tooltip }}
     {...{ title, placement }}
+    sx={styles.tooltip}
     aria-label={ariaLabel || title}
   >
     <span>
       <IconButton
-        css={localCss.iconButton}
+        sx={styles.iconButton}
         {...{ onClick, ...props }}
         size="large"
       >
@@ -194,14 +221,10 @@ const MapControls = () => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
-
-  const classes = useStyles()
   const dispatch = useDispatch()
 
   const getDegreeFormat = (value) =>
-    formatNumber(value, { unit: 'º', unitSpace: false })
-
-  const root = classes.root
+    formatNumber(value, { unit: 'º', precision: 0, unitSpace: false })
 
   // Ensures that animation stops if component is unmounted
   useEffect(() => {
@@ -218,41 +241,16 @@ const MapControls = () => {
   }
 
   return (
-    <div
-      css={{
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        'button,.MuiSlider-root': {
-          opacity: hover ? 1 : 0.8,
-        },
-        button: {
-          width: '48px',
-        },
-      }}
+    <Box
+      sx={styles.getRoot(hover)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div
-        css={{
-          position: 'absolute',
-          right: '6px',
-          bottom: '24px',
-          zIndex: 1,
-          textAlign: 'right',
-        }}
-      >
+      <Box sx={styles.rootBtns}>
         {showPitchSlider && (
-          <div
-            css={{
-              position: 'relative',
-              height: '100px',
-              marginBottom: '16px',
-              width: 'auto',
-            }}
-          >
+          <Box sx={styles.pitch}>
             <Slider
-              css={localCss.pitchSlider}
+              sx={styles.pitchSlider}
               min={MIN_PITCH}
               max={MAX_PITCH}
               orientation="vertical"
@@ -262,7 +260,7 @@ const MapControls = () => {
               marks={getSliderMarks(MIN_PITCH, MAX_PITCH, 2, getDegreeFormat)}
               onChange={(event, value) => dispatch(pitchUpdate(value))}
             />
-          </div>
+          </Box>
         )}
 
         {/* Map controls */}
@@ -270,8 +268,7 @@ const MapControls = () => {
           []
         ) : (
           <ButtonGroup
-            classes={{ root }}
-            className={classes.mapControls}
+            sx={[styles.btnGroup, styles.mapControls]}
             orientation="vertical"
             variant="contained"
             size="small"
@@ -303,11 +300,10 @@ const MapControls = () => {
           </ButtonGroup>
         )}
 
-        <div className={classes.rowButtons}>
+        <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
           <ButtonGroup
-            classes={{ root }}
-            css={{ display: timeLength === 0 ? 'none' : '' }}
+            sx={[styles.btnGroup, { display: timeLength === 0 ? 'none' : '' }]}
             aria-label="contained button group"
             variant="contained"
           >
@@ -326,7 +322,7 @@ const MapControls = () => {
             </TooltipButton>
             {animation ? (
               <TooltipButton
-                title={'Pause animation'}
+                title="Pause animation"
                 placement="top"
                 onClick={() => {
                   clearInterval(animation)
@@ -337,7 +333,7 @@ const MapControls = () => {
               </TooltipButton>
             ) : (
               <TooltipButton
-                title={'Play animation'}
+                title="Play animation"
                 placement="top"
                 onClick={() => {
                   const animationInterval = setInterval(advanceAnimation, 1000)
@@ -367,7 +363,7 @@ const MapControls = () => {
           </ButtonGroup>
           {/* Map legend */}
           <ButtonGroup
-            classes={{ root }}
+            sx={styles.btnGroup}
             aria-label="contained button group"
             variant="contained"
           >
@@ -382,7 +378,7 @@ const MapControls = () => {
 
           {/* Map styles */}
           <ButtonGroup
-            classes={{ root }}
+            sx={styles.btnGroup}
             aria-label="contained button group"
             variant="contained"
           >
@@ -398,7 +394,7 @@ const MapControls = () => {
           </ButtonGroup>
 
           {/* Map viewports */}
-          <ButtonGroup classes={{ root }} variant="contained">
+          <ButtonGroup sx={styles.btnGroup} variant="contained">
             {!R.anyPass([R.isEmpty, R.isNil])(optionalViewports) && (
               <TooltipButton
                 title={tooltipTitles.customViewports}
@@ -422,21 +418,13 @@ const MapControls = () => {
               <MdHome />
             </TooltipButton>
           </ButtonGroup>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {showBearingSlider && (
-        <div
-          css={{
-            position: 'absolute',
-            right: '84px',
-            bottom: '64px',
-            width: '150px',
-            zIndex: 1,
-          }}
-        >
+        <Box sx={styles.bearing}>
           <Slider
-            css={localCss.bearingSlider}
+            sx={styles.bearingSlider}
             min={MIN_BEARING}
             max={MAX_BEARING}
             value={bearing}
@@ -446,9 +434,9 @@ const MapControls = () => {
             marks={getSliderMarks(MIN_BEARING, MAX_BEARING, 5, getDegreeFormat)}
             onChange={(event, value) => dispatch(bearingUpdate(value))}
           />
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   )
 }
 

@@ -1,49 +1,50 @@
-/** @jsxImportSource @emotion/react */
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Box,
   FormControl,
   MenuItem,
   Select,
   Typography,
 } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import PropTypes from 'prop-types'
 import React, { memo } from 'react'
 import { MdArrowDownward, MdExpandMore } from 'react-icons/md'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   formControl: {
     flexDirection: 'initial',
-    margin: theme.spacing(1),
+    m: 1,
   },
   select: {
-    display: 'flex',
-    alignItems: 'center',
-    whiteSpace: 'normal !important',
+    '& .MuiSelect-select': {
+      display: 'flex',
+      alignItems: 'center',
+      whiteSpace: 'normal !important',
+    },
   },
   accordionRoot: {
     width: '100%',
   },
-  accordion: {
-    position: 'absolute',
-  },
+  getOrientation: (orientation) => ({
+    display: 'flex',
+    flexDirection: orientation === 'horizontal' ? 'row' : 'column',
+  }),
   heading: {
-    fontSize: theme.typography.pxToRem(15),
-    fontWeight: theme.typography.fontWeightRegular,
+    fontSize: (theme) => theme.typography.pxToRem(15),
+    fontWeight: 'typography.fontWeightRegular',
   },
   item: {
     display: 'flex',
     alignItems: 'center',
     flexDirection: 'column',
   },
-}))
+}
 
 /**
  * A hybrid of the Select and Accordion components.
  *
- * @param className
  * @param {Array} items
  * @param values
  * @param placeholder
@@ -57,7 +58,6 @@ const useStyles = makeStyles((theme) => ({
  * @private
  */
 const SelectAccordion = ({
-  className,
   items,
   values,
   placeholder,
@@ -70,13 +70,11 @@ const SelectAccordion = ({
   ...props
 } = {}) => {
   const [open, setOpen] = React.useState(false)
-  const classes = useStyles()
-
   return (
-    <FormControl variant="outlined" className={classes.formControl}>
+    <FormControl variant="outlined" sx={styles.formControl}>
       <Select
-        {...{ className, disabled, open, ...props }}
-        classes={{ select: classes.select }}
+        {...{ disabled, open, ...props }}
+        sx={styles.select}
         displayEmpty
         value={values}
         onOpen={() => setOpen(true)}
@@ -87,11 +85,11 @@ const SelectAccordion = ({
         // Display both item and sub-item values
         {...(values !== '' && {
           renderValue: (value) => (
-            <div className={classes.item}>
+            <Box sx={styles.item}>
               {getLabel(value[0])}
               <MdArrowDownward fontSize="small" />
               {getSubLabel(value[0], value[1])}
-            </div>
+            </Box>
           ),
         })}
       >
@@ -108,13 +106,13 @@ const SelectAccordion = ({
         )}
 
         {/* HACK: Drop warning for non-existing value */}
-        {values !== '' && <MenuItem value={values} css={{ display: 'none' }} />}
+        {values !== '' && <MenuItem value={values} sx={{ display: 'none' }} />}
 
         {Object.keys(items).map((item, index) => (
           <MenuItem key={index}>
             <Accordion
               // defaultExpanded
-              className={classes.accordionRoot}
+              sx={styles.accordionRoot}
               onChange={(event) =>
                 // Prevents other Select components from capturing
                 // the event when expanding/collapsing the accordion
@@ -122,16 +120,10 @@ const SelectAccordion = ({
               }
             >
               <AccordionSummary expandIcon={<MdExpandMore />}>
-                <Typography className={classes.heading}>
-                  {getLabel(item)}
-                </Typography>
+                <Typography sx={styles.heading}>{getLabel(item)}</Typography>
               </AccordionSummary>
               <AccordionDetails
-                css={{
-                  display: 'flex',
-                  flexDirection:
-                    subItemLayouts[index] === 'horizontal' ? 'row' : 'column',
-                }}
+                sx={styles.getOrientation(subItemLayouts[index])}
               >
                 {items[item].map((subItem, idx) => (
                   <MenuItem
@@ -154,7 +146,6 @@ const SelectAccordion = ({
   )
 }
 SelectAccordion.propTypes = {
-  className: PropTypes.string,
   items: PropTypes.object,
   values: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
   placeholder: PropTypes.string,

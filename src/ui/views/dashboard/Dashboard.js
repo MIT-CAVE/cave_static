@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import {
   Container,
   Grid,
@@ -8,7 +7,6 @@ import {
   ToggleButton,
   CircularProgress,
 } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import * as R from 'ramda'
 import { useState, lazy, Suspense } from 'react'
 import {
@@ -37,65 +35,51 @@ import { includesPath } from '../../../utils'
 
 const DashboardChart = lazy(() => import('./DashboardChart'))
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   root: {
     display: 'flex',
     height: '100%',
-    maxWidth: 'initial', // Kill Container's max-width for @media >1280px
-    padding: theme.spacing(1), // `0 ${theme.spacing(1)}`,
-    color: theme.palette.text.primary,
-    backgroundColor: theme.palette.background.paper,
+    p: 1,
+    color: 'text.primary',
+    bgcolor: 'background.paper',
   },
   paper: {
     display: 'flex',
     flexDirection: 'column',
-    padding: theme.spacing(1, 2),
-    color: theme.palette.text.secondary,
+    p: (theme) => theme.spacing(1, 2),
+    color: 'text.secondary',
     textAlign: 'center',
     flex: '1 1 auto',
   },
-  grid_chart: {
+  gridChart: {
     display: 'flex',
   },
   loader: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginTop: '25%',
+    ml: 'auto',
+    mr: 'auto',
+    mt: '25%',
   },
-  fab_add_empty: {
+  fabAddEmpty: {
     position: 'absolute',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%,-50%)',
-    // border: `4px solid ${theme.palette.text.primary}`,
-    // color: theme.palette.text.primary,
-    // backgroundColor:
-    //   theme.palette.mode === 'light'
-    //     ? theme.palette.grey[400]
-    //     : theme.palette.grey[600],
   },
-  fab_add: {
+  fabAdd: {
     position: 'absolute',
     right: 0,
-    bottom: '4px',
-    // border: `4px solid ${theme.palette.text.primary}`,
-    // color: theme.palette.text.primary,
-    // backgroundColor:
-    //   theme.palette.mode === 'light'
-    //     ? theme.palette.grey[400]
-    //     : theme.palette.grey[600],
+    bottom: (theme) => theme.spacing(0.5),
   },
-  add_icon: {
-    // backgroundColor:
-    //   theme.palette.mode === 'light'
-    //     ? theme.palette.grey[400]
-    //     : theme.palette.grey[600],
-    marginRight: theme.spacing(1),
+  addIcon: {
+    mr: 1,
   },
-}))
+  header: {
+    minHeight: '5%',
+    overflowWrap: 'anywhere',
+  },
+}
 
 const Dashboard = () => {
-  const classes = useStyles()
   const dispatch = useDispatch()
 
   const [maximizedIndex, setMaximizedIndex] = useState(null)
@@ -108,14 +92,7 @@ const Dashboard = () => {
   const DashboardHeader = ({ obj, index }) => {
     const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
     return (
-      <Grid
-        container
-        wrap="nowrap"
-        css={{
-          minHeight: '5%',
-          overflowWrap: 'anywhere',
-        }}
-      >
+      <Grid container wrap="nowrap" sx={styles.header}>
         <HeaderSelectWrapper>
           <Select
             value={R.propOr('stats', 'type', obj)}
@@ -211,18 +188,16 @@ const Dashboard = () => {
     return (
       <Grid
         key={index}
-        className={classes.grid_chart}
+        sx={styles.gridChart}
         xs={maximizedIndex != null || numDashboard === 1 ? 12 : 6}
         item
       >
         {obj != null && (
-          <Paper className={classes.paper} elevation={5}>
+          <Paper sx={styles.paper} elevation={5}>
             <DashboardHeader {...{ obj, index }} />
             {R.propOr('stats', 'type', obj) === 'stats' ? (
               obj.statistic && (
-                <Suspense
-                  fallback={<CircularProgress className={classes.loader} />}
-                >
+                <Suspense fallback={<CircularProgress sx={styles.loader} />}>
                   <DashboardChart obj={obj} length={dashboardLayout.length} />
                 </Suspense>
               )
@@ -248,7 +223,7 @@ const Dashboard = () => {
 
   const path = ['appBar', 'data', appBarId, 'dashboardLayout']
   return (
-    <Container className={classes.root} disableGutters>
+    <Container maxWidth={false} sx={styles.root} disableGutters>
       {!isDashboardEmpty && (
         <Grid container spacing={1}>
           {R.concat(dashboardLayout)(emptyGridCells).map(dashboardItem)}
@@ -256,7 +231,7 @@ const Dashboard = () => {
       )}
       {!lockedLayout && maximizedIndex == null && dashboardLayout.length < 4 ? (
         <Fab
-          className={isDashboardEmpty ? classes.fab_add_empty : classes.fab_add}
+          sx={isDashboardEmpty ? styles.fabAddEmpty : styles.fabAdd}
           size={isDashboardEmpty ? 'large' : 'small'}
           variant="extended"
           onClick={() =>
@@ -270,7 +245,7 @@ const Dashboard = () => {
           }
         >
           <MdAddCircle
-            className={classes.add_icon}
+            sx={styles.addIcon}
             fontSize={isDashboardEmpty ? 'medium' : 'small'}
           />
           Add chart

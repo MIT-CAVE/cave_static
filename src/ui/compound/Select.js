@@ -4,33 +4,35 @@ import {
   MenuItem,
   Select as MuiSelect,
 } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import PropTypes from 'prop-types'
 import React from 'react'
 
 import { toIconInstance } from '../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   formControl: {
     flexDirection: 'initial',
-    margin: theme.spacing(1),
+    m: 1,
   },
   icon: {
-    color: theme.palette.text.primary,
-    size: 25,
-    minWidth: 42,
-    marginRight: theme.spacing(0.5),
+    '& .MuiListItemIcon-root': {
+      color: 'text.primary',
+      size: 25,
+      minWidth: 42,
+      mr: 0.5,
+    },
   },
   select: {
-    display: 'flex',
-    alignItems: 'center',
-    whiteSpace: 'normal !important',
+    '& .MuiSelect-select': {
+      display: 'flex',
+      alignItems: 'center',
+      whiteSpace: 'normal !important',
+    },
   },
-}))
+}
 
 /**
  * A component used to select values from a list of items.
- * @param className
  * @param {Array} items - An array of strings or objects...
  * @param selectedValue
  * @param placeholder
@@ -43,7 +45,6 @@ const useStyles = makeStyles((theme) => ({
  * @private
  */
 const Select = ({
-  className,
   optionsList: items,
   value: selectedValue,
   placeholder,
@@ -55,12 +56,11 @@ const Select = ({
   ...props
 } = {}) => {
   const [open, setOpen] = React.useState(false)
-  const classes = useStyles()
   return (
-    <FormControl variant="outlined" className={classes.formControl}>
+    <FormControl variant="outlined" sx={styles.formControl}>
       <MuiSelect
-        {...{ className, disabled, open, ...props }}
-        classes={{ select: classes.select }}
+        {...{ disabled, open, ...props }}
+        sx={styles.select}
         displayEmpty
         value={selectedValue}
         onOpen={() => setOpen(true)}
@@ -101,7 +101,7 @@ const Select = ({
               }}
             >
               {iconClass && (
-                <ListItemIcon classes={{ root: classes.icon }}>
+                <ListItemIcon sx={styles.icon}>
                   {toIconInstance(iconClass)}
                 </ListItemIcon>
               )}
@@ -114,7 +114,6 @@ const Select = ({
   )
 }
 Select.propTypes = {
-  className: PropTypes.string,
   disabled: PropTypes.bool,
   optionsList: PropTypes.array,
   value: PropTypes.any,

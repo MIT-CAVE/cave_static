@@ -1,5 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { makeStyles } from '@mui/styles'
+import { Box } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
@@ -23,20 +22,6 @@ import {
   getSubLabelFn,
   forcePath,
 } from '../../../utils'
-
-const useStyles = makeStyles(() => ({
-  chart_container: {
-    display: 'flex',
-    position: 'relative',
-    // padding: theme.spacing(1),
-    // paddingLeft: theme.spacing(2),
-    // paddingRight: theme.spacing(2),
-    // paddingTop: theme.spacing(5),
-    // paddingBottom: theme.spacing(1),
-    // backgroundColor: theme.palette.background.paper,
-    flex: '1 1 auto',
-  },
-}))
 
 const mergeFuncs = {
   Sum: R.sum,
@@ -62,7 +47,6 @@ const customSortByX = R.curry((ordering, data) => {
 })
 
 const DashboardChart = ({ obj, length }) => {
-  const classes = useStyles()
   const themeId = useSelector(selectTheme)
   const debug = useSelector(selectDebug)
   const filteredStatsData = useSelector(selectFilteredStatsData)
@@ -284,7 +268,13 @@ const DashboardChart = ({ obj, length }) => {
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
   return (
-    <div className={classes.chart_container}>
+    <Box
+      sx={{
+        display: 'flex',
+        position: 'relative',
+        flex: '1 1 auto',
+      }}
+    >
       {obj.chart === 'Table' && obj.category ? (
         <TableChart
           formattedData={tableData}
@@ -292,7 +282,6 @@ const DashboardChart = ({ obj, length }) => {
           length={length}
           labels={tableLabels}
           colTypes={tableColTypes}
-          theme={themeId}
         />
       ) : obj.chart === 'Box Plot' ? (
         <BoxPlot
@@ -327,7 +316,7 @@ const DashboardChart = ({ obj, length }) => {
       ) : (
         <></>
       )}
-    </div>
+    </Box>
   )
 }
 

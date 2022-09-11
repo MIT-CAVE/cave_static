@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { Divider, IconButton, Tab, Tabs, alpha } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Divider, IconButton, Tab, Tabs, alpha, Box } from '@mui/material'
 import * as R from 'ramda'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -23,63 +21,69 @@ import { FetchedIcon } from '../../compound'
 
 import { sortProps, includesPath } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   root: {
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
     width: `${APP_BAR_WIDTH}px`,
+    borderRight: 1,
+    borderColor: 'text.secondary',
+    bgcolor: 'background.paper',
     zIndex: 1201,
-    backgroundColor: theme.palette.background.paper,
-    borderRight: `1px solid ${theme.palette.text.secondary}`,
   },
   navSection: {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing(1, 0),
+    pt: 1,
+    pb: 1,
   },
   divider: {
     height: '2px',
-    margin: theme.spacing(1, 0),
-  },
-  navIcon: {
-    color: theme.palette.text.primary,
+    mt: 1,
+    mb: 1,
   },
   tab: {
     minWidth: `${APP_BAR_WIDTH}px`,
-    marginBottom: theme.spacing(1),
-    '&:hover': {
-      backgroundColor: alpha(
+    mb: 1,
+    '&:hover': (theme) => ({
+      bgcolor: alpha(
         theme.palette.action.active,
         theme.palette.action.hoverOpacity
       ),
       // Reset on touch devices, it doesn't add specificity
       '@media (hover: none)': {
-        backgroundColor: 'transparent',
+        bgcolor: 'transparent',
       },
-    },
+    }),
   },
   navBtn: {
-    margin: theme.spacing(0.5, 0),
-    width: '2em',
+    mt: 0.5,
+    mb: 0.5,
+    ml: 'auto',
+    mr: 'auto',
     height: '2em',
-    marginLeft: 'auto',
-    marginRight: 'auto',
+    width: '2em',
   },
   navBtnActive: {
-    border: `3px solid ${theme.palette.text.primary}`,
-    backgroundColor:
-      theme.palette.mode === themeId.DARK
-        ? theme.palette.grey[600]
-        : theme.palette.grey[400],
+    border: 3,
+    borderColor: 'text.primary',
+    bgcolor: (theme) =>
+      theme.palette.mode === themeId.DARK ? 'grey.600' : 'grey.400',
   },
-}))
+}
+
+const nonSx = {
+  navIcon: {
+    color: (theme) => theme.palette.text.primary,
+  },
+}
 
 //Wrappers stop Tabs from passing props that cannot be read and cause errors
-const ButtonInTabs = ({ icon, color, onClick, className = '' }) => (
-  <IconButton onClick={onClick} size="large" className={className}>
+const ButtonInTabs = ({ icon, color, onClick, sx = [] }) => (
+  <IconButton size="large" {...{ sx, onClick }}>
     <FetchedIcon size={35} color={color} iconName={icon} />
   </IconButton>
 )
@@ -88,7 +92,6 @@ const getAppBarItem = ({
   obj,
   color,
   key,
-  classes,
   selectedView,
   appBarId,
   changePane,
@@ -97,17 +100,15 @@ const getAppBarItem = ({
 }) => {
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
-
   const path = ['appBar', 'data', 'appBarId']
-
   return type === 'pane' ? (
     <Tab
-      className={classes.tab}
+      sx={styles.tab}
       key={key}
       value={key}
       icon={
         <FetchedIcon
-          className={classes.navIcon}
+          className={nonSx.navIcon}
           size={25}
           color={color}
           iconName={icon}
@@ -136,12 +137,13 @@ const getAppBarItem = ({
     />
   ) : type === 'map' ? (
     <ButtonInTabs
-      key={key}
-      className={`${classes.navBtn} ${
+      {...{ key, icon, color }}
+      sx={[
+        styles.navBtn,
         selectedView === viewId.MAP && R.equals(appBarId, key)
-          ? classes.navBtnActive
-          : ''
-      }`}
+          ? styles.navBtnActive
+          : {},
+      ]}
       onClick={() => {
         dispatch(
           mutateLocal({
@@ -152,29 +154,25 @@ const getAppBarItem = ({
         )
         dispatch(viewSelection(viewId.MAP))
       }}
-      icon={icon}
-      color={color}
     />
   ) : type === 'kpi' ? (
     <ButtonInTabs
-      key={key}
-      className={`${classes.navBtn} ${
-        selectedView === viewId.KPI ? classes.navBtnActive : ''
-      }`}
+      {...{ key, icon, color }}
+      sx={[
+        styles.navBtn,
+        selectedView === viewId.KPI ? styles.navBtnActive : {},
+      ]}
       onClick={() => dispatch(viewSelection(viewId.KPI))}
-      icon={icon}
-      color={color}
     />
   ) : type === 'stats' ? (
     <ButtonInTabs
-      key={key}
-      className={`${classes.navBtn} ${
+      {...{ key, icon, color }}
+      sx={[
+        styles.navBtn,
         selectedView === viewId.DASHBOARD && R.equals(appBarId, key)
-          ? classes.navBtnActive
-          : ''
-      }`}
-      icon={icon}
-      color={color}
+          ? styles.navBtnActive
+          : {},
+      ]}
       onClick={() => {
         dispatch(
           mutateLocal({
@@ -193,7 +191,6 @@ const getAppBarItem = ({
 
 const AppBar = () => {
   const dispatch = useDispatch()
-  const classes = useStyles()
   const selectedView = useSelector(selectView)
   const currentThemeId = useSelector(selectTheme)
   const open = useSelector(selectOpenPane)
@@ -225,71 +222,66 @@ const AppBar = () => {
   )
 
   return (
-    <>
-      <div className={classes.root}>
-        <Tabs
-          className={classes.navSection}
-          css={{ flexGrow: 1 }}
-          value={getValue('upper')}
-          orientation="vertical"
-          variant="fullWidth"
-          aria-label="Upper App Bar"
-        >
-          {/* Upper Bar */}
-          {R.values(
-            R.mapObjIndexed((obj, key) => {
-              const color = R.propOr(
-                R.prop('color', obj),
-                currentThemeId
-              )(R.prop('color', obj))
-              return getAppBarItem({
-                color,
-                key,
-                classes,
-                obj,
-                selectedView,
-                appBarId,
-                changePane,
-                sync,
-                dispatch,
-              })
-            })(sortProps(R.propOr({}, 'upper', appBar)))
-          )}
-        </Tabs>
-
-        {/* Lower Bar */}
-        {!R.isEmpty(R.propOr({}, 'lower', appBar)) && (
-          <Divider className={classes.divider} />
+    <Box sx={styles.root}>
+      <Tabs
+        sx={[styles.navSection, { flexGrow: 1 }]}
+        value={getValue('upper')}
+        orientation="vertical"
+        variant="fullWidth"
+        aria-label="Upper App Bar"
+      >
+        {/* Upper Bar */}
+        {R.values(
+          R.mapObjIndexed((obj, key) => {
+            const color = R.propOr(
+              R.prop('color', obj),
+              currentThemeId
+            )(R.prop('color', obj))
+            return getAppBarItem({
+              color,
+              key,
+              obj,
+              selectedView,
+              appBarId,
+              changePane,
+              sync,
+              dispatch,
+            })
+          })(sortProps(R.propOr({}, 'upper', appBar)))
         )}
-        <Tabs
-          className={classes.navSection}
-          value={getValue('lower')}
-          orientation="vertical"
-          variant="fullWidth"
-          aria-label="Lower App Bar"
-        >
-          {R.values(
-            R.mapObjIndexed((obj, key) => {
-              const color = R.propOr(
-                R.prop('color', obj),
-                currentThemeId
-              )(R.prop('color', obj))
-              return getAppBarItem({
-                color,
-                key,
-                classes,
-                obj,
-                selectedView,
-                appBarId,
-                changePane,
-                sync,
-                dispatch,
-              })
-            })(sortProps(R.propOr({}, 'lower', appBar)))
-          )}
-        </Tabs>
-      </div>
-    </>
+      </Tabs>
+
+      {/* Lower Bar */}
+      {!R.isEmpty(R.propOr({}, 'lower', appBar)) && (
+        <Divider sx={styles.divider} />
+      )}
+      <Tabs
+        sx={styles.navSection}
+        value={getValue('lower')}
+        orientation="vertical"
+        variant="fullWidth"
+        aria-label="Lower App Bar"
+      >
+        {R.values(
+          R.mapObjIndexed((obj, key) => {
+            const color = R.propOr(
+              R.prop('color', obj),
+              currentThemeId
+            )(R.prop('color', obj))
+            return getAppBarItem({
+              color,
+              key,
+              obj,
+              selectedView,
+              appBarId,
+              changePane,
+              sync,
+              dispatch,
+            })
+          })(sortProps(R.propOr({}, 'lower', appBar)))
+        )}
+      </Tabs>
+    </Box>
   )
 }
 

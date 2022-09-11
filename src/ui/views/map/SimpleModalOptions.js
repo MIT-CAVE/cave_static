@@ -1,6 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { Modal, Typography } from '@mui/material'
-import { makeStyles } from '@mui/styles'
+import { Box, Modal, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { MdClose } from 'react-icons/md'
@@ -12,15 +10,15 @@ import { Select, FetchedIcon } from '../../compound'
 
 import { customSort } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   modal: {
     display: 'flex',
-    padding: theme.spacing(1),
+    p: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    padding: theme.spacing(0.5),
+    p: 0.5,
     whiteSpace: 'nowrap',
   },
   paper: {
@@ -28,16 +26,15 @@ const useStyles = makeStyles((theme) => ({
     right: '64px',
     bottom: '72px',
     maxWidth: 250,
-    border: `1px solid ${theme.palette.text.secondary}`,
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: theme.shadows[5],
-    padding: theme.spacing(2, 4, 3),
-    color: theme.palette.text.primary,
+    p: (theme) => theme.spacing(2, 4, 3),
+    border: 1,
+    borderColor: 'text.secondary',
+    borderRadius: 1,
+    boxShadow: 5,
+    color: 'text.primary',
+    bgcolor: 'background.paper',
   },
-}))
 
-const localCss = {
   flexSpaceBetween: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -45,28 +42,23 @@ const localCss = {
 }
 
 const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
-  const classes = useStyles()
   const dispatch = useDispatch()
   return (
     <Modal
-      className={classes.modal}
+      sx={styles.modal}
       disablePortal
       disableEnforceFocus
       disableAutoFocus
       open
       onClose={() => dispatch(closeMapModal())}
     >
-      <div className={classes.paper}>
-        <div css={localCss.flexSpaceBetween}>
-          <Typography
-            id="viewports-pad-title"
-            variant="h5"
-            className={classes.title}
-          >
+      <Box sx={styles.paper}>
+        <Box sx={styles.flexSpaceBetween}>
+          <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
             {title}
           </Typography>
           <MdClose cursor="pointer" onClick={() => dispatch(closeMapModal())} />
-        </div>
+        </Box>
 
         <Select
           value=""
@@ -80,7 +72,7 @@ const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
           })(customSort(options))}
           {...{ placeholder, onSelect }}
         />
-      </div>
+      </Box>
     </Modal>
   )
 }

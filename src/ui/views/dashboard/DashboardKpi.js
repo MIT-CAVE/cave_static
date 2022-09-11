@@ -1,4 +1,4 @@
-import { makeStyles } from '@mui/styles'
+import { Box } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -14,23 +14,8 @@ import { BarPlot, LinePlot, TableChart } from '../../charts'
 
 import { forcePath } from '../../../utils'
 
-const useStyles = makeStyles(() => ({
-  chart_container: {
-    display: 'flex',
-    position: 'relative',
-    // padding: theme.spacing(1),
-    // paddingLeft: theme.spacing(2),
-    // paddingRight: theme.spacing(2),
-    // paddingTop: theme.spacing(5),
-    // paddingBottom: theme.spacing(1),
-    // backgroundColor: theme.palette.background.paper,
-    flex: '1 1 auto',
-  },
-}))
-
 const DashboardKpi = ({ obj, length }) => {
   const dispatch = useDispatch()
-  const classes = useStyles()
   const themeId = useSelector(selectTheme)
   const kpis = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -131,7 +116,13 @@ const DashboardKpi = ({ obj, length }) => {
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
   return (
-    <div className={classes.chart_container}>
+    <Box
+      sx={{
+        display: 'flex',
+        position: 'relative',
+        flex: '1 1 auto',
+      }}
+    >
       {obj.chart === 'Table' ? (
         <TableChart
           formattedData={formattedKpis}
@@ -139,7 +130,6 @@ const DashboardKpi = ({ obj, length }) => {
           colTypes={tableColTypes}
           length={length}
           labels={R.prepend('Session')(tableUnit)}
-          theme={themeId}
         />
       ) : obj.chart === 'Bar' ? (
         <BarPlot
@@ -158,7 +148,7 @@ const DashboardKpi = ({ obj, length }) => {
           theme={themeId}
         />
       ) : null}
-    </div>
+    </Box>
   )
 }
 

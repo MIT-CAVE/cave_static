@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import {
   Modal,
   Typography,
@@ -7,8 +6,8 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
+  Box,
 } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -40,40 +39,39 @@ import { FetchedIcon } from '../../compound'
 
 import { customSort } from '../../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   modal: {
     display: 'flex',
-    padding: theme.spacing(1),
+    p: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   paper: {
-    border: `1px solid ${theme.palette.text.secondary}`,
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: theme.shadows[5],
-    padding: theme.spacing(2, 4, 3),
-    color: theme.palette.text.primary,
+    border: 1,
+    borderColor: 'text.secondary',
+    borderRadius: 1,
+    backgroundColor: 'background.paper',
+    boxShadow: 5,
+    p: (theme) => theme.spacing(2, 4, 3),
+    color: 'text.primary',
   },
   title: {
-    padding: theme.spacing(0.5),
+    p: 0.5,
     whiteSpace: 'nowrap',
   },
-  list_paper: {
+  listPaper: {
     position: 'absolute',
     right: '64px',
     bottom: '72px',
     maxWidth: 250,
-    border: `1px solid ${theme.palette.text.secondary}`,
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: theme.shadows[5],
-    padding: theme.spacing(2, 4, 1),
-    color: theme.palette.text.primary,
+    border: 1,
+    borderColor: 'text.secondary',
+    borderRadius: 1,
+    bgcolor: 'background.paper',
+    boxShadow: 5,
+    p: (theme) => theme.spacing(2, 4, 1),
+    color: 'text.primary',
   },
-}))
-
-const localCss = {
   flexSpaceBetween: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -137,28 +135,23 @@ const OnLayerEventModal = () => {
 }
 
 const ListModal = ({ title, options, onSelect }) => {
-  const classes = useStyles()
   const dispatch = useDispatch()
 
   return (
     <Modal
-      className={classes.modal}
+      sx={styles.modal}
       disablePortal
       disableEnforceFocus
       disableAutoFocus
       open
       onClose={() => dispatch(closeMapModal())}
     >
-      <div className={classes.list_paper}>
-        <div css={localCss.flexSpaceBetween}>
-          <Typography
-            id="viewports-pad-title"
-            variant="h5"
-            className={classes.title}
-          >
+      <Box sx={styles.listPaper}>
+        <Box sx={styles.flexSpaceBetween}>
+          <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
             {title}
           </Typography>
-        </div>
+        </Box>
         <List>
           {customSort(options).map(({ id, name, icon }) => (
             <ListItemButton key={id} onClick={() => onSelect(id)}>
@@ -171,7 +164,7 @@ const ListModal = ({ title, options, onSelect }) => {
             </ListItemButton>
           ))}
         </List>
-      </div>
+      </Box>
     </Modal>
   )
 }

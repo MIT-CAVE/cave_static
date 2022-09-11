@@ -3,7 +3,19 @@ import PropTypes from 'prop-types'
 import React, { useCallback, useState } from 'react'
 import Marquee from 'react-fast-marquee'
 
-const OverflowText = ({ text, speed = 20 }) => {
+import { forceArray } from '../../utils'
+
+const styles = {
+  root: {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+  },
+  marqueeText: {
+    pr: 6,
+  },
+}
+
+const OverflowText = ({ text, speed = 20, sx = [] }) => {
   const [isOverflowing, setIsOverflowing] = useState(false)
 
   const divRef = useCallback((node) => {
@@ -14,7 +26,7 @@ const OverflowText = ({ text, speed = 20 }) => {
     setIsOverflowing(overflowX || overflowY)
   }, [])
   return (
-    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden' }} ref={divRef}>
+    <Box sx={[styles.root, ...forceArray(sx)]} ref={divRef}>
       {isOverflowing ? (
         <Marquee
           direction="left"
@@ -23,17 +35,24 @@ const OverflowText = ({ text, speed = 20 }) => {
           pauseOnHover
           {...{ speed }}
         >
-          <Box sx={{ pr: 6 }}>{text}</Box>
+          <Box sx={styles.marqueeText}>{text}</Box>
         </Marquee>
       ) : (
         <>{text}</>
       )}
-    </div>
+    </Box>
   )
 }
 OverflowText.propTypes = {
   text: PropTypes.string,
   speed: PropTypes.number,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
 }
 
 export default OverflowText

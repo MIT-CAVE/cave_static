@@ -5,33 +5,35 @@ import {
   MenuItem,
   Select,
 } from '@mui/material'
-import { makeStyles } from '@mui/styles'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React from 'react'
+import React, { useState } from 'react'
 
 import { forcePath, toIconInstance } from '../../utils'
 
-const useStyles = makeStyles((theme) => ({
+const styles = {
   formControl: {
     flexDirection: 'initial',
-    margin: theme.spacing(1),
+    m: 1,
   },
   icon: {
-    color: theme.palette.text.primary,
-    size: 25,
-    minWidth: 42,
+    '& .MuiListItemIcon-root': {
+      color: 'text.primary',
+      size: 25,
+      minWidth: 42,
+    },
   },
   select: {
-    display: 'flex',
-    alignItems: 'center',
-    whiteSpace: 'normal',
+    '& .MuiSelect-select': {
+      display: 'flex',
+      alignItems: 'center',
+      whiteSpace: 'normal',
+    },
   },
-}))
+}
 
 /**
  * A component used to select values from a list of items.
- * @param className
  * @param {Array} items - An array of strings or objects...
  * @param selectedValue
  * @param header
@@ -43,7 +45,6 @@ const useStyles = makeStyles((theme) => ({
  * @private
  */
 const SelectMulti = ({
-  className,
   optionsList: items,
   value: selectedValue,
   header,
@@ -53,14 +54,13 @@ const SelectMulti = ({
   onSelect = () => {},
   ...props
 } = {}) => {
-  const [open, setOpen] = React.useState(false)
-  const [selected, setSelected] = React.useState(forcePath(selectedValue))
-  const classes = useStyles()
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState(forcePath(selectedValue))
   return (
-    <FormControl variant="outlined" className={classes.formControl}>
+    <FormControl variant="outlined" sx={styles.formControl}>
       <Select
-        {...{ className, disabled, open, ...props }}
-        classes={{ root: classes.select }}
+        {...{ disabled, open, ...props }}
+        sx={styles.select}
         multiple
         value={selected.length > 0 ? selected : [header]}
         onOpen={() => setOpen(true)}
@@ -87,7 +87,7 @@ const SelectMulti = ({
             >
               <Checkbox checked={R.includes(item, selected)} />
               {iconClass && (
-                <ListItemIcon classes={{ root: classes.icon }}>
+                <ListItemIcon sx={styles.icon}>
                   {toIconInstance(iconClass)}
                 </ListItemIcon>
               )}
@@ -100,7 +100,6 @@ const SelectMulti = ({
   )
 }
 SelectMulti.propTypes = {
-  className: PropTypes.string,
   optionsList: PropTypes.array,
   value: PropTypes.any,
   header: PropTypes.string,
@@ -113,5 +112,4 @@ SelectMulti.propTypes = {
   children: PropTypes.node,
 }
 
-export { SelectMulti }
 export default SelectMulti
