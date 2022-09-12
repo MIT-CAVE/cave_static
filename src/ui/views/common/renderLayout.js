@@ -111,6 +111,8 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
   )(unusedItems)
   unusedItems = R.drop(numFillers)(unusedItems)
 
+  // Set dense auto-placement by column or row
+  const gridAutoFlow = `${num_columns === 'auto' ? 'column' : 'row'} dense`
   return {
     unusedItems,
     component: (
@@ -121,7 +123,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
           gridTemplateRows: `repeat(${numRows},minmax(min-content,1fr))`,
           gridColumnStart: column,
           gridRowStart: row,
-          gridAutoFlow: 'dense',
+          gridAutoFlow,
           gap: 1.5,
           height,
           width,
