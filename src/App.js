@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import './App.css'
 import {
   StyledEngineProvider,
@@ -6,7 +5,6 @@ import {
   ClickAwayListener,
   Box,
 } from '@mui/material'
-import { StylesProvider } from '@mui/styles'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useCallback } from 'react'
@@ -93,27 +91,25 @@ const App = () => {
   )
 
   return (
-    <StylesProvider injectFirst>
-      <StyledEngineProvider injectFirst>
-        <ThemeProvider theme={theme}>
-          <Box sx={styles.root}>
-            <Loader />
-            <AppBar />
-            <Box sx={styles.page}>
-              {renderAppPage(selectedView)}
-              {open && (
-                <ClickAwayListener onClickAway={handlePaneClickAway}>
-                  <Box sx={styles.pane}>
-                    {renderAppPane({ open, pane })}
-                    {secondaryOpen && <SecondaryPane />}
-                  </Box>
-                </ClickAwayListener>
-              )}
-            </Box>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <Box sx={styles.root}>
+          <Loader />
+          <AppBar />
+          <Box sx={styles.page}>
+            {renderAppPage(selectedView)}
+            {open && (
+              <ClickAwayListener onClickAway={handlePaneClickAway}>
+                <Box sx={styles.pane}>
+                  {renderAppPane({ open, pane })}
+                  {secondaryOpen && <SecondaryPane />}
+                </Box>
+              </ClickAwayListener>
+            )}
           </Box>
-        </ThemeProvider>
-      </StyledEngineProvider>
-    </StylesProvider>
+        </Box>
+      </ThemeProvider>
+    </StyledEngineProvider>
   )
 }
 App.propTypes = { mapboxToken: PropTypes.string }
