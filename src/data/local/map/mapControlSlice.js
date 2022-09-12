@@ -25,10 +25,10 @@ export const mapControlSlice = createSlice({
         : null
     },
     bearingUpdate: (state, action) => {
-      state.viewport.bearing = action.payload
+      state[action.payload.appBarId].viewport.bearing = action.payload.value
     },
     pitchUpdate: (state, action) => {
-      state.viewport.pitch = action.payload
+      state[action.payload.appBarId].viewport.pitch = action.payload.value
     },
     viewportUpdate: (state, action) => {
       const minZoom = R.clamp(

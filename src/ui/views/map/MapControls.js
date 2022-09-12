@@ -258,7 +258,9 @@ const MapControls = () => {
               valueLabelDisplay="auto"
               valueLabelFormat={getDegreeFormat}
               marks={getSliderMarks(MIN_PITCH, MAX_PITCH, 2, getDegreeFormat)}
-              onChange={(event, value) => dispatch(pitchUpdate(value))}
+              onChange={(event, value) =>
+                dispatch(pitchUpdate({ appBarId, value }))
+              }
             />
           </Box>
         )}
@@ -432,7 +434,9 @@ const MapControls = () => {
             valueLabelDisplay="auto"
             valueLabelFormat={getDegreeFormat}
             marks={getSliderMarks(MIN_BEARING, MAX_BEARING, 5, getDegreeFormat)}
-            onChange={(event, value) => dispatch(bearingUpdate(value))}
+            onChange={(event, value) =>
+              dispatch(bearingUpdate({ appBarId, value }))
+            }
           />
         </Box>
       )}
