@@ -131,7 +131,10 @@ const getMergedAllProps = (data, localData) =>
 export const selectDefaultViewport = createSelector(selectMapData, (data) =>
   R.pipe(
     R.propOr({}, 'defaultViewport'),
-    R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+    R.when(
+      R.has('zoom'),
+      R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+    )
   )(data)
 )
 
