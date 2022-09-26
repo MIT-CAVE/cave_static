@@ -25,10 +25,16 @@ export const mapControlSlice = createSlice({
         : null
     },
     bearingUpdate: (state, action) => {
-      state[action.payload.appBarId].viewport.bearing = action.payload.value
+      return R.assocPath(
+        [action.payload.appBarId, 'viewport', 'bearing'],
+        action.payload.value
+      )(state)
     },
     pitchUpdate: (state, action) => {
-      state[action.payload.appBarId].viewport.pitch = action.payload.value
+      return R.assocPath(
+        [action.payload.appBarId, 'viewport', 'pitch'],
+        action.payload.value
+      )(state)
     },
     viewportUpdate: (state, action) => {
       const minZoom = R.clamp(
@@ -54,7 +60,9 @@ export const mapControlSlice = createSlice({
       )
     },
     setZoom: (state, action) => {
-      const viewport = state[action.payload.appBarId].viewport
+      const viewport = R.pathOr({}, [action.payload.appBarId, 'viewport'])(
+        state
+      )
       const minZoom = R.clamp(
         MIN_ZOOM,
         MAX_ZOOM,
@@ -65,10 +73,10 @@ export const mapControlSlice = createSlice({
         MAX_ZOOM,
         R.propOr(MAX_ZOOM, 'maxZoom', viewport)
       )
-      state[action.payload.appBarId].viewport.zoom = R.clamp(
-        minZoom,
-        maxZoom
-      )(action.payload.value)
+      return R.assocPath(
+        [action.payload.appBarId, 'viewport', 'zoom'],
+        R.clamp(minZoom, maxZoom)(action.payload.value)
+      )(state)
     },
   },
   extraReducers: (builder) => {
