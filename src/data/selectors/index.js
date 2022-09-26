@@ -7,7 +7,7 @@ import {
   MIN_ZOOM,
   MAX_ZOOM,
 } from '../../utils/constants'
-import { kpiId } from '../../utils/enums'
+import { viewId } from '../../utils/enums'
 
 import {
   checkValidRange,
@@ -84,6 +84,10 @@ export const selectStatsData = createSelector(selectStats, (data) =>
 export const selectKpisData = createSelector(selectKpis, (data) =>
   R.propOr({}, 'data')(data)
 )
+export const selectKpisLayout = createSelector(
+  selectKpis,
+  R.propOr({}, 'layout')
+)
 export const selectAssociatedData = createSelector(selectAssociated, (data) =>
   R.propOr({}, 'data')(data)
 )
@@ -92,15 +96,6 @@ export const selectSettingsData = createSelector(selectSettings, (data) =>
 )
 export const selectLegendData = createSelector(selectMapData, (data) =>
   R.propOr([], 'legendGroups', data)
-)
-export const selectMapKpis = createSelector(
-  selectKpisData,
-  R.pipe(
-    R.filter(R.prop('map_kpi')),
-    R.map(R.assoc('type', kpiId.MAP)),
-    sortedListById,
-    R.values
-  )
 )
 
 const getMergedAllProps = (data, localData) =>
@@ -281,6 +276,21 @@ export const selectDashboardLayout = createSelector(
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
+)
+// Local -> kpis
+const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
+export const selectMergedKpis = createSelector(
+  [selectKpisData, selectLocalKpis],
+  (kpisData, localKpis) => R.mergeDeepLeft(localKpis)(kpisData)
+)
+export const selectMapKpis = createSelector(
+  selectMergedKpis,
+  R.pipe(
+    R.filter(R.prop('map_kpi')),
+    R.map(R.assoc('view', viewId.MAP)),
+    sortedListById,
+    R.values
+  )
 )
 // Local -> Map -> mapControls
 export const selectViewport = createSelector(

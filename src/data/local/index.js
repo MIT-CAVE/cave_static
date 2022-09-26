@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import { overrideSync } from './actions'
+import kpisReducer from './kpisSlice'
 import mapReducer from './map'
 import settingsReducer, { initialState } from './settingsSlice'
 
@@ -10,6 +11,7 @@ import { fetchData } from '../data'
 import { combineReducers } from '../../utils'
 
 const subReducers = combineReducers({
+  kpis: kpisReducer,
   map: mapReducer,
   settings: settingsReducer,
 })

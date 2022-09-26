@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import { Box } from '@mui/material'
 import * as R from 'ramda'
 
@@ -32,12 +31,21 @@ const renderPropItem = ({
 
 const renderKpiItem = ({ item }) =>
   renderKpi({
-    title: item.name || item.itemId,
-    type: item.type,
     key: item.id,
+    title: item.name || item.id,
+    mapKpi: item.map_kpi,
     // NOTE: The `unit` prop is deprecated in favor of
     // `numberFormat.unit` and will be removed on 1.0.0
-    ...R.pick(['value', 'icon', 'unit', 'numberFormat', 'style'])(item),
+    ...R.pick([
+      'id',
+      'value',
+      'icon',
+      'unit',
+      'numberFormat',
+      'style',
+      'type',
+      'view',
+    ])(item),
   })
 
 const getItemRenderFn = R.cond([

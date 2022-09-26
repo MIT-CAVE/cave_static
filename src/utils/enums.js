@@ -63,8 +63,9 @@ export const propContainer = {
 }
 
 export const kpiId = {
-  BASIC: 'basic',
-  MAP: 'map',
+  NUMBER: 'num',
+  TEXT: 'text',
+  HEAD: 'head',
 }
 
 export const layoutType = {

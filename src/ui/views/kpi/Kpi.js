@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import { useSelector } from 'react-redux'
 
-import { selectKpis } from '../../../data/selectors'
+import { selectKpisLayout, selectMergedKpis } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { renderKpisLayout } from '../common/renderLayout'
 
@@ -16,7 +16,8 @@ const style = (theme) => ({
 })
 
 const Kpi = ({ ...props }) => {
-  const { layout, data: items } = useSelector(selectKpis)
+  const layout = useSelector(selectKpisLayout)
+  const items = useSelector(selectMergedKpis)
   return (
     <Box sx={style} {...props}>
       <Box sx={{ width: 'min-content' }}>

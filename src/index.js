@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { StrictMode, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { Provider, useDispatch } from 'react-redux'
@@ -5,6 +6,7 @@ import { Provider, useDispatch } from 'react-redux'
 import './index.css'
 import App from './App'
 import { fetchData, mutateData } from './data/data'
+import { mutateLocal } from './data/local'
 import { tokensSet } from './data/tokens/tokensSlice'
 // Must import store prior to any slice items to prevent
 // potential extra reducer creating race event
@@ -32,6 +34,13 @@ const AppWrapper = () => {
                 init: true,
               })
             )
+            // A selector can't be used because its evaluation
+            // would occur before the session data is retrieved
+            const mapKpis = R.pipe(
+              R.pathOr({}, ['data', 'kpis', 'data']),
+              R.mapObjIndexed(R.pick(['map_kpi']))
+            )(store.getState())
+            dispatch(mutateLocal({ path: ['kpis'], value: mapKpis }))
           } else if (
             payload.event === 'overwrite' ||
             payload.event === 'mutation'
