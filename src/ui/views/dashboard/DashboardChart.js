@@ -210,7 +210,7 @@ const DashboardChart = ({ obj, length }) => {
   const xAxisTitle = obj.category
     ? `${getLabelFn(categories)(obj.category)}${
         obj.level
-          ? ` -> ${getSubLabelFn(categories, obj.category, obj.level)}`
+          ? ` \u279D ${getSubLabelFn(categories, obj.category, obj.level)}`
           : ''
       }`
     : ''
@@ -239,7 +239,7 @@ const DashboardChart = ({ obj, length }) => {
     obj.category
       ? `${getLabelFn(categories)(obj.category)}${
           obj.level
-            ? ` -> ${getSubLabelFn(categories, obj.category, obj.level)}`
+            ? ` \u279D ${getSubLabelFn(categories, obj.category, obj.level)}`
             : ''
         }`
       : '',
@@ -247,7 +247,11 @@ const DashboardChart = ({ obj, length }) => {
       ? R.prepend(
           `${getLabelFn(categories)(obj.category2)}${
             obj.level2
-              ? ` -> ${getSubLabelFn(categories, obj.category2, obj.level2)}`
+              ? ` \u279D ${getSubLabelFn(
+                  categories,
+                  obj.category2,
+                  obj.level2
+                )}`
               : ''
           }`,
           tableStatLabels
