@@ -54,17 +54,21 @@ export const mapControlSlice = createSlice({
       )
     },
     setZoom: (state, action) => {
+      const viewport = state[action.payload.appBarId].viewport
       const minZoom = R.clamp(
         MIN_ZOOM,
         MAX_ZOOM,
-        R.propOr(MIN_ZOOM, 'minZoom', state.viewport)
+        R.propOr(MIN_ZOOM, 'minZoom', viewport)
       )
       const maxZoom = R.clamp(
         minZoom,
         MAX_ZOOM,
-        R.propOr(MAX_ZOOM, 'maxZoom', state.viewport)
+        R.propOr(MAX_ZOOM, 'maxZoom', viewport)
       )
-      state.viewport.zoom = R.clamp(minZoom, maxZoom)(action.payload)
+      state[action.payload.appBarId].viewport.zoom = R.clamp(
+        minZoom,
+        maxZoom
+      )(action.payload.value)
     },
   },
   extraReducers: (builder) => {
