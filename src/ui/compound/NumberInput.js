@@ -80,9 +80,13 @@ const NumberInput = ({
       onBlur={() => {
         if (!enabled) return
 
-        const clampedVal = R.clamp(min, max, value)
+        // Extra decimals are always rounded
+        const roundedVal = parseNumber(formatNumber(value, numberFormat, false))
+        const clampedVal = R.clamp(min, max, roundedVal)
         setValue(clampedVal)
         setValueText(formatNumber(clampedVal, numberFormat))
+        if (clampedVal === defaultValue) return
+
         onClickAway(clampedVal)
       }}
       helperText={help}
