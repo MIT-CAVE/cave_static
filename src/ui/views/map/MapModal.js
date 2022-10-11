@@ -115,7 +115,8 @@ const OnLayerEventModal = () => {
           data_path: dataPath,
           data_value: sentValue,
           mutation_type: 'mutate',
-          reinit: R.propOr(false, 'reinit', prop),
+          api_command: R.prop('apiCommand', prop),
+          api_command_keys: R.prop('apiCommandKeys', prop),
         },
       })
     )

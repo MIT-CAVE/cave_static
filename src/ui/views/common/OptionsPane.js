@@ -22,7 +22,8 @@ const OptionsPane = () => {
           data_path: ['data', open, 'props', propId, 'value'],
           data_value: value,
           mutation_type: 'mutate',
-          reinit: R.propOr(false, 'reinit', prop),
+          api_command: R.prop('apiCommand', prop),
+          api_command_keys: R.prop('apiCommandKeys', prop),
         },
       })
     )

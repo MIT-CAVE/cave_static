@@ -37,9 +37,8 @@ const SyncButton = ({ open, pane }) => {
               data_path: ['data', open],
               data_value: pane,
               mutation_type: 'mutate',
-              reinit: R.any(R.prop('reinit'))(
-                R.values(R.propOr({}, 'props', pane))
-              ),
+              api_command: R.prop('teamSyncCommand', pane),
+              api_command_keys: R.prop('teamSyncCommandKeys', pane),
               team_sync: true,
             },
           })

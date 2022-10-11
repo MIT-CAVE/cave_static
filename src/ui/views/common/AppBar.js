@@ -128,6 +128,7 @@ const getAppBarItem = ({
             httpMethod: 'POST',
             body: {
               api_command: R.prop('apiCommand')(obj),
+              api_command_keys: R.prop('apiCommandKeys')(obj),
             },
           })
         )

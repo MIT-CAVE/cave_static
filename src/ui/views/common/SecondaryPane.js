@@ -116,7 +116,6 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
           ],
           data_value: R.uniq(R.concat(value, selectedItems)),
           mutation_type: 'mutate',
-          reinit: false,
         },
       })
     )
@@ -153,7 +152,6 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
           ],
           data_value: R.without(value, selectedItems),
           mutation_type: 'mutate',
-          reinit: false,
         },
       })
     )

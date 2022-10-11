@@ -97,7 +97,6 @@ const ContextPane = () => {
                         data_path: ['data', open, 'data'],
                         data_value: R.dissoc(key, obj),
                         mutation_type: 'mutate',
-                        reinit: false,
                       },
                     })
                   )
@@ -118,7 +117,6 @@ const ContextPane = () => {
                       data_path: ['data', open, 'data', key, 'prop'],
                       data_value: value,
                       mutation_type: 'mutate',
-                      reinit: false,
                     },
                   })
                 )
@@ -141,7 +139,6 @@ const ContextPane = () => {
                         data_path: ['data', open, 'data', key, 'value'],
                         data_value: value,
                         mutation_type: 'mutate',
-                        reinit: false,
                       },
                     })
                   ),
@@ -258,7 +255,6 @@ const ContextPane = () => {
                     R.prop('data', pane)
                   ),
                   mutation_type: 'mutate',
-                  reinit: false,
                 },
               })
             )
