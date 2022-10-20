@@ -213,13 +213,12 @@ export const formatNumber = (
     trailingZeros = true,
     nilValue = 'N/A',
     locale = DEFAULT_LOCALE,
-  },
-  isTyping = false
+  }
 ) => {
   if (value == null) return nilValue
 
   const valueText = value.toLocaleString(locale, {
-    minimumFractionDigits: trailingZeros && !isTyping ? precision : 0,
+    minimumFractionDigits: trailingZeros ? precision : 0,
     maximumFractionDigits: precision,
   })
   // Unless explicitly specified, there should be
