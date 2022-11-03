@@ -396,6 +396,10 @@ const EchartsBoxPlot = ({
     </div>
   )
 }
+/**
+ * Renders a waterfall chart
+ * @param {*} param0
+ */
 
 /**
  * Renders a line plot.
@@ -448,4 +452,70 @@ BarPlot.propTypes = {
 
 const BoxPlot = ({ ...props }) => <EchartsBoxPlot {...props} />
 
-export { FlexibleWrapper, LinePlot, BarPlot, BoxPlot }
+const WaterfallChart = ({ data, theme }) => {
+  const options = {
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+
+    tooltip: {
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      trigger: 'axis',
+      textStyle: {
+        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+      },
+    },
+
+    xAxis: {
+      type: 'category',
+      splitLine: { show: false },
+      data: data['x'],
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: {
+        lineStyle: {
+          type: [2, 5],
+          dashOffset: 2,
+          // Dark and light colors will be used in turns
+          color: ['#aaa', '#ddd'],
+          opacity: 0.7,
+        },
+      },
+    },
+    series: [
+      {
+        type: 'bar',
+        stack: 'Total',
+        itemStyle: {
+          color: 'transparent',
+        },
+        data: data['placeholder'],
+      },
+
+      {
+        type: 'bar',
+        stack: 'Total',
+        label: {
+          show: true,
+          position: 'inside',
+        },
+        data: data['data'],
+      },
+    ],
+  }
+  return (
+    <div style={{ flex: '1 1 auto' }}>
+      <AutoSizer>
+        {({ height, width }) => (
+          <ReactEChartsCore
+            echarts={echarts}
+            option={options}
+            style={{ height, width }}
+            theme={theme}
+          />
+        )}
+      </AutoSizer>
+    </div>
+  )
+}
+
+export { FlexibleWrapper, LinePlot, BarPlot, BoxPlot, WaterfallChart }

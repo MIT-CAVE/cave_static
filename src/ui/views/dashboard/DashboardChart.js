@@ -3,6 +3,8 @@ import * as R from 'ramda'
 import { memo, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
+//Create placeholder data and refactor it here before it's sent to the index.js.
+//Create placeholder data, the placeholder and the right data.
 import {
   selectFilteredStatsData,
   selectStatisticTypes,
@@ -13,7 +15,13 @@ import {
   selectNumberFormat,
 } from '../../../data/selectors'
 
-import { BarPlot, BoxPlot, LinePlot, TableChart } from '../../charts'
+import {
+  BarPlot,
+  BoxPlot,
+  LinePlot,
+  TableChart,
+  WaterfallChart,
+} from '../../charts'
 
 import {
   calculateStatSingleGroup,
@@ -128,7 +136,7 @@ const DashboardChart = ({ obj, length }) => {
             ? R.identity
             : R.map(R.dissoc(undefined)),
           R.mapObjIndexed((value, key) => ({
-            x: obj.category == null ? 'All' : key,
+            x: obj.category === null ? 'All' : key,
             y: value,
           })),
           R.values,
@@ -271,6 +279,24 @@ const DashboardChart = ({ obj, length }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
+
+  const generatePlaceholders = (data) => {
+    let placeholder = [0]
+    for (let i = 1; i < data.length; i++) {
+      if (i === 1) {
+        placeholder.push(data[i - 1] - data[i])
+      } else {
+        placeholder.push(placeholder[i - 1] - data[i])
+      }
+    }
+    return placeholder
+  }
+  const waterfallData = {
+    data: [2900, 1200, 300, 200, 900, 300],
+    x: ['Total', 'Rent', 'Utilities', 'Transportation', 'Meals', 'Other'],
+  }
+  waterfallData['placeholder'] = generatePlaceholders(waterfallData['data'])
+
   return (
     <Box
       sx={{
@@ -313,6 +339,13 @@ const DashboardChart = ({ obj, length }) => {
       ) : obj.chart === 'Line' ? (
         <LinePlot
           data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
+        />
+      ) : obj.chart === 'Waterfall' ? (
+        <WaterfallChart
+          data={waterfallData}
           numberFormat={commonFormat}
           theme={themeId}
           {...labels}
