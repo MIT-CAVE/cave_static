@@ -105,14 +105,14 @@ const Pane = ({
   iconName,
   leftButton,
   rightButton,
-  width = PANE_WIDTH,
+  width = 'auto',
   open,
   children,
   ...props
 }) => (
   <PaneRoot open={!!open} {...props}>
     <PaneHeader title={name} {...{ iconName, leftButton, rightButton }} />
-    <Box sx={[{ width }, styles.content]}>
+    <Box sx={[{ minWidth: PANE_WIDTH, width }, styles.content]}>
       <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
     </Box>
   </PaneRoot>
