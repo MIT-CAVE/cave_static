@@ -47,10 +47,8 @@ const DashboardKpi = ({ obj, length }) => {
 
   const kpiUnits = R.map((item) => {
     const kpi = R.find(R.propEq('name', item))(kpiData)
-    const { numberFormat = {}, unit: deprecatUnit } = R.defaultTo({})(kpi)
-    // NOTE: The `unit` prop is deprecated in favor of
-    // `numberFormat.unit` and will be removed on 1.0.0
-    return numberFormat.unit || deprecatUnit || numberFormatDefault.unit
+    const { numberFormat = {} } = R.defaultTo({})(kpi)
+    return numberFormat.unit || numberFormatDefault.unit
   })(actualKpi)
 
   const tableUnit = R.zipWith(

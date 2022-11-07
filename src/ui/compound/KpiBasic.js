@@ -1,7 +1,7 @@
 import { Box, Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   MdBookmarkAdded,
   MdBookmarkBorder,
@@ -75,23 +75,13 @@ const KpiBasic = ({
   style,
   type = kpiId.NUMBER,
   mapKpi,
-  unit: deprecatUnit,
   numberFormat: numberFormatRaw = {},
   sx = [],
   ...props
 }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
-  const numberFormat = useMemo(
-    () =>
-      // NOTE: The `unit` prop is deprecated in favor of
-      // `numberFormat.unit` and will be removed on 1.0.0
-      R.pipe(
-        R.mergeRight(numberFormatDefault),
-        R.when(R.pipe(R.prop('unit'), R.isNil), R.assoc('unit', deprecatUnit))
-      )(numberFormatRaw),
-    [deprecatUnit, numberFormatDefault, numberFormatRaw]
-  )
 
+  const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Paper
       elevation={2}

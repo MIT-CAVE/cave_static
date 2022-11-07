@@ -34,18 +34,9 @@ const renderKpiItem = ({ item }) =>
     key: item.id,
     title: item.name || item.id,
     mapKpi: item.map_kpi,
-    // NOTE: The `unit` prop is deprecated in favor of
-    // `numberFormat.unit` and will be removed on 1.0.0
-    ...R.pick([
-      'id',
-      'value',
-      'icon',
-      'unit',
-      'numberFormat',
-      'style',
-      'type',
-      'view',
-    ])(item),
+    ...R.pick(['id', 'value', 'icon', 'numberFormat', 'style', 'type', 'view'])(
+      item
+    ),
   })
 
 const getItemRenderFn = R.cond([

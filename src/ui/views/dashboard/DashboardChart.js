@@ -215,10 +215,8 @@ const DashboardChart = ({ obj, length }) => {
       }`
     : ''
   const stat = R.propOr({}, obj.statistic)(statisticTypes)
-  const { numberFormat = {}, unit: deprecatUnit } = stat
-  // NOTE: The `unit` prop is deprecated in favor of
-  // `numberFormat.unit` and will be removed on 1.0.0
-  const unit = numberFormat.unit || deprecatUnit || numberFormatDefault.unit
+  const { numberFormat = {} } = stat
+  const unit = numberFormat.unit || numberFormatDefault.unit
 
   const yAxisTitle = `${getLabelFn(statisticTypes)(obj.statistic)}${
     unit ? ` [${unit}]` : ''
@@ -228,10 +226,8 @@ const DashboardChart = ({ obj, length }) => {
 
   const tableStatLabels = R.map((item) => {
     const stat = R.propOr({}, item)(statisticTypes)
-    const { numberFormat = {}, unit: deprecatUnit } = stat
-    // NOTE: The `unit` prop is deprecated in favor of
-    // `numberFormat.unit` and will be removed on 1.0.0
-    const unit = numberFormat.unit || deprecatUnit || numberFormatDefault.unit
+    const { numberFormat = {} } = stat
+    const unit = numberFormat.unit || numberFormatDefault.unit
     return `${getLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
   })(actualStat)
 
