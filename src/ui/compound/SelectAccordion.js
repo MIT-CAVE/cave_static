@@ -10,18 +10,19 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import React, { memo } from 'react'
-import { MdArrowDownward, MdExpandMore } from 'react-icons/md'
+import { MdExpandMore } from 'react-icons/md'
 
 const styles = {
   formControl: {
     flexDirection: 'initial',
-    m: 1,
   },
   select: {
+    borderRadius: 0,
+    boxSizing: 'border-box',
     '& .MuiSelect-select': {
       display: 'flex',
       alignItems: 'center',
-      whiteSpace: 'normal !important',
+      // whiteSpace: 'normal !important',
     },
   },
   accordionRoot: {
@@ -38,7 +39,6 @@ const styles = {
   item: {
     display: 'flex',
     alignItems: 'center',
-    flexDirection: 'column',
   },
 }
 
@@ -86,9 +86,10 @@ const SelectAccordion = ({
         {...(values !== '' && {
           renderValue: (value) => (
             <Box sx={styles.item}>
-              {getLabel(value[0])}
-              <MdArrowDownward fontSize="small" />
-              {getSubLabel(value[0], value[1])}
+              {`${getLabel(value[0])} \u279D ${getSubLabel(
+                value[0],
+                value[1]
+              )}`}
             </Box>
           ),
         })}

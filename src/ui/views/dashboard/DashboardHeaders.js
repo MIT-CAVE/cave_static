@@ -1,11 +1,10 @@
-import { Button, Divider, Grid, IconButton } from '@mui/material'
+import { Button } from '@mui/material'
 import * as R from 'ramda'
-import { Fragment, memo } from 'react'
+import { memo } from 'react'
 import {
   MdBarChart,
   MdFunctions,
   MdGraphicEq,
-  MdOutlineCancel,
   MdStackedBarChart,
   MdTableChart,
   MdTimeline,
@@ -41,25 +40,6 @@ import {
   includesPath,
 } from '../../../utils'
 
-const styles = {
-  kpiRefreshBtn: {
-    m: 1,
-  },
-  divider: {
-    m: (theme) => theme.spacing(1, 2),
-  },
-  secondaryClose: {
-    top: '-30%',
-    left: '-12%',
-    '&:hover': {
-      bgcolor: 'rgba(255, 255, 255, 0)',
-    },
-  },
-  statSelect: {
-    // FIXME
-  },
-}
-
 const StatisticsHeader = memo(({ obj, index }) => {
   const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectStatisticTypes)
@@ -71,8 +51,8 @@ const StatisticsHeader = memo(({ obj, index }) => {
 
   const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
   return (
-    <Fragment>
-      <Grid display="flex" item>
+    <>
+      <HeaderSelectWrapper sx={{ ml: 2 }}>
         <Select
           value={R.propOr('', 'chart', obj)}
           optionsList={[
@@ -125,8 +105,8 @@ const StatisticsHeader = memo(({ obj, index }) => {
             )
           }}
         />
-      </Grid>
-      <Grid display="flex" item>
+      </HeaderSelectWrapper>
+      <HeaderSelectWrapper>
         <Select
           disabled={obj.chart === 'Box Plot'}
           value={R.propOr('', 'grouping', obj)}
@@ -163,11 +143,9 @@ const StatisticsHeader = memo(({ obj, index }) => {
             )
           }
         />
-      </Grid>
+      </HeaderSelectWrapper>
 
-      <Divider flexItem orientation="vertical" sx={styles.divider} />
-
-      <HeaderSelectWrapper>
+      <HeaderSelectWrapper sx={{ ml: 2 }}>
         {R.prop('chart', obj) === 'Table' ? (
           <SelectMulti
             getLabel={getLabelFn(statisticTypes)}
@@ -230,7 +208,18 @@ const StatisticsHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
+      <HeaderSelectWrapper
+        clearable={R.has('level2', obj)}
+        onClear={() => {
+          dispatch(
+            mutateLocal({
+              path,
+              sync: !includesPath(R.values(sync), path),
+              value: R.pipe(R.dissoc('category2'), R.dissoc('level2'))(obj),
+            })
+          )
+        }}
+      >
         <SelectAccordion
           values={R.pipe(
             R.props(['category2', 'level2']),
@@ -257,26 +246,8 @@ const StatisticsHeader = memo(({ obj, index }) => {
             )
           }}
         />
-        <IconButton
-          sx={[
-            styles.secondaryClose,
-            { display: R.has('level2', obj) ? '' : 'None' },
-          ]}
-          size="small"
-          onClick={() => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.pipe(R.dissoc('category2'), R.dissoc('level2'))(obj),
-              })
-            )
-          }}
-        >
-          <MdOutlineCancel fontSize="small" />
-        </IconButton>
       </HeaderSelectWrapper>
-    </Fragment>
+    </>
   )
 })
 
@@ -290,7 +261,7 @@ const KpiHeader = memo(({ obj, index }) => {
   const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
 
   return (
-    <Fragment>
+    <>
       <HeaderSelectWrapper>
         <Select
           value={R.propOr('Bar', 'chart', obj)}
@@ -328,7 +299,7 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper sx={styles.statSelect}>
+      <HeaderSelectWrapper>
         <SelectMulti
           value={R.propOr([], 'sessions', obj)}
           header="Select Sessions"
@@ -344,7 +315,7 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper sx={styles.statSelect}>
+      <HeaderSelectWrapper>
         {R.propOr('Bar', 'chart', obj) === 'Table' ? (
           <SelectMulti
             value={R.propOr([], 'kpi', obj)}
@@ -391,25 +362,26 @@ const KpiHeader = memo(({ obj, index }) => {
           />
         )}
       </HeaderSelectWrapper>
-      <Button
-        variant="outlined"
-        color="greyscale"
-        sx={styles.kpiRefreshBtn}
-        onClick={() => {
-          dispatch(
-            fetchData({
-              url: `${window.location.ancestorOrigins[0]}/get_associated_session_data/`,
-              fetchMethod: 'POST',
-              body: {
-                data_names: ['kpis'],
-              },
-            })
-          )
-        }}
-      >
-        <MdRefresh size={28} />
-      </Button>
-    </Fragment>
+      <HeaderSelectWrapper>
+        <Button
+          variant="outlined"
+          color="greyscale"
+          onClick={() => {
+            dispatch(
+              fetchData({
+                url: `${window.location.ancestorOrigins[0]}/get_associated_session_data/`,
+                fetchMethod: 'POST',
+                body: {
+                  data_names: ['kpis'],
+                },
+              })
+            )
+          }}
+        >
+          <MdRefresh size={28} />
+        </Button>
+      </HeaderSelectWrapper>
+    </>
   )
 })
 

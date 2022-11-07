@@ -14,7 +14,6 @@ import { forcePath, toIconInstance } from '../../utils'
 const styles = {
   formControl: {
     flexDirection: 'initial',
-    m: 1,
   },
   icon: {
     '& .MuiListItemIcon-root': {

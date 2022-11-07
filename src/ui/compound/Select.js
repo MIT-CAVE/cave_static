@@ -12,21 +12,20 @@ import { toIconInstance } from '../../utils'
 const styles = {
   formControl: {
     flexDirection: 'initial',
-    m: 1,
   },
   icon: {
-    '& .MuiListItemIcon-root': {
-      color: 'text.primary',
-      size: 25,
-      minWidth: 42,
-      mr: 0.5,
-    },
+    color: 'text.primary',
+    size: 25,
+    minWidth: 42,
+    mr: 0.5,
   },
   select: {
+    borderRadius: 0,
+    boxSizing: 'border-box',
     '& .MuiSelect-select': {
       display: 'flex',
       alignItems: 'center',
-      whiteSpace: 'normal !important',
+      // whiteSpace: 'normal !important',
     },
   },
 }

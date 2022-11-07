@@ -11,9 +11,10 @@ import * as R from 'ramda'
 import { useState, lazy, Suspense } from 'react'
 import {
   MdAddCircle,
-  MdAspectRatio,
+  MdFullscreen,
+  MdFullscreenExit,
   MdMultilineChart,
-  MdOutlineCancel,
+  MdOutlineCancelPresentation,
   MdSpeed,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
@@ -76,6 +77,7 @@ const styles = {
   header: {
     minHeight: '5%',
     overflowWrap: 'anywhere',
+    pb: 1.25,
   },
 }
 
@@ -144,7 +146,7 @@ const Dashboard = () => {
             <Grid item>
               {maximizedIndex == null ? (
                 <IconButton onClick={() => setMaximizedIndex(index)}>
-                  <MdAspectRatio size={35} />
+                  <MdFullscreen size={35} />
                 </IconButton>
               ) : (
                 <ToggleButton
@@ -152,7 +154,7 @@ const Dashboard = () => {
                   onChange={() => setMaximizedIndex(null)}
                   value=""
                 >
-                  <MdAspectRatio size={35} />
+                  <MdFullscreenExit size={35} />
                 </ToggleButton>
               )}
             </Grid>
@@ -172,7 +174,7 @@ const Dashboard = () => {
                 }}
                 size="large"
               >
-                <MdOutlineCancel size={35} />
+                <MdOutlineCancelPresentation size={35} />
               </IconButton>
             </Grid>
           )}
