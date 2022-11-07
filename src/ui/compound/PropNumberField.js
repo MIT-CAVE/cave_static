@@ -30,9 +30,7 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         {...{ enabled, max, min, numberFormat }}
         value={R.clamp(min, max, currentVal || prop.value)}
         onClickAway={(value) => {
-          const constrainedVal =
-            R.prop('constraint', prop) === 'int' ? Math.trunc(value) : value
-          if (enabled) onChange(constrainedVal)
+          if (enabled) onChange(value)
         }}
       />
     </Box>

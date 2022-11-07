@@ -28,13 +28,13 @@ const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
   const max = R.propOr(Infinity, 'maxValue', prop)
   const min = R.propOr(-Infinity, 'minValue', prop)
   const numberFormatRaw = prop.numberFormat || {}
+  const enabled = prop.enabled || false
   // TODO: Pass `numberFormat` to `ValueRange` after this component is refactored
   const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <ValueRange
-      {...props}
+      {...{ enabled, props }}
       sx={styles}
-      enabled={R.propOr(false, 'enabled', prop)}
       label={R.prop('label', prop)}
       number
       minValue={min}
@@ -46,9 +46,7 @@ const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
         R.defaultTo(R.prop('value', prop), currentVal)
       )}
       onClickAwayHandler={(value) => {
-        const constrainedVal =
-          R.prop('constraint', prop) === 'int' ? Math.trunc(value) : value
-        if (R.propOr(false, 'enabled', prop)) onChange(constrainedVal)
+        if (enabled) onChange(value)
       }}
     />
   )
