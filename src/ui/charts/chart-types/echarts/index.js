@@ -15,6 +15,7 @@ import {
   // ParallelChart,
   // SankeyChart,
   BoxplotChart,
+  CustomChart,
   // CandlestickChart,
   // EffectScatterChart,
   // LinesChart,
@@ -77,6 +78,7 @@ echarts.use([
   BoxplotChart,
   LineChart,
   CanvasRenderer,
+  CustomChart,
 ])
 
 const FlexibleWrapper = ({ children, ...props }) => (
@@ -368,7 +370,7 @@ const EchartsBoxPlot = ({
     legend,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+     
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
@@ -452,57 +454,81 @@ BarPlot.propTypes = {
 
 const BoxPlot = ({ ...props }) => <EchartsBoxPlot {...props} />
 
-const WaterfallChart = ({ data, theme }) => {
+const WaterfallChart = ({ data, theme, numberFormat}) => {
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-      trigger: 'axis',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        valueFormatter: (value) => formatNumber(value, numberFormat),
+        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+        trigger: 'axis',
+        textStyle: {
+          color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        },
+        
       },
-    },
+    dataset: {
+        source: data
+      },
 
     xAxis: {
-      type: 'category',
-      splitLine: { show: false },
-      data: data['x'],
-    },
+        type: 'category',
+        splitLine: { show: false },
+        // data: R.pluck('x')(data),
+      },
     yAxis: {
-      type: 'value',
-      splitLine: {
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 2,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
-      },
-    },
-    series: [
-      {
-        type: 'bar',
-        stack: 'Total',
-        itemStyle: {
-          color: 'transparent',
-        },
-        data: data['placeholder'],
-      },
-
-      {
-        type: 'bar',
-        stack: 'Total',
-        label: {
+        type: 'value',
+       
+      
+        
+        //Add the maximum to do the scaling
+        //As well as the min value
+        min:data['min'],
+        max: data['max'].toFixed(1),
+        
+        splitLine: {
           show: true,
-          position: 'inside',
+          lineStyle: {
+            type: [2, 5],
+            dashOffset: 3,
+            // Dark and light colors will be used in turns
+            color: ['#aaa', '#ddd'],
+            opacity: 0.7,
+          },
         },
-        data: data['data'],
       },
-    ],
+    
+    series : {
+      type: 'custom',
+     
+      renderItem: (params,api) => {
+        const dataIndex = api.value(0);
+        const barStartValue = api.value(2);
+        const barEndValue = api.value(3);
+        const startCoord = api.coord([dataIndex, barStartValue])
+        const endCoord = api.coord([dataIndex,barEndValue])
+        
+        const rectWidth = 200;
+        let rectHeight = startCoord[1] - endCoord[1];
+        const style = api.style();
+
+        const rectItem = {
+          type: 'rect',
+          shape: {
+            x: endCoord[0] - rectWidth/2,
+            y : endCoord[1],
+            width: rectWidth,
+            height: rectHeight,
+          },
+          style:style,
+        };
+        return rectItem
+      }
+
+    },
+
   }
   return (
+    
     <div style={{ flex: '1 1 auto' }}>
       <AutoSizer>
         {({ height, width }) => (
@@ -515,7 +541,69 @@ const WaterfallChart = ({ data, theme }) => {
         )}
       </AutoSizer>
     </div>
-  )
+  );
+  
+  
 }
 
 export { FlexibleWrapper, LinePlot, BarPlot, BoxPlot, WaterfallChart }
+
+// const options = {
+//   backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+
+//   tooltip: {
+//     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+//     trigger: 'axis',
+//     textStyle: {
+//       color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+//     },
+//   },
+
+//   xAxis: {
+//     type: 'category',
+//     splitLine: { show: false },
+//     data: R.pluck('x')(data),
+//   },
+//   yAxis: {
+//     type: 'value',
+//     splitLine: {
+//       lineStyle: {
+//         type: [2, 5],
+//         dashOffset: 2,
+//         // Dark and light colors will be used in turns
+//         color: ['#aaa', '#ddd'],
+//         opacity: 0.7,
+//       },
+//     },
+//   },
+//   series: [
+//     {
+//       type: 'bar',
+//       stack: 'Total',
+//       itemStyle: {
+//         color: 'transparent',
+//       },
+//       data: R.pluck('y')(data),
+//     },
+
+//     {
+//       type: 'bar',
+//       stack: 'Total',
+    
+//       data: R.pluck('y')(data),
+//     },
+//   ],
+// }
+// return (
+//   <div style={{ flex: '1 1 auto' }}>
+//     <AutoSizer>
+//       {({ height, width }) => (
+//         <ReactEChartsCore
+//           echarts={echarts}
+//           option={options}
+//           style={{ height, width }}
+//           theme={theme}
+//         />
+//       )}
+//     </AutoSizer>
+//   </div>

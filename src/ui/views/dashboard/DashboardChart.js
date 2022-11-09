@@ -30,6 +30,8 @@ import {
   getSubLabelFn,
   forcePath,
 } from '../../../utils'
+import { current } from '@reduxjs/toolkit'
+import { object } from 'prop-types'
 
 const mergeFuncs = {
   Sum: R.sum,
@@ -279,24 +281,35 @@ const DashboardChart = ({ obj, length }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
+ 
 
-  const generatePlaceholders = (data) => {
-    let placeholder = [0]
-    for (let i = 1; i < data.length; i++) {
-      if (i === 1) {
-        placeholder.push(data[i - 1] - data[i])
-      } else {
-        placeholder.push(placeholder[i - 1] - data[i])
-      }
+  let normal_y = R.pluck('y')(formattedData)
+
+  const getWaterfallData = (data) =>{
+    let waterfallData = JSON.parse(JSON.stringify(formattedData));
+  
+  for (let i = 0; i<data.length; i++){
+    if(i ==0){
+      waterfallData[0]['start_value'] =0
+      waterfallData[0]['end_value'] = data[0]
     }
-    return placeholder
+    else{
+      waterfallData[i]['start_value'] = data[i-1]
+      waterfallData[i]['end_value'] = data[i]+ data[i-1]
+      
+    }
   }
-  const waterfallData = {
-    data: [2900, 1200, 300, 200, 900, 300],
-    x: ['Total', 'Rent', 'Utilities', 'Transportation', 'Meals', 'Other'],
-  }
-  waterfallData['placeholder'] = generatePlaceholders(waterfallData['data'])
+  waterfallData['max'] = Math.max(...R.pluck('end_value')(waterfallData))
+  let minimumEnd = Math.min(...R.pluck('end_value')(waterfallData))
+  let minimumStart = Math.min(...R.pluck('start_value')(waterfallData))
+  waterfallData['min'] = Math.min(minimumEnd,minimumStart)
 
+  return waterfallData
+}
+let waterfall = getWaterfallData(normal_y)
+
+console.log(formattedData)
+console.log(waterfall)
   return (
     <Box
       sx={{
@@ -343,14 +356,15 @@ const DashboardChart = ({ obj, length }) => {
           theme={themeId}
           {...labels}
         />
-      ) : obj.chart === 'Waterfall' ? (
+      )  : obj.chart === 'Waterfall' ? (
         <WaterfallChart
-          data={waterfallData}
+          data={waterfall}
           numberFormat={commonFormat}
           theme={themeId}
           {...labels}
         />
-      ) : (
+      )
+ : (
         <></>
       )}
     </Box>
