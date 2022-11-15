@@ -65,6 +65,7 @@ import React from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { formatNumber } from '../../../../utils'
+import { CHART_PALETTE } from '../../../../utils/constants'
 
 // Register the required components
 echarts.use([
@@ -110,7 +111,7 @@ const EchartsPlot = ({
         name: yKey,
         data: R.pluck(yKey)(yData),
         type: chartType,
-        ...(stack && { stack: stack }),
+        ...(stack && { stack }),
         smooth: true,
         emphasis: {
           focus: 'series',
@@ -213,7 +214,7 @@ const EchartsBoxPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  // numberFormat,
   theme,
   subGrouped,
 }) => {
@@ -231,14 +232,12 @@ const EchartsBoxPlot = ({
   if (subGrouped) {
     sources = R.map((yKey) => ({
       id: `source-${yKey}`,
-      type: chartType,
       source: R.pipe(
         R.pluck(yKey),
         // This fixes an issue when the 1st groupBy + level
         // matches the 2nd groupBy + level
         R.map(R.when(R.isNil, R.always([])))
       )(yData),
-      name: yKey,
     }))(yKeys)
 
     transforms = R.map((yKey) => ({
@@ -271,9 +270,7 @@ const EchartsBoxPlot = ({
     sources = [
       {
         id: 'source',
-        type: chartType,
         source: R.pipe(R.mergeAll, R.values)(yData),
-        // name: ,
       },
     ]
 
@@ -306,8 +303,6 @@ const EchartsBoxPlot = ({
 
     legend = null
   }
-
-  // console.log({yKeys, data, yData, sources, transforms, series});
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
@@ -370,15 +365,12 @@ const EchartsBoxPlot = ({
     legend,
     tooltip: {
       trigger: 'axis',
-     
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
       },
     },
   }
-
-  // console.log({options});
 
   // TODO: Prefer FlexibleWrapper here
   return (
@@ -398,10 +390,6 @@ const EchartsBoxPlot = ({
     </div>
   )
 }
-/**
- * Renders a waterfall chart
- * @param {*} param0
- */
 
 /**
  * Renders a line plot.
@@ -452,83 +440,209 @@ BarPlot.propTypes = {
   stack: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
 }
 
-const BoxPlot = ({ ...props }) => <EchartsBoxPlot {...props} />
+/**
+ * Estimates the parameters needed to render a single bar at an arbitrary
+ * (x, y) position within a series and returns a function that maps the
+ * bar's coordinates to a rectangular shape required by echarts.
+ * @param {number} categoryWidth The width of an individual category,
+ * i.e. a group of bars sharing an `x` value.
+ * @param {number} seriesLength The number of distinct series in the chart,
+ * i.e. the number of distinct subgrouping elements in the data.
+ * @param {number} barCategoryGapPct The gap between two categories of
+ * contiguous bars as a percentage of the bar width.
+ * Equivalent to: https://echarts.apache.org/en/option.html#series-bar.barGap
+ * @param {number} barGapPct The gap between bars within a single category
+ * as a percentage of the category gap.
+ * Equivalent to: https://echarts.apache.org/en/option.html#series-bar.barCategoryGap
+ * @returns {function} A function that returns a valid `shape` object for a
+ * rectangle element.
+ * @private
+ */
+const getBarShapeFn = ({
+  categoryWidth,
+  seriesLength,
+  barGapPct = 0.5,
+  barCategoryGapPct = 0.5,
+}) => {
+  // The following is a math expression that estimates the bar width based
+  // on the current width available for the chart and the gap percentages.
+  // BUG: broken when subgrouping is `false`
+  const barWidth =
+    categoryWidth /
+    (seriesLength + barCategoryGapPct * (2 + (seriesLength - 1) * barGapPct))
+  const barCategoryGap = barCategoryGapPct * barWidth
+  const barGap = barGapPct * barCategoryGap
 
-const WaterfallChart = ({ data, theme, numberFormat}) => {
+  /**
+   * Obtains a valid `shape` object.
+   * See: https://echarts.apache.org/en/option.html#series-custom.renderItem.return_rect.shape
+   * @param {number} barIndex The left to right position of the bar within the category.
+   * @param {Array} startCoord The starting coordinates of the bar, centered within the category.
+   * @param {Array} endCoord The ending coordinates of the bar, centered within the category.
+   * @returns {Array} A valid `shape` object.
+   * @private
+   */
+  return ({ startCoord, endCoord, barIndex }) => {
+    // `startCoord[0]` is used as the reference center of the middle bar
+    // to estimate the position of the first bar within the category.
+    const firstBarX =
+      startCoord[0] - ((seriesLength - 1) * (barWidth + barGap)) / 2
+    const barX = firstBarX + barIndex * (barWidth + barGap)
+    return {
+      x: barX - barWidth / 2,
+      y: endCoord[1],
+      width: barWidth,
+      height: startCoord[1] - endCoord[1],
+    }
+  }
+}
+
+// TODO:
+// - Set `xAxisTitle`, `yAxisTitle`
+// - Line connector between bars. If there is no value in between, the line must still connect the distant bars.
+// - Different color for raising and falling values (maybe altering them with opacity)
+const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
+  const xData = R.pluck('x')(data)
+  const yData = R.pluck('y')(data)
+  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+
+  const getYPos = (rawData) => {
+    const yData = R.pluck('y')(rawData)
+    let prevY = 0
+    for (let i = 0; i < yData.length; i++) {
+      if (yData[i] == null) continue
+
+      rawData[i]['startValue'] =
+        i === 0 || yData[i - 1] == null ? prevY : yData[i - 1]
+      rawData[i]['endValue'] = yData[i]
+      prevY = yData[i]
+    }
+    return rawData
+  }
+
+  let getBarShape
+  const renderItem = (params, api) => {
+    const index = params.dataIndex
+    const style = api.style({
+      fill: CHART_PALETTE[theme][params.seriesIndex],
+    })
+
+    if (index === 0) {
+      getBarShape = getBarShapeFn({
+        categoryWidth: api.coord([1, 0])[0] - api.coord([0, 0])[0], // TODO: Simplify by using params.coordSys.width
+        seriesLength: xData.length,
+      })
+    }
+
+    const barStartValue = api.value(2)
+    const barEndValue = api.value(3)
+    if (isNaN(barStartValue) || isNaN(barEndValue)) return
+
+    const startCoord = api.coord([index, barStartValue])
+    const endCoord = api.coord([index, barEndValue])
+
+    return {
+      type: 'rect',
+      shape: getBarShape({
+        startCoord,
+        endCoord,
+        barIndex: params.seriesIndex,
+      }),
+      style,
+    }
+  }
+
+  let dataset
+  let series
+  let yMax
+  let yMin
+  if (subGrouped) {
+    // TODO: Simplify this Ramda pipe
+    dataset = R.map((yKey) => ({
+      id: `${yKey}`,
+      source: R.pipe(
+        R.pluck(yKey),
+        R.map(R.objOf('y')),
+        R.zip(R.map(R.objOf('x'))(xData)),
+        R.map(R.mergeAll),
+        getYPos,
+        R.project(['x', 'y', 'startValue', 'endValue']),
+        R.defaultTo([])
+      )(yData),
+    }))(yKeys)
+
+    series = yKeys.map((yKey, index) => ({
+      type: 'custom',
+      renderItem,
+      id: yKey,
+      name: yKey,
+      datasetIndex: index,
+    }))
+
+    const getValidPropValues = R.curry((prop, obj) =>
+      R.pipe(R.pluck(prop), R.reject(R.isNil))(obj)
+    )
+
+    const sources = R.pipe(R.pluck('source'), R.unnest)(dataset)
+    yMax = Math.max(...getValidPropValues('endValue')(sources))
+    let endValueMin = Math.min(...getValidPropValues('endValue')(sources))
+    let startValueMin = Math.min(...getValidPropValues('startValue')(sources))
+    yMin = Math.min(...getValidPropValues('endValue')(sources))
+    yMin = Math.min(startValueMin, endValueMin)
+  } else {
+    const waterfallData = getYPos(data)
+    yMax = Math.max(...R.pluck('endValue')(waterfallData))
+    let endValueMin = Math.min(...R.pluck('endValue')(waterfallData))
+    let startValueMin = Math.min(...R.pluck('startValue')(waterfallData))
+    yMin = Math.min(startValueMin, endValueMin)
+
+    dataset = { source: waterfallData }
+    series = {
+      type: 'custom',
+      renderItem,
+    }
+  }
+
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     tooltip: {
-        valueFormatter: (value) => formatNumber(value, numberFormat),
-        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-        trigger: 'axis',
-        textStyle: {
-          color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-        },
-        
+      valueFormatter: (value) => formatNumber(value, numberFormat),
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      trigger: 'axis',
+      textStyle: {
+        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
       },
-    dataset: {
-        source: data
-      },
-
-    xAxis: {
-        type: 'category',
-        splitLine: { show: false },
-        // data: R.pluck('x')(data),
-      },
-    yAxis: {
-        type: 'value',
-       
-      
-        
-        //Add the maximum to do the scaling
-        //As well as the min value
-        min:data['min'],
-        max: data['max'].toFixed(1),
-        
-        splitLine: {
-          show: true,
-          lineStyle: {
-            type: [2, 5],
-            dashOffset: 3,
-            // Dark and light colors will be used in turns
-            color: ['#aaa', '#ddd'],
-            opacity: 0.7,
-          },
-        },
-      },
-    
-    series : {
-      type: 'custom',
-     
-      renderItem: (params,api) => {
-        const dataIndex = api.value(0);
-        const barStartValue = api.value(2);
-        const barEndValue = api.value(3);
-        const startCoord = api.coord([dataIndex, barStartValue])
-        const endCoord = api.coord([dataIndex,barEndValue])
-        
-        const rectWidth = 200;
-        let rectHeight = startCoord[1] - endCoord[1];
-        const style = api.style();
-
-        const rectItem = {
-          type: 'rect',
-          shape: {
-            x: endCoord[0] - rectWidth/2,
-            y : endCoord[1],
-            width: rectWidth,
-            height: rectHeight,
-          },
-          style:style,
-        };
-        return rectItem
-      }
-
     },
-
+    dataset,
+    xAxis: {
+      type: 'category',
+      splitLine: { show: false },
+      // data: xData,
+    },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      //Add the maximum to do the scaling
+      //As well as the min value
+      min: yMin - (yMax - yMin) * 0.1,
+      max: yMax + (yMax - yMin) * 0.1,
+      axisLine: {
+        show: true,
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          type: [2, 5],
+          dashOffset: 3,
+          // Dark and light colors will be used in turns
+          color: ['#aaa', '#ddd'],
+          opacity: 0.7,
+        },
+      },
+    },
+    series,
   }
   return (
-    
     <div style={{ flex: '1 1 auto' }}>
       <AutoSizer>
         {({ height, width }) => (
@@ -541,69 +655,13 @@ const WaterfallChart = ({ data, theme, numberFormat}) => {
         )}
       </AutoSizer>
     </div>
-  );
-  
-  
+  )
 }
 
-export { FlexibleWrapper, LinePlot, BarPlot, BoxPlot, WaterfallChart }
-
-// const options = {
-//   backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-
-//   tooltip: {
-//     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-//     trigger: 'axis',
-//     textStyle: {
-//       color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-//     },
-//   },
-
-//   xAxis: {
-//     type: 'category',
-//     splitLine: { show: false },
-//     data: R.pluck('x')(data),
-//   },
-//   yAxis: {
-//     type: 'value',
-//     splitLine: {
-//       lineStyle: {
-//         type: [2, 5],
-//         dashOffset: 2,
-//         // Dark and light colors will be used in turns
-//         color: ['#aaa', '#ddd'],
-//         opacity: 0.7,
-//       },
-//     },
-//   },
-//   series: [
-//     {
-//       type: 'bar',
-//       stack: 'Total',
-//       itemStyle: {
-//         color: 'transparent',
-//       },
-//       data: R.pluck('y')(data),
-//     },
-
-//     {
-//       type: 'bar',
-//       stack: 'Total',
-    
-//       data: R.pluck('y')(data),
-//     },
-//   ],
-// }
-// return (
-//   <div style={{ flex: '1 1 auto' }}>
-//     <AutoSizer>
-//       {({ height, width }) => (
-//         <ReactEChartsCore
-//           echarts={echarts}
-//           option={options}
-//           style={{ height, width }}
-//           theme={theme}
-//         />
-//       )}
-//     </AutoSizer>
-//   </div>
+export {
+  FlexibleWrapper,
+  LinePlot,
+  BarPlot,
+  EchartsBoxPlot as BoxPlot,
+  WaterfallChart,
+}

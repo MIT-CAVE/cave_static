@@ -32,3 +32,28 @@ export const DEFAULT_VIEWPORT = {
   minBearing: MIN_BEARING,
   maxBearing: MAX_BEARING,
 }
+
+export const CHART_PALETTE = {
+  dark: [
+    '#4992ff',
+    '#7cffb2',
+    '#fddd60',
+    '#ff6e76',
+    '#58d9f9',
+    '#05c091',
+    '#ff8a45',
+    '#8d48e3',
+    '#dd79ff',
+  ],
+  light: [
+    '#37A2DA',
+    '#32C5E9',
+    '#9FE6B8',
+    '#FFDB5C',
+    '#ff9f7f',
+    '#fb7293',
+    '#e7bcf3',
+    '#8378EA',
+    '#96BFFF',
+  ],
+}

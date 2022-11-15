@@ -30,8 +30,6 @@ import {
   getSubLabelFn,
   forcePath,
 } from '../../../utils'
-import { current } from '@reduxjs/toolkit'
-import { object } from 'prop-types'
 
 const mergeFuncs = {
   Sum: R.sum,
@@ -73,6 +71,8 @@ const DashboardChart = ({ obj, length }) => {
     [obj]
   )
 
+  const subGrouped = R.has('level2')(obj)
+
   const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
 
   useEffect(() => {
@@ -98,7 +98,7 @@ const DashboardChart = ({ obj, length }) => {
         ? doubleFilteredStats
         : R.values(filteredStatsData)
 
-      const calculatedStats = R.has('level2', obj)
+      const calculatedStats = subGrouped
         ? calculateStatSubGroup(actualStatsData)(
             categoryFunc(obj.category, obj.level),
             categoryFunc(obj.category2, obj.level2),
@@ -110,14 +110,14 @@ const DashboardChart = ({ obj, length }) => {
           )
       // merge the calculated stats - unless boxplot
       const statValues =
-        obj.chart === 'Box Plot' && !R.has('level2', obj)
+        obj.chart === 'Box Plot' && !subGrouped
           ? R.pipe(
               R.map(R.filter(R.is(Number))),
               R.mapObjIndexed((val, key) => R.assoc(key, val, {}))
             )(calculatedStats)
           : obj.chart === 'Box Plot'
           ? R.map(R.map(R.filter(R.is(Number))))(calculatedStats)
-          : R.has('level2', obj)
+          : subGrouped
           ? R.map(
               R.map(R.pipe(R.filter(R.is(Number)), mergeFuncs[obj.grouping]))
             )(calculatedStats)
@@ -134,9 +134,7 @@ const DashboardChart = ({ obj, length }) => {
       if (R.propOr('bar', 'chart', obj) !== 'Table') {
         const getFormattedData = R.pipe(
           debug ? R.identity : R.dissoc(undefined),
-          debug || !R.has('level2', obj)
-            ? R.identity
-            : R.map(R.dissoc(undefined)),
+          debug || !subGrouped ? R.identity : R.map(R.dissoc(undefined)),
           R.mapObjIndexed((value, key) => ({
             x: obj.category === null ? 'All' : key,
             y: value,
@@ -215,6 +213,7 @@ const DashboardChart = ({ obj, length }) => {
     categoryFunc,
     statisticTypes,
     actualStat,
+    subGrouped,
   ])
 
   const xAxisTitle = obj.category
@@ -253,7 +252,7 @@ const DashboardChart = ({ obj, length }) => {
             : ''
         }`
       : '',
-    R.has('level2', obj)
+    subGrouped
       ? R.prepend(
           `${getLabelFn(categories)(obj.category2)}${
             obj.level2
@@ -281,35 +280,6 @@ const DashboardChart = ({ obj, length }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
- 
-
-  let normal_y = R.pluck('y')(formattedData)
-
-  const getWaterfallData = (data) =>{
-    let waterfallData = JSON.parse(JSON.stringify(formattedData));
-  
-  for (let i = 0; i<data.length; i++){
-    if(i ==0){
-      waterfallData[0]['start_value'] =0
-      waterfallData[0]['end_value'] = data[0]
-    }
-    else{
-      waterfallData[i]['start_value'] = data[i-1]
-      waterfallData[i]['end_value'] = data[i]+ data[i-1]
-      
-    }
-  }
-  waterfallData['max'] = Math.max(...R.pluck('end_value')(waterfallData))
-  let minimumEnd = Math.min(...R.pluck('end_value')(waterfallData))
-  let minimumStart = Math.min(...R.pluck('start_value')(waterfallData))
-  waterfallData['min'] = Math.min(minimumEnd,minimumStart)
-
-  return waterfallData
-}
-let waterfall = getWaterfallData(normal_y)
-
-console.log(formattedData)
-console.log(waterfall)
   return (
     <Box
       sx={{
@@ -331,7 +301,7 @@ console.log(waterfall)
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
-          subGrouped={R.has('level2')(obj)}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Bar' ? (
@@ -356,15 +326,15 @@ console.log(waterfall)
           theme={themeId}
           {...labels}
         />
-      )  : obj.chart === 'Waterfall' ? (
+      ) : obj.chart === 'Waterfall' ? (
         <WaterfallChart
-          data={waterfall}
+          data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
-      )
- : (
+      ) : (
         <></>
       )}
     </Box>
