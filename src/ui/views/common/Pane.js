@@ -11,7 +11,7 @@ import ContextPane from './ContextPane'
 import FilterPane from './FilterPane'
 import OptionsPane from './OptionsPane'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import { paneId } from '../../../utils/enums'
 import Pane from '../../compound/Pane'
 
@@ -29,10 +29,9 @@ const SyncButton = ({ open, pane }) => {
       onClick={() => {
         if (!pane) return null
         dispatch(
-          fetchData({
-            url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-            fetchMethod: 'POST',
-            body: {
+          sendCommand({
+            command: 'mutate_session',
+            data: {
               data_name: 'appBar',
               data_path: ['data', open],
               data_value: pane,

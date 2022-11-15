@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCategoriesData,
@@ -101,10 +101,9 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
           )(R.toPairs(data))
         )
     dispatch(
-      fetchData({
-        url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-        fetchMethod: 'POST',
-        body: {
+      sendCommand({
+        command: 'mutate_session',
+        data: {
           data_name: 'appBar',
           data_path: [
             'data',
@@ -137,10 +136,9 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
           )(R.toPairs(data))
         )
     dispatch(
-      fetchData({
-        url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-        fetchMethod: 'POST',
-        body: {
+      sendCommand({
+        command: 'mutate_session',
+        data: {
           data_name: 'appBar',
           data_path: [
             'data',

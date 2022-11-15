@@ -14,7 +14,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import SimpleModalOptions from './SimpleModalOptions'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import {
   mapStyleSelection,
   viewportUpdate,
@@ -107,10 +107,9 @@ const OnLayerEventModal = () => {
       : value
 
     dispatch(
-      fetchData({
-        url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-        fetchMethod: 'POST',
-        body: {
+      sendCommand({
+        command: 'mutate_session',
+        data: {
           data_name: feature,
           data_path: dataPath,
           data_value: sentValue,

@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import renderProp from './renderProp'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAppBarData,
@@ -89,10 +89,9 @@ const ContextPane = () => {
                 css={localCss.contextClose}
                 onClick={() =>
                   dispatch(
-                    fetchData({
-                      url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-                      fetchMethod: 'POST',
-                      body: {
+                    sendCommand({
+                      command: 'mutate_session',
+                      data: {
                         data_name: 'appBar',
                         data_path: ['data', open, 'data'],
                         data_value: R.dissoc(key, obj),
@@ -109,10 +108,9 @@ const ContextPane = () => {
               getLabel={(item) => R.pathOr(item, ['props', item, 'name'])(pane)}
               onSelect={(value) =>
                 dispatch(
-                  fetchData({
-                    url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-                    fetchMethod: 'POST',
-                    body: {
+                  sendCommand({
+                    command: 'mutate_session',
+                    data: {
                       data_name: 'appBar',
                       data_path: ['data', open, 'data', key, 'prop'],
                       data_value: value,
@@ -131,10 +129,9 @@ const ContextPane = () => {
                 currentVal: R.prop('value', val),
                 onChange: (value) =>
                   dispatch(
-                    fetchData({
-                      url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-                      fetchMethod: 'POST',
-                      body: {
+                    sendCommand({
+                      command: 'mutate_session',
+                      data: {
                         data_name: 'appBar',
                         data_path: ['data', open, 'data', key, 'value'],
                         data_value: value,
@@ -243,10 +240,9 @@ const ContextPane = () => {
           color="success"
           onClick={() =>
             dispatch(
-              fetchData({
-                url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-                fetchMethod: 'POST',
-                body: {
+              sendCommand({
+                command: 'mutate_session',
+                data: {
                   data_name: 'appBar',
                   data_path: ['data', open, 'data'],
                   data_value: R.assoc(

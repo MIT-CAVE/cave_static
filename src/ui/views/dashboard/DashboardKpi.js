@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import { memo, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import {
   selectAssociatedData,
   selectNumberFormat,
@@ -23,10 +23,9 @@ const DashboardKpi = ({ obj, length }) => {
   useEffect(() => {
     if (R.isEmpty(kpis)) {
       dispatch(
-        fetchData({
-          url: `${window.location.ancestorOrigins[0]}/get_associated_session_data/`,
-          fetchMethod: 'POST',
-          body: {
+        sendCommand({
+          command: 'get_associated_session_data',
+          data: {
             data_names: ['kpis'],
           },
         })

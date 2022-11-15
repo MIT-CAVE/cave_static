@@ -61,7 +61,7 @@ export const syncSession = async (localHashes, hashes, authToken) => {
   // calls a function to get updated data from the server where there is a hash mismatch.
   //  See POST /get_session_data/ in cave_test_server for more info
   // NOTE:
-  // Do not call fetchData here, as syncSession is called from a reducer already.
+  // Do not call sendCommand here, as syncSession is called from a reducer already.
   // Calling a reducer inside another reducer is an anti-pattern.
   const dataNames = getDataNamesOnHashMismatch(localHashes, hashes)
   if (dataNames.length > 0) {

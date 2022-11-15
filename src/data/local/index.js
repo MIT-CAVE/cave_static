@@ -6,7 +6,7 @@ import kpisReducer from './kpisSlice'
 import mapReducer from './map'
 import settingsReducer, { initialState } from './settingsSlice'
 
-import { fetchData } from '../data'
+import { sendCommand } from '../data'
 
 import { combineReducers } from '../../utils'
 
@@ -26,10 +26,9 @@ const localSlice = createSlice({
         return R.assocPath(action.payload.path, action.payload.value, state)
       } else {
         action.asyncDispatch(
-          fetchData({
-            url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-            fetchMethod: 'POST',
-            body: {
+          sendCommand({
+            command: 'mutate_session',
+            data: {
               data_name: R.head(action.payload.path),
               data_path: R.tail(action.payload.path),
               data_value: action.payload.value,

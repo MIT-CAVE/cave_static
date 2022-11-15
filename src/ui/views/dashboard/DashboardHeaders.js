@@ -15,7 +15,7 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
@@ -368,10 +368,9 @@ const KpiHeader = memo(({ obj, index }) => {
           color="greyscale"
           onClick={() => {
             dispatch(
-              fetchData({
-                url: `${window.location.ancestorOrigins[0]}/get_associated_session_data/`,
-                fetchMethod: 'POST',
-                body: {
+              sendCommand({
+                command: 'get_associated_session_data',
+                data: {
                   data_names: ['kpis'],
                 },
               })

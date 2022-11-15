@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { fetchData } from '../../../data/data'
+import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import { viewSelection } from '../../../data/local/settingsSlice'
 import {
@@ -123,10 +123,9 @@ const getAppBarItem = ({
       key={key}
       onClick={() => {
         dispatch(
-          fetchData({
-            url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-            httpMethod: 'POST',
-            body: {
+          sendCommand({
+            command: 'mutate_session',
+            data: {
               api_command: R.prop('apiCommand')(obj),
               api_command_keys: R.prop('apiCommandKeys')(obj),
             },

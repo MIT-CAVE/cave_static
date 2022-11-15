@@ -1,8 +1,9 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
-import { apiRequest, assocHashes, getRequestParams, syncSession } from './utils'
+import { assocHashes, syncSession } from './utils'
 
+import websocket from '../../utils/websockets'
 import { overrideSync } from '../local/actions'
 
 export const mutateData = createAsyncThunk(
@@ -62,15 +63,12 @@ export const mutateData = createAsyncThunk(
   }
 )
 
-export const fetchData = createAsyncThunk(
-  'data/fetchData',
+export const sendCommand = createAsyncThunk(
+  'data/sendCommand',
   async (arg, { getState }) => {
-    arg.authToken = R.path(['tokens', 'userToken'], getState())
     const localHashes = R.path(['data', 'hashes'], getState())
-    const fullArg = R.assocPath(['body', 'data_hashes'], localHashes, arg)
-    const output = await apiRequest(getRequestParams(fullArg))
-
-    return output
+    const fullArg = R.assocPath(['data', 'data_hashes'], localHashes, arg)
+    websocket.send(fullArg)
   }
 )
 
@@ -121,13 +119,13 @@ export const dataSlice = createSlice({
       console.error('Unable to mutate session')
     })
     // Data fetching
-    builder.addCase(fetchData.pending, (state, action) => {
+    builder.addCase(sendCommand.pending, (state, action) => {
       return toggleLoadingFx(action, true)(state)
     })
-    builder.addCase(fetchData.fulfilled, (state, action) => {
+    builder.addCase(sendCommand.fulfilled, (state, action) => {
       return toggleLoadingFx(action, false)(state)
     })
-    builder.addCase(fetchData.rejected, (state, action) => {
+    builder.addCase(sendCommand.rejected, (state, action) => {
       console.error('Unable to fetch data from session')
       return toggleLoadingFx(action, false)(state)
     })

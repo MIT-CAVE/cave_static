@@ -5,12 +5,13 @@ import { Provider, useDispatch } from 'react-redux'
 
 import './index.css'
 import App from './App'
-import { fetchData, mutateData } from './data/data'
+import { sendCommand, mutateData } from './data/data'
 import { mutateLocal } from './data/local'
 import { tokensSet } from './data/tokens/tokensSlice'
 // Must import store prior to any slice items to prevent
 // potential extra reducer creating race event
 import { store } from './utils/store'
+import websocket from './utils/websockets'
 
 const AppWrapper = () => {
   const dispatch = useDispatch()
@@ -24,14 +25,16 @@ const AppWrapper = () => {
         if (e.origin === window.location.ancestorOrigins[0]) {
           const payload = e.data
           // check if tokens are present in data
-          if (payload.event === 'set_tokens') {
+          if (payload.event === 'initialize') {
             dispatch(tokensSet({ mapboxToken: payload.data.mapbox_token }))
             dispatch(tokensSet({ userToken: payload.data.user_token }))
+            await websocket.connect(payload.data.user_token, (payload) =>
+              dispatch(mutateData(payload))
+            )
             await dispatch(
-              fetchData({
-                url: `${window.location.ancestorOrigins[0]}/get_session_data/`,
-                httpMethod: 'POST',
-                init: true,
+              sendCommand({
+                command: 'get_session_data',
+                data: {},
               })
             )
             // A selector can't be used because its evaluation
@@ -41,11 +44,6 @@ const AppWrapper = () => {
               R.mapObjIndexed(R.pick(['map_kpi']))
             )(store.getState())
             dispatch(mutateLocal({ path: ['kpis'], value: mapKpis }))
-          } else if (
-            payload.event === 'overwrite' ||
-            payload.event === 'mutation'
-          ) {
-            dispatch(mutateData(payload))
           } else {
             console.warn('Message error: ', payload)
           }
