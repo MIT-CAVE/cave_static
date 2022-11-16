@@ -458,49 +458,47 @@ BarPlot.propTypes = {
  * rectangle element.
  * @private
  */
-const getBarShapeFn = ({
-  categoryWidth,
-  seriesLength,
-  barGapPct = 0.5,
-  barCategoryGapPct = 0.5,
-}) => {
-  // The following is a math expression that estimates the bar width based
-  // on the current width available for the chart and the gap percentages.
-  // BUG: broken when subgrouping is `false`
-  const barWidth =
-    categoryWidth /
-    (seriesLength + barCategoryGapPct * (2 + (seriesLength - 1) * barGapPct))
-  const barCategoryGap = barCategoryGapPct * barWidth
-  const barGap = barGapPct * barCategoryGap
+const getBarShapeFn = R.memoizeWith(
+  Array,
+  (categoryWidth, seriesLength, barGapPct = 0.5, barCategoryGapPct = 0.5) => {
+    // The following is a math expression that estimates the bar width based
+    // on the current width available for the chart and the gap percentages.
+    // BUG: broken when `subGrouped` is `false`
+    const barWidth =
+      categoryWidth /
+      (seriesLength + barCategoryGapPct * (2 + (seriesLength - 1) * barGapPct))
+    const barCategoryGap = barCategoryGapPct * barWidth
+    const barGap = barGapPct * barCategoryGap
 
-  /**
-   * Obtains a valid `shape` object.
-   * See: https://echarts.apache.org/en/option.html#series-custom.renderItem.return_rect.shape
-   * @param {number} barIndex The left to right position of the bar within the category.
-   * @param {Array} startCoord The starting coordinates of the bar, centered within the category.
-   * @param {Array} endCoord The ending coordinates of the bar, centered within the category.
-   * @returns {Array} A valid `shape` object.
-   * @private
-   */
-  return ({ startCoord, endCoord, barIndex }) => {
-    // `startCoord[0]` is used as the reference center of the middle bar
-    // to estimate the position of the first bar within the category.
-    const firstBarX =
-      startCoord[0] - ((seriesLength - 1) * (barWidth + barGap)) / 2
-    const barX = firstBarX + barIndex * (barWidth + barGap)
-    return {
-      x: barX - barWidth / 2,
-      y: endCoord[1],
-      width: barWidth,
-      height: startCoord[1] - endCoord[1],
+    /**
+     * Obtains a valid `shape` object.
+     * See: https://echarts.apache.org/en/option.html#series-custom.renderItem.return_rect.shape
+     * @param {number} barIndex The left to right position of the bar within the category.
+     * @param {Array} startCoord The starting coordinates of the bar, centered within the category.
+     * @param {Array} endCoord The ending coordinates of the bar, centered within the category.
+     * @returns {Array} A valid `shape` object.
+     * @private
+     */
+    return ({ startCoord, endCoord, barIndex }) => {
+      // `startCoord[0]` is used as the reference center of the middle bar
+      // to estimate the position of the first bar within the category.
+      const firstBarX =
+        startCoord[0] - ((seriesLength - 1) * (barWidth + barGap)) / 2
+      const barX = firstBarX + barIndex * (barWidth + barGap)
+      return {
+        x: barX - barWidth / 2,
+        y: endCoord[1],
+        width: barWidth,
+        height: startCoord[1] - endCoord[1],
+      }
     }
   }
-}
+)
 
 // TODO:
 // - Set `xAxisTitle`, `yAxisTitle`
-// - Line connector between bars. If there is no value in between, the line must still connect the distant bars.
 // - Different color for raising and falling values (maybe altering them with opacity)
+// - Line connector between bars. If there is no value in between, the line must still connect the distant bars.
 const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
@@ -520,32 +518,25 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
     return rawData
   }
 
-  let getBarShape
   const renderItem = (params, api) => {
     const index = params.dataIndex
     const style = api.style({
       fill: CHART_PALETTE[theme][params.seriesIndex],
     })
 
-    if (index === 0) {
-      getBarShape = getBarShapeFn({
-        categoryWidth: api.coord([1, 0])[0] - api.coord([0, 0])[0], // TODO: Simplify by using params.coordSys.width
-        seriesLength: xData.length,
-      })
-    }
+    const categoryWidth = params.coordSys.width / xData.length
+    const seriesLength = subGrouped ? yKeys.length : 1
+    const getBarShape = getBarShapeFn(categoryWidth, seriesLength)
 
     const barStartValue = api.value(2)
     const barEndValue = api.value(3)
     if (isNaN(barStartValue) || isNaN(barEndValue)) return
 
-    const startCoord = api.coord([index, barStartValue])
-    const endCoord = api.coord([index, barEndValue])
-
     return {
       type: 'rect',
       shape: getBarShape({
-        startCoord,
-        endCoord,
+        startCoord: api.coord([index, barStartValue]),
+        endCoord: api.coord([index, barEndValue]),
         barIndex: params.seriesIndex,
       }),
       style,
@@ -559,15 +550,14 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   if (subGrouped) {
     // TODO: Simplify this Ramda pipe
     dataset = R.map((yKey) => ({
-      id: `${yKey}`,
+      id: yKey,
       source: R.pipe(
         R.pluck(yKey),
         R.map(R.objOf('y')),
         R.zip(R.map(R.objOf('x'))(xData)),
         R.map(R.mergeAll),
         getYPos,
-        R.project(['x', 'y', 'startValue', 'endValue']),
-        R.defaultTo([])
+        R.project(['x', 'y', 'startValue', 'endValue'])
       )(yData),
     }))(yKeys)
 
@@ -585,15 +575,15 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
 
     const sources = R.pipe(R.pluck('source'), R.unnest)(dataset)
     yMax = Math.max(...getValidPropValues('endValue')(sources))
-    let endValueMin = Math.min(...getValidPropValues('endValue')(sources))
-    let startValueMin = Math.min(...getValidPropValues('startValue')(sources))
+    const endValueMin = Math.min(...getValidPropValues('endValue')(sources))
+    const startValueMin = Math.min(...getValidPropValues('startValue')(sources))
     yMin = Math.min(...getValidPropValues('endValue')(sources))
     yMin = Math.min(startValueMin, endValueMin)
   } else {
     const waterfallData = getYPos(data)
     yMax = Math.max(...R.pluck('endValue')(waterfallData))
-    let endValueMin = Math.min(...R.pluck('endValue')(waterfallData))
-    let startValueMin = Math.min(...R.pluck('startValue')(waterfallData))
+    const endValueMin = Math.min(...R.pluck('endValue')(waterfallData))
+    const startValueMin = Math.min(...R.pluck('startValue')(waterfallData))
     yMin = Math.min(startValueMin, endValueMin)
 
     dataset = { source: waterfallData }
@@ -617,13 +607,13 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
     xAxis: {
       type: 'category',
       splitLine: { show: false },
-      // data: xData,
+      data: xData,
     },
     yAxis: {
       type: 'value',
       scale: true,
-      //Add the maximum to do the scaling
-      //As well as the min value
+      // Add the maximum to do the scaling
+      // As well as the min value
       min: yMin - (yMax - yMin) * 0.1,
       max: yMax + (yMax - yMin) * 0.1,
       axisLine: {
@@ -642,6 +632,7 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
     },
     series,
   }
+
   return (
     <div style={{ flex: '1 1 auto' }}>
       <AutoSizer>
@@ -651,6 +642,8 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
             option={options}
             style={{ height, width }}
             theme={theme}
+            notMerge
+            lazyUpdate
           />
         )}
       </AutoSizer>
