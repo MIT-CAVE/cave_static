@@ -3,15 +3,12 @@ import * as R from 'ramda'
 class socket {
   connect(token, onMessage) {
     return new Promise((resolve) => {
-      var ws_scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://'
       var connectUrl = R.replace(
-        window.location.protocol,
-        '',
+        'http',
+        'ws',
         window.location.ancestorOrigins[0]
       )
-      this.ws = new WebSocket(
-        `${ws_scheme}${connectUrl}/ws/?user_token=${token}`
-      )
+      this.ws = new WebSocket(`${connectUrl}/ws/?user_token=${token}`)
 
       this.ws.onopen = () => {
         console.log('App Socket Connection Established!')
