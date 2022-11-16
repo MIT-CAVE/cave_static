@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useDispatch } from 'react-redux'
 
-import { fetchData } from '../../data/data'
+import { sendCommand } from '../../data/data'
 
 import { forceArray } from '../../utils'
 
@@ -26,10 +26,9 @@ const PropButton = ({ prop, sx = [], ...props }) => {
         onClick={() => {
           if (!enabled) return
           dispatch(
-            fetchData({
-              url: `${window.location.ancestorOrigins[0]}/mutate_session/`,
-              fetchMethod: 'POST',
-              body: {
+            sendCommand({
+              command: 'mutate_session',
+              data: {
                 api_command: R.prop('apiCommand', prop),
                 api_command_keys: R.prop('apiCommandKeys', prop),
               },
