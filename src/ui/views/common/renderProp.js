@@ -2,6 +2,7 @@ import * as R from 'ramda'
 
 import { PROP_WIDTH } from '../../../utils/constants'
 import { propContainer, propId, propVariant } from '../../../utils/enums'
+import PropButton from '../../compound/PropButton'
 
 import {
   PropCheckbox,
@@ -19,6 +20,11 @@ const invalidVariant = R.curry((type, variant) => {
   throw Error(`Invalid variant '${variant}' for prop type '${type}`)
 })
 
+const getButtonPropRenderFn = R.ifElse(
+  R.isNil,
+  R.always(PropButton),
+  invalidVariant('button')
+)
 const getTogglePropRenderFn = R.ifElse(
   R.isNil,
   R.always(PropToggle),
@@ -48,6 +54,7 @@ const getHeaderPropRenderFn = R.ifElse(
 )
 
 const getRendererFn = R.cond([
+  [R.equals(propId.BUTTON), R.always(getButtonPropRenderFn)],
   [R.equals(propId.TEXT), R.always(getTextPropRenderFn)],
   [R.equals(propId.NUMBER), R.always(getNumberPropRenderFn)],
   [R.equals(propId.TOGGLE), R.always(getTogglePropRenderFn)],

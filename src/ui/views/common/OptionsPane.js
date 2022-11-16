@@ -5,6 +5,7 @@ import { renderPropsLayout } from './renderLayout'
 
 import { sendCommand } from '../../../data/data'
 import { selectAppBarData, selectOpenPane } from '../../../data/selectors'
+import { layoutType } from '../../../utils/enums'
 
 const OptionsPane = () => {
   const appBarData = useSelector(selectAppBarData)
@@ -12,6 +13,12 @@ const OptionsPane = () => {
   const dispatch = useDispatch()
 
   const { layout, props: items } = R.propOr({}, open)(appBarData)
+  // The root elements of an options pane should be arranged in a single
+  // column by default, unless explicitly set otherwise by the API designers
+  const optsPaneLayout = R.pipe(
+    R.defaultTo({ type: layoutType.GRID }),
+    R.unless(R.has('num_columns'), R.assoc('num_columns', 1))
+  )(layout)
   const onChangeProp = (prop, propId) => (value) => {
     dispatch(
       sendCommand({
@@ -28,7 +35,7 @@ const OptionsPane = () => {
     )
   }
 
-  return renderPropsLayout({ layout, items, onChangeProp })
+  return renderPropsLayout({ layout: optsPaneLayout, items, onChangeProp })
 }
 
 export default OptionsPane

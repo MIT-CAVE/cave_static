@@ -39,6 +39,7 @@ export const paneId = {
 }
 
 export const propId = {
+  BUTTON: 'button',
   TEXT: 'text',
   NUMBER: 'num',
   TOGGLE: 'toggle',
