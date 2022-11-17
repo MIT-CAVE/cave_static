@@ -521,7 +521,9 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   const renderItem = (params, api) => {
     const index = params.dataIndex
     const style = api.style({
-      fill: CHART_PALETTE[theme][params.seriesIndex],
+      fill: CHART_PALETTE[theme][
+        params.seriesIndex % CHART_PALETTE[theme].length
+      ],
     })
 
     const categoryWidth = params.coordSys.width / xData.length
