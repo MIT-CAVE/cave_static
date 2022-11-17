@@ -610,6 +610,10 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       type: 'category',
       splitLine: { show: false },
       data: xData,
+      axisLabel: {
+        hideOverlap: true,
+        interval: 0,
+      },
     },
     yAxis: {
       type: 'value',
