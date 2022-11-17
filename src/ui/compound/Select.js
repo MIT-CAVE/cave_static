@@ -1,31 +1,24 @@
-import {
-  FormControl,
-  ListItemIcon,
-  MenuItem,
-  Select as MuiSelect,
-} from '@mui/material'
+import { Box, ListItemIcon, MenuItem, Select as MuiSelect } from '@mui/material'
 import PropTypes from 'prop-types'
 import React from 'react'
+
+import WrappedText from './WrappedText'
 
 import { toIconInstance } from '../../utils'
 
 const styles = {
-  formControl: {
-    flexDirection: 'initial',
-  },
   icon: {
     color: 'text.primary',
-    size: 25,
-    minWidth: 42,
-    mr: 0.5,
+    minWidth: 0,
+    mr: 1,
   },
   select: {
     borderRadius: 0,
-    boxSizing: 'border-box',
+    minWidth: 0,
     '& .MuiSelect-select': {
       display: 'flex',
       alignItems: 'center',
-      // whiteSpace: 'normal !important',
+      whiteSpace: 'normal !important',
     },
   },
 }
@@ -56,60 +49,58 @@ const Select = ({
 } = {}) => {
   const [open, setOpen] = React.useState(false)
   return (
-    <FormControl variant="outlined" sx={styles.formControl}>
-      <MuiSelect
-        {...{ disabled, open, ...props }}
-        sx={styles.select}
-        displayEmpty
-        value={selectedValue}
-        onOpen={() => setOpen(true)}
-        onClose={(event) => {
-          onClickAway(event)
-          setOpen(false)
-        }}
-        // Display only the icon when an item is selected
-        {...(selectedValue !== '' &&
-          displayIcon && {
-            renderValue: (value) => {
-              const item = items.find((prop) => prop.value === value)
-              return <div>{item ? toIconInstance(item.iconClass) : value}</div>
-            },
-          })}
-      >
-        {placeholder && (
+    <MuiSelect
+      {...{ disabled, open, ...props }}
+      sx={styles.select}
+      displayEmpty
+      value={selectedValue}
+      onOpen={() => setOpen(true)}
+      onClose={(event) => {
+        onClickAway(event)
+        setOpen(false)
+      }}
+      // Display only the icon when an item is selected
+      {...(selectedValue !== '' &&
+        displayIcon && {
+          renderValue: (value) => {
+            const item = items.find((prop) => prop.value === value)
+            return <span>{item ? toIconInstance(item.iconClass) : value}</span>
+          },
+        })}
+    >
+      {placeholder && (
+        <MenuItem
+          value=""
+          onClick={() => {
+            onSelect && onSelect(null)
+            setOpen(false)
+          }}
+          disabled
+        >
+          <Box sx={styles.itemText}>{placeholder}</Box>
+        </MenuItem>
+      )}
+      {items.map((item, index) => {
+        const { label, value, iconClass } = item
+        return (
           <MenuItem
-            value=""
+            key={index}
+            value={value || label || item}
             onClick={() => {
-              onSelect && onSelect(null)
+              onSelect && onSelect(value || label || item)
               setOpen(false)
             }}
-            disabled
           >
-            {placeholder}
+            {iconClass && (
+              <ListItemIcon sx={styles.icon}>
+                {toIconInstance(iconClass)}
+              </ListItemIcon>
+            )}
+            <WrappedText text={getLabel(label || value || item)} />
           </MenuItem>
-        )}
-        {items.map((item, index) => {
-          const { label, value, iconClass } = item
-          return (
-            <MenuItem
-              key={index}
-              value={value || label || item}
-              onClick={() => {
-                onSelect && onSelect(value || label || item)
-                setOpen(false)
-              }}
-            >
-              {iconClass && (
-                <ListItemIcon sx={styles.icon}>
-                  {toIconInstance(iconClass)}
-                </ListItemIcon>
-              )}
-              {getLabel(label || value || item)}
-            </MenuItem>
-          )
-        })}
-      </MuiSelect>
-    </FormControl>
+        )
+      })}
+    </MuiSelect>
   )
 }
 Select.propTypes = {

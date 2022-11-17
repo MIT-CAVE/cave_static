@@ -36,7 +36,7 @@ const HeaderSelectWrapper = ({
         clearable && { position: 'relative' },
         ...forceArray(sx),
       ]}
-      elevation={7}
+      elevation={3}
       {...props}
     >
       {children}
