@@ -384,6 +384,43 @@ export const getStatusIcon = (color) => {
   return IconClass ? IconClass : null
 }
 
+export const getMinMax = R.converge(R.pair, [
+  R.reduce(R.min, Infinity),
+  R.reduce(R.max, -Infinity),
+])
+
+const fromZeroToOne = (x) => x >= 0 && x <= 1
+
+/**
+ * Gets a new range in which the given bounds `valueMin` and `valueMax` are
+ * adjusted in terms of a given percentage to match the closest numbers
+ * below and above the given limits. The minimum number will remain
+ * unchanged if it is a multiple of ten.
+ * @function
+ * @param {number} valueMin The upper bound for the new minimum value.
+ * @param {number} valueMax The lower bound for the new maximum value.
+ * @example
+ * // returns [0.02, 0.08]
+ * adjustMinMax(0, 0.1)
+ * // returns [0, 8]
+ * adjustMinMax(1, 6)
+ * @example
+ * // returns [0, 12]
+ * adjustMinMax(0, 10)
+ * @returns {number[]} An array containing the new estimated bounds.
+ * @private
+ */
+export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.2) =>
+  fromZeroToOne(Math.abs(valueMin)) && fromZeroToOne(Math.abs(valueMax))
+    ? [
+        valueMin > 0 ? valueMin * (1 - adjustPct) : 0,
+        valueMax * (1 + adjustPct),
+      ]
+    : [
+        valueMin % 10 > 0 ? Math.floor(valueMin * (1 - adjustPct)) : valueMin,
+        Math.ceil(valueMax * (1 + adjustPct)),
+      ]
+
 /**
  * Creates a list of all values that a given internal
  * key can take within a given object.
