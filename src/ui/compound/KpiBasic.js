@@ -16,7 +16,6 @@ import OverflowText from './OverflowText'
 import { mapKpiToggle } from '../../data/local/kpisSlice'
 import { selectNumberFormat } from '../../data/selectors'
 import { KPI_WIDTH } from '../../utils/constants'
-import { kpiId } from '../../utils/enums'
 
 import { forceArray, formatNumber } from '../../utils'
 
@@ -27,8 +26,7 @@ const styles = {
     p: 3,
   },
   title: {
-    pl: 1,
-    pr: 1,
+    px: 1,
     fontSize: '24px',
     whiteSpace: 'nowrap',
   },
@@ -73,7 +71,6 @@ const KpiBasic = ({
   value,
   icon,
   style,
-  type = kpiId.NUMBER,
   mapKpi,
   numberFormat: numberFormatRaw = {},
   sx = [],
@@ -88,8 +85,7 @@ const KpiBasic = ({
       sx={[styles.root, style, ...forceArray(sx)]}
       {...props}
     >
-      {type !== kpiId.HEAD && <KpiToggleIcon {...{ kpiId: id, mapKpi }} />}
-
+      <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
       <Grid container flexDirection="column" spacing={3}>
         <Grid container item spacing={1} flexWrap="nowrap">
           {icon && (
@@ -119,7 +115,6 @@ KpiBasic.propTypes = {
   value: PropTypes.number,
   icon: PropTypes.string,
   style: PropTypes.object,
-  unit: PropTypes.string,
   numberFormat: PropTypes.object,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(

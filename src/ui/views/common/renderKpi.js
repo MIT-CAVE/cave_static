@@ -2,13 +2,30 @@
 // Perhaps combining props and kpis is a better approach
 import * as R from 'ramda'
 
-import { viewId } from '../../../utils/enums'
+import { viewId, kpiId } from '../../../utils/enums'
 
-import { KpiBasic, KpiMap } from '../../compound'
+import { KpiBasic, KpiHead, KpiMap } from '../../compound'
 
-const getRenderer = R.cond([
-  [R.equals(viewId.KPI), R.always(KpiBasic)],
-  [R.equals(viewId.MAP), R.always(KpiMap)],
+const invalidType = (type) => {
+  throw Error(`Invalid type '${type}' for a KPI`)
+}
+
+const getKpiRenderFn = R.cond([
+  [R.equals(kpiId.HEAD), R.always(KpiHead)],
+  [R.equals(kpiId.TEXT), R.always(KpiBasic)],
+  [R.equals(kpiId.NUMBER), R.always(KpiBasic)],
+  [R.T, invalidType],
+])
+
+const getKpiMapRenderFn = R.ifElse(
+  R.includes(R.__, R.values(kpiId)),
+  R.always(KpiMap),
+  invalidType
+)
+
+const getRendererFn = R.cond([
+  [R.equals(viewId.KPI), R.always(getKpiRenderFn)],
+  [R.equals(viewId.MAP), R.always(getKpiMapRenderFn)],
   [
     R.T,
     (view) => {
@@ -17,8 +34,9 @@ const getRenderer = R.cond([
   ],
 ])
 
-const renderKpi = ({ view = viewId.KPI, ...props }) => {
-  const KpiComponent = getRenderer(view)
+const renderKpi = ({ view = viewId.KPI, type = kpiId.NUMBER, ...props }) => {
+  const kpiRendererFn = getRendererFn(view)
+  const KpiComponent = kpiRendererFn(type)
   return <KpiComponent {...props} />
 }
 

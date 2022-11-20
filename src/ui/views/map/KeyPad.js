@@ -21,7 +21,7 @@ const getStyle = (open, secondaryOpen) => ({
   color: 'text.primary',
   borderBottom: 1,
   borderColor: 'text.secondary',
-  borderRadius: '8px',
+  borderRadius: 1,
   width: 'fit-content',
   zIndex: 1,
 })

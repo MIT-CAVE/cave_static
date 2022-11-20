@@ -48,7 +48,6 @@ KpiMap.propTypes = {
   title: PropTypes.string,
   value: PropTypes.number,
   icon: PropTypes.string,
-  unit: PropTypes.string,
   style: PropTypes.object,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
