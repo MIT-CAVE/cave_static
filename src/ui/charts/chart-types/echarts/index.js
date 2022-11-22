@@ -479,7 +479,6 @@ const getBarLayout = R.memoizeWith(
 
 // TODO:
 // - Set `xAxisTitle`, `yAxisTitle`
-// - Different color for raising and falling values (maybe altering them with opacity)
 const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
@@ -491,10 +490,9 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
     for (let i = 0; i < yData.length; i++) {
       if (yData[i] == null) continue
 
-      rawData[i]['startValue'] =
-        i === 0 || yData[i - 1] == null ? yBase : yData[i - 1]
-      rawData[i]['endValue'] = yData[i]
-      yBase = yData[i]
+      rawData[i]['startValue'] = yBase
+      rawData[i]['endValue'] = yBase + yData[i]
+      yBase = rawData[i]['endValue']
     }
     return rawData
   }
