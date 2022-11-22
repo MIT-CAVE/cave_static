@@ -12,6 +12,7 @@ import {
   MdVerticalAlignCenter,
   MdVerticalAlignTop,
   MdRefresh,
+  MdWaterfallChart,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -80,6 +81,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               label: 'Table',
               value: 'Table',
               iconClass: MdTableChart,
+            },
+            {
+              label: 'Waterfall',
+              value: 'Waterfall',
+              iconClass: MdWaterfallChart,
             },
           ]}
           displayIcon

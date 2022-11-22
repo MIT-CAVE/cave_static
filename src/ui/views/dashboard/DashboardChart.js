@@ -3,6 +3,8 @@ import * as R from 'ramda'
 import { memo, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
+//Create placeholder data and refactor it here before it's sent to the index.js.
+//Create placeholder data, the placeholder and the right data.
 import {
   selectFilteredStatsData,
   selectStatisticTypes,
@@ -13,7 +15,13 @@ import {
   selectNumberFormat,
 } from '../../../data/selectors'
 
-import { BarPlot, BoxPlot, LinePlot, TableChart } from '../../charts'
+import {
+  BarPlot,
+  BoxPlot,
+  LinePlot,
+  TableChart,
+  WaterfallChart,
+} from '../../charts'
 
 import {
   calculateStatSingleGroup,
@@ -63,6 +71,8 @@ const DashboardChart = ({ obj, length }) => {
     [obj]
   )
 
+  const subGrouped = R.has('level2')(obj)
+
   const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
 
   useEffect(() => {
@@ -88,7 +98,7 @@ const DashboardChart = ({ obj, length }) => {
         ? doubleFilteredStats
         : R.values(filteredStatsData)
 
-      const calculatedStats = R.has('level2', obj)
+      const calculatedStats = subGrouped
         ? calculateStatSubGroup(actualStatsData)(
             categoryFunc(obj.category, obj.level),
             categoryFunc(obj.category2, obj.level2),
@@ -100,14 +110,14 @@ const DashboardChart = ({ obj, length }) => {
           )
       // merge the calculated stats - unless boxplot
       const statValues =
-        obj.chart === 'Box Plot' && !R.has('level2', obj)
+        obj.chart === 'Box Plot' && !subGrouped
           ? R.pipe(
               R.map(R.filter(R.is(Number))),
               R.mapObjIndexed((val, key) => R.assoc(key, val, {}))
             )(calculatedStats)
           : obj.chart === 'Box Plot'
           ? R.map(R.map(R.filter(R.is(Number))))(calculatedStats)
-          : R.has('level2', obj)
+          : subGrouped
           ? R.map(
               R.map(R.pipe(R.filter(R.is(Number)), mergeFuncs[obj.grouping]))
             )(calculatedStats)
@@ -124,11 +134,9 @@ const DashboardChart = ({ obj, length }) => {
       if (R.propOr('bar', 'chart', obj) !== 'Table') {
         const getFormattedData = R.pipe(
           debug ? R.identity : R.dissoc(undefined),
-          debug || !R.has('level2', obj)
-            ? R.identity
-            : R.map(R.dissoc(undefined)),
+          debug || !subGrouped ? R.identity : R.map(R.dissoc(undefined)),
           R.mapObjIndexed((value, key) => ({
-            x: obj.category == null ? 'All' : key,
+            x: obj.category === null ? 'All' : key,
             y: value,
           })),
           R.values,
@@ -205,6 +213,7 @@ const DashboardChart = ({ obj, length }) => {
     categoryFunc,
     statisticTypes,
     actualStat,
+    subGrouped,
   ])
 
   const xAxisTitle = obj.category
@@ -239,7 +248,7 @@ const DashboardChart = ({ obj, length }) => {
             : ''
         }`
       : '',
-    R.has('level2', obj)
+    subGrouped
       ? R.prepend(
           `${getLabelFn(categories)(obj.category2)}${
             obj.level2
@@ -288,7 +297,7 @@ const DashboardChart = ({ obj, length }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
-          subGrouped={R.has('level2')(obj)}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Bar' ? (
@@ -311,6 +320,14 @@ const DashboardChart = ({ obj, length }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          {...labels}
+        />
+      ) : obj.chart === 'Waterfall' ? (
+        <WaterfallChart
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : (
