@@ -19,9 +19,6 @@ import {
 
 // Tokens
 export const selectTokens = (state) => R.path(['tokens'])(state)
-export const selectUserToken = createSelector(selectTokens, (data) =>
-  R.prop('userToken')(data)
-)
 export const selectMapboxToken = createSelector(selectTokens, (data) =>
   R.prop('mapboxToken')(data)
 )

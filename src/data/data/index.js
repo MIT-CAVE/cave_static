@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
-import { assocHashes, syncSession } from './utils'
+import { assocHashes } from './utils'
 
 import websocket from '../../utils/websockets'
 import { overrideSync } from '../local/actions'
@@ -10,7 +10,6 @@ export const mutateData = createAsyncThunk(
   'data/mutateData',
   async (arg, { dispatch, getState }) => {
     const localHashes = R.path(['data', 'hashes'], getState())
-    const relevantLocalHashes = R.pick(R.keys(arg.hashes), localHashes)
     // Matching Hashes (EG: overwrite with no change)
     if (R.equals(arg.hashes)(localHashes)) {
       return { success: true, hashes: localHashes }
@@ -34,7 +33,7 @@ export const mutateData = createAsyncThunk(
         hashes: R.prop('hashes', arg),
       }
     }
-    // overwrite
+    // Overwrite
     if (R.prop('event', arg) === 'overwrite') {
       const data = R.pipe(
         R.prop('data'),
@@ -57,9 +56,7 @@ export const mutateData = createAsyncThunk(
     }
 
     // Not an update or mutation (or something did not work quite right)
-    // A sync is reqired to fix the issue
-    const authToken = R.path(['tokens', 'userToken'], getState())
-    return syncSession(relevantLocalHashes, arg.hashes, authToken)
+    console.error('Something did not work quite right during a data mutation')
   }
 )
 

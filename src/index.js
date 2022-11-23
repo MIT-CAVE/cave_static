@@ -5,11 +5,12 @@ import { Provider, useDispatch } from 'react-redux'
 
 import './index.css'
 import App from './App'
-import { sendCommand, mutateData } from './data/data'
+import { sendCommand } from './data/data'
 import { mutateLocal } from './data/local'
 import { tokensSet } from './data/tokens/tokensSlice'
 // Must import store prior to any slice items to prevent
 // potential extra reducer creating race event
+import onMessage from './utils/onMessage'
 import { store } from './utils/store'
 import websocket from './utils/websockets'
 
@@ -27,10 +28,11 @@ const AppWrapper = () => {
           // check if tokens are present in data
           if (payload.event === 'initialize') {
             dispatch(tokensSet({ mapboxToken: payload.data.mapbox_token }))
-            dispatch(tokensSet({ userToken: payload.data.user_token }))
-            await websocket.connect(payload.data.user_token, (payload) =>
-              dispatch(mutateData(payload))
+            await websocket.connect(
+              payload.data.user_token,
+              onMessage(dispatch)
             )
+            // After initial connection, get the session data
             await dispatch(
               sendCommand({
                 command: 'get_session_data',
