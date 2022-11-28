@@ -2,6 +2,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 
 import dataReducer from '../data/data'
 import localReducer from '../data/local'
+import sessionsReducer from '../data/sessions/sessionsSlice'
 import tokensReducer from '../data/tokens/tokensSlice'
 
 const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
@@ -38,6 +39,7 @@ const reducer = combineReducers({
   data: dataReducer,
   local: localReducer,
   tokens: tokensReducer,
+  sessions: sessionsReducer,
 })
 
 const preloadedState = getInitialState(reducer)

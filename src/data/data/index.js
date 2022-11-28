@@ -54,7 +54,7 @@ export const mutateData = createAsyncThunk(
         )
       return { success: true, data: data, hashes: R.prop('hashes', arg) }
     }
-
+    console.log(arg)
     // Not an update or mutation (or something did not work quite right)
     console.error('Something did not work quite right during a data mutation')
   }

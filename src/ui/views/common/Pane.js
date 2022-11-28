@@ -10,6 +10,7 @@ import AppSettingsPane from './AppSettingsPane'
 import ContextPane from './ContextPane'
 import FilterPane from './FilterPane'
 import OptionsPane from './OptionsPane'
+import SessionPane from './SessionPane'
 
 import { sendCommand } from '../../../data/data'
 import { paneId } from '../../../utils/enums'
@@ -70,6 +71,7 @@ const renderAppPane = ({ open, pane }) => (
       // Built-in panes
       [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
       [R.equals(paneId.FILTER), R.always(<FilterPane />)],
+      [R.equals(paneId.SESSION), R.always(<SessionPane />)],
       // Custom panes
       [R.equals(paneId.OPTIONS), R.always(<OptionsPane />)],
       [R.equals(paneId.CONTEXT), R.always(<ContextPane />)],

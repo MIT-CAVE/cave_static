@@ -17,8 +17,20 @@ import {
   sortedListById,
 } from '../../utils'
 
+// Sessions
+export const selectSessions = (state) => R.prop('sessions')(state)
+export const selectTeams = createSelector(
+  selectSessions,
+  R.mapObjIndexed((value) => R.dissoc('sessions', value))
+)
+export const selectSessionsByTeam = createSelector(
+  selectSessions,
+  R.mapObjIndexed((value) => R.prop('sessions', value))
+)
+
 // Tokens
 export const selectTokens = (state) => R.path(['tokens'])(state)
+
 export const selectMapboxToken = createSelector(selectTokens, (data) =>
   R.prop('mapboxToken')(data)
 )
