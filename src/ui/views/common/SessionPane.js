@@ -21,7 +21,11 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
-import { selectTeams, selectSessionsByTeam } from '../../../data/selectors'
+import {
+  selectTeams,
+  selectSessionsByTeam,
+  selectCurrentSession,
+} from '../../../data/selectors'
 
 const ListTeamHeader = ({ teamObj, id }) => {
   const dispatch = useDispatch()
@@ -63,10 +67,12 @@ const ListTeamHeader = ({ teamObj, id }) => {
 }
 
 const ListItemSession = ({ session, switchSession, expanded, setExpanded }) => {
+  const currentSession = useSelector(selectCurrentSession)
+
   return (
     <>
       <ListItem
-        selected={true}
+        selected={R.prop('session__id', session) === currentSession}
         secondaryAction={
           <IconButton css={{ cursor: 'pointer' }}>
             {expanded === R.prop('session__id', session) ? (

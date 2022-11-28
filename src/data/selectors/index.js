@@ -19,12 +19,19 @@ import {
 
 // Sessions
 export const selectSessions = (state) => R.prop('sessions')(state)
-export const selectTeams = createSelector(
+export const selectSessionsData = createSelector(
   selectSessions,
+  R.propOr({}, 'data')
+)
+export const selectCurrentSession = createSelector(selectSessions, (data) =>
+  R.prop('session_id')(data)
+)
+export const selectTeams = createSelector(
+  selectSessionsData,
   R.mapObjIndexed((value) => R.dissoc('sessions', value))
 )
 export const selectSessionsByTeam = createSelector(
-  selectSessions,
+  selectSessionsData,
   R.mapObjIndexed((value) => R.prop('sessions', value))
 )
 

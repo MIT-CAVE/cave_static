@@ -7,6 +7,7 @@ import './index.css'
 import App from './App'
 import { sendCommand } from './data/data'
 import { mutateLocal } from './data/local'
+import { mutateSessions } from './data/sessions/sessionsSlice'
 import { tokensSet } from './data/tokens/tokensSlice'
 // Must import store prior to any slice items to prevent
 // potential extra reducer creating race event
@@ -28,6 +29,12 @@ const AppWrapper = () => {
           // check if tokens are present in data
           if (payload.event === 'initialize') {
             dispatch(tokensSet({ mapboxToken: payload.data.mapbox_token }))
+            dispatch(
+              mutateSessions({
+                data_path: ['sessions', 'session_id'],
+                data: payload.data.session_id,
+              })
+            )
             await websocket.connect(
               payload.data.user_token,
               onMessage(dispatch)

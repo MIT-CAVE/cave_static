@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 
 import { mutateData } from '../data/data'
-import { updateTeam } from '../data/sessions/sessionsSlice'
+import { mutateSessions } from '../data/sessions/sessionsSlice'
 
 const onMessage = (dispatch) => (payload) => {
   if (R.prop('event', payload) === 'message') {
@@ -10,7 +10,7 @@ const onMessage = (dispatch) => (payload) => {
   } else if (R.prop('event', payload) === 'localMutation') {
     console.log('localMutation: ', R.prop('data', payload))
     // TODO: dispatch a localMutation function
-    dispatch(updateTeam(payload.data))
+    dispatch(mutateSessions(payload.data))
   } else {
     dispatch(mutateData(payload))
   }
