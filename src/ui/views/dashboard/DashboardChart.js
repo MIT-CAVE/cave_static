@@ -19,6 +19,7 @@ import {
   BarPlot,
   BoxPlot,
   LinePlot,
+  StackedWaterfallChart,
   TableChart,
   WaterfallChart,
 } from '../../charts'
@@ -309,10 +310,18 @@ const DashboardChart = ({ obj, length }) => {
         />
       ) : obj.chart === 'Stacked Bar' ? (
         <BarPlot
+          stack="x"
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
-          stack={'x'}
+          {...labels}
+        />
+      ) : obj.chart === 'Stacked Waterfall' ? (
+        <StackedWaterfallChart
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Line' ? (

@@ -15,7 +15,6 @@ import {
   // ParallelChart,
   // SankeyChart,
   BoxplotChart,
-  CustomChart,
   // CandlestickChart,
   // EffectScatterChart,
   // LinesChart,
@@ -23,7 +22,7 @@ import {
   // PictorialBarChart,
   // ThemeRiverChart,
   // SunburstChart,
-  // CustomChart,
+  CustomChart,
 } from 'echarts/charts'
 import {
   // GridSimpleComponent,
@@ -53,7 +52,7 @@ import {
   // VisualMapComponent,
   // VisualMapContinuousComponent,
   // VisualMapPiecewiseComponent,
-  // AriaComponent,
+  AriaComponent,
   TransformComponent,
   DatasetComponent,
 } from 'echarts/components'
@@ -68,6 +67,7 @@ import { adjustMinMax, formatNumber, getMinMax } from '../../../../utils'
 
 // Register the required components
 echarts.use([
+  AriaComponent,
   DatasetComponent,
   LegendComponent,
   TitleComponent,
@@ -477,25 +477,25 @@ const getBarLayout = R.memoizeWith(
   }
 )
 
+const getWaterfallValues = (rawData) => {
+  const yData = R.pluck('y')(rawData)
+  let yBase = 0
+  for (let i = 0; i < yData.length; i++) {
+    if (yData[i] == null) continue
+
+    rawData[i]['startValue'] = yBase
+    rawData[i]['endValue'] = yBase + yData[i]
+    yBase = rawData[i]['endValue']
+  }
+  return rawData
+}
+
 // TODO:
 // - Set `xAxisTitle`, `yAxisTitle`
 const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
-
-  const getWaterfallValues = (rawData) => {
-    const yData = R.pluck('y')(rawData)
-    let yBase = 0
-    for (let i = 0; i < yData.length; i++) {
-      if (yData[i] == null) continue
-
-      rawData[i]['startValue'] = yBase
-      rawData[i]['endValue'] = yBase + yData[i]
-      yBase = rawData[i]['endValue']
-    }
-    return rawData
-  }
 
   let barX
   let barY
@@ -669,10 +669,262 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   )
 }
 
+// TODO:
+// - Set `xAxisTitle`, `yAxisTitle`
+const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
+  const xData = R.pluck('x')(data)
+  const yData = R.pluck('y')(data)
+  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+
+  // Find categories containing a mix of positive and negative values
+  const isMixed = R.pipe(
+    R.map(R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))),
+    R.zipObj(xData)
+  )(yData)
+  const isMixedRaw = R.map(
+    R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))
+  )(yData)
+
+  const categoryBounds = R.pipe(
+    // The end values after summing up each category
+    R.map(R.pipe(R.values, R.sum)),
+    R.reduce((acc, value) => {
+      const startValue = R.isEmpty(acc) ? 0 : R.path([-1, 1])(acc)
+      const endValue = startValue + value
+      return R.append([startValue, endValue])(acc)
+    }, []),
+    R.zipWith(R.prepend, xData),
+    R.map(R.zipObj(['x', 'startValue', 'endValue']))
+  )(yData)
+
+  const startValues = R.pipe(
+    R.pluck('startValue'),
+    R.zipObj(xData)
+  )(categoryBounds)
+
+  const categorySumAbs = R.pipe(
+    R.map(R.pipe(R.values, R.map(Math.abs), R.sum)),
+    R.zipObj(xData)
+  )(yData)
+
+  const indexedBounds = R.indexBy(R.prop('x'))(categoryBounds)
+
+  const getBarBounds = (rawData) => {
+    const yData = R.pluck('y')(rawData)
+
+    for (let i = 0; i < yData.length; i++) {
+      if (yData[i] == null) continue
+
+      const x = rawData[i].x
+      const yDiff = indexedBounds[x].endValue - indexedBounds[x].startValue
+      const yFixed = isMixed[x]
+        ? yDiff * Math.abs(yData[i] / categorySumAbs[x])
+        : yData[i]
+
+      rawData[i].startValue = startValues[x]
+      rawData[i].endValue = rawData[i].startValue + yFixed
+      startValues[x] = rawData[i].endValue
+    }
+    return rawData
+  }
+
+  let barX
+  let barY
+  let barIndex
+  let renderLine
+
+  const renderItem = (params, api) => {
+    const barStartValue = api.value(2)
+    const barEndValue = api.value(3)
+
+    const barIndexPrev = barIndex
+    barIndex = params.seriesIndex
+    const index = params.dataIndex
+    if (barIndex === 0) renderLine = true
+    if (isNaN(barStartValue) || isNaN(barEndValue)) return
+
+    if (barIndex !== barIndexPrev || index === 0) {
+      barX = undefined
+      barY = undefined
+    }
+
+    const startCoord = api.coord([index, barStartValue])
+    const endCoord = api.coord([index, barEndValue])
+
+    const categoryWidth = params.coordSys.width / xData.length
+    const { barWidth } = getBarLayout(categoryWidth, 1)
+
+    const barXPrev = barX
+    barX = startCoord[0]
+    const barYPrev = barY
+    barY = endCoord[1]
+
+    const barChart = {
+      type: 'rect',
+      shape: {
+        x: barX - barWidth / 2,
+        y: startCoord[1],
+        width: barWidth,
+        height: endCoord[1] - startCoord[1],
+      },
+      style: api.style(
+        isMixedRaw[index]
+          ? { fillOpacity: 0.4, decal: api.visual('decal') }
+          : {}
+      ),
+    }
+
+    // Dashed line connecting the bars
+    let lineConnector
+    if (renderLine) {
+      const shape = subGrouped
+        ? // BUG: Line connector doesn't work for subgrouping
+          {
+            // x1: barXPrev,
+            // y1: barYPrev,
+            // x2: barX,
+            // y2: startCoord[1],
+          }
+        : {
+            x1: barXPrev,
+            y1: barYPrev,
+            x2: barX,
+            y2: startCoord[1],
+          }
+      lineConnector = {
+        type: 'line',
+        shape,
+        style: api.style({
+          stroke: subGrouped ? 'rgb(255,255,255,0.6)' : api.visual('color'),
+          lineDash: [8, 4],
+        }),
+      }
+      renderLine = false
+    }
+
+    return {
+      type: 'group',
+      children: R.unless(
+        R.always(lineConnector == null),
+        R.append(lineConnector)
+      )([barChart]),
+    }
+  }
+
+  let dataset
+  let series
+  if (subGrouped) {
+    dataset = R.map((yKey) => ({
+      id: yKey,
+      source: R.pipe(
+        R.pluck(yKey),
+        R.map(R.objOf('y')),
+        R.zip(R.map(R.objOf('x'))(xData)),
+        R.map(R.mergeAll),
+        getBarBounds,
+        R.project(['x', 'y', 'startValue', 'endValue'])
+      )(yData),
+    }))(yKeys)
+
+    series = yKeys.map((yKey, index) => ({
+      type: 'custom',
+      renderItem,
+      id: yKey,
+      name: yKey,
+      datasetIndex: index,
+    }))
+  } else {
+    dataset = [{ source: getWaterfallValues(data) }]
+    series = {
+      type: 'custom',
+      renderItem,
+    }
+  }
+
+  const [yMin, yMax] = R.pipe(
+    R.pluck('source'),
+    R.unnest,
+    R.map(R.props(['startValue', 'endValue'])),
+    R.unnest,
+    getMinMax,
+    // `R.apply` will convert the resulting `[<min>, <max>]`
+    // array to arguments for the `adjustMinMax` function
+    R.apply(adjustMinMax)
+  )(dataset)
+
+  const options = {
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    tooltip: {
+      valueFormatter: (value) => formatNumber(value, numberFormat),
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      trigger: 'axis',
+      textStyle: {
+        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+      },
+    },
+    dataset,
+    xAxis: {
+      type: 'category',
+      splitLine: { show: false },
+      data: xData,
+      axisLabel: {
+        hideOverlap: true,
+        interval: 0,
+      },
+    },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      // Add the maximum to do the scaling
+      // As well as the min value
+      min: yMin,
+      max: yMax,
+      axisLine: {
+        show: true,
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          type: [2, 5],
+          dashOffset: 3,
+          // Dark and light colors will be used in turns
+          color: ['#aaa', '#ddd'],
+          opacity: 0.7,
+        },
+      },
+    },
+    aria: {
+      enabled: true,
+      decal: {
+        show: true,
+      },
+    },
+    series,
+  }
+
+  return (
+    <div style={{ flex: '1 1 auto' }}>
+      <AutoSizer>
+        {({ height, width }) => (
+          <ReactEChartsCore
+            echarts={echarts}
+            option={options}
+            style={{ height, width }}
+            theme={theme}
+            notMerge
+            lazyUpdate
+          />
+        )}
+      </AutoSizer>
+    </div>
+  )
+}
+
 export {
   FlexibleWrapper,
   LinePlot,
   BarPlot,
   EchartsBoxPlot as BoxPlot,
   WaterfallChart,
+  StackedWaterfallChart,
 }

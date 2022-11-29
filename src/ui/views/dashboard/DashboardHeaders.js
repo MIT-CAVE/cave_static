@@ -14,6 +14,7 @@ import {
   MdRefresh,
   MdWaterfallChart,
 } from 'react-icons/md'
+import { TbStack2 } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -73,6 +74,17 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconClass: MdTimeline,
             },
             {
+              label: 'Waterfall',
+              value: 'Waterfall',
+              iconClass: MdWaterfallChart,
+            },
+
+            {
+              label: 'Stacked Waterfall',
+              value: 'Stacked Waterfall',
+              iconClass: TbStack2,
+            },
+            {
               label: 'Box Plot',
               value: 'Box Plot',
               iconClass: MdGraphicEq,
@@ -81,11 +93,6 @@ const StatisticsHeader = memo(({ obj, index }) => {
               label: 'Table',
               value: 'Table',
               iconClass: MdTableChart,
-            },
-            {
-              label: 'Waterfall',
-              value: 'Waterfall',
-              iconClass: MdWaterfallChart,
             },
           ]}
           displayIcon
