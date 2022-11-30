@@ -95,12 +95,8 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     minColumnWidth = `${GRID_COLUMN_WIDTH}px`,
   } = layout
   const numItems = R.pipe(R.defaultTo(unusedItems), R.values, R.length)(data)
-  const { numColumnsOptimal, numRowsOptimal } = getOptimalGridSize(
-    numColumns,
-    numRows,
-    numItems
-  )
-
+  const { numColumns: numColumnsOptimal, numRows: numRowsOptimal } =
+    getOptimalGridSize(numColumns, numRows, numItems)
   const numFillers = R.isNil(data)
     ? R.min(numColumnsOptimal * numRowsOptimal, numItems)
     : 0
