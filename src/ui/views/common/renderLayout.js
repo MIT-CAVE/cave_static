@@ -33,7 +33,7 @@ const renderKpiItem = ({ item }) =>
   renderKpi({
     key: item.id,
     title: item.name || item.id,
-    mapKpi: item.map_kpi,
+    mapKpi: item.mapKpi,
     ...R.pick(['id', 'value', 'icon', 'numberFormat', 'style', 'type', 'view'])(
       item
     ),
@@ -85,23 +85,25 @@ const getLayoutItems = ({ data, fillerItems, ...other }) =>
 
 const renderGrid = ({ layout, unusedItems, ...other }) => {
   const {
-    num_columns = 'auto',
-    num_rows = 'auto',
+    numColumns = 'auto',
+    numRows = 'auto',
     width = 'auto',
     height = 'auto',
     column,
     row,
     data,
-    min_column_width: minColumnWidth = `${GRID_COLUMN_WIDTH}px`,
+    minColumnWidth = `${GRID_COLUMN_WIDTH}px`,
   } = layout
   const numItems = R.pipe(R.defaultTo(unusedItems), R.values, R.length)(data)
-  const { numColumns, numRows } = getOptimalGridSize(
-    num_columns,
-    num_rows,
+  const { numColumnsOptimal, numRowsOptimal } = getOptimalGridSize(
+    numColumns,
+    numRows,
     numItems
   )
 
-  const numFillers = R.isNil(data) ? R.min(numColumns * numRows, numItems) : 0
+  const numFillers = R.isNil(data)
+    ? R.min(numColumnsOptimal * numRowsOptimal, numItems)
+    : 0
   const keyType = R.dropLast(2)('itemId')
   const fillerItems = R.pipe(
     R.take(numFillers),
@@ -112,15 +114,15 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
   unusedItems = R.drop(numFillers)(unusedItems)
 
   // Set dense auto-placement by column or row
-  const gridAutoFlow = `${num_columns === 'auto' ? 'column' : 'row'} dense`
+  const gridAutoFlow = `${numColumns === 'auto' ? 'column' : 'row'} dense`
   return {
     unusedItems,
     component: (
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${numColumns},minmax(${minColumnWidth},auto))`,
-          gridTemplateRows: `repeat(${numRows},minmax(min-content,1fr))`,
+          gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(${minColumnWidth},auto))`,
+          gridTemplateRows: `repeat(${numRowsOptimal},minmax(min-content,1fr))`,
           gridColumnStart: column,
           gridRowStart: row,
           gridAutoFlow,
@@ -161,8 +163,8 @@ const renderLayout = ({ layout, ...other }) => {
 const getLayoutComponent = ({
   layout = {
     type: layoutType.GRID,
-    num_columns: 'auto',
-    num_rows: 'auto',
+    numColumns: 'auto',
+    numRows: 'auto',
   },
   items,
   ...other

@@ -8,7 +8,7 @@ export const kpisSlice = createSlice({
   initialState: {},
   reducers: {
     mapKpiToggle: (state, action) => {
-      const path = [action.payload, 'map_kpi']
+      const path = [action.payload, 'mapKpi']
       return R.assocPath(path, !R.pathOr(false, path)(state))(state)
     },
   },

@@ -34,10 +34,10 @@ const ListTeamHeader = ({ teamObj, id }) => {
     <ListSubheader>
       <Grid container>
         <Grid item xs={10}>
-          {R.prop('team__name', teamObj)}
+          {R.prop('teamName', teamObj)}
         </Grid>
-        {R.prop('team__count_sessions', teamObj) <
-        R.prop('team__limit_sessions', teamObj) ? (
+        {R.prop('teamCountSessions', teamObj) <
+        R.prop('teamLimitSessions', teamObj) ? (
           <Grid item>
             <IconButton
               onClick={() =>
@@ -72,28 +72,28 @@ const ListItemSession = ({ session, switchSession, expanded, setExpanded }) => {
   return (
     <>
       <ListItem
-        selected={R.prop('session__id', session) === currentSession}
+        selected={R.prop('sessionId', session) === currentSession}
         secondaryAction={
           <IconButton css={{ cursor: 'pointer' }}>
-            {expanded === R.prop('session__id', session) ? (
+            {expanded === R.prop('sessionId', session) ? (
               <MdExpandLess onClick={() => setExpanded(-1)} />
             ) : (
               <MdExpandMore
-                onClick={() => setExpanded(R.prop('session__id', session))}
+                onClick={() => setExpanded(R.prop('sessionId', session))}
               />
             )}
           </IconButton>
         }
       >
         <ListItemButton
-          key={R.prop('session__id', session)}
-          onClick={() => switchSession(R.prop('session__id', session))}
+          key={R.prop('sessionId', session)}
+          onClick={() => switchSession(R.prop('sessionId', session))}
         >
-          <ListItemText primary={R.prop('session__name', session)} />
+          <ListItemText primary={R.prop('sessionName', session)} />
         </ListItemButton>
       </ListItem>
       <Collapse
-        in={expanded === R.prop('session__id', session)}
+        in={expanded === R.prop('sessionId', session)}
         timeout="auto"
         unmountOnExit
       >
