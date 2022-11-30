@@ -152,7 +152,7 @@ export const selectDefaultViewport = createSelector(selectMapData, (data) =>
 // Data -> settings
 export const selectSettingsIconUrl = createSelector(
   selectSettingsData,
-  (data) => R.propOr(DEFAULT_ICON_URL, 'IconUrl')(data)
+  (data) => R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
 )
 export const selectDebug = createSelector(
   selectSettingsData,
@@ -302,7 +302,7 @@ export const selectMergedKpis = createSelector(
 export const selectMapKpis = createSelector(
   selectMergedKpis,
   R.pipe(
-    R.filter(R.prop('map_kpi')),
+    R.filter(R.prop('mapKpi')),
     R.map(R.assoc('view', viewId.MAP)),
     sortedListById,
     R.values

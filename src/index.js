@@ -50,7 +50,7 @@ const AppWrapper = () => {
             // would occur before the session data is retrieved
             const mapKpis = R.pipe(
               R.pathOr({}, ['data', 'kpis', 'data']),
-              R.mapObjIndexed(R.pick(['map_kpi']))
+              R.mapObjIndexed(R.pick(['mapKpi']))
             )(store.getState())
             dispatch(mutateLocal({ path: ['kpis'], value: mapKpis }))
           } else {

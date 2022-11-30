@@ -30,12 +30,13 @@ const KeyPad = () => {
   const open = useSelector(selectOpenPane)
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const mapKpis = useSelector(selectMapKpis)
+  console.log(mapKpis)
   if (R.isEmpty(mapKpis)) return null
 
   const layout = {
     type: layoutType.GRID,
-    num_rows: Math.ceil(mapKpis.length / 3),
-    min_column_width: 'min-content',
+    numRows: Math.ceil(mapKpis.length / 3),
+    minColumnWidth: 'min-content',
   }
   return (
     <Paper key="key-pad" elevation={7} sx={getStyle(open, secondaryOpen)}>
