@@ -490,9 +490,14 @@ const getWaterfallValues = (rawData) => {
   return rawData
 }
 
-// TODO:
-// - Set `xAxisTitle`, `yAxisTitle`
-const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
+const WaterfallChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  subGrouped,
+}) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
@@ -618,7 +623,20 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     dataset,
+    grid: {
+      top: 64,
+      // right: 8,
+      // bottom: 24,
+      // left: 36,
+      // show: true,
+    },
     xAxis: {
+      name: xAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 40,
       type: 'category',
       splitLine: { show: false },
       data: xData,
@@ -628,6 +646,12 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     yAxis: {
+      name: yAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 64,
       type: 'value',
       scale: true,
       // Add the maximum to do the scaling
@@ -669,9 +693,14 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   )
 }
 
-// TODO:
-// - Set `xAxisTitle`, `yAxisTitle`
-const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
+const StackedWaterfallChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  subGrouped,
+}) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
@@ -863,7 +892,20 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     dataset,
+    grid: {
+      top: 64,
+      // right: 8,
+      // bottom: 24,
+      // left: 36,
+      // show: true,
+    },
     xAxis: {
+      name: xAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 40,
       type: 'category',
       splitLine: { show: false },
       data: xData,
@@ -873,6 +915,12 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     yAxis: {
+      name: yAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 64,
       type: 'value',
       scale: true,
       // Add the maximum to do the scaling
