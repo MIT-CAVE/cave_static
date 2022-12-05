@@ -47,8 +47,8 @@ export const selectData = (state) => R.prop('data')(state)
 export const selectIgnoreData = createSelector(selectData, (data) =>
   R.propOr({}, 'ignore')(data)
 )
-export const selectHashesData = createSelector(selectData, (data) =>
-  R.propOr({}, 'hashes')(data)
+export const selectVersionsData = createSelector(selectData, (data) =>
+  R.propOr({}, 'versions')(data)
 )
 export const selectArcs = createSelector(selectData, (data) =>
   R.propOr({}, 'arcs')(data)

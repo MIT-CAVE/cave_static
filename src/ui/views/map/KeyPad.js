@@ -30,7 +30,6 @@ const KeyPad = () => {
   const open = useSelector(selectOpenPane)
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const mapKpis = useSelector(selectMapKpis)
-  console.log(mapKpis)
   if (R.isEmpty(mapKpis)) return null
 
   const layout = {

@@ -1,87 +1,114 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
-import { assocHashes } from './utils'
-
 import websocket from '../../utils/websockets'
 import { overrideSync } from '../local/actions'
 
 export const mutateData = createAsyncThunk(
   'data/mutateData',
-  async (arg, { dispatch, getState }) => {
-    const localHashes = R.path(['data', 'hashes'], getState())
-    // Matching Hashes (EG: overwrite with no change)
-    if (R.equals(arg.hashes)(localHashes)) {
-      return { success: true, hashes: localHashes }
-    }
-    // Mutation
-    if (R.prop('event', arg) === 'mutation') {
-      // check if this is button response
-      if (R.isNil(R.path(['data', 'data_name'], arg))) {
-        return { success: true, hashes: localHashes }
-      }
-      const mutation = R.prop('data', arg)
-      let data = R.pipe(
-        R.path(['data', mutation.data_name]),
-        R.assocPath(mutation.data_path, mutation.data_value)
-      )(getState())
-
+  async (arg, { getState }) => {
+    const localVersions = R.path(['data', 'versions'], getState())
+    const versions = R.prop('versions', arg)
+    // Get the mutated data name
+    const data_name = R.path(['data', 'data_name'], arg)
+    // Check for Matching Versions or Button Response (Noop)
+    if (R.equals(versions)(localVersions) || R.isNil(data_name)) {
       return {
-        success: true,
-        type: 'update',
-        data: { [mutation.data_name]: data },
-        hashes: R.prop('hashes', arg),
+        noOperation: true,
+        data: {},
+        versions: versions,
+        newLocalVersions: localVersions,
+      }
+    }
+    const mutation = R.prop('data', arg)
+    let data = R.pipe(
+      R.path(['data', data_name]),
+      R.assocPath(mutation.data_path, mutation.data_value)
+    )(getState())
+
+    return {
+      data: { [data_name]: data },
+      newLocalVersions: R.mergeRight(
+        R.pick(R.keys(versions), localVersions),
+        R.pick([data_name], versions)
+      ),
+      versions: versions,
+    }
+  }
+)
+
+export const overwriteData = createAsyncThunk(
+  'data/overwriteData',
+  async (arg, { dispatch, getState }) => {
+    const localVersions = R.path(['data', 'versions'], getState())
+    const versions = R.prop('versions', arg)
+    // Check for Matching Versions or Button Response (Noop)
+    if (R.equals(versions)(localVersions)) {
+      return {
+        noOperation: true,
+        data: {},
+        versions: versions,
+        newLocalVersions: localVersions,
       }
     }
     // Overwrite
-    if (R.prop('event', arg) === 'overwrite') {
-      const data = R.pipe(
-        R.prop('data'),
-        R.map((d) => JSON.parse(d))
-      )(arg)
-      if (
-        R.hasPath(['settings', 'data', 'defaultDesync'], data) &&
-        !R.equals(
-          R.path(['settings', 'data', 'defaultDesync'], data),
-          R.path(['data', 'settings', 'data', 'defaultDesync'], getState())
-        )
+    const data = R.prop('data')(arg)
+    if (
+      R.hasPath(['settings', 'data', 'defaultDesync'], data) &&
+      !R.equals(
+        R.path(['settings', 'data', 'defaultDesync'], data),
+        R.path(['data', 'settings', 'data', 'defaultDesync'], getState())
       )
-        dispatch(
-          overrideSync({
-            paths: R.path(['settings', 'data', 'defaultDesync'], data),
-            dataState: R.mergeDeepRight(R.prop('data', getState()), data),
-          })
-        )
-      return { success: true, data: data, hashes: R.prop('hashes', arg) }
+    )
+      dispatch(
+        overrideSync({
+          paths: R.path(['settings', 'data', 'defaultDesync'], data),
+          dataState: R.mergeDeepRight(R.prop('data', getState()), data),
+        })
+      )
+    return {
+      data: data,
+      newLocalVersions: R.mergeRight(
+        R.pick(R.keys(versions), localVersions),
+        R.pick(R.keys(data), versions)
+      ),
+      versions: versions,
     }
-    console.log(arg)
-    // Not an update or mutation (or something did not work quite right)
-    console.error('Something did not work quite right during a data mutation')
   }
 )
 
 export const sendCommand = createAsyncThunk(
   'data/sendCommand',
   async (arg, { getState }) => {
-    const localHashes = R.path(['data', 'hashes'], getState())
-    const fullArg = R.assocPath(['data', 'data_hashes'], localHashes, arg)
+    const localVersions = R.path(['data', 'versions'], getState())
+    const fullArg = R.assocPath(['data', 'data_versions'], localVersions, arg)
     websocket.send(fullArg)
   }
 )
 
-const updateData = (action, onUpdateFn) => {
-  const success = R.path(['payload', 'success'], action)
-  if (success) {
+const updateData = (action) => {
+  const payload = R.pathOr({}, ['payload'], action)
+  const versions = R.pathOr({}, ['versions'], payload)
+  const newLocalVersions = R.pathOr({}, ['newLocalVersions'], payload)
+  const noOperation = R.pathOr(false, ['noOperation'], payload)
+  // Check if the new localVersions match the passed versions and fix errors by syncing with the server.
+  if (!R.equals(versions, newLocalVersions)) {
+    action.asyncDispatch(
+      sendCommand({
+        command: 'get_session_data',
+        data: { data_versions: newLocalVersions },
+      })
+    )
+  }
+  // Apply any mutation/overwrite if the resulting output is not a noop
+  if (!noOperation) {
     return R.pipe(
       R.mergeLeft(R.pathOr({}, ['payload', 'data'], action)),
-      R.pick(R.keys(R.pathOr({}, ['payload', 'hashes'], action))),
-      assocHashes,
-      onUpdateFn
+      R.pick(R.keys(versions)),
+      R.assocPath(['versions'], newLocalVersions)
     )
-  } else {
-    console.error({ input: action.meta.arg, error: action.payload.error })
-    return onUpdateFn
   }
+  return R.identity()
 }
 
 const toggleLoadingFx = (action, value) => {
@@ -97,7 +124,7 @@ export const dataSlice = createSlice({
     settings: {},
     categories: {},
     appBar: {},
-    hashes: {},
+    versions: {},
     arcs: {},
     nodes: {},
     geos: {},
@@ -110,10 +137,17 @@ export const dataSlice = createSlice({
   extraReducers: (builder) => {
     // Data mutation
     builder.addCase(mutateData.fulfilled, (state, action) => {
-      return updateData(action, R.identity)(state)
+      return updateData(action)(state)
     })
     builder.addCase(mutateData.rejected, () => {
-      console.error('Unable to mutate session')
+      console.error('Unable to mutate session data')
+    })
+    // Data overwrite
+    builder.addCase(overwriteData.fulfilled, (state, action) => {
+      return updateData(action)(state)
+    })
+    builder.addCase(overwriteData.rejected, () => {
+      console.error('Unable to overwrite session data')
     })
     // Data fetching
     builder.addCase(sendCommand.pending, (state, action) => {
