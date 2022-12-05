@@ -384,6 +384,8 @@ export const getStatusIcon = (color) => {
   return IconClass ? IconClass : null
 }
 
+export const mapIndexed = R.addIndex(R.map)
+
 export const getMinMax = R.converge(R.pair, [
   R.reduce(R.min, Infinity),
   R.reduce(R.max, -Infinity),

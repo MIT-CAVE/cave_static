@@ -63,7 +63,12 @@ import * as R from 'ramda'
 import React from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { adjustMinMax, formatNumber, getMinMax } from '../../../../utils'
+import {
+  adjustMinMax,
+  formatNumber,
+  getMinMax,
+  mapIndexed,
+} from '../../../../utils'
 
 // Register the required components
 echarts.use([
@@ -693,6 +698,7 @@ const WaterfallChart = ({
   )
 }
 
+// TODO: Refactoring needed
 const StackedWaterfallChart = ({
   data,
   xAxisTitle,
@@ -760,16 +766,28 @@ const StackedWaterfallChart = ({
   let barX
   let barY
   let barIndex
-  let renderLine
+  let index
+  const renderedLinesByIndex = new Set()
+  const validIndices = R.pipe(
+    mapIndexed((value, idx) => R.mergeLeft({ idx })(value)),
+    R.reject(R.pipe(R.prop('y'), R.values, R.all(R.isNil)))
+  )(data)
 
   const renderItem = (params, api) => {
     const barStartValue = api.value(2)
     const barEndValue = api.value(3)
 
+    index = params.dataIndex
     const barIndexPrev = barIndex
     barIndex = params.seriesIndex
-    const index = params.dataIndex
-    if (barIndex === 0) renderLine = true
+
+    // Prevents re-rendering bugs with uncleared values of dashed line
+    if (barIndex === 0 && index === 0) {
+      barX = undefined
+      barY = undefined
+      renderedLinesByIndex.clear()
+    }
+
     if (isNaN(barStartValue) || isNaN(barEndValue)) return
 
     if (barIndex !== barIndexPrev || index === 0) {
@@ -794,7 +812,7 @@ const StackedWaterfallChart = ({
         x: barX - barWidth / 2,
         y: startCoord[1],
         width: barWidth,
-        height: endCoord[1] - startCoord[1],
+        height: barY - startCoord[1],
       },
       style: api.style(
         isMixedRaw[index]
@@ -805,30 +823,43 @@ const StackedWaterfallChart = ({
 
     // Dashed line connecting the bars
     let lineConnector
-    if (renderLine) {
-      const shape = subGrouped
-        ? // BUG: Line connector doesn't work for subgrouping
-          {
-            // x1: barXPrev,
-            // y1: barYPrev,
-            // x2: barX,
-            // y2: startCoord[1],
-          }
-        : {
-            x1: barXPrev,
-            y1: barYPrev,
+    if (index > 0 && !renderedLinesByIndex.has(index)) {
+      let shape
+      if (subGrouped) {
+        const validIndex = R.findIndex(R.propEq('idx', index))(validIndices)
+        if (validIndex > 0) {
+          const indexPrev = validIndices[validIndex - 1].idx
+          const endCoordPrev = api.coord([
+            indexPrev,
+            categoryBounds[indexPrev].endValue,
+          ])
+          shape = {
+            x1: endCoordPrev[0],
+            y1: endCoordPrev[1],
             x2: barX,
-            y2: startCoord[1],
+            y2: api.coord([index, categoryBounds[index].startValue])[1],
           }
-      lineConnector = {
-        type: 'line',
-        shape,
-        style: api.style({
-          stroke: subGrouped ? 'rgb(255,255,255,0.6)' : api.visual('color'),
-          lineDash: [8, 4],
-        }),
+        }
+      } else {
+        shape = {
+          x1: barXPrev,
+          y1: barYPrev,
+          x2: barX,
+          y2: startCoord[1],
+        }
       }
-      renderLine = false
+
+      if (shape) {
+        lineConnector = {
+          type: 'line',
+          shape,
+          style: api.style({
+            stroke: subGrouped ? 'rgb(255,255,255,0.6)' : api.visual('color'),
+            lineDash: [8, 4],
+          }),
+        }
+      }
+      renderedLinesByIndex.add(index)
     }
 
     return {
