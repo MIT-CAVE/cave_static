@@ -91,9 +91,16 @@ const updateData = (action) => {
   const versions = R.pathOr({}, ['versions'], payload)
   const newLocalVersions = R.pathOr({}, ['newLocalVersions'], payload)
   const noOperation = R.pathOr(false, ['noOperation'], payload)
+  // Check if the new localVersions match the passed versions and fix errors by syncing with the server.
   if (!R.equals(versions, newLocalVersions)) {
-    // Dispatch an update data call to the server with the newLocalVersions
+    action.asyncDispatch(
+      sendCommand({
+        command: 'get_session_data',
+        data: { data_versions: newLocalVersions },
+      })
+    )
   }
+  // Apply any mutation/overwrite if the resulting output is not a noop
   if (!noOperation) {
     return R.pipe(
       R.mergeLeft(R.pathOr({}, ['payload', 'data'], action)),
