@@ -1,8 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
-import { assocVersions } from './utils'
-
 import websocket from '../../utils/websockets'
 import { overrideSync } from '../local/actions'
 
@@ -15,17 +13,12 @@ export const mutateData = createAsyncThunk(
     const data_name = R.path(['data', 'data_name'], arg)
     // Check for Matching Versions or Button Response (Noop)
     if (R.equals(versions)(localVersions) || R.isNil(data_name)) {
-      return { success: true, versions: localVersions }
-    }
-    // Get expected incremented versions
-    const expectedVersions = R.assoc(
-      data_name,
-      R.inc(R.prop(data_name, localVersions)),
-      localVersions
-    )
-    if (!R.equals(versions)(expectedVersions)) {
-      // TODO: Sync with server
-      return { success: false, versions: localVersions }
+      return {
+        noOperation: true,
+        data: {},
+        versions: versions,
+        newLocalVersions: localVersions,
+      }
     }
     const mutation = R.prop('data', arg)
     let data = R.pipe(
@@ -34,9 +27,11 @@ export const mutateData = createAsyncThunk(
     )(getState())
 
     return {
-      success: true,
-      type: 'update',
       data: { [data_name]: data },
+      newLocalVersions: R.mergeRight(
+        R.pick(R.keys(versions), localVersions),
+        R.pick([data_name], versions)
+      ),
       versions: versions,
     }
   }
@@ -49,9 +44,13 @@ export const overwriteData = createAsyncThunk(
     const versions = R.prop('versions', arg)
     // Check for Matching Versions or Button Response (Noop)
     if (R.equals(versions)(localVersions)) {
-      return { success: true, versions: localVersions }
+      return {
+        noOperation: true,
+        data: {},
+        versions: versions,
+        newLocalVersions: localVersions,
+      }
     }
-    //
     // Overwrite
     const data = R.prop('data')(arg)
     if (
@@ -67,7 +66,14 @@ export const overwriteData = createAsyncThunk(
           dataState: R.mergeDeepRight(R.prop('data', getState()), data),
         })
       )
-    return { success: true, data: data, versions: R.prop('versions', arg) }
+    return {
+      data: data,
+      newLocalVersions: R.mergeRight(
+        R.pick(R.keys(versions), localVersions),
+        R.pick(R.keys(data), versions)
+      ),
+      versions: versions,
+    }
   }
 )
 
@@ -80,20 +86,22 @@ export const sendCommand = createAsyncThunk(
   }
 )
 
-const updateData = (action, onUpdateFn) => {
-  const success = R.path(['payload', 'success'], action)
-  console.log(action)
-  if (success) {
+const updateData = (action) => {
+  const payload = R.pathOr({}, ['payload'], action)
+  const versions = R.pathOr({}, ['versions'], payload)
+  const newLocalVersions = R.pathOr({}, ['newLocalVersions'], payload)
+  const noOperation = R.pathOr(false, ['noOperation'], payload)
+  if (!R.equals(versions, newLocalVersions)) {
+    // Dispatch an update data call to the server with the newLocalVersions
+  }
+  if (!noOperation) {
     return R.pipe(
       R.mergeLeft(R.pathOr({}, ['payload', 'data'], action)),
-      R.pick(R.keys(R.pathOr({}, ['payload', 'versions'], action))),
-      assocVersions,
-      onUpdateFn
+      R.pick(R.keys(versions)),
+      R.assocPath(['versions'], newLocalVersions)
     )
-  } else {
-    console.error({ input: action.meta.arg, error: action.payload.error })
-    return onUpdateFn
   }
+  return R.identity()
 }
 
 const toggleLoadingFx = (action, value) => {
@@ -122,14 +130,14 @@ export const dataSlice = createSlice({
   extraReducers: (builder) => {
     // Data mutation
     builder.addCase(mutateData.fulfilled, (state, action) => {
-      return updateData(action, R.identity)(state)
+      return updateData(action)(state)
     })
     builder.addCase(mutateData.rejected, () => {
       console.error('Unable to mutate session data')
     })
     // Data overwrite
     builder.addCase(overwriteData.fulfilled, (state, action) => {
-      return updateData(action, R.identity)(state)
+      return updateData(action)(state)
     })
     builder.addCase(overwriteData.rejected, () => {
       console.error('Unable to overwrite session data')
