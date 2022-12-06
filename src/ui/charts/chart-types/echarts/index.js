@@ -712,16 +712,12 @@ const StackedWaterfallChart = ({
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
 
   // Find categories containing a mix of positive and negative values
-  const isMixed = R.pipe(
-    R.map(R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))),
-    R.zipObj(xData)
-  )(yData)
   const isMixedRaw = R.map(
     R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))
   )(yData)
 
   const categoryBounds = R.pipe(
-    // The end values after summing up each category
+    // The total values after summing up each category
     R.map(R.pipe(R.values, R.sum)),
     R.reduce((acc, value) => {
       const startValue = R.isEmpty(acc) ? 0 : R.path([-1, 1])(acc)
@@ -734,15 +730,9 @@ const StackedWaterfallChart = ({
 
   const startValues = R.pipe(
     R.pluck('startValue'),
+    R.map((val) => ({ rising: val, falling: val })),
     R.zipObj(xData)
   )(categoryBounds)
-
-  const categorySumAbs = R.pipe(
-    R.map(R.pipe(R.values, R.map(Math.abs), R.sum)),
-    R.zipObj(xData)
-  )(yData)
-
-  const indexedBounds = R.indexBy(R.prop('x'))(categoryBounds)
 
   const getBarBounds = (rawData) => {
     const yData = R.pluck('y')(rawData)
@@ -751,14 +741,11 @@ const StackedWaterfallChart = ({
       if (yData[i] == null) continue
 
       const x = rawData[i].x
-      const yDiff = indexedBounds[x].endValue - indexedBounds[x].startValue
-      const yFixed = isMixed[x]
-        ? yDiff * Math.abs(yData[i] / categorySumAbs[x])
-        : yData[i]
+      const orientation = yData[i] < 0 ? 'falling' : 'rising'
 
-      rawData[i].startValue = startValues[x]
-      rawData[i].endValue = rawData[i].startValue + yFixed
-      startValues[x] = rawData[i].endValue
+      rawData[i].startValue = startValues[x][orientation]
+      rawData[i].endValue = rawData[i].startValue + yData[i]
+      startValues[x][orientation] = rawData[i].endValue
     }
     return rawData
   }
@@ -816,7 +803,7 @@ const StackedWaterfallChart = ({
       },
       style: api.style(
         isMixedRaw[index]
-          ? { fillOpacity: 0.4, decal: api.visual('decal') }
+          ? { fillOpacity: 0.8, decal: api.visual('decal') }
           : {}
       ),
     }
@@ -885,6 +872,8 @@ const StackedWaterfallChart = ({
         R.project(['x', 'y', 'startValue', 'endValue'])
       )(yData),
     }))(yKeys)
+
+    console.log({ categoryBounds, dataset })
 
     series = yKeys.map((yKey, index) => ({
       type: 'custom',
