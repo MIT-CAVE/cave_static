@@ -4,10 +4,10 @@ import tokensReducer from './tokensSlice'
 
 import { combineReducers } from '../../utils'
 
-const utilsSlice = combineReducers({
+const utilitiesSlice = combineReducers({
   messages: messagesReducer,
   sessions: sessionsReducer,
   tokens: tokensReducer,
 })
 
-export default utilsSlice
+export default utilitiesSlice

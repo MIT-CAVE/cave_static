@@ -2,7 +2,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 
 import dataReducer from '../data/data'
 import localReducer from '../data/local'
-import utilsReducer from '../data/utils'
+import utilitiesReducer from '../data/utilities'
 
 const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
 
@@ -37,7 +37,7 @@ const asyncDispatchMiddleware = (store) => (next) => (action) => {
 const reducer = combineReducers({
   data: dataReducer,
   local: localReducer,
-  utils: utilsReducer,
+  utilities: utilitiesReducer,
 })
 
 const preloadedState = getInitialState(reducer)

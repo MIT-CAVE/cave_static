@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 
 import { mutateData, overwriteData } from '../data/data'
-import { addMessage } from '../data/utils/messagesSlice'
-import { mutateSessions } from '../data/utils/sessionsSlice'
+import { addMessage } from '../data/utilities/messagesSlice'
+import { mutateSessions } from '../data/utilities/sessionsSlice'
 
 const onMessage = (dispatch) => (payload) => {
   if (R.prop('event', payload) === 'message') {
