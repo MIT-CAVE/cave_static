@@ -7,8 +7,8 @@ import './index.css'
 import App from './App'
 import { sendCommand } from './data/data'
 import { mutateLocal } from './data/local'
-import { mutateSessions } from './data/sessions/sessionsSlice'
-import { tokensSet } from './data/tokens/tokensSlice'
+import { mutateSessions } from './data/utils/sessionsSlice'
+import { tokensSet } from './data/utils/tokensSlice'
 // Must import store prior to any slice items to prevent
 // potential extra reducer creating race event
 import onMessage from './utils/onMessage'

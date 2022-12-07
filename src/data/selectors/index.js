@@ -18,7 +18,7 @@ import {
 } from '../../utils'
 
 // Sessions
-export const selectSessions = (state) => R.prop('sessions')(state)
+export const selectSessions = (state) => R.path(['utils', 'sessions'])(state)
 export const selectSessionsData = createSelector(
   selectSessions,
   R.propOr({}, 'data')
@@ -36,7 +36,7 @@ export const selectSessionsByTeam = createSelector(
 )
 
 // Tokens
-export const selectTokens = (state) => R.path(['tokens'])(state)
+export const selectTokens = (state) => R.path(['utils', 'tokens'])(state)
 
 export const selectMapboxToken = createSelector(selectTokens, (data) =>
   R.prop('mapboxToken')(data)

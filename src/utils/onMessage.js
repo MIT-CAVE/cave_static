@@ -1,12 +1,13 @@
 import * as R from 'ramda'
 
 import { mutateData, overwriteData } from '../data/data'
-import { mutateSessions } from '../data/sessions/sessionsSlice'
+import { addMessage } from '../data/utils/messagesSlice'
+import { mutateSessions } from '../data/utils/sessionsSlice'
 
 const onMessage = (dispatch) => (payload) => {
   if (R.prop('event', payload) === 'message') {
     console.log('message: ', payload)
-    // TODO: Add dispatch to deploy the snackbar
+    dispatch(addMessage(payload.data))
   } else if (R.prop('event', payload) === 'localMutation') {
     console.log('localMutation: ', R.prop('data', payload))
     dispatch(mutateSessions(payload.data))
