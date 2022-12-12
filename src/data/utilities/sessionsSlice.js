@@ -4,7 +4,7 @@ import * as R from 'ramda'
 export const sessionsSlice = createSlice({
   name: 'sessions',
   initialState: {
-    sessionId: 0,
+    session_id: 0,
   },
   reducers: {
     // Update sessions from ws message

@@ -72,28 +72,28 @@ const ListItemSession = ({ session, switchSession, expanded, setExpanded }) => {
   return (
     <>
       <ListItem
-        selected={R.prop('sessionId', session) === currentSession}
+        selected={R.prop('session_id', session) === currentSession}
         secondaryAction={
           <IconButton css={{ cursor: 'pointer' }}>
-            {expanded === R.prop('sessionId', session) ? (
+            {expanded === R.prop('session_id', session) ? (
               <MdExpandLess onClick={() => setExpanded(-1)} />
             ) : (
               <MdExpandMore
-                onClick={() => setExpanded(R.prop('sessionId', session))}
+                onClick={() => setExpanded(R.prop('session_id', session))}
               />
             )}
           </IconButton>
         }
       >
         <ListItemButton
-          key={R.prop('sessionId', session)}
-          onClick={() => switchSession(R.prop('sessionId', session))}
+          key={R.prop('session_id', session)}
+          onClick={() => switchSession(R.prop('session_id', session))}
         >
           <ListItemText primary={R.prop('sessionName', session)} />
         </ListItemButton>
       </ListItem>
       <Collapse
-        in={expanded === R.prop('sessionId', session)}
+        in={expanded === R.prop('session_id', session)}
         timeout="auto"
         unmountOnExit
       >

@@ -17,8 +17,12 @@ import {
   sortedListById,
 } from '../../utils'
 
+export const selectUtilities = (state) => R.prop('utilities')(state)
+
 // Sessions
-export const selectSessions = (state) => R.prop('sessions')(state)
+export const selectSessions = createSelector(selectUtilities, (data) =>
+  R.prop('sessions')(data)
+)
 export const selectSessionsData = createSelector(
   selectSessions,
   R.propOr({}, 'data')
@@ -36,10 +40,17 @@ export const selectSessionsByTeam = createSelector(
 )
 
 // Tokens
-export const selectTokens = (state) => R.path(['tokens'])(state)
+export const selectTokens = createSelector(selectUtilities, (data) =>
+  R.prop('tokens')(data)
+)
 
 export const selectMapboxToken = createSelector(selectTokens, (data) =>
   R.prop('mapboxToken')(data)
+)
+
+// Messages
+export const selectMessages = createSelector(selectUtilities, (data) =>
+  R.prop('messages')(data)
 )
 
 // Data

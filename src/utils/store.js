@@ -2,8 +2,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 
 import dataReducer from '../data/data'
 import localReducer from '../data/local'
-import sessionsReducer from '../data/sessions/sessionsSlice'
-import tokensReducer from '../data/tokens/tokensSlice'
+import utilitiesReducer from '../data/utilities'
 
 const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
 
@@ -38,8 +37,7 @@ const asyncDispatchMiddleware = (store) => (next) => (action) => {
 const reducer = combineReducers({
   data: dataReducer,
   local: localReducer,
-  tokens: tokensReducer,
-  sessions: sessionsReducer,
+  utilities: utilitiesReducer,
 })
 
 const preloadedState = getInitialState(reducer)
