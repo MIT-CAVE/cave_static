@@ -394,7 +394,7 @@ export const getMinMax = R.converge(R.pair, [
   R.reduce(R.max, -Infinity),
 ])
 
-const fromZeroToOne = (x) => x >= 0 && x <= 1
+const fromZeroToOne = (x) => x >= 0 && x < 1
 
 /**
  * Gets a new range in which the given bounds `valueMin` and `valueMax` are
