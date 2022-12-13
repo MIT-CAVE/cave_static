@@ -9,7 +9,7 @@ import {
   // MapChart,
   // TreeChart,
   // TreemapChart,
-  // GraphChart,
+  GraphChart,
   // GaugeChart,
   // FunnelChart,
   // ParallelChart,
@@ -66,6 +66,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import {
   adjustMinMax,
   formatNumber,
+  getChartItemColor,
   getMinMax,
   mapIndexed,
 } from '../../../../utils'
@@ -82,6 +83,7 @@ echarts.use([
   BarChart,
   BoxplotChart,
   LineChart,
+  GraphChart,
   CanvasRenderer,
   CustomChart,
 ])
@@ -569,6 +571,7 @@ const WaterfallChart = ({
           style: api.style({
             stroke: api.visual('color'),
             lineDash: [8, 4],
+            lineWidth: 2,
           }),
         },
       ],
@@ -597,6 +600,9 @@ const WaterfallChart = ({
       id: yKey,
       name: yKey,
       datasetIndex: index,
+      emphasis: {
+        focus: 'series',
+      },
     }))
   } else {
     dataset = [{ source: getWaterfallValues(data) }]
@@ -619,6 +625,7 @@ const WaterfallChart = ({
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    legend: { data: yKeys, top: 24 },
     tooltip: {
       valueFormatter: (value) => formatNumber(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
@@ -711,11 +718,6 @@ const StackedWaterfallChart = ({
   const yData = R.pluck('y')(data)
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
 
-  // Find categories containing a mix of positive and negative values
-  const isMixedRaw = R.map(
-    R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))
-  )(yData)
-
   const categoryBounds = R.pipe(
     // The total values after summing up each category
     R.map(R.pipe(R.values, R.sum)),
@@ -801,11 +803,7 @@ const StackedWaterfallChart = ({
         width: barWidth,
         height: barY - startCoord[1],
       },
-      style: api.style(
-        isMixedRaw[index]
-          ? { fillOpacity: 0.8, decal: api.visual('decal') }
-          : {}
-      ),
+      style: api.style(),
     }
 
     // Dashed line connecting the bars
@@ -825,6 +823,7 @@ const StackedWaterfallChart = ({
             y1: endCoordPrev[1],
             x2: barX,
             y2: api.coord([index, categoryBounds[index].startValue])[1],
+            z: 1,
           }
         }
       } else {
@@ -841,9 +840,12 @@ const StackedWaterfallChart = ({
           type: 'line',
           shape,
           style: api.style({
-            stroke: subGrouped ? 'rgb(255,255,255,0.6)' : api.visual('color'),
-            lineDash: [8, 4],
+            stroke: subGrouped ? 'rgb(255,255,255,0.8)' : api.visual('color'),
+            lineWidth: 2,
+            lineDash: [8, 6],
+            symbolSize: 120,
           }),
+          z2: 1,
         }
       }
       renderedLinesByIndex.add(index)
@@ -873,15 +875,78 @@ const StackedWaterfallChart = ({
       )(yData),
     }))(yKeys)
 
-    console.log({ categoryBounds, dataset })
-
-    series = yKeys.map((yKey, index) => ({
+    const barSeries = mapIndexed((yKey, idx) => ({
       type: 'custom',
       renderItem,
       id: yKey,
       name: yKey,
-      datasetIndex: index,
-    }))
+      datasetIndex: idx,
+    }))(yKeys)
+
+    const getGraphSeries = (nodesData) => ({
+      type: 'graph',
+      coordinateSystem: 'cartesian2d',
+      categories: [
+        {
+          name: 'Initial',
+          symbol: 'diamond',
+          itemStyle: {
+            color: getChartItemColor(theme, yKeys.length),
+          },
+        },
+        {
+          name: 'Total',
+          symbol: 'circle',
+          itemStyle: {
+            color: getChartItemColor(theme, yKeys.length + 1),
+          },
+        },
+      ],
+      lineStyle: {
+        type: 'dashed',
+        width: 2,
+        color: theme === 'light' ? '#4a4a4a' : '#ffffff',
+      },
+      emphasis: { focus: 'series' },
+      symbolSize: 16,
+      itemStyle: {
+        borderWidth: 2,
+        borderColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      },
+      nodes: nodesData,
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+        textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+        valueFormatter: (value) => formatNumber(value, numberFormat),
+      },
+    })
+
+    const getNodes = R.pipe(({ key, seriesName, ...rest }) =>
+      R.map((value) => ({
+        value: value[key],
+        name: `${seriesName} @${value.x}`,
+        ...rest,
+      }))(categoryBounds)
+    )
+
+    const initNodes = getNodes({
+      key: 'startValue',
+      seriesName: 'Initial',
+      category: 0,
+    })
+
+    const totalNodes = getNodes({
+      key: 'endValue',
+      seriesName: 'Total',
+      category: 1,
+    })
+
+    series = [
+      ...barSeries,
+      getGraphSeries(initNodes, 'Initial'),
+      getGraphSeries(totalNodes, 'Total'),
+    ]
   } else {
     dataset = [{ source: getWaterfallValues(data) }]
     series = {
@@ -903,15 +968,21 @@ const StackedWaterfallChart = ({
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-    tooltip: {
-      valueFormatter: (value) => formatNumber(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-      trigger: 'axis',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
+    legend: {
+      data: [
+        ...yKeys,
+        { name: 'Initial', icon: 'diamond' },
+        { name: 'Total', icon: 'circle' },
+      ],
+      top: 24,
     },
     dataset,
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+      valueFormatter: (value) => formatNumber(value, numberFormat),
+    },
     grid: {
       top: 64,
       // right: 8,
@@ -959,12 +1030,6 @@ const StackedWaterfallChart = ({
           color: ['#aaa', '#ddd'],
           opacity: 0.7,
         },
-      },
-    },
-    aria: {
-      enabled: true,
-      decal: {
-        show: true,
       },
     },
     series,

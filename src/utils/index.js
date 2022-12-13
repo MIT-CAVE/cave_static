@@ -7,7 +7,7 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
+import { CHART_PALETTE, DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
@@ -314,6 +314,9 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   const pctVal = (clampedVal - minVal) / (maxVal - minVal)
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
+
+export const getChartItemColor = (theme, colorIndex) =>
+  CHART_PALETTE[theme][colorIndex % CHART_PALETTE[theme].length]
 
 /**
  * Converts a d3-color RGB object into a conventional RGBA array.
