@@ -895,7 +895,7 @@ const StackedWaterfallChart = ({
           },
         },
         {
-          name: 'Total',
+          name: 'Net Change',
           symbol: 'circle',
           itemStyle: {
             color: getChartItemColor(theme, yKeys.length + 1),
@@ -936,16 +936,16 @@ const StackedWaterfallChart = ({
       category: 0,
     })
 
-    const totalNodes = getNodes({
+    const netChangeNodes = getNodes({
       key: 'endValue',
-      seriesName: 'Total',
+      seriesName: 'Net Change',
       category: 1,
     })
 
     series = [
       ...barSeries,
       getGraphSeries(initNodes, 'Initial'),
-      getGraphSeries(totalNodes, 'Total'),
+      getGraphSeries(netChangeNodes, 'Net Change'),
     ]
   } else {
     dataset = [{ source: getWaterfallValues(data) }]
@@ -972,7 +972,7 @@ const StackedWaterfallChart = ({
       data: [
         ...yKeys,
         { name: 'Initial', icon: 'diamond' },
-        { name: 'Total', icon: 'circle' },
+        { name: 'Net Change', icon: 'circle' },
       ],
       top: 24,
     },
