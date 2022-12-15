@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
@@ -6,7 +5,6 @@ import { Provider } from 'react-redux'
 import './index.css'
 import App from './App'
 import { sendCommand } from './data/data'
-import { mutateLocal } from './data/local'
 import { mutateSessions } from './data/utilities/sessionsSlice'
 import { tokensSet } from './data/utilities/tokensSlice'
 // Must import store prior to any slice items to prevent
@@ -36,27 +34,15 @@ if (typeof window !== 'undefined') {
         await websocket.connect(payload.data.user_token, onMessage(dispatch))
         // After initial connection, get the session data
         await dispatch(sendCommand({ command: 'get_session_data', data: {} }))
-        // A selector can't be used because its evaluation
-        // would occur before the session data is retrieved
-        const mapKpis = R.pipe(
-          R.pathOr({}, ['data', 'kpis', 'data']),
-          R.mapObjIndexed(R.pick(['mapKpi']))
-        )(store.getState())
-        dispatch(mutateLocal({ path: ['kpis'], value: mapKpis }))
       } else {
         console.warn('Message error: ', payload)
       }
     }
   }
+  // Listen for Messages
   window.addEventListener('message', onMessageHandler)
-
-  if (
-    !(
-      process.env.NODE_ENV !== 'production' ||
-      process.env.REACT_APP_BUILD_VERSION.includes('dev')
-    )
-  )
-    document.addEventListener('contextmenu', (event) => event.preventDefault())
+  // Disable right click
+  document.addEventListener('contextmenu', (event) => event.preventDefault())
 }
 
 const container = document.getElementById('root')

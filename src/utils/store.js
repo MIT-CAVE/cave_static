@@ -50,8 +50,9 @@ const store = configureStore({
     getDefaultMiddleware().concat(asyncDispatchMiddleware),
   // Use Redux Dev Tools if not in proudction or the build is a dev build
   devTools:
-    process.env.NODE_ENV !== 'production' ||
-    process.env.REACT_APP_BUILD_VERSION.includes('dev'),
+    process.env.REACT_APP_USE_REDUX_DEVTOOLS === 'true' &&
+    (process.env.NODE_ENV !== 'production' ||
+      process.env.REACT_APP_BUILD_VERSION.includes('dev')),
 })
 
 export { store }

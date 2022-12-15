@@ -6,7 +6,7 @@ A react based static web app to be used as a data consumer for the `cave_app`.
 
 Before you begin we suggest you use the version of node that this application version was developed on. We recommend using [NVM](https://github.com/nvm-sh/nvm#install--update-script) to manage node environments.
 
-- Current Node Version: node 14
+- Current CAVE supported Node Version: node 18
 
 You can install all dependencies and run the app by running `npm run setup` from the root of the project.
 
