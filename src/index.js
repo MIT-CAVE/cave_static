@@ -1,7 +1,7 @@
 import * as R from 'ramda'
-import { StrictMode, useEffect } from 'react'
-import ReactDOM from 'react-dom'
-import { Provider, useDispatch } from 'react-redux'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { Provider } from 'react-redux'
 
 import './index.css'
 import App from './App'
@@ -15,71 +15,56 @@ import onMessage from './utils/onMessage'
 import { store } from './utils/store'
 import websocket from './utils/websockets'
 
-const AppWrapper = () => {
-  const dispatch = useDispatch()
-
-  useEffect(() => {
-    // Handle Messages from the iframe
-    // Wrap message handler in async function to satisfy react-hooks/exhaustive-deps
-    async function setupMessageHandler() {
-      window.addEventListener('message', async (e) => {
-        // check that the data is sent from api
-        if (e.origin === window.location.ancestorOrigins[0]) {
-          const payload = e.data
-          // check if tokens are present in data
-          if (payload.event === 'initialize') {
-            dispatch(tokensSet({ mapboxToken: payload.data.mapbox_token }))
-            dispatch(
-              mutateSessions({
-                data_path: ['sessions', 'session_id'],
-                data: payload.data.session_id,
-              })
-            )
-            await websocket.connect(
-              payload.data.user_token,
-              onMessage(dispatch)
-            )
-            // After initial connection, get the session data
-            await dispatch(
-              sendCommand({
-                command: 'get_session_data',
-                data: {},
-              })
-            )
-            // A selector can't be used because its evaluation
-            // would occur before the session data is retrieved
-            const mapKpis = R.pipe(
-              R.pathOr({}, ['data', 'kpis', 'data']),
-              R.mapObjIndexed(R.pick(['mapKpi']))
-            )(store.getState())
-            dispatch(mutateLocal({ path: ['kpis'], value: mapKpis }))
-          } else {
-            console.warn('Message error: ', payload)
-          }
-        }
-      })
+// The following should only run once when the app starts; Otherwise,
+// mount/unmount issues in React 18 arise when wrapped in a useEffect.
+// https://beta.reactjs.org/learn/synchronizing-with-effects#not-an-effect-initializing-the-application
+if (typeof window !== 'undefined') {
+  const { dispatch } = store
+  const onMessageHandler = async (e) => {
+    // check that the data is sent from api
+    if (e.origin === window.location.ancestorOrigins[0]) {
+      const payload = e.data
+      // check if tokens are present in data
+      if (payload.event === 'initialize') {
+        dispatch(tokensSet({ mapboxToken: payload.data.mapbox_token }))
+        dispatch(
+          mutateSessions({
+            data_path: ['sessions', 'session_id'],
+            data: payload.data.session_id,
+          })
+        )
+        await websocket.connect(payload.data.user_token, onMessage(dispatch))
+        // After initial connection, get the session data
+        await dispatch(sendCommand({ command: 'get_session_data', data: {} }))
+        // A selector can't be used because its evaluation
+        // would occur before the session data is retrieved
+        const mapKpis = R.pipe(
+          R.pathOr({}, ['data', 'kpis', 'data']),
+          R.mapObjIndexed(R.pick(['mapKpi']))
+        )(store.getState())
+        dispatch(mutateLocal({ path: ['kpis'], value: mapKpis }))
+      } else {
+        console.warn('Message error: ', payload)
+      }
     }
-    setupMessageHandler()
-  }, [dispatch])
+  }
+  window.addEventListener('message', onMessageHandler)
 
-  return <App />
+  if (
+    !(
+      process.env.NODE_ENV !== 'production' ||
+      process.env.REACT_APP_BUILD_VERSION.includes('dev')
+    )
+  )
+    document.addEventListener('contextmenu', (event) => event.preventDefault())
 }
 
-const ProviderWrapper = () => (
+const container = document.getElementById('root')
+const root = createRoot(container)
+root.render(
   <StrictMode>
     <Provider store={store}>
-      <AppWrapper />
+      <App />
     </Provider>
   </StrictMode>
 )
-
-const rootNode = document.getElementById('root')
-if (
-  !(
-    process.env.NODE_ENV !== 'production' ||
-    process.env.REACT_APP_BUILD_VERSION.includes('dev')
-  )
-)
-  document.addEventListener('contextmenu', (event) => event.preventDefault())
-
-ReactDOM.render(<ProviderWrapper />, rootNode)
