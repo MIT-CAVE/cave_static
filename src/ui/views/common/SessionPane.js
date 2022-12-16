@@ -7,6 +7,7 @@ import {
   ListItemButton,
   ListItemText,
   ListSubheader,
+  TextField,
 } from '@mui/material'
 import * as R from 'ramda'
 import { useEffect, useCallback, useState } from 'react'
@@ -66,22 +67,29 @@ const ListTeamHeader = ({ teamObj, id }) => {
   )
 }
 
-const ListItemSession = ({ session, switchSession, expanded, setExpanded }) => {
+const ListItemSession = ({
+  session,
+  switchSession,
+  expanded,
+  setExpanded,
+  onEdit,
+}) => {
   const currentSession = useSelector(selectCurrentSession)
-
+  const isExpanded = expanded === R.prop('session__id', session)
   return (
     <>
       <ListItem
         selected={R.prop('session__id', session) === currentSession}
         secondaryAction={
-          <IconButton css={{ cursor: 'pointer' }}>
-            {expanded === R.prop('session__id', session) ? (
-              <MdExpandLess onClick={() => setExpanded(-1)} />
-            ) : (
-              <MdExpandMore
-                onClick={() => setExpanded(R.prop('session__id', session))}
-              />
-            )}
+          <IconButton
+            css={{ cursor: 'pointer' }}
+            onClick={() =>
+              isExpanded
+                ? setExpanded(-1)
+                : setExpanded(R.prop('session__id', session))
+            }
+          >
+            {isExpanded ? <MdExpandLess /> : <MdExpandMore />}
           </IconButton>
         }
       >
@@ -99,7 +107,15 @@ const ListItemSession = ({ session, switchSession, expanded, setExpanded }) => {
       >
         <Grid container spacing={0} style={{ textAlign: 'center' }}>
           <Grid item xs={4}>
-            <IconButton>
+            <IconButton
+              onClick={() =>
+                onEdit(
+                  R.prop('session__id', session),
+                  -1,
+                  R.prop('session__name', session)
+                )
+              }
+            >
               <MdEdit />
             </IconButton>
           </Grid>
@@ -124,6 +140,13 @@ const SessionPane = ({ ...props }) => {
   const teams = useSelector(selectTeams)
   const sessionsByTeam = useSelector(selectSessionsByTeam)
   const [expanded, setExpanded] = useState(-1)
+  const [editing, setEditing] = useState({ team: -1, session: -1 })
+  const [inputValue, setInputValue] = useState('')
+
+  const onEdit = useCallback((id, team, text = '') => {
+    setEditing({ team: team, session: id })
+    setInputValue(text)
+  }, [])
 
   const switchSession = useCallback(
     (id) => {
@@ -166,14 +189,27 @@ const SessionPane = ({ ...props }) => {
             {R.pipe(
               R.prop(id),
               R.values,
-              R.map((session) => (
-                <ListItemSession
-                  session={session}
-                  expanded={expanded}
-                  setExpanded={setExpanded}
-                  switchSession={switchSession}
-                />
-              ))
+              R.map((session) =>
+                R.prop('session__id', session) ===
+                R.prop('session', editing) ? (
+                  <ListItem key={R.prop('session__id', session)}>
+                    <TextField
+                      fullWidth
+                      value={inputValue}
+                      onChange={(event) => setInputValue(event.target.value)}
+                    />
+                  </ListItem>
+                ) : (
+                  <ListItemSession
+                    key={R.prop('session__id', session)}
+                    session={session}
+                    expanded={expanded}
+                    onEdit={onEdit}
+                    setExpanded={setExpanded}
+                    switchSession={switchSession}
+                  />
+                )
+              )
             )(sessionsByTeam)}
           </List>
         ))(teams)
