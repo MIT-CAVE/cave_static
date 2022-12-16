@@ -1,5 +1,8 @@
 import {
   Collapse,
+  Dialog,
+  DialogTitle,
+  DialogActions,
   Grid,
   IconButton,
   List,
@@ -8,6 +11,8 @@ import {
   ListItemText,
   ListSubheader,
   TextField,
+  InputAdornment,
+  Button,
 } from '@mui/material'
 import * as R from 'ramda'
 import { useEffect, useCallback, useState } from 'react'
@@ -18,6 +23,9 @@ import {
   MdCopyAll,
   MdDeleteForever,
   MdAddToPhotos,
+  MdCheck,
+  MdClose,
+  MdRefresh,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -28,9 +36,7 @@ import {
   selectCurrentSession,
 } from '../../../data/selectors'
 
-const ListTeamHeader = ({ teamObj, id }) => {
-  const dispatch = useDispatch()
-
+const ListTeamHeader = ({ teamObj, id, onAdd }) => {
   return (
     <ListSubheader>
       <Grid container>
@@ -40,22 +46,7 @@ const ListTeamHeader = ({ teamObj, id }) => {
         {R.prop('teamCountSessions', teamObj) <
         R.prop('teamLimitSessions', teamObj) ? (
           <Grid item>
-            <IconButton
-              onClick={() =>
-                dispatch(
-                  sendCommand({
-                    command: 'session_management',
-                    data: {
-                      session_command: 'create',
-                      session_command_data: {
-                        session_name: 'new_name_here',
-                        team_id: id,
-                      },
-                    },
-                  })
-                )
-              }
-            >
+            <IconButton onClick={() => onAdd(id)}>
               <MdAddToPhotos />
             </IconButton>
           </Grid>
@@ -73,20 +64,25 @@ const ListItemSession = ({
   expanded,
   setExpanded,
   onEdit,
+  onCopy,
+  teamId,
 }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const currentSession = useSelector(selectCurrentSession)
-  const isExpanded = expanded === R.prop('session__id', session)
+  const isExpanded = expanded === R.prop('sessionId', session)
+  const dispatch = useDispatch()
+
   return (
     <>
       <ListItem
-        selected={R.prop('session_id', session) === currentSession}
+        selected={parseInt(R.prop('sessionId', session)) === currentSession}
         secondaryAction={
           <IconButton
             css={{ cursor: 'pointer' }}
             onClick={() =>
               isExpanded
                 ? setExpanded(-1)
-                : setExpanded(R.prop('session__id', session))
+                : setExpanded(R.prop('sessionId', session))
             }
           >
             {isExpanded ? <MdExpandLess /> : <MdExpandMore />}
@@ -94,14 +90,14 @@ const ListItemSession = ({
         }
       >
         <ListItemButton
-          key={R.prop('session_id', session)}
-          onClick={() => switchSession(R.prop('session_id', session))}
+          key={R.prop('sessionId', session)}
+          onClick={() => switchSession(R.prop('sessionId', session))}
         >
           <ListItemText primary={R.prop('sessionName', session)} />
         </ListItemButton>
       </ListItem>
       <Collapse
-        in={expanded === R.prop('session_id', session)}
+        in={expanded === R.prop('sessionId', session)}
         timeout="auto"
         unmountOnExit
       >
@@ -110,9 +106,9 @@ const ListItemSession = ({
             <IconButton
               onClick={() =>
                 onEdit(
-                  R.prop('session__id', session),
+                  R.prop('sessionId', session),
                   -1,
-                  R.prop('session__name', session)
+                  R.prop('sessionName', session)
                 )
               }
             >
@@ -120,17 +116,63 @@ const ListItemSession = ({
             </IconButton>
           </Grid>
           <Grid item xs={4}>
-            <IconButton>
+            <IconButton
+              onClick={() =>
+                onCopy(
+                  R.prop('sessionId', session),
+                  teamId,
+                  R.prop('sessionName', session)
+                )
+              }
+            >
               <MdCopyAll />
             </IconButton>
           </Grid>
           <Grid item xs={4}>
-            <IconButton>
+            <IconButton onClick={() => setConfirmOpen(true)}>
               <MdDeleteForever />
             </IconButton>
           </Grid>
         </Grid>
       </Collapse>
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {`Delete ${R.prop('sessionName', session)}? This cannot be undone.`}
+        </DialogTitle>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              dispatch(
+                sendCommand({
+                  command: 'session_management',
+                  data: {
+                    session_command: 'delete',
+                    session_command_data: {
+                      session_id: R.prop('sessionId', session),
+                    },
+                  },
+                })
+              )
+              setConfirmOpen(false)
+            }}
+          >
+            Delete
+          </Button>
+          <Button
+            onClick={() => {
+              setConfirmOpen(false)
+            }}
+            autoFocus
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }
@@ -140,17 +182,28 @@ const SessionPane = ({ ...props }) => {
   const teams = useSelector(selectTeams)
   const sessionsByTeam = useSelector(selectSessionsByTeam)
   const [expanded, setExpanded] = useState(-1)
-  const [editing, setEditing] = useState({ team: -1, session: -1 })
+  const [editing, setEditing] = useState({ team: -1, session: -1, copy: -1 })
   const [inputValue, setInputValue] = useState('')
 
   const onEdit = useCallback((id, team, text = '') => {
-    setEditing({ team: team, session: id })
+    setEditing({ team: team, session: id, copy: -1 })
     setInputValue(text)
+  }, [])
+
+  const onCopy = useCallback((id, team, text = '') => {
+    setEditing({ team: team, session: -1, copy: id })
+    setInputValue(`Copy of ${text}`)
+    setExpanded(-1)
+  }, [])
+
+  const onAdd = useCallback((team) => {
+    setEditing({ team: team, session: -1, copy: -1 })
+    setInputValue(`New Session`)
+    setExpanded(-1)
   }, [])
 
   const switchSession = useCallback(
     (id) => {
-      //TODO: add session switching functionality
       dispatch(
         sendCommand({
           command: 'session_management',
@@ -179,42 +232,151 @@ const SessionPane = ({ ...props }) => {
       )
     }
   }, [dispatch, teams])
-  //TODO: Add refresh button
+
   return (
-    <>
+    <div css={{ overflow: 'visible' }}>
+      <IconButton
+        style={{ position: 'relative', top: '-80px', left: '88%' }}
+        onClick={() =>
+          dispatch(
+            sendCommand({
+              command: 'session_management',
+              data: {
+                session_command: 'refresh',
+              },
+            })
+          )
+        }
+      >
+        <MdRefresh />
+      </IconButton>
       {R.values(
         R.mapObjIndexed((value, id) => (
-          <List key={id}>
-            <ListTeamHeader teamObj={value} id={id} />
+          <List key={id} style={{ marginTop: '-60px' }}>
+            <ListTeamHeader teamObj={value} id={id} onAdd={onAdd} />
             {R.pipe(
               R.prop(id),
               R.values,
               R.map((session) =>
-                R.prop('session__id', session) ===
-                R.prop('session', editing) ? (
-                  <ListItem key={R.prop('session__id', session)}>
+                R.prop('sessionId', session) === R.prop('session', editing) ? (
+                  <ListItem key={R.prop('sessionId', session)}>
                     <TextField
                       fullWidth
                       value={inputValue}
                       onChange={(event) => setInputValue(event.target.value)}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => {
+                                dispatch(
+                                  sendCommand({
+                                    command: 'session_management',
+                                    data: {
+                                      session_command: 'edit',
+                                      session_command_data: {
+                                        session_name: inputValue,
+                                        session_id: R.prop(
+                                          'sessionId',
+                                          session
+                                        ),
+                                      },
+                                    },
+                                  })
+                                )
+                                setEditing({ team: -1, session: -1, copy: -1 })
+                                setInputValue('')
+                              }}
+                            >
+                              <MdCheck />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => {
+                                setEditing({ team: -1, session: -1, copy: -1 })
+                                setInputValue('')
+                              }}
+                            >
+                              <MdClose />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
                     />
                   </ListItem>
                 ) : (
                   <ListItemSession
-                    key={R.prop('session__id', session)}
+                    key={R.prop('sessionId', session)}
                     session={session}
                     expanded={expanded}
                     onEdit={onEdit}
+                    onCopy={onCopy}
+                    teamId={id}
                     setExpanded={setExpanded}
                     switchSession={switchSession}
                   />
                 )
               )
             )(sessionsByTeam)}
+            {R.prop('team', editing) === id && (
+              <ListItem key={id}>
+                <TextField
+                  fullWidth
+                  value={inputValue}
+                  onChange={(event) => setInputValue(event.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => {
+                            R.prop('copy', editing) !== -1
+                              ? dispatch(
+                                  sendCommand({
+                                    command: 'session_management',
+                                    data: {
+                                      session_command: 'copy',
+                                      session_command_data: {
+                                        session_name: inputValue,
+                                        session_id: R.prop('copy', editing),
+                                      },
+                                    },
+                                  })
+                                )
+                              : dispatch(
+                                  sendCommand({
+                                    command: 'session_management',
+                                    data: {
+                                      session_command: 'create',
+                                      session_command_data: {
+                                        session_name: inputValue,
+                                        team_id: id,
+                                      },
+                                    },
+                                  })
+                                )
+                            setEditing({ team: -1, session: -1, copy: -1 })
+                            setInputValue('')
+                          }}
+                        >
+                          <MdCheck />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => {
+                            setEditing({ team: -1, session: -1, copy: -1 })
+                            setInputValue('')
+                          }}
+                        >
+                          <MdClose />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </ListItem>
+            )}
           </List>
         ))(teams)
       )}
-    </>
+    </div>
   )
 }
 
