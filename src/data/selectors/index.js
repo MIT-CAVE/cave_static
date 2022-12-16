@@ -122,7 +122,7 @@ export const selectSettingsData = createSelector(selectSettings, (data) =>
   R.propOr({}, 'data')(data)
 )
 export const selectLegendData = createSelector(selectMapData, (data) =>
-  R.propOr([], 'legendGroups', data)
+  R.propOr({}, 'legendGroups', data)
 )
 
 const getMergedAllProps = (data, localData) =>
@@ -353,35 +353,34 @@ export const selectOptionalViewports = createSelector(selectMapData, (data) =>
   R.propOr({}, 'optionalViewports')(data)
 )
 // Local -> Map -> layers
-export const selectEnabledArcs = createSelector(
+const selectEnabledTypesFn = createSelector(
   [selectLocalMapData, selectMapData],
-  (localMap, mapData) =>
-    R.pathOr(
-      R.pathOr({}, ['enabledTypes', 'arc'], mapData),
-      ['enabledTypes', 'arc'],
-      localMap
-    ),
+  (localMap, mapData) => (layerKey) => {
+    const getEnabledTypes = R.pipe(
+      R.propOr({}, 'legendGroups'),
+      R.values,
+      R.pluck(layerKey),
+      R.mergeAll,
+      R.mapObjIndexed(R.prop('value'))
+    )
+    return R.when(
+      R.isEmpty,
+      R.always(getEnabledTypes(mapData))
+    )(getEnabledTypes(localMap))
+  },
   { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectEnabledArcs = createSelector(
+  selectEnabledTypesFn,
+  R.applyTo('arcs')
 )
 export const selectEnabledNodes = createSelector(
-  [selectLocalMapData, selectMapData],
-  (localMap, mapData) =>
-    R.pathOr(
-      R.pathOr({}, ['enabledTypes', 'node'], mapData),
-      ['enabledTypes', 'node'],
-      localMap
-    ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  selectEnabledTypesFn,
+  R.applyTo('nodes')
 )
 export const selectEnabledGeos = createSelector(
-  [selectLocalMapData, selectMapData],
-  (localMap, mapData) =>
-    R.pathOr(
-      R.pathOr({}, ['enabledTypes', 'geo'], mapData),
-      ['enabledTypes', 'geo'],
-      localMap
-    ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  selectEnabledTypesFn,
+  R.applyTo('geos')
 )
 export const selectGeo = createSelector(
   selectMapLayers,
@@ -503,7 +502,7 @@ export const selectCategoryFunc = createSelector(
       categories
     )
 )
-//Node, Geo, & Arc derived
+// Node, Geo, & Arc derived
 export const selectGroupedEnabledArcs = createSelector(
   [selectEnabledArcs, selectFilteredArcsData],
   (enabledArcs, filteredArcs) =>
