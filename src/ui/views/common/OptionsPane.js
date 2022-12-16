@@ -17,7 +17,7 @@ const OptionsPane = () => {
   // column by default, unless explicitly set otherwise by the API designers
   const optsPaneLayout = R.pipe(
     R.defaultTo({ type: layoutType.GRID }),
-    R.unless(R.has('num_columns'), R.assoc('num_columns', 1))
+    R.unless(R.has('numColumns'), R.assoc('numColumns', 1))
   )(layout)
   const onChangeProp = (prop, propId) => (value) => {
     dispatch(

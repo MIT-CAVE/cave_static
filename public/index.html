@@ -15,13 +15,12 @@
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <script>
-      const devtools = '<script src="http://localhost:8097"><\/script>'
       // include react-devtools if this is a development build
       if (
-        '%NODE_ENV%' !== 'production' ||
-        '%REACT_APP_BUILD_VERSION%'.includes('dev')
+        '%NODE_ENV%' !== 'production' &&
+        '%REACT_APP_USE_DEVTOOLS%' === 'true'
       ) {
-        document.write(devtools)
+        document.write('<script src="http://localhost:8097"><\/script>')
       }
     </script>
     <!--

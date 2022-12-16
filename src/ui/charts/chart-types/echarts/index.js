@@ -9,7 +9,7 @@ import {
   // MapChart,
   // TreeChart,
   // TreemapChart,
-  // GraphChart,
+  GraphChart,
   // GaugeChart,
   // FunnelChart,
   // ParallelChart,
@@ -63,7 +63,13 @@ import * as R from 'ramda'
 import React from 'react'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { adjustMinMax, formatNumber, getMinMax } from '../../../../utils'
+import {
+  adjustMinMax,
+  formatNumber,
+  getChartItemColor,
+  getMinMax,
+  mapIndexed,
+} from '../../../../utils'
 
 // Register the required components
 echarts.use([
@@ -77,6 +83,7 @@ echarts.use([
   BarChart,
   BoxplotChart,
   LineChart,
+  GraphChart,
   CanvasRenderer,
   CustomChart,
 ])
@@ -490,9 +497,14 @@ const getWaterfallValues = (rawData) => {
   return rawData
 }
 
-// TODO:
-// - Set `xAxisTitle`, `yAxisTitle`
-const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
+const WaterfallChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  subGrouped,
+}) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
@@ -559,6 +571,7 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
           style: api.style({
             stroke: api.visual('color'),
             lineDash: [8, 4],
+            lineWidth: 2,
           }),
         },
       ],
@@ -587,6 +600,9 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       id: yKey,
       name: yKey,
       datasetIndex: index,
+      emphasis: {
+        focus: 'series',
+      },
     }))
   } else {
     dataset = [{ source: getWaterfallValues(data) }]
@@ -609,6 +625,7 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    legend: { data: yKeys, top: 24 },
     tooltip: {
       valueFormatter: (value) => formatNumber(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
@@ -618,7 +635,20 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     dataset,
+    grid: {
+      top: 64,
+      // right: 8,
+      // bottom: 24,
+      // left: 36,
+      // show: true,
+    },
     xAxis: {
+      name: xAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 40,
       type: 'category',
       splitLine: { show: false },
       data: xData,
@@ -628,6 +658,12 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     yAxis: {
+      name: yAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 64,
       type: 'value',
       scale: true,
       // Add the maximum to do the scaling
@@ -669,24 +705,21 @@ const WaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   )
 }
 
-// TODO:
-// - Set `xAxisTitle`, `yAxisTitle`
-const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
+// TODO: Refactoring needed
+const StackedWaterfallChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  subGrouped,
+}) => {
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
 
-  // Find categories containing a mix of positive and negative values
-  const isMixed = R.pipe(
-    R.map(R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))),
-    R.zipObj(xData)
-  )(yData)
-  const isMixedRaw = R.map(
-    R.pipe(R.values, R.both(R.any(R.lt(0)), R.any(R.gt(0))))
-  )(yData)
-
   const categoryBounds = R.pipe(
-    // The end values after summing up each category
+    // The total values after summing up each category
     R.map(R.pipe(R.values, R.sum)),
     R.reduce((acc, value) => {
       const startValue = R.isEmpty(acc) ? 0 : R.path([-1, 1])(acc)
@@ -699,15 +732,9 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
 
   const startValues = R.pipe(
     R.pluck('startValue'),
+    R.map((val) => ({ rising: val, falling: val })),
     R.zipObj(xData)
   )(categoryBounds)
-
-  const categorySumAbs = R.pipe(
-    R.map(R.pipe(R.values, R.map(Math.abs), R.sum)),
-    R.zipObj(xData)
-  )(yData)
-
-  const indexedBounds = R.indexBy(R.prop('x'))(categoryBounds)
 
   const getBarBounds = (rawData) => {
     const yData = R.pluck('y')(rawData)
@@ -716,14 +743,11 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       if (yData[i] == null) continue
 
       const x = rawData[i].x
-      const yDiff = indexedBounds[x].endValue - indexedBounds[x].startValue
-      const yFixed = isMixed[x]
-        ? yDiff * Math.abs(yData[i] / categorySumAbs[x])
-        : yData[i]
+      const orientation = yData[i] < 0 ? 'falling' : 'rising'
 
-      rawData[i].startValue = startValues[x]
-      rawData[i].endValue = rawData[i].startValue + yFixed
-      startValues[x] = rawData[i].endValue
+      rawData[i].startValue = startValues[x][orientation]
+      rawData[i].endValue = rawData[i].startValue + yData[i]
+      startValues[x][orientation] = rawData[i].endValue
     }
     return rawData
   }
@@ -731,16 +755,28 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
   let barX
   let barY
   let barIndex
-  let renderLine
+  let index
+  const renderedLinesByIndex = new Set()
+  const validIndices = R.pipe(
+    mapIndexed((value, idx) => R.mergeLeft({ idx })(value)),
+    R.reject(R.pipe(R.prop('y'), R.values, R.all(R.isNil)))
+  )(data)
 
   const renderItem = (params, api) => {
     const barStartValue = api.value(2)
     const barEndValue = api.value(3)
 
+    index = params.dataIndex
     const barIndexPrev = barIndex
     barIndex = params.seriesIndex
-    const index = params.dataIndex
-    if (barIndex === 0) renderLine = true
+
+    // Prevents re-rendering bugs with uncleared values of dashed line
+    if (barIndex === 0 && index === 0) {
+      barX = undefined
+      barY = undefined
+      renderedLinesByIndex.clear()
+    }
+
     if (isNaN(barStartValue) || isNaN(barEndValue)) return
 
     if (barIndex !== barIndexPrev || index === 0) {
@@ -765,41 +801,54 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
         x: barX - barWidth / 2,
         y: startCoord[1],
         width: barWidth,
-        height: endCoord[1] - startCoord[1],
+        height: barY - startCoord[1],
       },
-      style: api.style(
-        isMixedRaw[index]
-          ? { fillOpacity: 0.4, decal: api.visual('decal') }
-          : {}
-      ),
+      style: api.style(),
     }
 
     // Dashed line connecting the bars
     let lineConnector
-    if (renderLine) {
-      const shape = subGrouped
-        ? // BUG: Line connector doesn't work for subgrouping
-          {
-            // x1: barXPrev,
-            // y1: barYPrev,
-            // x2: barX,
-            // y2: startCoord[1],
-          }
-        : {
-            x1: barXPrev,
-            y1: barYPrev,
+    if (index > 0 && !renderedLinesByIndex.has(index)) {
+      let shape
+      if (subGrouped) {
+        const validIndex = R.findIndex(R.propEq('idx', index))(validIndices)
+        if (validIndex > 0) {
+          const indexPrev = validIndices[validIndex - 1].idx
+          const endCoordPrev = api.coord([
+            indexPrev,
+            categoryBounds[indexPrev].endValue,
+          ])
+          shape = {
+            x1: endCoordPrev[0],
+            y1: endCoordPrev[1],
             x2: barX,
-            y2: startCoord[1],
+            y2: api.coord([index, categoryBounds[index].startValue])[1],
+            z: 1,
           }
-      lineConnector = {
-        type: 'line',
-        shape,
-        style: api.style({
-          stroke: subGrouped ? 'rgb(255,255,255,0.6)' : api.visual('color'),
-          lineDash: [8, 4],
-        }),
+        }
+      } else {
+        shape = {
+          x1: barXPrev,
+          y1: barYPrev,
+          x2: barX,
+          y2: startCoord[1],
+        }
       }
-      renderLine = false
+
+      if (shape) {
+        lineConnector = {
+          type: 'line',
+          shape,
+          style: api.style({
+            stroke: subGrouped ? 'rgb(255,255,255,0.8)' : api.visual('color'),
+            lineWidth: 2,
+            lineDash: [8, 6],
+            symbolSize: 120,
+          }),
+          z2: 1,
+        }
+      }
+      renderedLinesByIndex.add(index)
     }
 
     return {
@@ -826,13 +875,78 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       )(yData),
     }))(yKeys)
 
-    series = yKeys.map((yKey, index) => ({
+    const barSeries = mapIndexed((yKey, idx) => ({
       type: 'custom',
       renderItem,
       id: yKey,
       name: yKey,
-      datasetIndex: index,
-    }))
+      datasetIndex: idx,
+    }))(yKeys)
+
+    const getGraphSeries = (nodesData) => ({
+      type: 'graph',
+      coordinateSystem: 'cartesian2d',
+      categories: [
+        {
+          name: 'Initial',
+          symbol: 'diamond',
+          itemStyle: {
+            color: getChartItemColor(theme, yKeys.length),
+          },
+        },
+        {
+          name: 'Net Change',
+          symbol: 'circle',
+          itemStyle: {
+            color: getChartItemColor(theme, yKeys.length + 1),
+          },
+        },
+      ],
+      lineStyle: {
+        type: 'dashed',
+        width: 2,
+        color: theme === 'light' ? '#4a4a4a' : '#ffffff',
+      },
+      emphasis: { focus: 'series' },
+      symbolSize: 16,
+      itemStyle: {
+        borderWidth: 2,
+        borderColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      },
+      nodes: nodesData,
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+        textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+        valueFormatter: (value) => formatNumber(value, numberFormat),
+      },
+    })
+
+    const getNodes = R.pipe(({ key, seriesName, ...rest }) =>
+      R.map((value) => ({
+        value: value[key],
+        name: `${seriesName} @${value.x}`,
+        ...rest,
+      }))(categoryBounds)
+    )
+
+    const initNodes = getNodes({
+      key: 'startValue',
+      seriesName: 'Initial',
+      category: 0,
+    })
+
+    const netChangeNodes = getNodes({
+      key: 'endValue',
+      seriesName: 'Net Change',
+      category: 1,
+    })
+
+    series = [
+      ...barSeries,
+      getGraphSeries(initNodes, 'Initial'),
+      getGraphSeries(netChangeNodes, 'Net Change'),
+    ]
   } else {
     dataset = [{ source: getWaterfallValues(data) }]
     series = {
@@ -854,16 +968,35 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-    tooltip: {
-      valueFormatter: (value) => formatNumber(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-      trigger: 'axis',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
+    legend: {
+      data: [
+        ...yKeys,
+        { name: 'Initial', icon: 'diamond' },
+        { name: 'Net Change', icon: 'circle' },
+      ],
+      top: 24,
     },
     dataset,
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+      valueFormatter: (value) => formatNumber(value, numberFormat),
+    },
+    grid: {
+      top: 64,
+      // right: 8,
+      // bottom: 24,
+      // left: 36,
+      // show: true,
+    },
     xAxis: {
+      name: xAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 40,
       type: 'category',
       splitLine: { show: false },
       data: xData,
@@ -873,6 +1006,12 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
       },
     },
     yAxis: {
+      name: yAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontSize: 16,
+      },
+      nameGap: 64,
       type: 'value',
       scale: true,
       // Add the maximum to do the scaling
@@ -891,12 +1030,6 @@ const StackedWaterfallChart = ({ data, theme, numberFormat, subGrouped }) => {
           color: ['#aaa', '#ddd'],
           opacity: 0.7,
         },
-      },
-    },
-    aria: {
-      enabled: true,
-      decal: {
-        show: true,
       },
     },
     series,

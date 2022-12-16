@@ -35,10 +35,10 @@ const ListTeamHeader = ({ teamObj, id }) => {
     <ListSubheader>
       <Grid container>
         <Grid item xs={10}>
-          {R.prop('team__name', teamObj)}
+          {R.prop('teamName', teamObj)}
         </Grid>
-        {R.prop('team__count_sessions', teamObj) <
-        R.prop('team__limit_sessions', teamObj) ? (
+        {R.prop('teamCountSessions', teamObj) <
+        R.prop('teamLimitSessions', teamObj) ? (
           <Grid item>
             <IconButton
               onClick={() =>
@@ -79,7 +79,7 @@ const ListItemSession = ({
   return (
     <>
       <ListItem
-        selected={R.prop('session__id', session) === currentSession}
+        selected={R.prop('session_id', session) === currentSession}
         secondaryAction={
           <IconButton
             css={{ cursor: 'pointer' }}
@@ -94,14 +94,14 @@ const ListItemSession = ({
         }
       >
         <ListItemButton
-          key={R.prop('session__id', session)}
-          onClick={() => switchSession(R.prop('session__id', session))}
+          key={R.prop('session_id', session)}
+          onClick={() => switchSession(R.prop('session_id', session))}
         >
-          <ListItemText primary={R.prop('session__name', session)} />
+          <ListItemText primary={R.prop('sessionName', session)} />
         </ListItemButton>
       </ListItem>
       <Collapse
-        in={expanded === R.prop('session__id', session)}
+        in={expanded === R.prop('session_id', session)}
         timeout="auto"
         unmountOnExit
       >

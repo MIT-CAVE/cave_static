@@ -7,7 +7,7 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
+import { CHART_PALETTE, DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
@@ -315,6 +315,9 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
+export const getChartItemColor = (theme, colorIndex) =>
+  CHART_PALETTE[theme][colorIndex % CHART_PALETTE[theme].length]
+
 /**
  * Converts a d3-color RGB object into a conventional RGBA array.
  * @function
@@ -384,12 +387,14 @@ export const getStatusIcon = (color) => {
   return IconClass ? IconClass : null
 }
 
+export const mapIndexed = R.addIndex(R.map)
+
 export const getMinMax = R.converge(R.pair, [
   R.reduce(R.min, Infinity),
   R.reduce(R.max, -Infinity),
 ])
 
-const fromZeroToOne = (x) => x >= 0 && x <= 1
+const fromZeroToOne = (x) => x >= 0 && x < 1
 
 /**
  * Gets a new range in which the given bounds `valueMin` and `valueMax` are

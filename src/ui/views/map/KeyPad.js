@@ -34,8 +34,8 @@ const KeyPad = () => {
 
   const layout = {
     type: layoutType.GRID,
-    num_rows: Math.ceil(mapKpis.length / 3),
-    min_column_width: 'min-content',
+    numRows: Math.ceil(mapKpis.length / 3),
+    minColumnWidth: 'min-content',
   }
   return (
     <Paper key="key-pad" elevation={7} sx={getStyle(open, secondaryOpen)}>

@@ -23,26 +23,35 @@ const KpiMap = ({
   numberFormat: numberFormatRaw = {},
   style,
   sx = [],
+  mapKpi = true,
   ...props
 }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
 
   const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
-  return (
-    <Paper elevation={10} sx={[rootStyle, style, ...forceArray(sx)]} {...props}>
-      <Typography sx={{ pb: 1 }} variant="subtitle1">
-        <OverflowText text={title} />
-      </Typography>
-      <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
-        <Grid item xs>
-          <FetchedIcon iconName={icon} />
+  if (mapKpi) {
+    return (
+      <Paper
+        elevation={10}
+        sx={[rootStyle, style, ...forceArray(sx)]}
+        {...props}
+      >
+        <Typography sx={{ pb: 1 }} variant="subtitle1">
+          <OverflowText text={title} />
+        </Typography>
+        <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
+          <Grid item xs>
+            <FetchedIcon iconName={icon} />
+          </Grid>
+          <Grid item xs={10}>
+            <OverflowText text={formatNumber(value, numberFormat)} />
+          </Grid>
         </Grid>
-        <Grid item xs={10}>
-          <OverflowText text={formatNumber(value, numberFormat)} />
-        </Grid>
-      </Grid>
-    </Paper>
-  )
+      </Paper>
+    )
+  } else {
+    return null
+  }
 }
 KpiMap.propTypes = {
   title: PropTypes.string,
@@ -56,6 +65,7 @@ KpiMap.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
+  mapKpi: PropTypes.bool,
 }
 
 export default KpiMap

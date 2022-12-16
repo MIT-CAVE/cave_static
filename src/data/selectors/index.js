@@ -17,8 +17,12 @@ import {
   sortedListById,
 } from '../../utils'
 
+export const selectUtilities = (state) => R.prop('utilities')(state)
+
 // Sessions
-export const selectSessions = (state) => R.prop('sessions')(state)
+export const selectSessions = createSelector(selectUtilities, (data) =>
+  R.prop('sessions')(data)
+)
 export const selectSessionsData = createSelector(
   selectSessions,
   R.propOr({}, 'data')
@@ -36,10 +40,17 @@ export const selectSessionsByTeam = createSelector(
 )
 
 // Tokens
-export const selectTokens = (state) => R.path(['tokens'])(state)
+export const selectTokens = createSelector(selectUtilities, (data) =>
+  R.prop('tokens')(data)
+)
 
 export const selectMapboxToken = createSelector(selectTokens, (data) =>
   R.prop('mapboxToken')(data)
+)
+
+// Messages
+export const selectMessages = createSelector(selectUtilities, (data) =>
+  R.prop('messages')(data)
 )
 
 // Data
@@ -47,8 +58,8 @@ export const selectData = (state) => R.prop('data')(state)
 export const selectIgnoreData = createSelector(selectData, (data) =>
   R.propOr({}, 'ignore')(data)
 )
-export const selectHashesData = createSelector(selectData, (data) =>
-  R.propOr({}, 'hashes')(data)
+export const selectVersionsData = createSelector(selectData, (data) =>
+  R.propOr({}, 'versions')(data)
 )
 export const selectArcs = createSelector(selectData, (data) =>
   R.propOr({}, 'arcs')(data)
@@ -111,7 +122,7 @@ export const selectSettingsData = createSelector(selectSettings, (data) =>
   R.propOr({}, 'data')(data)
 )
 export const selectLegendData = createSelector(selectMapData, (data) =>
-  R.propOr([], 'legendGroups', data)
+  R.propOr({}, 'legendGroups', data)
 )
 
 const getMergedAllProps = (data, localData) =>
@@ -152,7 +163,7 @@ export const selectDefaultViewport = createSelector(selectMapData, (data) =>
 // Data -> settings
 export const selectSettingsIconUrl = createSelector(
   selectSettingsData,
-  (data) => R.propOr(DEFAULT_ICON_URL, 'IconUrl')(data)
+  (data) => R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
 )
 export const selectDebug = createSelector(
   selectSettingsData,
@@ -302,7 +313,7 @@ export const selectMergedKpis = createSelector(
 export const selectMapKpis = createSelector(
   selectMergedKpis,
   R.pipe(
-    R.filter(R.prop('map_kpi')),
+    R.filter(R.prop('mapKpi')),
     R.map(R.assoc('view', viewId.MAP)),
     sortedListById,
     R.values
@@ -342,35 +353,34 @@ export const selectOptionalViewports = createSelector(selectMapData, (data) =>
   R.propOr({}, 'optionalViewports')(data)
 )
 // Local -> Map -> layers
-export const selectEnabledArcs = createSelector(
+const selectEnabledTypesFn = createSelector(
   [selectLocalMapData, selectMapData],
-  (localMap, mapData) =>
-    R.pathOr(
-      R.pathOr({}, ['enabledTypes', 'arc'], mapData),
-      ['enabledTypes', 'arc'],
-      localMap
-    ),
+  (localMap, mapData) => (layerKey) => {
+    const getEnabledTypes = R.pipe(
+      R.propOr({}, 'legendGroups'),
+      R.values,
+      R.pluck(layerKey),
+      R.mergeAll,
+      R.mapObjIndexed(R.prop('value'))
+    )
+    return R.when(
+      R.isEmpty,
+      R.always(getEnabledTypes(mapData))
+    )(getEnabledTypes(localMap))
+  },
   { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectEnabledArcs = createSelector(
+  selectEnabledTypesFn,
+  R.applyTo('arcs')
 )
 export const selectEnabledNodes = createSelector(
-  [selectLocalMapData, selectMapData],
-  (localMap, mapData) =>
-    R.pathOr(
-      R.pathOr({}, ['enabledTypes', 'node'], mapData),
-      ['enabledTypes', 'node'],
-      localMap
-    ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  selectEnabledTypesFn,
+  R.applyTo('nodes')
 )
 export const selectEnabledGeos = createSelector(
-  [selectLocalMapData, selectMapData],
-  (localMap, mapData) =>
-    R.pathOr(
-      R.pathOr({}, ['enabledTypes', 'geo'], mapData),
-      ['enabledTypes', 'geo'],
-      localMap
-    ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  selectEnabledTypesFn,
+  R.applyTo('geos')
 )
 export const selectGeo = createSelector(
   selectMapLayers,
@@ -492,7 +502,7 @@ export const selectCategoryFunc = createSelector(
       categories
     )
 )
-//Node, Geo, & Arc derived
+// Node, Geo, & Arc derived
 export const selectGroupedEnabledArcs = createSelector(
   [selectEnabledArcs, selectFilteredArcsData],
   (enabledArcs, filteredArcs) =>

@@ -36,7 +36,7 @@ import {
   getGradientBox,
 } from '../../compound'
 
-import { includesPath } from '../../../utils'
+import { customSort, includesPath } from '../../../utils'
 
 const styles = {
   paper: {
@@ -259,7 +259,7 @@ const MapLegendSizeBySection = ({
   )
 }
 
-const MapLegendGeoToggle = ({ geoType, typeObj }) => {
+const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId }) => {
   const dispatch = useDispatch()
   const timeProp = useSelector(selectTimeProp)
   const themeType = useSelector(selectTheme)
@@ -272,7 +272,15 @@ const MapLegendGeoToggle = ({ geoType, typeObj }) => {
   const colorRange = geoColorRange(geoType, colorProp)
   const isCategorical = !R.has('min', colorRange)
 
-  const path = ['map', 'data', 'enabledTypes', 'geo', geoType]
+  const path = [
+    'map',
+    'data',
+    'legendGroups',
+    legendGroupId,
+    'geos',
+    geoType,
+    'value',
+  ]
   const syncToggle = !includesPath(R.values(sync), path)
 
   const colorPath = ['geos', 'types', geoType, 'colorBy']
@@ -364,7 +372,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj }) => {
   )
 }
 
-const MapLegendNodeToggle = ({ nodeType, typeObj }) => {
+const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
   const dispatch = useDispatch()
   const displayedNodes = useSelector(selectEnabledNodes)
   const nodeRange = useSelector(selectNodeRange)
@@ -379,7 +387,15 @@ const MapLegendNodeToggle = ({ nodeType, typeObj }) => {
   const sizeRange = nodeRange(nodeType, sizeProp, true)
   const colorRange = nodeRange(nodeType, colorProp, false)
   const isCategorical = !R.has('min', colorRange)
-  const path = ['map', 'data', 'enabledTypes', 'node', nodeType]
+  const path = [
+    'map',
+    'data',
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'value',
+  ]
   const syncToggle = !includesPath(R.values(sync), path)
 
   const colorPath = ['nodes', 'types', nodeType, 'colorBy']
@@ -495,7 +511,7 @@ const MapLegendNodeToggle = ({ nodeType, typeObj }) => {
   )
 }
 
-const MapLegendArcToggle = ({ arcType, typeObj }) => {
+const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
   const dispatch = useDispatch()
   const displayedArcs = useSelector(selectEnabledArcs)
   const arcRange = useSelector(selectArcRange)
@@ -517,7 +533,15 @@ const MapLegendArcToggle = ({ arcType, typeObj }) => {
   const sizeRange = arcRange(arcType, sizeProp, true)
   const colorRange = arcRange(arcType, colorProp, false)
   const isCategorical = !R.has('min', colorRange)
-  const path = ['map', 'data', 'enabledTypes', 'arc', arcType]
+  const path = [
+    'map',
+    'data',
+    'legendGroups',
+    legendGroupId,
+    'arcs',
+    arcType,
+    'value',
+  ]
   const syncToggle = !includesPath(R.values(sync), path)
 
   const colorPath = ['arcs', 'types', arcType, 'colorBy']
@@ -638,10 +662,13 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
   const arcTypes = useSelector(selectLocalizedArcTypes)
   const geoTypes = useSelector(selectLocalizedGeoTypes)
 
+  const getSortedGroups = (layerKey) =>
+    customSort(R.propOr({}, layerKey)(legendObj))
+
   return (
     <details {...props} open css={nonSx.primaryDetails}>
       <summary css={nonSx.listTitle}>
-        <span>{R.prop('name', legendObj)}</span>
+        <span>{R.propOr(legendObj.id, 'name')(legendObj)}</span>
         <MdExpandMore />
         <MdExpandLess />
         <span>
@@ -651,27 +678,33 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
           <hr />
         </span>
       </summary>
-      {R.map((nodeType) => (
+      {R.map(({ id: nodeType, value }) => (
         <MapLegendNodeToggle
           key={nodeType}
+          legendGroupId={legendObj.id}
           nodeType={nodeType}
+          value={value}
           typeObj={R.prop(nodeType)(nodeTypes)}
         />
-      ))(R.propOr([], 'nodeTypes', legendObj))}
-      {R.map((arcType) => (
+      ))(getSortedGroups('nodes'))}
+      {R.map(({ id: arcType, value }) => (
         <MapLegendArcToggle
           key={arcType}
+          legendGroupId={legendObj.id}
           arcType={arcType}
+          value={value}
           typeObj={R.prop(arcType)(arcTypes)}
         />
-      ))(R.propOr([], 'arcTypes', legendObj))}
-      {R.map((geoType) => (
+      ))(getSortedGroups('arcs'))}
+      {R.map(({ id: geoType, value }) => (
         <MapLegendGeoToggle
           key={geoType}
+          legendGroupId={legendObj.id}
           geoType={geoType}
+          value={value}
           typeObj={R.prop(geoType)(geoTypes)}
         />
-      ))(R.propOr([], 'geoTypes', legendObj))}
+      ))(getSortedGroups('geos'))}
     </details>
   )
 }
@@ -701,11 +734,8 @@ const MapLegend = () => {
       >
         <Box sx={{ mx: 0 }}>
           {R.map((legendObj) => (
-            <MapLegendToggleList
-              legendObj={legendObj}
-              key={R.prop('name', legendObj)}
-            />
-          ))(legendData)}
+            <MapLegendToggleList key={legendObj.id} {...{ legendObj }} />
+          ))(customSort(legendData))}
         </Box>
       </Box>
     </Box>

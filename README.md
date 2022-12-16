@@ -2,21 +2,11 @@
 
 A react based static web app to be used as a data consumer for the `cave_app`.
 
-## License Notice
-
-Copyright 2022 Massachusetts Institute of Technology (MIT), Center for Transportation & Logistics (CTL)
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
 ## Installation
 
 Before you begin we suggest you use the version of node that this application version was developed on. We recommend using [NVM](https://github.com/nvm-sh/nvm#install--update-script) to manage node environments.
 
-- Current Node Version: node 14
+- Current CAVE supported Node Version: node 18
 
 You can install all dependencies and run the app by running `npm run setup` from the root of the project.
 
@@ -91,3 +81,13 @@ npm run build
 ```
 
 3. (First Time Only) [Route a Route 53 Subdomain to the Cloudfront distribution](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-cloudfront-distribution.html)
+
+## License Notice
+
+Copyright 2022 Massachusetts Institute of Technology (MIT), Center for Transportation & Logistics (CTL)
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.

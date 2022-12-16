@@ -443,11 +443,14 @@ const GetGeographyLayer = () => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
     const fetchCache = async () => {
       const cache = await caches.open('geos')
-
+      // console.log('hereA')
       const geos = {}
-
       for (let geoName of geoNames) {
         const url = R.pathOr('', [geoName, 'geoJson', 'geoJsonLayer'], geoTypes)
+        // Special catch for empty urls on initial call
+        if (url === '') {
+          break
+        }
         let response = await cache.match(url)
         // add to cache if not found
         if (R.isNil(response)) {
@@ -456,6 +459,7 @@ const GetGeographyLayer = () => {
         }
         geos[geoName] = await response.json()
       }
+      // console.log('hereC')
       return geos
     }
     fetchCache().then((data) => {
