@@ -27,6 +27,7 @@ import {
   selectLocalizedGeoTypes,
   selectSync,
   selectPitchSliderToggle,
+  selectAppBarId,
 } from '../../../data/selectors'
 
 import {
@@ -715,7 +716,8 @@ const MapLegend = () => {
   const showPitchSlider = useSelector(selectPitchSliderToggle)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
   const mapLegend = useSelector(selectMapLegend)
-  if (!mapLegend.isOpen) return null
+  const appBarId = useSelector(selectAppBarId)
+  if (!R.pathOr(true, [appBarId, 'isOpen'], mapLegend)) return null
 
   return (
     <Box

@@ -5,20 +5,15 @@ import { overrideState } from '../actions'
 
 export const mapLegendSlice = createSlice({
   name: 'map',
-  initialState: {
-    isOpen: true,
-    data: null,
-  },
+  initialState: {},
   reducers: {
-    toggleMapLegend: (state) => {
-      state.isOpen = !state.isOpen
-    },
-    // action.payload = {feature: nodes|arcs, type: string, by: size|color, value: string/null}
-    updateBy: (state, action) => {
-      state.data = R.assocPath(
-        [action.payload.feature, action.payload.type, action.payload.by],
-        action.payload.value
-      )(state.data)
+    // payload appBarId
+    toggleMapLegend: (state, action) => {
+      return R.assocPath(
+        [action.payload, 'isOpen'],
+        !R.pathOr(true, [action.payload, 'isOpen']),
+        state
+      )
     },
   },
   extraReducers: (builder) => {
@@ -31,6 +26,6 @@ export const mapLegendSlice = createSlice({
   },
 })
 
-export const { toggleMapLegend, updateBy } = mapLegendSlice.actions
+export const { toggleMapLegend } = mapLegendSlice.actions
 
 export default mapLegendSlice.reducer

@@ -372,7 +372,7 @@ const MapControls = () => {
             <TooltipButton
               title={tooltipTitles.mapLegend}
               placement="top"
-              onClick={() => dispatch(toggleMapLegend())}
+              onClick={() => dispatch(toggleMapLegend(appBarId))}
             >
               <MdApps />
             </TooltipButton>
