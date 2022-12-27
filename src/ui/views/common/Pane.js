@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
 import { FaSync } from 'react-icons/fa'
+import { MdRefresh } from 'react-icons/md'
 import { useDispatch } from 'react-redux'
 
 import AppSettingsPane from './AppSettingsPane'
@@ -50,12 +51,45 @@ const SyncButton = ({ open, pane }) => {
   )
 }
 
+const RefreshButton = () => {
+  const dispatch = useDispatch()
+  return (
+    <Button
+      variant="outlined"
+      color="greyscale"
+      css={{
+        minHeight: '30px',
+        opacity: '',
+        pointerEvents: '',
+      }}
+      onClick={() =>
+        dispatch(
+          sendCommand({
+            command: 'session_management',
+            data: {
+              session_command: 'refresh',
+            },
+          })
+        )
+      }
+    >
+      <MdRefresh />
+    </Button>
+  )
+}
+
 const PaneWrapper = ({ open, pane, ...props }) => (
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
     iconName={R.propOr('BiError', 'icon', pane)}
-    rightButton={pane.teamSync && <SyncButton {...{ open, pane }} />}
+    rightButton={
+      R.equals(pane.variant, paneId.SESSION) ? (
+        <RefreshButton />
+      ) : (
+        pane.teamSync && <SyncButton {...{ open, pane }} />
+      )
+    }
     width={R.prop('width')(pane)}
     {...props}
   />

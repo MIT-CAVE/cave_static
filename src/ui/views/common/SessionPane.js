@@ -25,7 +25,6 @@ import {
   MdAddToPhotos,
   MdCheck,
   MdClose,
-  MdRefresh,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -234,25 +233,10 @@ const SessionPane = ({ ...props }) => {
   }, [dispatch, teams])
 
   return (
-    <div css={{ overflow: 'visible' }}>
-      <IconButton
-        style={{ position: 'relative', top: '-80px', left: '88%' }}
-        onClick={() =>
-          dispatch(
-            sendCommand({
-              command: 'session_management',
-              data: {
-                session_command: 'refresh',
-              },
-            })
-          )
-        }
-      >
-        <MdRefresh />
-      </IconButton>
+    <div>
       {R.values(
         R.mapObjIndexed((value, id) => (
-          <List key={id} style={{ marginTop: '-60px' }}>
+          <List key={id}>
             <ListTeamHeader teamObj={value} id={id} onAdd={onAdd} />
             {R.pipe(
               R.prop(id),
