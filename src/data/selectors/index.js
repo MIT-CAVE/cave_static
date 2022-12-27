@@ -372,15 +372,18 @@ const selectEnabledTypesFn = createSelector(
 )
 export const selectEnabledArcs = createSelector(
   selectEnabledTypesFn,
-  R.applyTo('arcs')
+  R.applyTo('arcs'),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectEnabledNodes = createSelector(
   selectEnabledTypesFn,
-  R.applyTo('nodes')
+  R.applyTo('nodes'),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectEnabledGeos = createSelector(
   selectEnabledTypesFn,
-  R.applyTo('geos')
+  R.applyTo('geos'),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectGeo = createSelector(
   selectMapLayers,
