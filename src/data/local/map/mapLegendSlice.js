@@ -11,7 +11,7 @@ export const mapLegendSlice = createSlice({
     toggleMapLegend: (state, action) => {
       return R.assocPath(
         [action.payload, 'isOpen'],
-        !R.pathOr(true, [action.payload, 'isOpen']),
+        !R.pathOr(true, [action.payload, 'isOpen'], state),
         state
       )
     },
