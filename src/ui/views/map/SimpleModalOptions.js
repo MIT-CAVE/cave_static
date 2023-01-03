@@ -2,9 +2,10 @@ import { Box, Modal, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { MdClose } from 'react-icons/md'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
-import { closeMapModal } from '../../../data/local/map/mapModalSlice'
+import { closeMapModal } from '../../../data/local/mapSlice'
+import { selectAppBarId } from '../../../data/selectors'
 
 import { Select, FetchedIcon } from '../../compound'
 
@@ -43,6 +44,8 @@ const styles = {
 
 const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
   const dispatch = useDispatch()
+  const appBarId = useSelector(selectAppBarId)
+
   return (
     <Modal
       sx={styles.modal}
@@ -50,14 +53,17 @@ const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => dispatch(closeMapModal())}
+      onClose={() => dispatch(closeMapModal(appBarId))}
     >
       <Box sx={styles.paper}>
         <Box sx={styles.flexSpaceBetween}>
           <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
             {title}
           </Typography>
-          <MdClose cursor="pointer" onClick={() => dispatch(closeMapModal())} />
+          <MdClose
+            cursor="pointer"
+            onClick={() => dispatch(closeMapModal(appBarId))}
+          />
         </Box>
 
         <Select

@@ -16,10 +16,10 @@ import SimpleModalOptions from './SimpleModalOptions'
 
 import { sendCommand } from '../../../data/data'
 import {
+  closeMapModal,
   mapStyleSelection,
   viewportUpdate,
-} from '../../../data/local/map/mapControlSlice'
-import { closeMapModal } from '../../../data/local/map/mapModalSlice'
+} from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewports,
@@ -136,6 +136,7 @@ const OnLayerEventModal = () => {
 
 const ListModal = ({ title, options, onSelect }) => {
   const dispatch = useDispatch()
+  const appBarId = useSelector(selectAppBarId)
 
   return (
     <Modal
@@ -144,7 +145,7 @@ const ListModal = ({ title, options, onSelect }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => dispatch(closeMapModal())}
+      onClose={() => dispatch(closeMapModal(appBarId))}
     >
       <Box sx={styles.listPaper}>
         <Box sx={styles.flexSpaceBetween}>
@@ -199,7 +200,6 @@ const MapModal = () => {
   const appBarId = useSelector(selectAppBarId)
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
-
   const feature = R.path(['data', 'feature'], mapModal)
   const timeOptions = R.pipe(
     R.add(1),
@@ -222,7 +222,7 @@ const MapModal = () => {
               R.omit(['name', 'icon'])
             )(optionalViewports)
             dispatch(viewportUpdate({ viewport, appBarId }))
-            dispatch(closeMapModal())
+            dispatch(closeMapModal(appBarId))
           }}
         />
       ),
@@ -236,8 +236,8 @@ const MapModal = () => {
           options={mapStyleOptions}
           onSelect={(value) => {
             const styleId = R.path([value, 'styleId'])(mapStyleOptions)
-            dispatch(mapStyleSelection(styleId))
-            dispatch(closeMapModal())
+            dispatch(mapStyleSelection({ appBarId, mapStyle: styleId }))
+            dispatch(closeMapModal(appBarId))
           }}
         />
       ),
@@ -251,7 +251,7 @@ const MapModal = () => {
           options={timeOptions}
           onSelect={(value) => {
             dispatch(timeSelection(value - 1))
-            dispatch(closeMapModal())
+            dispatch(closeMapModal(appBarId))
           }}
         />
       ),

@@ -3,7 +3,7 @@ import * as R from 'ramda'
 
 import { overrideSync } from './actions'
 import kpisReducer from './kpisSlice'
-import mapReducer from './map'
+import mapReducer from './mapSlice'
 import settingsReducer, { initialState } from './settingsSlice'
 
 import { sendCommand } from '../data'

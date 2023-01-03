@@ -26,8 +26,7 @@ import {
   viewportUpdate,
   setZoom,
 } from '../../../data/local/map/mapControlSlice'
-import { toggleMapLegend } from '../../../data/local/map/mapLegendSlice'
-import { openMapModal } from '../../../data/local/map/mapModalSlice'
+import { toggleMapLegend, openMapModal } from '../../../data/local/mapSlice'
 import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
   selectDefaultViewport,
@@ -277,7 +276,7 @@ const MapControls = () => {
           >
             <TooltipButton
               title={tooltipTitles.pitch}
-              onClick={() => dispatch(pitchSliderToggle())}
+              onClick={() => dispatch(pitchSliderToggle(appBarId))}
             >
               <MdHeight />
             </TooltipButton>
@@ -295,7 +294,7 @@ const MapControls = () => {
             </TooltipButton>
             <TooltipButton
               title={tooltipTitles.bearing}
-              onClick={() => dispatch(bearingSliderToggle())}
+              onClick={() => dispatch(bearingSliderToggle(appBarId))}
             >
               <Md360 />
             </TooltipButton>
@@ -349,7 +348,9 @@ const MapControls = () => {
               title={`Set current ${timeUnits}`}
               placement="top"
               onClick={() =>
-                dispatch(openMapModal({ data: { feature: 'setTime' } }))
+                dispatch(
+                  openMapModal({ data: { feature: 'setTime' }, appBarId })
+                )
               }
             >
               {currentTime + 1}
@@ -388,7 +389,9 @@ const MapControls = () => {
               title={tooltipTitles.mapStyles}
               placement="top"
               onClick={() =>
-                dispatch(openMapModal({ data: { feature: 'mapStyles' } }))
+                dispatch(
+                  openMapModal({ data: { feature: 'mapStyles' }, appBarId })
+                )
               }
             >
               <MdMap />
@@ -402,7 +405,9 @@ const MapControls = () => {
                 title={tooltipTitles.customViewports}
                 placement="top"
                 onClick={() =>
-                  dispatch(openMapModal({ data: { feature: 'viewports' } }))
+                  dispatch(
+                    openMapModal({ data: { feature: 'viewports' }, appBarId })
+                  )
                 }
               >
                 <MdGpsFixed />

@@ -1,8 +1,9 @@
 import { Box, Modal, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
-import { closeMapModal } from '../../data/local/map/mapModalSlice'
+import { closeMapModal } from '../../data/local/mapSlice'
+import { selectAppBarId } from '../../data/selectors'
 
 const styles = {
   modal: {
@@ -32,13 +33,14 @@ const styles = {
 
 const SimpleModal = ({ title, children, ...props }) => {
   const dispatch = useDispatch()
+  const appBarId = useSelector(selectAppBarId)
   return (
     <Modal
       disablePortal
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => dispatch(closeMapModal())}
+      onClose={() => dispatch(closeMapModal(appBarId))}
       {...props}
     >
       <Box sx={styles.modal}>

@@ -14,7 +14,7 @@ import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 
-import { viewportUpdate } from '../../../data/local/map/mapControlSlice'
+import { viewportUpdate } from '../../../data/local/mapSlice'
 import {
   selectMapStyle,
   selectTheme,

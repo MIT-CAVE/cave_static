@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { openMapModal } from '../../../data/local/map/mapModalSlice'
+import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectNodeData,
   selectNodesByType,
@@ -24,6 +24,7 @@ import {
   selectMatchingKeys,
   selectMatchingKeysByType,
   selectGroupedEnabledArcs,
+  selectAppBarId,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -47,6 +48,7 @@ const Get3dArcLayer = () => {
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
+  const appBarId = useSelector(selectAppBarId)
   const arcData = R.prop('true', useSelector(selectGroupedEnabledArcs))
 
   return new ArcLayer(
@@ -175,6 +177,7 @@ const Get3dArcLayer = () => {
       onClick: (d) => {
         dispatch(
           openMapModal({
+            appBarId,
             data: {
               ...R.propOr({}, 'object')(d),
               feature: 'arcs',
@@ -195,6 +198,7 @@ const GetArcLayer = () => {
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
+  const appBarId = useSelector(selectAppBarId)
   const arcData = R.prop('false', useSelector(selectGroupedEnabledArcs))
 
   return new PathLayer(
@@ -288,6 +292,7 @@ const GetArcLayer = () => {
       onClick: (d) => {
         dispatch(
           openMapModal({
+            appBarId,
             data: {
               ...R.propOr({}, 'object')(d),
               feature: 'arcs',
@@ -311,6 +316,7 @@ const GetNodeIconLayer = () => {
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
+  const appBarId = useSelector(selectAppBarId)
 
   const names = R.keys(nodeData)
   const [iconObj, setIconObj] = useState({})
@@ -413,6 +419,7 @@ const GetNodeIconLayer = () => {
     onClick: (d) => {
       dispatch(
         openMapModal({
+          appBarId,
           data: {
             ...R.propOr({}, 'object')(d),
             feature: 'nodes',
@@ -434,6 +441,7 @@ const GetGeographyLayer = () => {
   const geoTypes = useSelector(selectGeoTypes)
   const themeType = useSelector(selectTheme)
   const timeProp = useSelector(selectTimeProp)
+  const appBarId = useSelector(selectAppBarId)
 
   const dispatch = useDispatch()
 
@@ -540,6 +548,7 @@ const GetGeographyLayer = () => {
       )
       dispatch(
         openMapModal({
+          appBarId,
           data: {
             ...geoObj,
             feature: 'geos',

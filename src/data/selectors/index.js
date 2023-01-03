@@ -213,25 +213,6 @@ export const selectTime = createSelector(selectLocalSettings, (data) =>
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
 )
-// Local -> Map
-export const selectLocalMap = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'map')(data)
-)
-export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'data')(data)
-)
-export const selectMapControls = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'mapControls')(data)
-)
-export const selectMapModal = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'mapModal')(data)
-)
-export const selectMapLayers = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'mapLayers')(data)
-)
-export const selectMapLegend = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'mapLegend')(data)
-)
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>
   R.prop('appBar', data)
@@ -304,6 +285,32 @@ export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
 )
+// Local -> Map
+export const selectLocalMap = createSelector(selectLocal, (data) =>
+  R.propOr({}, 'map')(data)
+)
+export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
+  R.propOr({}, 'data')(data)
+)
+export const selectCurrentLocalMapData = createSelector(
+  [selectLocalMapData, selectAppBarId],
+  (data, appBarId) => R.propOr({}, appBarId)(data)
+)
+export const selectMapControls = createSelector(
+  selectCurrentLocalMapData,
+  (data) => R.propOr({}, 'mapControls')(data)
+)
+export const selectMapModal = createSelector(
+  selectCurrentLocalMapData,
+  (data) => R.propOr({}, 'mapModal')(data)
+)
+export const selectMapLayers = createSelector(selectLocalMap, (data) =>
+  R.propOr({}, 'mapLayers')(data)
+)
+export const selectMapLegend = createSelector(
+  selectCurrentLocalMapData,
+  (data) => R.propOr({}, 'mapLegend')(data)
+)
 // Local -> kpis
 const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
 export const selectMergedKpis = createSelector(
@@ -321,12 +328,12 @@ export const selectMapKpis = createSelector(
 )
 // Local -> Map -> mapControls
 export const selectViewport = createSelector(
-  [selectMapControls, selectDefaultViewport, selectAppBarId],
-  (mapControls, defaultViewport, appBarId) =>
+  [selectMapControls, selectDefaultViewport],
+  (mapControls, defaultViewport) =>
     R.mergeAll([
       DEFAULT_VIEWPORT,
       defaultViewport,
-      R.pathOr({}, [appBarId, 'viewport'])(mapControls),
+      R.propOr({}, 'viewport')(mapControls),
     ])
 )
 export const selectBearing = createSelector(selectViewport, (data) =>
