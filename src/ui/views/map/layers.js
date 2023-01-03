@@ -447,9 +447,11 @@ const GetGeographyLayer = () => {
   const timeProp = useSelector(selectTimeProp)
   const appBarId = useSelector(selectAppBarId)
 
+  console.log(matchingKeysByType)
+
   const dispatch = useDispatch()
 
-  const [selectedFeatures, setSelectedFeatures] = useState([])
+  const [selectedGeos, setSelectedGeos] = useState([])
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
@@ -470,10 +472,16 @@ const GetGeographyLayer = () => {
         }
         geos[geoName] = await response.json()
       }
-      return geos
+      setSelectedGeos(geos)
     }
-    fetchCache().then((data) => {
-      const selectedFeatures = R.pipe(
+    fetchCache()
+  }, [geoTypes, enabledGeos, matchingKeysByType])
+
+  return new GeoJsonLayer({
+    id: layerId.GEOGRAPHY_LAYER,
+    data: selectedGeos,
+    dataTransform: (data) => {
+      return R.pipe(
         R.mapObjIndexed((val, key) => {
           const keysOfType = R.pipe(
             R.flip(R.prop)(matchingKeysByType),
@@ -499,13 +507,7 @@ const GetGeographyLayer = () => {
         R.values,
         R.reduce(R.concat, [])
       )(data)
-      setSelectedFeatures(selectedFeatures)
-    })
-  }, [geoTypes, enabledGeos, matchingKeysByType])
-
-  return new GeoJsonLayer({
-    id: layerId.GEOGRAPHY_LAYER,
-    data: selectedFeatures,
+    },
     visible: true,
     positionFormat: `XY`,
     opacity: 0.05,
