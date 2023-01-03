@@ -447,8 +447,6 @@ const GetGeographyLayer = () => {
   const timeProp = useSelector(selectTimeProp)
   const appBarId = useSelector(selectAppBarId)
 
-  console.log(matchingKeysByType)
-
   const dispatch = useDispatch()
 
   const [selectedGeos, setSelectedGeos] = useState([])
