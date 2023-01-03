@@ -25,8 +25,9 @@ import {
   pitchUpdate,
   viewportUpdate,
   setZoom,
-} from '../../../data/local/map/mapControlSlice'
-import { toggleMapLegend, openMapModal } from '../../../data/local/mapSlice'
+  toggleMapLegend,
+  openMapModal,
+} from '../../../data/local/mapSlice'
 import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
   selectDefaultViewport,
