@@ -95,7 +95,11 @@ export const selectNodeTypes = createSelector(
   R.propOr({}, 'types')
 )
 export const selectArcTypes = createSelector(selectArcs, R.propOr({}, 'types'))
-export const selectGeoTypes = createSelector(selectGeos, R.propOr({}, 'types'))
+export const selectGeoTypes = createSelector(
+  selectGeos,
+  R.propOr({}, 'types'),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
 // Data -> data
 export const selectMapData = createSelector(selectMap, R.propOr({}, 'data'))
 
@@ -309,14 +313,16 @@ export const selectMapControls = createSelector(
 )
 export const selectMapModal = createSelector(
   selectCurrentLocalMapData,
-  (data) => R.propOr({}, 'mapModal')(data)
+  (data) => R.propOr({}, 'mapModal')(data),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
 )
 export const selectMapLegend = createSelector(
   selectCurrentLocalMapData,
-  (data) => R.propOr({}, 'mapLegend')(data)
+  (data) => R.propOr({}, 'mapLegend')(data),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Local -> kpis
 const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
@@ -508,7 +514,8 @@ export const selectMatchingKeysByType = createSelector(
     R.pipe(
       R.pick(R.keys(R.filter(R.identity, enabledGeos))),
       R.map(R.indexBy(timeProp('geoJsonValue')))
-    )(geosByType)
+    )(geosByType),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Stats derived
 export const selectCategoryFunc = createSelector(
