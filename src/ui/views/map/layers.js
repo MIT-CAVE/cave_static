@@ -25,6 +25,8 @@ import {
   selectMatchingKeysByType,
   selectGroupedEnabledArcs,
   selectAppBarId,
+  selectEnabledArcs,
+  selectEnabledNodes,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -50,6 +52,7 @@ const Get3dArcLayer = () => {
   const timePath = useSelector(selectTimePath)
   const appBarId = useSelector(selectAppBarId)
   const arcData = R.prop('true', useSelector(selectGroupedEnabledArcs))
+  const legendObjects = useSelector(selectEnabledArcs)
 
   return new ArcLayer(
     getLayerProps({
@@ -73,7 +76,7 @@ const Get3dArcLayer = () => {
         resolveTime(d.endAltitude),
       ],
       getSourceColor: (d) => {
-        const colorProp = R.prop('colorBy')(d)
+        const colorProp = R.path([d.type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const propVal =
@@ -116,7 +119,7 @@ const Get3dArcLayer = () => {
             )
       },
       getTargetColor: (d) => {
-        const colorProp = R.prop('colorBy')(d)
+        const colorProp = R.path([d.type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const propVal =
@@ -160,7 +163,7 @@ const Get3dArcLayer = () => {
       },
       widthUnits: 'pixels',
       getWidth: (d) => {
-        const sizeProp = R.prop('sizeBy')(d)
+        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d.type, sizeProp, true)
 
         return getScaledValue(
@@ -200,7 +203,7 @@ const GetArcLayer = () => {
   const timePath = useSelector(selectTimePath)
   const appBarId = useSelector(selectAppBarId)
   const arcData = R.prop('false', useSelector(selectGroupedEnabledArcs))
-
+  const legendObjects = useSelector(selectEnabledArcs)
   return new PathLayer(
     getLayerProps({
       id: layerId.ARC_LAYER,
@@ -227,7 +230,7 @@ const GetArcLayer = () => {
           d
         ),
       getColor: (d) => {
-        const colorProp = R.prop('colorBy')(d)
+        const colorProp = R.path([d.type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const propVal =
@@ -271,7 +274,7 @@ const GetArcLayer = () => {
       },
       widthUnits: 'pixels',
       getWidth: (d) => {
-        const sizeProp = R.prop('sizeBy')(d)
+        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d.type, sizeProp, true)
 
         return getScaledValue(
@@ -317,6 +320,7 @@ const GetNodeIconLayer = () => {
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
   const appBarId = useSelector(selectAppBarId)
+  const legendObjects = useSelector(selectEnabledNodes)
 
   const names = R.keys(nodeData)
   const [iconObj, setIconObj] = useState({})
@@ -356,7 +360,7 @@ const GetNodeIconLayer = () => {
     },
     autoHighlight: true,
     getColor: (d) => {
-      const colorProp = R.prop('colorBy')(d)
+      const colorProp = R.path([d.type, 'colorBy'], legendObjects)
       const colorRange = nodeRange(d.type, colorProp, false)
       const isCategorical = !R.has('min', colorRange)
       const propVal =
@@ -400,7 +404,7 @@ const GetNodeIconLayer = () => {
     },
     sizeScale: 1,
     getSize: (d) => {
-      const sizeProp = R.prop('sizeBy')(d)
+      const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
       const sizeRange = nodeRange(d.type, sizeProp, true)
       return getScaledValue(
         timeProp('min', sizeRange),
@@ -437,7 +441,7 @@ const GetGeographyLayer = () => {
   const timePath = useSelector(selectTimePath)
   const geoColorRange = useSelector(selectGeoColorRange)
   const matchingKeys = useSelector(selectMatchingKeys)
-  const matchinKeysByType = useSelector(selectMatchingKeysByType)
+  const matchingKeysByType = useSelector(selectMatchingKeysByType)
   const geoTypes = useSelector(selectGeoTypes)
   const themeType = useSelector(selectTheme)
   const timeProp = useSelector(selectTimeProp)
@@ -451,7 +455,6 @@ const GetGeographyLayer = () => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
     const fetchCache = async () => {
       const cache = await caches.open('geos')
-      // console.log('hereA')
       const geos = {}
       for (let geoName of geoNames) {
         const url = R.pathOr('', [geoName, 'geoJson', 'geoJsonLayer'], geoTypes)
@@ -467,14 +470,13 @@ const GetGeographyLayer = () => {
         }
         geos[geoName] = await response.json()
       }
-      // console.log('hereC')
       return geos
     }
     fetchCache().then((data) => {
       const selectedFeatures = R.pipe(
         R.mapObjIndexed((val, key) => {
           const keysOfType = R.pipe(
-            R.flip(R.prop)(matchinKeysByType),
+            R.flip(R.prop)(matchingKeysByType),
             R.keys
           )(key)
           return R.pipe(
@@ -499,7 +501,7 @@ const GetGeographyLayer = () => {
       )(data)
       setSelectedFeatures(selectedFeatures)
     })
-  }, [geoTypes, enabledGeos, matchinKeysByType])
+  }, [geoTypes, enabledGeos, matchingKeysByType])
 
   return new GeoJsonLayer({
     id: layerId.GEOGRAPHY_LAYER,
@@ -511,7 +513,7 @@ const GetGeographyLayer = () => {
     getFillColor: (d) => {
       const geoProp = R.path([d.caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
       const geoObj = R.prop(R.path(['properties', geoProp], d))(matchingKeys)
-      const colorProp = R.prop('colorBy')(geoObj)
+      const colorProp = R.path([d.caveType, 'colorBy'], enabledGeos)
       const statRange = geoColorRange(geoObj.type, colorProp, false)
       const colorRange = R.map((prop) =>
         R.pathOr(0, [prop, themeType])(statRange)

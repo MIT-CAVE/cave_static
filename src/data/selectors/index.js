@@ -121,9 +121,6 @@ export const selectAssociatedData = createSelector(selectAssociated, (data) =>
 export const selectSettingsData = createSelector(selectSettings, (data) =>
   R.propOr({}, 'data')(data)
 )
-export const selectLegendData = createSelector(selectMapData, (data) =>
-  R.propOr({}, 'legendGroups', data)
-)
 
 const getMergedAllProps = (data, localData) =>
   R.pipe(
@@ -148,17 +145,6 @@ const getMergedAllProps = (data, localData) =>
       )(d)
     )
   )(localData)
-
-// Data -> defaultViewport
-export const selectDefaultViewport = createSelector(selectMapData, (data) =>
-  R.pipe(
-    R.propOr({}, 'defaultViewport'),
-    R.when(
-      R.has('zoom'),
-      R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
-    )
-  )(data)
-)
 
 // Data -> settings
 export const selectSettingsIconUrl = createSelector(
@@ -285,6 +271,27 @@ export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
 )
+// Map -> displayedMap
+export const selectCurrentMapData = createSelector(
+  [selectMapData, selectAppBarId],
+  (data, appBarId) => R.propOr({}, appBarId, data)
+)
+
+export const selectLegendData = createSelector(selectCurrentMapData, (data) =>
+  R.propOr({}, 'legendGroups', data)
+)
+
+export const selectDefaultViewport = createSelector(
+  selectCurrentMapData,
+  (data) =>
+    R.pipe(
+      R.propOr({}, 'defaultViewport'),
+      R.when(
+        R.has('zoom'),
+        R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+      )
+    )(data)
+)
 // Local -> Map
 export const selectLocalMap = createSelector(selectLocal, (data) =>
   R.propOr({}, 'map')(data)
@@ -361,14 +368,14 @@ export const selectOptionalViewports = createSelector(selectMapData, (data) =>
 )
 // Local -> Map -> layers
 const selectEnabledTypesFn = createSelector(
-  [selectLocalMapData, selectMapData],
+  [selectCurrentLocalMapData, selectCurrentMapData],
   (localMap, mapData) => (layerKey) => {
     const getEnabledTypes = R.pipe(
       R.propOr({}, 'legendGroups'),
       R.values,
       R.pluck(layerKey),
       R.mergeAll,
-      R.mapObjIndexed(R.prop('value'))
+      R.mapObjIndexed(R.unless(R.prop('value'), R.F))
     )
     return R.when(
       R.isEmpty,

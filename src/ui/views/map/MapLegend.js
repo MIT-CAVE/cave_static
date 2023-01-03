@@ -27,6 +27,8 @@ import {
   selectLocalizedGeoTypes,
   selectSync,
   selectPitchSliderToggle,
+  selectAppBarId,
+  selectResolveTime,
 } from '../../../data/selectors'
 
 import {
@@ -171,12 +173,23 @@ const MapLegendSizeBySection = ({
   typeName,
   icon,
   feature,
+  legendGroup,
 }) => {
   const dispatch = useDispatch()
   const timeProp = useSelector(selectTimeProp)
   const sync = useSelector(selectSync)
+  const appBarId = useSelector(selectAppBarId)
 
-  const path = [feature, 'types', typeName, 'sizeBy']
+  const path = [
+    'map',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroup,
+    feature,
+    typeName,
+    'sizeBy',
+  ]
   const syncSize = !includesPath(R.values(sync), path)
   return (
     <>
@@ -259,15 +272,14 @@ const MapLegendSizeBySection = ({
   )
 }
 
-const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId }) => {
+const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
   const dispatch = useDispatch()
   const timeProp = useSelector(selectTimeProp)
   const themeType = useSelector(selectTheme)
   const geoColorRange = useSelector(selectGeoColorRange)
   const displayedGeos = useSelector(selectEnabledGeos)
+  const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
-
-  const colorProp = timeProp('colorBy')(typeObj)
 
   const colorRange = geoColorRange(geoType, colorProp)
   const isCategorical = !R.has('min', colorRange)
@@ -275,6 +287,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId }) => {
   const path = [
     'map',
     'data',
+    appBarId,
     'legendGroups',
     legendGroupId,
     'geos',
@@ -283,7 +296,16 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId }) => {
   ]
   const syncToggle = !includesPath(R.values(sync), path)
 
-  const colorPath = ['geos', 'types', geoType, 'colorBy']
+  const colorPath = [
+    'map',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'geos',
+    geoType,
+    'colorBy',
+  ]
   const syncColor = !includesPath(R.values(sync), colorPath)
 
   const getGeoPropName = useCallback(
@@ -372,17 +394,20 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId }) => {
   )
 }
 
-const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
+const MapLegendNodeToggle = ({
+  nodeType,
+  typeObj,
+  legendGroupId,
+  sizeProp,
+  colorProp,
+}) => {
   const dispatch = useDispatch()
   const displayedNodes = useSelector(selectEnabledNodes)
   const nodeRange = useSelector(selectNodeRange)
   const timeProp = useSelector(selectTimeProp)
   const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
-
-  const sizeProp = timeProp('sizeBy')(typeObj)
-
-  const colorProp = timeProp('colorBy')(typeObj)
+  const appBarId = useSelector(selectAppBarId)
 
   const sizeRange = nodeRange(nodeType, sizeProp, true)
   const colorRange = nodeRange(nodeType, colorProp, false)
@@ -390,6 +415,7 @@ const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
   const path = [
     'map',
     'data',
+    appBarId,
     'legendGroups',
     legendGroupId,
     'nodes',
@@ -398,7 +424,16 @@ const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
   ]
   const syncToggle = !includesPath(R.values(sync), path)
 
-  const colorPath = ['nodes', 'types', nodeType, 'colorBy']
+  const colorPath = [
+    'map',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'colorBy',
+  ]
   const syncColor = !includesPath(R.values(sync), colorPath)
 
   const getNodePropName = useCallback(
@@ -434,7 +469,7 @@ const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
           item
           xs
           css={{
-            display: R.isNil(R.prop('sizeBy')(typeObj)) ? 'none' : '',
+            display: R.isNil(R.prop('sizeByOptions')(typeObj)) ? 'none' : '',
           }}
         >
           <MapLegendSizeBySection
@@ -445,13 +480,14 @@ const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
             typeName={nodeType}
             icon={<FetchedIcon iconName={typeObj.icon} />}
             feature="nodes"
+            legendGroup={legendGroupId}
           />
         </Grid>
         <Grid
           item
           xs
           css={{
-            display: R.isNil(R.prop('colorBy')(typeObj)) ? 'none' : '',
+            display: R.isNil(R.prop('colorByOptions')(typeObj)) ? 'none' : '',
           }}
         >
           <Grid container spacing={1} alignItems="flex-start">
@@ -511,13 +547,20 @@ const MapLegendNodeToggle = ({ nodeType, typeObj, legendGroupId }) => {
   )
 }
 
-const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
+const MapLegendArcToggle = ({
+  arcType,
+  typeObj,
+  legendGroupId,
+  sizeProp,
+  colorProp,
+}) => {
   const dispatch = useDispatch()
   const displayedArcs = useSelector(selectEnabledArcs)
   const arcRange = useSelector(selectArcRange)
   const themeType = useSelector(selectTheme)
   const timeProp = useSelector(selectTimeProp)
   const sync = useSelector(selectSync)
+  const appBarId = useSelector(selectAppBarId)
 
   const IconClass =
     typeObj.lineBy === 'dotted'
@@ -527,15 +570,14 @@ const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
       : typeObj.lineBy === '3d'
       ? VscLoading
       : AiOutlineLine
-  const sizeProp = timeProp('sizeBy')(typeObj)
 
-  const colorProp = timeProp('colorBy')(typeObj)
   const sizeRange = arcRange(arcType, sizeProp, true)
   const colorRange = arcRange(arcType, colorProp, false)
   const isCategorical = !R.has('min', colorRange)
   const path = [
     'map',
     'data',
+    appBarId,
     'legendGroups',
     legendGroupId,
     'arcs',
@@ -544,14 +586,21 @@ const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
   ]
   const syncToggle = !includesPath(R.values(sync), path)
 
-  const colorPath = ['arcs', 'types', arcType, 'colorBy']
+  const colorPath = [
+    'map',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'arcs',
+    arcType,
+    'colorBy',
+  ]
   const syncColor = !includesPath(R.values(sync), colorPath)
-
   const getArcPropName = useCallback(
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
-
   return (
     <details key={arcType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -580,7 +629,7 @@ const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
           item
           xs
           css={{
-            display: R.isNil(R.prop('sizeBy')(typeObj)) ? 'none' : '',
+            display: R.isNil(R.prop('sizeByOptions')(typeObj)) ? 'none' : '',
           }}
         >
           <MapLegendSizeBySection
@@ -591,13 +640,14 @@ const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
             typeName={arcType}
             icon={<IconClass />}
             feature="arcs"
+            legendGroup={legendGroupId}
           />
         </Grid>
         <Grid
           item
           xs
           css={{
-            display: R.isNil(R.prop('colorBy')(typeObj)) ? 'none' : '',
+            display: R.isNil(R.prop('colorByOptions')(typeObj)) ? 'none' : '',
           }}
         >
           <Grid container spacing={1} alignItems="flex-start">
@@ -658,6 +708,8 @@ const MapLegendArcToggle = ({ arcType, typeObj, legendGroupId }) => {
 }
 
 const MapLegendToggleList = ({ legendObj, ...props }) => {
+  const resolveTime = useSelector(selectResolveTime)
+
   const nodeTypes = useSelector(selectLocalizedNodeTypes)
   const arcTypes = useSelector(selectLocalizedArcTypes)
   const geoTypes = useSelector(selectLocalizedGeoTypes)
@@ -678,30 +730,35 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
           <hr />
         </span>
       </summary>
-      {R.map(({ id: nodeType, value }) => (
+      {R.map(({ id: nodeType, value, sizeBy, colorBy }) => (
         <MapLegendNodeToggle
           key={nodeType}
           legendGroupId={legendObj.id}
           nodeType={nodeType}
           value={value}
+          sizeProp={resolveTime(sizeBy)}
+          colorProp={resolveTime(colorBy)}
           typeObj={R.prop(nodeType)(nodeTypes)}
         />
       ))(getSortedGroups('nodes'))}
-      {R.map(({ id: arcType, value }) => (
+      {R.map(({ id: arcType, value, sizeBy, colorBy }) => (
         <MapLegendArcToggle
           key={arcType}
           legendGroupId={legendObj.id}
           arcType={arcType}
           value={value}
+          sizeProp={resolveTime(sizeBy)}
+          colorProp={resolveTime(colorBy)}
           typeObj={R.prop(arcType)(arcTypes)}
         />
       ))(getSortedGroups('arcs'))}
-      {R.map(({ id: geoType, value }) => (
+      {R.map(({ id: geoType, value, colorBy }) => (
         <MapLegendGeoToggle
           key={geoType}
           legendGroupId={legendObj.id}
           geoType={geoType}
           value={value}
+          colorProp={resolveTime(colorBy)}
           typeObj={R.prop(geoType)(geoTypes)}
         />
       ))(getSortedGroups('geos'))}
