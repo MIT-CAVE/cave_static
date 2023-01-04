@@ -82,6 +82,9 @@ export const selectStats = createSelector(selectData, (data) =>
 export const selectKpis = createSelector(selectData, (data) =>
   R.propOr({}, 'kpis')(data)
 )
+export const selectDash = createSelector(selectData, (data) =>
+  R.propOr({}, 'dashboard')(data)
+)
 export const selectAssociated = createSelector(selectData, (data) =>
   R.propOr({}, 'associated')(data)
 )
@@ -176,6 +179,10 @@ export const selectSyncToggles = createSelector(selectSettingsData, (data) =>
 export const selectStatisticTypes = createSelector(selectStats, (data) =>
   R.propOr({}, 'types')(data)
 )
+// Data -> dashboard
+export const selectDashboardData = createSelector(selectDash, (data) =>
+  R.propOr({}, 'data')(data)
+)
 // Data -> ignore
 export const selectIgnoreLoading = createSelector(selectIgnoreData, (data) =>
   R.propOr(false, 'loading')(data)
@@ -186,6 +193,14 @@ export const selectLocal = (state) => R.pathOr({}, ['local'])(state)
 // Local -> panes
 export const selectLocalPanes = createSelector(selectLocal, (data) =>
   R.propOr({}, 'panes')(data)
+)
+// Local -> Dashboard
+export const selectLocalDashboard = createSelector(selectLocal, (data) =>
+  R.propOr({}, 'dashboard')(data)
+)
+export const selectLocalDashboardData = createSelector(
+  selectLocalDashboard,
+  (data) => R.propOr({}, 'data')(data)
 )
 // Local -> settings
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
@@ -257,18 +272,23 @@ export const selectStaticMap = createSelector(
   [selectAppBarId, selectAppBarData],
   (appBarId, appBarData) => R.pathOr(false, [appBarId, 'static'], appBarData)
 )
+// Merged Dashboards
 export const selectDashboard = createSelector(
-  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
-  (appBarId, appBarData, localAppBarData) =>
-    R.propOr(R.propOr({}, appBarId, appBarData), appBarId, localAppBarData)
+  [selectAppBarId, selectDashboardData, selectLocalDashboardData],
+  (appBarId, dashboardData, localdashboardData) =>
+    R.propOr(
+      R.propOr({}, appBarId, dashboardData),
+      appBarId,
+      localdashboardData
+    )
 )
 export const selectDashboardLayout = createSelector(
-  [selectAppBarId, selectAppBarData, selectLocalAppBarData],
-  (appBarId, appBarData, localAppBarData) =>
+  [selectAppBarId, selectDashboardData, selectLocalDashboardData],
+  (appBarId, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr({}, [appBarId, 'dashboardLayout'], appBarData),
+      R.pathOr({}, [appBarId, 'dashboardLayout'], dashboardData),
       [appBarId, 'dashboardLayout'],
-      localAppBarData
+      localDashboardData
     )
 )
 export const selectDashboardLockedLayout = createSelector(

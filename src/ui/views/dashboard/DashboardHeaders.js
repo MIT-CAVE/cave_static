@@ -51,7 +51,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
-  const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
+  const path = ['dashboard', 'data', appBarId, 'dashboardLayout', index]
   return (
     <>
       <HeaderSelectWrapper sx={{ ml: 2 }}>
@@ -271,7 +271,7 @@ const KpiHeader = memo(({ obj, index }) => {
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
-  const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
+  const path = ['dashboard', 'data', appBarId, 'dashboardLayout', index]
 
   return (
     <>

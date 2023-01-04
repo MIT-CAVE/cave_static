@@ -92,7 +92,7 @@ const Dashboard = () => {
   const appBarId = useSelector(selectAppBarId)
 
   const DashboardHeader = ({ obj, index }) => {
-    const path = ['appBar', 'data', appBarId, 'dashboardLayout', index]
+    const path = ['dashboard', 'data', appBarId, 'dashboardLayout', index]
     return (
       <Grid container wrap="nowrap" sx={styles.header}>
         <HeaderSelectWrapper>
@@ -117,14 +117,19 @@ const Dashboard = () => {
                   path,
                   value: R.pipe(
                     R.assoc('type', value),
-                    // If we switch to KPIs and a box plot
+                    // If we switch to KPIs and an unsupported plot
                     // is selected, we change to a table
                     R.when(
                       R.both(
                         R.always(R.equals('kpis')(value)),
                         R.pipe(
                           R.prop('chart'),
-                          R.includes(R.__, ['Box Plot', 'Stacked Bar'])
+                          R.includes(R.__, [
+                            'Box Plot',
+                            'Stacked Bar',
+                            'Waterfall',
+                            'Stacked Waterfall',
+                          ])
                         )
                       ),
                       R.assoc('chart', 'Table')
@@ -223,7 +228,7 @@ const Dashboard = () => {
     R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
   )(dashboardLayout)
 
-  const path = ['appBar', 'data', appBarId, 'dashboardLayout']
+  const path = ['dashboard', 'data', appBarId, 'dashboardLayout']
   return (
     <Container maxWidth={false} sx={styles.root} disableGutters>
       {!isDashboardEmpty && (
