@@ -3,12 +3,14 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useState } from 'react'
 
+import FetchedIcon from './FetchedIcon'
 import WrappedText from './WrappedText'
 
-import { forcePath, toIconInstance } from '../../utils'
+import { forcePath } from '../../utils'
 
 const styles = {
   icon: {
+    ml: 1,
     '& .MuiListItemIcon-root': {
       color: 'text.primary',
       minWidth: 0,
@@ -66,25 +68,26 @@ const SelectMulti = ({
     >
       <MenuItem disabled>{header}</MenuItem>
       {items.map((item, index) => {
-        const { label, value, iconClass } = item
+        const { label, value: itemValue, iconClass } = item
+        const value = itemValue || item
         return (
           <MenuItem
             key={index}
-            value={value || label || item}
+            value={value}
             onClick={() => {
-              const newVal = R.includes(item, selected)
-                ? R.without([item], selected)
-                : R.concat([item], selected)
+              const newVal = R.includes(value, selected)
+                ? R.without([value], selected)
+                : R.concat([value], selected)
               setSelected(newVal)
             }}
           >
-            <Checkbox checked={R.includes(item, selected)} />
+            <Checkbox checked={R.includes(value, selected)} />
             {iconClass && (
               <ListItemIcon sx={styles.icon}>
-                {toIconInstance(iconClass)}
+                <FetchedIcon iconName={iconClass} size={24} />
               </ListItemIcon>
             )}
-            <WrappedText text={getLabel(label || value || item)} />
+            <WrappedText text={getLabel(label || value)} />
           </MenuItem>
         )
       })}

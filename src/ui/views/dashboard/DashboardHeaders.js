@@ -40,6 +40,7 @@ import {
   getLabelFn,
   getSubLabelFn,
   includesPath,
+  renameKeys,
 } from '../../../utils'
 
 const StatisticsHeader = memo(({ obj, index }) => {
@@ -329,51 +330,28 @@ const KpiHeader = memo(({ obj, index }) => {
         />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
-        {R.propOr('Bar', 'chart', obj) === 'Table' ? (
-          <SelectMulti
-            value={R.propOr([], 'kpi', obj)}
-            header="Select KPIs"
-            optionsList={R.pipe(
-              R.values,
-              R.head,
-              R.path(['data', 'kpis', 'data']),
-              R.values,
-              R.filter(R.has('value')),
-              R.pluck('name')
-            )(kpis)}
-            onSelect={(value) =>
-              dispatch(
-                mutateLocal({
-                  path,
-                  sync: !includesPath(R.values(sync), path),
-                  value: R.assoc('kpi', value, obj),
-                })
-              )
-            }
-          />
-        ) : (
-          <SelectMulti
-            value={R.propOr([], 'kpi', obj)}
-            header="Select KPIs"
-            optionsList={R.pipe(
-              R.values,
-              R.head,
-              R.path(['data', 'kpis', 'data']),
-              R.values,
-              R.filter(R.has('value')),
-              R.pluck('name')
-            )(kpis)}
-            onSelect={(value) =>
-              dispatch(
-                mutateLocal({
-                  path,
-                  sync: !includesPath(R.values(sync), path),
-                  value: R.assoc('kpi', value, obj),
-                })
-              )
-            }
-          />
-        )}
+        <SelectMulti
+          value={R.propOr([], 'kpi', obj)}
+          header="Select KPIs"
+          optionsList={R.pipe(
+            R.values,
+            R.head,
+            R.path(['data', 'kpis', 'data']),
+            customSort,
+            R.filter(R.has('value')),
+            R.project(['id', 'name', 'icon']),
+            R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconClass' }))
+          )(kpis)}
+          onSelect={(value) =>
+            dispatch(
+              mutateLocal({
+                path,
+                sync: !includesPath(R.values(sync), path),
+                value: R.assoc('kpi', value, obj),
+              })
+            )
+          }
+        />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
         <Button

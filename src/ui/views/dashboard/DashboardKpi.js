@@ -12,7 +12,7 @@ import {
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
-import { forcePath } from '../../../utils'
+import { customSort, forcePath } from '../../../utils'
 
 const DashboardKpi = ({ obj, length }) => {
   const dispatch = useDispatch()
@@ -41,11 +41,12 @@ const DashboardKpi = ({ obj, length }) => {
     R.values,
     R.head,
     R.path(['data', 'kpis', 'data']),
-    R.values
+    customSort,
+    R.filter(R.has('value'))
   )(kpis)
 
   const kpiUnits = R.map((item) => {
-    const kpi = R.find(R.propEq('name', item))(kpiData)
+    const kpi = R.find(R.propEq('id', item))(kpiData)
     const { numberFormat = {} } = R.defaultTo({})(kpi)
     return numberFormat.unit || numberFormatDefault.unit
   })(actualKpi)
@@ -69,9 +70,10 @@ const DashboardKpi = ({ obj, length }) => {
     R.over(
       R.lensProp('y'),
       R.pipe(
-        R.values,
-        R.filter(R.pipe(R.prop('name'), R.includes(R.__, actualKpi))),
-        R.indexBy(R.prop('name')),
+        customSort,
+        R.filter(R.has('value')),
+        R.filter(R.pipe(R.prop('id'), R.includes(R.__, actualKpi))),
+        R.indexBy(R.prop('id')),
         R.pluck('value'),
         obj.chart === 'Table' ? R.values : R.identity
       )
