@@ -1,1 +1,4 @@
 build
+# Prevent ESLint from ignoring `.*.js` config files
+# See: https://eslint.org/docs/latest/user-guide/configuring/ignoring-code#the-eslintignore-file
+!.*.js
