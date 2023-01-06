@@ -182,27 +182,38 @@ const FilterPane = ({ filteredData, category, dispatch }) => {
   const data = R.propOr({}, 'data', categoryObj)
 
   const categoryItems = getCategoryItems(categoryObj)
-  const formatCategory = (categoryItems, dataItem) => {
-    return R.length(categoryItems) > 1
-      ? R.assoc(
-          R.prop(categoryItems[0], dataItem),
-          formatCategory(R.drop(1, categoryItems), dataItem),
-          {}
-        )
-      : [R.prop(categoryItems[0], dataItem)]
-  }
 
-  const formattedCategory = R.reduce(
-    R.mergeDeepWith(R.concat),
-    {}
-  )(
-    R.values(
-      R.map((item) => {
-        return formatCategory(categoryItems, item)
-      })(data)
-    )
+  const formatCategory = useCallback(
+    (categoryItems, dataItem) =>
+      R.length(categoryItems) > 1
+        ? R.assoc(
+            R.prop(categoryItems[0], dataItem),
+            formatCategory(R.drop(1, categoryItems), dataItem),
+            {}
+          )
+        : [R.prop(categoryItems[0], dataItem)],
+    []
   )
 
+  const formattedCategory =
+    R.length(categoryItems) > 1
+      ? R.reduce(
+          R.mergeDeepWith(R.concat),
+          {}
+        )(
+          R.values(
+            R.map((item) => {
+              return formatCategory(categoryItems, item)
+            })(data)
+          )
+        )
+      : R.unnest(
+          R.values(
+            R.map((item) => {
+              return formatCategory(categoryItems, item)
+            })(data)
+          )
+        )
   const selectedItems = R.propOr([], category, filteredData)
 
   const applyFilters = useCallback(
