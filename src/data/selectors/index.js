@@ -91,6 +91,9 @@ export const selectAssociated = createSelector(selectData, (data) =>
 export const selectSettings = createSelector(selectData, (data) =>
   R.propOr({}, 'settings')(data)
 )
+export const selectPanes = createSelector(selectData, (data) =>
+  R.propOr({}, 'panes')(data)
+)
 export const selectMap = createSelector(selectData, R.propOr({}, 'map'))
 // Data -> Types
 export const selectNodeTypes = createSelector(
@@ -104,6 +107,7 @@ export const selectGeoTypes = createSelector(
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Data -> data
+export const selectPanesData = createSelector(selectPanes, R.propOr({}, 'data'))
 export const selectMapData = createSelector(selectMap, R.propOr({}, 'data'))
 
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
@@ -183,16 +187,21 @@ export const selectStatisticTypes = createSelector(selectStats, (data) =>
 export const selectDashboardData = createSelector(selectDash, (data) =>
   R.propOr({}, 'data')(data)
 )
+// Data -> panes
+
 // Data -> ignore
 export const selectIgnoreLoading = createSelector(selectIgnoreData, (data) =>
   R.propOr(false, 'loading')(data)
 )
 
 // Local
-export const selectLocal = (state) => R.pathOr({}, ['local'])(state)
+export const selectLocal = (state) => R.propOr({}, 'local')(state)
 // Local -> panes
 export const selectLocalPanes = createSelector(selectLocal, (data) =>
   R.propOr({}, 'panes')(data)
+)
+export const selectLocalPanesData = createSelector(selectLocalPanes, (data) =>
+  R.propOr({}, 'data')(data)
 )
 // Local -> Dashboard
 export const selectLocalDashboard = createSelector(selectLocal, (data) =>
@@ -224,12 +233,6 @@ export const selectLocalAppBar = createSelector(selectLocal, (data) =>
 )
 export const selectLocalAppBarData = createSelector(selectLocalAppBar, (data) =>
   R.prop('data', data)
-)
-export const selectFiltered = createSelector(
-  [selectAppBar, selectLocalAppBar],
-  (appBar, localAppBar) =>
-    R.propOr(R.propOr({}, 'filtered', appBar), 'filtered', localAppBar),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectPaneState = createSelector(
   [selectLocalAppBar, selectAppBar],
@@ -271,6 +274,22 @@ export const selectAppBarId = createSelector(
 export const selectStaticMap = createSelector(
   [selectAppBarId, selectAppBarData],
   (appBarId, appBarData) => R.pathOr(false, [appBarId, 'static'], appBarData)
+)
+// Merged Panes
+export const selectOpenPanesData = createSelector(
+  [selectOpenPane, selectPanesData, selectLocalPanesData],
+  (openPane, panesData, localPanesData) =>
+    R.mergeDeepRight(
+      R.propOr({}, openPane, panesData),
+      R.propOr({}, openPane, localPanesData)
+    ),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectFiltered = createSelector(
+  [selectPanes, selectLocalPanes],
+  (panes, localPanes) =>
+    R.propOr(R.propOr({}, 'filtered', panes), 'filtered', localPanes),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Merged Dashboards
 export const selectDashboard = createSelector(

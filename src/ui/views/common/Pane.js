@@ -34,7 +34,7 @@ const SyncButton = ({ open, pane }) => {
           sendCommand({
             command: 'mutate_session',
             data: {
-              data_name: 'appBar',
+              data_name: 'panes',
               data_path: ['data', open],
               data_value: pane,
               mutation_type: 'mutate',

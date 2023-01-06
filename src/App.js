@@ -15,6 +15,7 @@ import {
   selectAppBarData,
   selectMapboxToken,
   selectOpenPane,
+  selectOpenPanesData,
   selectSecondaryOpenPane,
   selectSync,
   selectTheme,
@@ -63,8 +64,11 @@ const App = () => {
 
   const dispatch = useDispatch()
   const theme = getTheme(themeId)
-  const pane = R.propOr({}, open)(appBarData)
-
+  const pane = R.assoc(
+    'icon',
+    R.path([open, 'icon'], appBarData),
+    useSelector(selectOpenPanesData)
+  )
   const renderAppPage = R.cond([
     [
       R.equals(viewId.MAP),

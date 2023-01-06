@@ -7,11 +7,11 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCategoriesData,
-  selectAppBarData,
   selectSecondaryOpenPane,
   selectOpenPane,
   selectFiltered,
   selectSync,
+  selectOpenPanesData,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
 
@@ -104,7 +104,7 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
       sendCommand({
         command: 'mutate_session',
         data: {
-          data_name: 'appBar',
+          data_name: 'panes',
           data_path: [
             'data',
             primaryPane,
@@ -139,7 +139,7 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
       sendCommand({
         command: 'mutate_session',
         data: {
-          data_name: 'appBar',
+          data_name: 'panes',
           data_path: [
             'data',
             primaryPane,
@@ -222,9 +222,9 @@ const FilterPane = ({ filteredData, category, dispatch }) => {
       const newItems = R.filter((d) => !R.includes(d, filtered), item)
       dispatch(
         mutateLocal({
-          path: ['appBar', 'filtered', category],
+          path: ['panes', 'filtered', category],
           value: R.concat(newItems, filtered),
-          sync: !includesPath(R.values(sync), ['appBar', 'filtered', category]),
+          sync: !includesPath(R.values(sync), ['panes', 'filtered', category]),
         })
       )
     },
@@ -236,9 +236,9 @@ const FilterPane = ({ filteredData, category, dispatch }) => {
       const filtered = R.propOr([], category, filteredData)
       dispatch(
         mutateLocal({
-          path: ['appBar', 'filtered', category],
+          path: ['panes', 'filtered', category],
           value: R.without(item, filtered),
-          sync: !includesPath(R.values(sync), ['appBar', 'filtered', category]),
+          sync: !includesPath(R.values(sync), ['panes', 'filtered', category]),
         })
       )
     },
@@ -272,7 +272,7 @@ const SecondaryPane = () => {
   const open = useSelector(selectSecondaryOpenPane)
   const filteredData = useSelector(selectFiltered)
   const primaryPane = useSelector(selectOpenPane)
-  const pane = R.propOr({}, primaryPane)(useSelector(selectAppBarData))
+  const pane = useSelector(selectOpenPanesData)
   const dispatch = useDispatch()
 
   const category = R.prop('category', open)

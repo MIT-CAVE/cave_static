@@ -10,9 +10,9 @@ import renderProp from './renderProp'
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
-  selectAppBarData,
   selectCategoriesData,
   selectOpenPane,
+  selectOpenPanesData,
   selectSecondaryOpenPane,
   selectSync,
 } from '../../../data/selectors'
@@ -58,12 +58,11 @@ const localCss = {
 }
 
 const ContextPane = () => {
-  const appBarData = useSelector(selectAppBarData)
   const categories = useSelector(selectCategoriesData)
   const dispatch = useDispatch()
 
   const open = useSelector(selectOpenPane)
-  const pane = R.propOr({}, open)(appBarData)
+  const pane = useSelector(selectOpenPanesData)
   const sync = useSelector(selectSync)
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
 
@@ -92,7 +91,7 @@ const ContextPane = () => {
                     sendCommand({
                       command: 'mutate_session',
                       data: {
-                        data_name: 'appBar',
+                        data_name: 'panes',
                         data_path: ['data', open, 'data'],
                         data_value: R.dissoc(key, obj),
                         mutation_type: 'mutate',
@@ -111,7 +110,7 @@ const ContextPane = () => {
                   sendCommand({
                     command: 'mutate_session',
                     data: {
-                      data_name: 'appBar',
+                      data_name: 'panes',
                       data_path: ['data', open, 'data', key, 'prop'],
                       data_value: value,
                       mutation_type: 'mutate',
@@ -132,7 +131,7 @@ const ContextPane = () => {
                     sendCommand({
                       command: 'mutate_session',
                       data: {
-                        data_name: 'appBar',
+                        data_name: 'panes',
                         data_path: ['data', open, 'data', key, 'value'],
                         data_value: value,
                         mutation_type: 'mutate',
@@ -243,7 +242,7 @@ const ContextPane = () => {
               sendCommand({
                 command: 'mutate_session',
                 data: {
-                  data_name: 'appBar',
+                  data_name: 'panes',
                   data_path: ['data', open, 'data'],
                   data_value: R.assoc(
                     nextContextName,
