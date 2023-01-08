@@ -1,48 +1,48 @@
-/** @jsxImportSource @emotion/react */
-import { Box, Checkbox } from '@mui/material'
+import { Checkbox, FormGroup, FormControlLabel } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
-const verifySelectorValue = (val) => {
-  return R.is(Array, val) ? val : false
-}
+import { customSort } from '../../utils'
 
-const PropCheckbox = ({ prop, currentVal, onChange, ...props }) => (
-  <Box {...props}>
-    <div css={{ fontSize: '25px' }}>{R.prop('label', prop)}</div>
-    <div css={{ opacity: R.propOr(false, 'enabled', prop) ? '' : 0.7 }}>
-      {R.values(
-        R.mapObjIndexed((value, key, object) => {
-          return (
-            <div css={{ cursor: 'pointer', fontSize: '25px' }} key={key}>
-              <Checkbox
-                checked={R.prop('value', value)}
-                onClick={() => {
-                  if (R.propOr(false, 'enabled', prop))
-                    onChange(
-                      R.update(
-                        key,
-                        R.assoc('value', !R.prop('value', value), value),
-                        object
-                      )
-                    )
-                }}
-              />
-              <span css={{ fontSize: '1rem' }}>{R.prop('name', value)}</span>
-            </div>
-          )
-        })(verifySelectorValue(currentVal) || R.prop('value', prop))
-      )}
-    </div>
-  </Box>
-)
+const PropCheckbox = ({ prop, currentVal, onChange, ...props }) => {
+  const { enabled = false, options } = prop
+  const value = currentVal || prop.value
+  return (
+    <FormGroup {...props}>
+      {R.map(({ id: key, name: label }) => (
+        <FormControlLabel
+          {...{ key, label }}
+          disabled={!enabled}
+          sx={{ pl: 1 }}
+          control={
+            <Checkbox
+              checked={R.includes(key)(value)}
+              onClick={() => {
+                if (!enabled) return
+                onChange(
+                  R.ifElse(
+                    R.includes(key),
+                    R.without([key]),
+                    R.append(key)
+                  )(value)
+                )
+              }}
+            />
+          }
+        />
+      ))(customSort(options))}
+    </FormGroup>
+  )
+}
 PropCheckbox.propTypes = {
   prop: PropTypes.object,
-  currentVal: PropTypes.arrayOf(
-    PropTypes.shape({
-      name: PropTypes.string,
-      value: PropTypes.bool,
-    })
+  currentVal: PropTypes.oneOfType(
+    PropTypes.string,
+    PropTypes.arrayOf(
+      PropTypes.shape({
+        name: PropTypes.string,
+      })
+    )
   ),
   onChange: PropTypes.func,
 }

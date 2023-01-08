@@ -79,14 +79,7 @@ const Get3dArcLayer = () => {
         const colorProp = R.path([d.type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-        const propVal =
-          timePath(['props', colorProp, 'type'], d) === 'selector'
-            ? R.pipe(
-                timePath(['props', colorProp, 'value']),
-                R.find(timeProp('value')),
-                timeProp('name')
-              )(d)
-            : timePath(['props', colorProp, 'value'], d).toString()
+        const propVal = timePath(['props', colorProp, 'value'], d).toString()
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -122,14 +115,7 @@ const Get3dArcLayer = () => {
         const colorProp = R.path([d.type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-        const propVal =
-          timePath(['props', colorProp, 'type'], d) === 'selector'
-            ? R.pipe(
-                timePath(['props', colorProp, 'value']),
-                R.find(timeProp('value')),
-                timeProp('name')
-              )(d)
-            : timePath(['props', colorProp, 'value'], d).toString()
+        const propVal = timePath(['props', colorProp, 'value'], d).toString()
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -233,14 +219,7 @@ const GetArcLayer = () => {
         const colorProp = R.path([d.type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-        const propVal =
-          timePath(['props', colorProp, 'type'], d) === 'selector'
-            ? R.pipe(
-                timePath(['props', colorProp, 'value']),
-                R.find(timeProp('value')),
-                timeProp('name')
-              )(d)
-            : timePath(['props', colorProp, 'value'], d).toString()
+        const propVal = timePath(['props', colorProp, 'value'], d).toString()
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -363,14 +342,7 @@ const GetNodeIconLayer = () => {
       const colorProp = R.path([d.type, 'colorBy'], legendObjects)
       const colorRange = nodeRange(d.type, colorProp, false)
       const isCategorical = !R.has('min', colorRange)
-      const propVal =
-        timePath(['props', colorProp, 'type'], d) === 'selector'
-          ? R.pipe(
-              timePath(['props', colorProp, 'value']),
-              R.find(timeProp('value')),
-              timeProp('name')
-            )(d)
-          : timePath(['props', colorProp, 'value'], d).toString()
+      const propVal = timePath(['props', colorProp, 'value'], d).toString()
 
       return isCategorical
         ? R.map((val) => parseFloat(val))(
@@ -520,14 +492,7 @@ const GetGeographyLayer = () => {
       )(['startGradientColor', 'endGradientColor'])
       const value = timePath(['props', colorProp, 'value'], geoObj)
       const isCategorical = !R.has('min', statRange)
-      const propVal =
-        timePath(['props', colorProp, 'type'], geoObj) === 'selector'
-          ? R.pipe(
-              timePath(['props', colorProp, 'value']),
-              R.find(timeProp('value')),
-              timeProp('name')
-            )(geoObj)
-          : timePath(['props', colorProp, 'value'], geoObj).toString()
+      const propVal = timePath(['props', colorProp, 'value'], geoObj).toString()
 
       return isCategorical
         ? R.map((val) => parseFloat(val))(
