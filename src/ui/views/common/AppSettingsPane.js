@@ -133,7 +133,7 @@ const AppSettingsPane = ({ ...props }) => {
           {R.values(
             R.mapObjIndexed((object, key) => {
               const paths = R.prop('data')(object)
-              return (
+              return R.propOr(false, 'showToggle', object) ? (
                 <div>
                   <SyncSwitch
                     key={key}
@@ -167,6 +167,8 @@ const AppSettingsPane = ({ ...props }) => {
                     }}
                   />
                 </div>
+              ) : (
+                []
               )
             })(syncToggles)
           )}
