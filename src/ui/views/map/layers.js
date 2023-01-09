@@ -1,7 +1,7 @@
 import { PathStyleExtension } from '@deck.gl/extensions'
 import { PathLayer, GeoJsonLayer, IconLayer, ArcLayer } from '@deck.gl/layers'
 import * as R from 'ramda'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
@@ -304,6 +304,73 @@ const GetNodeIconLayer = () => {
   const names = R.keys(nodeData)
   const [iconObj, setIconObj] = useState({})
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findColor = useCallback(
+    R.memoizeWith(
+      (propVal, type) => `${propVal}${type}`,
+      (propVal, type) => {
+        const colorProp = R.path([type, 'colorBy'], legendObjects)
+        const colorRange = nodeRange(type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+
+        return isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', propVal, colorRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledArray(
+              timeProp('min', colorRange),
+              timeProp('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(propVal)
+            )
+      }
+    ),
+    [legendObjects, nodesByType, themeType]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findSize = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
+        const propVal = timePath(['props', sizeProp, 'value'], d)
+        return `${d.type}${d.endSize}${d.startSize}${propVal}`
+      },
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
+        const sizeRange = nodeRange(d.type, sizeProp, true)
+        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d))
+        return getScaledValue(
+          timeProp('min', sizeRange),
+          timeProp('max', sizeRange),
+          parseFloat(timeProp('startSize', d)),
+          parseFloat(timeProp('endSize', d)),
+          propVal
+        )
+      }
+    ),
+    [legendObjects, nodesByType]
+  )
+
   useEffect(() => {
     const setIcons = async () => {
       const icons = new Set()
@@ -315,7 +382,10 @@ const GetNodeIconLayer = () => {
       for (let icon of icons) {
         newIcons[icon] = await fetchIcon(icon, iconUrl)
       }
-      const constructed = R.mapObjIndexed((func) => func(), newIcons)
+      const constructed = R.mapObjIndexed(
+        (func) => btoa(renderToStaticMarkup(func())),
+        newIcons
+      )
       setIconObj(constructed)
     }
     setIcons()
@@ -326,11 +396,13 @@ const GetNodeIconLayer = () => {
     visible: true,
     data: R.values(nodeData),
     getIcon: (d) => {
-      const svgString = renderToStaticMarkup(
-        R.propOr(<MdDownloading />, d.icon, iconObj)
+      const svgString = R.propOr(
+        btoa(renderToStaticMarkup(<MdDownloading />)),
+        d.icon,
+        iconObj
       )
       return {
-        url: `data:image/svg+xml;base64,${btoa(svgString)}`,
+        url: `data:image/svg+xml;base64,${svgString}`,
         width: 128,
         height: 128,
         anchorY: 128,
@@ -340,51 +412,12 @@ const GetNodeIconLayer = () => {
     autoHighlight: true,
     getColor: (d) => {
       const colorProp = R.path([d.type, 'colorBy'], legendObjects)
-      const colorRange = nodeRange(d.type, colorProp, false)
-      const isCategorical = !R.has('min', colorRange)
       const propVal = timePath(['props', colorProp, 'value'], d).toString()
-
-      return isCategorical
-        ? R.map((val) => parseFloat(val))(
-            R.propOr('rgb(0,0,0)', propVal, colorRange)
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          )
-        : getScaledArray(
-            timeProp('min', colorRange),
-            timeProp('max', colorRange),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('startGradientColor', colorRange),
-                ['startGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('endGradientColor', colorRange),
-                ['endGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            parseFloat(timePath(['props', colorProp, 'value'], d))
-          )
+      return findColor(propVal, d.type)
     },
     sizeScale: 1,
     getSize: (d) => {
-      const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
-      const sizeRange = nodeRange(d.type, sizeProp, true)
-      return getScaledValue(
-        timeProp('min', sizeRange),
-        timeProp('max', sizeRange),
-        parseFloat(timeProp('startSize', d)),
-        parseFloat(timeProp('endSize', d)),
-        parseFloat(timePath(['props', sizeProp, 'value'], d))
-      )
+      return findSize(d)
     },
     getPosition: (d) => [
       resolveTime(d.longitude),
