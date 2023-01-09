@@ -177,7 +177,7 @@ export const selectTimeUnits = createSelector(selectSettingsData, (data) =>
   R.propOr('unit', 'timeUnits')(data)
 )
 export const selectSyncToggles = createSelector(selectSettingsData, (data) =>
-  R.propOr({}, 'syncToggles', data)
+  R.propOr({}, 'sync', data)
 )
 // Data -> stats
 export const selectStatisticTypes = createSelector(selectStats, (data) =>
@@ -320,10 +320,6 @@ export const selectCurrentMapData = createSelector(
   (data, appBarId) => R.propOr({}, appBarId, data)
 )
 
-export const selectLegendData = createSelector(selectCurrentMapData, (data) =>
-  R.propOr({}, 'legendGroups', data)
-)
-
 export const selectDefaultViewport = createSelector(
   selectCurrentMapData,
   (data) =>
@@ -345,6 +341,15 @@ export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
 export const selectCurrentLocalMapData = createSelector(
   [selectLocalMapData, selectAppBarId],
   (data, appBarId) => R.propOr({}, appBarId)(data)
+)
+export const selectLegendData = createSelector(
+  [selectCurrentMapData, selectCurrentLocalMapData],
+  (mapData, localMapData) =>
+    R.propOr(
+      R.propOr({}, 'legendGroups', mapData),
+      'legendGroups',
+      localMapData
+    )
 )
 export const selectMapControls = createSelector(
   selectCurrentLocalMapData,

@@ -54,18 +54,24 @@ export const overwriteData = createAsyncThunk(
     // Overwrite
     const data = R.prop('data')(arg)
     if (
-      R.hasPath(['settings', 'data', 'defaultDesync'], data) &&
+      R.hasPath(['settings', 'data', 'sync'], data) &&
       !R.equals(
-        R.path(['settings', 'data', 'defaultDesync'], data),
-        R.path(['data', 'settings', 'data', 'defaultDesync'], getState())
+        R.path(['settings', 'data', 'sync'], data),
+        R.path(['data', 'settings', 'data', 'sync'], getState())
       )
-    )
+    ) {
+      const desyncedPaths = R.pipe(
+        R.path(['settings', 'data', 'sync']),
+        R.filter(R.pipe(R.prop('value'), R.not)),
+        R.pluck('data')
+      )(data)
       dispatch(
         overrideSync({
-          paths: R.path(['settings', 'data', 'defaultDesync'], data),
+          paths: desyncedPaths,
           dataState: R.mergeDeepRight(R.prop('data', getState()), data),
         })
       )
+    }
     return {
       data: data,
       newLocalVersions: R.mergeRight(

@@ -131,7 +131,8 @@ const AppSettingsPane = ({ ...props }) => {
       ) : (
         <FieldContainer title="Sync">
           {R.values(
-            R.mapObjIndexed((paths, key) => {
+            R.mapObjIndexed((object, key) => {
+              const paths = R.prop('data')(object)
               return (
                 <div>
                   <SyncSwitch
@@ -141,7 +142,7 @@ const AppSettingsPane = ({ ...props }) => {
                         R.values(paths)
                       )
                     }
-                    label={key}
+                    label={R.propOr(key, 'name', object)}
                     onClick={(event) => {
                       R.forEachObjIndexed((path, name) =>
                         !event.target.checked
