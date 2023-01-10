@@ -301,7 +301,6 @@ const GetNodeIconLayer = () => {
   const appBarId = useSelector(selectAppBarId)
   const legendObjects = useSelector(selectEnabledNodes)
 
-  const names = R.keys(nodeData)
   const [iconObj, setIconObj] = useState([
     btoa(renderToStaticMarkup(<MdDownloading />)),
   ])
@@ -309,10 +308,11 @@ const GetNodeIconLayer = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findColor = useCallback(
     R.memoizeWith(
-      (propVal, type) => `${propVal}${type}`,
-      (propVal, type) => {
-        const colorProp = R.path([type, 'colorBy'], legendObjects)
-        const colorRange = nodeRange(type, colorProp, false)
+      (d) => d[0],
+      (d) => {
+        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
+        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        const colorRange = nodeRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -351,20 +351,16 @@ const GetNodeIconLayer = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findSize = useCallback(
     R.memoizeWith(
+      (d) => d[0],
       (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d)
-        return `${d.type}${d.endSize}${d.startSize}${propVal}`
-      },
-      (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
-        const sizeRange = nodeRange(d.type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d))
+        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
+        const sizeRange = nodeRange(d[1].type, sizeProp, true)
+        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
         return getScaledValue(
           timeProp('min', sizeRange),
           timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d)),
-          parseFloat(timeProp('endSize', d)),
+          parseFloat(timeProp('startSize', d[1])),
+          parseFloat(timeProp('endSize', d[1])),
           propVal
         )
       }
@@ -452,28 +448,25 @@ const GetNodeIconLayer = () => {
     }
     setIcons()
   }, [nodesByType, iconUrl])
-
   return new IconLayer({
     id: layerId.NODE_ICON_LAYER,
     visible: true,
-    data: R.values(nodeData),
+    data: nodeData,
     iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
     iconMapping: iconObj[1],
-    getIcon: (d) => d.icon,
+    getIcon: (d) => d[1].icon,
     autoHighlight: true,
     getColor: (d) => {
-      const colorProp = R.path([d.type, 'colorBy'], legendObjects)
-      const propVal = timePath(['props', colorProp, 'value'], d).toString()
-      return findColor(propVal, d.type)
+      return findColor(d)
     },
     sizeScale: 1,
     getSize: (d) => {
       return findSize(d)
     },
     getPosition: (d) => [
-      resolveTime(d.longitude),
-      resolveTime(d.latitude),
-      resolveTime(d.altitude + 1),
+      resolveTime(d[1].longitude),
+      resolveTime(d[1].latitude),
+      resolveTime(d[1].altitude + 1),
     ],
     pickable: true,
     onClick: (d) => {
@@ -481,10 +474,10 @@ const GetNodeIconLayer = () => {
         openMapModal({
           appBarId,
           data: {
-            ...R.propOr({}, 'object')(d),
+            ...R.pathOr({}, ['object', 1])(d),
             feature: 'nodes',
-            type: R.propOr(d.object.type, 'name')(d),
-            key: names[R.propOr(0, 'index', d)],
+            type: R.propOr(d.object[1].type, 'name')(d.object[1]),
+            key: d.object[0],
           },
         })
       )

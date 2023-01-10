@@ -533,7 +533,9 @@ export const selectFilteredGeosData = createSelector(
 export const selectNodeData = createSelector(
   [selectEnabledNodes, selectFilteredNodes],
   (enabledNodes, filteredData) =>
-    R.filter((d) => R.propOr(false, d.type, enabledNodes))(filteredData)
+    R.toPairs(
+      R.filter((d) => R.propOr(false, d.type, enabledNodes))(filteredData)
+    )
 )
 export const selectNodesByType = createSelector(
   selectFilteredNodes,
