@@ -373,6 +373,7 @@ const GetNodeIconLayer = () => {
 
   useEffect(() => {
     const setIcons = async () => {
+      console.log('rerendered')
       const icons = new Set()
       R.forEach(
         (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
