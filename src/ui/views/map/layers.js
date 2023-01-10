@@ -27,6 +27,7 @@ import {
   selectAppBarId,
   selectEnabledArcs,
   selectEnabledNodes,
+  selectArcData,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -188,38 +189,38 @@ const GetArcLayer = () => {
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
   const appBarId = useSelector(selectAppBarId)
-  const arcData = R.prop('false', useSelector(selectGroupedEnabledArcs))
+  const arcData = useSelector(selectArcData)
   const legendObjects = useSelector(selectEnabledArcs)
-  return new PathLayer(
-    getLayerProps({
-      id: layerId.ARC_LAYER,
-      data: R.values(arcData),
-      visible: true,
-      opacity: 0.4,
-      autoHighlight: true,
-      wrapLongitude: true,
-      getPath: (d) =>
-        R.propOr(
-          [
-            [
-              resolveTime(d.startLongitude),
-              resolveTime(d.startLatitude),
-              resolveTime(d.startAltitude),
-            ],
-            [
-              resolveTime(d.endLongitude),
-              resolveTime(d.endLatitude),
-              resolveTime(d.endAltitude),
-            ],
-          ],
-          'path',
-          d
-        ),
-      getColor: (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], legendObjects)
-        const colorRange = arcRange(d.type, colorProp, false)
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findSize = useCallback(
+    R.memoizeWith(
+      (d) => d[0],
+      (d) => {
+        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
+        const sizeRange = arcRange(d[1].type, sizeProp, true)
+        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
+        return getScaledValue(
+          timeProp('min', sizeRange),
+          timeProp('max', sizeRange),
+          parseFloat(timeProp('startSize', d[1])),
+          parseFloat(timeProp('endSize', d[1])),
+          propVal
+        )
+      }
+    ),
+    [legendObjects, arcData]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findColor = useCallback(
+    R.memoizeWith(
+      (d) => d[0],
+      (d) => {
+        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
+        const colorRange = arcRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-        const propVal = timePath(['props', colorProp, 'value'], d).toString()
+        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -248,24 +249,44 @@ const GetArcLayer = () => {
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
-              parseFloat(resolveTime(R.path(['props', colorProp, 'value'], d)))
+              parseFloat(
+                resolveTime(R.path(['props', colorProp, 'value'], d[1]))
+              )
             )
-      },
+      }
+    ),
+    [legendObjects, arcData, themeType]
+  )
+  return new PathLayer(
+    getLayerProps({
+      id: layerId.ARC_LAYER,
+      data: arcData,
+      visible: true,
+      opacity: 0.4,
+      autoHighlight: true,
+      wrapLongitude: true,
+      getPath: (d) =>
+        R.propOr(
+          [
+            [
+              resolveTime(d[1].startLongitude),
+              resolveTime(d[1].startLatitude),
+              resolveTime(d[1].startAltitude),
+            ],
+            [
+              resolveTime(d[1].endLongitude),
+              resolveTime(d[1].endLatitude),
+              resolveTime(d[1].endAltitude),
+            ],
+          ],
+          'path',
+          d[1]
+        ),
+      getColor: (d) => findColor(d),
       widthUnits: 'pixels',
-      getWidth: (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
-        const sizeRange = arcRange(d.type, sizeProp, true)
-
-        return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d)),
-          parseFloat(timeProp('endSize', d)),
-          parseFloat(timePath(['props', sizeProp, 'value'], d))
-        )
-      },
+      getWidth: (d) => findSize(d),
       getDashArray: (d) => {
-        const lineType = R.propOr('solid', 'lineBy')(d)
+        const lineType = R.propOr('solid', 'lineBy')(d[1])
         return lineTypes[lineType]
       },
       dashJustified: true,
@@ -276,10 +297,10 @@ const GetArcLayer = () => {
           openMapModal({
             appBarId,
             data: {
-              ...R.propOr({}, 'object')(d),
+              ...R.pathOr({}, ['object', 1])(d),
               feature: 'arcs',
-              type: R.propOr(d.object.type, 'name')(d),
-              key: R.keys(arcData)[R.propOr(0, 'index', d)],
+              type: R.propOr(d.object[1].type, 'name')(d.object[1]),
+              key: d.object[0],
             },
           })
         )

@@ -537,6 +537,7 @@ export const selectNodeData = createSelector(
       R.filter((d) => R.propOr(false, d.type, enabledNodes))(filteredData)
     )
 )
+
 export const selectNodesByType = createSelector(
   selectFilteredNodes,
   R.pipe(R.values, R.groupBy(R.prop('type')))
@@ -588,6 +589,9 @@ export const selectGroupedEnabledArcs = createSelector(
       R.groupBy((d) => R.equals(R.path([1, 'lineBy'], d), '3d')),
       R.map(R.fromPairs)
     )(filteredArcs)
+)
+export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
+  R.toPairs(R.prop('false', data))
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectTimePath],
