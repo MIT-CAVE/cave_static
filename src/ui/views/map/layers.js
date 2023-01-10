@@ -302,7 +302,9 @@ const GetNodeIconLayer = () => {
   const legendObjects = useSelector(selectEnabledNodes)
 
   const names = R.keys(nodeData)
-  const [iconObj, setIconObj] = useState({})
+  const [iconObj, setIconObj] = useState([
+    btoa(renderToStaticMarkup(<MdDownloading />)),
+  ])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findColor = useCallback(
@@ -312,7 +314,6 @@ const GetNodeIconLayer = () => {
         const colorProp = R.path([type, 'colorBy'], legendObjects)
         const colorRange = nodeRange(type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-
         return isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', propVal, colorRange)
@@ -373,7 +374,6 @@ const GetNodeIconLayer = () => {
 
   useEffect(() => {
     const setIcons = async () => {
-      console.log('rerendered')
       const icons = new Set()
       R.forEach(
         (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
@@ -384,10 +384,71 @@ const GetNodeIconLayer = () => {
         newIcons[icon] = await fetchIcon(icon, iconUrl)
       }
       const constructed = R.mapObjIndexed(
-        (func) => btoa(renderToStaticMarkup(func())),
+        (func) => renderToStaticMarkup(func()),
         newIcons
       )
-      setIconObj(constructed)
+      const parser = new DOMParser()
+      const serializer = new XMLSerializer()
+      const iconMapping = {}
+      // Pack all icons into one svg image for iconAtlas
+      const packed = R.reduce(
+        (acc, [iconName, svgStr]) => {
+          // first icon - use svg wrapper
+          if (R.isEmpty(acc)) {
+            const group = parser.parseFromString(
+              `<g xmlns="http://www.w3.org/2000/svg"></g>`,
+              'image/svg+xml'
+            ).firstChild
+            const svgElem = parser.parseFromString(
+              svgStr,
+              'image/svg+xml'
+            ).firstChild
+            group.innerHTML = svgElem.innerHTML
+            svgElem.innerHTML = ''
+            svgElem.appendChild(group)
+            iconMapping[iconName] = {
+              x: 0,
+              y: 0,
+              width: 24,
+              height: 24,
+              mask: true,
+            }
+            return [1, svgElem]
+          }
+          // all subsequent icons - add to existing image
+          const group = parser.parseFromString(
+            `<g xmlns="http://www.w3.org/2000/svg" transform="translate(${
+              acc[0] * 24
+            })"></g>`,
+            'image/svg+xml'
+          ).firstChild
+          group.innerHTML = parser.parseFromString(
+            svgStr,
+            'image/svg+xml'
+          ).firstChild.innerHTML
+
+          acc[1].appendChild(group)
+          acc[1].setAttribute('viewBox', `0 0 ${acc[0] * 24 + 24} 24`)
+          iconMapping[iconName] = {
+            x: acc[0] * 24,
+            y: 0,
+            width: 24,
+            height: 24,
+            mask: true,
+          }
+          return [acc[0] + 1, acc[1]]
+        },
+        [],
+        R.toPairs(constructed)
+      )
+      // Check if any icons to prevent log errors
+      if (!R.isEmpty(packed)) {
+        // Set dimensions of iconAtlas image
+        packed[1].setAttribute('viewBox', `0 0 ${packed[0] * 24 + 24} 24`)
+        packed[1].setAttribute('width', `${24 * packed[0] + 24}`)
+        packed[1].setAttribute('height', '24')
+        setIconObj([btoa(serializer.serializeToString(packed[1])), iconMapping])
+      }
     }
     setIcons()
   }, [nodesByType, iconUrl])
@@ -396,20 +457,9 @@ const GetNodeIconLayer = () => {
     id: layerId.NODE_ICON_LAYER,
     visible: true,
     data: R.values(nodeData),
-    getIcon: (d) => {
-      const svgString = R.propOr(
-        btoa(renderToStaticMarkup(<MdDownloading />)),
-        d.icon,
-        iconObj
-      )
-      return {
-        url: `data:image/svg+xml;base64,${svgString}`,
-        width: 128,
-        height: 128,
-        anchorY: 128,
-        mask: true,
-      }
-    },
+    iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
+    iconMapping: iconObj[1],
+    getIcon: (d) => d.icon,
     autoHighlight: true,
     getColor: (d) => {
       const colorProp = R.path([d.type, 'colorBy'], legendObjects)
