@@ -198,10 +198,10 @@ export const selectIgnoreLoading = createSelector(selectIgnoreData, (data) =>
 export const selectLocal = (state) => R.propOr({}, 'local')(state)
 // Local -> panes
 export const selectLocalPanes = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'panes')(data)
+  R.prop('panes')(data)
 )
 export const selectLocalPanesData = createSelector(selectLocalPanes, (data) =>
-  R.propOr({}, 'data')(data)
+  R.prop('data', data)
 )
 // Local -> Dashboard
 export const selectLocalDashboard = createSelector(selectLocal, (data) =>
@@ -209,7 +209,7 @@ export const selectLocalDashboard = createSelector(selectLocal, (data) =>
 )
 export const selectLocalDashboardData = createSelector(
   selectLocalDashboard,
-  (data) => R.propOr({}, 'data')(data)
+  (data) => R.prop('data', data)
 )
 // Local -> settings
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
@@ -252,24 +252,25 @@ export const selectGroupedAppBar = createSelector(
     R.toPairs,
     R.groupBy(R.path([1, 'bar'])),
     R.map(R.fromPairs)
-  ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  )
 )
 export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData, selectView],
-  (localAppBarData, appBarData, view) => {
-    const foundId = R.pipe(
-      sortProps,
-      R.toPairs,
-      R.find(R.pathEq([1, 'type'], view)),
-      R.prop(0)
-    )(appBarData)
-    return R.propOr(
-      R.propOr(foundId, 'appBarId', appBarData),
+  (localAppBarData, appBarData, view) =>
+    R.propOr(
+      R.propOr(
+        R.pipe(
+          sortProps,
+          R.toPairs,
+          R.find(R.pathEq([1, 'type'], view)),
+          R.prop(0)
+        )(appBarData),
+        'appBarId',
+        appBarData
+      ),
       'appBarId',
       localAppBarData
     )
-  }
 )
 export const selectStaticMap = createSelector(
   [selectAppBarId, selectAppBarData],
@@ -317,7 +318,7 @@ export const selectDashboardLockedLayout = createSelector(
 // Map -> displayedMap
 export const selectCurrentMapData = createSelector(
   [selectMapData, selectAppBarId],
-  (data, appBarId) => R.propOr({}, appBarId, data)
+  (data, appBarId) => R.prop(appBarId, data)
 )
 
 export const selectDefaultViewport = createSelector(
@@ -336,7 +337,7 @@ export const selectLocalMap = createSelector(selectLocal, (data) =>
   R.propOr({}, 'map')(data)
 )
 export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'data')(data)
+  R.prop('data')(data)
 )
 export const selectCurrentLocalMapData = createSelector(
   [selectLocalMapData, selectAppBarId],
@@ -465,7 +466,14 @@ export const selectLocalGeos = createSelector(selectLocal, (data) =>
 )
 export const selectMergedArcs = createSelector(
   [selectArcs, selectLocalArcs],
-  (arcs, localArcs) => getMergedAllProps(arcs, localArcs)
+  (arcs, localArcs) => getMergedAllProps(arcs, localArcs),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.prop('data', a) === R.prop('data', b) &&
+        R.prop('types', a) === R.prop('types', b),
+    },
+  }
 )
 export const selectMergedNodes = createSelector(
   [selectNodes, selectLocalNodes],
@@ -477,18 +485,15 @@ export const selectMergedGeos = createSelector(
 )
 export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
-  (nodeTypes, localNodes) => R.propOr(nodeTypes, 'types', localNodes),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (nodeTypes, localNodes) => R.propOr(nodeTypes, 'types', localNodes)
 )
 export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
-  (arcTypes, localArcs) => R.propOr(arcTypes, 'types', localArcs),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (arcTypes, localArcs) => R.propOr(arcTypes, 'types', localArcs)
 )
 export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
-  (geoTypes, localGeos) => R.propOr(geoTypes, 'types', localGeos),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (geoTypes, localGeos) => R.propOr(geoTypes, 'types', localGeos)
 )
 // General
 export const selectResolveTime = createSelector([selectTime], (currentTime) =>

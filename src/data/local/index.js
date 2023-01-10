@@ -8,14 +8,6 @@ import settingsReducer, { initialState } from './settingsSlice'
 
 import { sendCommand } from '../data'
 
-import { combineReducers } from '../../utils'
-
-const subReducers = combineReducers({
-  kpis: kpisReducer,
-  map: mapReducer,
-  settings: settingsReducer,
-})
-
 const localSlice = createSlice({
   name: 'local',
   initialState: {},
@@ -67,7 +59,14 @@ const localSlice = createSlice({
 })
 
 const finalReducer = (state, action) => {
-  const partialState = subReducers(state, action)
+  const partialState = R.mergeLeft(
+    {
+      kpis: kpisReducer(R.prop('kpis', state), action),
+      map: mapReducer(R.prop('map', state), action),
+      settings: settingsReducer(R.prop('settings', state), action),
+    },
+    state
+  )
   return localSlice.reducer(partialState, action)
 }
 
