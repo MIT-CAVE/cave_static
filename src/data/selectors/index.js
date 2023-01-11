@@ -256,21 +256,22 @@ export const selectGroupedAppBar = createSelector(
 )
 export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData, selectView],
-  (localAppBarData, appBarData, view) =>
-    R.propOr(
-      R.propOr(
-        R.pipe(
-          sortProps,
-          R.toPairs,
-          R.find(R.pathEq([1, 'type'], view)),
-          R.prop(0)
-        )(appBarData),
-        'appBarId',
-        appBarData
-      ),
+  (localAppBarData, appBarData, view) => {
+    const fallbackId = R.pipe(
+      sortProps,
+      R.toPairs,
+      R.find(R.pathEq([1, 'type'], view)),
+      R.prop(0)
+    )(appBarData)
+    const currentId = R.propOr(
+      R.propOr(fallbackId, 'appBarId', appBarData),
       'appBarId',
       localAppBarData
     )
+    return R.path([currentId, 'type'], appBarData) === view
+      ? currentId
+      : fallbackId
+  }
 )
 export const selectStaticMap = createSelector(
   [selectAppBarId, selectAppBarData],
