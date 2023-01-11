@@ -32,6 +32,7 @@ import Map from './ui/views/map/Map'
 import { includesPath } from './utils'
 import { APP_BAR_WIDTH } from './utils/constants'
 import { viewId } from './utils/enums'
+// import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
 
 const styles = {
   root: {
