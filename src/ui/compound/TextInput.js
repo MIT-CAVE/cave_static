@@ -25,7 +25,7 @@ const TextInput = ({
       }}
       onBlur={() => {
         if (!enabled) return
-        onClickAway(this.state.text)
+        onClickAway(value)
       }}
       helperText={help}
       InputProps={{
