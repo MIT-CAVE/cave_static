@@ -7,33 +7,27 @@ import SnackBar from './SnackBar'
 import { selectMessages } from '../../../data/selectors'
 
 const SnackBarLayout = () => {
-  const filterMessages = (list) => {
-    let to_remove = []
-    for (let i = 1; i < Object.keys(list).length; i++) {
-      if (R.path([i, 'snackbarShow'], list) !== true) {
-        to_remove.push(i)
-      }
-    }
-    for (let i = 0; i < to_remove.length; i++) {
-      R.dissoc(to_remove[i], list)
-    }
-    return list
-  }
+  const messages = useSelector(selectMessages)
 
-  let messages = useSelector(selectMessages)
-  let to_show = null
+  const filterMessages = R.filter(R.prop('snackbarShow'))
+  const calculateDuration = R.pipe(
+    R.propOr(null, 'duration'),
+    R.unless(R.isNil, R.multiply(1000))
+  )
 
-  if (Object.keys(messages).length !== 0) {
-    messages = filterMessages(messages)
-    let keys = R.keys(messages)
-    to_show = (
+  const filteredMessages = filterMessages(messages)
+  const keys = R.keys(filteredMessages)
+
+  return R.isEmpty(filteredMessages) ? (
+    []
+  ) : (
+    <div>
       <SnackBar
-        message={messages[keys[0]].message}
+        message={filteredMessages[keys[0]].message}
         messageKey={keys[0]}
+        duration={calculateDuration(filteredMessages[keys[0]])}
       ></SnackBar>
-    )
-  }
-
-  return <div>{to_show}</div>
+    </div>
+  )
 }
 export default SnackBarLayout
