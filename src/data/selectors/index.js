@@ -83,7 +83,7 @@ export const selectKpis = createSelector(selectData, (data) =>
   R.propOr({}, 'kpis')(data)
 )
 export const selectDash = createSelector(selectData, (data) =>
-  R.propOr({}, 'dashboard')(data)
+  R.propOr({}, 'dashboards')(data)
 )
 export const selectAssociated = createSelector(selectData, (data) =>
   R.propOr({}, 'associated')(data)
@@ -94,7 +94,7 @@ export const selectSettings = createSelector(selectData, (data) =>
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
 )
-export const selectMap = createSelector(selectData, R.propOr({}, 'map'))
+export const selectMap = createSelector(selectData, R.propOr({}, 'maps'))
 // Data -> Types
 export const selectNodeTypes = createSelector(
   selectNodes,
@@ -205,7 +205,7 @@ export const selectLocalPanesData = createSelector(selectLocalPanes, (data) =>
 )
 // Local -> Dashboard
 export const selectLocalDashboard = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'dashboard')(data)
+  R.propOr({}, 'dashboards')(data)
 )
 export const selectLocalDashboardData = createSelector(
   selectLocalDashboard,
@@ -335,7 +335,7 @@ export const selectDefaultViewport = createSelector(
 )
 // Local -> Map
 export const selectLocalMap = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'map')(data)
+  R.propOr({}, 'maps')(data)
 )
 export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
   R.prop('data')(data)

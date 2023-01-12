@@ -92,7 +92,7 @@ const Dashboard = () => {
   const appBarId = useSelector(selectAppBarId)
 
   const DashboardHeader = ({ obj, index }) => {
-    const path = ['dashboard', 'data', appBarId, 'dashboardLayout', index]
+    const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
     return (
       <Grid container wrap="nowrap" sx={styles.header}>
         <HeaderSelectWrapper>

@@ -181,7 +181,7 @@ const MapLegendSizeBySection = ({
   const appBarId = useSelector(selectAppBarId)
 
   const path = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',
@@ -285,7 +285,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
   const isCategorical = !R.has('min', colorRange)
 
   const path = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',
@@ -297,7 +297,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
   const syncToggle = !includesPath(R.values(sync), path)
 
   const colorPath = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',
@@ -413,7 +413,7 @@ const MapLegendNodeToggle = ({
   const colorRange = nodeRange(nodeType, colorProp, false)
   const isCategorical = !R.has('min', colorRange)
   const path = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',
@@ -425,7 +425,7 @@ const MapLegendNodeToggle = ({
   const syncToggle = !includesPath(R.values(sync), path)
 
   const colorPath = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',
@@ -575,7 +575,7 @@ const MapLegendArcToggle = ({
   const colorRange = arcRange(arcType, colorProp, false)
   const isCategorical = !R.has('min', colorRange)
   const path = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',
@@ -587,7 +587,7 @@ const MapLegendArcToggle = ({
   const syncToggle = !includesPath(R.values(sync), path)
 
   const colorPath = [
-    'map',
+    'maps',
     'data',
     appBarId,
     'legendGroups',

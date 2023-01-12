@@ -11,7 +11,7 @@ import {
 } from '../../utils/constants'
 
 export const mapSlice = createSlice({
-  name: 'map',
+  name: 'maps',
   initialState: {},
   reducers: {
     // payload appBarId

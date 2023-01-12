@@ -62,7 +62,7 @@ const finalReducer = (state, action) => {
   const partialState = R.mergeLeft(
     {
       kpis: kpisReducer(R.prop('kpis', state), action),
-      map: mapReducer(R.prop('map', state), action),
+      maps: mapReducer(R.prop('maps', state), action),
       settings: settingsReducer(R.prop('settings', state), action),
     },
     state
