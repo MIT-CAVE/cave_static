@@ -47,12 +47,16 @@ const ActionItems = ({ items = [], disabled }) => {
   return (
     <>
       {visibleItems.map(
-        ({ label, iconName, onClick, disabled: disabledAction }, index) => (
-          <Tooltip title={label} enterDelay={300} leaveDelay={300}>
+        ({ label, iconName, onClick, disabled: disabledAction }) => (
+          <Tooltip
+            key={label.toLocaleLowerCase()}
+            title={label}
+            enterDelay={300}
+            leaveDelay={300}
+          >
             {/* A `span` wrapper to acommodate disabled actions */}
             <span>
               <IconButton
-                key={index}
                 disabled={disabled || disabledAction}
                 {...{ onClick }}
               >
@@ -584,7 +588,7 @@ const SessionPane = ({ width }) => {
                   ({ sessionId, sessionName, sessionDescription }) => {
                     const selected = sessionId === sessionIdCurrent
                     return (
-                      <>
+                      <Fragment key={`${teamId}-${sessionName}`}>
                         {sessionId !== currentAction.sessionId ||
                         // Required to display an item linked to
                         // a create, duplicate or delete action
@@ -626,7 +630,7 @@ const SessionPane = ({ width }) => {
                             onClickCancel={onClickCancelHandler}
                           />
                         ) : null}
-                      </>
+                      </Fragment>
                     )
                   }
                 )}

@@ -103,7 +103,6 @@ export const getFreeName = (name, namesList) => {
 
   let count = 1
   while (namesSet.has(`${name} (${count})`)) count++
-  console.log(`${name} (${count})`)
   return `${name} (${count})`
 }
 
