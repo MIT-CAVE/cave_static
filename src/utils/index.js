@@ -109,6 +109,8 @@ export const getFreeName = (name, namesList) => {
 export const eitherBoolOrNotNull = (value) =>
   typeof value === 'boolean' ? value : value != null
 
+export const getHeadOrValue = R.when(R.is(Array), R.head)
+
 /**
  * Adjust a given icon class
  * @function
