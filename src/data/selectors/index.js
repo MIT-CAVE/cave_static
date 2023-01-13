@@ -15,6 +15,8 @@ import {
   getTimeValue,
   sortProps,
   sortedListById,
+  renameKeys,
+  sortByOrderNameId,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -33,6 +35,14 @@ export const selectCurrentSession = createSelector(selectSessions, (data) =>
 export const selectTeams = createSelector(
   selectSessionsData,
   R.mapObjIndexed((value) => R.dissoc('sessions', value))
+)
+export const selectSortedTeams = createSelector(
+  selectTeams,
+  R.pipe(
+    R.map(renameKeys({ teamId: 'id', teamName: 'name' })),
+    R.values,
+    sortByOrderNameId
+  )
 )
 export const selectSessionsByTeam = createSelector(
   selectSessionsData,

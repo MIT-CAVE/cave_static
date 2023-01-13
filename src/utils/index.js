@@ -97,6 +97,16 @@ export const getSubLabelFn = R.curry((data, item, subItem) =>
   R.pathOr(subItem, [item, 'nestedStructure', subItem, 'name'])(data)
 )
 
+export const getFreeName = (name, namesList) => {
+  const namesSet = new Set(namesList)
+  if (!namesSet.has(name)) return name
+
+  let count = 1
+  while (namesSet.has(`${name} (${count})`)) count++
+  console.log(`${name} (${count})`)
+  return `${name} (${count})`
+}
+
 /**
  * Adjust a given icon class
  * @function
@@ -104,15 +114,13 @@ export const getSubLabelFn = R.curry((data, item, subItem) =>
  * standards.
  * @private
  */
-const toIconInstance = (IconClass, className) => (
+export const toIconInstance = (IconClass, className) => (
   <IconClass className={className} size={36} />
 )
 toIconInstance.propTypes = {
   className: PropTypes.string,
   IconClass: PropTypes.node,
 }
-
-export { toIconInstance }
 
 export const parseArray = (input) => {
   var s = input
@@ -470,6 +478,14 @@ export const sortedListById = R.pipe(
   R.sortBy(R.prop('id'))
 )
 
+export const sortByOrderNameId = R.sortWith([
+  // Infinity due to the fact that non-existent
+  // `order` props move items forward in the list
+  R.ascend(R.propOr(Infinity, 'order')),
+  R.ascend(R.prop('name')),
+  R.ascend(R.prop('id')),
+])
+
 /**
  * list - a list of items with 'order' props to specify their position in the
  * list.
@@ -478,16 +494,7 @@ export const sortedListById = R.pipe(
  * `order`.
  * @private
  */
-export const customSort = R.pipe(
-  toListWithKey('id'),
-  R.sortWith([
-    // Infinity due to the fact that non-existent
-    // `order` props move items forward in the list
-    R.ascend(R.propOr(Infinity, 'order')),
-    R.ascend(R.prop('name')),
-    R.ascend(R.prop('id')),
-  ])
-)
+export const customSort = R.pipe(toListWithKey('id'), sortByOrderNameId)
 
 export const getCategoryItems = R.cond([
   [

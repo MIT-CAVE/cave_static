@@ -4,24 +4,34 @@ import React, { useState } from 'react'
 
 import { getStatusIcon } from '../../utils'
 
+// `controlled` allows to create a `TextInput` instance
+// with `value` and `onChange` controlled by its parent.
+// `controlled` and `onChange` should be used together.
 const TextInput = ({
+  controlled,
+  sx,
   color = 'default',
   enabled,
-  help,
+  label,
   placeholder,
-  value: defaultValue,
-  onClickAway,
+  help,
+  value: valueParent,
+  onChange,
+  onClickAway = () => {},
+  ...props
 }) => {
-  const [value, setValue] = useState(defaultValue)
+  const [value, setValue] = useState(valueParent)
   return (
     <TextField
-      sx={{ width: '100%' }}
-      {...{ placeholder, value }}
+      {...{ label, placeholder, sx, ...props }}
+      disabled={!enabled}
       id="standard-basic"
+      fullWidth
+      value={controlled ? valueParent : value}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
       onChange={(event) => {
-        setValue(event.target.value)
+        controlled ? onChange(event.target.value) : setValue(event.target.value)
       }}
       onBlur={() => {
         if (!enabled) return

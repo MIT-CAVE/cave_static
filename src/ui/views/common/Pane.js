@@ -14,6 +14,7 @@ import OptionsPane from './OptionsPane'
 import SessionPane from './SessionPane'
 
 import { sendCommand } from '../../../data/data'
+import { PANE_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
 import Pane from '../../compound/Pane'
 
@@ -78,7 +79,7 @@ const RefreshButton = () => {
   )
 }
 
-const PaneWrapper = ({ open, pane, ...props }) => (
+const PaneWrapper = ({ open, pane, width, ...props }) => (
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
@@ -90,27 +91,32 @@ const PaneWrapper = ({ open, pane, ...props }) => (
         pane.teamSync && <SyncButton {...{ open, pane }} />
       )
     }
-    width={R.prop('width')(pane)}
-    {...props}
+    {...{ width, ...props }}
   />
 )
 PaneWrapper.propTypes = {
-  open: PropTypes.object,
+  open: PropTypes.string,
   pane: PropTypes.object,
 }
 
-const renderAppPane = ({ open, pane }) => (
-  <PaneWrapper {...{ open, pane }}>
-    {R.cond([
-      // Built-in panes
-      [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
-      [R.equals(paneId.FILTER), R.always(<FilterPane />)],
-      [R.equals(paneId.SESSION), R.always(<SessionPane />)],
-      // Custom panes
-      [R.equals(paneId.OPTIONS), R.always(<OptionsPane />)],
-      [R.equals(paneId.CONTEXT), R.always(<ContextPane />)],
-    ])(pane.variant)}
-  </PaneWrapper>
-)
+const renderAppPane = ({ open, pane }) => {
+  let { width, variant, ...paneProps } = pane
+  // Make `PANE_WIDTH` the default width for the Session pane
+  const paneWidth =
+    variant === paneId.SESSION && width == null ? PANE_WIDTH : width
+  return (
+    <PaneWrapper {...{ open }} width={paneWidth} pane={paneProps}>
+      {R.cond([
+        // Built-in panes
+        [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
+        [R.equals(paneId.FILTER), R.always(<FilterPane />)],
+        [R.equals(paneId.SESSION), R.always(<SessionPane width={paneWidth} />)],
+        // Custom panes
+        [R.equals(paneId.OPTIONS), R.always(<OptionsPane />)],
+        [R.equals(paneId.CONTEXT), R.always(<ContextPane />)],
+      ])(variant)}
+    </PaneWrapper>
+  )
+}
 
 export default renderAppPane
