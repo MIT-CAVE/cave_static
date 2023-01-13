@@ -496,117 +496,127 @@ const SessionPane = ({ width }) => {
             id: teamId,
             teamCountSessions,
             teamLimitSessions,
-          }) => (
-            <Fragment key={teamName.toLocaleLowerCase()}>
-              {/* Team header */}
-              <UnstyledHeader
-                disabled={
-                  currentAction.command != null ||
-                  +teamCountSessions >= +teamLimitSessions // `>` is a sanity check
-                }
-                title={teamName}
-                subtitle="Team"
-                sx={{ pr: 1 }}
-                actionItems={[
-                  {
-                    label: 'Create a new session',
-                    iconName: 'MdOutlineAddBox',
-                    hidden: false,
-                    onClick: () => onClickCreateHandler(teamId),
-                  },
-                ]}
-              />
+          }) => {
+            // Place any new (`create` or `duplicate`) session at the top of the team group
+            const displayNewSessionInput =
+              currentAction.teamId === teamId &&
+              (currentAction.command === 'create' ||
+                currentAction.command === 'duplicate')
 
-              {R.values(sessionsByTeam[teamId]).map(
-                ({ sessionId, sessionName, sessionDescription }, index) => {
-                  const selected = sessionId === sessionIdCurrent
-                  // Place any new (`duplicate` or `create`) session at the top of the team group
-                  const displayNewSessionInput =
-                    index === 0 &&
-                    currentAction.teamId === teamId &&
-                    (currentAction.command === 'create' ||
-                      currentAction.command === 'duplicate')
-                  return (
-                    <>
-                      {displayNewSessionInput &&
-                        (currentAction.command === 'create' ? (
+            return (
+              <Fragment key={teamName.toLocaleLowerCase()}>
+                {/* Team header */}
+                <UnstyledHeader
+                  disabled={
+                    currentAction.command != null ||
+                    +teamCountSessions >= +teamLimitSessions // `>` is a sanity check
+                  }
+                  title={teamName}
+                  subtitle="Team"
+                  sx={{ pr: 1 }}
+                  actionItems={[
+                    {
+                      label: 'Create a new session',
+                      iconName: 'MdOutlineAddBox',
+                      hidden: false,
+                      onClick: () => onClickCreateHandler(teamId),
+                    },
+                  ]}
+                />
+                {displayNewSessionInput &&
+                  (currentAction.command === 'create' ? (
+                    <ListItemSessionCardInput
+                      key="new-session-input"
+                      title="Create session"
+                      sessionName={getFreeName(
+                        'New session',
+                        R.pipe(
+                          R.values,
+                          R.pluck('sessionName')
+                        )(sessionsByTeam[teamId])
+                      )}
+                      sessionDescription=""
+                      onClickConfirm={onClickConfirmCreateHandler}
+                      onClickCancel={onClickCancelHandler}
+                    />
+                  ) : (
+                    <ListItemSessionCardInput
+                      key={`${currentAction.sessionId}-duplicate`}
+                      title="Duplicate session"
+                      sessionName={getFreeName(
+                        R.path([
+                          teamId,
+                          currentAction.sessionId,
+                          'sessionName',
+                        ])(sessionsByTeam), // <- Name of the session in the current pending action
+                        R.pipe(
+                          R.values,
+                          R.pluck('sessionName')
+                        )(sessionsByTeam[teamId])
+                      )}
+                      sessionDescription={R.path([
+                        teamId,
+                        currentAction.sessionId,
+                        'sessionDescription',
+                      ])(sessionsByTeam)} // <- Session description in the current pending action
+                      {...{ sessionDescription }}
+                      onClickConfirm={onClickConfirmDuplicateHandler}
+                      onClickCancel={onClickCancelHandler}
+                    />
+                  ))}
+                {R.values(sessionsByTeam[teamId]).map(
+                  ({ sessionId, sessionName, sessionDescription }) => {
+                    const selected = sessionId === sessionIdCurrent
+                    return (
+                      <>
+                        {sessionId !== currentAction.sessionId ||
+                        // Required to display an item linked to
+                        // a create, duplicate or delete action
+                        currentAction.command === 'create' ||
+                        currentAction.command === 'duplicate' ||
+                        currentAction.command === 'delete' ? (
+                          <ListItemSessionCard
+                            key={sessionId}
+                            // When creating, duplicating, editing or deleting a session,
+                            // all actions are blocked for any other session
+                            disabled={currentAction.command != null}
+                            sx={{ my: 1 }}
+                            {...{ sessionName, selected }}
+                            sessionDescription={
+                              sessionDescription || 'No description available.'
+                            }
+                            selectable={
+                              !selected && currentAction.sessionId == null
+                            }
+                            editable
+                            duplicable={+teamCountSessions < +teamLimitSessions}
+                            removable
+                            onClick={() => onClickHandler(sessionId)}
+                            onClickDuplicate={() =>
+                              onClickDuplicateHandler(teamId, sessionId)
+                            }
+                            onClickEdit={() => onClickEditHandler(sessionId)}
+                            onClickRemove={() =>
+                              onClickRemoveHandler(teamId, sessionId)
+                            }
+                          />
+                        ) : currentAction.command === 'edit' &&
+                          currentAction.source !== 'top-card' ? (
                           <ListItemSessionCardInput
-                            key="new-session-input"
-                            title="Create session"
-                            sessionName={getFreeName(
-                              'New session',
-                              R.pipe(
-                                R.values,
-                                R.pluck('sessionName')
-                              )(sessionsByTeam[teamId])
-                            )}
-                            sessionDescription=""
-                            onClickConfirm={onClickConfirmCreateHandler}
+                            key={sessionId}
+                            title="Edit session"
+                            {...{ sessionName, sessionDescription }}
+                            onClickConfirm={onClickConfirmEditHandler}
                             onClickCancel={onClickCancelHandler}
                           />
-                        ) : (
-                          <ListItemSessionCardInput
-                            key={`${sessionId}-duplicate`}
-                            title="Duplicate session"
-                            sessionName={getFreeName(
-                              sessionName,
-                              R.pipe(
-                                R.values,
-                                R.pluck('sessionName')
-                              )(sessionsByTeam[teamId])
-                            )}
-                            {...{ sessionDescription }}
-                            onClickConfirm={onClickConfirmDuplicateHandler}
-                            onClickCancel={onClickCancelHandler}
-                          />
-                        ))}
-                      {sessionId !== currentAction.sessionId ||
-                      // Required to display an item linked to
-                      // a create, duplicate or delete action
-                      currentAction.command === 'create' ||
-                      currentAction.command === 'duplicate' ||
-                      currentAction.command === 'delete' ? (
-                        <ListItemSessionCard
-                          key={sessionId}
-                          // When creating, duplicating, editing or deleting a session,
-                          // all actions are blocked for any other session
-                          disabled={currentAction.command != null}
-                          sx={{ my: 1 }}
-                          {...{ sessionName, selected }}
-                          sessionDescription={
-                            sessionDescription || 'No description available.'
-                          }
-                          selectable={
-                            !selected && currentAction.sessionId == null
-                          }
-                          editable
-                          duplicable={+teamCountSessions < +teamLimitSessions}
-                          removable
-                          onClick={() => onClickHandler(sessionId)}
-                          onClickDuplicate={() =>
-                            onClickDuplicateHandler(teamId, sessionId)
-                          }
-                          onClickEdit={() => onClickEditHandler(sessionId)}
-                          onClickRemove={() =>
-                            onClickRemoveHandler(teamId, sessionId)
-                          }
-                        />
-                      ) : currentAction.command === 'edit' &&
-                        currentAction.source !== 'top-card' ? (
-                        <ListItemSessionCardInput
-                          key={sessionId}
-                          title="Edit session"
-                          {...{ sessionName, sessionDescription }}
-                          onClickConfirm={onClickConfirmEditHandler}
-                          onClickCancel={onClickCancelHandler}
-                        />
-                      ) : null}
-                    </>
-                  )
-                }
-              )}
-            </Fragment>
-          )
+                        ) : null}
+                      </>
+                    )
+                  }
+                )}
+              </Fragment>
+            )
+          }
         )}
         {currentAction.command === 'delete' && (
           <Dialog
