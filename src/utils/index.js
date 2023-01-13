@@ -106,6 +106,9 @@ export const getFreeName = (name, namesList) => {
   return `${name} (${count})`
 }
 
+export const eitherBoolOrNotNull = (value) =>
+  typeof value === 'boolean' ? value : value != null
+
 /**
  * Adjust a given icon class
  * @function

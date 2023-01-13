@@ -38,7 +38,7 @@ import {
   getGradientBox,
 } from '../../compound'
 
-import { customSort, includesPath } from '../../../utils'
+import { customSort, eitherBoolOrNotNull, includesPath } from '../../../utils'
 
 const styles = {
   paper: {
@@ -321,7 +321,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
           legendName={R.propOr(geoType, 'name')(typeObj)}
           toggle={
             <Switch
-              checked={R.propOr(false, geoType, displayedGeos)}
+              checked={eitherBoolOrNotNull(displayedGeos[geoType])}
               onChange={(event) => {
                 event.target.checked
                   ? dispatch(
@@ -449,7 +449,7 @@ const MapLegendNodeToggle = ({
           legendName={R.propOr(nodeType, 'name')(typeObj)}
           toggle={
             <Switch
-              checked={R.propOr(false, nodeType, displayedNodes)}
+              checked={eitherBoolOrNotNull(displayedNodes[nodeType])}
               onChange={(event) => {
                 event.target.checked
                   ? dispatch(
@@ -609,7 +609,7 @@ const MapLegendArcToggle = ({
           legendName={R.propOr(arcType, 'name')(typeObj)}
           toggle={
             <Switch
-              checked={R.propOr(false, arcType, displayedArcs)}
+              checked={eitherBoolOrNotNull(displayedArcs[arcType])}
               onChange={(event) => {
                 event.target.checked
                   ? dispatch(
