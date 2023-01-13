@@ -21,6 +21,7 @@ const styles = {
     boxSizing: 'border-box',
     maxWidth: `calc(100vw - ${APP_BAR_WIDTH + 1}px)`,
     overflow: 'auto',
+    position: 'relative',
   },
   header: {
     display: 'flex',
@@ -113,7 +114,7 @@ const Pane = ({
   <PaneRoot open={!!open} {...props}>
     <PaneHeader title={name} {...{ iconName, leftButton, rightButton }} />
     <Box sx={[{ minWidth: PANE_WIDTH, width }, styles.content]}>
-      <Box sx={{ minWidth: 'max-content', height: '100%' }}>{children}</Box>
+      <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
     </Box>
   </PaneRoot>
 )

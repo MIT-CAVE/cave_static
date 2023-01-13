@@ -92,7 +92,6 @@ const ActionItems = ({ items = [], disabled }) => {
                 {...{ disabled }}
                 key={label.toLocaleLowerCase()}
                 onClick={() => {
-                  console.log(label)
                   onClick()
                   onCloseHandler()
                 }}
@@ -452,8 +451,8 @@ const SessionPane = ({ width }) => {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        height: '100%',
-        // position: 'relative',
+        height: (theme) => `calc(100% - ${theme.spacing(2.5)})`,
+        position: 'absolute',
         ...(width && {
           width: (theme) => `calc(${PANE_WIDTH}px - ${theme.spacing(5)})`,
         }),
