@@ -12,6 +12,7 @@ import {
   IconButton,
   MenuItem,
   Menu,
+  Stack,
   Typography,
   Tooltip,
 } from '@mui/material'
@@ -48,13 +49,16 @@ const ActionItems = ({ items = [], disabled }) => {
       {visibleItems.map(
         ({ label, iconName, onClick, disabled: disabledAction }, index) => (
           <Tooltip title={label} enterDelay={300} leaveDelay={300}>
-            <IconButton
-              key={index}
-              disabled={disabled || disabledAction}
-              {...{ onClick }}
-            >
-              <FetchedIcon {...{ iconName }} />
-            </IconButton>
+            {/* A `span` wrapper to acommodate disabled actions */}
+            <span>
+              <IconButton
+                key={index}
+                disabled={disabled || disabledAction}
+                {...{ onClick }}
+              >
+                <FetchedIcon {...{ iconName }} />
+              </IconButton>
+            </span>
           </Tooltip>
         )
       )}
@@ -208,17 +212,28 @@ const ListItemSessionCardInput = ({
         disableSpacing
         sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0 }}
       >
-        <IconButton
-          aria-label="confirm changes"
-          onClick={() => {
-            onClickConfirm(inputValues.name, inputValues.description)
-          }}
-        >
-          <FetchedIcon iconName="MdCheck" size={24} />
-        </IconButton>
-        <IconButton aria-label="cancel" onClick={onClickCancel}>
-          <FetchedIcon iconName="MdOutlineCancel" size={24} />
-        </IconButton>
+        <Stack direction="row" spacing={1} paddingBottom={0.75}>
+          <Button
+            aria-label="confirm changes"
+            onClick={() => {
+              onClickConfirm(inputValues.name, inputValues.description)
+            }}
+            // color="success"
+            variant="contained"
+            endIcon={<FetchedIcon iconName="MdCheck" size={24} />}
+          >
+            Confirm
+          </Button>
+          <Button
+            aria-label="cancel"
+            onClick={onClickCancel}
+            color="error"
+            variant="contained"
+            startIcon={<FetchedIcon iconName="MdOutlineCancel" />}
+          >
+            Cancel
+          </Button>
+        </Stack>
       </CardActions>
     </Card>
   )
@@ -647,6 +662,8 @@ const SessionPane = ({ width }) => {
                   onClickConfirmRemoveHandler()
                   setCurrentAction({})
                 }}
+                color="error"
+                variant="outlined"
               >
                 Delete
               </Button>
@@ -656,6 +673,7 @@ const SessionPane = ({ width }) => {
                   setCurrentAction({})
                 }}
                 autoFocus
+                variant="contained"
               >
                 Cancel
               </Button>
