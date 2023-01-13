@@ -465,7 +465,9 @@ const SessionPane = ({ width }) => {
           sessionDescription={sessionDescription || 'No description available.'}
           teamName={teamCurrent.teamName}
           editable
-          duplicable
+          duplicable={
+            +teamCurrent.teamCountSessions < +teamCurrent.teamLimitSessions
+          }
           hideEdit={false}
           hideDuplicate={false}
           hideRemove={false}
