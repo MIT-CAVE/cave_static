@@ -325,11 +325,16 @@ const GetNodeIconLayer = () => {
   const [iconObj, setIconObj] = useState([
     btoa(renderToStaticMarkup(<MdDownloading />)),
   ])
+  const [previousIcons, setPreviousIcons] = useState(new Set())
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findColor = useCallback(
     R.memoizeWith(
-      (d) => d[0],
+      (d) => {
+        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
+        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        return `${d[0]}${propVal}`
+      },
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
         const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
@@ -366,13 +371,17 @@ const GetNodeIconLayer = () => {
             )
       }
     ),
-    [legendObjects, nodesByType, themeType]
+    [legendObjects, themeType]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findSize = useCallback(
     R.memoizeWith(
-      (d) => d[0],
+      (d) => {
+        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
+        const propVal = timePath(['props', sizeProp, 'value'], d[1]).toString()
+        return `${d[0]}${propVal}`
+      },
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = nodeRange(d[1].type, sizeProp, true)
@@ -396,6 +405,7 @@ const GetNodeIconLayer = () => {
         (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
         R.unnest(R.values(nodesByType))
       )
+      if ([...icons].every((x) => previousIcons.has(x))) return
       const newIcons = {}
       for (let icon of icons) {
         newIcons[icon] = await fetchIcon(icon, iconUrl)
@@ -458,17 +468,18 @@ const GetNodeIconLayer = () => {
         [],
         R.toPairs(constructed)
       )
-      // Check if any icons to prevent log errors
+      // Check if icons present to prevent log errors
       if (!R.isEmpty(packed)) {
         // Set dimensions of iconAtlas image
         packed[1].setAttribute('viewBox', `0 0 ${packed[0] * 24 + 24} 24`)
         packed[1].setAttribute('width', `${24 * packed[0] + 24}`)
         packed[1].setAttribute('height', '24')
+        setPreviousIcons(icons)
         setIconObj([btoa(serializer.serializeToString(packed[1])), iconMapping])
       }
     }
     setIcons()
-  }, [nodesByType, iconUrl])
+  }, [nodesByType, iconUrl, previousIcons])
   return new IconLayer({
     id: layerId.NODE_ICON_LAYER,
     visible: true,
