@@ -519,27 +519,17 @@ export const getCategoryItems = R.cond([
   ],
 ])
 
-export const filterItems = (items, filteredList, categories) => {
-  const acceptable = (category, categoryKey) => {
-    const categoryItems = getCategoryItems(R.propOr({}, category)(categories))
-    return (
-      R.isEmpty(R.propOr([], category, filteredList)) ||
-      R.includes(
-        R.path([category, 'data', categoryKey, R.last(categoryItems)])(
-          categories
-        ),
-        R.prop(category, filteredList)
-      )
-    )
-  }
-  return R.filter((item) => {
-    return R.all((object) =>
-      R.any((item) => {
-        return acceptable(object[0], item)
-      }, object[1])
+export const filterItems = (
+  items,
+  filteredList,
+  categories,
+  acceptableFilterCategories
+) =>
+  R.filter((item) =>
+    R.all((object) =>
+      R.any((item) => acceptableFilterCategories.has(item), object[1])
     )(R.toPairs(R.prop('category', item)))
-  })(items)
-}
+  )(items)
 
 // sorts sub objects in obj by order prop - ascending
 export const sortProps = (obj) => {

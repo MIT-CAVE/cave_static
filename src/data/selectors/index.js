@@ -521,9 +521,38 @@ export const selectLayerById = (state, id) =>
   R.path(['local', 'map', 'mapLayers', id])(state)
 
 // Filtering
-export const selectFilterFunction = createSelector(
+export const selectAcceptableFilterCategories = createSelector(
   [selectFiltered, selectCategoriesData],
-  (filtered, categoriesData) => filterItems(R.__, filtered, categoriesData)
+  (filtered, categoriesData) => {
+    const allowedCategories = new Set()
+    for (let category in categoriesData) {
+      const smallestItem = R.pipe(
+        R.path([category, 'nestedStructure']),
+        sortProps,
+        R.keys,
+        R.last
+      )(categoriesData)
+      const filteredItems = R.propOr({}, category, filtered)
+      const categoryItems = R.path([category, 'data'], categoriesData)
+      for (let item in categoryItems) {
+        if (
+          R.isEmpty(filterItems) ||
+          R.includes(
+            R.propOr('', smallestItem, categoryItems[item]),
+            filteredItems
+          )
+        ) {
+          allowedCategories.add(item)
+        }
+      }
+    }
+    return allowedCategories
+  }
+)
+export const selectFilterFunction = createSelector(
+  [selectFiltered, selectCategoriesData, selectAcceptableFilterCategories],
+  (filtered, categoriesData, acceptableFilterCategories) =>
+    filterItems(R.__, filtered, categoriesData, acceptableFilterCategories)
 )
 export const selectFilteredArcsData = createSelector(
   [selectFilterFunction, selectMergedArcs],
