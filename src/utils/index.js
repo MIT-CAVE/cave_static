@@ -519,12 +519,7 @@ export const getCategoryItems = R.cond([
   ],
 ])
 
-export const filterItems = (
-  items,
-  filteredList,
-  categories,
-  acceptableFilterCategories
-) =>
+export const filterItems = (items, acceptableFilterCategories) =>
   R.filter((item) =>
     R.all((object) =>
       R.any((item) => acceptableFilterCategories.has(item), object[1])

@@ -536,7 +536,7 @@ export const selectAcceptableFilterCategories = createSelector(
       const categoryItems = R.path([category, 'data'], categoriesData)
       for (let item in categoryItems) {
         if (
-          R.isEmpty(filterItems) ||
+          R.isEmpty(filteredItems) ||
           R.includes(
             R.propOr('', smallestItem, categoryItems[item]),
             filteredItems
@@ -550,9 +550,8 @@ export const selectAcceptableFilterCategories = createSelector(
   }
 )
 export const selectFilterFunction = createSelector(
-  [selectFiltered, selectCategoriesData, selectAcceptableFilterCategories],
-  (filtered, categoriesData, acceptableFilterCategories) =>
-    filterItems(R.__, filtered, categoriesData, acceptableFilterCategories)
+  [selectAcceptableFilterCategories],
+  (acceptableFilterCategories) => filterItems(R.__, acceptableFilterCategories)
 )
 export const selectFilteredArcsData = createSelector(
   [selectFilterFunction, selectMergedArcs],
