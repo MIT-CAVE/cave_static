@@ -26,6 +26,8 @@ const SnackBar = ({ message, messageKey, duration }) => {
       </IconButton>
     </Fragment>
   )
+  let vertical = 'bottom'
+  let horizontal = 'center'
 
   return (
     <Snackbar
@@ -33,6 +35,7 @@ const SnackBar = ({ message, messageKey, duration }) => {
       message={message}
       action={ClosingButton}
       autoHideDuration={duration}
+      anchorOrigin={{ vertical, horizontal }}
       onClose={handleClose}
     />
   )
