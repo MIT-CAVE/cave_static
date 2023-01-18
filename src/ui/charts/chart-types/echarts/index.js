@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import {
   LineChart,
   BarChart,
@@ -58,6 +57,7 @@ import {
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
+import ReactEChartsCore from 'echarts-for-react/lib/core'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
@@ -1061,54 +1061,46 @@ const CumulativeLineChart = ({
   theme,
   subGrouped,
 }) => {
-  let accumulate = (origin) => {
-    let new_array = []
-    for (let i = 0; i < origin.length; i++) {
-      new_array[i] = R.sum(origin.slice(0, i + 1))
-    }
-    return new_array
-  }
+  const accumulate = R.pipe(
+    R.reduce((acc, value) => R.append(R.sum(R.last(acc), value), acc), [0]),
+    R.drop(1)
+  )
+
   const yData = R.pluck('y')(data)
 
-  if (!subGrouped) {
-    return (
-      <EchartsPlot
-        xData={R.pluck('x')(data)}
-        yData={accumulate(yData)}
-        chartType="line"
-        {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
-      />
-    )
-  } else {
-    const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
-    let track = Object()
-    for (let i = 0; i < yKeys.length; i++) {
-      track[yKeys[i]] = 0
-    }
-    const buildNew = (old) => {
-      let new_y = R.clone(old)
-      for (let i = 0; i < old.length; i++) {
-        for (let k = 0; k < yKeys.length; k++) {
-          if (R.has(yKeys[k])(new_y[i])) {
-            let val = track[yKeys[k]] + old[i][yKeys[k]]
-            new_y[i][yKeys[k]] = val
-            track[yKeys[k]] = val
-          } else {
-            new_y[i][yKeys[k]] = 0
-          }
-        }
-      }
-      return new_y
-    }
-    return (
-      <EchartsPlot
-        xData={R.pluck('x')(data)}
-        yData={buildNew(yData)}
-        chartType="line"
-        {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
-      />
-    )
-  }
+  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+
+  const yKeysWithVals = R.pipe(
+    R.map((val) => [val, 0]),
+    R.fromPairs
+  )(yKeys)
+
+  const buildSubgroup = R.pipe(
+    R.mapAccum(
+      (acc, value) => [
+        R.append(R.mergeWith(R.add, R.last(acc), value), acc),
+        R.mergeWith(R.add, R.last(acc), value),
+      ],
+      [yKeysWithVals]
+    ),
+    R.last
+  )
+
+  return !subGrouped ? (
+    <EchartsPlot
+      xData={R.pluck('x')(data)}
+      yData={accumulate(yData)}
+      chartType="line"
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+    />
+  ) : (
+    <EchartsPlot
+      xData={R.pluck('x')(data)}
+      yData={buildSubgroup(yData)}
+      chartType="line"
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+    />
+  )
 }
 
 export {
