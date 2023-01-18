@@ -2,11 +2,11 @@ import { FormControlLabel, Radio, RadioGroup } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
-import { forceArray, getHeadOrValue } from '../../utils'
+import { forceArray } from '../../utils'
 
 const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, options } = prop
-  const value = currentVal || prop.value
+  const [value] = currentVal || prop.value
   return (
     <RadioGroup sx={[{ pl: 1 }, ...forceArray(sx)]} {...props}>
       {R.values(
@@ -16,7 +16,7 @@ const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
             disabled={!enabled}
             control={
               <Radio
-                value={getHeadOrValue(value)}
+                value={value}
                 name={R.prop('name', val)}
                 checked={key === value}
                 onChange={() => {

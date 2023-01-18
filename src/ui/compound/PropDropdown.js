@@ -4,14 +4,14 @@ import * as R from 'ramda'
 
 import { SimpleDropdown } from './SimpleDropdown'
 
-import { customSort, getHeadOrValue } from '../../utils'
+import { customSort } from '../../utils'
 
 // Select might replace `SimpleDropdown` in the future, once
 // a `ClickAwayListener` + `Select` bug is resolved in MUI.
 // See: https://github.com/mui/material-ui/issues/25578#issuecomment-846222712
 const PropDropdown = ({ prop, currentVal, onChange, ...props }) => {
   const { enabled = false, options } = prop
-  const value = currentVal || prop.value
+  const [value] = currentVal || prop.value
   const optionsListRaw = customSort(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
@@ -19,7 +19,7 @@ const PropDropdown = ({ prop, currentVal, onChange, ...props }) => {
       <SimpleDropdown
         disabled={!enabled}
         sx={{ p: 1.5 }}
-        value={getHeadOrValue(value)}
+        value={value}
         optionsList={R.pluck('id')(optionsListRaw)}
         onSelect={(val) => {
           if (!enabled) return
