@@ -1,10 +1,6 @@
-/** @jsxImportSource @emotion/react */
-import { Button } from '@mui/material'
+import { IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React from 'react'
-import { FaSync } from 'react-icons/fa'
-import { MdRefresh } from 'react-icons/md'
 import { useDispatch } from 'react-redux'
 
 import AppSettingsPane from './AppSettingsPane'
@@ -18,17 +14,29 @@ import { PANE_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
 import Pane from '../../compound/Pane'
 
+import { FetchedIcon } from '../../compound'
+
+const FloatButton = ({ onClick, iconName }) => (
+  <IconButton
+    color="primary"
+    sx={{
+      p: 0.5,
+      border: '1px solid',
+      borderRadius: 1,
+      minHeight: '24px',
+      pointerEvents: '',
+    }}
+    {...{ onClick }}
+  >
+    <FetchedIcon {...{ iconName }} />
+  </IconButton>
+)
+
 const SyncButton = ({ open, pane }) => {
   const dispatch = useDispatch()
   return (
-    <Button
-      variant="outlined"
-      color="greyscale"
-      css={{
-        minHeight: '30px',
-        opacity: '',
-        pointerEvents: '',
-      }}
+    <FloatButton
+      iconName="MdSync"
       onClick={() => {
         if (!pane) return null
         dispatch(
@@ -46,23 +54,14 @@ const SyncButton = ({ open, pane }) => {
           })
         )
       }}
-    >
-      <FaSync />
-    </Button>
+    />
   )
 }
 
 const RefreshButton = () => {
   const dispatch = useDispatch()
   return (
-    <Button
-      variant="outlined"
-      color="greyscale"
-      css={{
-        minHeight: '30px',
-        opacity: '',
-        pointerEvents: '',
-      }}
+    <FloatButton
       onClick={() =>
         dispatch(
           sendCommand({
@@ -73,19 +72,18 @@ const RefreshButton = () => {
           })
         )
       }
-    >
-      <MdRefresh />
-    </Button>
+      iconName="MdRefresh"
+    />
   )
 }
 
-const PaneWrapper = ({ open, pane, width, ...props }) => (
+const PaneWrapper = ({ open, pane, width, variant, ...props }) => (
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
     iconName={R.propOr('BiError', 'icon', pane)}
     rightButton={
-      R.equals(pane.variant, paneId.SESSION) ? (
+      R.equals(variant, paneId.SESSION) ? (
         <RefreshButton />
       ) : (
         pane.teamSync && <SyncButton {...{ open, pane }} />
@@ -105,7 +103,7 @@ const renderAppPane = ({ open, pane }) => {
   const paneWidth =
     variant === paneId.SESSION && width == null ? PANE_WIDTH : width
   return (
-    <PaneWrapper {...{ open }} width={paneWidth} pane={paneProps}>
+    <PaneWrapper {...{ open, variant }} width={paneWidth} pane={paneProps}>
       {R.cond([
         // Built-in panes
         [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
