@@ -262,28 +262,39 @@ const ListItemSessionCard = ({
   onClickDuplicate,
   onClickRemove,
 }) => {
+  // `editable`, `duplicable` and `removable` must be
+  // explicitly defined and assigned a boolean value to
+  // be displayed on the card, whether they are hidden
+  // in menu items or disabled. Otherwise, they are
+  // removed from the available actions.
   const stdActionItems = [
-    {
-      label: 'Edit session',
-      iconName: 'MdEdit',
-      hidden: hideEdit,
-      onClick: onClickEdit,
-      disabled: !editable,
-    },
-    {
-      label: 'Duplicate session',
-      iconName: 'MdCopyAll',
-      hidden: hideDuplicate,
-      onClick: onClickDuplicate,
-      disabled: !duplicable,
-    },
-    {
-      label: 'Delete session',
-      iconName: 'IoMdCloseCircleOutline',
-      hidden: hideRemove,
-      onClick: onClickRemove,
-      disabled: selected || !removable,
-    },
+    editable != null
+      ? {
+          label: 'Edit session',
+          iconName: 'MdEdit',
+          hidden: hideEdit,
+          onClick: onClickEdit,
+          disabled: !editable,
+        }
+      : null,
+    duplicable != null
+      ? {
+          label: 'Duplicate session',
+          iconName: 'MdCopyAll',
+          hidden: hideDuplicate,
+          onClick: onClickDuplicate,
+          disabled: !duplicable,
+        }
+      : null,
+    removable != null
+      ? {
+          label: 'Delete session',
+          iconName: 'IoMdCloseCircleOutline',
+          hidden: hideRemove,
+          onClick: onClickRemove,
+          disabled: selected || !removable,
+        }
+      : null,
   ]
   return (
     <ListItemCard
@@ -472,7 +483,7 @@ const SessionPane = ({ width }) => {
           disabled={currentAction.command != null}
           title="Edit session"
           {...{ sessionName, sessionDescription }}
-          onClickConfirm={() => onClickConfirmEditHandler(sessionIdCurrent)}
+          onClickConfirm={onClickConfirmEditHandler}
           onClickCancel={onClickCancelHandler}
         />
       ) : (
