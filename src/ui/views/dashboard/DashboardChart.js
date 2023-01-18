@@ -18,6 +18,7 @@ import {
 import {
   BarPlot,
   BoxPlot,
+  CumulativeLineChart,
   LinePlot,
   StackedWaterfallChart,
   TableChart,
@@ -333,6 +334,14 @@ const DashboardChart = ({ obj, length }) => {
         />
       ) : obj.chart === 'Waterfall' ? (
         <WaterfallChart
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          subGrouped={subGrouped}
+          {...labels}
+        />
+      ) : obj.chart === 'Cumulative Line' ? (
+        <CumulativeLineChart
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
