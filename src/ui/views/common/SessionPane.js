@@ -123,6 +123,7 @@ const ListItemCard = ({
   titleTypographyProps,
   subtitle,
   subheaderTypographyProps = { variant: 'h6' },
+  subtitleExtra,
   description,
   actionItems = [],
   cardHeaderSx = [],
@@ -146,7 +147,23 @@ const ListItemCard = ({
         <CardHeader
           sx={[{ pb: 1 }, ...forceArray(cardHeaderSx)]}
           action={!selectable && <CardItems {...{ disabled }} />}
-          subheader={subtitle}
+          subheader={
+            <>
+              <Typography {...subheaderTypographyProps} component="span">
+                {subtitle}
+              </Typography>
+              {subtitleExtra && (
+                <Typography
+                  {...subheaderTypographyProps}
+                  component="span"
+                  fontWeight={600}
+                  color="primary"
+                >
+                  {subtitleExtra}
+                </Typography>
+              )}
+            </>
+          }
           {...{ title, titleTypographyProps, subheaderTypographyProps }}
         />
         {description && (
@@ -206,6 +223,7 @@ const ListItemSessionCardInput = ({
           value={inputValues.description}
           label="Session description"
           maxRows={6}
+          minRows={2}
           onChange={(value) => {
             setInputValues(R.assoc('description', value)(inputValues))
           }}
@@ -300,7 +318,8 @@ const ListItemSessionCard = ({
     <ListItemCard
       {...{ disabled, selected, selectable, sx, onClick }}
       title={teamName}
-      subtitle={`${sessionName}${selected ? ' (current)' : ''}`}
+      subtitle={sessionName}
+      subtitleExtra={selected ? ' (current)' : ''}
       description={sessionDescription}
       actionItems={[...stdActionItems, ...extraActionItems]}
     />
@@ -410,7 +429,7 @@ const SessionPane = ({ width }) => {
       sendCommand({
         command: 'session_management',
         data: {
-          session_command: 'copy',
+          session_command: 'clone',
           session_command_data: {
             session_name: name,
             session_description: description,
@@ -474,7 +493,10 @@ const SessionPane = ({ width }) => {
       }}
     >
       {/* Current session view */}
-      <UnstyledHeader title="Your current session:" />
+      <UnstyledHeader
+        title="Current Session:"
+        titleTypographyProps={{ variant: 'h5' }}
+      />
       {/* You are in the session: */}
       {currentAction.sessionId === sessionIdCurrent &&
       currentAction.command === 'edit' &&
@@ -508,7 +530,7 @@ const SessionPane = ({ width }) => {
       )}
 
       <UnstyledHeader
-        title="Teams and sessions"
+        title="Sessions:"
         titleTypographyProps={{ variant: 'h5' }}
         sx={{ py: 3 }}
       />
@@ -697,7 +719,7 @@ const SessionPane = ({ width }) => {
                   setCurrentAction({})
                 }}
                 color="error"
-                variant="outlined"
+                variant="contained"
               >
                 Delete
               </Button>
