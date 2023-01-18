@@ -7,13 +7,13 @@ import {
   MdGraphicEq,
   MdStackedBarChart,
   MdTableChart,
-  MdTimeline,
+  MdShowChart,
   MdVerticalAlignBottom,
   MdVerticalAlignCenter,
   MdVerticalAlignTop,
   MdRefresh,
   MdWaterfallChart,
-  MdCallMade,
+  MdStackedLineChart,
 } from 'react-icons/md'
 import { TbStack2 } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
@@ -73,12 +73,12 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Line',
               value: 'Line',
-              iconClass: MdTimeline,
+              iconClass: MdShowChart,
             },
             {
               label: 'Cumulative Line',
               value: 'Cumulative Line',
-              iconClass: MdCallMade,
+              iconClass: MdStackedLineChart,
             },
             {
               label: 'Waterfall',
@@ -294,7 +294,7 @@ const KpiHeader = memo(({ obj, index }) => {
             {
               label: 'Line',
               value: 'Line',
-              iconClass: MdTimeline,
+              iconClass: MdShowChart,
             },
             // {
             //   label: 'Box Plot',

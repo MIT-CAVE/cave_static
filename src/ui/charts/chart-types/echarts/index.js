@@ -403,8 +403,6 @@ const EchartsBoxPlot = ({
  * @todo Write the documentation by following JSDoc 3.
  */
 const LinePlot = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
-  console.log(R.pluck('x')(data))
-  console.log(R.pluck('y')(data))
   return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
