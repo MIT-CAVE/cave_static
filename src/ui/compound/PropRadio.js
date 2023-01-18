@@ -20,7 +20,7 @@ const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                 name={R.prop('name', val)}
                 checked={key === value}
                 onChange={() => {
-                  if (enabled) onChange(key)
+                  if (enabled) onChange([key])
                 }}
               />
             }
@@ -33,7 +33,7 @@ const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
 }
 PropRadio.propTypes = {
   prop: PropTypes.object,
-  currentVal: PropTypes.string,
+  currentVal: PropTypes.array,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

@@ -22,8 +22,7 @@ const PropDropdown = ({ prop, currentVal, onChange, ...props }) => {
         value={value}
         optionsList={R.pluck('id')(optionsListRaw)}
         onSelect={(val) => {
-          if (!enabled) return
-          onChange(val)
+          if (enabled) onChange([val])
         }}
         getLabel={(value) => R.pathOr(value, [value, 'name'])(indexedOptions)}
       />
@@ -32,7 +31,7 @@ const PropDropdown = ({ prop, currentVal, onChange, ...props }) => {
 }
 PropDropdown.propTypes = {
   prop: PropTypes.object,
-  currentVal: PropTypes.string,
+  currentVal: PropTypes.array,
   onChange: PropTypes.func,
 }
 
