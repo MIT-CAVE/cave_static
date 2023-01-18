@@ -13,6 +13,7 @@ import {
   MdVerticalAlignTop,
   MdRefresh,
   MdWaterfallChart,
+  MdCallMade,
 } from 'react-icons/md'
 import { TbStack2 } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
@@ -73,6 +74,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               label: 'Line',
               value: 'Line',
               iconClass: MdTimeline,
+            },
+            {
+              label: 'Cumulative Line',
+              value: 'Cumulative Line',
+              iconClass: MdCallMade,
             },
             {
               label: 'Waterfall',

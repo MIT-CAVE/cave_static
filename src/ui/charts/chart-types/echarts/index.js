@@ -403,6 +403,8 @@ const EchartsBoxPlot = ({
  * @todo Write the documentation by following JSDoc 3.
  */
 const LinePlot = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
+  console.log(R.pluck('x')(data))
+  console.log(R.pluck('y')(data))
   return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
@@ -1053,6 +1055,64 @@ const StackedWaterfallChart = ({
   )
 }
 
+const CumulativeLineChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  subGrouped,
+}) => {
+  let accumulate = (origin) => {
+    let new_array = []
+    for (let i = 0; i < origin.length; i++) {
+      new_array[i] = R.sum(origin.slice(0, i + 1))
+    }
+    return new_array
+  }
+  const yData = R.pluck('y')(data)
+
+  if (!subGrouped) {
+    return (
+      <EchartsPlot
+        xData={R.pluck('x')(data)}
+        yData={accumulate(yData)}
+        chartType="line"
+        {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+      />
+    )
+  } else {
+    const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+    let track = Object()
+    for (let i = 0; i < yKeys.length; i++) {
+      track[yKeys[i]] = 0
+    }
+    const buildNew = (old) => {
+      let new_y = R.clone(old)
+      for (let i = 0; i < old.length; i++) {
+        for (let k = 0; k < yKeys.length; k++) {
+          if (R.has(yKeys[k])(new_y[i])) {
+            let val = track[yKeys[k]] + old[i][yKeys[k]]
+            new_y[i][yKeys[k]] = val
+            track[yKeys[k]] = val
+          } else {
+            new_y[i][yKeys[k]] = 0
+          }
+        }
+      }
+      return new_y
+    }
+    return (
+      <EchartsPlot
+        xData={R.pluck('x')(data)}
+        yData={buildNew(yData)}
+        chartType="line"
+        {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+      />
+    )
+  }
+}
+
 export {
   FlexibleWrapper,
   LinePlot,
@@ -1060,4 +1120,5 @@ export {
   EchartsBoxPlot as BoxPlot,
   WaterfallChart,
   StackedWaterfallChart,
+  CumulativeLineChart,
 }
