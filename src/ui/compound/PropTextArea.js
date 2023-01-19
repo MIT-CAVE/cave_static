@@ -14,7 +14,7 @@ const getStyles = (enabled) => ({
 })
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, minRows = 2, maxRows = 6 } = prop
+  const { enabled = false, minRows = 2, maxRows = 10 } = prop
   return (
     <Box sx={[getStyles(enabled), forceArray(sx)]} {...props}>
       <TextInput
