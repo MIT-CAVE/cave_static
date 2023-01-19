@@ -55,147 +55,14 @@ const Get3dArcLayer = () => {
   const arcData = R.prop('true', useSelector(selectGroupedEnabledArcs))
   const legendObjects = useSelector(selectEnabledArcs)
 
-  return new ArcLayer(
-    getLayerProps({
-      id: layerId.ARC_LAYER_3D,
-      data: R.values(arcData),
-      visible: true,
-      opacity: 0.4,
-      autoHighlight: true,
-      wrapLongitude: true,
-      getTilt: (d) => d.tilt,
-      greatCircle: false,
-      getHeight: (d) => resolveTime(R.propOr(1, 'height', d)),
-      getSourcePosition: (d) => [
-        resolveTime(d.startLongitude),
-        resolveTime(d.startLatitude),
-        resolveTime(d.startAltitude),
-      ],
-      getTargetPosition: (d) => [
-        resolveTime(d.endLongitude),
-        resolveTime(d.endLatitude),
-        resolveTime(d.endAltitude),
-      ],
-      getSourceColor: (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], legendObjects)
-        const colorRange = arcRange(d.type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        const propVal = timePath(['props', colorProp, 'value'], d).toString()
-
-        return isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', propVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            )
-          : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(resolveTime(R.path(['props', colorProp, 'value'], d)))
-            )
-      },
-      getTargetColor: (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], legendObjects)
-        const colorRange = arcRange(d.type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        const propVal = timePath(['props', colorProp, 'value'], d).toString()
-
-        return isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', propVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            )
-          : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(resolveTime(R.path(['props', colorProp, 'value'], d)))
-            )
-      },
-      widthUnits: 'pixels',
-      getWidth: (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], legendObjects)
-        const sizeRange = arcRange(d.type, sizeProp, true)
-
-        return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(resolveTime(R.prop('startSize', d))),
-          parseFloat(resolveTime(R.prop('endSize', d))),
-          parseFloat(resolveTime(R.path(['props', sizeProp, 'value'], d)))
-        )
-      },
-      positionFormat: `XY`,
-      dashJustified: true,
-      pickable: true,
-      onClick: (d) => {
-        dispatch(
-          openMapModal({
-            appBarId,
-            data: {
-              ...R.propOr({}, 'object')(d),
-              feature: 'arcs',
-              type: R.propOr(d.object.type, 'name')(d),
-              key: R.keys(arcData)[R.propOr(0, 'index', d)],
-            },
-          })
-        )
-      },
-    })
-  )
-}
-
-const GetArcLayer = () => {
-  const dispatch = useDispatch()
-  const arcRange = useSelector(selectArcRange)
-  const themeType = useSelector(selectTheme)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
-  const appBarId = useSelector(selectAppBarId)
-  const arcData = useSelector(selectArcData)
-  const legendObjects = useSelector(selectEnabledArcs)
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findSize = useCallback(
     R.memoizeWith(
-      (d) => d[0],
+      (d) => {
+        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
+        const propVal = timePath(['props', sizeProp, 'value'], d[1])
+        return `${d[0]}${propVal}`
+      },
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d[1].type, sizeProp, true)
@@ -209,13 +76,17 @@ const GetArcLayer = () => {
         )
       }
     ),
-    [legendObjects, arcData]
+    [legendObjects]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findColor = useCallback(
     R.memoizeWith(
-      (d) => d[0],
+      (d) => {
+        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
+        const propVal = timePath(['props', colorProp, 'value'], d[1])
+        return `${d[0]}${propVal}`
+      },
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d[1].type, colorProp, false)
@@ -255,7 +126,137 @@ const GetArcLayer = () => {
             )
       }
     ),
-    [legendObjects, arcData, themeType]
+    [legendObjects, themeType]
+  )
+
+  return new ArcLayer(
+    getLayerProps({
+      id: layerId.ARC_LAYER_3D,
+      data: R.values(arcData),
+      visible: true,
+      opacity: 0.4,
+      autoHighlight: true,
+      wrapLongitude: true,
+      getTilt: (d) => d.tilt,
+      greatCircle: false,
+      getHeight: (d) => resolveTime(R.propOr(1, 'height', d)),
+      getSourcePosition: (d) => [
+        resolveTime(d.startLongitude),
+        resolveTime(d.startLatitude),
+        resolveTime(d.startAltitude),
+      ],
+      getTargetPosition: (d) => [
+        resolveTime(d.endLongitude),
+        resolveTime(d.endLatitude),
+        resolveTime(d.endAltitude),
+      ],
+      getSourceColor: (d) => findColor(d),
+      getTargetColor: (d) => findColor(d),
+      widthUnits: 'pixels',
+      getWidth: (d) => findSize(d),
+      positionFormat: `XY`,
+      dashJustified: true,
+      pickable: true,
+      onClick: (d) => {
+        dispatch(
+          openMapModal({
+            appBarId,
+            data: {
+              ...R.propOr({}, 'object')(d),
+              feature: 'arcs',
+              type: R.propOr(d.object.type, 'name')(d),
+              key: R.keys(arcData)[R.propOr(0, 'index', d)],
+            },
+          })
+        )
+      },
+    })
+  )
+}
+
+const GetArcLayer = () => {
+  const dispatch = useDispatch()
+  const arcRange = useSelector(selectArcRange)
+  const themeType = useSelector(selectTheme)
+  const resolveTime = useSelector(selectResolveTime)
+  const timeProp = useSelector(selectTimeProp)
+  const timePath = useSelector(selectTimePath)
+  const appBarId = useSelector(selectAppBarId)
+  const arcData = useSelector(selectArcData)
+  const legendObjects = useSelector(selectEnabledArcs)
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findSize = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
+        const propVal = timePath(['props', sizeProp, 'value'], d[1])
+        return `${d[0]}${propVal}`
+      },
+      (d) => {
+        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
+        const sizeRange = arcRange(d[1].type, sizeProp, true)
+        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
+        return getScaledValue(
+          timeProp('min', sizeRange),
+          timeProp('max', sizeRange),
+          parseFloat(timeProp('startSize', d[1])),
+          parseFloat(timeProp('endSize', d[1])),
+          propVal
+        )
+      }
+    ),
+    [legendObjects]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findColor = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
+        const propVal = timePath(['props', colorProp, 'value'], d[1])
+        return `${d[0]}${propVal}`
+      },
+      (d) => {
+        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
+        const colorRange = arcRange(d[1].type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+
+        return isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', propVal, colorRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledArray(
+              timeProp('min', colorRange),
+              timeProp('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(
+                resolveTime(R.path(['props', colorProp, 'value'], d[1]))
+              )
+            )
+      }
+    ),
+    [legendObjects, themeType]
   )
   return new PathLayer(
     getLayerProps({
@@ -379,7 +380,7 @@ const GetNodeIconLayer = () => {
     R.memoizeWith(
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1]).toString()
+        const propVal = timePath(['props', sizeProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
@@ -395,7 +396,7 @@ const GetNodeIconLayer = () => {
         )
       }
     ),
-    [legendObjects, nodesByType]
+    [legendObjects]
   )
 
   useEffect(() => {
@@ -532,6 +533,39 @@ const GetGeographyLayer = () => {
 
   const [selectedGeos, setSelectedGeos] = useState([])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findColor = useCallback(
+    R.memoizeWith(
+      (geoObj) => {
+        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
+        const value = timePath(['props', colorProp, 'value'], geoObj)
+        return `${geoObj.geoJsonValue}${value}`
+      },
+      (geoObj) => {
+        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
+        const statRange = geoColorRange(geoObj.type, colorProp, false)
+        const colorRange = R.map((prop) =>
+          R.pathOr(0, [prop, themeType])(statRange)
+        )(['startGradientColor', 'endGradientColor'])
+        const value = timePath(['props', colorProp, 'value'], geoObj)
+        const isCategorical = !R.has('min', statRange)
+
+        return isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', value.toString(), statRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledColor(
+              [timeProp('min', statRange), timeProp('max', statRange)],
+              colorRange,
+              value
+            )
+      }
+    ),
+    [enabledGeos, themeType]
+  )
+
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
     const fetchCache = async () => {
@@ -594,26 +628,7 @@ const GetGeographyLayer = () => {
     getFillColor: (d) => {
       const geoProp = R.path([d.caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
       const geoObj = R.prop(R.path(['properties', geoProp], d))(matchingKeys)
-      const colorProp = R.path([d.caveType, 'colorBy'], enabledGeos)
-      const statRange = geoColorRange(geoObj.type, colorProp, false)
-      const colorRange = R.map((prop) =>
-        R.pathOr(0, [prop, themeType])(statRange)
-      )(['startGradientColor', 'endGradientColor'])
-      const value = timePath(['props', colorProp, 'value'], geoObj)
-      const isCategorical = !R.has('min', statRange)
-      const propVal = timePath(['props', colorProp, 'value'], geoObj).toString()
-
-      return isCategorical
-        ? R.map((val) => parseFloat(val))(
-            R.propOr('rgb(0,0,0)', propVal, statRange)
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          )
-        : getScaledColor(
-            [timeProp('min', statRange), timeProp('max', statRange)],
-            colorRange,
-            value
-          )
+      return findColor(geoObj)
     },
     pickable: true,
     onClick: (d) => {
