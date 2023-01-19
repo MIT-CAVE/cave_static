@@ -133,6 +133,6 @@ if [ $requires_invalidation == "1" ]; then
   printf "\n\n"
 fi
 
-printf "You can access your deployment assets via S3 at:\n https://${S3_BUCKET}.s3.amazonaws.com/${BUILD_VERSION}index.html\n"
+printf "You can access your deployment assets via S3 at:\n https://${S3_BUCKET}.s3.amazonaws.com/${BUILD_VERSION}/index.html\n"
 
-printf "\nYou can access your deployment assets via CDN at:\n $(get_deployed_distribution_domain)/${BUILD_VERSION}index.html\n"
+printf "\nYou can access your deployment assets via CDN at:\n $(get_deployed_distribution_domain)/${BUILD_VERSION}/index.html\n"

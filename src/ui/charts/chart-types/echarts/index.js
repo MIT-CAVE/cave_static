@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import ReactEChartsCore from 'echarts-for-react/lib/core'
 import {
   LineChart,
   BarChart,
@@ -57,7 +58,6 @@ import {
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
@@ -1062,7 +1062,7 @@ const CumulativeLineChart = ({
   subGrouped,
 }) => {
   const accumulate = R.pipe(
-    R.reduce((acc, value) => R.append(R.sum(R.last(acc), value), acc), [0]),
+    R.reduce((acc, value) => R.append(R.add(R.last(acc), value), acc), [0]),
     R.drop(1)
   )
 
