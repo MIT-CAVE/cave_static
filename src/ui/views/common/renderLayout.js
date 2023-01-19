@@ -92,8 +92,20 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     column,
     row,
     data,
+    maxHeightBy = 'row',
     minColumnWidth = `${GRID_COLUMN_WIDTH}px`,
   } = layout
+  const maxRowHeight = R.cond([
+    [R.equals('row'), R.always('auto')],
+    [R.equals('grid'), R.always('1fr')],
+    [
+      R.T,
+      () => {
+        throw Error(`Unknown value "${maxHeightBy}" for \`maxHeightBy\`.`)
+      },
+    ],
+  ])(maxHeightBy)
+
   const numItems = R.pipe(R.defaultTo(unusedItems), R.values, R.length)(data)
   const { numColumns: numColumnsOptimal, numRows: numRowsOptimal } =
     getOptimalGridSize(numColumns, numRows, numItems)
@@ -118,7 +130,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
         sx={{
           display: 'grid',
           gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(${minColumnWidth},auto))`,
-          gridTemplateRows: `repeat(${numRowsOptimal},minmax(min-content,1fr))`,
+          gridTemplateRows: `repeat(${numRowsOptimal},minmax(min-content,${maxRowHeight}))`,
           gridColumnStart: column,
           gridRowStart: row,
           gridAutoFlow,
