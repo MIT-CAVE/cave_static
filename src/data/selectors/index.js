@@ -143,30 +143,6 @@ export const selectSettingsData = createSelector(selectSettings, (data) =>
   R.propOr({}, 'data')(data)
 )
 
-const getMergedAllProps = (data, localData) =>
-  R.pipe(
-    R.propOr(R.propOr({}, 'data', data), 'data'),
-    R.mapObjIndexed((d) =>
-      R.pipe(
-        R.mergeRight(
-          R.pathOr(R.pathOr({}, ['types', d.type])(data), ['types', d.type])(
-            localData
-          )
-        ),
-        R.over(
-          R.lensProp('props'),
-          R.mergeDeepRight(
-            R.pathOr(R.pathOr({}, ['types', d.type, 'props'])(data), [
-              'types',
-              d.type,
-              'props',
-            ])(localData)
-          )
-        )
-      )(d)
-    )
-  )(localData)
-
 // Data -> settings
 export const selectSettingsIconUrl = createSelector(
   selectSettingsData,
@@ -465,6 +441,7 @@ export const selectGeo = createSelector(
   selectMapLayers,
   R.propOr({}, 'geography')
 )
+
 // Local -> features (arcs, nodes, geos)
 export const selectLocalNodes = createSelector(selectLocal, (data) =>
   R.prop('nodes', data)
@@ -474,25 +451,6 @@ export const selectLocalArcs = createSelector(selectLocal, (data) =>
 )
 export const selectLocalGeos = createSelector(selectLocal, (data) =>
   R.prop('geos', data)
-)
-export const selectMergedArcs = createSelector(
-  [selectArcs, selectLocalArcs],
-  (arcs, localArcs) => getMergedAllProps(arcs, localArcs),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.prop('data', a) === R.prop('data', b) &&
-        R.prop('types', a) === R.prop('types', b),
-    },
-  }
-)
-export const selectMergedNodes = createSelector(
-  [selectNodes, selectLocalNodes],
-  (nodes, localNodes) => getMergedAllProps(nodes, localNodes)
-)
-export const selectMergedGeos = createSelector(
-  [selectGeos, selectLocalGeos],
-  (geos, localGeos) => getMergedAllProps(geos, localGeos)
 )
 export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
@@ -505,6 +463,88 @@ export const selectLocalizedArcTypes = createSelector(
 export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
   (geoTypes, localGeos) => R.propOr(geoTypes, 'types', localGeos)
+)
+
+const selectMemoizedMergeFunc = createSelector(
+  [selectLocalizedGeoTypes, selectLocalizedNodeTypes, selectLocalizedArcTypes],
+  (geoTypes, nodeTypes, arcTypes) => {
+    // Accepts a feature - returns a memoized merge function
+    const memoized = (feature) => {
+      const data =
+        feature === 'geos'
+          ? geoTypes
+          : feature === 'nodes'
+          ? nodeTypes
+          : feature === 'arcs'
+          ? arcTypes
+          : {}
+      // The merge function memoized for each node
+      const resultFunc = (d) =>
+        R.pipe(
+          R.mergeRight(R.propOr({}, d.type, data)),
+          R.over(
+            R.lensProp('props'),
+            R.mergeDeepRight(R.pathOr({}, [d.type, 'props'])(data))
+          )
+        )(d)
+
+      const vals = {}
+
+      // Store inputs for equalityCheck
+      const rememberedInputs = {}
+
+      // Check memoized cache - run function if needed
+      const checkCache = (value) => {
+        if (
+          R.isNil(R.prop(value[0], rememberedInputs)) ||
+          !R.equals(rememberedInputs[value[0]], value[1])
+        ) {
+          rememberedInputs[value[0]] = value[1]
+          vals[value[0]] = resultFunc(value[1])
+        }
+        return [value[0], vals[value[0]]]
+      }
+
+      return checkCache
+    }
+    // Return seperate function for each feature
+    return {
+      arcs: memoized('arcs'),
+      nodes: memoized('nodes'),
+      geos: memoized('geos'),
+    }
+  }
+)
+
+const getMergedAllProps = (data, localData, memoized) =>
+  R.pipe(
+    R.propOr(R.propOr({}, 'data', data), 'data'),
+    R.toPairs,
+    R.map(memoized),
+    R.fromPairs
+  )(localData)
+
+export const selectMergedArcs = createSelector(
+  [selectArcs, selectLocalArcs, selectMemoizedMergeFunc],
+  (arcs, localArcs, mergeFunc) =>
+    getMergedAllProps(arcs, localArcs, mergeFunc['arcs']),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.prop('data', a) === R.prop('data', b) &&
+        R.prop('types', a) === R.prop('types', b),
+    },
+  }
+)
+export const selectMergedNodes = createSelector(
+  [selectNodes, selectLocalNodes, selectMemoizedMergeFunc],
+  (nodes, localNodes, mergeFunc) =>
+    getMergedAllProps(nodes, localNodes, mergeFunc['nodes'])
+)
+export const selectMergedGeos = createSelector(
+  [selectGeos, selectLocalGeos, selectMemoizedMergeFunc],
+  (geos, localGeos, mergeFunc) =>
+    getMergedAllProps(geos, localGeos, mergeFunc['geos'])
 )
 // General
 export const selectResolveTime = createSelector([selectTime], (currentTime) =>
