@@ -201,9 +201,6 @@ export const selectLocalDashboardData = createSelector(
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
   R.propOr({}, 'settings')(data)
 )
-export const selectView = createSelector(selectLocalSettings, (data) =>
-  R.prop('view')(data)
-)
 export const selectTheme = createSelector(selectLocalSettings, (data) =>
   R.prop('theme')(data)
 )
@@ -241,12 +238,12 @@ export const selectGroupedAppBar = createSelector(
   )
 )
 export const selectAppBarId = createSelector(
-  [selectLocalAppBarData, selectAppBarData, selectView],
-  (localAppBarData, appBarData, view) => {
+  [selectLocalAppBarData, selectAppBarData],
+  (localAppBarData, appBarData) => {
     const fallbackId = R.pipe(
       sortProps,
       R.toPairs,
-      R.find(R.pathEq([1, 'type'], view)),
+      R.find(R.pathEq([1, 'type'], 'map')),
       R.prop(0)
     )(appBarData)
     const currentId = R.propOr(
@@ -254,9 +251,7 @@ export const selectAppBarId = createSelector(
       'appBarId',
       localAppBarData
     )
-    return R.path([currentId, 'type'], appBarData) === view
-      ? currentId
-      : fallbackId
+    return currentId
   }
 )
 export const selectStaticMap = createSelector(

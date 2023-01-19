@@ -3,11 +3,10 @@ import * as R from 'ramda'
 
 import { overrideState } from './actions'
 
-import { themeId, viewId } from '../../utils/enums'
+import { themeId } from '../../utils/enums'
 
 export const initialState = {
   theme: themeId.DARK,
-  view: viewId.MAP,
   time: 0,
 }
 
@@ -17,9 +16,6 @@ export const settingsSlice = createSlice({
   reducers: {
     themeSelection: (state) => {
       state.theme = state.theme === themeId.DARK ? themeId.LIGHT : themeId.DARK
-    },
-    viewSelection: (state, action) => {
-      state.view = action.payload
     },
     timeSelection: (state, action) => {
       state.time = action.payload
@@ -36,7 +32,7 @@ export const settingsSlice = createSlice({
   },
 })
 
-export const { themeSelection, viewSelection, timeSelection, timeAdvance } =
+export const { themeSelection, timeSelection, timeAdvance } =
   settingsSlice.actions
 
 export default settingsSlice.reducer

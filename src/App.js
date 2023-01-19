@@ -13,13 +13,13 @@ import { useDispatch, useSelector } from 'react-redux'
 import { mutateLocal } from './data/local'
 import {
   selectAppBarData,
+  selectAppBarId,
   selectMapboxToken,
   selectOpenPane,
   selectOpenPanesData,
   selectSecondaryOpenPane,
   selectSync,
   selectTheme,
-  selectView,
 } from './data/selectors'
 import { getTheme } from './theme'
 import AppBar from './ui/views/common/AppBar'
@@ -58,11 +58,11 @@ const styles = {
 const App = () => {
   const mapboxToken = useSelector(selectMapboxToken)
   const themeId = useSelector(selectTheme)
-  const selectedView = useSelector(selectView)
   const open = useSelector(selectOpenPane)
   const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const sync = useSelector(selectSync)
   const appBarData = useSelector(selectAppBarData)
+  const appBarId = useSelector(selectAppBarId)
 
   const dispatch = useDispatch()
   const theme = getTheme(themeId)
@@ -80,6 +80,9 @@ const App = () => {
     [R.equals(viewId.KPI), R.always(<Kpi />)],
     [R.T, null],
   ])
+
+  const findViewType = (appBarId) =>
+    R.pathOr(viewId.MAP, [appBarId, 'type'], appBarData)
 
   const handlePaneClickAway = useCallback(
     (e) => {
@@ -104,7 +107,7 @@ const App = () => {
           <SnackBarLayout />
           <AppBar />
           <Box sx={styles.page}>
-            {renderAppPage(selectedView)}
+            {renderAppPage(findViewType(appBarId))}
             {open && (
               <ClickAwayListener onClickAway={handlePaneClickAway}>
                 <Box sx={styles.pane}>

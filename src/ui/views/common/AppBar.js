@@ -5,17 +5,15 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
-import { viewSelection } from '../../../data/local/settingsSlice'
 import {
   selectTheme,
-  selectView,
   selectAppBarId,
   selectSync,
   selectGroupedAppBar,
   selectOpenPane,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-import { themeId, viewId } from '../../../utils/enums'
+import { themeId } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
@@ -92,7 +90,6 @@ const getAppBarItem = ({
   obj,
   color,
   key,
-  selectedView,
   appBarId,
   changePane,
   sync,
@@ -138,13 +135,8 @@ const getAppBarItem = ({
   ) : type === 'map' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
-      sx={[
-        styles.navBtn,
-        selectedView === viewId.MAP && R.equals(appBarId, key)
-          ? styles.navBtnActive
-          : {},
-      ]}
-      onClick={() => {
+      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
+      onClick={() =>
         dispatch(
           mutateLocal({
             path,
@@ -152,28 +144,13 @@ const getAppBarItem = ({
             sync: !includesPath(R.values(sync), path),
           })
         )
-        dispatch(viewSelection(viewId.MAP))
-      }}
+      }
     />
   ) : type === 'kpi' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
-      sx={[
-        styles.navBtn,
-        selectedView === viewId.KPI ? styles.navBtnActive : {},
-      ]}
-      onClick={() => dispatch(viewSelection(viewId.KPI))}
-    />
-  ) : type === 'stats' ? (
-    <ButtonInTabs
-      {...{ key, icon, color }}
-      sx={[
-        styles.navBtn,
-        selectedView === viewId.DASHBOARD && R.equals(appBarId, key)
-          ? styles.navBtnActive
-          : {},
-      ]}
-      onClick={() => {
+      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
+      onClick={() =>
         dispatch(
           mutateLocal({
             path,
@@ -181,8 +158,21 @@ const getAppBarItem = ({
             sync: !includesPath(R.values(sync), path),
           })
         )
-        dispatch(viewSelection(viewId.DASHBOARD))
-      }}
+      }
+    />
+  ) : type === 'stats' ? (
+    <ButtonInTabs
+      {...{ key, icon, color }}
+      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
+      onClick={() =>
+        dispatch(
+          mutateLocal({
+            path,
+            value: key,
+            sync: !includesPath(R.values(sync), path),
+          })
+        )
+      }
     />
   ) : (
     []
@@ -191,7 +181,6 @@ const getAppBarItem = ({
 
 const AppBar = () => {
   const dispatch = useDispatch()
-  const selectedView = useSelector(selectView)
   const currentThemeId = useSelector(selectTheme)
   const open = useSelector(selectOpenPane)
   const appBar = useSelector(selectGroupedAppBar)
@@ -241,7 +230,6 @@ const AppBar = () => {
               color,
               key,
               obj,
-              selectedView,
               appBarId,
               changePane,
               sync,
@@ -272,7 +260,6 @@ const AppBar = () => {
               color,
               key,
               obj,
-              selectedView,
               appBarId,
               changePane,
               sync,
