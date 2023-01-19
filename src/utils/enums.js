@@ -52,6 +52,8 @@ export const propVariant = {
   CHECKBOX: 'checkbox',
   DROPDOWN: 'dropdown',
   FIELD: 'field',
+  SINGLE: 'single',
+  TEXTAREA: 'textarea',
   RADIO: 'radio',
   SLIDER: 'slider',
 }

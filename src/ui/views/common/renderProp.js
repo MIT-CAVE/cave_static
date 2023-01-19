@@ -13,6 +13,7 @@ import {
   PropNumberSlider,
   PropRadio,
   PropText,
+  PropTextArea,
   PropToggle,
 } from '../../compound'
 
@@ -30,11 +31,12 @@ const getTogglePropRenderFn = R.ifElse(
   R.always(PropToggle),
   invalidVariant('toggle')
 )
-const getTextPropRenderFn = R.ifElse(
-  R.isNil,
-  R.always(PropText),
-  invalidVariant('text')
-)
+const getTextPropRenderFn = R.cond([
+  [R.isNil, R.always(PropText)],
+  [R.equals(propVariant.SINGLE), R.always(PropText)],
+  [R.equals(propVariant.TEXTAREA), R.always(PropTextArea)],
+  [R.T, invalidVariant('text')],
+])
 const getNumberPropRenderFn = R.cond([
   [R.isNil, R.always(PropNumberField)],
   [R.equals(propVariant.FIELD), R.always(PropNumberField)],
