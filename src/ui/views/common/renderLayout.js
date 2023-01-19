@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import renderKpi from './renderKpi'
 import renderProp from './renderProp'
 
-import { GRID_COLUMN_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
 
 import {
@@ -93,7 +92,6 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     row,
     data,
     maxHeightBy = 'row',
-    minColumnWidth = `${GRID_COLUMN_WIDTH}px`,
   } = layout
   const maxRowHeight = R.cond([
     [R.equals('row'), R.always('auto')],
@@ -129,7 +127,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(${minColumnWidth},auto))`,
+          gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(max-content,1fr))`,
           gridTemplateRows: `repeat(${numRowsOptimal},minmax(min-content,${maxRowHeight}))`,
           gridColumnStart: column,
           gridRowStart: row,

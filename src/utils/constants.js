@@ -3,7 +3,6 @@ export const DEFAULT_LOCALE = 'en-US'
 export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/0.0.1'
 
 export const APP_BAR_WIDTH = 70
-export const GRID_COLUMN_WIDTH = 350
 export const PANE_WIDTH = 450
 export const PROP_WIDTH = 300
 export const KPI_WIDTH = 200
