@@ -7,7 +7,7 @@ import { forceArray } from '../../utils'
 
 const style = {
   p: 1,
-  width: '80%',
+  width: '100%',
   minHeight: (theme) => theme.spacing(5),
 }
 

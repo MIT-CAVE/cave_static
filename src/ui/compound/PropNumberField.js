@@ -11,7 +11,7 @@ import { forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   p: 1,
-  width: '80%',
+  width: '100%',
   pointerEvents: enabled ? '' : 'none',
   opacity: enabled ? '' : 0.7,
 })
