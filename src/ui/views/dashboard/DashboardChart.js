@@ -65,6 +65,7 @@ const DashboardChart = ({ obj, length }) => {
   const categoryFunc = useSelector(selectCategoryFunc)
   const numberFormatDefault = useSelector(selectNumberFormat)
 
+  const [previousObj, setPreviousObj] = useState({})
   const [tableData, setTableData] = useState([])
   const [formattedData, setFormattedData] = useState([])
 
@@ -148,6 +149,7 @@ const DashboardChart = ({ obj, length }) => {
         const formattedData = getFormattedData(statValues)
 
         setFormattedData(formattedData)
+        setPreviousObj(obj)
       } else {
         const groupByIdx = R.addIndex(R.groupBy)(
           (val, idx) => idx % R.length(actualStat)
@@ -202,11 +204,11 @@ const DashboardChart = ({ obj, length }) => {
           R.values,
           R.has('level2', obj) ? R.unnest : R.identity
         )(calculatedStats)
-
         setTableData(tableData)
+        setPreviousObj(obj)
       }
     }
-    asyncCalcs()
+    !R.equals(previousObj, obj) && asyncCalcs()
   }, [
     filteredStatsData,
     debug,
@@ -216,6 +218,7 @@ const DashboardChart = ({ obj, length }) => {
     statisticTypes,
     actualStat,
     subGrouped,
+    previousObj,
   ])
 
   const xAxisTitle = obj.category
