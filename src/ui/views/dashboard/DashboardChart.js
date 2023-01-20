@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect, useState, useMemo } from 'react'
+import { memo, useEffect, useState, useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
 
 //Create placeholder data and refactor it here before it's sent to the index.js.
@@ -65,9 +65,10 @@ const DashboardChart = ({ obj, length }) => {
   const categoryFunc = useSelector(selectCategoryFunc)
   const numberFormatDefault = useSelector(selectNumberFormat)
 
-  const [previousObj, setPreviousObj] = useState({})
   const [tableData, setTableData] = useState([])
   const [formattedData, setFormattedData] = useState([])
+
+  const previousDeps = useRef([])
 
   const pathedVar = useMemo(
     () => forcePath(R.propOr([], 'statistic', obj)),
@@ -78,8 +79,20 @@ const DashboardChart = ({ obj, length }) => {
 
   const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
 
+  const deps = [
+    filteredStatsData,
+    debug,
+    obj,
+    categories,
+    categoryFunc,
+    statisticTypes,
+    actualStat,
+    subGrouped,
+  ]
+
   useEffect(() => {
     const asyncCalcs = async () => {
+      previousDeps.current = deps
       const calculation = R.is(Array, actualStat)
         ? `[${R.reduce(
             (acc, stat) =>
@@ -149,7 +162,6 @@ const DashboardChart = ({ obj, length }) => {
         const formattedData = getFormattedData(statValues)
 
         setFormattedData(formattedData)
-        setPreviousObj(obj)
       } else {
         const groupByIdx = R.addIndex(R.groupBy)(
           (val, idx) => idx % R.length(actualStat)
@@ -205,21 +217,19 @@ const DashboardChart = ({ obj, length }) => {
           R.has('level2', obj) ? R.unnest : R.identity
         )(calculatedStats)
         setTableData(tableData)
-        setPreviousObj(obj)
       }
     }
-    !R.equals(previousObj, obj) && asyncCalcs()
-  }, [
-    filteredStatsData,
-    debug,
-    obj,
-    categories,
-    categoryFunc,
-    statisticTypes,
-    actualStat,
-    subGrouped,
-    previousObj,
-  ])
+    const changedDeps = R.addIndex(R.filter)(
+      (val, idx) => val !== previousDeps.current[idx],
+      deps
+    )
+    if (
+      !R.equals(R.length(changedDeps), 1) ||
+      !R.equals(changedDeps[0], previousDeps.current[2])
+    )
+      asyncCalcs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
 
   const xAxisTitle = obj.category
     ? `${getLabelFn(categories)(obj.category)}${
