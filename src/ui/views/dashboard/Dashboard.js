@@ -228,7 +228,7 @@ const Dashboard = () => {
     R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
   )(dashboardLayout)
 
-  const path = ['dashboard', 'data', appBarId, 'dashboardLayout']
+  const path = ['dashboards', 'data', appBarId, 'dashboardLayout']
   return (
     <Container maxWidth={false} sx={styles.root} disableGutters>
       {!isDashboardEmpty && (
