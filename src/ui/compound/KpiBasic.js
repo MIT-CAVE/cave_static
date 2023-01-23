@@ -94,9 +94,7 @@ const KpiBasic = ({
             </Grid>
           )}
           <Grid item xs={10.5}>
-            <Typography sx={styles.title}>
-              <OverflowText text={title} />
-            </Typography>
+            <OverflowText text={title} sx={styles.title} />
           </Grid>
         </Grid>
         <Grid item xs>

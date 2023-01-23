@@ -1,5 +1,6 @@
-import { Divider, Grid, Typography } from '@mui/material'
+import { Divider, Grid } from '@mui/material'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
@@ -26,7 +27,10 @@ const styles = {
 }
 
 const KpiHead = ({ title, icon, style, sx = [], ...props }) => (
-  <Grid sx={[styles.root, style, ...forceArray(sx)]} {...props}>
+  <Grid
+    sx={[styles.root, style, ...forceArray(sx)]}
+    {...R.dissoc('mapKpi', props)}
+  >
     <Grid container item spacing={1} flexWrap="nowrap">
       {icon && (
         <Grid item alignSelf="center">
@@ -34,9 +38,7 @@ const KpiHead = ({ title, icon, style, sx = [], ...props }) => (
         </Grid>
       )}
       <Grid item xs={11}>
-        <Typography sx={styles.title}>
-          <OverflowText text={title} />
-        </Typography>
+        <OverflowText text={title} sx={styles.title} />
       </Grid>
     </Grid>
     <Divider sx={{ mt: 2 }} />

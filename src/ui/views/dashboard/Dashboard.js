@@ -146,7 +146,13 @@ const Dashboard = () => {
           <KpiHeader obj={obj} index={index} />
         )}
 
-        <Grid xs display="flex" justifyContent="flex-end" alignItems="center">
+        <Grid
+          item
+          xs
+          display="flex"
+          justifyContent="flex-end"
+          alignItems="center"
+        >
           {dashboardLayout.length > 1 && (
             <Grid item>
               {maximizedIndex == null ? (

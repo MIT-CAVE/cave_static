@@ -94,9 +94,8 @@ const renderProp = ({ ...props }) => {
   const { type, variant } = prop
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
-
   return (
-    <PropBase {...{ prop }}>
+    <PropBase {...{ prop }} key={R.prop('id', prop)}>
       <PropComponent sx={{ minWidth: PROP_WIDTH }} {...props} />
     </PropBase>
   )

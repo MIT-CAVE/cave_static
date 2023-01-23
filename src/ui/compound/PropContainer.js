@@ -103,7 +103,7 @@ const TitledContainer = ({ elevation = 0, sx, ...props }) => (
 
 const UntitledContainer = ({ children, ...props }) => (
   <BaseContainer {...props}>
-    <Grid container alignItems="center" xs>
+    <Grid container alignItems="center" item xs>
       {children}
     </Grid>
   </BaseContainer>

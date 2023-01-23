@@ -36,14 +36,14 @@ const PropCheckbox = ({ prop, currentVal, onChange, ...props }) => {
 }
 PropCheckbox.propTypes = {
   prop: PropTypes.object,
-  currentVal: PropTypes.oneOfType(
+  currentVal: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.arrayOf(
       PropTypes.shape({
         name: PropTypes.string,
       })
-    )
-  ),
+    ),
+  ]),
   onChange: PropTypes.func,
 }
 

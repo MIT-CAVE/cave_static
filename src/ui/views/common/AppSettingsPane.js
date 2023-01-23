@@ -134,9 +134,8 @@ const AppSettingsPane = ({ ...props }) => {
             R.mapObjIndexed((object, key) => {
               const paths = R.prop('data')(object)
               return R.propOr(false, 'showToggle', object) ? (
-                <div>
+                <div key={key}>
                   <SyncSwitch
-                    key={key}
                     checked={
                       !R.all((path) => R.includes(path, R.values(sync)))(
                         R.values(paths)
