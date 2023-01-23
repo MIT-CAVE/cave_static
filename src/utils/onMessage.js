@@ -9,7 +9,7 @@ const onMessage = (dispatch) => (payload) => {
     console.log('message: ', payload)
     dispatch(addMessage(payload.data))
   } else if (R.prop('event', payload) === 'localMutation') {
-    console.log('localMutation: ', R.prop('data', payload))
+    // console.log('localMutation: ', R.prop('data', payload))
     dispatch(mutateSessions(payload.data))
   } else if (R.prop('event', payload) === 'mutation') {
     // console.log('mutation: ', payload)

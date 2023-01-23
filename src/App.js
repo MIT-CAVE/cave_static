@@ -26,7 +26,7 @@ import AppBar from './ui/views/common/AppBar'
 import Loader from './ui/views/common/Loader'
 import renderAppPane from './ui/views/common/Pane'
 import SecondaryPane from './ui/views/common/SecondaryPane'
-import SnackBarLayout from './ui/views/common/SnackBarLayout'
+import SnackBar from './ui/views/common/SnackBar'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import Kpi from './ui/views/kpi/Kpi'
 import Map from './ui/views/map/Map'
@@ -104,7 +104,7 @@ const App = () => {
       <ThemeProvider theme={theme}>
         <Box sx={styles.root}>
           <Loader />
-          <SnackBarLayout />
+          <SnackBar />
           <AppBar />
           <Box sx={styles.page}>
             {renderAppPage(findViewType(appBarId))}
