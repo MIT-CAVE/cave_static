@@ -1,4 +1,5 @@
 import { Snackbar, IconButton } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import * as R from 'ramda'
 import React, { Fragment } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
@@ -10,6 +11,7 @@ import { removeMessage } from '../../../data/utilities/messagesSlice'
 const SnackBar = () => {
   const messages = useSelector(selectMessages)
   const dispatch = useDispatch()
+  const theme = useTheme()
   const filterMessages = R.filter(R.prop('snackbarShow'))
 
   const filteredMessages = filterMessages(messages)
@@ -39,6 +41,23 @@ const SnackBar = () => {
   let vertical = 'bottom'
   let horizontal = 'center'
 
+  const styles = {
+    error: {
+      background: theme.palette.error.main,
+      color: theme.palette.error.contrastText,
+    },
+    warning: {
+      background: theme.palette.warning.main,
+      color: theme.palette.warning.contrastText,
+    },
+    other: {},
+  }
+
+  const getSx = R.pipe(
+    R.propOr(null, 'snackbarType'),
+    R.propOr(styles.other, R.__, styles)
+  )
+
   return R.isEmpty(filteredMessages) ? (
     []
   ) : (
@@ -47,9 +66,13 @@ const SnackBar = () => {
         open={true}
         message={filteredMessages[keys[0]].message}
         messageKey={keys[0]}
-        duration={calculateDuration(filteredMessages[keys[0]])}
+        onClose={handleClose}
+        autoHideDuration={calculateDuration(filteredMessages[keys[0]])}
         anchorOrigin={{ vertical, horizontal }}
         action={ClosingButton}
+        ContentProps={{
+          sx: getSx(filteredMessages[keys[0]]),
+        }}
       ></Snackbar>
     </div>
   )
