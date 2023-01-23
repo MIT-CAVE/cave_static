@@ -19,10 +19,13 @@ const PropButton = ({ prop, sx = [], ...props }) => {
   const dispatch = useDispatch()
 
   return (
-    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
+    <Box
+      sx={[getStyles(enabled), ...forceArray(sx)]}
+      {...R.dissoc('currentVal', props)}
+    >
       <Button
         variant="contained" // TODO: customizable
-        {...{ enabled }}
+        enabled={enabled.toString()}
         onClick={() => {
           if (!enabled) return
           dispatch(

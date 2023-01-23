@@ -73,7 +73,7 @@ export class ValueRange extends React.Component {
           container
           spacing={2}
           alignItems="center"
-          {...props}
+          {...R.omit(['minValue', 'maxValue', 'number'], props)}
           // css={{ opacity: enabled ? '' : 0.7 }}
         >
           <Grid item xs css={{ margin: '0 16px' }}>

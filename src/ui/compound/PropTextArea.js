@@ -14,7 +14,7 @@ const style = {
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, minRows = 2, maxRows = 10 } = prop
   return (
-    <Box sx={[style, forceArray(sx)]} {...props}>
+    <Box sx={[style, ...forceArray(sx)]} {...props}>
       <TextInput
         multiline
         {...{ enabled, minRows, maxRows }}

@@ -14,7 +14,7 @@ const style = {
 const PropText = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const enabled = prop.enabled || false
   return (
-    <Box sx={[style, forceArray(sx)]} {...props}>
+    <Box sx={[style, ...forceArray(sx)]} {...props}>
       <TextInput
         {...{ enabled }}
         value={currentVal || prop.value}

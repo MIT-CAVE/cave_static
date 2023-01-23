@@ -1,5 +1,6 @@
 import { Box, Divider, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 import React from 'react'
 
 import InfoButton from './InfoButton'
@@ -29,7 +30,7 @@ const styles = {
 const PropHead = ({ prop = {}, sx = [], ...props }) => {
   const { id, name, help, style } = prop
   return (
-    <Box sx={[style, ...forceArray(sx)]} {...props}>
+    <Box sx={[style, ...forceArray(sx)]} {...R.dissoc('currentVal', props)}>
       <Box sx={styles.root}>
         <Typography variant="h5">{name || id}</Typography>
         {help && (
