@@ -401,6 +401,8 @@ const GetNodeIconLayer = () => {
 
   useEffect(() => {
     const setIcons = async () => {
+      const scale = 6
+      const iconResolution = scale * 24
       const icons = new Set()
       R.forEach(
         (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
@@ -423,22 +425,26 @@ const GetNodeIconLayer = () => {
         (acc, [iconName, svgStr]) => {
           // first icon - use svg wrapper
           if (R.isEmpty(acc)) {
+            // scale up group to increase render resolution
             const group = parser.parseFromString(
-              `<g xmlns="http://www.w3.org/2000/svg"></g>`,
+              `<g xmlns="http://www.w3.org/2000/svg" transform="scale(${scale},${scale})"></g>`,
               'image/svg+xml'
             ).firstChild
             const svgElem = parser.parseFromString(
               svgStr,
               'image/svg+xml'
             ).firstChild
+            // move svg data to group
             group.innerHTML = svgElem.innerHTML
             svgElem.innerHTML = ''
+            // add group to image
             svgElem.appendChild(group)
+            // add mapping
             iconMapping[iconName] = {
               x: 0,
               y: 0,
-              width: 24,
-              height: 24,
+              width: iconResolution,
+              height: iconResolution,
               mask: true,
             }
             return [1, svgElem]
@@ -446,24 +452,32 @@ const GetNodeIconLayer = () => {
           // all subsequent icons - add to existing image
           const group = parser.parseFromString(
             `<g xmlns="http://www.w3.org/2000/svg" transform="translate(${
-              acc[0] * 24
-            })"></g>`,
+              // translate horizontally to prevent overlap
+              acc[0] * iconResolution
+            }) scale(${scale},${scale})"></g>`,
             'image/svg+xml'
           ).firstChild
+          // take svg data from icon - put in group
           group.innerHTML = parser.parseFromString(
             svgStr,
             'image/svg+xml'
           ).firstChild.innerHTML
-
+          // add group to existing image
           acc[1].appendChild(group)
-          acc[1].setAttribute('viewBox', `0 0 ${acc[0] * 24 + 24} 24`)
+          // update image size
+          acc[1].setAttribute(
+            'viewBox',
+            `0 0 ${acc[0] * iconResolution + iconResolution} ${iconResolution}`
+          )
+          // add new image to mapping
           iconMapping[iconName] = {
-            x: acc[0] * 24,
+            x: acc[0] * iconResolution,
             y: 0,
-            width: 24,
-            height: 24,
+            width: iconResolution,
+            height: iconResolution,
             mask: true,
           }
+          // acc becomes [numIcons, packedImage]
           return [acc[0] + 1, acc[1]]
         },
         [],
@@ -472,9 +486,15 @@ const GetNodeIconLayer = () => {
       // Check if icons present to prevent log errors
       if (!R.isEmpty(packed)) {
         // Set dimensions of iconAtlas image
-        packed[1].setAttribute('viewBox', `0 0 ${packed[0] * 24 + 24} 24`)
-        packed[1].setAttribute('width', `${24 * packed[0] + 24}`)
-        packed[1].setAttribute('height', '24')
+        packed[1].setAttribute(
+          'viewBox',
+          `0 0 ${packed[0] * iconResolution + iconResolution} ${iconResolution}`
+        )
+        packed[1].setAttribute(
+          'width',
+          `${iconResolution * packed[0] + iconResolution}`
+        )
+        packed[1].setAttribute('height', iconResolution)
         setPreviousIcons(icons)
         setIconObj([btoa(serializer.serializeToString(packed[1])), iconMapping])
       }
