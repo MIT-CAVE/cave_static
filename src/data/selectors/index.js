@@ -29,6 +29,9 @@ export const selectSessionsData = createSelector(
   selectSessions,
   R.propOr({}, 'data')
 )
+export const selectSessionLoading = createSelector(selectSessions, (data) =>
+  R.prop('session_loading')(data)
+)
 export const selectCurrentSession = createSelector(selectSessions, (data) =>
   R.prop('session_id')(data)
 )
@@ -179,7 +182,11 @@ export const selectDashboardData = createSelector(selectDash, (data) =>
 export const selectIgnoreLoading = createSelector(selectIgnoreData, (data) =>
   R.propOr(false, 'loading')(data)
 )
-
+// Loading
+export const selectShowLoading = createSelector(
+  [selectIgnoreLoading, selectSessionLoading],
+  (ignore, session) => ignore || session
+)
 // Local
 export const selectLocal = (state) => R.propOr({}, 'local')(state)
 // Local -> panes
