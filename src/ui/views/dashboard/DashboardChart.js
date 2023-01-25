@@ -78,7 +78,7 @@ const DashboardChart = ({ obj, length }) => {
   // Checks if y values are arrays to prevent crash while calculating
   const checkBoxplotData = R.pipe(
     R.last,
-    R.propOr({}, [(0, 'y')]),
+    R.propOr({}, 'y'),
     R.values,
     R.last,
     R.is(Array)
@@ -149,6 +149,7 @@ const DashboardChart = ({ obj, length }) => {
           : R.map(R.pipe(R.filter(R.is(Number)), mergeFuncs[obj.grouping]))(
               calculatedStats
             )
+
       // Ordering for the X's in the chart
       const ordering = R.pathOr(
         [],
