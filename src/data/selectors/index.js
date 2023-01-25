@@ -276,9 +276,26 @@ export const selectOpenPanesData = createSelector(
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectFiltered = createSelector(
-  [selectPanes, selectLocalPanes],
-  (panes, localPanes) =>
-    R.propOr(R.propOr({}, 'filtered', panes), 'filtered', localPanes),
+  [selectPanes, selectLocalPanes, selectCategoriesData],
+  (panes, localPanes, categoriesData) => {
+    const selected = R.propOr(
+      R.propOr({}, 'filtered', panes),
+      'filtered',
+      localPanes
+    )
+    return R.mapObjIndexed((val, category) => {
+      const smallestItem = R.pipe(
+        R.path([category, 'nestedStructure']),
+        sortProps,
+        R.keys,
+        R.last
+      )(categoriesData)
+      const selectedVal = R.propOr([], category, selected)
+      return R.isEmpty(selectedVal)
+        ? R.pipe(R.prop('data'), R.pluck(smallestItem), R.values)(val)
+        : selectedVal
+    })(categoriesData)
+  },
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Merged Dashboards
@@ -566,8 +583,9 @@ export const selectLayerById = (state, id) =>
 export const selectAcceptableFilterCategories = createSelector(
   [selectFiltered, selectCategoriesData],
   (filtered, categoriesData) => {
-    const allowedCategories = new Set()
+    const allowedCategories = {}
     for (let category in categoriesData) {
+      allowedCategories[category] = new Set()
       const smallestItem = R.pipe(
         R.path([category, 'nestedStructure']),
         sortProps,
@@ -584,7 +602,7 @@ export const selectAcceptableFilterCategories = createSelector(
             filteredItems
           )
         ) {
-          allowedCategories.add(item)
+          allowedCategories[category].add(item)
         }
       }
     }

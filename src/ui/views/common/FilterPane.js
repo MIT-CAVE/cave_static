@@ -97,7 +97,6 @@ const FilterPane = () => {
                 R.toPairs(formattedCategory)
               )
             )
-
             return (
               <Card raised sx={styles.root} key={key}>
                 {R.equals(secondaryOpen, { key: 'Filter', category: key }) ? (
@@ -137,7 +136,7 @@ const FilterPane = () => {
                   {R.pathOr(key, [key, 'name'])(categories)}
                 </Box>
                 <Box sx={styles.paddedDiv}>
-                  {filtered.length === 0
+                  {filtered.length === R.length(R.keys(data))
                     ? 'All items'
                     : R.join(', ', highestTruths.filter(Boolean))}
                 </Box>
