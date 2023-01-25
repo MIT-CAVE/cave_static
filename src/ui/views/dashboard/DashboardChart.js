@@ -75,6 +75,15 @@ const DashboardChart = ({ obj, length }) => {
     [obj]
   )
 
+  // Checks if y values are arrays to prevent crash while calculating
+  const checkBoxplotData = R.pipe(
+    R.last,
+    R.propOr({}, [(0, 'y')]),
+    R.values,
+    R.last,
+    R.is(Array)
+  )
+
   const subGrouped = R.has('level2')(obj)
 
   const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
@@ -140,7 +149,6 @@ const DashboardChart = ({ obj, length }) => {
           : R.map(R.pipe(R.filter(R.is(Number)), mergeFuncs[obj.grouping]))(
               calculatedStats
             )
-
       // Ordering for the X's in the chart
       const ordering = R.pathOr(
         [],
@@ -309,7 +317,9 @@ const DashboardChart = ({ obj, length }) => {
         />
       ) : obj.chart === 'Box Plot' ? (
         <BoxPlot
-          data={formattedData}
+          data={
+            !subGrouped || checkBoxplotData(formattedData) ? formattedData : []
+          }
           numberFormat={commonFormat}
           theme={themeId}
           subGrouped={subGrouped}
