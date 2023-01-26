@@ -399,10 +399,24 @@ const GetNodeIconLayer = () => {
     [legendObjects]
   )
 
+  const getSvgResolution = R.pipe(
+    (elem) => elem.getAttribute('viewBox'),
+    R.split(' '),
+    R.reduce(R.max, 0)
+  )
+
+  const createGroup = (position, resolution, scale, parser) => {
+    return parser.parseFromString(
+      `<g xmlns="http://www.w3.org/2000/svg" transform="translate(${
+        // translate horizontally to prevent overlap
+        position * resolution
+      }) scale(${scale},${scale})"></g>`,
+      'image/svg+xml'
+    ).firstChild
+  }
   useEffect(() => {
     const setIcons = async () => {
-      const scale = 6
-      const iconResolution = scale * 24
+      const iconResolution = 144
       const icons = new Set()
       R.forEach(
         (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
@@ -425,15 +439,13 @@ const GetNodeIconLayer = () => {
         (acc, [iconName, svgStr]) => {
           // first icon - use svg wrapper
           if (R.isEmpty(acc)) {
-            // scale up group to increase render resolution
-            const group = parser.parseFromString(
-              `<g xmlns="http://www.w3.org/2000/svg" transform="scale(${scale},${scale})"></g>`,
-              'image/svg+xml'
-            ).firstChild
             const svgElem = parser.parseFromString(
               svgStr,
               'image/svg+xml'
             ).firstChild
+            // scale group to correct render resolution
+            const scale = iconResolution / getSvgResolution(svgElem)
+            const group = createGroup(0, iconResolution, scale, parser)
             // move svg data to group
             group.innerHTML = svgElem.innerHTML
             svgElem.innerHTML = ''
@@ -450,18 +462,14 @@ const GetNodeIconLayer = () => {
             return [1, svgElem]
           }
           // all subsequent icons - add to existing image
-          const group = parser.parseFromString(
-            `<g xmlns="http://www.w3.org/2000/svg" transform="translate(${
-              // translate horizontally to prevent overlap
-              acc[0] * iconResolution
-            }) scale(${scale},${scale})"></g>`,
-            'image/svg+xml'
-          ).firstChild
-          // take svg data from icon - put in group
-          group.innerHTML = parser.parseFromString(
+          const iconElem = parser.parseFromString(
             svgStr,
             'image/svg+xml'
-          ).firstChild.innerHTML
+          ).firstChild
+          const scale = iconResolution / getSvgResolution(iconElem)
+          const group = createGroup(acc[0], iconResolution, scale, parser)
+          // take svg data from icon - put in group
+          group.innerHTML = iconElem.innerHTML
           // add group to existing image
           acc[1].appendChild(group)
           // update image size
@@ -500,7 +508,7 @@ const GetNodeIconLayer = () => {
       }
     }
     setIcons()
-  }, [nodesByType, iconUrl, previousIcons])
+  }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
   return new IconLayer({
     id: layerId.NODE_ICON_LAYER,
     visible: true,
