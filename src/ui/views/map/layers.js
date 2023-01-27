@@ -45,13 +45,11 @@ const getLayerProps = (props) =>
 const lineTypes = { solid: [0, 0], dashed: [7, 3], dotted: [2, 2] }
 
 const Get3dArcLayer = () => {
-  const dispatch = useDispatch()
   const arcRange = useSelector(selectArcRange)
   const themeType = useSelector(selectTheme)
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
-  const appBarId = useSelector(selectAppBarId)
   const arcData = R.prop('true', useSelector(selectGroupedEnabledArcs))
   const legendObjects = useSelector(selectEnabledArcs)
 
@@ -157,31 +155,16 @@ const Get3dArcLayer = () => {
       positionFormat: `XY`,
       dashJustified: true,
       pickable: true,
-      onClick: (d) => {
-        dispatch(
-          openMapModal({
-            appBarId,
-            data: {
-              ...R.propOr({}, 'object')(d),
-              feature: 'arcs',
-              type: R.propOr(d.object.type, 'name')(d),
-              key: R.keys(arcData)[R.propOr(0, 'index', d)],
-            },
-          })
-        )
-      },
     })
   )
 }
 
 const GetArcLayer = () => {
-  const dispatch = useDispatch()
   const arcRange = useSelector(selectArcRange)
   const themeType = useSelector(selectTheme)
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
-  const appBarId = useSelector(selectAppBarId)
   const arcData = useSelector(selectArcData)
   const legendObjects = useSelector(selectEnabledArcs)
 
@@ -291,27 +274,14 @@ const GetArcLayer = () => {
         return lineTypes[lineType]
       },
       dashJustified: true,
+      dashGapPickable: true,
       extensions: [new PathStyleExtension({ dash: true })],
       pickable: true,
-      onClick: (d) => {
-        dispatch(
-          openMapModal({
-            appBarId,
-            data: {
-              ...R.pathOr({}, ['object', 1])(d),
-              feature: 'arcs',
-              type: R.propOr(d.object[1].type, 'name')(d.object[1]),
-              key: d.object[0],
-            },
-          })
-        )
-      },
     })
   )
 }
 
 const GetNodeIconLayer = () => {
-  const dispatch = useDispatch()
   const nodeData = useSelector(selectNodeData)
   const nodesByType = useSelector(selectNodesByType)
   const nodeRange = useSelector(selectNodeRange)
@@ -320,7 +290,6 @@ const GetNodeIconLayer = () => {
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
-  const appBarId = useSelector(selectAppBarId)
   const legendObjects = useSelector(selectEnabledNodes)
 
   const [iconObj, setIconObj] = useState([
@@ -530,23 +499,10 @@ const GetNodeIconLayer = () => {
       resolveTime(d[1].altitude + 1),
     ],
     pickable: true,
-    onClick: (d) => {
-      dispatch(
-        openMapModal({
-          appBarId,
-          data: {
-            ...R.pathOr({}, ['object', 1])(d),
-            feature: 'nodes',
-            type: R.propOr(d.object[1].type, 'name')(d.object[1]),
-            key: d.object[0],
-          },
-        })
-      )
-    },
   })
 }
 
-const GetGeographyLayer = () => {
+const GetGeographyLayer = (openGeo) => {
   const enabledGeos = useSelector(selectEnabledGeos)
   const timePath = useSelector(selectTimePath)
   const geoColorRange = useSelector(selectGeoColorRange)
@@ -660,6 +616,7 @@ const GetGeographyLayer = () => {
     },
     pickable: true,
     onClick: (d) => {
+      if (!openGeo(d)) return false
       const caveType = R.path(['object', 'caveType'], d)
       const geoProp = R.path([caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
       const geoObj = R.prop(R.path(['object', 'properties', geoProp], d))(
@@ -680,8 +637,8 @@ const GetGeographyLayer = () => {
   })
 }
 
-export const getLayers = () => [
-  GetGeographyLayer(),
+export const getLayers = (openGeo) => [
+  GetGeographyLayer(openGeo),
   GetArcLayer(),
   Get3dArcLayer(),
   GetNodeIconLayer(),
