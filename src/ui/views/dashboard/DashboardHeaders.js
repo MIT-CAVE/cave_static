@@ -53,6 +53,14 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
+  const groupByOptions =
+    R.has('statistic')(obj) && R.propIs(String, 'statistic', obj)
+      ? R.path([R.prop('statistic', obj), 'groupByOptions'], statisticTypes)
+      : R.keys(categories)
+  const groupableCategories = R.isNil(groupByOptions)
+    ? categories
+    : R.pick(groupByOptions, categories)
+
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
   return (
     <>
@@ -206,7 +214,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             R.props(['category', 'level']),
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
-          items={R.mapObjIndexed(getCategoryItems)(categories)}
+          items={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
           placeholder="Group By"
           subItemLayouts={R.pipe(
             R.values,
@@ -245,7 +253,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             R.props(['category2', 'level2']),
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
-          items={R.mapObjIndexed(getCategoryItems)(categories)}
+          items={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
           placeholder="Sub Group"
           subItemLayouts={R.pipe(
             R.values,
