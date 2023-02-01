@@ -15,12 +15,13 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
-import { themeSelection } from '../../../data/local/settingsSlice'
+import { themeSelection, toggleTouch } from '../../../data/local/settingsSlice'
 import {
   selectData,
   selectSync,
   selectSyncToggles,
   selectTheme,
+  selectTouchMode,
 } from '../../../data/selectors'
 import { themeId } from '../../../utils/enums'
 
@@ -99,6 +100,29 @@ const ThemeSwitch = ({ onClick, ...props }) => {
 }
 ThemeSwitch.propTypes = { onClick: PropTypes.func }
 
+const TouchSwitch = ({ ...props }) => {
+  const touchMode = useSelector(selectTouchMode)
+  const dispatch = useDispatch()
+  return (
+    <FormControl component="fieldset">
+      <FormGroup aria-label="position" row>
+        <FormControlLabel
+          value="start"
+          control={
+            <Switch
+              checked={touchMode}
+              onClick={() => dispatch(toggleTouch())}
+              {...props}
+            />
+          }
+          label={`Touch mode`}
+          labelPlacement="start"
+        />
+      </FormGroup>
+    </FormControl>
+  )
+}
+
 const SyncSwitch = ({ checked, label, onClick, ...props }) => (
   <Grid container spacing={0} alignItems="center" {...props}>
     <Grid item xs={2}>
@@ -125,6 +149,9 @@ const AppSettingsPane = ({ ...props }) => {
     <>
       <FieldContainer title="Theme">
         <ThemeSwitch onClick={() => dispatch(themeSelection())} />
+      </FieldContainer>
+      <FieldContainer title="Touch">
+        <TouchSwitch />
       </FieldContainer>
       {R.isEmpty(syncToggles) ? (
         []

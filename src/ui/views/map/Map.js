@@ -22,6 +22,7 @@ import {
   selectMapModal,
   selectStaticMap,
   selectAppBarId,
+  selectTouchMode,
 } from '../../../data/selectors'
 import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -45,6 +46,7 @@ const Map = ({ mapboxToken }) => {
   const mapModal = useSelector(selectMapModal)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
+  const touchMode = useSelector(selectTouchMode)
 
   const deckRef = useRef({})
 
@@ -135,7 +137,6 @@ const Map = ({ mapboxToken }) => {
     },
     [appBarId, dispatch]
   )
-
   return (
     <Fragment>
       <MapControls />
@@ -149,6 +150,7 @@ const Map = ({ mapboxToken }) => {
         <ScaleControl />
         <DeckGL
           onClick={onClick}
+          onHover={touchMode ? onClick : R.identity}
           ref={deckRef}
           views={new MapView({ repeat: true })}
           getCursor={({ isDragging, isHovering }) =>
