@@ -21,7 +21,7 @@ import {
   // HeatmapChart,
   // PictorialBarChart,
   // ThemeRiverChart,
-  // SunburstChart,
+  SunburstChart,
   CustomChart,
 } from 'echarts/charts'
 import {
@@ -86,6 +86,7 @@ echarts.use([
   GraphChart,
   CanvasRenderer,
   CustomChart,
+  SunburstChart,
 ])
 
 const FlexibleWrapper = ({ children, ...props }) => (
@@ -1103,6 +1104,53 @@ const CumulativeLineChart = ({
   )
 }
 
+const Sunburst = ({ data, theme }) => {
+  const renameKeys = R.curry((keysMap, obj) =>
+    R.reduce(
+      (acc, key) => R.assoc(keysMap[key] || key, obj[key], acc),
+      {},
+      R.keys(obj)
+    )
+  )
+  let normalData = R.pipe(
+    R.map(renameKeys({ x: 'name' })),
+    R.map(renameKeys({ y: 'value' }))
+  )(data)
+
+  const options = {
+    series: {
+      radius: [0, '80%'],
+      label: {
+        rotate: 'radial',
+      },
+      type: 'sunburst',
+      sort: undefined,
+      emphasis: {
+        focus: 'ancestor',
+      },
+      data: normalData,
+    },
+  }
+  console.log(normalData)
+
+  return (
+    <div style={{ flex: '1 1 auto' }}>
+      <AutoSizer>
+        {({ height, width }) => (
+          <ReactEChartsCore
+            echarts={echarts}
+            option={options}
+            style={{ height, width }}
+            theme={theme}
+            notMerge
+            lazyUpdate
+          />
+        )}
+      </AutoSizer>
+    </div>
+  )
+}
+
 export {
   FlexibleWrapper,
   LinePlot,
@@ -1111,4 +1159,5 @@ export {
   WaterfallChart,
   StackedWaterfallChart,
   CumulativeLineChart,
+  Sunburst,
 }
