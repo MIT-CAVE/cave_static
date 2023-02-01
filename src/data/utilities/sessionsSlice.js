@@ -5,6 +5,7 @@ export const sessionsSlice = createSlice({
   name: 'sessions',
   initialState: {
     session_id: 0,
+    session_loading: false,
   },
   reducers: {
     // Update sessions from ws message
