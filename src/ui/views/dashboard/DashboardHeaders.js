@@ -103,8 +103,8 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconClass: MdTableChart,
             },
             {
-              label: 'Sunburst',
-              value: 'Sunburst',
+              label: 'Sunburst Chart',
+              value: 'Sunburst Chart',
               iconClass: MdDonutLarge,
             },
           ]}

@@ -1104,7 +1104,7 @@ const CumulativeLineChart = ({
   )
 }
 
-const Sunburst = ({ data, theme }) => {
+const Sunburst = ({ data, theme, subGrouped }) => {
   const renameKeys = R.curry((keysMap, obj) =>
     R.reduce(
       (acc, key) => R.assoc(keysMap[key] || key, obj[key], acc),
@@ -1117,21 +1117,43 @@ const Sunburst = ({ data, theme }) => {
     R.map(renameKeys({ y: 'value' }))
   )(data)
 
+  const createDatum = (obj) => {
+    let base = { name: R.path('x', obj), children: [] }
+    let keys = R.keysIn(R.path('y', obj))
+    base = R.assoc(
+      'children',
+      R.map(
+        (key) =>
+          R.assoc('value', R.path(['y', key], obj), R.assoc('name', key, {})),
+        keys
+      ),
+      base
+    )
+
+    return base
+  }
+
   const options = {
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+
     series: {
-      radius: [0, '80%'],
+      radius: [0, '90%'],
       label: {
-        rotate: 'radial',
+        show: false,
       },
       type: 'sunburst',
       sort: undefined,
-      emphasis: {
-        focus: 'ancestor',
+
+      data: subGrouped ? R.map(createDatum, data) : normalData,
+    },
+    tooltip: {
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      trigger: 'item',
+      textStyle: {
+        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
       },
-      data: normalData,
     },
   }
-  console.log(normalData)
 
   return (
     <div style={{ flex: '1 1 auto' }}>

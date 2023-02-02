@@ -373,11 +373,12 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Sunburst' ? (
+      ) : obj.chart === 'Sunburst Chart' ? (
         <Sunburst
           data={formattedData}
           // numberFormat={commonFormat}
           theme={themeId}
+          subGrouped={subGrouped}
         />
       ) : (
         <></>
