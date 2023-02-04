@@ -1166,6 +1166,7 @@ const Sunburst = ({ data, theme, subGrouped }) => {
       ),
       base
     )
+
     base = R.assoc('itemStyle', { color: '#4992ff' }, base)
     return base
   }
