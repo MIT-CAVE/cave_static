@@ -1117,7 +1117,8 @@ const Sunburst = ({ data, theme, subGrouped }) => {
 
   let normalData = R.pipe(
     R.map(renameKeys({ x: 'name' })),
-    R.map(renameKeys({ y: 'value' }))
+    R.map(renameKeys({ y: 'value' })),
+    R.map((obj) => R.assoc('itemStyle', { color: '#4992ff' }, obj))
   )(data)
 
   const yData = R.pluck('y')(data)
@@ -1170,20 +1171,22 @@ const Sunburst = ({ data, theme, subGrouped }) => {
   }
 
   const options = {
-    visualMap: {
-      type: 'piecewise',
-      categories: yKeys,
-      showLabel: 'true',
-      inRange: {
-        color: R.map((val) => R.path([val], assignments), yKeys),
-      },
-      itemWidth: 30,
-      itemHeight: 24,
-      right: 30,
-      textStyle: {
-        fontSize: 20,
-      },
-    },
+    visualMap: subGrouped
+      ? {
+          type: 'piecewise',
+          categories: yKeys,
+          showLabel: 'true',
+          inRange: {
+            color: R.map((val) => R.path([val], assignments), yKeys),
+          },
+          itemWidth: 30,
+          itemHeight: 24,
+          right: 30,
+          textStyle: {
+            fontSize: 20,
+          },
+        }
+      : null,
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     series: {
       radius: [60, '90%'],
