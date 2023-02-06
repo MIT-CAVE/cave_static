@@ -23,6 +23,7 @@ import {
   StackedWaterfallChart,
   TableChart,
   WaterfallChart,
+  Sunburst,
 } from '../../charts'
 
 import {
@@ -371,6 +372,13 @@ const DashboardChart = ({ obj, length }) => {
           theme={themeId}
           subGrouped={subGrouped}
           {...labels}
+        />
+      ) : obj.chart === 'Sunburst' ? (
+        <Sunburst
+          data={formattedData}
+          // numberFormat={commonFormat}
+          theme={themeId}
+          subGrouped={subGrouped}
         />
       ) : (
         <></>

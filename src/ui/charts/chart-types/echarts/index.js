@@ -21,7 +21,7 @@ import {
   // HeatmapChart,
   // PictorialBarChart,
   // ThemeRiverChart,
-  // SunburstChart,
+  SunburstChart,
   CustomChart,
 } from 'echarts/charts'
 import {
@@ -51,7 +51,7 @@ import {
   // DataZoomSliderComponent,
   // VisualMapComponent,
   // VisualMapContinuousComponent,
-  // VisualMapPiecewiseComponent,
+  VisualMapPiecewiseComponent,
   AriaComponent,
   TransformComponent,
   DatasetComponent,
@@ -70,6 +70,7 @@ import {
   getMinMax,
   mapIndexed,
 } from '../../../../utils'
+import { CHART_PALETTE } from '../../../../utils/constants'
 
 // Register the required components
 echarts.use([
@@ -86,6 +87,8 @@ echarts.use([
   GraphChart,
   CanvasRenderer,
   CustomChart,
+  SunburstChart,
+  VisualMapPiecewiseComponent,
 ])
 
 const FlexibleWrapper = ({ children, ...props }) => (
@@ -1103,6 +1106,129 @@ const CumulativeLineChart = ({
   )
 }
 
+const Sunburst = ({ data, theme, subGrouped }) => {
+  const renameKeys = R.curry((keysMap, obj) =>
+    R.reduce(
+      (acc, key) => R.assoc(keysMap[key] || key, obj[key], acc),
+      {},
+      R.keys(obj)
+    )
+  )
+
+  let normalData = R.pipe(
+    R.map(renameKeys({ x: 'name' })),
+    R.map(renameKeys({ y: 'value' })),
+    R.map((obj) => R.assoc('itemStyle', { color: '#4992ff' }, obj))
+  )(data)
+
+  const yData = R.pluck('y')(data)
+  let yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+
+  const assignColors = () => {
+    let availableColors =
+      theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
+    availableColors = R.without(['#4992ff'], availableColors)
+    const assignments = R.pipe(
+      R.map((val) => {
+        let randomChoice =
+          availableColors[Math.floor(Math.random() * availableColors.length)]
+        availableColors = R.without([randomChoice], availableColors)
+        return [val, randomChoice]
+      }),
+      R.fromPairs
+    )(yKeys)
+    return assignments
+  }
+
+  let assignments = assignColors()
+
+  const createDatum = (obj) => {
+    let base = { name: R.path('x', obj), children: [], visualMap: false }
+    let keys = R.keysIn(R.path('y', obj))
+    base = R.assoc(
+      'children',
+      R.map(
+        (key) =>
+          R.assoc(
+            'value',
+            Math.abs(R.path(['y', key], obj)),
+            R.assoc(
+              'name',
+              key,
+              R.assoc(
+                'itemStyle',
+                { color: R.path([key], assignments) },
+                R.assoc('visualMap', false, {})
+              )
+            )
+          ),
+        keys
+      ),
+      base
+    )
+
+    base = R.assoc('itemStyle', { color: '#4992ff' }, base)
+    return base
+  }
+
+  const options = {
+    visualMap: subGrouped
+      ? {
+          type: 'piecewise',
+          categories: yKeys,
+          showLabel: 'true',
+          inRange: {
+            color: R.map((val) => R.path([val], assignments), yKeys),
+          },
+          itemWidth: 30,
+          itemHeight: 24,
+          right: 30,
+          textStyle: {
+            fontSize: 20,
+          },
+        }
+      : null,
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    series: {
+      radius: [60, '90%'],
+      label: {
+        show: false,
+      },
+      itemStyle: {
+        borderRadius: 7,
+        borderWidth: 7,
+      },
+      type: 'sunburst',
+      sort: undefined,
+      data: subGrouped ? R.map(createDatum, data) : normalData,
+    },
+    tooltip: {
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      trigger: 'item',
+      textStyle: {
+        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+      },
+    },
+  }
+
+  return (
+    <div style={{ flex: '1 1 auto' }}>
+      <AutoSizer>
+        {({ height, width }) => (
+          <ReactEChartsCore
+            echarts={echarts}
+            option={options}
+            style={{ height, width }}
+            theme={theme}
+            notMerge
+            lazyUpdate
+          />
+        )}
+      </AutoSizer>
+    </div>
+  )
+}
+
 export {
   FlexibleWrapper,
   LinePlot,
@@ -1111,4 +1237,5 @@ export {
   WaterfallChart,
   StackedWaterfallChart,
   CumulativeLineChart,
+  Sunburst,
 }

@@ -14,6 +14,7 @@ import {
   MdRefresh,
   MdWaterfallChart,
   MdStackedLineChart,
+  MdDonutLarge,
 } from 'react-icons/md'
 import { TbStack2 } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
@@ -108,6 +109,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               label: 'Table',
               value: 'Table',
               iconClass: MdTableChart,
+            },
+            {
+              label: 'Sunburst (beta)',
+              value: 'Sunburst',
+              iconClass: MdDonutLarge,
             },
           ]}
           displayIcon
