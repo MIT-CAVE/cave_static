@@ -90,7 +90,7 @@ export const mapSlice = createSlice({
       const maxZoom = R.clamp(
         minZoom,
         MAX_ZOOM,
-        R.propOr(
+        R.pathOr(
           MAX_ZOOM,
           [
             'data',
@@ -134,7 +134,7 @@ export const mapSlice = createSlice({
       const maxZoom = R.clamp(
         minZoom,
         MAX_ZOOM,
-        R.propOr(
+        R.pathOr(
           MAX_ZOOM,
           [
             'data',
@@ -146,9 +146,10 @@ export const mapSlice = createSlice({
           state
         )
       )
+      const zoom = R.clamp(minZoom, maxZoom)(action.payload.value)
       return R.assocPath(
         ['data', action.payload.appBarId, 'mapControls', 'viewport', 'zoom'],
-        R.clamp(minZoom, maxZoom)(action.payload.value)
+        zoom
       )(state)
     },
     // payload: {data:object, appBarId:string}

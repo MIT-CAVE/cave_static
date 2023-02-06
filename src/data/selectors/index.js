@@ -21,6 +21,17 @@ import {
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
 
+// Loading
+export const selectLoading = createSelector(selectUtilities, (data) =>
+  R.prop('loading')(data)
+)
+export const selectSessionLoading = createSelector(selectLoading, (data) =>
+  R.prop('session_loading')(data)
+)
+export const selectDataLoading = createSelector(selectLoading, (data) =>
+  R.prop('data_loading')(data)
+)
+
 // Sessions
 export const selectSessions = createSelector(selectUtilities, (data) =>
   R.prop('sessions')(data)
@@ -28,9 +39,6 @@ export const selectSessions = createSelector(selectUtilities, (data) =>
 export const selectSessionsData = createSelector(
   selectSessions,
   R.propOr({}, 'data')
-)
-export const selectSessionLoading = createSelector(selectSessions, (data) =>
-  R.prop('session_loading')(data)
 )
 export const selectCurrentSession = createSelector(selectSessions, (data) =>
   R.prop('session_id')(data)
@@ -184,8 +192,8 @@ export const selectIgnoreLoading = createSelector(selectIgnoreData, (data) =>
 )
 // Loading
 export const selectShowLoading = createSelector(
-  [selectIgnoreLoading, selectSessionLoading],
-  (ignore, session) => ignore || session
+  [selectIgnoreLoading, selectSessionLoading, selectDataLoading],
+  (ignore, session, data) => ignore || session || data
 )
 // Local
 export const selectLocal = (state) => R.propOr({}, 'local')(state)
@@ -216,6 +224,9 @@ export const selectTime = createSelector(selectLocalSettings, (data) =>
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
+)
+export const selectTouchMode = createSelector(selectLocalSettings, (data) =>
+  R.propOr(false, 'touch', data)
 )
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>

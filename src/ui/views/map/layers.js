@@ -1,7 +1,7 @@
 import { PathStyleExtension } from '@deck.gl/extensions'
 import { PathLayer, GeoJsonLayer, IconLayer, ArcLayer } from '@deck.gl/layers'
 import * as R from 'ramda'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
@@ -28,6 +28,7 @@ import {
   selectEnabledArcs,
   selectEnabledNodes,
   selectArcData,
+  selectTouchMode,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -512,6 +513,9 @@ const GetGeographyLayer = (openGeo) => {
   const themeType = useSelector(selectTheme)
   const timeProp = useSelector(selectTimeProp)
   const appBarId = useSelector(selectAppBarId)
+  const touchMode = useSelector(selectTouchMode)
+
+  const currentTimeout = useRef()
 
   const dispatch = useDispatch()
 
@@ -548,6 +552,30 @@ const GetGeographyLayer = (openGeo) => {
       }
     ),
     [enabledGeos, themeType]
+  )
+
+  const onClick = useCallback(
+    (d) => {
+      if (!openGeo(d)) return false
+      else if (R.pipe(R.prop('object'), R.isNil)(d)) return true
+      const caveType = R.path(['object', 'caveType'], d)
+      const geoProp = R.path([caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
+      const geoObj = R.prop(R.path(['object', 'properties', geoProp], d))(
+        matchingKeys
+      )
+      dispatch(
+        openMapModal({
+          appBarId,
+          data: {
+            ...geoObj,
+            feature: 'geos',
+            type: R.propOr('Area', 'name', geoObj),
+            key: R.propOr('Area', 'data_key', geoObj),
+          },
+        })
+      )
+    },
+    [appBarId, dispatch, geoTypes, matchingKeys, openGeo]
   )
 
   useEffect(() => {
@@ -615,24 +643,20 @@ const GetGeographyLayer = (openGeo) => {
       return findColor(geoObj)
     },
     pickable: true,
-    onClick: (d) => {
-      if (!openGeo(d)) return false
-      const caveType = R.path(['object', 'caveType'], d)
-      const geoProp = R.path([caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
-      const geoObj = R.prop(R.path(['object', 'properties', geoProp], d))(
-        matchingKeys
-      )
-      dispatch(
-        openMapModal({
-          appBarId,
-          data: {
-            ...geoObj,
-            feature: 'geos',
-            type: R.propOr('Area', 'name', geoObj),
-            key: R.propOr('Area', 'data_key', geoObj),
-          },
-        })
-      )
+    onClick: onClick,
+    onDragStart: () => {
+      // Cancel opening modal if dragging map
+      currentTimeout.current
+        ? clearTimeout(currentTimeout.current)
+        : R.identity()
+    },
+    onHover: (d) => {
+      currentTimeout.current = touchMode
+        ? setTimeout(() => onClick(d), 100)
+        : R.F
+    },
+    updateTriggers: {
+      onHover: [touchMode],
     },
   })
 }
