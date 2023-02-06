@@ -1,6 +1,6 @@
 {
   "name": "cave_static",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scripts": {
     "build": "export $(cat .env | xargs) && react-scripts build",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
