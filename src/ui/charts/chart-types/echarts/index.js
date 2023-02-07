@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import {
   LineChart,
   BarChart,
@@ -58,6 +57,7 @@ import {
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
+import ReactEChartsCore from 'echarts-for-react/lib/core'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
@@ -188,7 +188,15 @@ const EchartsPlot = ({
         },
       },
     },
-    legend: { data: yKeys, top: 24 },
+    legend: {
+      // We might deal better with legend overlapping in the future.
+      // Keep track of:
+      // - https://github.com/apache/echarts/pull/16825
+      // - https://github.com/apache/echarts/issues/15654
+      type: 'scroll',
+      data: yKeys,
+      top: 24,
+    },
     series,
     tooltip: {
       trigger: 'axis',
@@ -274,7 +282,11 @@ const EchartsBoxPlot = ({
       },
     }))(yKeys)
 
-    legend = { data: yKeys, top: 24 }
+    legend = {
+      type: 'scroll',
+      data: yKeys,
+      top: 24,
+    }
   } else {
     sources = [
       {
@@ -628,7 +640,11 @@ const WaterfallChart = ({
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-    legend: { data: yKeys, top: 24 },
+    legend: {
+      type: 'scroll',
+      data: yKeys,
+      top: 24,
+    },
     tooltip: {
       valueFormatter: (value) => formatNumber(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
@@ -972,6 +988,7 @@ const StackedWaterfallChart = ({
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     legend: {
+      type: 'scroll',
       data: [
         ...yKeys,
         { name: 'Initial', icon: 'diamond' },
