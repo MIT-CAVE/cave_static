@@ -73,7 +73,7 @@ const DashboardKpi = ({ obj, length }) => {
         customSort,
         R.filter(R.has('value')),
         R.filter(R.pipe(R.prop('id'), R.includes(R.__, actualKpi))),
-        R.indexBy(R.prop('id')),
+        R.indexBy(R.prop('name')),
         R.pluck('value'),
         obj.chart === 'Table' ? R.values : R.identity
       )
