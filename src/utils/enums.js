@@ -45,17 +45,21 @@ export const propId = {
   NUMBER: 'num',
   TOGGLE: 'toggle',
   SELECTOR: 'selector',
+  DATE: 'date',
   HEAD: 'head',
 }
 
 export const propVariant = {
   CHECKBOX: 'checkbox',
+  DATE: 'date',
+  DATETIME: 'datetime',
   DROPDOWN: 'dropdown',
   FIELD: 'field',
   SINGLE: 'single',
-  TEXTAREA: 'textarea',
   RADIO: 'radio',
   SLIDER: 'slider',
+  TEXTAREA: 'textarea',
+  TIME: 'time',
 }
 
 export const propContainer = {

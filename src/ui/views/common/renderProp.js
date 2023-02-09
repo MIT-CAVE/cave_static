@@ -7,6 +7,8 @@ import PropButton from '../../compound/PropButton'
 import {
   PropCheckbox,
   PropContainer,
+  PropDate,
+  PropDateTime,
   PropDropdown,
   PropHead,
   PropNumberField,
@@ -14,6 +16,7 @@ import {
   PropRadio,
   PropText,
   PropTextArea,
+  PropTime,
   PropToggle,
 } from '../../compound'
 
@@ -49,6 +52,12 @@ const getSelectorPropRenderFn = R.cond([
   [R.equals(propVariant.RADIO), R.always(PropRadio)],
   [R.T, invalidVariant('selector')],
 ])
+const getDatePropRenderFn = R.cond([
+  [R.equals(propVariant.DATE), R.always(PropDate)],
+  [R.equals(propVariant.DATETIME), R.always(PropDateTime)],
+  [R.equals(propVariant.TIME), R.always(PropTime)],
+  [R.T, invalidVariant('date')],
+])
 const getHeaderPropRenderFn = R.ifElse(
   R.isNil,
   R.always(PropHead),
@@ -61,6 +70,7 @@ const getRendererFn = R.cond([
   [R.equals(propId.NUMBER), R.always(getNumberPropRenderFn)],
   [R.equals(propId.TOGGLE), R.always(getTogglePropRenderFn)],
   [R.equals(propId.SELECTOR), R.always(getSelectorPropRenderFn)],
+  [R.equals(propId.DATE), R.always(getDatePropRenderFn)],
   [R.equals(propId.HEAD), R.always(getHeaderPropRenderFn)],
   [
     R.T,

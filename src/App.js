@@ -5,6 +5,8 @@ import {
   ClickAwayListener,
   Box,
 } from '@mui/material'
+import { LocalizationProvider } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useCallback } from 'react'
@@ -107,21 +109,25 @@ const App = () => {
           <SnackBar />
           <AppBar />
           <Box sx={styles.page}>
-            {renderAppPage(findViewType(appBarId))}
-            {open && (
-              <ClickAwayListener onClickAway={handlePaneClickAway}>
-                <Box sx={styles.pane}>
-                  {renderAppPane({ open, pane })}
-                  {secondaryOpen && <SecondaryPane />}
-                </Box>
-              </ClickAwayListener>
-            )}
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              {renderAppPage(findViewType(appBarId))}
+              {open && (
+                <ClickAwayListener onClickAway={handlePaneClickAway}>
+                  <Box sx={styles.pane}>
+                    {renderAppPane({ open, pane })}
+                    {secondaryOpen && <SecondaryPane />}
+                  </Box>
+                </ClickAwayListener>
+              )}
+            </LocalizationProvider>
           </Box>
         </Box>
       </ThemeProvider>
     </StyledEngineProvider>
   )
 }
-App.propTypes = { mapboxToken: PropTypes.string }
+App.propTypes = {
+  mapboxToken: PropTypes.string,
+}
 
 export default App
