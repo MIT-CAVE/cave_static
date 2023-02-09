@@ -1,9 +1,9 @@
-import { Snackbar, IconButton } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
+import { Alert, AlertTitle, Collapse, IconButton, Stack } from '@mui/material'
 import * as R from 'ramda'
 import React, { Fragment } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
 import { useDispatch, useSelector } from 'react-redux'
+import { TransitionGroup } from 'react-transition-group'
 
 import { selectMessages } from '../../../data/selectors'
 import { removeMessage } from '../../../data/utilities/messagesSlice'
@@ -11,70 +11,62 @@ import { removeMessage } from '../../../data/utilities/messagesSlice'
 const SnackBar = () => {
   const messages = useSelector(selectMessages)
   const dispatch = useDispatch()
-  const theme = useTheme()
-  const filterMessages = R.filter(R.prop('snackbarShow'))
 
-  const filteredMessages = filterMessages(messages)
-  const keys = R.keys(filteredMessages)
+  const handleClose = R.thunkify((messageKey) => {
+    dispatch(removeMessage({ messageKey: messageKey }))
+  })
 
-  const handleClose = () => {
-    dispatch(removeMessage({ messageKey: keys[0] }))
-  }
+  // TODO: Add duration to messages
+  // const calculateDuration = R.pipe(
+  //   R.propOr(null, 'duration'),
+  //   R.unless(R.isNil, R.multiply(1000))
+  // )
 
-  const calculateDuration = R.pipe(
-    R.propOr(null, 'duration'),
-    R.unless(R.isNil, R.multiply(1000))
-  )
-
-  const ClosingButton = (
+  const closingButton = (maxKey) => (
     <Fragment>
       <IconButton
         size="small"
         aria-label="close"
         color="inherit"
-        onClick={handleClose}
+        onClick={handleClose(maxKey)}
       >
-        <AiFillCloseCircle fontSize="small" />
+        <AiFillCloseCircle fontSize="large" />
       </IconButton>
     </Fragment>
   )
-  let vertical = 'bottom'
-  let horizontal = 'center'
 
-  const styles = {
-    error: {
-      background: theme.palette.error.main,
-      color: theme.palette.error.contrastText,
-    },
-    warning: {
-      background: theme.palette.warning.main,
-      color: theme.palette.warning.contrastText,
-    },
-    other: {},
+  const caveAlert = (message, messageId) => {
+    return (
+      <Collapse key={messageId}>
+        <Alert
+          severity={message.snackbarType}
+          action={closingButton(messageId)}
+          sx={{ width: '700px' }}
+        >
+          <AlertTitle>{message.title}</AlertTitle>
+          {message.message}
+        </Alert>
+      </Collapse>
+    )
   }
 
-  const getSx = R.pipe(
-    R.propOr(null, 'snackbarType'),
-    R.propOr(styles.other, R.__, styles)
-  )
-
-  return R.isEmpty(filteredMessages) ? (
+  return R.isEmpty(messages) ? (
     []
   ) : (
-    <div>
-      <Snackbar
-        open={true}
-        message={filteredMessages[keys[0]].message}
-        messageKey={keys[0]}
-        onClose={handleClose}
-        autoHideDuration={calculateDuration(filteredMessages[keys[0]])}
-        anchorOrigin={{ vertical, horizontal }}
-        action={ClosingButton}
-        ContentProps={{
-          sx: getSx(filteredMessages[keys[0]]),
-        }}
-      ></Snackbar>
-    </div>
+    <Stack
+      justifyContent="center"
+      alignItems="center"
+      sx={{ position: 'fixed', bottom: 15, width: '100%', zIndex: 2001 }}
+    >
+      <TransitionGroup>
+        {R.pipe(
+          R.mapObjIndexed((message, messageKey) =>
+            caveAlert(message, messageKey)
+          ),
+          R.values
+        )(messages)}
+      </TransitionGroup>
+    </Stack>
   )
 }
 
