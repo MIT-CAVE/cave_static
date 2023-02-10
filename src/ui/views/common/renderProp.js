@@ -6,6 +6,7 @@ import PropButton from '../../compound/PropButton'
 
 import {
   PropCheckbox,
+  PropComboBox,
   PropContainer,
   PropDate,
   PropDateTime,
@@ -50,6 +51,7 @@ const getSelectorPropRenderFn = R.cond([
   [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
   [R.equals(propVariant.CHECKBOX), R.always(PropCheckbox)],
   [R.equals(propVariant.RADIO), R.always(PropRadio)],
+  [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
   [R.T, invalidVariant('selector')],
 ])
 const getDatePropRenderFn = R.cond([

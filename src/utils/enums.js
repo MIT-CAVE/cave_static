@@ -51,6 +51,7 @@ export const propId = {
 
 export const propVariant = {
   CHECKBOX: 'checkbox',
+  COMBOBOX: 'combobox',
   DATE: 'date',
   DATETIME: 'datetime',
   DROPDOWN: 'dropdown',
