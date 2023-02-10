@@ -1,4 +1,5 @@
 import { Alert, AlertTitle, Collapse, IconButton, Stack } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import * as R from 'ramda'
 import React, { Fragment } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
@@ -11,6 +12,7 @@ import { removeMessage } from '../../../data/utilities/messagesSlice'
 const SnackBar = () => {
   const messages = useSelector(selectMessages)
   const dispatch = useDispatch()
+  const theme = useTheme()
 
   const handleClose = R.thunkify((messageKey) => {
     dispatch(removeMessage({ messageKey: messageKey }))
@@ -56,7 +58,13 @@ const SnackBar = () => {
     <Stack
       justifyContent="center"
       alignItems="center"
-      sx={{ position: 'fixed', bottom: 15, width: '100%', zIndex: 2001 }}
+      sx={{
+        position: 'fixed',
+        bottom: 20,
+        right: 20,
+        zIndex: 2001,
+        backgroundColor: theme.palette.background.paper,
+      }}
     >
       <TransitionGroup>
         {R.pipe(
