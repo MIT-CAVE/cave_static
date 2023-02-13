@@ -50,4 +50,5 @@ class socket {
   }
 }
 
-export default new socket()
+const newSocket = new socket()
+export default newSocket

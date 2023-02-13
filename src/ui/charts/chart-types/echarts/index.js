@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import {
   LineChart,
   BarChart,
@@ -58,6 +57,7 @@ import {
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
+import ReactEChartsCore from 'echarts-for-react/lib/core'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
