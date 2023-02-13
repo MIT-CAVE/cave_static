@@ -431,8 +431,9 @@ export const selectBearingSliderToggle = createSelector(
   selectMapControls,
   (data) => R.prop('showBearingSlider')(data)
 )
-export const selectOptionalViewports = createSelector(selectMapData, (data) =>
-  R.propOr({}, 'optionalViewports')(data)
+export const selectOptionalViewports = createSelector(
+  selectCurrentMapData,
+  (data) => R.propOr({}, 'optionalViewports')(data)
 )
 // Local -> Map -> layers
 const selectEnabledTypesFn = createSelector(
