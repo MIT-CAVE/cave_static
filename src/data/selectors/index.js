@@ -319,6 +319,15 @@ export const selectDashboard = createSelector(
       localdashboardData
     )
 )
+export const selectStatOptions = createSelector(
+  [selectAppBarId, selectDashboardData, selectLocalDashboardData],
+  (appBarId, dashboardData, localDashboardData) =>
+    R.pathOr(
+      R.pathOr([], [appBarId, 'statOptions'], dashboardData),
+      [appBarId, 'statOptions'],
+      localDashboardData
+    )
+)
 export const selectDashboardLayout = createSelector(
   [selectAppBarId, selectDashboardData, selectLocalDashboardData],
   (appBarId, dashboardData, localDashboardData) =>
@@ -331,6 +340,13 @@ export const selectDashboardLayout = createSelector(
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
+)
+export const selectAllowedStats = createSelector(
+  [selectStatisticTypes, selectStatOptions],
+  (statisticTypes, statOptions) =>
+    R.isEmpty(statOptions)
+      ? statisticTypes
+      : R.pick(statOptions, statisticTypes)
 )
 // Map -> displayedMap
 export const selectCurrentMapData = createSelector(

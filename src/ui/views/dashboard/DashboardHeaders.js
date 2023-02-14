@@ -23,10 +23,10 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
-  selectStatisticTypes,
   selectCategoriesData,
   selectSync,
   selectAppBarId,
+  selectAllowedStats,
 } from '../../../data/selectors'
 
 import {
@@ -47,7 +47,7 @@ import {
 
 const StatisticsHeader = memo(({ obj, index }) => {
   const categories = useSelector(selectCategoriesData)
-  const statisticTypes = useSelector(selectStatisticTypes)
+  const statisticTypes = useSelector(selectAllowedStats)
   const sortedStatistics = customSort(statisticTypes)
   const sortedCategories = customSort(categories)
   const appBarId = useSelector(selectAppBarId)
