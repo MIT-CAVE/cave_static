@@ -21,7 +21,7 @@ export const getMode = (arr) => {
 // EG: getMax([1, 2, 3]) => 3
 // EG: getMax(['a', 'b', 'c']) => 'c'
 // EG: getMax(['a', 'b', 'c', 'A']) => 'c'
-// EG: getMax(['a', 'b', 'c', 'A', 1]) => 'c'
+// EG: getMax(['a', 'b', 'c', 'A', 1]) => 1
 export const getMax = (arr) => {
   return R.pipe(
     R.groupBy(R.type),
@@ -106,13 +106,13 @@ export const getCount = (arr) => {
 // Calculate all statistics as an object given a list
 export const getStats = (arr) => {
   return {
-    mode: getMode(arr),
+    count: getCount(arr),
     max: getMax(arr),
-    min: getMin(arr),
     mean: getMean(arr),
     median: getMedian(arr),
+    min: getMin(arr),
+    mode: getMode(arr),
     // stdDev: getStdDev(arr),
     sum: getSum(arr),
-    count: getCount(arr),
   }
 }
