@@ -29,6 +29,7 @@ import {
   selectPitchSliderToggle,
   selectAppBarId,
   selectResolveTime,
+  selectGetClusterDomains,
 } from '../../../data/selectors'
 
 import {
@@ -427,10 +428,8 @@ const MapLegendNodeToggle = ({
   const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
+  const getClusterDomains = useSelector(selectGetClusterDomains)
 
-  const sizeRange = nodeRange(nodeType, sizeProp, true)
-  const colorRange = nodeRange(nodeType, colorProp, false)
-  const isCategorical = !R.has('min', colorRange)
   const path = [
     'maps',
     'data',
@@ -474,6 +473,14 @@ const MapLegendNodeToggle = ({
 
   const allowGrouping = displayedNodes[nodeType].allowGrouping || false
   const group = displayedNodes[nodeType].group || false
+
+  const { colorDomain, sizeDomain } = getClusterDomains(nodeType)
+  const sizeRange = nodeRange(nodeType, sizeProp, true)
+  const colorRange = nodeRange(nodeType, colorProp, false)
+
+  console.log({ sizeRange, sizeDomain, colorDomain, colorRange })
+
+  const isCategorical = !R.has('min', colorRange)
   return (
     <details key={nodeType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -533,7 +540,7 @@ const MapLegendNodeToggle = ({
         >
           <MapLegendSizeBySection
             sizeProp={sizeProp}
-            sizeRange={sizeRange}
+            sizeRange={group && sizeDomain ? sizeDomain : sizeRange}
             getPropName={getNodePropName}
             typeObj={typeObj}
             typeName={nodeType}
@@ -595,8 +602,14 @@ const MapLegendNodeToggle = ({
                   ['endGradientColor', themeType],
                   colorRange
                 ),
-                maxVal: timeProp('min', colorRange),
-                minVal: timeProp('max', colorRange),
+                maxVal: timeProp(
+                  'min',
+                  group && colorDomain ? colorDomain : colorRange
+                ),
+                minVal: timeProp(
+                  'max',
+                  group && colorDomain ? colorDomain : colorRange
+                ),
               }}
             />
           )}

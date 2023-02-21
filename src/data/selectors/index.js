@@ -17,6 +17,7 @@ import {
   sortedListById,
   renameKeys,
   sortByOrderNameId,
+  toListWithKey,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -749,4 +750,22 @@ export const selectGeoColorRange = createSelector(
       timePath([type, 'colorByOptions', prop]),
       R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
     )(geoTypes)
+)
+
+export const selectGetLegendGroupId = createSelector(
+  selectLegendData,
+  (legendData) =>
+    R.curry((layerKey, type) =>
+      R.pipe(
+        toListWithKey('id'),
+        R.find(R.hasPath([layerKey, type])),
+        R.prop('id')
+      )(legendData)
+    )
+)
+
+export const selectGetClusterDomains = createSelector(
+  selectCurrentLocalMapData,
+  (currentLocalMapData) => (nodeType) =>
+    R.pathOr({}, ['clusters', nodeType])(currentLocalMapData)
 )
