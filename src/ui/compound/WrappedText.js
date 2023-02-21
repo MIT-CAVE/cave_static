@@ -22,6 +22,8 @@ const styles = {
   },
 }
 
-const WrappedText = ({ text }) => <span style={styles.wrapAlways}>{text}</span>
+const WrappedText = ({ text }) => (
+  <span style={styles.wrapAnywhere}>{text}</span>
+)
 
 export default WrappedText
