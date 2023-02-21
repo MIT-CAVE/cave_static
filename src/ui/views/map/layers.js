@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import IconClusterLayer from './customLayers/icon-cluster-layer'
 
+import { deleteLocal, mutateLocal } from '../../../data/local'
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectNodeData,
@@ -299,6 +300,8 @@ const GetNodeIconLayer = () => {
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
   const legendObjects = useSelector(selectEnabledNodes)
+  const appBarId = useSelector(selectAppBarId)
+  const dispatch = useDispatch()
 
   const [iconObj, setIconObj] = useState([
     btoa(renderToStaticMarkup(<MdDownloading />)),
@@ -497,6 +500,8 @@ const GetNodeIconLayer = () => {
   const getVarByProp = R.curry((varByKey, nodeObj) =>
     R.path([nodeObj.type, varByKey])(legendObjects)
   )
+  const getColorProp = getVarByProp('colorBy')
+  const getSizeProp = getVarByProp('sizeBy')
 
   const getGroupCalculation = R.curry((groupCalculation, nodeObj) =>
     R.pathOr(statId.COUNT, [nodeObj.type, groupCalculation])(legendObjects)
@@ -540,18 +545,32 @@ const GetNodeIconLayer = () => {
       // ("feels" different than `colorProp` and `sizeProp`)
       iconProp: 'icon',
       groupBy: (d) => d.type,
-      getColorProp: getVarByProp('colorBy'),
-      getSizeProp: getVarByProp('sizeBy'),
+      getColorProp,
+      getSizeProp,
       colorBy: (d) => {
-        if (!d.cluster) return findColor([d.id, d])
+        const nodeType = d.type
+        if (!d.cluster) {
+          dispatch(
+            deleteLocal({
+              path: [
+                'maps',
+                'data',
+                appBarId,
+                'clusters',
+                nodeType,
+                'colorDomain',
+              ],
+            })
+          )
+          return findColor([d.id, d])
+        }
 
-        const colorProp = getVarByProp('colorBy', d)
+        const colorProp = getColorProp(d)
         const groupCalcByColorFn =
           getStatFn[getGroupCalculation('groupCalcByColor', d)]
-        const statRange = nodeRange(d.type, colorProp, false)
+        const statRange = nodeRange(nodeType, colorProp, false)
         const value = timePath([colorProp, 'value'], d)
         const isCategorical = !R.has('min', statRange)
-
         if (isCategorical) {
           return rgbStrToArray(
             R.propOr(
@@ -561,23 +580,72 @@ const GetNodeIconLayer = () => {
           )
         }
 
+        const colorDomain = R.zipObj(['min', 'max'])(getMinMax(value))
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])
-        const [min, max] = getMinMax(value)
-        return getScaledColor([min, max], colorRange, groupCalcByColorFn(value))
+        // Update new color domain for the legend
+        dispatch(
+          mutateLocal({
+            sync: false,
+            path: [
+              'maps',
+              'data',
+              appBarId,
+              'clusters',
+              nodeType,
+              'colorDomain',
+            ],
+            value: colorDomain,
+          })
+        )
+        return getScaledColor(
+          colorDomain,
+          colorRange,
+          groupCalcByColorFn(value)
+        )
       },
       sizeBy: (d) => {
-        if (!d.cluster) return findSize([d.id, d])
+        const nodeType = d.type
+        if (!d.cluster) {
+          dispatch(
+            deleteLocal({
+              path: [
+                'maps',
+                'data',
+                appBarId,
+                'clusters',
+                nodeType,
+                'sizeDomain',
+              ],
+            })
+          )
+          return findSize([d.id, d])
+        }
 
-        const sizeProp = getVarByProp('sizeBy', d)
+        const sizeProp = getSizeProp(d)
         const value = timePath([sizeProp, 'value'], d)
-        const [min, max] = getMinMax(value)
+        const sizeDomain = R.zipObj(['min', 'max'])(getMinMax(value))
         const groupCalcBySizeFn =
           getStatFn[getGroupCalculation('groupCalcBySize', d)]
+        // Update new size domain for the legend
+        dispatch(
+          mutateLocal({
+            sync: false,
+            path: [
+              'maps',
+              'data',
+              appBarId,
+              'clusters',
+              nodeType,
+              'sizeDomain',
+            ],
+            value: sizeDomain,
+          })
+        )
         return getScaledValue(
-          min,
-          max,
+          sizeDomain.min,
+          sizeDomain.max,
           parseFloat(timeProp('startSize', d[sizeProp])),
           parseFloat(timeProp('endSize', d[sizeProp])),
           groupCalcBySizeFn(value)
