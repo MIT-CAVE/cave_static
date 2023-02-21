@@ -478,8 +478,6 @@ const MapLegendNodeToggle = ({
   const sizeRange = nodeRange(nodeType, sizeProp, true)
   const colorRange = nodeRange(nodeType, colorProp, false)
 
-  console.log({ sizeRange, sizeDomain, colorDomain, colorRange })
-
   const isCategorical = !R.has('min', colorRange)
   return (
     <details key={nodeType} css={nonSx.typeWrapper} open>
