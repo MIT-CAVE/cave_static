@@ -490,7 +490,7 @@ const GetNodeIconLayer = () => {
 
   const nodeDataSplit = R.groupBy((d) => {
     const nodeType = d[1].type
-    return legendObjects[nodeType].allowGrouping || false
+    return legendObjects[nodeType].group || false
   })(nodeData)
   const { true: aggregNodes = [], false: singleNodes = [] } = nodeDataSplit
 
