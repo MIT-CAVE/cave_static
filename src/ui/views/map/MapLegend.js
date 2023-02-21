@@ -31,6 +31,8 @@ import {
   selectResolveTime,
   selectGetClusterDomains,
 } from '../../../data/selectors'
+import { statId } from '../../../utils/enums'
+import { getStatLabel } from '../../../utils/stats'
 
 import {
   OverflowText,
@@ -211,6 +213,7 @@ const MapLegendSizeBySection = ({
     'sizeBy',
   ]
   const syncSize = !includesPath(R.values(sync), path)
+
   return (
     <>
       <Grid
@@ -466,6 +469,30 @@ const MapLegendNodeToggle = ({
   ]
   const syncGroupToggle = !includesPath(R.values(sync), groupPath)
 
+  const groupCalcSizePath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'groupCalcBySize',
+  ]
+  const syncGroupCalcSize = !includesPath(R.values(sync), groupCalcSizePath)
+
+  const groupCalcColorPath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'groupCalcByColor',
+  ]
+  const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
+
   const getNodePropName = useCallback(
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
@@ -473,6 +500,10 @@ const MapLegendNodeToggle = ({
 
   const allowGrouping = displayedNodes[nodeType].allowGrouping || false
   const group = displayedNodes[nodeType].group || false
+  const groupCalcBySize =
+    displayedNodes[nodeType].groupCalcBySize || statId.COUNT
+  const groupCalcByColor =
+    displayedNodes[nodeType].groupCalcByColor || statId.COUNT
 
   const { colorDomain, sizeDomain } = getClusterDomains(nodeType)
   const sizeRange = nodeRange(nodeType, sizeProp, true)
@@ -546,6 +577,35 @@ const MapLegendNodeToggle = ({
             feature="nodes"
             legendGroup={legendGroupId}
           />
+          {group && (
+            <Grid
+              container
+              sx={{ pb: 2 }}
+              spacing={1}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <FetchedIcon
+                iconName="AiOutlineFunction"
+                size={24}
+                color="text.primary"
+              />
+              <SimpleDropdown
+                value={groupCalcBySize}
+                getLabel={getStatLabel}
+                optionsList={R.values(statId)}
+                onSelect={(value) => {
+                  dispatch(
+                    mutateLocal({
+                      path: groupCalcSizePath,
+                      sync: syncGroupCalcSize,
+                      value,
+                    })
+                  )
+                }}
+              />
+            </Grid>
+          )}
         </Grid>
         <Grid
           item
@@ -610,6 +670,36 @@ const MapLegendNodeToggle = ({
                 ),
               }}
             />
+          )}
+          {group && (
+            <Grid
+              container
+              spacing={1}
+              sx={{ pt: 8 }}
+              alignItems="center"
+              justifyContent="center"
+              flexDirection="row"
+            >
+              <FetchedIcon
+                iconName="AiOutlineFunction"
+                size={24}
+                color="text.primary"
+              />
+              <SimpleDropdown
+                value={groupCalcByColor}
+                getLabel={getStatLabel}
+                optionsList={R.values(statId)}
+                onSelect={(value) => {
+                  dispatch(
+                    mutateLocal({
+                      path: groupCalcColorPath,
+                      sync: syncGroupCalcColor,
+                      value,
+                    })
+                  )
+                }}
+              />
+            </Grid>
           )}
         </Grid>
       </Grid>

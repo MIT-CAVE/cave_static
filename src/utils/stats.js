@@ -116,3 +116,14 @@ export const getStatFn = {
   [statId.SUM]: getSum,
   // [statId.STD_DEV]: getStdDev,
 }
+
+export const getStatLabel = R.cond([
+  [R.equals(statId.COUNT), R.always('Number of items')],
+  [R.equals(statId.MAX), R.always('Maximum')],
+  [R.equals(statId.MEAN), R.always('Mean')],
+  [R.equals(statId.MEDIAN), R.always('Median')],
+  [R.equals(statId.MIN), R.always('Minimum')],
+  [R.equals(statId.MODE), R.always('Mode')],
+  [R.equals(statId.SUM), R.always('Sum')],
+  [R.T, R.always(null)],
+])
