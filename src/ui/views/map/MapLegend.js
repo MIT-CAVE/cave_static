@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Grid, Switch } from '@mui/material'
+import { Box, Grid, Switch, ToggleButton } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
@@ -148,6 +148,8 @@ const MapLegendGroupRowToggleLayer = ({
   icon,
   toggle,
   legendName,
+  toggleGroup,
+  toggleGroupLabel,
   ...props
 }) => {
   return (
@@ -158,9 +160,26 @@ const MapLegendGroupRowToggleLayer = ({
       <Grid item xs={2} className="my-auto ml-0">
         {toggle}
       </Grid>
-      <Grid item xs={9} className="my-auto">
-        <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
-      </Grid>
+      {toggleGroup ? (
+        <>
+          <Grid item xs={5} className="my-auto ml-0">
+            <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
+          </Grid>
+          <Grid item xs={1.5} className="my-auto">
+            {toggleGroup}
+          </Grid>
+          <Grid item xs={2.5} className="my-auto ml-0">
+            <OverflowText
+              sx={styles.overflowAlignLeft}
+              text={toggleGroupLabel}
+            />
+          </Grid>
+        </>
+      ) : (
+        <Grid item xs={9} className="my-auto">
+          <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
+        </Grid>
+      )}
     </Grid>
   )
 }
@@ -436,11 +455,25 @@ const MapLegendNodeToggle = ({
   ]
   const syncColor = !includesPath(R.values(sync), colorPath)
 
+  const groupPath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'group',
+  ]
+  const syncGroupToggle = !includesPath(R.values(sync), groupPath)
+
   const getNodePropName = useCallback(
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
 
+  const allowGrouping = displayedNodes[nodeType].allowGrouping || false
+  const group = displayedNodes[nodeType].group || false
   return (
     <details key={nodeType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -461,6 +494,31 @@ const MapLegendNodeToggle = ({
               }}
             />
           }
+          {...(allowGrouping && {
+            toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
+            toggleGroup: (
+              <ToggleButton
+                color="primary"
+                sx={{ p: 0.5 }}
+                selected={group}
+                onChange={() => {
+                  dispatch(
+                    mutateLocal({
+                      sync: syncGroupToggle,
+                      path: groupPath,
+                      value: !group,
+                    })
+                  )
+                }}
+              >
+                <FetchedIcon
+                  iconName={group ? 'FaRegObjectGroup' : 'FaRegObjectUngroup'}
+                  size={28}
+                  color="white"
+                />
+              </ToggleButton>
+            ),
+          })}
         />
       </summary>
       <hr />
