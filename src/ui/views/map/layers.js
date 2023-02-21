@@ -580,7 +580,7 @@ const GetNodeIconLayer = () => {
           )
         }
 
-        const colorDomain = R.zipObj(['min', 'max'])(getMinMax(value))
+        const colorDomainArr = getMinMax(value)
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])
@@ -596,11 +596,11 @@ const GetNodeIconLayer = () => {
               nodeType,
               'colorDomain',
             ],
-            value: colorDomain,
+            value: R.zipObj(['min', 'max'])(colorDomainArr),
           })
         )
         return getScaledColor(
-          colorDomain,
+          colorDomainArr,
           colorRange,
           groupCalcByColorFn(value)
         )
