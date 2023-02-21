@@ -498,8 +498,9 @@ const MapLegendNodeToggle = ({
             toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
             toggleGroup: (
               <ToggleButton
-                color="primary"
                 sx={{ p: 0.5 }}
+                color="primary"
+                value="group"
                 selected={group}
                 onChange={() => {
                   dispatch(
@@ -513,8 +514,8 @@ const MapLegendNodeToggle = ({
               >
                 <FetchedIcon
                   iconName={group ? 'FaRegObjectGroup' : 'FaRegObjectUngroup'}
-                  size={28}
-                  color="white"
+                  size={26}
+                  color="text.primary"
                 />
               </ToggleButton>
             ),
