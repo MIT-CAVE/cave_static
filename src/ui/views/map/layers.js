@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
+import IconClusterLayer from './customLayers/icon-cluster-layer'
+
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectNodeData,
@@ -30,14 +32,19 @@ import {
   selectArcData,
   selectTouchMode,
 } from '../../../data/selectors'
-import { layerId } from '../../../utils/enums'
+import { layerId, statId } from '../../../utils/enums'
+import { getStatFn } from '../../../utils/stats'
 import { store } from '../../../utils/store'
+import NUMBER_ICON_ATLAS from '../../resources/number-icon-atlas.png'
+import NUMBER_ICON_MAPPING from '../../resources/number-icon-mapping.json'
 
 import {
   fetchIcon,
+  getMinMax,
   getScaledArray,
   getScaledColor,
   getScaledValue,
+  rgbStrToArray,
 } from '../../../utils'
 
 const getLayerProps = (props) =>
@@ -384,6 +391,7 @@ const GetNodeIconLayer = () => {
       'image/svg+xml'
     ).firstChild
   }
+
   useEffect(() => {
     const setIcons = async () => {
       const iconResolution = 144
@@ -479,28 +487,122 @@ const GetNodeIconLayer = () => {
     }
     setIcons()
   }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
-  return new IconLayer({
-    id: layerId.NODE_ICON_LAYER,
-    visible: true,
-    data: nodeData,
-    iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
-    iconMapping: iconObj[1],
-    getIcon: (d) => d[1].icon,
-    autoHighlight: true,
-    getColor: (d) => {
-      return findColor(d)
-    },
-    sizeScale: 1,
-    getSize: (d) => {
-      return findSize(d)
-    },
-    getPosition: (d) => [
-      resolveTime(d[1].longitude),
-      resolveTime(d[1].latitude),
-      resolveTime(d[1].altitude + 1),
-    ],
-    pickable: true,
-  })
+
+  const nodeDataSplit = R.groupBy((d) => {
+    const nodeType = d[1].type
+    return legendObjects[nodeType].allowGrouping || false
+  })(nodeData)
+  const { true: aggregNodes = [], false: singleNodes = [] } = nodeDataSplit
+
+  const getVarByProp = R.curry((varByKey, nodeObj) =>
+    R.path([nodeObj.type, varByKey])(legendObjects)
+  )
+
+  const getGroupCalculation = R.curry((groupCalculation, nodeObj) =>
+    R.pathOr(statId.COUNT, [nodeObj.type, groupCalculation])(legendObjects)
+  )
+
+  return [
+    new IconLayer({
+      id: layerId.NODE_ICON_LAYER,
+      visible: true,
+      data: singleNodes,
+      iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
+      iconMapping: iconObj[1],
+      autoHighlight: true,
+      sizeScale: 1,
+      pickable: true,
+      getIcon: (d) => d[1].icon,
+      getColor: (d) => {
+        return findColor(d)
+      },
+      getSize: (d) => {
+        return findSize(d)
+      },
+      getPosition: (d) => [
+        resolveTime(d[1].longitude),
+        resolveTime(d[1].latitude),
+        resolveTime(d[1].altitude + 1),
+      ],
+    }),
+    new IconClusterLayer({
+      id: layerId.NODE_ICON_CLUSTER_LAYER,
+      visible: true,
+      data: R.map((d) => R.assoc('id', d[0])(d[1]))(aggregNodes),
+      wrapLongitude: true,
+      iconAtlasMarker: `data:image/svg+xml;base64,${iconObj[0]}`,
+      iconAtlasLabel: NUMBER_ICON_ATLAS,
+      iconMappingMarker: iconObj[1],
+      iconMappingLabel: NUMBER_ICON_MAPPING,
+      radius: 50,
+      sizeScale: 1,
+      // TODO: It may be convenient to rename the `iconProp` key
+      // ("feels" different than `colorProp` and `sizeProp`)
+      iconProp: 'icon',
+      groupBy: (d) => d.type,
+      getColorProp: getVarByProp('colorBy'),
+      getSizeProp: getVarByProp('sizeBy'),
+      colorBy: (d) => {
+        if (!d.cluster) return findColor([d.id, d])
+
+        const colorProp = getVarByProp('colorBy', d)
+        const groupCalcByColorFn =
+          getStatFn[getGroupCalculation('groupCalcByColor', d)]
+        const statRange = nodeRange(d.type, colorProp, false)
+        const value = timePath([colorProp, 'value'], d)
+        const isCategorical = !R.has('min', statRange)
+
+        if (isCategorical) {
+          return rgbStrToArray(
+            R.propOr(
+              'rgb(0,0,0)',
+              groupCalcByColorFn(value).toString()
+            )(statRange)
+          )
+        }
+
+        const colorRange = R.map((prop) =>
+          R.pathOr(0, [prop, themeType])(statRange)
+        )(['startGradientColor', 'endGradientColor'])
+        const [min, max] = getMinMax(value)
+        return getScaledColor([min, max], colorRange, groupCalcByColorFn(value))
+      },
+      sizeBy: (d) => {
+        if (!d.cluster) return findSize([d.id, d])
+
+        const sizeProp = getVarByProp('sizeBy', d)
+        const value = timePath([sizeProp, 'value'], d)
+        const [min, max] = getMinMax(value)
+        const groupCalcBySizeFn =
+          getStatFn[getGroupCalculation('groupCalcBySize', d)]
+        return getScaledValue(
+          min,
+          max,
+          parseFloat(timeProp('startSize', d[sizeProp])),
+          parseFloat(timeProp('endSize', d[sizeProp])),
+          groupCalcBySizeFn(value)
+        )
+      },
+      // getIconMarker: (d) => d.properties.icon,
+      getIconLabel: (num) => {
+        var number = 100
+        if (num === 0) {
+          return 'marker'
+        } else if (num < 10) {
+          number = num
+        } else if (num < 100) {
+          number = Math.floor(num / 10) * 10
+        }
+        return `marker-${number}`
+      },
+      getPosition: (d) => [
+        resolveTime(d.longitude),
+        resolveTime(d.latitude),
+        resolveTime(d.altitude + 1),
+      ],
+      pickable: true,
+    }),
+  ]
 }
 
 const GetGeographyLayer = (openGeo) => {
@@ -531,7 +633,7 @@ const GetGeographyLayer = (openGeo) => {
       },
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geoColorRange(geoObj.type, colorProp, false)
+        const statRange = geoColorRange(geoObj.type, colorProp)
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])

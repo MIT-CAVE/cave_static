@@ -3,6 +3,7 @@ export const layerId = {
   ARC_LAYER_3D: 'arcLayer3D',
   GEOGRAPHY_LAYER: 'geography',
   NODE_ICON_LAYER: 'nodeIconLayer',
+  NODE_ICON_CLUSTER_LAYER: 'nodeIconClusterLayer',
 }
 
 export const themeId = {
@@ -80,4 +81,14 @@ export const kpiId = {
 export const layoutType = {
   GRID: 'grid',
   ITEM: 'item',
+}
+
+export const statId = {
+  COUNT: 'count',
+  MAX: 'max',
+  MEAN: 'mean',
+  MEDIAN: 'median',
+  MIN: 'min',
+  MODE: 'mode',
+  SUM: 'sum',
 }

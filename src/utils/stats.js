@@ -1,5 +1,7 @@
 import * as R from 'ramda'
 
+import { statId } from './enums'
+
 // Calculate the mode item in a list (output formatted as a string)
 // This can mix strings and numbers, but will always return a string (of the number) or NaN
 // Note: 1 is equivalent to '1' in this case
@@ -103,16 +105,14 @@ export const getCount = (arr) => {
   return R.length(arr)
 }
 
-// Calculate all statistics as an object given a list
-export const getStats = (arr) => {
-  return {
-    count: getCount(arr),
-    max: getMax(arr),
-    mean: getMean(arr),
-    median: getMedian(arr),
-    min: getMin(arr),
-    mode: getMode(arr),
-    // stdDev: getStdDev(arr),
-    sum: getSum(arr),
-  }
+// Map an `statId` to its related function
+export const getStatFn = {
+  [statId.COUNT]: getCount,
+  [statId.MAX]: getMax,
+  [statId.MEAN]: getMean,
+  [statId.MEDIAN]: getMedian,
+  [statId.MIN]: getMin,
+  [statId.MODE]: getMode,
+  [statId.SUM]: getSum,
+  // [statId.STD_DEV]: getStdDev,
 }

@@ -358,6 +358,8 @@ const rgbObjToRgbaArray = (rgbObj) =>
     R.props(['r', 'g', 'b'])(rgbObj) // RGB array
   )
 
+export const rgbStrToArray = (rgbStr) => rgbObjToRgbaArray(color(rgbStr))
+
 export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
   const getColor = scaleLinear()
     .domain(colorDomain)
