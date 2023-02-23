@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import IconClusterLayer from './customLayers/icon-cluster-layer'
 
-import { deleteLocal, mutateLocal } from '../../../data/local'
+import { mutateLocal } from '../../../data/local'
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectNodeData,
@@ -41,7 +41,6 @@ import NUMBER_ICON_MAPPING from '../../resources/number-icon-mapping.json'
 
 import {
   fetchIcon,
-  getMinMax,
   getScaledArray,
   getScaledColor,
   getScaledValue,
@@ -491,6 +490,7 @@ const GetNodeIconLayer = () => {
     setIcons()
   }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
 
+  // Split the data between icons that can be grouped and not
   const nodeDataSplit = R.groupBy((d) => {
     const nodeType = d[1].type
     return legendObjects[nodeType].group || false
@@ -505,6 +505,16 @@ const GetNodeIconLayer = () => {
 
   const getGroupCalculation = R.curry((groupCalculation, nodeObj) =>
     R.pathOr(statId.COUNT, [nodeObj.type, groupCalculation])(legendObjects)
+  )
+
+  const getColorGroupFn = R.pipe(
+    getGroupCalculation('groupCalcByColor'),
+    R.nth(R.__, getStatFn)
+  )
+
+  const getSizeGroupFn = R.pipe(
+    getGroupCalculation('groupCalcBySize'),
+    R.nth(R.__, getStatFn)
   )
 
   return [
@@ -541,46 +551,37 @@ const GetNodeIconLayer = () => {
       iconMappingLabel: NUMBER_ICON_MAPPING,
       radius: 50,
       sizeScale: 1,
-      // TODO: It may be convenient to rename the `iconProp` key
-      // ("feels" different than `colorProp` and `sizeProp`)
+      // TODO: It might be convenient to rename the `iconProp` key
+      // ("feels" different than `colorProp` and `sizeProp` in its use)
       iconProp: 'icon',
       groupBy: (d) => d.type,
       getColorProp,
+      getColorGroupFn,
       getSizeProp,
+      getSizeGroupFn,
       colorBy: (d) => {
         const nodeType = d.type
+        // BUG: Color changes not properly handled for single nodes
+        // This needs to change. All nodes (clustered or not) should be scaled within `colorDomain`
         if (!d.cluster) {
-          dispatch(
-            deleteLocal({
-              path: [
-                'maps',
-                'data',
-                appBarId,
-                'clusters',
-                nodeType,
-                'colorDomain',
-              ],
-            })
-          )
           return findColor([d.id, d])
         }
-
-        const colorProp = getColorProp(d)
         const groupCalcByColorFn =
           getStatFn[getGroupCalculation('groupCalcByColor', d)]
+
+        const colorProp = getColorProp(d)
         const statRange = nodeRange(nodeType, colorProp, false)
         const value = timePath([colorProp, 'value'], d)
         const isCategorical = !R.has('min', statRange)
+
+        const clusterValue = parseFloat(groupCalcByColorFn(value))
         if (isCategorical) {
           return rgbStrToArray(
-            R.propOr(
-              'rgb(0,0,0)',
-              groupCalcByColorFn(value).toString()
-            )(statRange)
+            R.propOr('rgb(0,0,0)', clusterValue.toString())(statRange)
           )
         }
 
-        const colorDomainArr = getMinMax(value)
+        const { colorDomain } = d
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])
@@ -596,38 +597,30 @@ const GetNodeIconLayer = () => {
               nodeType,
               'colorDomain',
             ],
-            value: R.zipObj(['min', 'max'])(colorDomainArr),
+            value: colorDomain,
           })
         )
         return getScaledColor(
-          colorDomainArr,
+          [colorDomain.min, colorDomain.max],
           colorRange,
-          groupCalcByColorFn(value)
+          clusterValue
         )
       },
       sizeBy: (d) => {
         const nodeType = d.type
+        // BUG: Size changes not properly handled for single nodes
+        // This needs to change. All nodes (clustered or not) should be scaled within `sizeDomain`
         if (!d.cluster) {
-          dispatch(
-            deleteLocal({
-              path: [
-                'maps',
-                'data',
-                appBarId,
-                'clusters',
-                nodeType,
-                'sizeDomain',
-              ],
-            })
-          )
           return findSize([d.id, d])
         }
 
         const sizeProp = getSizeProp(d)
         const value = timePath([sizeProp, 'value'], d)
-        const sizeDomain = R.zipObj(['min', 'max'])(getMinMax(value))
         const groupCalcBySizeFn =
           getStatFn[getGroupCalculation('groupCalcBySize', d)]
+        const clusterValue = parseFloat(groupCalcBySizeFn(value))
+
+        const { sizeDomain } = d
         // Update new size domain for the legend
         dispatch(
           mutateLocal({
@@ -648,7 +641,7 @@ const GetNodeIconLayer = () => {
           sizeDomain.max,
           parseFloat(timeProp('startSize', d[sizeProp])),
           parseFloat(timeProp('endSize', d[sizeProp])),
-          groupCalcBySizeFn(value)
+          clusterValue
         )
       },
       // getIconMarker: (d) => d.properties.icon,

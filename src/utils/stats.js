@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 
+import { forceArray } from '.'
 import { statId } from './enums'
 
 // Calculate the mode item in a list (output formatted as a string)
@@ -9,6 +10,7 @@ import { statId } from './enums'
 // EG: getMode([1, 'b','b','a','c']) => 'b'
 export const getMode = (arr) => {
   return R.pipe(
+    forceArray,
     R.countBy(R.identity),
     R.toPairs,
     R.reduce((a, b) => (a[1] < b[1] ? b : a), [NaN, 0]),
@@ -26,6 +28,7 @@ export const getMode = (arr) => {
 // EG: getMax(['a', 'b', 'c', 'A', 1]) => 1
 export const getMax = (arr) => {
   return R.pipe(
+    forceArray,
     R.groupBy(R.type),
     R.cond([
       [
@@ -52,6 +55,7 @@ export const getMax = (arr) => {
 // EG: getMin(['a', 'b', 'c', 'A', 1, '1']) => '1'
 export const getMin = (arr) => {
   return R.pipe(
+    forceArray,
     R.groupBy(R.type),
     R.cond([
       [
@@ -73,13 +77,13 @@ export const getMin = (arr) => {
 // Calculate the mean of a list (returns a number or NaN)
 // This omits everything except numbers and returns NaN if there are no numbers
 export const getMean = (arr) => {
-  return R.mean(R.filter(R.is(Number), arr))
+  return R.mean(R.filter(R.is(Number), forceArray(arr)))
 }
 
 // Calculate the median of a list  (returns a number or NaN)
 // This omits everything except numbers and returns NaN if there are no numbers
 export const getMedian = (arr) => {
-  return R.median(R.filter(R.is(Number), arr))
+  return R.median(R.filter(R.is(Number), forceArray(arr)))
 }
 
 // Calculate the standard deviation of a list (returns a number or NaN)
@@ -97,12 +101,12 @@ export const getMedian = (arr) => {
 // Calculate the sum of a list (returns a number or NaN)
 // This omits everything except numbers and returns NaN if there are no numbers
 export const getSum = (arr) => {
-  return R.sum(R.filter(R.is(Number), arr))
+  return R.sum(R.filter(R.is(Number), forceArray(arr)))
 }
 
 // Calculate the count of all items a list (returns a number or NaN)
 export const getCount = (arr) => {
-  return R.length(arr)
+  return R.length(forceArray(arr))
 }
 
 // Map an `statId` to its related function
