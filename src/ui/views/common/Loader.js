@@ -27,7 +27,7 @@ const Loader = () => {
     // start a timer if other loadings
     else if (dataLoading || sessionLoading) {
       if (waitTimeout.current === 0)
-        waitTimeout.current = setTimeout(() => setOpen(true), 3000)
+        waitTimeout.current = setTimeout(() => setOpen(true), 250)
     } else {
       // if loadings false, clear timer
       if (waitTimeout.current !== 0) {
