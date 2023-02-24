@@ -6,12 +6,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
-import IconClusterLayer from './customLayers/icon-cluster-layer'
-
 import { mutateLocal } from '../../../data/local'
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
-  selectNodeData,
   selectNodesByType,
   selectLayerById,
   selectTheme,
@@ -32,12 +29,12 @@ import {
   selectEnabledNodes,
   selectArcData,
   selectTouchMode,
+  selectSplitNodeData,
+  selectNodeClustersAtZoom,
 } from '../../../data/selectors'
 import { layerId, statId } from '../../../utils/enums'
 import { getStatFn } from '../../../utils/stats'
 import { store } from '../../../utils/store'
-import NUMBER_ICON_ATLAS from '../../resources/number-icon-atlas.png'
-import NUMBER_ICON_MAPPING from '../../resources/number-icon-mapping.json'
 
 import {
   fetchIcon,
@@ -290,7 +287,8 @@ const GetArcLayer = () => {
 }
 
 const GetNodeIconLayer = () => {
-  const nodeData = useSelector(selectNodeData)
+  const nodeDataSplit = useSelector(selectSplitNodeData)
+  const nodeClusters = useSelector(selectNodeClustersAtZoom)
   const nodesByType = useSelector(selectNodesByType)
   const nodeRange = useSelector(selectNodeRange)
   const themeType = useSelector(selectTheme)
@@ -490,13 +488,6 @@ const GetNodeIconLayer = () => {
     setIcons()
   }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
 
-  // Split the data between icons that can be grouped and not
-  const nodeDataSplit = R.groupBy((d) => {
-    const nodeType = d[1].type
-    return legendObjects[nodeType].group || false
-  })(nodeData)
-  const { true: aggregNodes = [], false: singleNodes = [] } = nodeDataSplit
-
   const getVarByProp = R.curry((varByKey, nodeObj) =>
     R.path([nodeObj.type, varByKey])(legendObjects)
   )
@@ -507,21 +498,11 @@ const GetNodeIconLayer = () => {
     R.pathOr(statId.COUNT, [nodeObj.type, groupCalculation])(legendObjects)
   )
 
-  const getColorGroupFn = R.pipe(
-    getGroupCalculation('groupCalcByColor'),
-    R.nth(R.__, getStatFn)
-  )
-
-  const getSizeGroupFn = R.pipe(
-    getGroupCalculation('groupCalcBySize'),
-    R.nth(R.__, getStatFn)
-  )
-
   return [
     new IconLayer({
       id: layerId.NODE_ICON_LAYER,
       visible: true,
-      data: singleNodes,
+      data: R.propOr([], false, nodeDataSplit),
       iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
       iconMapping: iconObj[1],
       autoHighlight: true,
@@ -540,26 +521,18 @@ const GetNodeIconLayer = () => {
         resolveTime(d[1].altitude + 1),
       ],
     }),
-    new IconClusterLayer({
+    new IconLayer({
       id: layerId.NODE_ICON_CLUSTER_LAYER,
       visible: true,
-      data: R.map((d) => R.assoc('id', d[0])(d[1]))(aggregNodes),
-      wrapLongitude: true,
-      iconAtlasMarker: `data:image/svg+xml;base64,${iconObj[0]}`,
-      iconAtlasLabel: NUMBER_ICON_ATLAS,
-      iconMappingMarker: iconObj[1],
-      iconMappingLabel: NUMBER_ICON_MAPPING,
-      radius: 50,
+      data: nodeClusters,
+      iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
+      iconMapping: iconObj[1],
+      autoHighlight: true,
       sizeScale: 1,
-      // TODO: It might be convenient to rename the `iconProp` key
-      // ("feels" different than `colorProp` and `sizeProp` in its use)
-      iconProp: 'icon',
-      groupBy: (d) => d.type,
-      getColorProp,
-      getColorGroupFn,
-      getSizeProp,
-      getSizeGroupFn,
-      colorBy: (d) => {
+      pickable: true,
+      getIcon: (d) => d['properties'].icon,
+      getColor: (feature) => {
+        const d = R.prop('properties', feature)
         const nodeType = d.type
         // BUG: Color changes not properly handled for single nodes
         // This needs to change. All nodes (clustered or not) should be scaled within `colorDomain`
@@ -606,7 +579,8 @@ const GetNodeIconLayer = () => {
           clusterValue
         )
       },
-      sizeBy: (d) => {
+      getSize: (feature) => {
+        const d = R.prop('properties', feature)
         const nodeType = d.type
         // BUG: Size changes not properly handled for single nodes
         // This needs to change. All nodes (clustered or not) should be scaled within `sizeDomain`
@@ -644,24 +618,7 @@ const GetNodeIconLayer = () => {
           clusterValue
         )
       },
-      // getIconMarker: (d) => d.properties.icon,
-      getIconLabel: (num) => {
-        var number = 100
-        if (num === 0) {
-          return 'marker'
-        } else if (num < 10) {
-          number = num
-        } else if (num < 100) {
-          number = Math.floor(num / 10) * 10
-        }
-        return `marker-${number}`
-      },
-      getPosition: (d) => [
-        resolveTime(d.longitude),
-        resolveTime(d.latitude),
-        resolveTime(d.altitude + 1),
-      ],
-      pickable: true,
+      getPosition: (d) => R.path(['geometry', 'coordinates'], d),
     }),
   ]
 }
