@@ -29,7 +29,7 @@ import {
   selectPitchSliderToggle,
   selectAppBarId,
   selectResolveTime,
-  selectGetClusterDomains,
+  selectNodeClustersAtZoom,
 } from '../../../data/selectors'
 import { statId } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
@@ -431,7 +431,11 @@ const MapLegendNodeToggle = ({
   const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
-  const getClusterDomains = useSelector(selectGetClusterDomains)
+  const nodeRangesByType = R.propOr(
+    {},
+    'range',
+    useSelector(selectNodeClustersAtZoom)
+  )
 
   const path = [
     'maps',
@@ -505,7 +509,11 @@ const MapLegendNodeToggle = ({
   const groupCalcByColor =
     displayedNodes[nodeType].groupCalcByColor || statId.COUNT
 
-  const { colorDomain, sizeDomain } = getClusterDomains(nodeType)
+  const { color: colorDomain, size: sizeDomain } = R.propOr(
+    {},
+    nodeType,
+    nodeRangesByType
+  )
   const sizeRange = nodeRange(nodeType, sizeProp, true)
   const colorRange = nodeRange(nodeType, colorProp, false)
 

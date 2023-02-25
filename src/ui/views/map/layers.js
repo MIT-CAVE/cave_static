@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { mutateLocal } from '../../../data/local'
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectNodesByType,
@@ -32,8 +31,7 @@ import {
   selectSplitNodeData,
   selectNodeClustersAtZoom,
 } from '../../../data/selectors'
-import { layerId, statId } from '../../../utils/enums'
-import { getStatFn } from '../../../utils/stats'
+import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
 
 import {
@@ -41,7 +39,6 @@ import {
   getScaledArray,
   getScaledColor,
   getScaledValue,
-  rgbStrToArray,
 } from '../../../utils'
 
 const getLayerProps = (props) =>
@@ -297,8 +294,6 @@ const GetNodeIconLayer = () => {
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
   const legendObjects = useSelector(selectEnabledNodes)
-  const appBarId = useSelector(selectAppBarId)
-  const dispatch = useDispatch()
 
   const [iconObj, setIconObj] = useState([
     btoa(renderToStaticMarkup(<MdDownloading />)),
@@ -488,16 +483,6 @@ const GetNodeIconLayer = () => {
     setIcons()
   }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
 
-  const getVarByProp = R.curry((varByKey, nodeObj) =>
-    R.path([nodeObj.type, varByKey])(legendObjects)
-  )
-  const getColorProp = getVarByProp('colorBy')
-  const getSizeProp = getVarByProp('sizeBy')
-
-  const getGroupCalculation = R.curry((groupCalculation, nodeObj) =>
-    R.pathOr(statId.COUNT, [nodeObj.type, groupCalculation])(legendObjects)
-  )
-
   return [
     new IconLayer({
       id: layerId.NODE_ICON_LAYER,
@@ -524,98 +509,53 @@ const GetNodeIconLayer = () => {
     new IconLayer({
       id: layerId.NODE_ICON_CLUSTER_LAYER,
       visible: true,
-      data: nodeClusters,
+      data: nodeClusters.data,
       iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
       iconMapping: iconObj[1],
       autoHighlight: true,
       sizeScale: 1,
       pickable: true,
       getIcon: (d) => d['properties'].icon,
-      getColor: (feature) => {
-        const d = R.prop('properties', feature)
-        const nodeType = d.type
-        // BUG: Color changes not properly handled for single nodes
-        // This needs to change. All nodes (clustered or not) should be scaled within `colorDomain`
-        if (!d.cluster) {
-          return findColor([d.id, d])
-        }
-        const groupCalcByColorFn =
-          getStatFn[getGroupCalculation('groupCalcByColor', d)]
+      getColor: (d) => {
+        const nodeType = d.properties.type
+        const colorObj = d.properties.colorProp
+        const colorDomain = nodeClusters.range[nodeType].color
 
-        const colorProp = getColorProp(d)
-        const statRange = nodeRange(nodeType, colorProp, false)
-        const value = timePath([colorProp, 'value'], d)
-        const isCategorical = !R.has('min', statRange)
-
-        const clusterValue = parseFloat(groupCalcByColorFn(value))
-        if (isCategorical) {
-          return rgbStrToArray(
-            R.propOr('rgb(0,0,0)', clusterValue.toString())(statRange)
-          )
-        }
-
-        const { colorDomain } = d
-        const colorRange = R.map((prop) =>
-          R.pathOr(0, [prop, themeType])(statRange)
-        )(['startGradientColor', 'endGradientColor'])
-        // Update new color domain for the legend
-        dispatch(
-          mutateLocal({
-            sync: false,
-            path: [
-              'maps',
-              'data',
-              appBarId,
-              'clusters',
-              nodeType,
-              'colorDomain',
-            ],
-            value: colorDomain,
-          })
-        )
-        return getScaledColor(
-          [colorDomain.min, colorDomain.max],
-          colorRange,
-          clusterValue
+        return getScaledArray(
+          timeProp('min', colorDomain),
+          timeProp('max', colorDomain),
+          R.map((val) => parseFloat(val))(
+            R.pathOr(
+              R.prop('startGradientColor', colorObj),
+              ['startGradientColor', themeType],
+              colorObj
+            )
+              .replace(/[^\d,.]/g, '')
+              .split(',')
+          ),
+          R.map((val) => parseFloat(val))(
+            R.pathOr(
+              R.prop('endGradientColor', colorObj),
+              ['endGradientColor', themeType],
+              colorObj
+            )
+              .replace(/[^\d,.]/g, '')
+              .split(',')
+          ),
+          timeProp('value', colorObj)
         )
       },
-      getSize: (feature) => {
-        const d = R.prop('properties', feature)
-        const nodeType = d.type
-        // BUG: Size changes not properly handled for single nodes
-        // This needs to change. All nodes (clustered or not) should be scaled within `sizeDomain`
-        if (!d.cluster) {
-          return findSize([d.id, d])
-        }
+      getSize: (d) => {
+        const nodeType = d.properties.type
+        const sizeObj = d.properties.sizeProp
+        const sizeDomain = nodeClusters.range[nodeType].size
 
-        const sizeProp = getSizeProp(d)
-        const value = timePath([sizeProp, 'value'], d)
-        const groupCalcBySizeFn =
-          getStatFn[getGroupCalculation('groupCalcBySize', d)]
-        const clusterValue = parseFloat(groupCalcBySizeFn(value))
-
-        const { sizeDomain } = d
-        // Update new size domain for the legend
-        dispatch(
-          mutateLocal({
-            sync: false,
-            path: [
-              'maps',
-              'data',
-              appBarId,
-              'clusters',
-              nodeType,
-              'sizeDomain',
-            ],
-            value: sizeDomain,
-          })
-        )
         return getScaledValue(
           sizeDomain.min,
           sizeDomain.max,
-          parseFloat(timeProp('startSize', d[sizeProp])),
-          parseFloat(timeProp('endSize', d[sizeProp])),
-          clusterValue
+          parseFloat(timeProp('startSize', sizeObj)),
+          parseFloat(timeProp('endSize', sizeObj)),
+          timeProp('value', sizeObj)
         )
       },
       getPosition: (d) => R.path(['geometry', 'coordinates'], d),

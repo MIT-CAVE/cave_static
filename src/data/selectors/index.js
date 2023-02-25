@@ -789,18 +789,15 @@ export const selectGetLegendGroupId = createSelector(
     )
 )
 
-export const selectGetClusterDomains = createSelector(
-  selectCurrentLocalMapData,
-  (currentLocalMapData) => (nodeType) =>
-    R.pathOr({}, ['clusters', nodeType])(currentLocalMapData)
-)
-
 export const selectNodeClusters = createSelector(
   [selectGroupedNodesWithId, selectEnabledNodes, selectResolveTime],
   (data, legendObjects, resolveTime) => {
     // define helper functions
     const getVarByProp = R.curry((varByKey, nodeObj) =>
       R.path([nodeObj.type, varByKey])(legendObjects)
+    )
+    const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
+      R.path([nodeCluster.properties.type, varByKey])(legendObjects)
     )
     const getGroups = (ungroupedData, fn) =>
       ungroupedData.reduce((acc, d) => {
@@ -814,8 +811,10 @@ export const selectNodeClusters = createSelector(
       resolveTime(d.latitude),
       resolveTime(d.altitude + 1),
     ]
-    const getGroupCalculation = R.curry((groupCalculation, nodeObj) =>
-      R.pathOr(statId.COUNT, [nodeObj.type, groupCalculation])(legendObjects)
+    const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
+      R.pathOr(statId.COUNT, [nodeCluster.properties.type, groupCalculation])(
+        legendObjects
+      )
     )
 
     const getColorGroupFn = R.pipe(
@@ -827,15 +826,19 @@ export const selectNodeClusters = createSelector(
       getGroupCalculation('groupCalcBySize'),
       R.nth(R.__, getStatFn)
     )
-    // Find clusters and size limits of the icons at each zoom level
-    const getRangeObj = (arr) =>
-      arr.reduce(
-        ({ min, max }, value) => ({
-          min: Math.min(value, min),
-          max: Math.max(value, max),
-        }),
-        { min: Infinity, max: -Infinity }
-      )
+    const getClusterSizeLimits = (cluster, sizeProp) =>
+      R.path(['properties', 'cluster'], cluster)
+        ? cluster.properties[sizeProp]
+        : R.pick(['startSize', 'endSize'], cluster.properties)
+
+    const getClustersColorLimits = (cluster, colorProp) =>
+      R.path(['properties', 'cluster'], cluster)
+        ? cluster.properties[colorProp]
+        : R.pick(
+            ['startGradientColor', 'endGradientColor'],
+            cluster.properties.colorByOptions[colorProp]
+          )
+
     // Set the "supercluster" constructor parameters
     const options = {
       minZoom: MIN_ZOOM,
@@ -858,6 +861,9 @@ export const selectNodeClusters = createSelector(
           [colorProp]: colorProp
             ? {
                 value: [d.props[colorProp].value],
+                startGradientColor:
+                  d.colorByOptions[colorProp].startGradientColor,
+                endGradientColor: d.colorByOptions[colorProp].endGradientColor,
               }
             : {},
         }
@@ -866,10 +872,7 @@ export const selectNodeClusters = createSelector(
           colorDomain: null,
           sizeDomain: null,
           icon: d['icon'],
-          ...(colorProp !== sizeProp
-            ? { ...colorPropObj, ...sizePropObj }
-            : // Make sure to preserve `sizeProp`'s additional properties
-              sizePropObj),
+          ...R.mergeDeepRight(colorPropObj, sizePropObj),
         }
       },
       reduce: (acc, dProps) => {
@@ -896,8 +899,8 @@ export const selectNodeClusters = createSelector(
     const index = new Supercluster(options)
     const groups = {}
     if (data.length > 0) {
+      // Iterate through every zoom level
       for (let z = options.maxZoom; z >= options.minZoom; z--) {
-        console.log('refinding max and min')
         const clusters = groupsRaw.reduce((acc, dataGroup) => {
           let points = dataGroup.map((d) => ({
             geometry: { coordinates: getPosition(d) },
@@ -907,63 +910,71 @@ export const selectNodeClusters = createSelector(
           index.load(points)
           const groupClustersRaw = index.getClusters([-180, -85, 180, 85], z)
 
-          /* Domain calculations start */
-
-          // NOTE(@Willem):
-          // Below, the idea is to obtain a `colorDomain` and `sizeDomain` (min's & max's) after
-          // applying the respective grouping calculation functions to each groupCluster.
-          // These domains will be then added to the `properties` key of the `groupClustersRaw`
-          // resulting data from `supercluster`.
-          // These domains will be the new min's and max's that we use to interpolate color
-          // and sizes for each cluster or isolated node, as well as displaying in the legend.
-          // Feel free to restructure the whole process. Just leaving this here in case some
-          // parts of it could be useful.
-
-          // console.log({ points, groupClusters, dataGroup })
-
-          // The props that we use in the legend for colorBy and sizeBy for a specific node type
-          const colorProp = getVarByProp('colorBy', dataGroup[0])
-          const sizeProp = getVarByProp('sizeBy', dataGroup[0])
-
-          const getDomainValues = (prop, groupCalculationFn) =>
-            groupClustersRaw.map((d) =>
-              d.properties.cluster
-                ? groupCalculationFn(d.properties[prop].value)
-                : // Nodes that were not within the radius to form a cluster
-                  d.properties.props[prop].value
-            )
-
-          // All elements of a `groupClusters` contain the same `nodeType`
-          // required to get the corresponding calculationGroup (color or size)
-          const colorGroupFn = getColorGroupFn(dataGroup[0])
-          const sizeGroupFn = getSizeGroupFn(dataGroup[0])
-
-          const colorValues = getDomainValues(colorProp, colorGroupFn)
-          const sizeValues = getDomainValues(sizeProp, sizeGroupFn)
-          // console.log({ colorValues, sizeValues })
-
-          const colorDomain = getRangeObj(colorValues)
-          const sizeDomain = getRangeObj(sizeValues)
-          // console.log({ colorDomain, sizeDomain })
-
-          const groupClusters = groupClustersRaw.map((groupCluster) => {
-            groupCluster.properties.colorDomain = colorDomain
-            groupCluster.properties.sizeDomain = sizeDomain
-            return groupCluster
-          })
-          // console.log({ colorDomain, sizeDomain, groupClusters })
-
-          /* Domain calculations end */
-
           // Aggregate clusters into a single data structure
-          return acc.concat(groupClusters)
+          return acc.concat(groupClustersRaw)
         }, [])
 
-        // console.log({ groupsRaw, clusters })
+        const ranges = {}
 
-        groups[z] = { data: clusters }
+        // find color/size value for each cluster - store min/max by type
+        for (let cluster of clusters) {
+          // The node type in this cluster
+          const clusterType = R.path(['properties', 'type'])(cluster)
+          // The props that we use in the legend for colorBy and sizeBy for a specific node type
+          const colorProp = getClusterVarByProp('colorBy', cluster)
+          const sizeProp = getClusterVarByProp('sizeBy', cluster)
+
+          // gets the values and aggregates by groupCalculationFn
+          const getDomainValue = (prop, groupCalculationFn) =>
+            cluster.properties.cluster
+              ? groupCalculationFn(cluster.properties[prop].value)
+              : // Nodes that were not within the radius to form a cluster
+                cluster.properties.props[prop].value
+
+          // All elements of a cluster contain the same `nodeType`
+          // required to get the corresponding calculationGroup (color or size)
+          const colorGroupFn = getColorGroupFn(cluster)
+          const sizeGroupFn = getSizeGroupFn(cluster)
+
+          // calculate the color and size value based on the agg func
+          const colorValue = getDomainValue(colorProp, colorGroupFn)
+          const sizeValue = getDomainValue(sizeProp, sizeGroupFn)
+
+          // set the values including min/max size/color
+          cluster.properties.colorProp = {
+            ...getClustersColorLimits(cluster, colorProp),
+            value: colorValue,
+          }
+          cluster.properties.sizeProp = {
+            ...getClusterSizeLimits(cluster, sizeProp),
+            value: sizeValue,
+          }
+
+          // Find the current min/max for this node type
+          const { min: sizeMin, max: sizeMax } = R.pathOr(
+            { min: Infinity, max: -Infinity },
+            [clusterType, 'size'],
+            ranges
+          )
+          const { min: colorMin, max: colorMax } = R.pathOr(
+            { min: Infinity, max: -Infinity },
+            [clusterType, 'color'],
+            ranges
+          )
+          // Update the types min/max with new values
+          ranges[clusterType] = {
+            color: {
+              min: R.min(colorMin, colorValue),
+              max: R.max(colorMax, colorValue),
+            },
+            size: {
+              min: R.min(sizeMin, sizeValue),
+              max: R.max(sizeMax, sizeValue),
+            },
+          }
+        }
+        groups[z] = { data: clusters, range: ranges }
       }
-      // console.log({ ...groups })
     }
 
     return groups
@@ -973,5 +984,5 @@ export const selectNodeClusters = createSelector(
 export const selectNodeClustersAtZoom = createSelector(
   [selectNodeClusters, selectViewport],
   (nodeClusters, viewport) =>
-    R.pathOr([], [Math.floor(viewport.zoom), 'data'], nodeClusters)
+    R.propOr({}, Math.floor(viewport.zoom), nodeClusters)
 )
