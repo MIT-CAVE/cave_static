@@ -386,7 +386,10 @@ const GetNodeIconLayer = () => {
   }
   useEffect(() => {
     const setIcons = async () => {
+      // Set desired render resolution
       const iconResolution = 144
+      // Offset prevents Icon collisions
+      const groupOffset = iconResolution + 15
       const icons = new Set()
       R.forEach(
         (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
@@ -415,7 +418,7 @@ const GetNodeIconLayer = () => {
             ).firstChild
             // scale group to correct render resolution
             const scale = iconResolution / getSvgResolution(svgElem)
-            const group = createGroup(0, iconResolution, scale, parser)
+            const group = createGroup(0, groupOffset, scale, parser)
             // move svg data to group
             group.innerHTML = svgElem.innerHTML
             svgElem.innerHTML = ''
@@ -437,7 +440,7 @@ const GetNodeIconLayer = () => {
             'image/svg+xml'
           ).firstChild
           const scale = iconResolution / getSvgResolution(iconElem)
-          const group = createGroup(acc[0], iconResolution, scale, parser)
+          const group = createGroup(acc[0], groupOffset, scale, parser)
           // take svg data from icon - put in group
           group.innerHTML = iconElem.innerHTML
           // add group to existing image
@@ -449,7 +452,7 @@ const GetNodeIconLayer = () => {
           )
           // add new image to mapping
           iconMapping[iconName] = {
-            x: acc[0] * iconResolution,
+            x: acc[0] * groupOffset,
             y: 0,
             width: iconResolution,
             height: iconResolution,
@@ -466,11 +469,11 @@ const GetNodeIconLayer = () => {
         // Set dimensions of iconAtlas image
         packed[1].setAttribute(
           'viewBox',
-          `0 0 ${packed[0] * iconResolution + iconResolution} ${iconResolution}`
+          `0 0 ${packed[0] * groupOffset + groupOffset} ${iconResolution}`
         )
         packed[1].setAttribute(
           'width',
-          `${iconResolution * packed[0] + iconResolution}`
+          `${groupOffset * packed[0] + groupOffset}`
         )
         packed[1].setAttribute('height', iconResolution)
         setPreviousIcons(icons)
