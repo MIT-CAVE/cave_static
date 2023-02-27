@@ -841,8 +841,8 @@ export const selectNodeClusters = createSelector(
 
     // Set the "supercluster" constructor parameters
     const options = {
-      minZoom: MIN_ZOOM,
-      maxZoom: MAX_ZOOM,
+      minZoom: Math.floor(MIN_ZOOM),
+      maxZoom: Math.floor(MAX_ZOOM),
       radius: 50 * Math.sqrt(2),
       map: (d) => {
         const colorProp = getVarByProp('colorBy', d)
@@ -896,7 +896,7 @@ export const selectNodeClusters = createSelector(
     }
     // create groups
     const groupsRaw = Object.values(getGroups(data, (d) => d.type))
-    const index = new Supercluster(options)
+    const superCluster = new Supercluster(options)
     const groups = {}
     if (data.length > 0) {
       // Iterate through every zoom level
@@ -907,8 +907,11 @@ export const selectNodeClusters = createSelector(
             properties: d,
           }))
 
-          index.load(points)
-          const groupClustersRaw = index.getClusters([-180, -85, 180, 85], z)
+          superCluster.load(points)
+          const groupClustersRaw = superCluster.getClusters(
+            [-180, -90, 180, 90],
+            z
+          )
 
           // Aggregate clusters into a single data structure
           return acc.concat(groupClustersRaw)
