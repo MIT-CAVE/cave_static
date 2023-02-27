@@ -8,7 +8,6 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
-  selectNodeData,
   selectNodesByType,
   selectLayerById,
   selectTheme,
@@ -29,6 +28,8 @@ import {
   selectEnabledNodes,
   selectArcData,
   selectTouchMode,
+  selectSplitNodeData,
+  selectNodeClustersAtZoom,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -283,7 +284,8 @@ const GetArcLayer = () => {
 }
 
 const GetNodeIconLayer = () => {
-  const nodeData = useSelector(selectNodeData)
+  const nodeDataSplit = useSelector(selectSplitNodeData)
+  const nodeClusters = useSelector(selectNodeClustersAtZoom)
   const nodesByType = useSelector(selectNodesByType)
   const nodeRange = useSelector(selectNodeRange)
   const themeType = useSelector(selectTheme)
@@ -384,6 +386,7 @@ const GetNodeIconLayer = () => {
       'image/svg+xml'
     ).firstChild
   }
+
   useEffect(() => {
     const setIcons = async () => {
       // Set desired render resolution
@@ -482,28 +485,85 @@ const GetNodeIconLayer = () => {
     }
     setIcons()
   }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
-  return new IconLayer({
-    id: layerId.NODE_ICON_LAYER,
-    visible: true,
-    data: nodeData,
-    iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
-    iconMapping: iconObj[1],
-    getIcon: (d) => d[1].icon,
-    autoHighlight: true,
-    getColor: (d) => {
-      return findColor(d)
-    },
-    sizeScale: 1,
-    getSize: (d) => {
-      return findSize(d)
-    },
-    getPosition: (d) => [
-      resolveTime(d[1].longitude),
-      resolveTime(d[1].latitude),
-      resolveTime(d[1].altitude + 1),
-    ],
-    pickable: true,
-  })
+
+  return [
+    new IconLayer({
+      id: layerId.NODE_ICON_LAYER,
+      visible: true,
+      data: R.propOr([], false, nodeDataSplit),
+      iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
+      iconMapping: iconObj[1],
+      autoHighlight: true,
+      sizeScale: 1,
+      pickable: true,
+      getIcon: (d) => d[1].icon,
+      getColor: (d) => {
+        return findColor(d)
+      },
+      getSize: (d) => {
+        return findSize(d)
+      },
+      getPosition: (d) => [
+        resolveTime(d[1].longitude),
+        resolveTime(d[1].latitude),
+        resolveTime(d[1].altitude + 1),
+      ],
+    }),
+    new IconLayer({
+      id: layerId.NODE_ICON_CLUSTER_LAYER,
+      visible: true,
+      data: nodeClusters.data,
+      iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
+      iconMapping: iconObj[1],
+      autoHighlight: true,
+      sizeScale: 1,
+      pickable: true,
+      getIcon: (d) => d['properties'].icon,
+      getColor: (d) => {
+        const nodeType = d.properties.type
+        const colorObj = d.properties.colorProp
+        const colorDomain = nodeClusters.range[nodeType].color
+
+        return getScaledArray(
+          timeProp('min', colorDomain),
+          timeProp('max', colorDomain),
+          R.map((val) => parseFloat(val))(
+            R.pathOr(
+              R.prop('startGradientColor', colorObj),
+              ['startGradientColor', themeType],
+              colorObj
+            )
+              .replace(/[^\d,.]/g, '')
+              .split(',')
+          ),
+          R.map((val) => parseFloat(val))(
+            R.pathOr(
+              R.prop('endGradientColor', colorObj),
+              ['endGradientColor', themeType],
+              colorObj
+            )
+              .replace(/[^\d,.]/g, '')
+              .split(',')
+          ),
+          timeProp('value', colorObj)
+        )
+      },
+      getSize: (d) => {
+        const nodeType = d.properties.type
+        const sizeObj = d.properties.sizeProp
+        const sizeDomain = nodeClusters.range[nodeType].size
+
+        return getScaledValue(
+          sizeDomain.min,
+          sizeDomain.max,
+          parseFloat(timeProp('startSize', sizeObj)),
+          parseFloat(timeProp('endSize', sizeObj)),
+          timeProp('value', sizeObj)
+        )
+      },
+      getPosition: (d) => R.path(['geometry', 'coordinates'], d),
+    }),
+  ]
 }
 
 const GetGeographyLayer = (openGeo) => {
@@ -534,7 +594,7 @@ const GetGeographyLayer = (openGeo) => {
       },
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geoColorRange(geoObj.type, colorProp, false)
+        const statRange = geoColorRange(geoObj.type, colorProp)
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])

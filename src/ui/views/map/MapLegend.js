@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Grid, Switch } from '@mui/material'
+import { Box, Grid, Switch, ToggleButton } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
@@ -29,7 +29,10 @@ import {
   selectPitchSliderToggle,
   selectAppBarId,
   selectResolveTime,
+  selectNodeClustersAtZoom,
 } from '../../../data/selectors'
+import { statId } from '../../../utils/enums'
+import { getStatLabel } from '../../../utils/stats'
 
 import {
   OverflowText,
@@ -148,6 +151,8 @@ const MapLegendGroupRowToggleLayer = ({
   icon,
   toggle,
   legendName,
+  toggleGroup,
+  toggleGroupLabel,
   ...props
 }) => {
   return (
@@ -158,9 +163,26 @@ const MapLegendGroupRowToggleLayer = ({
       <Grid item xs={2} className="my-auto ml-0">
         {toggle}
       </Grid>
-      <Grid item xs={9} className="my-auto">
-        <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
-      </Grid>
+      {toggleGroup ? (
+        <>
+          <Grid item xs={5} className="my-auto ml-0">
+            <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
+          </Grid>
+          <Grid item xs={1.5} className="my-auto">
+            {toggleGroup}
+          </Grid>
+          <Grid item xs={2.5} className="my-auto ml-0">
+            <OverflowText
+              sx={styles.overflowAlignLeft}
+              text={toggleGroupLabel}
+            />
+          </Grid>
+        </>
+      ) : (
+        <Grid item xs={9} className="my-auto">
+          <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
+        </Grid>
+      )}
     </Grid>
   )
 }
@@ -191,6 +213,7 @@ const MapLegendSizeBySection = ({
     'sizeBy',
   ]
   const syncSize = !includesPath(R.values(sync), path)
+
   return (
     <>
       <Grid
@@ -408,10 +431,12 @@ const MapLegendNodeToggle = ({
   const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
+  const nodeRangesByType = R.propOr(
+    {},
+    'range',
+    useSelector(selectNodeClustersAtZoom)
+  )
 
-  const sizeRange = nodeRange(nodeType, sizeProp, true)
-  const colorRange = nodeRange(nodeType, colorProp, false)
-  const isCategorical = !R.has('min', colorRange)
   const path = [
     'maps',
     'data',
@@ -436,11 +461,63 @@ const MapLegendNodeToggle = ({
   ]
   const syncColor = !includesPath(R.values(sync), colorPath)
 
+  const groupPath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'group',
+  ]
+  const syncGroupToggle = !includesPath(R.values(sync), groupPath)
+
+  const groupCalcSizePath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'groupCalcBySize',
+  ]
+  const syncGroupCalcSize = !includesPath(R.values(sync), groupCalcSizePath)
+
+  const groupCalcColorPath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    'nodes',
+    nodeType,
+    'groupCalcByColor',
+  ]
+  const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
+
   const getNodePropName = useCallback(
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
 
+  const allowGrouping = displayedNodes[nodeType].allowGrouping || false
+  const group = displayedNodes[nodeType].group || false
+  const groupCalcBySize =
+    displayedNodes[nodeType].groupCalcBySize || statId.COUNT
+  const groupCalcByColor =
+    displayedNodes[nodeType].groupCalcByColor || statId.COUNT
+
+  const { color: colorDomain, size: sizeDomain } = R.propOr(
+    {},
+    nodeType,
+    nodeRangesByType
+  )
+  const sizeRange = nodeRange(nodeType, sizeProp, true)
+  const colorRange = nodeRange(nodeType, colorProp, false)
+
+  const isCategorical = !R.has('min', colorRange)
   return (
     <details key={nodeType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -461,6 +538,32 @@ const MapLegendNodeToggle = ({
               }}
             />
           }
+          {...(allowGrouping && {
+            toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
+            toggleGroup: (
+              <ToggleButton
+                sx={{ p: 0.5 }}
+                color="primary"
+                value="group"
+                selected={group}
+                onChange={() => {
+                  dispatch(
+                    mutateLocal({
+                      sync: syncGroupToggle,
+                      path: groupPath,
+                      value: !group,
+                    })
+                  )
+                }}
+              >
+                <FetchedIcon
+                  iconName={group ? 'FaRegObjectGroup' : 'FaRegObjectUngroup'}
+                  size={26}
+                  color="text.primary"
+                />
+              </ToggleButton>
+            ),
+          })}
         />
       </summary>
       <hr />
@@ -474,7 +577,7 @@ const MapLegendNodeToggle = ({
         >
           <MapLegendSizeBySection
             sizeProp={sizeProp}
-            sizeRange={sizeRange}
+            sizeRange={group && sizeDomain ? sizeDomain : sizeRange}
             getPropName={getNodePropName}
             typeObj={typeObj}
             typeName={nodeType}
@@ -482,6 +585,35 @@ const MapLegendNodeToggle = ({
             feature="nodes"
             legendGroup={legendGroupId}
           />
+          {group && (
+            <Grid
+              container
+              sx={{ pb: 2 }}
+              spacing={1}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <FetchedIcon
+                iconName="AiOutlineFunction"
+                size={24}
+                color="text.primary"
+              />
+              <SimpleDropdown
+                value={groupCalcBySize}
+                getLabel={getStatLabel}
+                optionsList={R.values(statId)}
+                onSelect={(value) => {
+                  dispatch(
+                    mutateLocal({
+                      path: groupCalcSizePath,
+                      sync: syncGroupCalcSize,
+                      value,
+                    })
+                  )
+                }}
+              />
+            </Grid>
+          )}
         </Grid>
         <Grid
           item
@@ -536,10 +668,46 @@ const MapLegendNodeToggle = ({
                   ['endGradientColor', themeType],
                   colorRange
                 ),
-                maxVal: timeProp('min', colorRange),
-                minVal: timeProp('max', colorRange),
+                maxVal: timeProp(
+                  'min',
+                  group && colorDomain ? colorDomain : colorRange
+                ),
+                minVal: timeProp(
+                  'max',
+                  group && colorDomain ? colorDomain : colorRange
+                ),
               }}
             />
+          )}
+          {group && (
+            <Grid
+              container
+              spacing={1}
+              sx={{ pt: 8 }}
+              alignItems="center"
+              justifyContent="center"
+              flexDirection="row"
+            >
+              <FetchedIcon
+                iconName="AiOutlineFunction"
+                size={24}
+                color="text.primary"
+              />
+              <SimpleDropdown
+                value={groupCalcByColor}
+                getLabel={getStatLabel}
+                optionsList={R.values(statId)}
+                onSelect={(value) => {
+                  dispatch(
+                    mutateLocal({
+                      path: groupCalcColorPath,
+                      sync: syncGroupCalcColor,
+                      value,
+                    })
+                  )
+                }}
+              />
+            </Grid>
           )}
         </Grid>
       </Grid>

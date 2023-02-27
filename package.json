@@ -28,6 +28,7 @@
     "echarts-for-react": "^3.0.2",
     "expr-eval": "^2.0.2",
     "isomorphic-fetch": "^3.0.0",
+    "kdbush": "^3.0.0",
     "mapbox-gl": "^2.12.1",
     "prop-types": "^15.8.1",
     "ramda": "^0.28.0",
