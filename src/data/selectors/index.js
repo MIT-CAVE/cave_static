@@ -1,6 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit'
 import * as R from 'ramda'
-import Supercluster from 'supercluster'
 
 import {
   DEFAULT_ICON_URL,
@@ -10,6 +9,7 @@ import {
 } from '../../utils/constants'
 import { viewId, statId } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
+import Supercluster from '../../utils/supercluster'
 
 import {
   checkValidRange,
