@@ -932,7 +932,8 @@ export const selectNodeClusters = createSelector(
             cluster.properties.cluster
               ? groupCalculationFn(cluster.properties[prop].value)
               : // Nodes that were not within the radius to form a cluster
-                cluster.properties.props[prop].value
+                // This uses the calculationFn to apply count properly
+                groupCalculationFn([cluster.properties.props[prop].value])
 
           // All elements of a cluster contain the same `nodeType`
           // required to get the corresponding calculationGroup (color or size)
