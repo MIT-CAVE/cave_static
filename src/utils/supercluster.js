@@ -1,3 +1,4 @@
+// Code modified from: https://github.com/mapbox/supercluster under the MIT License
 import KDBush from 'kdbush'
 
 const defaultOptions = {
