@@ -115,6 +115,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               value: 'Sunburst',
               iconClass: MdDonutLarge,
             },
+            {
+              label: 'Treemap (beta)',
+              value: 'Treemap',
+              iconClass: MdDonutLarge,
+            },
           ]}
           displayIcon
           onSelect={(value) => {
