@@ -88,6 +88,7 @@ echarts.use([
   CanvasRenderer,
   CustomChart,
   SunburstChart,
+  // TreemapChart,
   VisualMapPiecewiseComponent,
 ])
 
@@ -1132,19 +1133,14 @@ const Sunburst = ({ data, theme, subGrouped }) => {
     )
   )
 
-  let normalData = R.pipe(
-    R.map(renameKeys({ x: 'name' })),
-    R.map(renameKeys({ y: 'value' })),
-    R.map((obj) => R.assoc('itemStyle', { color: '#4992ff' }, obj))
-  )(data)
-
   const yData = R.pluck('y')(data)
   let yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+  const allKeys = R.pluck('x')(data).concat(yKeys)
 
   const assignColors = () => {
     let availableColors =
       theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
-    availableColors = R.without(['#4992ff'], availableColors)
+    // availableColors = R.without(['#4992ff'], availableColors)
     const assignments = R.pipe(
       R.map((val) => {
         let randomChoice =
@@ -1153,11 +1149,23 @@ const Sunburst = ({ data, theme, subGrouped }) => {
         return [val, randomChoice]
       }),
       R.fromPairs
-    )(yKeys)
+    )(allKeys)
     return assignments
   }
 
   let assignments = assignColors()
+
+  let normalData = R.pipe(
+    R.map(renameKeys({ x: 'name' })),
+    R.map(renameKeys({ y: 'value' })),
+    R.map((obj) =>
+      R.assoc(
+        'itemStyle',
+        { color: R.path([R.path(['name'], obj)], assignments) },
+        obj
+      )
+    )
+  )(data)
 
   const createDatum = (obj) => {
     let base = { name: R.path('x', obj), children: [], visualMap: false }
@@ -1183,8 +1191,11 @@ const Sunburst = ({ data, theme, subGrouped }) => {
       ),
       base
     )
-
-    base = R.assoc('itemStyle', { color: '#4992ff' }, base)
+    base = R.assoc(
+      'itemStyle',
+      { color: R.path([R.path('x', obj)], assignments) },
+      base
+    )
     return base
   }
 
@@ -1197,23 +1208,40 @@ const Sunburst = ({ data, theme, subGrouped }) => {
           inRange: {
             color: R.map((val) => R.path([val], assignments), yKeys),
           },
-          itemWidth: 30,
-          itemHeight: 24,
-          right: 30,
+          itemWidth: 20,
+          itemHeight: 20,
+          top: '5%',
+          right: '3%',
           textStyle: {
             fontSize: 20,
           },
         }
       : null,
+    // : {
+    //     type: 'piecewise',
+    //     categories: allKeys,
+    //     showLabel: 'true',
+    //     inRange: {
+    //       color: R.map((val) => R.path([val], assignments), allKeys),
+    //     },
+    //     itemWidth: 20,
+    //     itemHeight: 20,
+    //     top: '5%',
+    //     right: '3%',
+    //     textStyle: {
+    //       fontSize: 20,
+    //     },
+    //   },
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     series: {
       radius: [60, '90%'],
       label: {
-        show: false,
+        show: true,
       },
+      precision: 2,
       itemStyle: {
         borderRadius: 7,
-        borderWidth: 7,
+        borderWidth: 1,
       },
       type: 'sunburst',
       sort: undefined,
@@ -1255,4 +1283,5 @@ export {
   StackedWaterfallChart,
   CumulativeLineChart,
   Sunburst,
+  // Treemap
 }
