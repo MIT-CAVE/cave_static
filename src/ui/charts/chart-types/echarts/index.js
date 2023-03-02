@@ -238,6 +238,10 @@ const EchartsBoxPlot = ({
   const yKeys = R.pipe(R.pluck('y'), R.mergeAll, R.keys)(data)
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
+  // TODO: Fix this hack fix for bad data causing boxplots to break
+  if (!subGrouped && !R.is(Array, R.path(['0', 'y', R.head(xData)], data))) {
+    return <div>Boxplot Data Error</div>
+  }
 
   const chartType = 'boxplot'
 
@@ -392,6 +396,7 @@ const EchartsBoxPlot = ({
       },
     },
   }
+  // console.log(options)
 
   // TODO: Prefer FlexibleWrapper here
   return (
