@@ -24,6 +24,7 @@ import {
   selectTheme,
 } from './data/selectors'
 import { getTheme } from './theme'
+import { ErrorBoundary } from './ui/compound'
 import AppBar from './ui/views/common/AppBar'
 import Loader from './ui/views/common/Loader'
 import renderAppPane from './ui/views/common/Pane'
@@ -110,15 +111,26 @@ const App = () => {
           <AppBar />
           <Box sx={styles.page}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              {renderAppPage(findViewType(appBarId))}
-              {open && (
-                <ClickAwayListener onClickAway={handlePaneClickAway}>
-                  <Box sx={styles.pane}>
-                    {renderAppPane({ open, pane })}
-                    {secondaryOpen && <SecondaryPane />}
-                  </Box>
-                </ClickAwayListener>
-              )}
+              <ErrorBoundary
+                fallback={renderAppPane({
+                  open: 'session',
+                  pane: {
+                    icon: 'MdApi',
+                    name: 'Sessions Pane',
+                    variant: 'session',
+                  },
+                })}
+              >
+                {renderAppPage(findViewType(appBarId))}
+                {open && (
+                  <ClickAwayListener onClickAway={handlePaneClickAway}>
+                    <Box sx={styles.pane}>
+                      {renderAppPane({ open, pane })}
+                      {secondaryOpen && <SecondaryPane />}
+                    </Box>
+                  </ClickAwayListener>
+                )}
+              </ErrorBoundary>
             </LocalizationProvider>
           </Box>
         </Box>
