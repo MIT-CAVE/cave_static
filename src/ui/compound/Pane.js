@@ -1,4 +1,4 @@
-import { Box, Drawer } from '@mui/material'
+import { Box, Drawer, IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 
 import FetchedIcon from './FetchedIcon'
@@ -44,6 +44,11 @@ const styles = {
     ml: 'auto',
     mr: 0.5,
   },
+  pinButton: {
+    p: 0.5,
+    border: 'none',
+    pointerEvents: '',
+  },
 }
 
 const PaneRoot = ({ disabled, elevation = 3, open, sx = [], ...props }) => (
@@ -72,6 +77,8 @@ const PaneHeader = ({
   iconName,
   leftButton,
   rightButton,
+  pin,
+  onPin,
   sx = [],
   ...props
 }) => {
@@ -83,6 +90,14 @@ const PaneHeader = ({
         {title} {icon}
       </Box>
       <Box sx={styles.rightButton}>{rightButton}</Box>
+      {pin != null && (
+        <IconButton
+          sx={[styles.pinButton, rightButton && { ml: 1.5 }]}
+          onClick={onPin}
+        >
+          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+        </IconButton>
+      )}
     </Box>
   )
 }
@@ -99,6 +114,8 @@ PaneHeader.propTypes = {
   ]),
   rightButton: PropTypes.node,
   leftButton: PropTypes.node,
+  pin: PropTypes.bool,
+  onPin: PropTypes.func,
 }
 
 const Pane = ({
@@ -106,13 +123,18 @@ const Pane = ({
   iconName,
   leftButton,
   rightButton,
+  pin,
+  onPin,
   width = 'auto',
   open,
   children,
   ...props
 }) => (
   <PaneRoot open={!!open} {...props}>
-    <PaneHeader title={name} {...{ iconName, leftButton, rightButton }} />
+    <PaneHeader
+      title={name}
+      {...{ iconName, leftButton, rightButton, pin, onPin }}
+    />
     <Box sx={[{ minWidth: PANE_WIDTH, width }, styles.content]}>
       <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
     </Box>

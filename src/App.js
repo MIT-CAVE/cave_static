@@ -9,7 +9,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from './data/local'
@@ -67,7 +67,9 @@ const App = () => {
   const appBarData = useSelector(selectAppBarData)
   const appBarId = useSelector(selectAppBarId)
 
+  const [pin, setPin] = useState(false)
   const dispatch = useDispatch()
+
   const theme = getTheme(themeId)
   const pane = R.assoc(
     'icon',
@@ -89,7 +91,7 @@ const App = () => {
 
   const handlePaneClickAway = useCallback(
     (e) => {
-      if (!R.isNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
+      if (!pin && !R.isNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
         dispatch(
           mutateLocal({
             path: ['appBar', 'paneState'],
@@ -99,9 +101,15 @@ const App = () => {
         )
       }
     },
-    [dispatch, open, sync]
+    [dispatch, open, sync, pin]
   )
 
+  const pinObj = {
+    pin,
+    onPin: () => {
+      setPin(!pin)
+    },
+  }
   return (
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
@@ -125,8 +133,12 @@ const App = () => {
                 {open && (
                   <ClickAwayListener onClickAway={handlePaneClickAway}>
                     <Box sx={styles.pane}>
-                      {renderAppPane({ open, pane })}
-                      {secondaryOpen && <SecondaryPane />}
+                      {renderAppPane({
+                        open,
+                        pane,
+                        ...(secondaryOpen === '' && pinObj),
+                      })}
+                      {secondaryOpen && <SecondaryPane {...pinObj} />}
                     </Box>
                   </ClickAwayListener>
                 )}
