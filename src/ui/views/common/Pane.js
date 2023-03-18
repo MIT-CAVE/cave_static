@@ -82,6 +82,7 @@ const PaneWrapper = ({ open, pane, width, variant, ...props }) => (
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
     iconName={R.propOr('BiError', 'icon', pane)}
+    style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
       R.equals(variant, paneId.SESSION) ? (
         <RefreshButton />

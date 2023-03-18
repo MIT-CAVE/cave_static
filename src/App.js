@@ -114,11 +114,11 @@ const App = () => {
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
         <Box sx={styles.root}>
-          <Loader />
           <SnackBar />
           <AppBar />
           <Box sx={styles.page}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <Loader />
               <ErrorBoundary
                 fallback={renderAppPane({
                   open: 'session',
