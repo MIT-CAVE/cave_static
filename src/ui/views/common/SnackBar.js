@@ -1,7 +1,7 @@
 import { Alert, AlertTitle, Collapse, IconButton, Stack } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import * as R from 'ramda'
-import React, { Fragment } from 'react'
+import React, { Fragment, useEffect, useRef } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
 import { useDispatch, useSelector } from 'react-redux'
 import { TransitionGroup } from 'react-transition-group'
@@ -14,15 +14,22 @@ const SnackBar = () => {
   const dispatch = useDispatch()
   const theme = useTheme()
 
+  const closingTimers = useRef({})
+
+  useEffect(
+    () => () => {
+      R.forEach((item) => clearTimeout(item), R.values(closingTimers.current))
+    },
+    []
+  )
+
   const handleClose = R.thunkify((messageKey) => {
+    if (R.has(messageKey, closingTimers.current)) {
+      clearTimeout(closingTimers.current.messageKey)
+      closingTimers.current = R.dissoc(messageKey, closingTimers.current)
+    }
     dispatch(removeMessage({ messageKey: messageKey }))
   })
-
-  // TODO: Add duration to messages
-  // const calculateDuration = R.pipe(
-  //   R.propOr(null, 'duration'),
-  //   R.unless(R.isNil, R.multiply(1000))
-  // )
 
   const closingButton = (maxKey) => (
     <Fragment>
@@ -38,6 +45,15 @@ const SnackBar = () => {
   )
 
   const caveAlert = (message, messageId) => {
+    if (
+      R.has('duration', message) &&
+      !R.has(messageId, closingTimers.current)
+    ) {
+      closingTimers.current[messageId] = setTimeout(() => {
+        closingTimers.current = R.dissoc(messageId, closingTimers.current)
+        dispatch(removeMessage({ messageKey: messageId }))
+      }, message.duration * 1000)
+    }
     return (
       <Collapse key={messageId}>
         <Alert
@@ -51,7 +67,6 @@ const SnackBar = () => {
       </Collapse>
     )
   }
-
   return R.isEmpty(messages) ? (
     []
   ) : (
