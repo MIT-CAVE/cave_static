@@ -988,5 +988,11 @@ export const selectNodeClusters = createSelector(
 export const selectNodeClustersAtZoom = createSelector(
   [selectNodeClusters, selectViewport],
   (nodeClusters, viewport) =>
-    R.propOr({}, Math.floor(viewport.zoom), nodeClusters)
+    R.propOr({}, Math.floor(viewport.zoom), nodeClusters),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('zoom', a) ? R.eqProps('zoom', a, b) : a === b,
+    },
+  }
 )
