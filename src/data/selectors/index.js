@@ -249,6 +249,9 @@ export const selectOpenPane = createSelector(selectPaneState, (data) =>
 export const selectSecondaryOpenPane = createSelector(selectPaneState, (data) =>
   R.propOr('', 'secondaryOpen', data)
 )
+export const selectPinPane = createSelector(selectPaneState, (data) =>
+  R.propOr(false, 'pin', data)
+)
 export const selectGroupedAppBar = createSelector(
   [selectLocalAppBarData, selectAppBarData],
   R.pipe(

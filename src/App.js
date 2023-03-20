@@ -9,7 +9,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from './data/local'
@@ -19,6 +19,7 @@ import {
   selectMapboxToken,
   selectOpenPane,
   selectOpenPanesData,
+  selectPinPane,
   selectSecondaryOpenPane,
   selectSync,
   selectTheme,
@@ -66,8 +67,8 @@ const App = () => {
   const sync = useSelector(selectSync)
   const appBarData = useSelector(selectAppBarData)
   const appBarId = useSelector(selectAppBarId)
+  const pin = useSelector(selectPinPane)
 
-  const [pin, setPin] = useState(false)
   const dispatch = useDispatch()
 
   const theme = getTheme(themeId)
@@ -107,7 +108,13 @@ const App = () => {
   const pinObj = {
     pin,
     onPin: () => {
-      setPin(!pin)
+      dispatch(
+        mutateLocal({
+          path: ['appBar', 'paneState', 'pin'],
+          value: !pin,
+          sync: !includesPath(R.values(sync), ['appBar', 'paneState', 'pin']),
+        })
+      )
     },
   }
   return (

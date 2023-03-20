@@ -15,6 +15,7 @@ import {
   selectSessionLoading,
   selectIgnoreLoading,
   selectDataLoading,
+  selectPinPane,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { themeId, paneId } from '../../../utils/enums'
@@ -193,6 +194,7 @@ const AppBar = () => {
   const dispatch = useDispatch()
   const currentThemeId = useSelector(selectTheme)
   const open = useSelector(selectOpenPane)
+  const pin = useSelector(selectPinPane)
   const appBar = useSelector(selectGroupedAppBar)
   const appBarId = useSelector(selectAppBarId)
   const panesData = useSelector(selectPanesData)
@@ -243,12 +245,15 @@ const AppBar = () => {
       dispatch(
         mutateLocal({
           path: ['appBar', 'paneState'],
-          value: open === pane ? {} : { open: pane },
+          value: {
+            pin, // Preserves state of a pinned pane
+            ...(open === pane ? {} : { open: pane }),
+          },
           sync: !includesPath(R.values(sync), ['appBar', 'paneState']),
         })
       )
     },
-    [dispatch, sync, open]
+    [dispatch, sync, open, pin]
   )
 
   const mapAppBarItems = R.pipe(
