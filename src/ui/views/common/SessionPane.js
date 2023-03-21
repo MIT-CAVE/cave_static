@@ -51,6 +51,7 @@ const ActionItems = ({ items = [], disabled }) => {
           <Tooltip
             key={label.toLocaleLowerCase()}
             title={label}
+            PopperProps={{ sx: { zIndex: 2002 } }}
             enterDelay={300}
             leaveDelay={300}
           >
@@ -84,6 +85,7 @@ const ActionItems = ({ items = [], disabled }) => {
             }}
             {...{ anchorEl, open }}
             onClose={onCloseHandler}
+            sx={{ zIndex: 2002 }}
             PaperProps={{
               style: {
                 // maxHeight: ITEM_HEIGHT * 4.5,
