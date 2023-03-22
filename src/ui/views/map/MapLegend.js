@@ -898,28 +898,36 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
           <hr />
         </span>
       </summary>
-      {R.map(({ id: nodeType, value, sizeBy, colorBy }) => (
-        <MapLegendNodeToggle
-          key={nodeType}
-          legendGroupId={legendObj.id}
-          nodeType={nodeType}
-          value={value}
-          sizeProp={resolveTime(sizeBy)}
-          colorProp={resolveTime(colorBy)}
-          typeObj={R.prop(nodeType)(nodeTypes)}
-        />
-      ))(getSortedGroups('nodes'))}
-      {R.map(({ id: arcType, value, sizeBy, colorBy }) => (
-        <MapLegendArcToggle
-          key={arcType}
-          legendGroupId={legendObj.id}
-          arcType={arcType}
-          value={value}
-          sizeProp={resolveTime(sizeBy)}
-          colorProp={resolveTime(colorBy)}
-          typeObj={R.prop(arcType)(arcTypes)}
-        />
-      ))(getSortedGroups('arcs'))}
+      {R.map(({ id: nodeType, value, sizeBy, colorBy }) =>
+        R.has(nodeType, nodeTypes) ? (
+          <MapLegendNodeToggle
+            key={nodeType}
+            legendGroupId={legendObj.id}
+            nodeType={nodeType}
+            value={value}
+            sizeProp={resolveTime(sizeBy)}
+            colorProp={resolveTime(colorBy)}
+            typeObj={R.prop(nodeType)(nodeTypes)}
+          />
+        ) : (
+          []
+        )
+      )(getSortedGroups('nodes'))}
+      {R.map(({ id: arcType, value, sizeBy, colorBy }) =>
+        R.has(arcType, arcTypes) ? (
+          <MapLegendArcToggle
+            key={arcType}
+            legendGroupId={legendObj.id}
+            arcType={arcType}
+            value={value}
+            sizeProp={resolveTime(sizeBy)}
+            colorProp={resolveTime(colorBy)}
+            typeObj={R.prop(arcType)(arcTypes)}
+          />
+        ) : (
+          []
+        )
+      )(getSortedGroups('arcs'))}
       {R.map(({ id: geoType, value, colorBy }) => (
         <MapLegendGeoToggle
           key={geoType}
@@ -936,7 +944,6 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
 
 const MapLegend = () => {
   const legendData = useSelector(selectLegendData)
-
   const showPitchSlider = useSelector(selectPitchSliderToggle)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
   const mapLegend = useSelector(selectMapLegend)

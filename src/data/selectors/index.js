@@ -732,31 +732,41 @@ export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectTimePath, selectArcsByType],
-  (arcs, timePath, arcsByType) => (type, prop, size) =>
-    R.pipe(
-      timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
-      R.when(
-        (range) =>
-          R.isEmpty(range) ||
-          (R.has('startGradientColor', range) && !R.has('max', range)),
-        R.mergeRight(
-          R.reduce(
-            (acc, value) => ({
-              max: R.max(acc.max, timePath(['props', prop, 'value'], value)),
-              min: R.min(acc.min, timePath(['props', prop, 'value'], value)),
-            }),
-            { min: Infinity, max: -Infinity }
-          )(R.prop(type, arcsByType))
-        )
-      ),
-      size && !R.has('min')
-        ? () => {
-            console.warn('sizeBy does not support categorical variables.')
-            return { min: 0, max: 0 }
-          }
-        : R.identity,
-      R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-    )(arcs)
+  (arcs, timePath, arcsByType) =>
+    R.memoizeWith(
+      (type, prop, size) => [type, prop, size],
+      (type, prop, size) =>
+        R.pipe(
+          timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.when(
+            (range) =>
+              R.isEmpty(range) ||
+              (R.has('startGradientColor', range) && !R.has('max', range)),
+            R.mergeRight(
+              R.reduce(
+                (acc, value) => ({
+                  max: R.max(
+                    acc.max,
+                    timePath(['props', prop, 'value'], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    timePath(['props', prop, 'value'], value)
+                  ),
+                }),
+                { min: Infinity, max: -Infinity }
+              )(R.propOr([], type, arcsByType))
+            )
+          ),
+          size && !R.has('min')
+            ? () => {
+                console.warn('sizeBy does not support categorical variables.')
+                return { min: 0, max: 0 }
+              }
+            : R.identity,
+          R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
+        )(arcs)
+    )
 )
 
 // Split nodes by those grouped vs those not
@@ -783,51 +793,72 @@ export const selectGroupedNodesWithId = createSelector(
 
 export const selectNodeRange = createSelector(
   [selectNodeTypes, selectTimePath, selectNodesByType],
-  (nodeTypes, timePath, nodesByType) => (type, prop, size) =>
-    R.pipe(
-      timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
-      R.when(
-        (range) =>
-          R.isEmpty(range) ||
-          (R.has('startGradientColor', range) && !R.has('max', range)),
-        R.mergeRight(
-          R.reduce(
-            (acc, value) => ({
-              max: R.max(acc.max, timePath(['props', prop, 'value'], value)),
-              min: R.min(acc.min, timePath(['props', prop, 'value'], value)),
-            }),
-            { min: Infinity, max: -Infinity }
-          )(R.prop(type, nodesByType))
-        )
-      ),
-      size && !R.has('min')
-        ? () => {
-            console.warn('sizeBy does not support categorical variables.')
-            return { min: 0, max: 0 }
-          }
-        : R.identity,
-      R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-    )(nodeTypes)
+  (nodeTypes, timePath, nodesByType) =>
+    R.memoizeWith(
+      (type, prop, size) => [type, prop, size],
+      (type, prop, size) =>
+        R.pipe(
+          timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.when(
+            (range) =>
+              R.isEmpty(range) ||
+              (R.has('startGradientColor', range) && !R.has('max', range)),
+            R.mergeRight(
+              R.reduce(
+                (acc, value) => ({
+                  max: R.max(
+                    acc.max,
+                    timePath(['props', prop, 'value'], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    timePath(['props', prop, 'value'], value)
+                  ),
+                }),
+                { min: Infinity, max: -Infinity }
+              )(R.propOr([], type, nodesByType))
+            )
+          ),
+          size && !R.has('min')
+            ? () => {
+                console.warn('sizeBy does not support categorical variables.')
+                return { min: 0, max: 0 }
+              }
+            : R.identity,
+          R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
+        )(nodeTypes)
+    )
 )
 export const selectGeoColorRange = createSelector(
   [selectGeoTypes, selectTimePath, selectGeosByType],
-  (geoTypes, timePath, geosByType) => (type, prop) =>
-    R.pipe(
-      timePath([type, 'colorByOptions', prop]),
-      R.when(
-        (range) => R.has('startGradientColor', range) && !R.has('max', range),
-        R.mergeRight(
-          R.reduce(
-            (acc, value) => ({
-              max: R.max(acc.max, timePath(['props', prop, 'value'], value)),
-              min: R.min(acc.min, timePath(['props', prop, 'value'], value)),
-            }),
-            { min: Infinity, max: -Infinity }
-          )(R.prop(type, geosByType))
-        )
-      ),
-      R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-    )(geoTypes)
+  (geoTypes, timePath, geosByType) =>
+    R.memoizeWith(
+      (type, prop) => [type, prop],
+      (type, prop) =>
+        R.pipe(
+          timePath([type, 'colorByOptions', prop]),
+          R.when(
+            (range) =>
+              R.has('startGradientColor', range) && !R.has('max', range),
+            R.mergeRight(
+              R.reduce(
+                (acc, value) => ({
+                  max: R.max(
+                    acc.max,
+                    timePath(['props', prop, 'value'], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    timePath(['props', prop, 'value'], value)
+                  ),
+                }),
+                { min: Infinity, max: -Infinity }
+              )(R.propOr([], type, geosByType))
+            )
+          ),
+          R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
+        )(geoTypes)
+    )
 )
 
 export const selectGetLegendGroupId = createSelector(

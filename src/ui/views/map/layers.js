@@ -76,7 +76,7 @@ const Get3dArcLayer = () => {
         )
       }
     ),
-    [legendObjects]
+    [legendObjects, arcRange]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,7 +126,7 @@ const Get3dArcLayer = () => {
             )
       }
     ),
-    [legendObjects, themeType]
+    [legendObjects, themeType, arcRange]
   )
 
   return new ArcLayer(
@@ -191,7 +191,7 @@ const GetArcLayer = () => {
         )
       }
     ),
-    [legendObjects]
+    [legendObjects, arcRange]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -241,7 +241,7 @@ const GetArcLayer = () => {
             )
       }
     ),
-    [legendObjects, themeType]
+    [legendObjects, themeType, arcRange]
   )
   return new PathLayer(
     getLayerProps({
@@ -344,7 +344,7 @@ const GetNodeIconLayer = () => {
             )
       }
     ),
-    [legendObjects, themeType]
+    [legendObjects, themeType, nodeRange]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -368,7 +368,7 @@ const GetNodeIconLayer = () => {
         )
       }
     ),
-    [legendObjects]
+    [legendObjects, nodeRange]
   )
 
   const getSvgResolution = R.pipe(
@@ -614,7 +614,7 @@ const GetGeographyLayer = (openGeo) => {
             )
       }
     ),
-    [enabledGeos, themeType]
+    [enabledGeos, themeType, geoColorRange]
   )
 
   const onClick = useCallback(
