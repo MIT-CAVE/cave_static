@@ -249,6 +249,9 @@ export const selectOpenPane = createSelector(selectPaneState, (data) =>
 export const selectSecondaryOpenPane = createSelector(selectPaneState, (data) =>
   R.propOr('', 'secondaryOpen', data)
 )
+export const selectPinPane = createSelector(selectPaneState, (data) =>
+  R.propOr(false, 'pin', data)
+)
 export const selectGroupedAppBar = createSelector(
   [selectLocalAppBarData, selectAppBarData],
   R.pipe(
@@ -672,6 +675,10 @@ export const selectNodesByType = createSelector(
   selectFilteredNodes,
   R.pipe(R.values, R.groupBy(R.prop('type')))
 )
+export const selectArcsByType = createSelector(
+  selectFilteredArcsData,
+  R.pipe(R.values, R.groupBy(R.prop('type')))
+)
 export const selectGeosByType = createSelector(
   selectFilteredGeosData,
   R.pipe(
@@ -724,13 +731,27 @@ export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
   R.toPairs(R.prop('false', data))
 )
 export const selectArcRange = createSelector(
-  [selectArcTypes, selectTimePath],
-  (arcs, timePath) => (type, prop, size) =>
+  [selectArcTypes, selectTimePath, selectArcsByType],
+  (arcs, timePath, arcsByType) => (type, prop, size) =>
     R.pipe(
       timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+      R.when(
+        (range) =>
+          R.isEmpty(range) ||
+          (R.has('startGradientColor', range) && !R.has('max', range)),
+        R.mergeRight(
+          R.reduce(
+            (acc, value) => ({
+              max: R.max(acc.max, timePath(['props', prop, 'value'], value)),
+              min: R.min(acc.min, timePath(['props', prop, 'value'], value)),
+            }),
+            { min: Infinity, max: -Infinity }
+          )(R.prop(type, arcsByType))
+        )
+      ),
       size && !R.has('min')
         ? () => {
-            console.warn('sizeBy dose not support categorical variables.')
+            console.warn('sizeBy does not support categorical variables.')
             return { min: 0, max: 0 }
           }
         : R.identity,
@@ -761,18 +782,50 @@ export const selectGroupedNodesWithId = createSelector(
 )
 
 export const selectNodeRange = createSelector(
-  [selectNodeTypes, selectTimePath],
-  (nodeTypes, timePath) => (type, prop, size) =>
+  [selectNodeTypes, selectTimePath, selectNodesByType],
+  (nodeTypes, timePath, nodesByType) => (type, prop, size) =>
     R.pipe(
       timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+      R.when(
+        (range) =>
+          R.isEmpty(range) ||
+          (R.has('startGradientColor', range) && !R.has('max', range)),
+        R.mergeRight(
+          R.reduce(
+            (acc, value) => ({
+              max: R.max(acc.max, timePath(['props', prop, 'value'], value)),
+              min: R.min(acc.min, timePath(['props', prop, 'value'], value)),
+            }),
+            { min: Infinity, max: -Infinity }
+          )(R.prop(type, nodesByType))
+        )
+      ),
+      size && !R.has('min')
+        ? () => {
+            console.warn('sizeBy does not support categorical variables.')
+            return { min: 0, max: 0 }
+          }
+        : R.identity,
       R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
     )(nodeTypes)
 )
 export const selectGeoColorRange = createSelector(
-  [selectGeoTypes, selectTimePath],
-  (geoTypes, timePath) => (type, prop) =>
+  [selectGeoTypes, selectTimePath, selectGeosByType],
+  (geoTypes, timePath, geosByType) => (type, prop) =>
     R.pipe(
       timePath([type, 'colorByOptions', prop]),
+      R.when(
+        (range) => R.has('startGradientColor', range) && !R.has('max', range),
+        R.mergeRight(
+          R.reduce(
+            (acc, value) => ({
+              max: R.max(acc.max, timePath(['props', prop, 'value'], value)),
+              min: R.min(acc.min, timePath(['props', prop, 'value'], value)),
+            }),
+            { min: Infinity, max: -Infinity }
+          )(R.prop(type, geosByType))
+        )
+      ),
       R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
     )(geoTypes)
 )
@@ -988,5 +1041,11 @@ export const selectNodeClusters = createSelector(
 export const selectNodeClustersAtZoom = createSelector(
   [selectNodeClusters, selectViewport],
   (nodeClusters, viewport) =>
-    R.propOr({}, Math.floor(viewport.zoom), nodeClusters)
+    R.propOr({}, Math.floor(viewport.zoom), nodeClusters),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('zoom', a) ? R.eqProps('zoom', a, b) : a === b,
+    },
+  }
 )

@@ -82,6 +82,7 @@ const PaneWrapper = ({ open, pane, width, variant, ...props }) => (
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
     iconName={R.propOr('BiError', 'icon', pane)}
+    style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
       R.equals(variant, paneId.SESSION) ? (
         <RefreshButton />
@@ -97,13 +98,17 @@ PaneWrapper.propTypes = {
   pane: PropTypes.object,
 }
 
-const renderAppPane = ({ open, pane }) => {
+const renderAppPane = ({ open, pane, pin, onPin }) => {
   let { width, variant, ...paneProps } = pane
   // Make `PANE_WIDTH` the default width for the Session pane
   const paneWidth =
     variant === paneId.SESSION && width == null ? PANE_WIDTH : width
   return (
-    <PaneWrapper {...{ open, variant }} width={paneWidth} pane={paneProps}>
+    <PaneWrapper
+      {...{ open, variant, pin, onPin }}
+      width={paneWidth}
+      pane={paneProps}
+    >
       {R.cond([
         // Built-in panes
         [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],

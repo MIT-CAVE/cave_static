@@ -1,6 +1,6 @@
 import { Divider, IconButton, Tab, Tabs, alpha, Box } from '@mui/material'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import React, { useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -11,9 +11,14 @@ import {
   selectSync,
   selectGroupedAppBar,
   selectOpenPane,
+  selectPanesData,
+  selectSessionLoading,
+  selectIgnoreLoading,
+  selectDataLoading,
+  selectPinPane,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-import { themeId } from '../../../utils/enums'
+import { themeId, paneId } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
@@ -28,7 +33,7 @@ const styles = {
     borderRight: 1,
     borderColor: 'text.secondary',
     bgcolor: 'background.paper',
-    zIndex: 1201,
+    zIndex: 2001,
   },
   navSection: {
     display: 'flex',
@@ -80,8 +85,8 @@ const nonSx = {
 }
 
 //Wrappers stop Tabs from passing props that cannot be read and cause errors
-const ButtonInTabs = ({ icon, color, onClick, sx = [] }) => (
-  <IconButton size="large" {...{ sx, onClick }}>
+const ButtonInTabs = ({ icon, color, disabled, onClick, sx = [] }) => (
+  <IconButton size="large" {...{ sx, onClick, disabled }}>
     <FetchedIcon size={35} color={color} iconName={icon} />
   </IconButton>
 )
@@ -93,6 +98,7 @@ const getAppBarItem = ({
   appBarId,
   changePane,
   sync,
+  loading,
   dispatch,
 }) => {
   const type = R.prop('type', obj)
@@ -103,6 +109,7 @@ const getAppBarItem = ({
       sx={styles.tab}
       key={key}
       value={key}
+      disabled={loading}
       icon={
         <FetchedIcon
           className={nonSx.navIcon}
@@ -118,6 +125,7 @@ const getAppBarItem = ({
   ) : type === 'button' ? (
     <ButtonInTabs
       key={key}
+      disabled={loading}
       onClick={() => {
         dispatch(
           sendCommand({
@@ -135,6 +143,7 @@ const getAppBarItem = ({
   ) : type === 'map' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
+      disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
       onClick={() =>
         dispatch(
@@ -149,6 +158,7 @@ const getAppBarItem = ({
   ) : type === 'kpi' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
+      disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
       onClick={() =>
         dispatch(
@@ -163,6 +173,7 @@ const getAppBarItem = ({
   ) : type === 'stats' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
+      disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
       onClick={() =>
         dispatch(
@@ -183,9 +194,41 @@ const AppBar = () => {
   const dispatch = useDispatch()
   const currentThemeId = useSelector(selectTheme)
   const open = useSelector(selectOpenPane)
+  const pin = useSelector(selectPinPane)
   const appBar = useSelector(selectGroupedAppBar)
   const appBarId = useSelector(selectAppBarId)
+  const panesData = useSelector(selectPanesData)
+  const sessionLoading = useSelector(selectSessionLoading)
+  const dataLoading = useSelector(selectDataLoading)
+  const ignoreLoading = useSelector(selectIgnoreLoading)
   const sync = useSelector(selectSync)
+
+  const waitTimeout = useRef(0)
+  const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    // show for ignoreloading
+    if (ignoreLoading) setLoading(true)
+    // start a timer if other loadings
+    else if (dataLoading || sessionLoading) {
+      if (waitTimeout.current === 0)
+        waitTimeout.current = setTimeout(() => setLoading(true), 250)
+    } else {
+      // if loadings false, clear timer
+      if (waitTimeout.current !== 0) {
+        clearTimeout(waitTimeout.current)
+        waitTimeout.current = 0
+      }
+      // and close loader
+      if (loading) setLoading(false)
+    }
+    // cleanup timer on unmount
+    return () => {
+      if (waitTimeout.current !== 0) {
+        clearTimeout(waitTimeout.current)
+        waitTimeout.current = 0
+      }
+    }
+  }, [dataLoading, ignoreLoading, loading, sessionLoading])
 
   const getValue = useCallback(
     (key) =>
@@ -202,12 +245,38 @@ const AppBar = () => {
       dispatch(
         mutateLocal({
           path: ['appBar', 'paneState'],
-          value: open === pane ? {} : { open: pane },
+          value: {
+            pin, // Preserves state of a pinned pane
+            ...(open === pane ? {} : { open: pane }),
+          },
           sync: !includesPath(R.values(sync), ['appBar', 'paneState']),
         })
       )
     },
-    [dispatch, sync, open]
+    [dispatch, sync, open, pin]
+  )
+
+  const mapAppBarItems = R.pipe(
+    sortProps,
+    R.mapObjIndexed((obj, key) => {
+      const color = R.propOr(
+        R.prop('color', obj),
+        currentThemeId
+      )(R.prop('color', obj))
+      const variant = R.pathOr(false, [key, 'variant'], panesData)
+      const disabled = R.equals(variant, paneId.SESSION) ? false : loading
+      return getAppBarItem({
+        color,
+        key,
+        obj,
+        appBarId,
+        changePane,
+        sync,
+        loading: disabled,
+        dispatch,
+      })
+    }),
+    R.values
   )
 
   return (
@@ -220,23 +289,7 @@ const AppBar = () => {
         aria-label="Upper App Bar"
       >
         {/* Upper Bar */}
-        {R.values(
-          R.mapObjIndexed((obj, key) => {
-            const color = R.propOr(
-              R.prop('color', obj),
-              currentThemeId
-            )(R.prop('color', obj))
-            return getAppBarItem({
-              color,
-              key,
-              obj,
-              appBarId,
-              changePane,
-              sync,
-              dispatch,
-            })
-          })(sortProps(R.propOr({}, 'upper', appBar)))
-        )}
+        {mapAppBarItems(R.propOr({}, 'upper', appBar))}
       </Tabs>
 
       {/* Lower Bar */}
@@ -250,23 +303,7 @@ const AppBar = () => {
         variant="fullWidth"
         aria-label="Lower App Bar"
       >
-        {R.values(
-          R.mapObjIndexed((obj, key) => {
-            const color = R.propOr(
-              R.prop('color', obj),
-              currentThemeId
-            )(R.prop('color', obj))
-            return getAppBarItem({
-              color,
-              key,
-              obj,
-              appBarId,
-              changePane,
-              sync,
-              dispatch,
-            })
-          })(sortProps(R.propOr({}, 'lower', appBar)))
-        )}
+        {mapAppBarItems(R.propOr({}, 'lower', appBar))}
       </Tabs>
     </Box>
   )

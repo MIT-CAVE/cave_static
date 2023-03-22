@@ -21,6 +21,8 @@ import { useEffect, useState, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
+import { mutateLocal } from '../../../data/local'
+import { initialState } from '../../../data/local/settingsSlice'
 import {
   selectSessionsByTeam,
   selectSortedTeams,
@@ -51,6 +53,7 @@ const ActionItems = ({ items = [], disabled }) => {
           <Tooltip
             key={label.toLocaleLowerCase()}
             title={label}
+            PopperProps={{ sx: { zIndex: 2002 } }}
             enterDelay={300}
             leaveDelay={300}
           >
@@ -84,6 +87,7 @@ const ActionItems = ({ items = [], disabled }) => {
             }}
             {...{ anchorEl, open }}
             onClose={onCloseHandler}
+            sx={{ zIndex: 2002 }}
             PaperProps={{
               style: {
                 // maxHeight: ITEM_HEIGHT * 4.5,
@@ -367,6 +371,15 @@ const SessionPane = ({ width }) => {
   // Select session
   const onClickHandler = (sessionId) => {
     dispatch(
+      mutateLocal({
+        path: [],
+        value: {
+          settings: initialState,
+        },
+        sync: false,
+      })
+    )
+    dispatch(
       sendCommand({
         command: 'session_management',
         data: {
@@ -416,6 +429,15 @@ const SessionPane = ({ width }) => {
             team_id: currentAction.teamId,
           },
         },
+      })
+    )
+    dispatch(
+      mutateLocal({
+        path: [],
+        value: {
+          settings: initialState,
+        },
+        sync: false,
       })
     )
     setCurrentAction({})

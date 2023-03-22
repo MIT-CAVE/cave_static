@@ -340,7 +340,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
     <details key={geoType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
-          icon={<FetchedIcon iconName={typeObj.icon} />}
+          icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
           legendName={R.propOr(geoType, 'name')(typeObj)}
           toggle={
             <Switch
@@ -522,7 +522,7 @@ const MapLegendNodeToggle = ({
     <details key={nodeType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
-          icon={<FetchedIcon iconName={typeObj.icon} />}
+          icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
           legendName={R.propOr(nodeType, 'name')(typeObj)}
           toggle={
             <Switch
@@ -581,7 +581,7 @@ const MapLegendNodeToggle = ({
             getPropName={getNodePropName}
             typeObj={typeObj}
             typeName={nodeType}
-            icon={<FetchedIcon iconName={typeObj.icon} />}
+            icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
             feature="nodes"
             legendGroup={legendGroupId}
           />

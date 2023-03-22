@@ -1,4 +1,4 @@
-import { Box, Drawer } from '@mui/material'
+import { Box, Drawer, IconButton } from '@mui/material'
 import * as R from 'ramda'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -15,7 +15,12 @@ import {
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
 
-import { createNestedList, findBaseItems, findValue } from '../../compound'
+import {
+  createNestedList,
+  FetchedIcon,
+  findBaseItems,
+  findValue,
+} from '../../compound'
 
 import { getCategoryItems, includesPath } from '../../../utils'
 
@@ -43,6 +48,11 @@ const styles = {
   },
   titleText: {
     mr: 0.5,
+  },
+  pinButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 }
 
@@ -267,7 +277,7 @@ const FilterPane = ({ filteredData, category, dispatch }) => {
   )
 }
 
-const SecondaryPane = () => {
+const SecondaryPane = ({ pin, onPin }) => {
   const categories = useSelector(selectCategoriesData)
   const open = useSelector(selectSecondaryOpenPane)
   const filteredData = useSelector(selectFiltered)
@@ -286,6 +296,9 @@ const SecondaryPane = () => {
     >
       <Box sx={styles.titleDiv}>
         <Box sx={styles.titleText}>{title}</Box>
+        <IconButton sx={styles.pinButton} onClick={onPin}>
+          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+        </IconButton>
       </Box>
       {R.prop('key', open) === 'Filter' ? (
         <FilterPane {...{ filteredData, category, dispatch }} />

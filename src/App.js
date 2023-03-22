@@ -19,11 +19,13 @@ import {
   selectMapboxToken,
   selectOpenPane,
   selectOpenPanesData,
+  selectPinPane,
   selectSecondaryOpenPane,
   selectSync,
   selectTheme,
 } from './data/selectors'
 import { getTheme } from './theme'
+import { ErrorBoundary } from './ui/compound'
 import AppBar from './ui/views/common/AppBar'
 import Loader from './ui/views/common/Loader'
 import renderAppPane from './ui/views/common/Pane'
@@ -65,8 +67,10 @@ const App = () => {
   const sync = useSelector(selectSync)
   const appBarData = useSelector(selectAppBarData)
   const appBarId = useSelector(selectAppBarId)
+  const pin = useSelector(selectPinPane)
 
   const dispatch = useDispatch()
+
   const theme = getTheme(themeId)
   const pane = R.assoc(
     'icon',
@@ -88,7 +92,7 @@ const App = () => {
 
   const handlePaneClickAway = useCallback(
     (e) => {
-      if (!R.isNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
+      if (!pin && !R.isNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
         dispatch(
           mutateLocal({
             path: ['appBar', 'paneState'],
@@ -98,27 +102,54 @@ const App = () => {
         )
       }
     },
-    [dispatch, open, sync]
+    [dispatch, open, sync, pin]
   )
 
+  const pinObj = {
+    pin,
+    onPin: () => {
+      dispatch(
+        mutateLocal({
+          path: ['appBar', 'paneState', 'pin'],
+          value: !pin,
+          sync: !includesPath(R.values(sync), ['appBar', 'paneState', 'pin']),
+        })
+      )
+    },
+  }
   return (
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
         <Box sx={styles.root}>
-          <Loader />
           <SnackBar />
           <AppBar />
           <Box sx={styles.page}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              {renderAppPage(findViewType(appBarId))}
-              {open && (
-                <ClickAwayListener onClickAway={handlePaneClickAway}>
-                  <Box sx={styles.pane}>
-                    {renderAppPane({ open, pane })}
-                    {secondaryOpen && <SecondaryPane />}
-                  </Box>
-                </ClickAwayListener>
-              )}
+              <Loader />
+              <ErrorBoundary
+                fallback={renderAppPane({
+                  open: 'session',
+                  pane: {
+                    icon: 'MdApi',
+                    name: 'Sessions Pane',
+                    variant: 'session',
+                  },
+                })}
+              >
+                {renderAppPage(findViewType(appBarId))}
+                {open && (
+                  <ClickAwayListener onClickAway={handlePaneClickAway}>
+                    <Box sx={styles.pane}>
+                      {renderAppPane({
+                        open,
+                        pane,
+                        ...(secondaryOpen === '' && pinObj),
+                      })}
+                      {secondaryOpen && <SecondaryPane {...pinObj} />}
+                    </Box>
+                  </ClickAwayListener>
+                )}
+              </ErrorBoundary>
             </LocalizationProvider>
           </Box>
         </Box>
