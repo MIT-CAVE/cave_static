@@ -5,6 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import { echarts } from './BaseChart'
 
 import { CHART_PALETTE } from '../../../../utils/constants'
+// import { exampleNestedData } from './testData'
 
 const Sunburst = ({ data, theme, subGrouped }) => {
   const renameKeys = R.curry((keysMap, obj) =>
@@ -83,23 +84,23 @@ const Sunburst = ({ data, theme, subGrouped }) => {
   }
   // console.log(R.map(createDatum, data))
   const options = {
-    visualMap: subGrouped
-      ? {
-          type: 'piecewise',
-          categories: yKeys,
-          showLabel: 'true',
-          inRange: {
-            color: R.map((val) => R.path([val], assignments), allKeys),
-          },
-          itemWidth: 20,
-          itemHeight: 20,
-          top: '5%',
-          right: '3%',
-          textStyle: {
-            fontSize: 20,
-          },
-        }
-      : null,
+    // visualMap: subGrouped
+    //   ? {
+    //       type: 'piecewise',
+    //       categories: yKeys,
+    //       showLabel: 'true',
+    //       inRange: {
+    //         color: R.map((val) => R.path([val], assignments), allKeys),
+    //       },
+    //       itemWidth: 20,
+    //       itemHeight: 20,
+    //       top: '5%',
+    //       right: '3%',
+    //       textStyle: {
+    //         fontSize: 20,
+    //       },
+    //     }
+    //   : null,
     // : {
     //     type: 'piecewise',
     //     categories: allKeys,
@@ -126,9 +127,11 @@ const Sunburst = ({ data, theme, subGrouped }) => {
         borderRadius: 7,
         borderWidth: 1,
       },
+      colorAlpha: [0.8, 1],
       type: 'sunburst',
       sort: undefined,
       data: subGrouped ? R.map(createDatum, data) : normalData,
+      // data: exampleNestedData
     },
     tooltip: {
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',

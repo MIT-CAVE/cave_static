@@ -5,6 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import { echarts } from './BaseChart'
 
 import { CHART_PALETTE } from '../../../../utils/constants'
+// import { exampleNestedData } from './testData'
 
 const Treemap = ({ data, theme, subGrouped }) => {
   const renameKeys = R.curry((keysMap, obj) =>
@@ -119,7 +120,7 @@ const Treemap = ({ data, theme, subGrouped }) => {
       roam: false,
       colorAlpha: [0.8, 1],
       data: subGrouped ? R.map(createDatum, data) : normalData,
-      //   data: exampleNestedData,
+      // data: exampleNestedData,
       levels: [
         {
           itemStyle: {
