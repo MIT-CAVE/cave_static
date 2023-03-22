@@ -22,7 +22,6 @@ import {
   selectTimePath,
   selectMatchingKeys,
   selectMatchingKeysByType,
-  selectGroupedEnabledArcs,
   selectAppBarId,
   selectEnabledArcs,
   selectEnabledNodes,
@@ -30,6 +29,7 @@ import {
   selectTouchMode,
   selectSplitNodeData,
   selectNodeClustersAtZoom,
+  selectLineData,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -52,9 +52,8 @@ const Get3dArcLayer = () => {
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
-  const arcData = R.prop('true', useSelector(selectGroupedEnabledArcs))
+  const arcData = useSelector(selectArcData)
   const legendObjects = useSelector(selectEnabledArcs)
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findSize = useCallback(
     R.memoizeWith(
@@ -132,23 +131,23 @@ const Get3dArcLayer = () => {
   return new ArcLayer(
     getLayerProps({
       id: layerId.ARC_LAYER_3D,
-      data: R.values(arcData),
+      data: arcData,
       visible: true,
       opacity: 0.4,
       autoHighlight: true,
       wrapLongitude: true,
-      getTilt: (d) => d.tilt,
+      getTilt: (d) => R.propOr(0, 'tilt', d[1]),
       greatCircle: false,
-      getHeight: (d) => resolveTime(R.propOr(1, 'height', d)),
+      getHeight: (d) => resolveTime(R.propOr(1, 'height', d[1])),
       getSourcePosition: (d) => [
-        resolveTime(d.startLongitude),
-        resolveTime(d.startLatitude),
-        resolveTime(d.startAltitude),
+        resolveTime(d[1].startLongitude),
+        resolveTime(d[1].startLatitude),
+        resolveTime(d[1].startAltitude),
       ],
       getTargetPosition: (d) => [
-        resolveTime(d.endLongitude),
-        resolveTime(d.endLatitude),
-        resolveTime(d.endAltitude),
+        resolveTime(d[1].endLongitude),
+        resolveTime(d[1].endLatitude),
+        resolveTime(d[1].endAltitude),
       ],
       getSourceColor: (d) => findColor(d),
       getTargetColor: (d) => findColor(d),
@@ -167,9 +166,8 @@ const GetArcLayer = () => {
   const resolveTime = useSelector(selectResolveTime)
   const timeProp = useSelector(selectTimeProp)
   const timePath = useSelector(selectTimePath)
-  const arcData = useSelector(selectArcData)
+  const arcData = useSelector(selectLineData)
   const legendObjects = useSelector(selectEnabledArcs)
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findSize = useCallback(
     R.memoizeWith(

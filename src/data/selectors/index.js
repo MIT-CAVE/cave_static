@@ -727,8 +727,11 @@ export const selectGroupedEnabledArcs = createSelector(
       R.map(R.fromPairs)
     )(filteredArcs)
 )
-export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
+export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
   R.toPairs(R.prop('false', data))
+)
+export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
+  R.toPairs(R.prop('true', data))
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectTimePath, selectArcsByType],
