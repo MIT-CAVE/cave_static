@@ -264,7 +264,7 @@ const MapLegendSizeBySection = ({
                 <FaInfinity />
               </span>
             ),
-            (x) => x.toFixed(1)
+            (x) => x.toPrecision(3)
           )(timeProp('min', sizeRange))}
         </Box>
         <Box>
@@ -287,7 +287,7 @@ const MapLegendSizeBySection = ({
           {R.ifElse(
             R.equals(-Infinity),
             () => <FaInfinity />,
-            (x) => x.toFixed(1)
+            (x) => x.toPrecision(3)
           )(timeProp('max', sizeRange))}
         </Box>
       </Box>

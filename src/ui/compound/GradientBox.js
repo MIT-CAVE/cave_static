@@ -6,14 +6,14 @@ import { FaInfinity } from 'react-icons/fa'
 export const getGradientBox = R.curry(
   (maxColor, minColor, maxLabel, minLabel) => {
     const strMaxLabel =
-      minLabel === Infinity ? <FaInfinity /> : minLabel.toFixed(1)
+      minLabel === Infinity ? <FaInfinity /> : minLabel.toPrecision(3)
     const strMinLabel =
       maxLabel === -Infinity ? (
         <>
           -<FaInfinity />
         </>
       ) : (
-        maxLabel.toFixed(1)
+        maxLabel.toPrecision(3)
       )
     return (
       <div
