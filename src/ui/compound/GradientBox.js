@@ -12,10 +12,12 @@ export const getGradientBox = R.curry(
         css={{
           display: 'flex',
           justifyContent: 'space-between',
+          alignItems: 'center',
         }}
       >
         <div
           css={{
+            width: '60px',
             textAlign: 'left',
             marginRight: '10px',
             marginLeft: '10px',
@@ -27,14 +29,15 @@ export const getGradientBox = R.curry(
         </div>
         <div
           css={{
-            width: '100%',
-            minWidth: '30px',
+            width: '60px',
+            height: '18px',
             backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
           }}
         />
         <div
           css={{
             textAlign: 'right',
+            width: '60px',
             marginRight: '10px',
             marginLeft: '10px',
             fontWeight: 700,

@@ -244,8 +244,7 @@ const MapLegendSizeBySection = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          minHeight: '50%',
-          marginBottom: '8px',
+          marginBottom: '4px',
         }}
       >
         <Box
