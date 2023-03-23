@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
 import { BsSquareFill } from 'react-icons/bs'
-import { FaInfinity } from 'react-icons/fa'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { VscLoading } from 'react-icons/vsc'
 import { useSelector, useDispatch } from 'react-redux'
@@ -41,7 +40,12 @@ import {
   getGradientBox,
 } from '../../compound'
 
-import { customSort, eitherBoolOrNotNull, includesPath } from '../../../utils'
+import {
+  customSort,
+  eitherBoolOrNotNull,
+  includesPath,
+  serializeLabel,
+} from '../../../utils'
 
 const styles = {
   paper: {
@@ -88,7 +92,7 @@ const nonSx = {
   },
   minusOffset: {
     position: 'relative',
-    top: '-5px',
+    top: '-3px',
   },
   primaryDetails: {
     marginTop: '20px',
@@ -256,16 +260,7 @@ const MapLegendSizeBySection = ({
             styles.rightBold,
           ]}
         >
-          {R.ifElse(
-            R.equals(Infinity),
-            () => (
-              <span>
-                <span css={nonSx.minusOffset}>-</span>
-                <FaInfinity />
-              </span>
-            ),
-            (x) => x.toPrecision(3)
-          )(timeProp('min', sizeRange))}
+          {serializeLabel(timeProp('min', sizeRange))}
         </Box>
         <Box>
           {addExtraProps(icon, {
@@ -284,11 +279,7 @@ const MapLegendSizeBySection = ({
           })}
         </Box>
         <Box sx={[{ textAlign: 'right', mx: 1, fontWeight: 700 }, styles.bold]}>
-          {R.ifElse(
-            R.equals(-Infinity),
-            () => <FaInfinity />,
-            (x) => x.toPrecision(3)
-          )(timeProp('max', sizeRange))}
+          {serializeLabel(timeProp('max', sizeRange))}
         </Box>
       </Box>
     </>

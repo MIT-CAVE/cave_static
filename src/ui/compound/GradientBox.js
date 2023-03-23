@@ -1,20 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import * as R from 'ramda'
-import React from 'react'
-import { FaInfinity } from 'react-icons/fa'
+
+import { serializeLabel } from '../../utils'
 
 export const getGradientBox = R.curry(
   (maxColor, minColor, maxLabel, minLabel) => {
-    const strMaxLabel =
-      minLabel === Infinity ? <FaInfinity /> : minLabel.toPrecision(3)
-    const strMinLabel =
-      maxLabel === -Infinity ? (
-        <>
-          -<FaInfinity />
-        </>
-      ) : (
-        maxLabel.toPrecision(3)
-      )
+    const strMaxLabel = serializeLabel(maxLabel)
+    const strMinLabel = serializeLabel(minLabel)
     return (
       <div
         css={{

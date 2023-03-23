@@ -575,3 +575,6 @@ export const getTimeValue = (timeIndex) =>
     R.prop('timeObject'), // check that this is time object
     R.path(['value', timeIndex])
   )
+
+export const serializeLabel = (label) =>
+  label === Infinity || label === -Infinity ? 'NaN' : label.toPrecision(3)
