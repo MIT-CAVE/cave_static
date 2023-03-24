@@ -250,7 +250,7 @@ export const formatNumber = (
   })
   // Unless explicitly specified, there should be
   // no space between a currency unit and its value.
-  const gap = unitSpace ? ' ' : currency ? '' : ' '
+  const gap = unitSpace ? ' ' : currency ? '' : unitSpace == null ? ' ' : ''
   return unit
     ? currency
       ? `${unit}${gap}${valueText}`
