@@ -23,26 +23,41 @@ const styles = {
   root: {
     position: 'relative',
     minWidth: KPI_WIDTH,
-    p: 3,
+    p: 2,
   },
   title: {
     px: 1,
     fontSize: '24px',
     whiteSpace: 'nowrap',
+    color: 'text.secondary',
   },
   value: {
-    fontSize: '16px',
+    px: 2,
+    fontSize: '42px',
     fontWeight: (theme) => theme.typography.fontWeightBold,
     letterSpacing: '0.03em',
   },
-  kpiToggleIcon: (theme) => ({
-    position: 'absolute',
-    fontSize: 26,
-    top: theme.spacing(1),
-    right: theme.spacing(1),
-    // color: 'primary.main',
-    cursor: 'pointer',
-  }),
+  icon: {
+    color: 'text.secondary',
+    bgcolor: (theme) =>
+      theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300',
+    mx: 1,
+    p: 2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '20%',
+  },
+  kpiToggleIcon: (theme) => {
+    console.log({ theme })
+    return {
+      position: 'absolute',
+      fontSize: 26,
+      top: theme.spacing(1),
+      right: theme.spacing(1),
+      cursor: 'pointer',
+    }
+  },
 }
 
 const KpiToggleIcon = ({ kpiId, mapKpi }) => {
@@ -77,7 +92,6 @@ const KpiBasic = ({
   ...props
 }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
-
   const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Paper
@@ -87,18 +101,16 @@ const KpiBasic = ({
     >
       <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
       <Grid container flexDirection="column" spacing={3}>
-        <Grid container item spacing={1} flexWrap="nowrap">
+        <Grid item>
+          <OverflowText text={title} sx={styles.title} />
+        </Grid>
+        <Grid container item spacing={1} wrap="nowrap">
           {icon && (
-            <Grid item alignSelf="center">
-              <FetchedIcon iconName={icon} size={24} />
+            <Grid sx={styles.icon}>
+              <FetchedIcon iconName={icon} size={36} />
             </Grid>
           )}
-          <Grid item xs={10.5}>
-            <OverflowText text={title} sx={styles.title} />
-          </Grid>
-        </Grid>
-        <Grid item xs>
-          {value && (
+          {value != null && (
             <Typography sx={styles.value}>
               {formatNumber(value, numberFormat)}
             </Typography>

@@ -78,6 +78,11 @@ export const kpiId = {
   HEAD: 'head',
 }
 
+export const kpiVariant = {
+  ROW: 'row',
+  COLUMN: 'column',
+}
+
 export const layoutType = {
   GRID: 'grid',
   ITEM: 'item',
