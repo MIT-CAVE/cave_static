@@ -398,8 +398,8 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
               ['endGradientColor', themeType],
               colorRange
             ),
-            maxVal: timeProp('min', colorRange),
-            minVal: timeProp('max', colorRange),
+            maxVal: timeProp('max', colorRange),
+            minVal: timeProp('min', colorRange),
           }}
         />
       )}
@@ -659,11 +659,11 @@ const MapLegendNodeToggle = ({
                   colorRange
                 ),
                 maxVal: timeProp(
-                  'min',
+                  'max',
                   group && colorDomain ? colorDomain : colorRange
                 ),
                 minVal: timeProp(
-                  'max',
+                  'min',
                   group && colorDomain ? colorDomain : colorRange
                 ),
               }}
@@ -854,8 +854,8 @@ const MapLegendArcToggle = ({
                   ['endGradientColor', themeType],
                   colorRange
                 ),
-                maxVal: timeProp('min', colorRange),
-                minVal: timeProp('max', colorRange),
+                maxVal: timeProp('max', colorRange),
+                minVal: timeProp('min', colorRange),
               }}
             />
           )}
