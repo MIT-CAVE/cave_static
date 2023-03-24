@@ -40,7 +40,7 @@ const Sunburst = ({ data, theme, subGrouped }) => {
     )(obj)
   )(data)
 
-  const createDatum = (obj) => {
+  const createDatum = (obj = {}) => {
     let keys = R.keys(obj.y)
     return {
       name: obj.x,
