@@ -35,7 +35,6 @@ const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
     <ValueRange
       {...{ enabled, props }}
       sx={styles}
-      label={R.prop('label', prop)}
       number
       minValue={min}
       maxValue={max}

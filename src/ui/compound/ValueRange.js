@@ -36,7 +36,7 @@ export class ValueRange extends React.Component {
     const {
       classes,
       onClickAwayHandler,
-      label: unit,
+      unit,
       enabled,
       help,
       valueStart,
@@ -53,7 +53,6 @@ export class ValueRange extends React.Component {
     const getLabelFormat = (value) =>
       `${formatNumber(Number(value), {
         precision: this.state.roundValue ? 4 : 0,
-        unit,
       })}`
 
     return (
@@ -103,10 +102,18 @@ export class ValueRange extends React.Component {
               }}
             />
           </Grid>
-          <Grid item css={{ margin: '0 16px' }}>
+          <Grid
+            item
+            css={{ display: 'flex', flexDirection: 'column', margin: '0 16px' }}
+          >
             <Input
               disabled={!enabled}
-              css={{ '>:first-child': { textAlign: 'center' } }} // FIXME: Use MUI styles
+              css={{
+                '>:first-child': {
+                  textAlign: 'center',
+                  marginLeft: '12px',
+                },
+              }} // FIXME: Use MUI styles
               value={
                 this.state.roundValue
                   ? Math.round(this.state.valueCurrent * 10000) / 10000
@@ -139,6 +146,7 @@ export class ValueRange extends React.Component {
                 type: 'number',
               }}
             />
+            <div css={{ marginTop: '4px', textAlign: 'center' }}>{unit}</div>
           </Grid>
         </Grid>
       </>
