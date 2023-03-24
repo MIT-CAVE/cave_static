@@ -4,17 +4,11 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
+import { renameKeys } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 // import { exampleNestedData } from './testData'
 
 const Treemap = ({ data, theme, subGrouped }) => {
-  const renameKeys = R.curry((keysMap, obj) =>
-    R.reduce(
-      (acc, key) => R.assoc(keysMap[key] || key, obj[key], acc),
-      {},
-      R.keys(obj)
-    )
-  )
   const yData = R.pluck('y')(data)
   let yKeys = R.pipe(R.mergeAll, R.keys)(yData)
   const allKeys = R.pluck('x')(data).concat(yKeys)
@@ -23,6 +17,8 @@ const Treemap = ({ data, theme, subGrouped }) => {
     let availableColors =
       theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
     // availableColors = R.without(['#4992ff'], availableColors)
+
+    // TODO: Random colors must be dropped in 1.4.0
     const assignments = R.pipe(
       R.map((val) => {
         let randomChoice =
@@ -37,49 +33,26 @@ const Treemap = ({ data, theme, subGrouped }) => {
 
   let assignments = assignColors()
 
-  let normalData = R.pipe(
-    R.map(renameKeys({ x: 'name' })),
-    R.map(renameKeys({ y: 'value' })),
-    R.map((obj) =>
-      R.assoc(
-        'itemStyle',
-        { color: R.path([R.path(['name'], obj)], assignments) },
-        obj
-      )
-    )
+  let normalData = R.map((obj) =>
+    R.pipe(
+      renameKeys({ x: 'name', y: 'value' }),
+      R.assocPath(['itemStyle', 'color'], assignments[obj.name])
+    )(obj)
   )(data)
 
-  const createDatum = (obj) => {
-    let base = { name: R.path('x', obj), children: [], visualMap: false }
-    let keys = R.keysIn(R.path('y', obj))
-    base = R.assoc(
-      'children',
-      R.map(
-        (key) =>
-          R.assoc(
-            'value',
-            Math.abs(R.path(['y', key], obj)),
-            R.assoc(
-              'name',
-              key,
-              // R.assoc(
-              //   'itemStyle',
-              //   { color: R.path([key], assignments) },
-              //   R.assoc('visualMap', false, {})
-              // )
-              {}
-            )
-          ),
-        keys
-      ),
-      base
-    )
-    base = R.assoc(
-      'itemStyle',
-      { color: R.path([R.path('x', obj)], assignments) },
-      base
-    )
-    return base
+  const createDatum = (obj = {}) => {
+    let keys = R.keys(obj.y)
+    return {
+      name: obj.x,
+      visualMap: false,
+      itemStyle: { color: assignments[obj.x] },
+      children: R.map((key) => ({
+        value: Math.abs(obj.y[key]),
+        name: key,
+        // itemStyle: { color: assignments[key] },
+        // visualMap: false,
+      }))(keys),
+    }
   }
 
   const options = {
