@@ -24,6 +24,7 @@ import {
   TableChart,
   WaterfallChart,
   Sunburst,
+  Treemap,
 } from '../../charts'
 
 import {
@@ -380,6 +381,8 @@ const DashboardChart = ({ obj, length }) => {
           theme={themeId}
           subGrouped={subGrouped}
         />
+      ) : obj.chart === 'Treemap' ? (
+        <Treemap data={formattedData} theme={themeId} subGrouped={subGrouped} />
       ) : (
         <></>
       )}
