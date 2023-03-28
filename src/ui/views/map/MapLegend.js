@@ -44,7 +44,7 @@ import {
   customSort,
   eitherBoolOrNotNull,
   includesPath,
-  serializeLabel,
+  serializeNumLabel,
 } from '../../../utils'
 
 const styles = {
@@ -89,10 +89,6 @@ const nonSx = {
     marginLeft: 'auto',
     marginRight: 'auto',
     textAlign: 'center',
-  },
-  minusOffset: {
-    position: 'relative',
-    top: '-3px',
   },
   primaryDetails: {
     marginTop: '20px',
@@ -259,7 +255,7 @@ const MapLegendSizeBySection = ({
             styles.rightBold,
           ]}
         >
-          {serializeLabel(timeProp('min', sizeRange))}
+          {serializeNumLabel(timeProp('min', sizeRange))}
         </Box>
         <Box>
           {addExtraProps(icon, {
@@ -278,7 +274,7 @@ const MapLegendSizeBySection = ({
           })}
         </Box>
         <Box sx={[{ textAlign: 'right', mx: 1, fontWeight: 700 }, styles.bold]}>
-          {serializeLabel(timeProp('max', sizeRange))}
+          {serializeNumLabel(timeProp('max', sizeRange))}
         </Box>
       </Box>
     </>

@@ -576,5 +576,7 @@ export const getTimeValue = (timeIndex) =>
     R.path(['value', timeIndex])
   )
 
-export const serializeLabel = (label) =>
-  label === Infinity || label === -Infinity ? 'NaN' : label.toPrecision(3)
+export const serializeNumLabel = (numLabel) =>
+  numLabel === Infinity || numLabel === -Infinity
+    ? 'NaN'
+    : (+numLabel).toPrecision(3)

@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import * as R from 'ramda'
 
-import { serializeLabel } from '../../utils'
+import { serializeNumLabel } from '../../utils'
 
 export const getGradientBox = R.curry(
   (maxColor, minColor, maxLabel, minLabel) => {
-    const strMaxLabel = serializeLabel(maxLabel)
-    const strMinLabel = serializeLabel(minLabel)
+    const strMaxLabel = serializeNumLabel(maxLabel)
+    const strMinLabel = serializeNumLabel(minLabel)
     return (
       <div
         css={{
