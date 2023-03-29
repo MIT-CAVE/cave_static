@@ -16,7 +16,7 @@ import {
   MdStackedLineChart,
   MdDonutLarge,
 } from 'react-icons/md'
-import { TbStack2 } from 'react-icons/tb'
+import { TbStack2, TbChartTreemap } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -118,7 +118,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Treemap (beta)',
               value: 'Treemap',
-              iconClass: MdDonutLarge,
+              iconClass: TbChartTreemap,
             },
           ]}
           displayIcon
