@@ -48,16 +48,13 @@ const styles = {
     justifyContent: 'center',
     borderRadius: '20%',
   },
-  kpiToggleIcon: (theme) => {
-    console.log({ theme })
-    return {
-      position: 'absolute',
-      fontSize: 26,
-      top: theme.spacing(1),
-      right: theme.spacing(1),
-      cursor: 'pointer',
-    }
-  },
+  kpiToggleIcon: (theme) => ({
+    position: 'absolute',
+    fontSize: 26,
+    top: theme.spacing(1),
+    right: theme.spacing(1),
+    cursor: 'pointer',
+  }),
 }
 
 const KpiToggleIcon = ({ kpiId, mapKpi }) => {
