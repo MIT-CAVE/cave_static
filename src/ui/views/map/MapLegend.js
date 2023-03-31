@@ -69,10 +69,6 @@ const styles = {
     textAlign: 'left',
     // fontSize: '20px',
   },
-  rightBold: {
-    textAlign: 'right',
-    fontWeight: 700,
-  },
   bold: {
     fontWeight: 700,
   },
@@ -118,6 +114,7 @@ const nonSx = {
     paddingTop: '10px',
     marginTop: '10px',
     borderRadius: '8px',
+    // backgroundColor: '#383838',
   },
 }
 
@@ -216,12 +213,7 @@ const MapLegendSizeBySection = ({
 
   return (
     <>
-      <Grid
-        container
-        spacing={1}
-        alignItems="flex-start"
-        justifyContent="center"
-      >
+      <Grid container alignItems="flex-start" justifyContent="center">
         <Grid item xs css={{ textAlign: 'center' }}>
           <SimpleDropdown
             value={sizeProp}
@@ -236,28 +228,25 @@ const MapLegendSizeBySection = ({
         </Grid>
       </Grid>
       <Box
-        css={{
+        sx={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '4px',
+          justifyContent: 'center',
+          px: 1,
+          mb: 0.5,
+          flex: '1 1 auto',
         }}
       >
         <Box
-          sx={[
-            {
-              textAlign: 'left',
-              marginRight: '10px',
-              marginLeft: '10px',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-            },
-            styles.rightBold,
-          ]}
+          sx={{
+            mr: 1,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+          }}
         >
           {serializeNumLabel(timeProp('min', sizeRange))}
         </Box>
-        <Box>
+        <Box sx={{ mr: 0.75 }}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('startSize')(typeObj),
@@ -265,7 +254,7 @@ const MapLegendSizeBySection = ({
             },
           })}
         </Box>
-        <Box sx={[{ ml: 1 }, styles.rightBold]}>
+        <Box sx={[{ ml: 0.75 }, styles.rightBold]}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('endSize')(typeObj),
@@ -273,7 +262,7 @@ const MapLegendSizeBySection = ({
             },
           })}
         </Box>
-        <Box sx={[{ textAlign: 'right', mx: 1, fontWeight: 700 }, styles.bold]}>
+        <Box sx={{ ml: 1, fontWeight: 700 }}>
           {serializeNumLabel(timeProp('max', sizeRange))}
         </Box>
       </Box>
@@ -345,22 +334,15 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
         />
       </summary>
       <hr />
-      <Grid
-        container
-        spacing={1}
-        alignItems="flex-start"
-        css={{ textAlign: 'center' }}
-      >
-        <Grid item xs>
-          <SimpleDropdown
-            optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
-            getLabel={getGeoPropName}
-            value={colorProp}
-            onSelect={(value) => {
-              dispatch(mutateLocal({ sync: syncColor, path: colorPath, value }))
-            }}
-          />
-        </Grid>
+      <Grid container spacing={1} alignItems="center" justifyContent="center">
+        <SimpleDropdown
+          optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
+          getLabel={getGeoPropName}
+          value={colorProp}
+          onSelect={(value) => {
+            dispatch(mutateLocal({ sync: syncColor, path: colorPath, value }))
+          }}
+        />
       </Grid>
       {isCategorical ? (
         <Grid container alignItems="flex-start" justifyContent="center">
@@ -402,6 +384,28 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
     </details>
   )
 }
+
+const GroupCalcDropdown = ({ value, onSelect, ...props }) => (
+  <Grid
+    container
+    item
+    justifyContent="center"
+    alignItems="center"
+    // spacing={1}
+    {...props}
+  >
+    <Grid item>
+      <FetchedIcon iconName="TbMathFunction" size={24} />
+    </Grid>
+    <Grid item>
+      <SimpleDropdown
+        getLabel={getStatLabel}
+        optionsList={R.values(statId)}
+        {...{ value, onSelect }}
+      />
+    </Grid>
+  </Grid>
+)
 
 const MapLegendNodeToggle = ({
   nodeType,
@@ -553,8 +557,9 @@ const MapLegendNodeToggle = ({
         />
       </summary>
       <hr />
-      <Grid container spacing={1} alignItems="stretch">
+      <Grid container spacing={1}>
         <Grid
+          container
           item
           xs
           css={{
@@ -572,58 +577,43 @@ const MapLegendNodeToggle = ({
             legendGroup={legendGroupId}
           />
           {group && (
-            <Grid
-              container
-              sx={{ pb: 2 }}
-              spacing={1}
-              alignItems="center"
-              justifyContent="center"
-            >
-              <FetchedIcon
-                iconName="AiOutlineFunction"
-                size={24}
-                color="text.primary"
-              />
-              <SimpleDropdown
-                value={groupCalcBySize}
-                getLabel={getStatLabel}
-                optionsList={R.values(statId)}
-                onSelect={(value) => {
-                  dispatch(
-                    mutateLocal({
-                      path: groupCalcSizePath,
-                      sync: syncGroupCalcSize,
-                      value,
-                    })
-                  )
-                }}
-              />
-            </Grid>
+            <GroupCalcDropdown
+              value={groupCalcBySize}
+              onSelect={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path: groupCalcSizePath,
+                    sync: syncGroupCalcSize,
+                    value,
+                  })
+                )
+              }}
+            />
           )}
         </Grid>
+
         <Grid
+          container
           item
           xs
           css={{
             display: R.isNil(R.prop('colorByOptions')(typeObj)) ? 'none' : '',
           }}
         >
-          <Grid container spacing={1} alignItems="flex-start">
-            <Grid item xs css={{ textAlign: 'center' }}>
-              <SimpleDropdown
-                value={colorProp}
-                optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
-                getLabel={getNodePropName}
-                onSelect={(value) => {
-                  dispatch(
-                    mutateLocal({ sync: syncColor, path: colorPath, value })
-                  )
-                }}
-              />
-            </Grid>
+          <Grid container alignItems="flex-start" justifyContent="center">
+            <SimpleDropdown
+              value={colorProp}
+              optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
+              getLabel={getNodePropName}
+              onSelect={(value) => {
+                dispatch(
+                  mutateLocal({ sync: syncColor, path: colorPath, value })
+                )
+              }}
+            />
           </Grid>
           {isCategorical ? (
-            <Grid container alignItems="flex-start" justifyContent="center">
+            <Grid container alignItems="flex-start" justifyContent="center" xs>
               {R.values(
                 R.mapObjIndexed(
                   (val, key) => (
@@ -666,34 +656,18 @@ const MapLegendNodeToggle = ({
             />
           )}
           {group && (
-            <Grid
-              container
-              spacing={1}
-              sx={{ pt: 8 }}
-              alignItems="center"
-              justifyContent="center"
-              flexDirection="row"
-            >
-              <FetchedIcon
-                iconName="AiOutlineFunction"
-                size={24}
-                color="text.primary"
-              />
-              <SimpleDropdown
-                value={groupCalcByColor}
-                getLabel={getStatLabel}
-                optionsList={R.values(statId)}
-                onSelect={(value) => {
-                  dispatch(
-                    mutateLocal({
-                      path: groupCalcColorPath,
-                      sync: syncGroupCalcColor,
-                      value,
-                    })
-                  )
-                }}
-              />
-            </Grid>
+            <GroupCalcDropdown
+              value={groupCalcByColor}
+              onSelect={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path: groupCalcColorPath,
+                    sync: syncGroupCalcColor,
+                    value,
+                  })
+                )
+              }}
+            />
           )}
         </Grid>
       </Grid>

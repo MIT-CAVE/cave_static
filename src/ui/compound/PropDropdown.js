@@ -1,4 +1,3 @@
-import { Paper } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
@@ -15,18 +14,17 @@ const PropDropdown = ({ prop, currentVal, onChange, ...props }) => {
   const optionsListRaw = customSort(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
-    <Paper elevation={3} sx={{ ml: 1 }}>
-      <SimpleDropdown
-        disabled={!enabled}
-        sx={{ p: 1.5 }}
-        value={value}
-        optionsList={R.pluck('id')(optionsListRaw)}
-        onSelect={(val) => {
-          if (enabled) onChange([val])
-        }}
-        getLabel={(value) => R.pathOr(value, [value, 'name'])(indexedOptions)}
-      />
-    </Paper>
+    <SimpleDropdown
+      disabled={!enabled}
+      sx={{ p: 1.5 }}
+      value={value}
+      optionsList={R.pluck('id')(optionsListRaw)}
+      onSelect={(val) => {
+        if (enabled) onChange([val])
+      }}
+      getLabel={(value) => R.pathOr(value, [value, 'name'])(indexedOptions)}
+      paperProps={{ elevation: 3 }}
+    />
   )
 }
 PropDropdown.propTypes = {

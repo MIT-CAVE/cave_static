@@ -23,6 +23,7 @@ export const getGradientBox = R.curry(
             marginLeft: '10px',
             fontWeight: 700,
             whiteSpace: 'nowrap',
+            flex: 0,
           }}
         >
           {strMinLabel}
@@ -32,6 +33,7 @@ export const getGradientBox = R.curry(
             width: '60px',
             height: '18px',
             backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
+            flex: '1 1 auto',
           }}
         />
         <div
@@ -41,6 +43,7 @@ export const getGradientBox = R.curry(
             marginRight: '10px',
             marginLeft: '10px',
             fontWeight: 700,
+            flex: 0,
           }}
         >
           {strMaxLabel}

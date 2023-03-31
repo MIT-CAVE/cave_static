@@ -1,4 +1,4 @@
-import { Button, Menu, MenuItem } from '@mui/material'
+import { Button, Menu, MenuItem, Paper } from '@mui/material'
 import React from 'react'
 
 export const SimpleDropdown = ({
@@ -7,6 +7,7 @@ export const SimpleDropdown = ({
   optionsList,
   getLabel = (label) => label,
   enabled = true,
+  paperProps,
   ...props
 }) => {
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -20,7 +21,7 @@ export const SimpleDropdown = ({
   }
 
   return (
-    <div>
+    <Paper elevation={0} {...paperProps} sx={{ mx: 0.5, my: 1.5 }}>
       <Button
         color="greyscale"
         aria-controls="simple-menu"
@@ -49,6 +50,6 @@ export const SimpleDropdown = ({
           </MenuItem>
         ))}
       </Menu>
-    </div>
+    </Paper>
   )
 }
