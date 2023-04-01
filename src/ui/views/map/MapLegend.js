@@ -613,7 +613,7 @@ const MapLegendNodeToggle = ({
             />
           </Grid>
           {isCategorical ? (
-            <Grid container alignItems="flex-start" justifyContent="center" xs>
+            <Grid container alignItems="flex-start" justifyContent="center">
               {R.values(
                 R.mapObjIndexed(
                   (val, key) => (
