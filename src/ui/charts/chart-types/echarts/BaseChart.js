@@ -187,10 +187,7 @@ const EchartsPlot = ({
       },
       axisLabel: {
         formatter: (value) =>
-          // `scaleLabel === null` => value >= 1e12
-          scaleLabel || scaleLabel === null
-            ? (+value / scaleFactor).toPrecision(3)
-            : value,
+          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
       splitLine: {
         lineStyle: {

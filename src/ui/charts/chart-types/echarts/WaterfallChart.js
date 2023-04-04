@@ -540,8 +540,6 @@ const StackedWaterfallChart = ({
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
 
-  console.log(scaleFactor, scaleLabel, { dataset, yMax })
-
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     legend: {
@@ -600,10 +598,7 @@ const StackedWaterfallChart = ({
       },
       axisLabel: {
         formatter: (value) =>
-          // `scaleLabel === null` => value >= 1e12
-          scaleLabel || scaleLabel === null
-            ? (+value / scaleFactor).toPrecision(3)
-            : value,
+          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
       splitLine: {
         show: true,
