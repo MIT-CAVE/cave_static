@@ -35,19 +35,12 @@ const CumulativeLineChart = ({
     R.last
   )
 
-  return !subGrouped ? (
+  return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
-      yData={accumulate(yData)}
+      yData={subGrouped ? buildSubgroup(yData) : accumulate(yData)}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
-    />
-  ) : (
-    <EchartsPlot
-      xData={R.pluck('x')(data)}
-      yData={buildSubgroup(yData)}
-      chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, subGrouped }}
     />
   )
 }
