@@ -62,11 +62,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-import {
-  formatNumber,
-  getDecimalScaleFactor,
-  getDecimalScaleLabel,
-} from '../../../../utils'
+import { formatNumber } from '../../../../utils'
 
 // Register the required components
 echarts.use([
@@ -109,11 +105,10 @@ const EchartsPlot = ({
   numberFormat,
   chartType,
   theme,
-  subGrouped,
   stack = false,
 }) => {
   const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
-  const series = subGrouped
+  const series = R.pipe(R.head, R.is(Object))(yData)
     ? R.map((yKey) => ({
         name: yKey,
         data: R.pluck(yKey)(yData),
@@ -129,15 +124,6 @@ const EchartsPlot = ({
         type: chartType,
         smooth: true,
       }
-
-  const yMax = subGrouped
-    ? R.reduce(
-        (acc, yArr) => Math.max(acc, ...R.values(yArr)),
-        -Infinity
-      )(yData)
-    : Math.max(...yData)
-  const scaleFactor = getDecimalScaleFactor(yMax)
-  const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
@@ -171,7 +157,7 @@ const EchartsPlot = ({
       },
     },
     yAxis: {
-      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
+      name: yAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
         fontSize: 16,
@@ -184,13 +170,6 @@ const EchartsPlot = ({
           // color: '#fff',
           // opacity: 0.7,
         },
-      },
-      axisLabel: {
-        formatter: (value) =>
-          // `scaleLabel === null` => value >= 1e12
-          scaleLabel || scaleLabel === null
-            ? (+value / scaleFactor).toPrecision(3)
-            : value,
       },
       splitLine: {
         lineStyle: {

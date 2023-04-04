@@ -581,35 +581,3 @@ export const serializeNumLabel = (numLabel) =>
   numLabel === Infinity || numLabel === -Infinity
     ? 'NaN'
     : (+numLabel).toPrecision(3)
-
-export const countDigits = (num) =>
-  num === 0 ? 1 : Math.floor(Math.log10(Math.abs(num))) + 1
-
-// export const getDecimalScaleFactor = (num) => {
-//   const numDigits = countDigits(num)
-//   const decimalGroup =
-//     numDigits / 3 === Math.floor(numDigits / 3)
-//       ? numDigits
-//       : 3 * Math.floor(numDigits / 3)
-//   return Math.pow(10, decimalGroup)
-// }
-
-export const getDecimalScaleFactor = R.pipe(
-  Math.abs,
-  R.cond([
-    [R.lte(1e9), R.always(9)],
-    [R.lte(1e6), R.always(6)],
-    [R.lte(1e3), R.always(3)],
-    [R.T, R.always(0)],
-  ]),
-  (n) => Math.pow(10, n)
-)
-
-export const getDecimalScaleLabel = R.pipe(
-  Math.abs,
-  R.cond([
-    [R.lte(1e9), R.always('billions')],
-    [R.lte(1e6), R.always('millions')],
-    [R.lte(1e3), R.always('thousands')],
-  ])
-)
