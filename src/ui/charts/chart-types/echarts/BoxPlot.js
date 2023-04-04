@@ -4,6 +4,8 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
+import { getDecimalScaleFactor, getDecimalScaleLabel } from '../../../../utils'
+
 const EchartsBoxPlot = ({
   data,
   xAxisTitle,
@@ -15,6 +17,13 @@ const EchartsBoxPlot = ({
   const yKeys = R.pipe(R.pluck('y'), R.mergeAll, R.keys)(data)
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
+
+  const yMax = subGrouped
+    ? R.reduce(
+        (acc, yArr) => Math.max(acc, ...R.values(yArr)),
+        -Infinity
+      )(yData)
+    : Math.max(...yData)
 
   const chartType = 'boxplot'
 
@@ -102,6 +111,9 @@ const EchartsBoxPlot = ({
     legend = null
   }
 
+  const scaleFactor = getDecimalScaleFactor(yMax)
+  const scaleLabel = getDecimalScaleLabel(yMax)
+
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     grid: {
@@ -135,7 +147,7 @@ const EchartsBoxPlot = ({
       },
     },
     yAxis: {
-      name: yAxisTitle,
+      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
       nameLocation: 'middle',
       nameTextStyle: {
         fontSize: 16,
@@ -148,6 +160,13 @@ const EchartsBoxPlot = ({
           // color: '#fff',
           // opacity: 0.7,
         },
+      },
+      axisLabel: {
+        formatter: (value) =>
+          // `scaleLabel === null` => value >= 1e12
+          scaleLabel || scaleLabel === null
+            ? (+value / scaleFactor).toPrecision(3)
+            : value,
       },
       splitLine: {
         lineStyle: {
