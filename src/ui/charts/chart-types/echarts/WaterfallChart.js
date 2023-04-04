@@ -190,6 +190,9 @@ const WaterfallChart = ({
     R.apply(adjustMinMax)
   )(dataset)
 
+  const scaleFactor = getDecimalScaleFactor(yMax)
+  const scaleLabel = getDecimalScaleLabel(yMax)
+
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
     legend: {
@@ -229,7 +232,7 @@ const WaterfallChart = ({
       },
     },
     yAxis: {
-      name: yAxisTitle,
+      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
       nameLocation: 'middle',
       nameTextStyle: {
         fontSize: 16,
@@ -243,6 +246,10 @@ const WaterfallChart = ({
       max: yMax,
       axisLine: {
         show: true,
+      },
+      axisLabel: {
+        formatter: (value) =>
+          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
       splitLine: {
         show: true,
