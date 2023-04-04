@@ -1,12 +1,19 @@
 import { Box, ListItemIcon, MenuItem, Select as MuiSelect } from '@mui/material'
 import PropTypes from 'prop-types'
-import React from 'react'
+import { useState } from 'react'
 
+import FetchedIcon from './FetchedIcon'
+import OverflowText from './OverflowText'
 import WrappedText from './WrappedText'
 
-import { toIconInstance } from '../../utils'
-
 const styles = {
+  displayIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'start',
+    minWidth: '50px',
+    maxWidth: '80px',
+  },
   icon: {
     color: 'text.primary',
     minWidth: 0,
@@ -47,26 +54,33 @@ const Select = ({
   onSelect = () => {},
   ...props
 } = {}) => {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = useState(false)
   return (
     <MuiSelect
       {...{ disabled, open, ...props }}
       sx={styles.select}
       displayEmpty
       value={selectedValue}
-      onOpen={() => setOpen(true)}
+      onOpen={() => {
+        setOpen(true)
+      }}
       onClose={(event) => {
         onClickAway(event)
         setOpen(false)
       }}
       // Display only the icon when an item is selected
-      {...(selectedValue !== '' &&
-        displayIcon && {
-          renderValue: (value) => {
-            const item = items.find((prop) => prop.value === value)
-            return <span>{item ? toIconInstance(item.iconClass) : value}</span>
-          },
-        })}
+      {...((selectedValue !== '' || displayIcon) && {
+        renderValue: (value) => {
+          const item = items.find((prop) => prop.value === value)
+          return item ? (
+            <Box component="span" sx={styles.displayIcon}>
+              <FetchedIcon iconName={item.iconName} size={32} />
+            </Box>
+          ) : (
+            <OverflowText text={getLabel(value)} />
+          )
+        },
+      })}
     >
       {placeholder && (
         <MenuItem
@@ -77,11 +91,11 @@ const Select = ({
           }}
           disabled
         >
-          <Box sx={styles.itemText}>{placeholder}</Box>
+          <OverflowText text={placeholder} />
         </MenuItem>
       )}
       {items.map((item, index) => {
-        const { label, value, iconClass } = item
+        const { label, value, iconName } = item
         return (
           <MenuItem
             key={index}
@@ -91,9 +105,9 @@ const Select = ({
               setOpen(false)
             }}
           >
-            {iconClass && (
+            {iconName && (
               <ListItemIcon sx={styles.icon}>
-                {toIconInstance(iconClass)}
+                <FetchedIcon {...{ iconName }} size={32} />
               </ListItemIcon>
             )}
             <WrappedText text={getLabel(label || value || item)} />

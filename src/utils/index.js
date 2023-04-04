@@ -112,6 +112,7 @@ export const eitherBoolOrNotNull = (value) =>
 export const getHeadOrValue = R.when(R.is(Array), R.head)
 
 /**
+ * @deprecated
  * Adjust a given icon class
  * @function
  * @returns {function} A function that returns an icon that matches CAVE

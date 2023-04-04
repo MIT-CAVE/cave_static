@@ -13,9 +13,7 @@ import {
   MdAddCircle,
   MdFullscreen,
   MdFullscreenExit,
-  MdMultilineChart,
   MdOutlineCancelPresentation,
-  MdSpeed,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -29,6 +27,7 @@ import {
   selectDashboardLockedLayout,
   selectSync,
 } from '../../../data/selectors'
+import { APP_BAR_WIDTH } from '../../../utils/constants'
 
 import { Select, HeaderSelectWrapper } from '../../compound'
 
@@ -41,13 +40,16 @@ const styles = {
     display: 'flex',
     height: '100%',
     p: 1,
+    width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)`,
     color: 'text.primary',
     bgcolor: 'background.paper',
   },
   paper: {
     display: 'flex',
     flexDirection: 'column',
-    p: (theme) => theme.spacing(1, 2),
+    width: (theme) => `calc(100% - ${theme.spacing(4)})`,
+    px: 2,
+    py: 1,
     color: 'text.secondary',
     textAlign: 'center',
     flex: '1 1 auto',
@@ -76,7 +78,6 @@ const styles = {
   },
   header: {
     minHeight: '5%',
-    overflowWrap: 'anywhere',
     pb: 1.25,
   },
 }
@@ -102,12 +103,12 @@ const Dashboard = () => {
               {
                 label: 'Statistics',
                 value: 'stats',
-                iconClass: MdMultilineChart,
+                iconName: 'MdMultilineChart',
               },
               {
                 label: 'KPIs',
                 value: 'kpis',
-                iconClass: MdSpeed,
+                iconName: 'MdSpeed',
               },
             ]}
             onSelect={(value) =>

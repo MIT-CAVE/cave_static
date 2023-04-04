@@ -2,16 +2,15 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Box,
   MenuItem,
   Select,
   Typography,
 } from '@mui/material'
 import PropTypes from 'prop-types'
-import React, { memo } from 'react'
+import { memo, useState } from 'react'
 import { MdExpandMore } from 'react-icons/md'
 
-import WrappedText from './WrappedText'
+import OverflowText from './OverflowText'
 
 const styles = {
   select: {
@@ -67,14 +66,16 @@ const SelectAccordion = ({
   onSelect = () => {},
   ...props
 } = {}) => {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = useState(false)
   return (
     <Select
       {...{ disabled, open, ...props }}
       sx={styles.select}
       displayEmpty
       value={values}
-      onOpen={() => setOpen(true)}
+      onOpen={() => {
+        setOpen(true)
+      }}
       onClose={(event) => {
         onClickAway(event)
         setOpen(false)
@@ -82,11 +83,12 @@ const SelectAccordion = ({
       // Display both item and sub-item values
       {...(values !== '' && {
         renderValue: (value) => (
-          <Box sx={styles.item}>
-            <WrappedText text={getLabel(value[0])} />
-            <Box sx={{ mx: 1 }}>{'\u279D'}</Box>
-            <WrappedText text={getSubLabel(value[0], value[1])} />
-          </Box>
+          <OverflowText
+            text={`${getLabel(value[0])} \u279D ${getSubLabel(
+              value[0],
+              value[1]
+            )}`}
+          />
         ),
       })}
     >
@@ -98,7 +100,7 @@ const SelectAccordion = ({
             setOpen(false)
           }}
         >
-          <WrappedText text={placeholder} />
+          <OverflowText text={placeholder} />
         </MenuItem>
       )}
 

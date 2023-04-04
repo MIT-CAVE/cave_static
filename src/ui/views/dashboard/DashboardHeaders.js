@@ -1,22 +1,6 @@
-import { Button } from '@mui/material'
+import { Box, Button } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
-import {
-  MdBarChart,
-  MdFunctions,
-  MdGraphicEq,
-  MdStackedBarChart,
-  MdTableChart,
-  MdShowChart,
-  MdVerticalAlignBottom,
-  MdVerticalAlignCenter,
-  MdVerticalAlignTop,
-  MdRefresh,
-  MdWaterfallChart,
-  MdStackedLineChart,
-  MdDonutLarge,
-} from 'react-icons/md'
-import { TbStack2, TbChartTreemap } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -30,6 +14,7 @@ import {
 } from '../../../data/selectors'
 
 import {
+  FetchedIcon,
   HeaderSelectWrapper,
   Select,
   SelectAccordion,
@@ -72,53 +57,53 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Bar',
               value: 'Bar',
-              iconClass: MdBarChart,
+              iconName: 'MdBarChart',
             },
             {
               label: 'Stacked Bar',
               value: 'Stacked Bar',
-              iconClass: MdStackedBarChart,
+              iconName: 'MdStackedBarChart',
             },
             {
               label: 'Line',
               value: 'Line',
-              iconClass: MdShowChart,
+              iconName: 'MdShowChart',
             },
             {
               label: 'Cumulative Line',
               value: 'Cumulative Line',
-              iconClass: MdStackedLineChart,
+              iconName: 'MdStackedLineChart',
             },
             {
               label: 'Waterfall',
               value: 'Waterfall',
-              iconClass: MdWaterfallChart,
+              iconName: 'MdWaterfallChart',
             },
 
             {
               label: 'Stacked Waterfall',
               value: 'Stacked Waterfall',
-              iconClass: TbStack2,
+              iconName: 'TbStack2',
             },
             {
               label: 'Box Plot',
               value: 'Box Plot',
-              iconClass: MdGraphicEq,
+              iconName: 'MdGraphicEq',
             },
             {
               label: 'Table',
               value: 'Table',
-              iconClass: MdTableChart,
+              iconName: 'MdTableChart',
             },
             {
               label: 'Sunburst (beta)',
               value: 'Sunburst',
-              iconClass: MdDonutLarge,
+              iconName: 'MdDonutLarge',
             },
             {
               label: 'Treemap (beta)',
               value: 'Treemap',
-              iconClass: TbChartTreemap,
+              iconName: 'TbChartTreemap',
             },
           ]}
           displayIcon
@@ -154,22 +139,22 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Sum',
               value: 'Sum',
-              iconClass: MdFunctions,
+              iconName: 'MdFunctions',
             },
             {
               label: 'Average',
               value: 'Average',
-              iconClass: MdVerticalAlignCenter,
+              iconName: 'MdVerticalAlignCenter',
             },
             {
               label: 'Minimum',
               value: 'Minimum',
-              iconClass: MdVerticalAlignBottom,
+              iconName: 'MdVerticalAlignBottom',
             },
             {
               label: 'Maximum',
               value: 'Maximum',
-              iconClass: MdVerticalAlignTop,
+              iconName: 'MdVerticalAlignTop',
             },
           ]}
           onSelect={(value) =>
@@ -308,22 +293,22 @@ const KpiHeader = memo(({ obj, index }) => {
             {
               label: 'Bar',
               value: 'Bar',
-              iconClass: MdBarChart,
+              iconName: 'MdBarChart',
             },
             {
               label: 'Line',
               value: 'Line',
-              iconClass: MdShowChart,
+              iconName: 'MdShowChart',
             },
             // {
             //   label: 'Box Plot',
             //   value: 'Box Plot',
-            //   iconClass: MdGraphicEq,
+            //   iconName: 'MdGraphicEq',
             // },
             {
               label: 'Table',
               value: 'Table',
-              iconClass: MdTableChart,
+              iconName: 'MdTableChart',
             },
           ]}
           displayIcon
@@ -365,7 +350,7 @@ const KpiHeader = memo(({ obj, index }) => {
             customSort,
             R.filter(R.has('value')),
             R.project(['id', 'name', 'icon']),
-            R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconClass' }))
+            R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
           )(kpis)}
           onSelect={(value) =>
             dispatch(
@@ -380,6 +365,7 @@ const KpiHeader = memo(({ obj, index }) => {
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
         <Button
+          sx={{ minWidth: 0 }}
           variant="outlined"
           color="greyscale"
           onClick={() => {
@@ -393,7 +379,18 @@ const KpiHeader = memo(({ obj, index }) => {
             )
           }}
         >
-          <MdRefresh size={28} />
+          <Box
+            component="span"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'start',
+              minWidth: '50px',
+              maxWidth: '80px',
+            }} // Same as `Select`'s `styles.displayIcon`
+          >
+            <FetchedIcon iconName="MdRefresh" size={32} />
+          </Box>
         </Button>
       </HeaderSelectWrapper>
     </>

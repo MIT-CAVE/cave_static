@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import React, { useState } from 'react'
 
 import FetchedIcon from './FetchedIcon'
+import OverflowText from './OverflowText'
 import WrappedText from './WrappedText'
 
 import { forcePath } from '../../utils'
@@ -64,11 +65,11 @@ const SelectMulti = ({
         setOpen(false)
         onSelect && onSelect(selected)
       }}
-      renderValue={() => <WrappedText text={header} />}
+      renderValue={() => <OverflowText text={header} />}
     >
       <MenuItem disabled>{header}</MenuItem>
       {items.map((item, index) => {
-        const { label, value: itemValue, iconClass } = item
+        const { label, value: itemValue, iconName } = item
         const value = itemValue || item
         return (
           <MenuItem
@@ -82,9 +83,9 @@ const SelectMulti = ({
             }}
           >
             <Checkbox checked={R.includes(value, selected)} />
-            {iconClass && (
+            {iconName && (
               <ListItemIcon sx={styles.icon}>
-                <FetchedIcon iconName={iconClass} size={24} />
+                <FetchedIcon {...{ iconName }} size={24} />
               </ListItemIcon>
             )}
             <WrappedText text={getLabel(label || value)} />

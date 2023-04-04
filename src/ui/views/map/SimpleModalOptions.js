@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { closeMapModal } from '../../../data/local/mapSlice'
 import { selectAppBarId } from '../../../data/selectors'
 
-import { Select, FetchedIcon } from '../../compound'
+import { Select } from '../../compound'
 
 import { customSort } from '../../../utils'
 
@@ -68,14 +68,11 @@ const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
 
         <Select
           value=""
-          optionsList={R.map(({ id, name, icon }) => {
-            const IconClass = () => <FetchedIcon iconName={icon} />
-            return {
-              label: name,
-              value: id,
-              iconClass: IconClass,
-            }
-          })(customSort(options))}
+          optionsList={R.map(({ id, name, icon }) => ({
+            label: name,
+            value: id,
+            iconName: icon,
+          }))(customSort(options))}
           {...{ placeholder, onSelect }}
         />
       </Box>
