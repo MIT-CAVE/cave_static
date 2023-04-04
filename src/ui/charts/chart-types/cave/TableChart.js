@@ -36,7 +36,7 @@ const TableChart = ({ labels, colTypes, formattedData, numberFormat }) => {
 
   return (
     <DataGrid
-      sx={{ bgcolor: 'background.paper' }}
+      sx={{ bgcolor: 'background.paper', minWidth: 0 }}
       {...{ rows, columns }}
       rowsPerPageOptions={[25, 50, 100]}
     />
