@@ -333,6 +333,7 @@ const DashboardChart = ({ obj, length }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Stacked Bar' ? (
@@ -341,6 +342,7 @@ const DashboardChart = ({ obj, length }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Stacked Waterfall' ? (
@@ -356,6 +358,7 @@ const DashboardChart = ({ obj, length }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Waterfall' ? (

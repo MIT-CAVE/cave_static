@@ -98,7 +98,7 @@ const KpiBasic = ({
     >
       <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
       <Grid container flexDirection="column" spacing={3}>
-        <Grid item>
+        <Grid item zeroMinWidth xs={11.5}>
           <OverflowText text={title} sx={styles.title} />
         </Grid>
         <Grid container item spacing={1} wrap="nowrap">
