@@ -8,13 +8,20 @@ import EchartsPlot from './BaseChart'
  * @todo Implement this component.
  * @todo Write the documentation by following JSDoc 3.
  */
-const LinePlot = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
+const LinePlot = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  subGrouped,
+  theme,
+}) => {
   return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
       yData={R.pluck('y')(data)}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, subGrouped }}
     />
   )
 }

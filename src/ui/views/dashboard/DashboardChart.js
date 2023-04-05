@@ -356,6 +356,7 @@ const DashboardChart = ({ obj, length }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          subGrouped={subGrouped}
           {...labels}
         />
       ) : obj.chart === 'Waterfall' ? (
