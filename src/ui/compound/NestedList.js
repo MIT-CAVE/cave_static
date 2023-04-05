@@ -1,11 +1,26 @@
 /** @jsxImportSource @emotion/react */
-import { Checkbox } from '@mui/material'
+import { Box, Checkbox } from '@mui/material'
 import * as R from 'ramda'
 import React from 'react'
 
-const localCss = {
-  summaryClass: { '&:focus': { outline: 'none' }, marginBottom: '5px' },
-  checkbox: { marginRight: '10px' },
+const nonSx = {
+  summaryClass: {
+    '&:focus': {
+      outline: 'none',
+    },
+    marginBottom: '5px',
+  },
+  details: {
+    marginLeft: '35px',
+    fontSize: '25px',
+    cursor: 'pointer',
+  },
+}
+
+const styles = {
+  checkbox: {
+    mr: 1,
+  },
 }
 
 // This function returns a string of either true, false or mix
@@ -58,8 +73,8 @@ export const createNestedList = (
   if (R.is(String, object[1])) {
     if (!showFunction(object[1])) return ''
     return (
-      <div
-        css={{
+      <Box
+        sx={{
           marginLeft: '55px',
           marginBottom: '5px',
           fontSize: '25px',
@@ -68,31 +83,28 @@ export const createNestedList = (
         key={object[0]}
       >
         <Checkbox
+          sx={styles.checkbox}
           checked={value === 'true'}
           indeterminate={value === 'mix'}
           onClick={() => {
             onSelect(object[1])
           }}
-          css={localCss.checkbox}
         />
         {object[1]}
-      </div>
+      </Box>
     )
   } else if (!showFunction(object[0])) return ''
   else {
     return (
-      <details
-        css={{ marginLeft: '35px', fontSize: '25px', cursor: 'pointer' }}
-        key={object[0]}
-      >
-        <summary css={localCss.summaryClass}>
+      <details css={nonSx.details} key={object[0]}>
+        <summary css={nonSx.summaryClass}>
           <Checkbox
+            sx={styles.checkbox}
             checked={value === 'true'}
             indeterminate={value === 'mix'}
             onClick={() => {
               onSelect(object[1])
             }}
-            css={localCss.checkbox}
           />
           {object[0]}
         </summary>
