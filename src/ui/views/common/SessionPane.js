@@ -598,7 +598,7 @@ const SessionPane = ({ width }) => {
                     {
                       label: collapsed ? 'View sessions' : 'Hide sessions',
                       iconName: collapsed
-                        ? 'MdOutlineExpandLess'
+                        ? 'MdOutlineChevronRight'
                         : 'MdOutlineExpandMore',
                       hidden: false,
                       onClick: () => onClickCollapseHandler(teamId),
