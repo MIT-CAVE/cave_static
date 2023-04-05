@@ -275,7 +275,7 @@ const WaterfallChart = ({
             style={{ height, width }}
             theme={theme}
             notMerge
-            lazyUpdate
+            // lazyUpdate
           />
         )}
       </AutoSizer>
@@ -631,7 +631,7 @@ const StackedWaterfallChart = ({
             style={{ height, width }}
             theme={theme}
             notMerge
-            lazyUpdate
+            // lazyUpdate
           />
         )}
       </AutoSizer>
