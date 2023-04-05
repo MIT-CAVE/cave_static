@@ -11,17 +11,17 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'start',
-    minWidth: '50px',
-    maxWidth: '80px',
+    minWidth: '30px',
+    maxWidth: '50px',
   },
   icon: {
-    color: 'text.primary',
-    minWidth: 0,
     mr: 1,
+    minWidth: 0,
+    color: 'text.primary',
   },
   select: {
-    borderRadius: 0,
     minWidth: 0,
+    borderRadius: 0,
     '& .MuiSelect-select': {
       display: 'flex',
       alignItems: 'center',

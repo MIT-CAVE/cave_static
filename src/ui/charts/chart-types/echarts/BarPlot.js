@@ -10,13 +10,14 @@ const BarPlot = ({
   numberFormat,
   theme,
   stack = false,
+  subGrouped,
 }) => {
   return (
     <EchartsPlot
       xData={R.pluck('x')(data)}
       yData={R.pluck('y')(data)}
       chartType="bar"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack, subGrouped }}
     />
   )
 }
@@ -27,6 +28,7 @@ BarPlot.propTypes = {
   xAxisTitle: PropTypes.string,
   yAxisTitle: PropTypes.string,
   stack: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+  subGrouped: PropTypes.bool,
 }
 
 export { BarPlot }
