@@ -42,7 +42,7 @@ const styles = {
   },
 }
 
-const localCss = {
+const nonSx = {
   contextClose: {
     position: 'absolute',
     right: 25,
@@ -85,7 +85,7 @@ const ContextPane = () => {
           <Card raised sx={styles.root} key={key}>
             <div>
               <MdClose
-                css={localCss.contextClose}
+                css={nonSx.contextClose}
                 onClick={() =>
                   dispatch(
                     sendCommand({
@@ -181,12 +181,12 @@ const ContextPane = () => {
                     <div css={{ marginTop: '10px' }}>
                       {R.propOr(category, 'name')(categoryObj)}
                       {': '}
-                      <span css={localCss.smallText}>
+                      <span css={nonSx.smallText}>
                         {R.join(', ', highestTruths.filter(Boolean))}
                       </span>
                       {R.equals(secondaryOpen, { key, category }) ? (
                         <MdClose
-                          css={localCss.contextEdit}
+                          css={nonSx.contextEdit}
                           onClick={() =>
                             dispatch(
                               mutateLocal({
@@ -202,7 +202,7 @@ const ContextPane = () => {
                         />
                       ) : (
                         <MdEdit
-                          css={localCss.contextEdit}
+                          css={nonSx.contextEdit}
                           onClick={() =>
                             dispatch(
                               mutateLocal({
