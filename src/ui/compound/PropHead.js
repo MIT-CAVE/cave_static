@@ -8,13 +8,26 @@ import InfoButton from './InfoButton'
 import { forceArray } from '../../utils'
 
 const styles = {
-  root: (theme) => ({
+  column: {
     display: 'flex',
     position: 'relative',
     alignItems: 'flex-start',
-    p: theme.spacing(1, 0),
-    m: theme.spacing(1.5, 1),
-  }),
+    px: 0,
+    py: 1,
+    mx: 1,
+    my: 1.5,
+  },
+  row: {
+    display: 'flex',
+    position: 'relative',
+    alignItems: 'center',
+    textAlign: 'start',
+    border: 1,
+    borderColor: 'grey.500',
+    p: 2,
+
+    flex: '1 1 auto',
+  },
   info: {
     ml: 1,
     textAlign: 'right',
@@ -27,11 +40,16 @@ const styles = {
   },
 }
 
-const PropHead = ({ prop = {}, sx = [], ...props }) => {
+const PropHead = ({ prop = {}, sx = [], wrapperStyle, children, ...props }) => {
   const { id, name, help, style } = prop
   return (
-    <Box sx={[style, ...forceArray(sx)]} {...R.dissoc('currentVal', props)}>
-      <Box sx={styles.root}>
+    <Box
+      display="flex"
+      flexDirection="column"
+      sx={[style, ...forceArray(sx)]}
+      {...R.dissoc('currentVal', props)}
+    >
+      <Box sx={wrapperStyle}>
         <Typography variant="h5">{name || id}</Typography>
         {help && (
           <Box sx={styles.info}>
@@ -39,12 +57,13 @@ const PropHead = ({ prop = {}, sx = [], ...props }) => {
           </Box>
         )}
       </Box>
-      <Divider sx={styles.divider} />
+      {children}
     </Box>
   )
 }
 PropHead.propTypes = {
   prop: PropTypes.object,
+  style: PropTypes.object,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -52,6 +71,15 @@ PropHead.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
+  children: PropTypes.node,
 }
 
-export default PropHead
+const PropHeadColumn = (props) => (
+  <PropHead wrapperStyle={styles.column} {...props}>
+    <Divider sx={styles.divider} />
+  </PropHead>
+)
+
+const PropHeadRow = (props) => <PropHead wrapperStyle={styles.row} {...props} />
+
+export { PropHeadColumn, PropHeadRow }

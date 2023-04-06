@@ -62,6 +62,8 @@ export const propVariant = {
   SLIDER: 'slider',
   TEXTAREA: 'textarea',
   TIME: 'time',
+  COLUMN: 'column',
+  ROW: 'row',
 }
 
 export const propContainer = {

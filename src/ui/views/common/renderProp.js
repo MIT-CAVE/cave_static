@@ -11,7 +11,8 @@ import {
   PropDate,
   PropDateTime,
   PropDropdown,
-  PropHead,
+  PropHeadColumn,
+  PropHeadRow,
   PropNumberField,
   PropNumberSlider,
   PropRadio,
@@ -60,11 +61,12 @@ const getDatePropRenderFn = R.cond([
   [R.equals(propVariant.TIME), R.always(PropTime)],
   [R.T, invalidVariant('date')],
 ])
-const getHeaderPropRenderFn = R.ifElse(
-  R.isNil,
-  R.always(PropHead),
-  invalidVariant('head')
-)
+const getHeaderPropRenderFn = R.cond([
+  [R.isNil, R.always(PropHeadColumn)],
+  [R.equals(propVariant.COLUMN), R.always(PropHeadColumn)],
+  [R.equals(propVariant.ROW), R.always(PropHeadRow)],
+  [R.T, invalidVariant('head')],
+])
 
 const getRendererFn = R.cond([
   [R.equals(propId.BUTTON), R.always(getButtonPropRenderFn)],
