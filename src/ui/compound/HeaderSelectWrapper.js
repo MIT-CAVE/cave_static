@@ -7,6 +7,7 @@ import { forceArray } from '../../utils'
 const styles = {
   root: {
     mx: 0.5,
+    minWidth: '65px',
   },
   button: {
     top: 0,
@@ -30,7 +31,6 @@ const HeaderSelectWrapper = ({
       component={Grid}
       display="flex"
       item
-      zeroMinWidth
       sx={[
         styles.root,
         clearable && { position: 'relative' },

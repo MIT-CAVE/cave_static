@@ -125,12 +125,8 @@ const Dashboard = () => {
                         R.always(R.equals('kpis')(value)),
                         R.pipe(
                           R.prop('chart'),
-                          R.includes(R.__, [
-                            'Box Plot',
-                            'Stacked Bar',
-                            'Waterfall',
-                            'Stacked Waterfall',
-                          ])
+                          R.includes(R.__, ['Bar', 'Line', 'Table']),
+                          R.not
                         )
                       ),
                       R.assoc('chart', 'Table')
