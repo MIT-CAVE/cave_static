@@ -27,8 +27,7 @@ const styles = {
     borderColor: 'grey.500',
     placeContent: 'center',
     minWidth: KPI_WIDTH,
-    // textAlign: 'start',
-    px: 2,
+    textAlign: 'center',
   },
   title: {
     px: 1,
@@ -42,10 +41,10 @@ const KpiHeadRow = ({ title, icon, style, sx = [], ...props }) => (
     sx={[styles.rowRoot, style, ...forceArray(sx)]}
     {...R.dissoc('mapKpi', props)}
   >
-    <Grid container item spacing={2} flexWrap="nowrap">
+    <Grid container item spacing={0.5} flexWrap="nowrap">
       {icon && (
         <Grid item alignSelf="center">
-          <FetchedIcon iconName={icon} size={48} />
+          <FetchedIcon iconName={icon} size={24} />
         </Grid>
       )}
       <Grid item xs={11} display="flex" alignItems="center">
