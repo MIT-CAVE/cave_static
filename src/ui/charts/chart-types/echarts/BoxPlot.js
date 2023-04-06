@@ -197,7 +197,7 @@ const EchartsBoxPlot = ({
             style={{ height, width }}
             theme={theme}
             notMerge
-            lazyUpdate
+            // lazyUpdate
           />
         )}
       </AutoSizer>

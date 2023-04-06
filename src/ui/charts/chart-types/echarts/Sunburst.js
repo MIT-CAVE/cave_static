@@ -124,7 +124,7 @@ const Sunburst = ({ data, theme, subGrouped }) => {
             style={{ height, width }}
             theme={theme}
             notMerge
-            lazyUpdate
+            // lazyUpdate
           />
         )}
       </AutoSizer>
