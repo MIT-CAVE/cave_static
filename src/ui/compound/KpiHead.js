@@ -10,24 +10,25 @@ import { KPI_WIDTH } from '../../utils/constants'
 import { forceArray } from '../../utils'
 
 const styles = {
-  root: {
+  column: {
     display: 'flex',
     position: 'relative',
     flexDirection: 'column',
-    justifyContent: 'center',
     minWidth: KPI_WIDTH,
-    textAlign: 'center',
     px: 1,
+    justifyContent: 'center',
+    textAlign: 'center',
   },
-  rowRoot: {
+  row: {
     display: 'flex',
-    flexDirection: 'column',
     position: 'relative',
+    flexDirection: 'column',
+    minWidth: KPI_WIDTH,
+    px: 2,
+    placeContent: 'center',
+    // textAlign: 'start',
     border: 1,
     borderColor: 'grey.500',
-    placeContent: 'center',
-    minWidth: KPI_WIDTH,
-    textAlign: 'center',
   },
   title: {
     px: 1,
@@ -36,24 +37,36 @@ const styles = {
   },
 }
 
-const KpiHeadRow = ({ title, icon, style, sx = [], ...props }) => (
+const KpiHead = ({
+  title,
+  icon,
+  style,
+  sx = [],
+  rootStyle,
+  gridSpacing,
+  gridTitleStyle,
+  iconSize,
+  children,
+  ...props
+}) => (
   <Grid
-    sx={[styles.rowRoot, style, ...forceArray(sx)]}
+    sx={[rootStyle, style, ...forceArray(sx)]}
     {...R.dissoc('mapKpi', props)}
   >
-    <Grid container item spacing={0.5} flexWrap="nowrap">
+    <Grid container item spacing={gridSpacing} flexWrap="nowrap">
       {icon && (
         <Grid item alignSelf="center">
-          <FetchedIcon iconName={icon} size={24} />
+          <FetchedIcon iconName={icon} size={iconSize} />
         </Grid>
       )}
-      <Grid item xs={11} display="flex" alignItems="center">
+      <Grid item xs={11} sx={gridTitleStyle}>
         <OverflowText text={title} sx={styles.title} />
       </Grid>
     </Grid>
+    {children}
   </Grid>
 )
-KpiHeadRow.propTypes = {
+KpiHead.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   style: PropTypes.object,
@@ -64,37 +77,26 @@ KpiHeadRow.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
+  children: PropTypes.node,
 }
 
-const KpiHeadColumn = ({ title, icon, style, sx = [], ...props }) => (
-  <Grid
-    sx={[styles.root, style, ...forceArray(sx)]}
-    {...R.dissoc('mapKpi', props)}
-  >
-    <Grid container item spacing={1} flexWrap="nowrap">
-      {icon && (
-        <Grid item alignSelf="center">
-          <FetchedIcon iconName={icon} size={24} />
-        </Grid>
-      )}
-      <Grid item xs={11}>
-        <OverflowText text={title} sx={styles.title} />
-      </Grid>
-    </Grid>
+const KpiHeadColumn = (props) => (
+  <KpiHead rootStyle={styles.column} gridSpacing={1} iconSize={24} {...props}>
     <Divider sx={{ mt: 2 }} />
-  </Grid>
+  </KpiHead>
 )
-KpiHeadColumn.propTypes = {
-  title: PropTypes.string,
-  icon: PropTypes.string,
-  style: PropTypes.object,
-  sx: PropTypes.oneOfType([
-    PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
-    ),
-    PropTypes.func,
-    PropTypes.object,
-  ]),
-}
+
+const KpiHeadRow = (props) => (
+  <KpiHead
+    gridSpacing={2}
+    iconSize={48}
+    rootStyle={styles.row}
+    gridTitleStyle={{
+      display: 'flex',
+      alignItems: 'center',
+    }}
+    {...props}
+  />
+)
 
 export { KpiHeadColumn, KpiHeadRow }
