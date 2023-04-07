@@ -286,7 +286,7 @@ const KpiHeader = memo(({ obj, index }) => {
 
   return (
     <>
-      <HeaderSelectWrapper sx={{ ml: 2 }}>
+      <HeaderSelectWrapper>
         <Select
           value={R.propOr('Bar', 'chart', obj)}
           optionsList={[
@@ -323,7 +323,7 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper sx={{ ml: 2 }}>
+      <HeaderSelectWrapper>
         <SelectMulti
           value={R.propOr([], 'sessions', obj)}
           header="Select Sessions"
