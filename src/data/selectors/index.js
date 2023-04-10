@@ -267,7 +267,7 @@ export const selectAppBarId = createSelector(
     const fallbackId = R.pipe(
       sortProps,
       R.toPairs,
-      R.find(R.pathEq([1, 'type'], 'map')),
+      R.find(R.pathEq('map', [1, 'type'])),
       R.prop(0)
     )(appBarData)
     const currentId = R.propOr(

@@ -81,7 +81,7 @@ const Map = ({ mapboxToken }) => {
             radius: 20,
           }),
         R.filter(
-          R.pipe(R.pathEq(['layer', 'id'], layerId.GEOGRAPHY_LAYER), R.not)
+          R.pipe(R.pathEq(layerId.GEOGRAPHY_LAYER, ['layer', 'id']), R.not)
         ),
         R.isEmpty
       )(e),
@@ -96,14 +96,14 @@ const Map = ({ mapboxToken }) => {
         radius: 20,
       })
       const pickedNode = R.find(
-        R.pathEq(['layer', 'id'], layerId.NODE_ICON_LAYER)
+        R.pathEq(layerId.NODE_ICON_LAYER, ['layer', 'id'])
       )(pickedItems)
       const pickedArc = R.find(
         (d) =>
-          R.pathEq(['layer', 'id'], layerId.ARC_LAYER, d) ||
-          R.pathEq(['layer', 'id'], layerId.ARC_LAYER_3D, d)
+          R.pathEq(layerId.ARC_LAYER, ['layer', 'id'], d) ||
+          R.pathEq(layerId.ARC_LAYER_3D, ['layer', 'id'], d)
       )(pickedItems)
-      !R.isNil(pickedNode)
+      R.isNotNil(pickedNode)
         ? dispatch(
             openMapModal({
               appBarId,
@@ -118,7 +118,7 @@ const Map = ({ mapboxToken }) => {
               },
             })
           )
-        : !R.isNil(pickedArc)
+        : R.isNotNil(pickedArc)
         ? dispatch(
             openMapModal({
               appBarId,

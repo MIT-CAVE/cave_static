@@ -92,7 +92,7 @@ const App = () => {
 
   const handlePaneClickAway = useCallback(
     (e) => {
-      if (!pin && !R.isNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
+      if (!pin && R.isNotNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
         dispatch(
           mutateLocal({
             path: ['appBar', 'paneState'],

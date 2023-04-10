@@ -389,7 +389,7 @@ const StackedWaterfallChart = ({
     if (index > 0 && !renderedLinesByIndex.has(index)) {
       let shape
       if (subGrouped) {
-        const validIndex = R.findIndex(R.propEq('idx', index))(validIndices)
+        const validIndex = R.findIndex(R.propEq(index, 'idx'))(validIndices)
         if (validIndex > 0) {
           const indexPrev = validIndices[validIndex - 1].idx
           const endCoordPrev = api.coord([

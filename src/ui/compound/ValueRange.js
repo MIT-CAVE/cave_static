@@ -57,7 +57,7 @@ export class ValueRange extends React.Component {
 
     return (
       <>
-        {!R.isNil(help) ? (
+        {R.isNotNil(help) ? (
           <div
             css={{
               position: 'absolute',

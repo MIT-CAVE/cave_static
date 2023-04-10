@@ -46,7 +46,7 @@ const DashboardKpi = ({ obj, length }) => {
   )(kpis)
 
   const kpiUnits = R.map((item) => {
-    const kpi = R.find(R.propEq('id', item))(kpiData)
+    const kpi = R.find(R.propEq(item, 'id'))(kpiData)
     const { numberFormat = {} } = R.defaultTo({})(kpi)
     return numberFormat.unit || numberFormatDefault.unit
   })(actualKpi)
