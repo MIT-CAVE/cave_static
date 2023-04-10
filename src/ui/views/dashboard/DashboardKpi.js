@@ -137,6 +137,9 @@ const DashboardKpi = ({ obj, length }) => {
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(kpiUnits)}
           theme={themeId}
+          // The data structure of the KPI chart is the same
+          // as that of a statistics chart with subgrouped data
+          subGrouped
         />
       ) : obj.chart === 'Line' ? (
         <LinePlot
@@ -145,6 +148,9 @@ const DashboardKpi = ({ obj, length }) => {
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(kpiUnits)}
           theme={themeId}
+          // The data structure of the KPI chart is the same
+          // as that of a statistics chart with subgrouped data
+          subGrouped
         />
       ) : null}
     </Box>

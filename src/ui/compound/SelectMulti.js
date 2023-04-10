@@ -19,13 +19,12 @@ const styles = {
     },
   },
   select: {
+    width: '100%',
     borderRadius: 0,
     minWidth: 0,
-    '& .MuiSelect-select': {
-      display: 'flex',
-      alignItems: 'center',
-      whiteSpace: 'normal !important',
-    },
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }
 

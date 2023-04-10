@@ -50,7 +50,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
   return (
     <>
-      <HeaderSelectWrapper sx={{ ml: 2 }}>
+      <HeaderSelectWrapper>
         <Select
           value={R.propOr('', 'chart', obj)}
           optionsList={[
@@ -169,7 +169,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
         />
       </HeaderSelectWrapper>
 
-      <HeaderSelectWrapper sx={{ ml: 2 }}>
+      <HeaderSelectWrapper>
         {R.prop('chart', obj) === 'Table' ? (
           <SelectMulti
             getLabel={getLabelFn(statisticTypes)}
@@ -286,7 +286,7 @@ const KpiHeader = memo(({ obj, index }) => {
 
   return (
     <>
-      <HeaderSelectWrapper sx={{ ml: 2 }}>
+      <HeaderSelectWrapper>
         <Select
           value={R.propOr('Bar', 'chart', obj)}
           optionsList={[
@@ -323,7 +323,7 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper sx={{ ml: 2 }}>
+      <HeaderSelectWrapper>
         <SelectMulti
           value={R.propOr([], 'sessions', obj)}
           header="Select Sessions"
@@ -384,10 +384,9 @@ const KpiHeader = memo(({ obj, index }) => {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'start',
-              minWidth: '50px',
-              maxWidth: '80px',
-            }} // Same as `Select`'s `styles.displayIcon`
+              justifyContent: 'center',
+              minWidth: '40px',
+            }}
           >
             <FetchedIcon iconName="MdRefresh" size={32} />
           </Box>
