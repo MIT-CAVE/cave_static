@@ -33,8 +33,6 @@ import {
 const StatisticsHeader = memo(({ obj, index }) => {
   const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectAllowedStats)
-  const sortedStatistics = customSort(statisticTypes)
-  const sortedCategories = customSort(categories)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -46,6 +44,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const groupableCategories = R.isNil(groupByOptions)
     ? categories
     : R.pick(groupByOptions, categories)
+  const sortedStatistics = customSort(statisticTypes)
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
   return (
@@ -157,7 +156,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconName: 'MdVerticalAlignTop',
             },
           ]}
-          onSelect={(value) =>
+          onSelect={(value) => {
             dispatch(
               mutateLocal({
                 path,
@@ -165,7 +164,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                 value: R.assoc('grouping', value, obj),
               })
             )
-          }
+          }}
         />
       </HeaderSelectWrapper>
 
@@ -192,7 +191,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             value={R.propOr('', 'statistic', obj)}
             placeholder="Statistic"
             optionsList={R.pluck('id')(sortedStatistics)}
-            onSelect={(value) =>
+            onSelect={(value) => {
               dispatch(
                 mutateLocal({
                   path,
@@ -200,7 +199,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                   value: R.assoc('statistic', value, obj),
                 })
               )
-            }
+            }}
           />
         )}
       </HeaderSelectWrapper>
@@ -210,12 +209,13 @@ const StatisticsHeader = memo(({ obj, index }) => {
             R.props(['category', 'level']),
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
-          items={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
           placeholder="Group By"
-          subItemLayouts={R.pipe(
-            R.values,
-            R.pluck('layoutDirection')
-          )(sortedCategories)}
+          itemGroups={R.pipe(
+            customSort,
+            R.project(['id', 'grouping', 'layoutDirection', 'order']),
+            R.groupBy(R.prop('grouping'))
+          )(categories)}
+          subItems={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
           onSelect={(item, subItem) => {
@@ -249,12 +249,13 @@ const StatisticsHeader = memo(({ obj, index }) => {
             R.props(['category2', 'level2']),
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
-          items={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
           placeholder="Sub Group"
-          subItemLayouts={R.pipe(
-            R.values,
-            R.pluck('layoutDirection')
-          )(sortedCategories)}
+          itemGroups={R.pipe(
+            customSort,
+            R.project(['id', 'grouping', 'layoutDirection', 'order']),
+            R.groupBy(R.prop('grouping'))
+          )(categories)}
+          subItems={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
           onSelect={(item, subItem) => {
@@ -352,7 +353,7 @@ const KpiHeader = memo(({ obj, index }) => {
             R.project(['id', 'name', 'icon']),
             R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
           )(kpis)}
-          onSelect={(value) =>
+          onSelect={(value) => {
             dispatch(
               mutateLocal({
                 path,
@@ -360,7 +361,7 @@ const KpiHeader = memo(({ obj, index }) => {
                 value: R.assoc('kpi', value, obj),
               })
             )
-          }
+          }}
         />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>

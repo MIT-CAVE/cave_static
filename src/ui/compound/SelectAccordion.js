@@ -2,14 +2,15 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Box,
   MenuItem,
   Select,
   Typography,
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import { memo, useState } from 'react'
-import { MdExpandMore } from 'react-icons/md'
 
+import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
 const styles = {
@@ -24,6 +25,15 @@ const styles = {
   },
   accordionRoot: {
     width: '100%',
+  },
+  accordionGroup: {
+    bgcolor: (theme) =>
+      theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300',
+  },
+  accordionSummary: {
+    '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
+      transform: 'rotate(90deg)',
+    },
   },
   getOrientation: (orientation) => ({
     display: 'flex',
@@ -42,11 +52,11 @@ const styles = {
 /**
  * A hybrid of the Select and Accordion components.
  *
- * @param {Array} items
+ * @param disabled
  * @param values
  * @param placeholder
- * @param subItemLayouts
- * @param disabled
+ * @param subItems
+ * @param itemGroups
  * @param getLabel
  * @param getSubLabel
  * @param onClickAway
@@ -55,11 +65,12 @@ const styles = {
  * @private
  */
 const SelectAccordion = ({
-  items,
+  disabled,
   values,
   placeholder,
-  subItemLayouts = [],
-  disabled,
+  subItems,
+  itemGroups = {},
+  groupLabel = 'group',
   getLabel = (label) => label,
   getSubLabel = (label) => label,
   onClickAway = () => {},
@@ -67,6 +78,40 @@ const SelectAccordion = ({
   ...props
 } = {}) => {
   const [open, setOpen] = useState(false)
+
+  const CategoryItems = ({ item, layoutDirection }) => {
+    return (
+      <Accordion
+        key={item}
+        // defaultExpanded
+        sx={styles.accordionRoot}
+        onChange={(event) => {
+          // Prevents other Select components from capturing
+          // the event when expanding/collapsing the accordion
+          event.stopPropagation()
+        }}
+      >
+        <AccordionSummary expandIcon={<FetchedIcon iconName="MdExpandMore" />}>
+          <Typography sx={styles.heading}>{getLabel(item)}</Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
+          {subItems[item].map((subItem, idx) => (
+            <MenuItem
+              key={idx}
+              component="div"
+              onClick={() => {
+                onSelect && onSelect(item, subItem)
+                setOpen(false)
+              }}
+            >
+              {getSubLabel(item, subItem)}
+            </MenuItem>
+          ))}
+        </AccordionDetails>
+      </Accordion>
+    )
+  }
+
   return (
     <Select
       {...{ disabled, open, ...props }}
@@ -103,50 +148,61 @@ const SelectAccordion = ({
           <OverflowText text={placeholder} />
         </MenuItem>
       )}
-
       {/* HACK: Drop warning for non-existing value */}
       {values !== '' && <MenuItem value={values} sx={{ display: 'none' }} />}
+      {/* Render item groups */}
+      {Object.keys(itemGroups).map((grouping, index) => {
+        const grouped = grouping !== 'null' && grouping != null // `grouping != null` is a sanity check
+        const currentItems = itemGroups[grouping] || []
 
-      {Object.keys(items).map((item, index) => (
-        <MenuItem key={index}>
-          <Accordion
-            // defaultExpanded
-            sx={styles.accordionRoot}
-            onChange={(event) => {
-              // Prevents other Select components from capturing
-              // the event when expanding/collapsing the accordion
-              event.stopPropagation()
-            }}
-          >
-            <AccordionSummary expandIcon={<MdExpandMore />}>
-              <Typography sx={styles.heading}>{getLabel(item)}</Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={styles.getOrientation(subItemLayouts[index])}>
-              {items[item].map((subItem, idx) => (
-                <MenuItem
-                  key={idx}
-                  component="div"
-                  onClick={() => {
-                    onSelect && onSelect(item, subItem)
-                    setOpen(false)
-                  }}
+        // Render items per group
+        return (
+          <MenuItem key={index}>
+            {grouped ? (
+              <Accordion
+                // defaultExpanded
+                sx={[styles.accordionRoot, styles.accordionGroup]}
+                onChange={(event) => {
+                  // Prevents other Select components from capturing
+                  // the event when expanding/collapsing the accordion
+                  event.stopPropagation()
+                }}
+              >
+                <AccordionSummary
+                  sx={styles.accordionSummary}
+                  expandIcon={<FetchedIcon iconName="MdOutlineChevronRight" />}
                 >
-                  {getSubLabel(item, subItem)}
-                </MenuItem>
-              ))}
-            </AccordionDetails>
-          </Accordion>
-        </MenuItem>
-      ))}
+                  <Typography sx={styles.heading}>
+                    {`${grouping} `}
+                    <Box component="span" sx={{ color: 'text.secondary' }}>
+                      ({groupLabel})
+                    </Box>
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {currentItems.map(({ id: item, layoutDirection }) => (
+                    <CategoryItems {...{ item, layoutDirection }} />
+                  ))}
+                </AccordionDetails>
+              </Accordion>
+            ) : (
+              <CategoryItems
+                item={currentItems[index].id}
+                layoutDirection={currentItems[index].layoutDirection}
+              />
+            )}
+          </MenuItem>
+        )
+      })}
     </Select>
   )
 }
 SelectAccordion.propTypes = {
-  items: PropTypes.object,
+  disabled: PropTypes.bool,
   values: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
   placeholder: PropTypes.string,
-  subItemLayouts: PropTypes.arrayOf(PropTypes.string),
-  disabled: PropTypes.bool,
+  itemGroups: PropTypes.object,
+  subItems: PropTypes.object,
   getLabel: PropTypes.func,
   getSubLabel: PropTypes.func,
   onClickAway: PropTypes.func,
