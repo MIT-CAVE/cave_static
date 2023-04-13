@@ -43,10 +43,6 @@ const styles = {
     fontSize: (theme) => theme.typography.pxToRem(15),
     fontWeight: 'typography.fontWeightRegular',
   },
-  item: {
-    display: 'flex',
-    alignItems: 'center',
-  },
 }
 
 /**
@@ -79,38 +75,41 @@ const SelectAccordion = ({
 } = {}) => {
   const [open, setOpen] = useState(false)
 
-  const CategoryItems = ({ item, layoutDirection }) => {
-    return (
-      <Accordion
-        key={item}
-        // defaultExpanded
-        sx={styles.accordionRoot}
-        onChange={(event) => {
-          // Prevents other Select components from capturing
-          // the event when expanding/collapsing the accordion
-          event.stopPropagation()
-        }}
-      >
-        <AccordionSummary expandIcon={<FetchedIcon iconName="MdExpandMore" />}>
-          <Typography sx={styles.heading}>{getLabel(item)}</Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
-          {subItems[item].map((subItem, idx) => (
-            <MenuItem
-              key={idx}
-              component="div"
-              onClick={() => {
-                onSelect && onSelect(item, subItem)
-                setOpen(false)
-              }}
-            >
-              {getSubLabel(item, subItem)}
-            </MenuItem>
-          ))}
-        </AccordionDetails>
-      </Accordion>
-    )
-  }
+  const CategoryItems = ({ items }) =>
+    items.map(({ id: item, layoutDirection }) => (
+      <MenuItem key={item} component="div">
+        <Accordion
+          key={item}
+          // defaultExpanded
+          sx={styles.accordionRoot}
+          onChange={(event) => {
+            // Prevents other Select components from capturing
+            // the event when expanding/collapsing the accordion
+            event.stopPropagation()
+          }}
+        >
+          <AccordionSummary
+            expandIcon={<FetchedIcon iconName="MdExpandMore" />}
+          >
+            <Typography sx={styles.heading}>{getLabel(item)}</Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
+            {subItems[item].map((subItem, idx) => (
+              <MenuItem
+                key={idx}
+                component="div"
+                onClick={() => {
+                  onSelect && onSelect(item, subItem)
+                  setOpen(false)
+                }}
+              >
+                {getSubLabel(item, subItem)}
+              </MenuItem>
+            ))}
+          </AccordionDetails>
+        </Accordion>
+      </MenuItem>
+    ))
 
   return (
     <Select
@@ -151,49 +150,42 @@ const SelectAccordion = ({
       {/* HACK: Drop warning for non-existing value */}
       {values !== '' && <MenuItem value={values} sx={{ display: 'none' }} />}
       {/* Render item groups */}
-      {Object.keys(itemGroups).map((grouping, index) => {
-        const grouped = grouping !== 'null' && grouping != null // `grouping != null` is a sanity check
-        const currentItems = itemGroups[grouping] || []
-
+      {Object.keys(itemGroups).map((grouping, index) =>
         // Render items per group
-        return (
+        grouping !== 'null' && grouping !== 'undefined' && grouping != null ? (
+          // `grouping != null` is a sanity check
           <MenuItem key={index}>
-            {grouped ? (
-              <Accordion
-                // defaultExpanded
-                sx={[styles.accordionRoot, styles.accordionGroup]}
-                onChange={(event) => {
-                  // Prevents other Select components from capturing
-                  // the event when expanding/collapsing the accordion
-                  event.stopPropagation()
-                }}
+            <Accordion
+              // defaultExpanded
+              sx={[styles.accordionRoot, styles.accordionGroup]}
+              onChange={(event) => {
+                // Prevents other Select components from capturing
+                // the event when expanding/collapsing the accordion
+                event.stopPropagation()
+              }}
+            >
+              <AccordionSummary
+                sx={styles.accordionSummary}
+                expandIcon={<FetchedIcon iconName="MdOutlineChevronRight" />}
               >
-                <AccordionSummary
-                  sx={styles.accordionSummary}
-                  expandIcon={<FetchedIcon iconName="MdOutlineChevronRight" />}
-                >
-                  <Typography sx={styles.heading}>
-                    {`${grouping} `}
-                    <Box component="span" sx={{ color: 'text.secondary' }}>
-                      ({groupLabel})
-                    </Box>
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  {currentItems.map(({ id: item, layoutDirection }) => (
-                    <CategoryItems {...{ item, layoutDirection }} />
-                  ))}
-                </AccordionDetails>
-              </Accordion>
-            ) : (
-              <CategoryItems
-                item={currentItems[index].id}
-                layoutDirection={currentItems[index].layoutDirection}
-              />
-            )}
+                <Typography sx={styles.heading}>
+                  {`${grouping} `}
+                  <Box component="span" sx={{ color: 'text.secondary' }}>
+                    ({groupLabel})
+                  </Box>
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <CategoryItems items={itemGroups[grouping]} />
+              </AccordionDetails>
+            </Accordion>
           </MenuItem>
+        ) : (
+          <Box key={index}>
+            <CategoryItems items={itemGroups[grouping]} />
+          </Box>
         )
-      })}
+      )}
     </Select>
   )
 }
