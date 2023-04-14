@@ -46,6 +46,14 @@ const StatisticsHeader = memo(({ obj, index }) => {
     : R.pick(groupByOptions, categories)
   const sortedStatistics = customSort(statisticTypes)
 
+  const subItems = R.mapObjIndexed(getCategoryItems)(groupableCategories)
+  const itemGroups = R.pipe(
+    R.pick(R.keys(subItems)), // Drop any category not included in `nestedStructure`
+    customSort,
+    R.project(['id', 'grouping', 'layoutDirection', 'order']),
+    R.groupBy(R.prop('grouping'))
+  )(categories)
+
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
   return (
     <>
@@ -210,12 +218,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
           placeholder="Group By"
-          itemGroups={R.pipe(
-            customSort,
-            R.project(['id', 'grouping', 'layoutDirection', 'order']),
-            R.groupBy(R.prop('grouping'))
-          )(categories)}
-          subItems={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
+          {...{ itemGroups, subItems }}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
           onSelect={(item, subItem) => {
@@ -250,12 +253,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
           placeholder="Sub Group"
-          itemGroups={R.pipe(
-            customSort,
-            R.project(['id', 'grouping', 'layoutDirection', 'order']),
-            R.groupBy(R.prop('grouping'))
-          )(categories)}
-          subItems={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
+          {...{ itemGroups, subItems }}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
           onSelect={(item, subItem) => {
