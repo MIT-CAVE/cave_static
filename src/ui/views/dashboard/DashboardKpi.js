@@ -39,7 +39,7 @@ const DashboardKpi = ({ obj, length }) => {
   const kpiData = R.pipe(
     R.values,
     R.head,
-    R.path(['data', 'kpis', 'data']),
+    R.pathOr({}, ['data', 'kpis', 'data']),
     R.pick(actualKpiRaw),
     R.filter(R.has('value'))
   )(kpis)
