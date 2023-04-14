@@ -418,7 +418,11 @@ const StackedWaterfallChart = ({
           type: 'line',
           shape,
           style: api.style({
-            stroke: subGrouped ? 'rgb(255,255,255,0.8)' : api.visual('color'),
+            stroke: subGrouped
+              ? theme === 'light'
+                ? '#4a4a4a'
+                : '#ffffff'
+              : api.visual('color'),
             lineWidth: 2,
             lineDash: [8, 6],
             symbolSize: 120,

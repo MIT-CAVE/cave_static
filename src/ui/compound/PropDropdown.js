@@ -10,7 +10,7 @@ import { customSort } from '../../utils'
 // See: https://github.com/mui/material-ui/issues/25578#issuecomment-846222712
 const PropDropdown = ({ prop, currentVal, onChange, ...props }) => {
   const { enabled = false, options } = prop
-  const [value] = currentVal || prop.value
+  const [value] = R.defaultTo(prop.value, currentVal)
   const optionsListRaw = customSort(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
