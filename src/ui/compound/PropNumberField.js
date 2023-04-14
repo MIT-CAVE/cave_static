@@ -28,7 +28,11 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <NumberInput
         {...{ enabled, max, min, numberFormat }}
-        value={R.clamp(min, max, currentVal || prop.value)}
+        value={R.clamp(
+          min,
+          max,
+          R.defaultTo(R.prop('value', prop), currentVal)
+        )}
         onClickAway={(value) => {
           if (enabled) onChange(value)
         }}

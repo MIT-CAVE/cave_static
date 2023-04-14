@@ -6,7 +6,7 @@ import { customSort } from '../../utils'
 
 const PropCheckbox = ({ prop, currentVal, onChange, ...props }) => {
   const { enabled = false, options } = prop
-  const value = currentVal || prop.value
+  const value = R.defaultTo(prop.value, currentVal)
   return (
     <FormGroup {...props}>
       {R.map(({ id: key, name: label }) => (

@@ -5,9 +5,10 @@ import {
 } from '@mui/x-date-pickers'
 import dayjs from 'dayjs'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 
 const PropDateBase = ({ component, prop, currentVal, onChange }) => {
-  const value = currentVal || prop.value
+  const value = R.defaultTo(prop.value, currentVal)
   const { enabled = false, readOnly, views } = prop
   const Component = component
   return (

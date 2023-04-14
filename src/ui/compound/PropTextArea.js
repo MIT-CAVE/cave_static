@@ -1,5 +1,6 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 
 import TextInput from './TextInput'
 
@@ -18,7 +19,7 @@ const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <TextInput
         multiline
         {...{ enabled, minRows, maxRows }}
-        value={currentVal || prop.value}
+        value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return
           onChange(value)
