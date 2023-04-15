@@ -45,8 +45,9 @@ const styles = {
   },
   soloCategory: {
     width: '100%',
-    bgcolor: (theme) =>
-      theme.palette.mode === 'dark' ? 'grey.600' : 'grey.200',
+    border: 1,
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark' ? 'grey.600' : 'grey.300',
   },
 }
 
