@@ -46,11 +46,13 @@ const StatisticsHeader = memo(({ obj, index }) => {
     : R.pick(groupByOptions, categories)
   const sortedStatistics = customSort(statisticTypes)
 
-  const subItems = R.mapObjIndexed(getCategoryItems)(groupableCategories)
+  const sortedLevelsByCategory =
+    R.mapObjIndexed(getCategoryItems)(groupableCategories)
   const itemGroups = R.pipe(
-    R.pick(R.keys(subItems)), // Drop any category not included in `nestedStructure`
+    R.pick(R.keys(sortedLevelsByCategory)), // Drop any category not included in `nestedStructure`
     customSort,
-    R.project(['id', 'grouping', 'layoutDirection', 'order']),
+    R.project(['id', 'grouping', 'layoutDirection']),
+    R.map((item) => R.assoc('subItems', sortedLevelsByCategory[item.id])(item)),
     R.groupBy(R.prop('grouping'))
   )(categories)
 
@@ -213,12 +215,12 @@ const StatisticsHeader = memo(({ obj, index }) => {
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
         <SelectAccordion
+          {...{ itemGroups }}
           values={R.pipe(
             R.props(['category', 'level']),
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
           placeholder="Group By"
-          {...{ itemGroups, subItems }}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
           onSelect={(item, subItem) => {
@@ -248,12 +250,12 @@ const StatisticsHeader = memo(({ obj, index }) => {
         }}
       >
         <SelectAccordion
+          {...{ itemGroups }}
           values={R.pipe(
             R.props(['category2', 'level2']),
             R.when(R.any(R.isNil), R.always(''))
           )(obj)}
           placeholder="Sub Group"
-          {...{ itemGroups, subItems }}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
           onSelect={(item, subItem) => {

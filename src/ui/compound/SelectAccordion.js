@@ -43,6 +43,11 @@ const styles = {
     fontSize: (theme) => theme.typography.pxToRem(15),
     fontWeight: 'typography.fontWeightRegular',
   },
+  soloCategory: {
+    width: '100%',
+    bgcolor: (theme) =>
+      theme.palette.mode === 'dark' ? 'grey.600' : 'grey.200',
+  },
 }
 
 /**
@@ -51,7 +56,6 @@ const styles = {
  * @param disabled
  * @param values
  * @param placeholder
- * @param subItems
  * @param itemGroups
  * @param getLabel
  * @param getSubLabel
@@ -64,7 +68,6 @@ const SelectAccordion = ({
   disabled,
   values,
   placeholder,
-  subItems,
   itemGroups = {},
   groupLabel = 'group',
   getLabel = (label) => label,
@@ -75,39 +78,51 @@ const SelectAccordion = ({
 } = {}) => {
   const [open, setOpen] = useState(false)
 
+  const SubItem = ({ item, subItem, ...props }) => (
+    <MenuItem
+      component="div"
+      onClick={() => {
+        onSelect && onSelect(item, subItem)
+        setOpen(false)
+      }}
+      {...props}
+    >
+      {getSubLabel(item, subItem)}
+    </MenuItem>
+  )
+
   const CategoryItems = ({ items }) =>
-    items.map(({ id: item, layoutDirection }) => (
+    items.map(({ id: item, layoutDirection, subItems }) => (
       <MenuItem key={item} component="div">
-        <Accordion
-          key={item}
-          // defaultExpanded
-          sx={styles.accordionRoot}
-          onChange={(event) => {
-            // Prevents other Select components from capturing
-            // the event when expanding/collapsing the accordion
-            event.stopPropagation()
-          }}
-        >
-          <AccordionSummary
-            expandIcon={<FetchedIcon iconName="MdExpandMore" />}
+        {subItems.length > 1 ? (
+          <Accordion
+            key={item}
+            // defaultExpanded
+            sx={styles.accordionRoot}
+            onChange={(event) => {
+              // Prevents other Select components from capturing
+              // the event when expanding/collapsing the accordion
+              event.stopPropagation()
+            }}
           >
-            <Typography sx={styles.heading}>{getLabel(item)}</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
-            {subItems[item].map((subItem, idx) => (
-              <MenuItem
-                key={idx}
-                component="div"
-                onClick={() => {
-                  onSelect && onSelect(item, subItem)
-                  setOpen(false)
-                }}
-              >
-                {getSubLabel(item, subItem)}
-              </MenuItem>
-            ))}
-          </AccordionDetails>
-        </Accordion>
+            <AccordionSummary
+              expandIcon={<FetchedIcon iconName="MdExpandMore" />}
+            >
+              <Typography sx={styles.heading}>{getLabel(item)}</Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
+              {subItems.map((subItem, idx) => (
+                <SubItem key={idx} {...{ item, subItem }} />
+              ))}
+            </AccordionDetails>
+          </Accordion>
+        ) : (
+          <SubItem
+            sx={styles.soloCategory}
+            {...{ item }}
+            subItem={subItems[0]}
+          />
+        )}
       </MenuItem>
     ))
 
@@ -194,7 +209,6 @@ SelectAccordion.propTypes = {
   values: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
   placeholder: PropTypes.string,
   itemGroups: PropTypes.object,
-  subItems: PropTypes.object,
   getLabel: PropTypes.func,
   getSubLabel: PropTypes.func,
   onClickAway: PropTypes.func,
