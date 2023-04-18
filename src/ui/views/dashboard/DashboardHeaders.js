@@ -1,4 +1,4 @@
-import { Box, Button } from '@mui/material'
+import { Box, Button, IconButton } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -30,6 +30,12 @@ import {
   renameKeys,
 } from '../../../utils'
 
+const SwapButton = ({ onClick }) => (
+  <IconButton sx={{ mx: 'auto' }} color="primary" {...{ onClick }}>
+    <FetchedIcon iconName="MdSwapHoriz" size={22} />
+  </IconButton>
+)
+
 const StatisticsHeader = memo(({ obj, index }) => {
   const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectAllowedStats)
@@ -57,6 +63,26 @@ const StatisticsHeader = memo(({ obj, index }) => {
   )(categories)
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  const onSelectGroupFn =
+    (n = '') =>
+    (item, subItem) => {
+      dispatch(
+        mutateLocal({
+          path,
+          sync: !includesPath(R.values(sync), path),
+          value: R.pipe(
+            R.assoc(`category${n}`, item),
+            R.assoc(`level${n}`, subItem)
+          )(obj),
+        })
+      )
+    }
+  const getGroupValues = (n = '') =>
+    R.pipe(
+      R.props([`category${n}`, `level${n}`]),
+      R.when(R.any(R.isNil), R.always(''))
+    )(obj)
+
   return (
     <>
       <HeaderSelectWrapper>
@@ -216,27 +242,43 @@ const StatisticsHeader = memo(({ obj, index }) => {
       <HeaderSelectWrapper>
         <SelectAccordion
           {...{ itemGroups }}
-          values={R.pipe(
-            R.props(['category', 'level']),
-            R.when(R.any(R.isNil), R.always(''))
-          )(obj)}
+          values={getGroupValues()}
           placeholder="Group By"
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
-          onSelect={(item, subItem) => {
+          onSelect={onSelectGroupFn()}
+        />
+      </HeaderSelectWrapper>
+
+      <HeaderSelectWrapper
+        sx={{
+          minWidth: '35px',
+          height: '40%',
+          my: 'auto',
+          borderRadius: '20%',
+        }}
+        elevation={6}
+      >
+        <SwapButton
+          onClick={() => {
+            const [category, level] = getGroupValues()
+            const [category2, level2] = getGroupValues(2)
             dispatch(
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
                 value: R.pipe(
-                  R.assoc('category', item),
-                  R.assoc('level', subItem)
+                  R.assoc('category', category2),
+                  R.assoc('level', level2),
+                  R.assoc('category2', category),
+                  R.assoc('level2', level)
                 )(obj),
               })
             )
           }}
         />
       </HeaderSelectWrapper>
+
       <HeaderSelectWrapper
         clearable={R.has('level2', obj)}
         onClear={() => {
@@ -251,25 +293,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
       >
         <SelectAccordion
           {...{ itemGroups }}
-          values={R.pipe(
-            R.props(['category2', 'level2']),
-            R.when(R.any(R.isNil), R.always(''))
-          )(obj)}
+          values={getGroupValues(2)}
           placeholder="Sub Group"
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
-          onSelect={(item, subItem) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.pipe(
-                  R.assoc('category2', item),
-                  R.assoc('level2', subItem)
-                )(obj),
-              })
-            )
-          }}
+          onSelect={onSelectGroupFn(2)}
         />
       </HeaderSelectWrapper>
     </>
