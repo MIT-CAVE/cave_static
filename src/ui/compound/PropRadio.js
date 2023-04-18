@@ -6,7 +6,7 @@ import { forceArray } from '../../utils'
 
 const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, options } = prop
-  const [value] = currentVal || prop.value
+  const [value] = R.defaultTo(prop.value, currentVal)
   return (
     <RadioGroup sx={[{ pl: 1 }, ...forceArray(sx)]} {...props}>
       {R.values(

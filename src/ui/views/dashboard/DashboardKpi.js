@@ -12,7 +12,7 @@ import {
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
-import { customSort, forcePath } from '../../../utils'
+import { customSort, forcePath, getLabelFn } from '../../../utils'
 
 const DashboardKpi = ({ obj, length }) => {
   const dispatch = useDispatch()
@@ -35,24 +35,23 @@ const DashboardKpi = ({ obj, length }) => {
 
   const isTable = R.prop('chart', obj) === 'Table'
 
-  const actualKpi = forcePath(R.propOr([], 'kpi', obj))
-
+  const actualKpiRaw = forcePath(R.propOr([], 'kpi', obj))
   const kpiData = R.pipe(
     R.values,
     R.head,
-    R.path(['data', 'kpis', 'data']),
-    customSort,
+    R.pathOr({}, ['data', 'kpis', 'data']),
+    R.pick(actualKpiRaw),
     R.filter(R.has('value'))
   )(kpis)
 
+  const actualKpi = R.pipe(customSort, R.pluck('id'))(kpiData)
   const kpiUnits = R.map((item) => {
-    const kpi = R.find(R.propEq('id', item))(kpiData)
-    const { numberFormat = {} } = R.defaultTo({})(kpi)
+    const { numberFormat = {} } = R.defaultTo({})(kpiData[item])
     return numberFormat.unit || numberFormatDefault.unit
   })(actualKpi)
 
-  const tableUnit = R.zipWith(
-    (a, b) => `${a}${b ? ` [${b}]` : ''} `,
+  const tableLabels = R.zipWith(
+    (a, b) => `${getLabelFn(kpiData)(a)}${b ? ` [${b}]` : ''} `,
     actualKpi,
     kpiUnits
   )
@@ -128,7 +127,7 @@ const DashboardKpi = ({ obj, length }) => {
           numberFormat={commonFormat}
           colTypes={tableColTypes}
           length={length}
-          labels={R.prepend('Session')(tableUnit)}
+          labels={R.prepend('Session')(tableLabels)}
         />
       ) : obj.chart === 'Bar' ? (
         <BarPlot

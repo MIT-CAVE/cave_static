@@ -6,7 +6,7 @@ import { customSort } from '../../utils'
 
 const PropComboBox = ({ prop, currentVal, onChange }) => {
   const { enabled = false, options, placeholder } = prop
-  const [value] = currentVal || prop.value
+  const [value] = R.defaultTo(prop.value, currentVal)
   const optionsListRaw = customSort(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
