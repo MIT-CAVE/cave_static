@@ -33,12 +33,11 @@ const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
   const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <ValueRange
-      {...{ enabled, props }}
+      {...{ enabled, props, numberFormat }}
       sx={styles}
       number
       minValue={min}
       maxValue={max}
-      unit={numberFormat.unit}
       valueStart={R.clamp(
         min,
         max,

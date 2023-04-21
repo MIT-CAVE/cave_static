@@ -36,10 +36,10 @@ export class ValueRange extends React.Component {
     const {
       classes,
       onClickAwayHandler,
-      unit,
       enabled,
       help,
       valueStart,
+      numberFormat,
       ...props
     } = this.props
     const step = (this.state.max - this.state.min) / 100
@@ -52,7 +52,7 @@ export class ValueRange extends React.Component {
 
     const getLabelFormat = (value) =>
       `${formatNumber(Number(value), {
-        precision: this.state.roundValue ? 4 : 0,
+        precision: this.state.roundValue ? numberFormat.precision : 0,
       })}`
 
     return (
@@ -73,7 +73,6 @@ export class ValueRange extends React.Component {
           spacing={2}
           alignItems="center"
           {...R.omit(['minValue', 'maxValue', 'number'], props)}
-          // css={{ opacity: enabled ? '' : 0.7 }}
         >
           <Grid item xs css={{ margin: '0 16px' }}>
             <Slider
@@ -108,17 +107,16 @@ export class ValueRange extends React.Component {
           >
             <Input
               disabled={!enabled}
-              css={{
+              sx={{
                 '>:first-child': {
                   textAlign: 'center',
-                  marginLeft: '12px',
+                  ml: 1.5,
                 },
               }} // FIXME: Use MUI styles
-              value={
-                this.state.roundValue
-                  ? Math.round(this.state.valueCurrent * 10000) / 10000
-                  : this.state.valueCurrent
-              }
+              value={formatNumber(
+                this.state.valueCurrent,
+                R.dissoc('unit')(numberFormat)
+              )}
               onChange={(event) => {
                 const value = event.target.value.replace(/[^\d.-]/g, '')
                 this.setState({
@@ -146,7 +144,9 @@ export class ValueRange extends React.Component {
                 type: 'number',
               }}
             />
-            <div css={{ marginTop: '4px', textAlign: 'center' }}>{unit}</div>
+            <div css={{ marginTop: '4px', textAlign: 'center' }}>
+              {numberFormat.unit}
+            </div>
           </Grid>
         </Grid>
       </>
