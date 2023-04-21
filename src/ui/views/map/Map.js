@@ -90,11 +90,16 @@ const Map = ({ mapboxToken }) => {
 
   const onClick = useCallback(
     (e) => {
+      console.log(e)
       const pickedItems = deckRef.current.pickMultipleObjects({
         y: R.prop('y', e),
         x: R.prop('x', e),
         radius: 20,
       })
+      console.log(pickedItems)
+      const pickedCluster = R.find(
+        R.pathEq(layerId.NODE_ICON_CLUSTER_LAYER, ['layer', 'id'])
+      )(pickedItems)
       const pickedNode = R.find(
         R.pathEq(layerId.NODE_ICON_LAYER, ['layer', 'id'])
       )(pickedItems)
@@ -103,7 +108,23 @@ const Map = ({ mapboxToken }) => {
           R.pathEq(layerId.ARC_LAYER, ['layer', 'id'], d) ||
           R.pathEq(layerId.ARC_LAYER_3D, ['layer', 'id'], d)
       )(pickedItems)
-      R.isNotNil(pickedNode)
+      console.log('node', pickedNode)
+      R.isNotNil(pickedCluster)
+        ? dispatch(
+            openMapModal({
+              appBarId,
+              data: {
+                ...R.pathOr({}, ['object', 'properties'])(pickedCluster),
+                feature: 'nodes',
+                type: R.propOr(
+                  pickedCluster.object.properties.type,
+                  'name'
+                )(pickedCluster.object.properties),
+                key: `node${pickedCluster.object.id}`,
+              },
+            })
+          )
+        : R.isNotNil(pickedNode)
         ? dispatch(
             openMapModal({
               appBarId,
