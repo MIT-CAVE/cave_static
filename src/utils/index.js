@@ -604,3 +604,8 @@ export const getDecimalScaleLabel = R.pipe(
     [R.lte(1e3), R.always('thousands')],
   ])
 )
+
+export const capitalize = R.when(
+  R.isNotNil,
+  R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])
+)

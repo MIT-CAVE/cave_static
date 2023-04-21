@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Grid, Switch, ToggleButton } from '@mui/material'
+import { Box, Grid, Paper, Switch, ToggleButton, Tooltip } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
-import { BsSquareFill } from 'react-icons/bs'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { VscLoading } from 'react-icons/vsc'
 import { useSelector, useDispatch } from 'react-redux'
@@ -41,6 +40,7 @@ import {
 } from '../../compound'
 
 import {
+  capitalize,
   customSort,
   eitherBoolOrNotNull,
   includesPath,
@@ -71,6 +71,37 @@ const styles = {
   },
   bold: {
     fontWeight: 700,
+  },
+  getCategoryIcon: (layerKey) => ({
+    m: 0.5,
+    p: 0.5,
+    minWidth: '16px',
+    minHeight: '16px',
+    ...(layerKey === 'arcs' // thin rectangle
+      ? {
+          borderRadius: 0,
+          minHeight: '4px',
+        }
+      : layerKey === 'nodes' // circle
+      ? {
+          borderRadius: '50%',
+        }
+      : {
+          borderRadius: 1,
+        }), // Rounded-border square
+    cursor: 'pointer',
+    // Uncomment if labels are placed inside the color icons
+    // maxWidth: '16ch',
+    // textOverflow: 'ellipsis',
+    // overflow: 'hidden',
+    // textAlign: 'center',
+  }),
+  categoricalItems: {
+    maxHeight: '96px',
+    overflow: 'auto',
+    lineHeight: '16px',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
 }
 
@@ -123,13 +154,23 @@ const addExtraProps = (Component, extraProps) => {
   return <ComponentType {...Component.props} {...extraProps} />
 }
 
-const CategoricalBox = ({ title, color, getLabel = R.identity }) => (
-  <Box sx={{ mx: 0.5 }}>
-    {getLabel(title)}
-    <br />
-    <BsSquareFill css={{ color: color, marginTop: '5px' }} />
-  </Box>
-)
+const CategoricalItems = ({ layerKey, colorRange, getLabel = capitalize }) =>
+  R.values(
+    R.mapObjIndexed(
+      (val, key) => (
+        <Tooltip title={getLabel(key)}>
+          <Paper
+            key={key}
+            sx={[styles.getCategoryIcon(layerKey), { bgcolor: val }]}
+            elevation={3}
+          >
+            {/* {getLabel(key)} */}
+          </Paper>
+        </Tooltip>
+      ),
+      colorRange
+    )
+  )
 
 const GradientBox = ({ gradientBox }) => (
   <div className="row my-2">
@@ -310,6 +351,15 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
+  const getGeoCategoryName = useCallback(
+    (key) =>
+      R.pathOr(
+        capitalize(key),
+        ['props', colorProp, 'options', key, 'name'],
+        typeObj
+      ),
+    [typeObj, colorProp]
+  )
 
   return (
     <details key={geoType} css={nonSx.typeWrapper} open>
@@ -345,23 +395,12 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
         />
       </Grid>
       {isCategorical ? (
-        <Grid container alignItems="flex-start" justifyContent="center">
-          {R.values(
-            R.mapObjIndexed(
-              (val, key) => (
-                <Grid item xs css={{ textAlign: 'center' }} key={key}>
-                  <CategoricalBox
-                    title={key}
-                    color={val}
-                    getLabel={(str) =>
-                      str.charAt(0).toUpperCase() + str.slice(1)
-                    }
-                  />
-                </Grid>
-              ),
-              colorRange
-            )
-          )}
+        <Grid container sx={styles.categoricalItems}>
+          <CategoricalItems
+            layerKey="geos"
+            getLabel={getGeoCategoryName}
+            {...{ colorRange }}
+          />
         </Grid>
       ) : (
         <GradientBox
@@ -491,6 +530,15 @@ const MapLegendNodeToggle = ({
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
+  const getNodeCategoryName = useCallback(
+    (key) =>
+      R.pathOr(
+        capitalize(key),
+        ['props', colorProp, 'options', key, 'name'],
+        typeObj
+      ),
+    [typeObj, colorProp]
+  )
 
   const allowGrouping = displayedNodes[nodeType].allowGrouping || false
   const group = displayedNodes[nodeType].group || false
@@ -613,23 +661,12 @@ const MapLegendNodeToggle = ({
             />
           </Grid>
           {isCategorical ? (
-            <Grid container alignItems="flex-start" justifyContent="center">
-              {R.values(
-                R.mapObjIndexed(
-                  (val, key) => (
-                    <Grid item xs css={{ textAlign: 'center' }} key={key}>
-                      <CategoricalBox
-                        title={key}
-                        color={val}
-                        getLabel={(str) =>
-                          str.charAt(0).toUpperCase() + str.slice(1)
-                        }
-                      />
-                    </Grid>
-                  ),
-                  colorRange
-                )
-              )}
+            <Grid container sx={styles.categoricalItems}>
+              <CategoricalItems
+                layerKey="nodes"
+                getLabel={getNodeCategoryName}
+                {...{ colorRange }}
+              />
             </Grid>
           ) : (
             <GradientBox
@@ -729,6 +766,16 @@ const MapLegendArcToggle = ({
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
+  const getArcCategoryName = useCallback(
+    (key) =>
+      R.pathOr(
+        capitalize(key),
+        ['props', colorProp, 'options', key, 'name'],
+        typeObj
+      ),
+    [typeObj, colorProp]
+  )
+
   return (
     <details key={arcType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -793,23 +840,12 @@ const MapLegendArcToggle = ({
             </Grid>
           </Grid>
           {isCategorical ? (
-            <Grid container alignItems="flex-start" justifyContent="center">
-              {R.values(
-                R.mapObjIndexed(
-                  (val, key) => (
-                    <Grid item xs css={{ textAlign: 'center' }} key={key}>
-                      <CategoricalBox
-                        title={key}
-                        color={val}
-                        getLabel={(str) =>
-                          str.charAt(0).toUpperCase() + str.slice(1)
-                        }
-                      />
-                    </Grid>
-                  ),
-                  colorRange
-                )
-              )}
+            <Grid container sx={styles.categoricalItems}>
+              <CategoricalItems
+                layerKey="arcs"
+                getLabel={getArcCategoryName}
+                {...{ colorRange }}
+              />
             </Grid>
           ) : (
             <GradientBox
