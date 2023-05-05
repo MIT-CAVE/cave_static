@@ -1,155 +1,108 @@
-/** @jsxImportSource @emotion/react */
-import { Grid, Input, Slider } from '@mui/material'
+import { Box, Grid, Input, Slider } from '@mui/material'
 import * as R from 'ramda'
-import React from 'react'
+import { useEffect, useState } from 'react'
 
 import { getSliderMarks, formatNumber } from '../../utils'
 
-// TODO: Convert to a functional component
+const styles = {
+  inputWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    maxWidth: '50%',
+    mx: 1,
+  },
+  input: {
+    '.MuiInput-input': {
+      textAlign: 'center',
+      ml: 1.5,
+    },
+  },
+  unit: {
+    width: 'fit-content',
+    mt: 0.5,
+    textAlign: 'center',
+    alignSelf: 'center',
+  },
+}
 
-export class ValueRange extends React.Component {
-  state = {
-    min: this.props.minValue,
-    max:
-      this.props.maxValue === this.props.minValue
-        ? this.props.maxValue + 0.0000001
-        : this.props.maxValue,
-    valueCurrent: this.props.valueStart,
-    roundValue: false,
-  }
+const adjustRangeMax = ([min, max], delta = 1) =>
+  min === max ? min + delta : max
 
-  componentDidUpdate(prevProps) {
-    if (this.props !== prevProps) {
-      this.setState({
-        min: this.props.minValue,
-        max:
-          this.props.maxValue === this.props.minValue
-            ? this.props.maxValue + 0.0000001
-            : this.props.maxValue,
-        valueCurrent: this.props.valueStart,
-        roundValue: false,
-      })
-    }
-  }
+export const ValueRange = ({
+  enabled,
+  valueStart,
+  minValue,
+  maxValue,
+  numberFormat,
+  sliderProps,
+  onClickAwayHandler,
+}) => {
+  const [min, setMin] = useState(minValue)
+  const [max, setMax] = useState(adjustRangeMax([minValue, maxValue]))
+  const [valueCurrent, setValueCurrent] = useState(valueStart)
 
-  render() {
-    const {
-      classes,
-      onClickAwayHandler,
-      enabled,
-      help,
-      valueStart,
-      numberFormat,
-      ...props
-    } = this.props
-    const step = (this.state.max - this.state.min) / 100
+  useEffect(() => {
+    setMin(minValue)
+    setMax(adjustRangeMax([minValue, maxValue]))
+    setValueCurrent(valueStart)
+  }, [minValue, maxValue, valueStart])
 
-    const handleChange = (value, isInput = false) => {
-      isInput
-        ? this.setState({ valueCurrent: value })
-        : this.setState({ valueCurrent: value, roundValue: true })
-    }
+  const step = (max - min) / 100
 
-    const getLabelFormat = (value) =>
-      `${formatNumber(Number(value), {
-        precision: this.state.roundValue ? numberFormat.precision : 0,
-      })}`
+  const getLabelFormat = (value) =>
+    formatNumber(value, {
+      ...R.dissoc('unit')(numberFormat),
+      trailingZeros: false,
+    })
+  return (
+    <Grid container spacing={2} alignItems="center">
+      <Grid item xs sx={{ mx: 2 }}>
+        <Slider
+          {...{ max, min, step }}
+          track={false}
+          disabled={!enabled}
+          valueLabelDisplay="auto"
+          valueLabelFormat={getLabelFormat}
+          value={valueCurrent}
+          marks={getSliderMarks(min, max, 2, getLabelFormat)}
+          onChange={(event, value) => {
+            setValueCurrent(value)
+          }}
+          onChangeCommitted={() => {
+            onClickAwayHandler(Math.round(valueCurrent * 10000) / 10000)
+          }}
+          {...sliderProps}
+        />
+      </Grid>
+      <Grid container item xs sx={styles.inputWrapper}>
+        <Input
+          disabled={!enabled}
+          sx={styles.input}
+          value={valueCurrent}
+          onChange={(event) => {
+            setValueCurrent(event.target.value)
+          }}
+          onBlur={() => {
+            if (!enabled) return
 
-    return (
-      <>
-        {R.isNotNil(help) ? (
-          <div
-            css={{
-              position: 'absolute',
-            }}
-          >
-            {help}
-          </div>
-        ) : (
-          ''
-        )}
-        <Grid
-          container
-          spacing={2}
-          alignItems="center"
-          {...R.omit(['minValue', 'maxValue', 'number'], props)}
-        >
-          <Grid item xs css={{ margin: '0 16px' }}>
-            <Slider
-              track={false}
-              classes={classes}
-              disabled={!enabled}
-              valueLabelDisplay="auto"
-              valueLabelFormat={getLabelFormat}
-              min={this.state.min}
-              max={this.state.max}
-              step={step}
-              value={this.state.valueCurrent}
-              marks={getSliderMarks(
-                this.state.min,
-                this.state.max,
-                2,
-                getLabelFormat
-              )}
-              onChange={(event, value) => {
-                this.setState({ valueCurrent: value })
-              }}
-              onChangeCommitted={() => {
-                onClickAwayHandler(
-                  Math.round(this.state.valueCurrent * 10000) / 10000
-                )
-              }}
-            />
-          </Grid>
-          <Grid
-            item
-            css={{ display: 'flex', flexDirection: 'column', margin: '0 16px' }}
-          >
-            <Input
-              disabled={!enabled}
-              sx={{
-                '>:first-child': {
-                  textAlign: 'center',
-                  ml: 1.5,
-                },
-              }} // FIXME: Use MUI styles
-              value={formatNumber(
-                this.state.valueCurrent,
-                R.dissoc('unit')(numberFormat)
-              )}
-              onChange={(event) => {
-                const value = event.target.value.replace(/[^\d.-]/g, '')
-                this.setState({
-                  valueCurrent: value,
-                })
-              }}
-              onBlur={() => {
-                if (!enabled) return
+            let value = valueCurrent
+            if (Object.is(value, -0)) setValueCurrent(0)
+            // If the number is not valid revert to the original value
+            if (isNaN(value)) setValueCurrent(valueStart)
 
-                let value = this.state.valueCurrent
-                if (Object.is(value, -0)) this.setState({ valueCurrent: 0 })
-                // If the number is not valid revert to the original value
-                if (isNaN(value)) this.setState({ valueCurrent: valueStart })
-
-                value = this.state.valueCurrent
-                handleChange(Number(value), true)
-                onClickAwayHandler(
-                  R.clamp(this.state.min, this.state.max, Number(value))
-                )
-              }}
-              inputProps={{
-                step: parseInt(step * 10),
-                min: this.state.min,
-                max: this.state.max,
-                type: 'number',
-              }}
-            />
-            <div css={{ marginTop: '4px', textAlign: 'center' }}>
-              {numberFormat.unit}
-            </div>
-          </Grid>
-        </Grid>
-      </>
-    )
-  }
+            value = Number(valueCurrent)
+            setValueCurrent(value)
+            onClickAwayHandler(R.clamp(min, max, value))
+          }}
+          inputProps={{
+            step: step * 10,
+            min,
+            max: formatNumber(max, R.dissoc('unit')(numberFormat)),
+            type: 'number',
+          }}
+        />
+        {numberFormat.unit && <Box sx={styles.unit}>{numberFormat.unit}</Box>}
+      </Grid>
+    </Grid>
+  )
 }

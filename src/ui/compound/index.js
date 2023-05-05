@@ -1,7 +1,6 @@
 export * from './GradientBox'
 export * from './NestedList'
 export * from './SimpleDropdown'
-export * from './ValueRange'
 export { KpiHeadColumn, KpiHeadRow } from './KpiHead'
 export { PropDate, PropDateTime, PropTime } from './PropDate'
 export { PropHeadColumn, PropHeadRow } from './PropHead'
