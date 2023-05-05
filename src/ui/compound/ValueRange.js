@@ -2,7 +2,7 @@ import { Box, Grid, Input, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { useEffect, useState } from 'react'
 
-import { getSliderMarks, formatNumber } from '../../utils'
+import { getSliderMarks, formatNumber, unitStyles } from '../../utils'
 
 const styles = {
   inputWrapper: {
@@ -18,8 +18,10 @@ const styles = {
     },
   },
   unit: {
+    ...unitStyles,
     width: 'fit-content',
     mt: 0.5,
+    ml: 0,
     textAlign: 'center',
     alignSelf: 'center',
   },

@@ -9,6 +9,7 @@ import {
   isNumericInputValid,
   parseNumber,
   formatNumber,
+  unitStyles,
 } from '../../utils'
 
 const NumberInput = ({
@@ -99,7 +100,13 @@ const NumberInput = ({
         }),
         ...(unit && {
           [`${unitPos}Adornment`]: (
-            <InputAdornment position={unitPos}>{unit}</InputAdornment>
+            <InputAdornment
+              disableTypography
+              position={unitPos}
+              sx={unitStyles}
+            >
+              {unit}
+            </InputAdornment>
           ),
         }),
       }}

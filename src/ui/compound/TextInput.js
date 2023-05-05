@@ -2,7 +2,7 @@ import { InputAdornment, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import React, { useState } from 'react'
 
-import { getStatusIcon } from '../../utils'
+import { getStatusIcon, unitStyles } from '../../utils'
 
 // `controlled` allows to create a `TextInput` instance
 // with `value` and `onChange` controlled by its parent.
@@ -16,11 +16,16 @@ const TextInput = ({
   placeholder,
   help,
   value: valueParent,
+  // Since this is just text, only unit and
+  // currency are needed for display purposes
+  numberFormat = {},
   onChange,
   onClickAway = () => {},
   ...props
 }) => {
   const [value, setValue] = useState(valueParent)
+  const { unit, currency } = numberFormat
+  const unitPos = currency ? 'start' : 'end'
   return (
     <TextField
       {...{ label, placeholder, sx, ...props }}
@@ -44,6 +49,17 @@ const TextInput = ({
           endAdornment: (
             <InputAdornment position="end">
               {getStatusIcon(color)}
+            </InputAdornment>
+          ),
+        }),
+        ...(unit && {
+          [`${unitPos}Adornment`]: (
+            <InputAdornment
+              disableTypography
+              position={unitPos}
+              sx={unitStyles}
+            >
+              {unit}
             </InputAdornment>
           ),
         }),

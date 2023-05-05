@@ -609,3 +609,15 @@ export const capitalize = R.when(
   R.isNotNil,
   R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])
 )
+
+export const unitStyles = {
+  height: 'fit-content',
+  p: 0.25,
+  ml: 0.75,
+  fontSize: '0.7rem',
+  fontWeight: 700,
+  border: 1,
+  borderRadius: 1,
+  color: 'primary.contrastText',
+  bgcolor: 'primary.main',
+}
