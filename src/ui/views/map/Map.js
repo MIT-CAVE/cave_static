@@ -90,7 +90,6 @@ const Map = ({ mapboxToken }) => {
 
   const onClick = useCallback(
     (e) => {
-      console.log(e)
       const pickedItems = deckRef.current.pickMultipleObjects({
         y: R.prop('y', e),
         x: R.prop('x', e),
@@ -120,7 +119,9 @@ const Map = ({ mapboxToken }) => {
                   pickedCluster.object.properties.type,
                   'name'
                 )(pickedCluster.object.properties),
-                key: `node${pickedCluster.object.id}`,
+                key: pickedCluster.object.id
+                  ? `node${pickedCluster.object.id}`
+                  : pickedCluster.object.properties.id,
               },
             })
           )
