@@ -965,10 +965,12 @@ export const selectNodeClusters = createSelector(
           colorDomain: null,
           sizeDomain: null,
           icon: d['icon'],
+          grouped_ids: [d.id],
           ...R.mergeDeepRight(colorPropObj, sizePropObj),
         }
       },
       reduce: (acc, dProps) => {
+        const id = dProps.grouped_ids
         const colorProp = getVarByProp('colorBy', dProps)
         const sizeProp = getVarByProp('sizeBy', dProps)
         if (sizeProp) {
@@ -984,6 +986,10 @@ export const selectNodeClusters = createSelector(
         if (colorProp && colorProp !== sizeProp) {
           const propValue = dProps[colorProp].value
           acc[colorProp].value = acc[colorProp].value.concat(propValue)
+        }
+        // all the ids of the points grouped in this cluster
+        if (id) {
+          acc.grouped_ids = acc.grouped_ids.concat(id)
         }
       },
     }

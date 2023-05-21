@@ -32,6 +32,7 @@ import {
   selectAppBarId,
 } from '../../../data/selectors'
 import { styleId } from '../../../utils/enums'
+import ClusterModal from '../../compound/ClusterModal'
 import SimpleModal from '../../compound/SimpleModal'
 import { renderPropsLayout } from '../common/renderLayout'
 
@@ -86,6 +87,7 @@ const OnLayerEventModal = () => {
   const data = useSelector(selectData)
 
   const {
+    cluster_id,
     feature,
     type,
     key,
@@ -121,7 +123,17 @@ const OnLayerEventModal = () => {
     )
   }
 
-  return (
+  return R.isNotNil(cluster_id) ? (
+    <ClusterModal title={type} cluster_id={cluster_id}>
+      {renderPropsLayout({
+        layout,
+        items,
+        resolveTime,
+        getCurrentVal,
+        onChangeProp,
+      })}
+    </ClusterModal>
+  ) : (
     <SimpleModal title={name || type}>
       {renderPropsLayout({
         layout,
