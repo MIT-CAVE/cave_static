@@ -155,7 +155,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
                       }}
                       role="checkbox"
                       tabIndex={-1}
-                      key={row.code}
+                      key={row.name}
                     >
                       {columns.map((column) => {
                         const value = row[column.id]

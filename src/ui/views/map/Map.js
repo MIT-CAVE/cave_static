@@ -95,7 +95,6 @@ const Map = ({ mapboxToken }) => {
         x: R.prop('x', e),
         radius: 20,
       })
-      console.log(pickedItems)
       const pickedCluster = R.find(
         R.pathEq(layerId.NODE_ICON_CLUSTER_LAYER, ['layer', 'id'])
       )(pickedItems)
@@ -107,7 +106,7 @@ const Map = ({ mapboxToken }) => {
           R.pathEq(layerId.ARC_LAYER, ['layer', 'id'], d) ||
           R.pathEq(layerId.ARC_LAYER_3D, ['layer', 'id'], d)
       )(pickedItems)
-      console.log('node', pickedNode)
+
       R.isNotNil(pickedCluster)
         ? dispatch(
             openMapModal({

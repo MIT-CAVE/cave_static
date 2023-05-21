@@ -95,7 +95,7 @@ const OnLayerEventModal = () => {
     layout,
     props: items,
   } = R.propOr({}, 'data')(mapModal)
-  console.log('testing')
+
   const getCurrentVal = (propId) =>
     R.path([feature, 'data', key, 'props', propId, 'value'])(data)
 
