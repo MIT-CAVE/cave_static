@@ -16,8 +16,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { openMapModal, closeMapModal } from '../../data/local/mapSlice'
 import {
   selectAppBarId,
+  selectFilteredNodes,
   selectNodeClustersAtZoom,
-  selectNodeData,
 } from '../../data/selectors'
 
 const styles = {
@@ -51,30 +51,21 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
   const appBarId = useSelector(selectAppBarId)
 
   const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoom)
-  // can't get the Rambda to work :(
-  // const targetCluster = R.find(R.and(R.path(['properties', 'cluster']),
-  //                                    R.pathEq(cluster_id, ['properties', 'cluster_id']),
-  //                                    R.pathEq(title, ['properties', 'type'])))(groupedNodesAtZoom.data)
-
-  // get clicked cluster
-  let targetCluster = undefined
-  for (const node of groupedNodesAtZoom.data) {
-    if (
-      node.properties.cluster &&
-      node.properties.cluster_id === cluster_id &&
-      node.properties.type === title
-    ) {
-      targetCluster = node
-      break
-    }
-  }
+  const targetCluster = R.find(
+    R.allPass([
+      R.path(['properties', 'cluster']),
+      R.pathEq(cluster_id, ['properties', 'cluster_id']),
+      R.pathEq(title, ['properties', 'type']),
+    ])
+  )(groupedNodesAtZoom.data)
 
   // get all nodes in cluster
-  const grouped_ids = new Set(targetCluster.properties.grouped_ids)
-  const nodeData = useSelector(selectNodeData).filter((node) =>
-    grouped_ids.has(node[0])
+  const nodeData = R.toPairs(
+    R.pick(
+      targetCluster.properties.grouped_ids,
+      useSelector(selectFilteredNodes)
+    )
   ) //.map(node => node[1])
-
   // generate table columns for given cluster's props
   const tableColumns = [{ id: 'name', label: 'Name', minWidth: 170 }]
   for (const prop of Object.keys(nodeData[0][1].props)) {
@@ -83,7 +74,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
 
   // generate table rows for given cluster's node data
   const createData = (node) => {
-    const data = { name: node[0] }
+    const data = { name: R.propOr(node[0], 'name', node[1]), id: node[0] }
     for (const prop of Object.keys(node[1].props)) {
       data[prop] = node[1].props[prop].value.toString()
     }
@@ -137,9 +128,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
                       hover
                       onClick={() => {
                         // get node data for clicked row
-                        const node = nodeData.filter(
-                          (node) => node[0] === row.name
-                        )[0]
+                        const node = nodeData.find((node) => node[0] === row.id)
                         // open map modal with node data
                         dispatch(
                           openMapModal({
@@ -155,7 +144,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
                       }}
                       role="checkbox"
                       tabIndex={-1}
-                      key={row.name}
+                      key={row.id}
                     >
                       {columns.map((column) => {
                         const value = row[column.id]
