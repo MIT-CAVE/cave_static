@@ -11,6 +11,8 @@ import {
   PropDate,
   PropDateTime,
   PropDropdown,
+  PropHRadio,
+  PropHStepper,
   PropHeadColumn,
   PropHeadRow,
   PropNumberField,
@@ -20,6 +22,7 @@ import {
   PropTextArea,
   PropTime,
   PropToggle,
+  PropVStepper,
 } from '../../compound'
 
 const invalidVariant = R.curry((type, variant) => {
@@ -49,10 +52,13 @@ const getNumberPropRenderFn = R.cond([
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
-  [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
   [R.equals(propVariant.CHECKBOX), R.always(PropCheckbox)],
-  [R.equals(propVariant.RADIO), R.always(PropRadio)],
   [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
+  [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
+  [R.equals(propVariant.HRADIO), R.always(PropHRadio)],
+  [R.equals(propVariant.HSTEPPER), R.always(PropHStepper)],
+  [R.equals(propVariant.RADIO), R.always(PropRadio)],
+  [R.equals(propVariant.VSTEPPER), R.always(PropVStepper)],
   [R.T, invalidVariant('selector')],
 ])
 const getDatePropRenderFn = R.cond([

@@ -52,18 +52,21 @@ export const propId = {
 
 export const propVariant = {
   CHECKBOX: 'checkbox',
+  COLUMN: 'column',
   COMBOBOX: 'combobox',
   DATE: 'date',
   DATETIME: 'datetime',
   DROPDOWN: 'dropdown',
   FIELD: 'field',
-  SINGLE: 'single',
+  HRADIO: 'hradio',
+  HSTEPPER: 'hstepper',
   RADIO: 'radio',
+  ROW: 'row',
+  SINGLE: 'single',
   SLIDER: 'slider',
   TEXTAREA: 'textarea',
   TIME: 'time',
-  COLUMN: 'column',
-  ROW: 'row',
+  VSTEPPER: 'vstepper',
 }
 
 export const propContainer = {
