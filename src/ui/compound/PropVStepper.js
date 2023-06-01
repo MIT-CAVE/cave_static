@@ -1,4 +1,4 @@
-import { Box, Divider, Slider } from '@mui/material'
+import { Box, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useSelector } from 'react-redux'
@@ -56,7 +56,6 @@ const PropVStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
             onChange([R.pipe(R.keys, R.reverse, R.nth(val))(options)])
         }}
       />
-      <Divider orientation="vertical" flexItem />
       {unit && (
         <Box component="span" sx={unitStyles}>
           {unit}
