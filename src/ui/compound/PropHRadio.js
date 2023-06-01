@@ -1,10 +1,4 @@
-import {
-  Box,
-  Divider,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-} from '@mui/material'
+import { Box, FormControlLabel, Radio, RadioGroup } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useSelector } from 'react-redux'
@@ -52,7 +46,6 @@ const PropHRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           ))(options)
         )}
       </RadioGroup>
-      <Divider orientation="vertical" flexItem />
       {unit && (
         <Box component="span" sx={unitStyles}>
           {unit}
