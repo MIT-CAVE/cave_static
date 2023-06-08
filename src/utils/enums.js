@@ -41,6 +41,7 @@ export const paneId = {
 }
 
 export const propId = {
+  MEDIA: 'media',
   BUTTON: 'button',
   TEXT: 'text',
   NUMBER: 'num',
@@ -60,6 +61,7 @@ export const propVariant = {
   FIELD: 'field',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
+  PICTURE: 'picture',
   RADIO: 'radio',
   ROW: 'row',
   SINGLE: 'single',

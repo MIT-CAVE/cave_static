@@ -17,6 +17,7 @@ import {
   PropHeadRow,
   PropNumberField,
   PropNumberSlider,
+  PropPicture,
   PropRadio,
   PropText,
   PropTextArea,
@@ -38,6 +39,11 @@ const getTogglePropRenderFn = R.ifElse(
   R.isNil,
   R.always(PropToggle),
   invalidVariant('toggle')
+)
+const getMediaPropRenderFn = R.ifElse(
+  R.equals(propVariant.PICTURE),
+  R.always(PropPicture),
+  invalidVariant('media')
 )
 const getTextPropRenderFn = R.cond([
   [R.isNil, R.always(PropText)],
@@ -75,6 +81,7 @@ const getHeaderPropRenderFn = R.cond([
 ])
 
 const getRendererFn = R.cond([
+  [R.equals(propId.MEDIA), R.always(getMediaPropRenderFn)],
   [R.equals(propId.BUTTON), R.always(getButtonPropRenderFn)],
   [R.equals(propId.TEXT), R.always(getTextPropRenderFn)],
   [R.equals(propId.NUMBER), R.always(getNumberPropRenderFn)],
