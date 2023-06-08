@@ -8,33 +8,46 @@ import { selectNumberFormat } from '../../data/selectors'
 
 import { forceArray, unitStyles } from '../../utils'
 
-const getStyles = (enabled) => ({
-  display: 'flex',
-  width: '100%',
-  p: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
+const styles = {
+  box: {
+    display: 'flex',
+    width: '100%',
+    p: 1,
+  },
+  button: {
+    marginLeft: '10px',
+    height: '40px',
+  },
+  img: {
+    width: '100%',
+    minWith: '100px',
+    maxWidth: '250px',
+    height: '100%',
+  },
+  imgExpanded: {
+    width: 'auto',
+    height: 'auto',
+  },
+}
 
 const PropPicture = ({ prop, sx = [], ...props }) => {
   const [expanded, setExpanded] = React.useState(false)
   const numberFormatDefault = useSelector(selectNumberFormat)
 
-  const enabled = true //prop.enabled || false
   const numberFormatRaw = prop.numberFormat || {}
   const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Box
-      sx={[getStyles(enabled), ...forceArray(sx)]}
+      sx={[styles.box, ...forceArray(sx)]}
       {...R.dissoc('currentVal', props)}
     >
-      <img src={prop.value} alt="" />
+      <img src={prop.value} alt="" style={styles.img} />
       <Button
         variant="contained"
-        enabled={enabled.toString()}
         onClick={() => {
           setExpanded(true)
         }}
+        sx={styles.button}
       >
         EXPAND
       </Button>
@@ -43,10 +56,10 @@ const PropPicture = ({ prop, sx = [], ...props }) => {
         onClose={() => {
           setExpanded(false)
         }}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth="true"
       >
-        <img src={prop.value} alt="" width="auto" height="auto" />
+        <img src={prop.value} alt="" style={styles.imgExpanded} />
       </Dialog>
       {unit && (
         <Box component="span" sx={unitStyles}>
