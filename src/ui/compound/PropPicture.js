@@ -2,6 +2,7 @@ import { Box, Button, Dialog } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
+import { AiOutlineExpandAlt } from 'react-icons/ai'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormat } from '../../data/selectors'
@@ -10,18 +11,22 @@ import { forceArray, unitStyles } from '../../utils'
 
 const styles = {
   box: {
-    display: 'flex',
+    position: 'relative',
     width: '100%',
     p: 1,
   },
   button: {
-    marginLeft: '10px',
+    width: '40px',
     height: '40px',
+    position: 'absolute',
+    top: '15px',
+    left: '15px',
+    zindex: '1',
   },
   img: {
     width: '100%',
     minWith: '100px',
-    maxWidth: '250px',
+    maxWidth: '300px',
     height: '100%',
   },
   imgExpanded: {
@@ -49,7 +54,7 @@ const PropPicture = ({ prop, sx = [], ...props }) => {
         }}
         sx={styles.button}
       >
-        EXPAND
+        <AiOutlineExpandAlt style={styles.img} />
       </Button>
       <Dialog
         open={expanded}

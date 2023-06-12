@@ -68,6 +68,7 @@ export const propVariant = {
   SLIDER: 'slider',
   TEXTAREA: 'textarea',
   TIME: 'time',
+  VIDEO: 'video',
   VSTEPPER: 'vstepper',
 }
 

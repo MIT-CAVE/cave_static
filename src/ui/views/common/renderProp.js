@@ -23,6 +23,7 @@ import {
   PropTextArea,
   PropTime,
   PropToggle,
+  PropVideo,
   PropVStepper,
 } from '../../compound'
 
@@ -40,11 +41,11 @@ const getTogglePropRenderFn = R.ifElse(
   R.always(PropToggle),
   invalidVariant('toggle')
 )
-const getMediaPropRenderFn = R.ifElse(
-  R.equals(propVariant.PICTURE),
-  R.always(PropPicture),
-  invalidVariant('media')
-)
+const getMediaPropRenderFn = R.cond([
+  [R.equals(propVariant.PICTURE), R.always(PropPicture)],
+  [R.equals(propVariant.VIDEO), R.always(PropVideo)],
+  [R.T, invalidVariant('media')],
+])
 const getTextPropRenderFn = R.cond([
   [R.isNil, R.always(PropText)],
   [R.equals(propVariant.SINGLE), R.always(PropText)],
