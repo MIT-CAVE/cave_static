@@ -25,8 +25,8 @@ const styles = {
   unit: {
     display: 'flex',
     alignSelf: 'end',
-    mx: 1,
-    mt: 1,
+    ml: 1.5,
+    mb: 1,
     px: 1.25,
     border: 1,
     borderRadius: 1,
@@ -37,7 +37,6 @@ const styles = {
 
 const BaseContainer = ({
   tooltipTitle,
-  unit,
   elevation,
   style,
   sx,
@@ -54,32 +53,43 @@ const BaseContainer = ({
       </Box>
     )}
     {children}
-    {unit && (
-      <Typography variant="h6" sx={styles.unit}>
-        {unit}
-      </Typography>
-    )}
   </Paper>
 )
 
 const PropTitle = ({
   title,
+  unit,
   marquee,
   titleVariant = 'subtitle1',
   ...props
 }) => (
-  <Grid container alignSelf="center" {...props}>
-    <Typography noWrap={marquee} variant={titleVariant}>
-      {marquee ? <OverflowText text={title} /> : title}
-    </Typography>
+  <Grid container maxWidth={PROP_WIDTH} alignSelf="center" {...props}>
+    <Grid item zeroMinWidth xs>
+      <Typography noWrap={marquee} variant={titleVariant}>
+        {true ? <OverflowText text={title} /> : title}
+      </Typography>
+    </Grid>
+    {unit && (
+      <Grid item maxWidth="33.33%">
+        <Typography variant="subtitle1" sx={styles.unit}>
+          <OverflowText text={unit} />
+        </Typography>
+      </Grid>
+    )}
   </Grid>
 )
 
-const HorizontalContainer = ({ title, marquee = true, children, ...props }) => (
+const HorizontalContainer = ({
+  title,
+  marquee = true,
+  unit,
+  children,
+  ...props
+}) => (
   <BaseContainer {...props}>
     <Grid container alignItems="center">
       <Grid item maxWidth={PROP_WIDTH / 2} paddingLeft={1} marginRight={3}>
-        <PropTitle {...{ title, marquee }} />
+        <PropTitle {...{ title, marquee, unit }} />
       </Grid>
       <Grid item xs minWidth={PROP_WIDTH} paddingTop={1}>
         {children}
@@ -92,6 +102,7 @@ const VerticalContainer = ({
   title,
   marquee,
   tooltipTitle,
+  unit,
   children,
   ...props
 }) => (
@@ -103,7 +114,7 @@ const VerticalContainer = ({
         paddingTop={0.5}
         paddingRight={tooltipTitle ? 4.5 : 1}
       >
-        <PropTitle {...{ title, marquee }} />
+        <PropTitle {...{ title, marquee, unit }} />
       </Grid>
       <Grid container item xs alignItems="center">
         {children}
