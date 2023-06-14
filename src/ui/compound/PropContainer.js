@@ -12,8 +12,9 @@ import { forceArray } from '../../utils'
 const styles = {
   base: {
     display: 'flex',
+    flexDirection: 'column',
     position: 'relative',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     p: 1,
   },
   info: (theme) => ({
@@ -21,10 +22,22 @@ const styles = {
     right: theme.spacing(1),
     position: 'absolute',
   }),
+  unit: {
+    display: 'flex',
+    alignSelf: 'end',
+    mx: 1,
+    mt: 1,
+    px: 1.25,
+    border: 1,
+    borderRadius: 1,
+    borderColor: 'text.secondary',
+    fontWeight: 700,
+  },
 }
 
 const BaseContainer = ({
   tooltipTitle,
+  unit,
   elevation,
   style,
   sx,
@@ -41,6 +54,11 @@ const BaseContainer = ({
       </Box>
     )}
     {children}
+    {unit && (
+      <Typography variant="h6" sx={styles.unit}>
+        {unit}
+      </Typography>
+    )}
   </Paper>
 )
 
@@ -78,7 +96,7 @@ const VerticalContainer = ({
   ...props
 }) => (
   <BaseContainer {...{ tooltipTitle, ...props }}>
-    <Grid container direction="column">
+    <Grid container direction="column" flexGrow={1}>
       <Grid
         item
         paddingLeft={1}
@@ -114,6 +132,7 @@ const PropContainer = ({
   title,
   marquee,
   tooltipTitle,
+  unit,
   elevation,
   style,
   sx = [],
@@ -138,7 +157,16 @@ const PropContainer = ({
 
   return (
     <LayoutContainer
-      {...{ title, marquee, tooltipTitle, elevation, style, sx, ...props }}
+      {...{
+        title,
+        marquee,
+        tooltipTitle,
+        unit,
+        elevation,
+        style,
+        sx,
+        ...props,
+      }}
     >
       {children}
     </LayoutContainer>
@@ -148,6 +176,7 @@ PropContainer.propTypes = {
   title: PropTypes.string,
   marquee: PropTypes.bool,
   tooltipTitle: PropTypes.string,
+  unit: PropTypes.string,
   type: PropTypes.oneOf(Object.values(propContainer)),
   elevation: PropTypes.oneOf([...Array(25).keys()]),
   style: PropTypes.object,

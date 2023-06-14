@@ -1,11 +1,8 @@
-import { Box, Divider, Switch } from '@mui/material'
+import { Box, Switch } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../data/selectors'
-
-import { forceArray, unitStyles } from '../../utils'
+import { forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   display: 'flex',
@@ -16,23 +13,13 @@ const getStyles = (enabled) => ({
 })
 
 const PropToggle = ({ prop, currentVal, onChange, sx = [], ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
   const enabled = prop.enabled || false
-  const numberFormatRaw = prop.numberFormat || {}
-  const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <Switch
         checked={R.defaultTo(R.prop('value', prop), currentVal)}
         onChange={(event) => (enabled ? onChange(event.target.checked) : null)}
       />
-      <Divider orientation="vertical" flexItem />
-      {unit && (
-        <Box component="span" sx={unitStyles}>
-          {unit}
-        </Box>
-      )}
     </Box>
   )
 }
