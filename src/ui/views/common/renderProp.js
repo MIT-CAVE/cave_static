@@ -1,5 +1,7 @@
 import * as R from 'ramda'
+import { useSelector } from 'react-redux'
 
+import { selectNumberFormat } from '../../../data/selectors'
 import { PROP_WIDTH } from '../../../utils/constants'
 import { propContainer, propId, propVariant } from '../../../utils/enums'
 import PropButton from '../../compound/PropButton'
@@ -99,9 +101,15 @@ const getRendererFn = R.cond([
 ])
 
 const PropBase = ({ prop, children }) => {
+  const numberFormatDefault = useSelector(selectNumberFormat)
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     tooltipTitle: R.prop('help'),
+    unit: R.pipe(
+      R.propOr({}, 'numberFormat'),
+      R.mergeRight(numberFormatDefault),
+      R.prop('unit')
+    ),
     // eslint-disable-next-line ramda/cond-simplification
     type: R.cond([
       [R.has('container'), R.prop('container')],

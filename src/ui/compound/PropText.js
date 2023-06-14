@@ -1,11 +1,8 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useSelector } from 'react-redux'
 
 import TextInput from './TextInput'
-
-import { selectNumberFormat } from '../../data/selectors'
 
 import { forceArray } from '../../utils'
 
@@ -16,15 +13,11 @@ const style = {
 }
 
 const PropText = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
   const enabled = prop.enabled || false
-  const numberFormatRaw = prop.numberFormat || {}
-  const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Box sx={[style, ...forceArray(sx)]} {...props}>
       <TextInput
-        {...{ enabled, numberFormat }}
+        {...{ enabled }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return

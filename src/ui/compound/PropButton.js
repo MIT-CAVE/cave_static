@@ -1,12 +1,11 @@
-import { Box, Button, Divider } from '@mui/material'
+import { Box, Button } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import { sendCommand } from '../../data/data'
-import { selectNumberFormat } from '../../data/selectors'
 
-import { forceArray, unitStyles } from '../../utils'
+import { forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   display: 'flex',
@@ -17,12 +16,9 @@ const getStyles = (enabled) => ({
 })
 
 const PropButton = ({ prop, sx = [], ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
   const dispatch = useDispatch()
 
   const enabled = prop.enabled || false
-  const numberFormatRaw = prop.numberFormat || {}
-  const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Box
       sx={[getStyles(enabled), ...forceArray(sx)]}
@@ -46,12 +42,6 @@ const PropButton = ({ prop, sx = [], ...props }) => {
       >
         {prop.value || prop.name}
       </Button>
-      <Divider sx={{ ml: 1 }} orientation="vertical" flexItem />
-      {unit && (
-        <Box component="span" sx={unitStyles}>
-          {unit}
-        </Box>
-      )}
     </Box>
   )
 }

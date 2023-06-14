@@ -1,26 +1,22 @@
-import { Autocomplete, Box, Divider, TextField } from '@mui/material'
+import { Autocomplete, Box, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../data/selectors'
-
-import { customSort, forceArray, unitStyles } from '../../utils'
+import { customSort, forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   display: 'flex',
   width: '100%',
-  p: 1,
+  pt: 1,
   pointerEvents: enabled ? '' : 'none',
   opacity: enabled ? '' : 0.7,
+  '& .MuiAutocomplete-root': {
+    p: 1,
+  },
 })
 
 const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
   const { enabled = false, options, placeholder } = prop
-  const numberFormatRaw = prop.numberFormat || {}
-  const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   const [value] = R.defaultTo(prop.value, currentVal)
   const optionsListRaw = customSort(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
@@ -44,12 +40,6 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           R.pathOr(option, [option, 'name'])(indexedOptions)
         }
       />
-      <Divider orientation="vertical" flexItem />
-      {unit && (
-        <Box component="span" sx={unitStyles}>
-          {unit}
-        </Box>
-      )}
     </Box>
   )
 }

@@ -1,8 +1,8 @@
-import { Box, Grid, Input, Slider } from '@mui/material'
+import { Grid, Input, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { useEffect, useState } from 'react'
 
-import { getSliderMarks, formatNumber, unitStyles } from '../../utils'
+import { getSliderMarks, formatNumber } from '../../utils'
 
 const styles = {
   inputWrapper: {
@@ -16,14 +16,6 @@ const styles = {
       textAlign: 'center',
       ml: 1.5,
     },
-  },
-  unit: {
-    ...unitStyles,
-    width: 'fit-content',
-    mt: 0.5,
-    ml: 0,
-    textAlign: 'center',
-    alignSelf: 'center',
   },
 }
 
@@ -103,7 +95,6 @@ export const ValueRange = ({
             type: 'number',
           }}
         />
-        {numberFormat.unit && <Box sx={styles.unit}>{numberFormat.unit}</Box>}
       </Grid>
     </Grid>
   )

@@ -9,7 +9,6 @@ import {
   isNumericInputValid,
   parseNumber,
   formatNumber,
-  unitStyles,
 } from '../../utils'
 
 const NumberInput = ({
@@ -21,10 +20,12 @@ const NumberInput = ({
   placeholder,
   value: defaultValue,
   // Here, units are excluded from `formatNumber`
-  // as they are rendered as `InputAdornment`s
+  // as they are rendered on the prop container
+  // eslint-disable-next-line no-unused-vars
   numberFormat: { unit, currency, ...numberFormat },
   onClickAway,
 }) => {
+  // const numberFormat = R.omit(['unit', 'currency'])(numberFormat)
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
     defaultValue == null ? '' : formatNumber(defaultValue, numberFormat)
@@ -67,7 +68,6 @@ const NumberInput = ({
     }
   }
 
-  const unitPos = currency ? 'start' : 'end'
   return (
     <TextField
       sx={{ width: '100%' }}
@@ -80,7 +80,7 @@ const NumberInput = ({
         if (!enabled) return
 
         // Extra decimals are always rounded
-        const roundedVal = parseNumber(formatNumber(value, numberFormat, false))
+        const roundedVal = parseNumber(formatNumber(value, numberFormat))
         const clampedVal = R.clamp(min, max, roundedVal)
         setValue(clampedVal)
         setValueText(formatNumber(clampedVal, numberFormat))
@@ -95,17 +95,6 @@ const NumberInput = ({
           endAdornment: (
             <InputAdornment position="end">
               {getStatusIcon(color)}
-            </InputAdornment>
-          ),
-        }),
-        ...(unit && {
-          [`${unitPos}Adornment`]: (
-            <InputAdornment
-              disableTypography
-              position={unitPos}
-              sx={unitStyles}
-            >
-              {unit}
             </InputAdornment>
           ),
         }),

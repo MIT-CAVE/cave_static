@@ -1,11 +1,8 @@
 import { Box, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../data/selectors'
-
-import { forceArray, unitStyles } from '../../utils'
+import { forceArray } from '../../utils'
 
 const getStyles = (enabled, nOpts) => ({
   box: {
@@ -24,11 +21,7 @@ const getStyles = (enabled, nOpts) => ({
 })
 
 const PropVStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
   const { enabled = false, options } = prop
-  const numberFormatRaw = prop.numberFormat || {}
-  const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   const [value] = R.defaultTo(prop.value, currentVal)
 
   const nOpts = R.pipe(R.keys, R.length)(options)
@@ -56,11 +49,6 @@ const PropVStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
             onChange([R.pipe(R.keys, R.reverse, R.nth(val))(options)])
         }}
       />
-      {unit && (
-        <Box component="span" sx={unitStyles}>
-          {unit}
-        </Box>
-      )}
     </Box>
   )
 }
