@@ -3,11 +3,8 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
 import { AiOutlineExpandAlt } from 'react-icons/ai'
-import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../data/selectors'
-
-import { forceArray, unitStyles } from '../../utils'
+import { forceArray } from '../../utils'
 
 const styles = {
   box: {
@@ -37,10 +34,6 @@ const styles = {
 
 const PropPicture = ({ prop, sx = [], ...props }) => {
   const [expanded, setExpanded] = React.useState(false)
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
-  const numberFormatRaw = prop.numberFormat || {}
-  const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Box
       sx={[styles.box, ...forceArray(sx)]}
@@ -66,11 +59,6 @@ const PropPicture = ({ prop, sx = [], ...props }) => {
       >
         <img src={prop.value} alt="" style={styles.imgExpanded} />
       </Dialog>
-      {unit && (
-        <Box component="span" sx={unitStyles}>
-          {unit}
-        </Box>
-      )}
     </Box>
   )
 }

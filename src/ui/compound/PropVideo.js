@@ -1,11 +1,8 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../data/selectors'
-
-import { forceArray, unitStyles } from '../../utils'
+import { forceArray } from '../../utils'
 
 const styles = {
   box: {
@@ -21,32 +18,18 @@ const styles = {
   },
 }
 
-const PropVideo = ({ prop, sx = [], ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
-  const numberFormatRaw = prop.numberFormat || {}
-  const { unit } = R.mergeRight(numberFormatDefault)(numberFormatRaw)
-  return (
-    <Box
-      sx={[styles.box, ...forceArray(sx)]}
-      {...R.dissoc('currentVal', props)}
-    >
-      <iframe
-        title="Embedded Video"
-        src={prop.value}
-        style={styles.video}
-        frameborder="0"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
-      ></iframe>
-      {unit && (
-        <Box component="span" sx={unitStyles}>
-          {unit}
-        </Box>
-      )}
-    </Box>
-  )
-}
+const PropVideo = ({ prop, sx = [], ...props }) => (
+  <Box sx={[styles.box, ...forceArray(sx)]} {...R.dissoc('currentVal', props)}>
+    <iframe
+      title="Embedded Video"
+      src={prop.value}
+      style={styles.video}
+      frameborder="0"
+      allow="autoplay; fullscreen; picture-in-picture"
+      allowFullScreen
+    ></iframe>
+  </Box>
+)
 PropVideo.propTypes = {
   prop: PropTypes.object,
   sx: PropTypes.oneOfType([
