@@ -95,6 +95,7 @@ const getAppBarItem = ({
   obj,
   color,
   key,
+  pin,
   appBarId,
   changePane,
   sync,
@@ -104,6 +105,13 @@ const getAppBarItem = ({
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
   const path = ['appBar', 'data', 'appBarId']
+
+  // Automatically close an unpinned pane when switching
+  // to a different Map, Dashboard, or KPI view
+  const closePane = () => {
+    if (!pin && key !== appBarId) changePane()
+  }
+
   return type === 'pane' ? (
     <Tab
       sx={styles.tab}
@@ -145,7 +153,7 @@ const getAppBarItem = ({
       {...{ key, icon, color }}
       disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
-      onClick={() =>
+      onClick={() => {
         dispatch(
           mutateLocal({
             path,
@@ -153,14 +161,15 @@ const getAppBarItem = ({
             sync: !includesPath(R.values(sync), path),
           })
         )
-      }
+        closePane()
+      }}
     />
   ) : type === 'kpi' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
-      onClick={() =>
+      onClick={() => {
         dispatch(
           mutateLocal({
             path,
@@ -168,14 +177,15 @@ const getAppBarItem = ({
             sync: !includesPath(R.values(sync), path),
           })
         )
-      }
+        closePane()
+      }}
     />
   ) : type === 'stats' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
-      onClick={() =>
+      onClick={() => {
         dispatch(
           mutateLocal({
             path,
@@ -183,7 +193,8 @@ const getAppBarItem = ({
             sync: !includesPath(R.values(sync), path),
           })
         )
-      }
+        closePane()
+      }}
     />
   ) : (
     []
@@ -268,6 +279,7 @@ const AppBar = () => {
       return getAppBarItem({
         color,
         key,
+        pin,
         obj,
         appBarId,
         changePane,
