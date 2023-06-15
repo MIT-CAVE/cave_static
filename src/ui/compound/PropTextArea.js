@@ -17,12 +17,12 @@ const styles = {
 }
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, minRows = 2, maxRows = 10 } = prop
+  const { enabled = false, rows = 4 } = prop
   return (
     <Box sx={[styles.root, ...forceArray(sx)]} {...props}>
       <TextInput
         multiline
-        {...{ enabled, minRows, maxRows }}
+        {...{ enabled, rows }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return
