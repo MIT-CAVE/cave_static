@@ -1,6 +1,7 @@
 import { Box, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useEffect, useState } from 'react'
 
 import { forceArray } from '../../utils'
 
@@ -19,9 +20,17 @@ const getStyles = (enabled) => ({
   },
 })
 
+const valueToIndex = (val, options) => R.pipe(R.keys, R.indexOf(val))(options)
+
 const PropHStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, options } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
+  const [index, setIndex] = useState(valueToIndex(value, options))
+
+  useEffect(() => {
+    setIndex(valueToIndex(value, options))
+  }, [value, options])
+
   return (
     <Box sx={[getStyles(enabled).box, ...forceArray(sx)]} {...props}>
       <Slider
@@ -32,7 +41,7 @@ const PropHStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         track={false}
         disabled={!enabled}
         valueLabelDisplay="off"
-        value={R.pipe(R.keys, R.indexOf(value))(options)}
+        value={index}
         marks={R.pipe(
           R.addIndex(R.map)((val, idx) => ({
             value: idx,
@@ -41,6 +50,9 @@ const PropHStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           R.values
         )(options)}
         onChange={(_, val) => {
+          if (enabled) setIndex(val)
+        }}
+        onChangeCommitted={(_, val) => {
           if (enabled) onChange([R.pipe(R.keys, R.nth(val))(options)])
         }}
       />
