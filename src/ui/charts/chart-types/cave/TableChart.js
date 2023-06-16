@@ -3,9 +3,9 @@ import * as R from 'ramda'
 
 import { formatNumber } from '../../../../utils'
 
-const TableChart = ({ labels, colTypes, formattedData, numberFormat }) => {
+const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
   // labels = R.map(R.replace(/->/, '&rarr;'))(labels)
-  const rows = formattedData.map((d, index) =>
+  const rows = data.map((d, index) =>
     R.converge(
       // `unapply` helps here by processing the input of mergeAll
       // as object arguments instead of an array of objects
@@ -27,11 +27,11 @@ const TableChart = ({ labels, colTypes, formattedData, numberFormat }) => {
     minWidth: 150,
     flex: 1,
     valueFormatter: ({ value }) => formatNumber(value, numberFormat),
-    ...(colTypes[index] === 'number' && {
+    ...(columnTypes[index] === 'number' && {
       headerAlign: 'center',
       align: 'center',
     }),
-    type: colTypes[index],
+    type: columnTypes[index],
   }))
 
   return (

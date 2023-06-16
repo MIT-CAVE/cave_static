@@ -105,3 +105,16 @@ export const statId = {
   MODE: 'mode',
   SUM: 'sum',
 }
+
+export const chartType = {
+  BAR: 'Bar',
+  BOX_PLOT: 'Box Plot',
+  CUMULATIVE_LINE: 'Cumulative Line',
+  LINE: 'Line',
+  STACKED_BAR: 'Stacked Bar',
+  STACKED_WATERFALL: 'Stacked Waterfall',
+  SUNBURST: 'Sunburst',
+  TABLE: 'Table',
+  TREEMAP: 'Treemap',
+  WATERFALL: 'Waterfall',
+}

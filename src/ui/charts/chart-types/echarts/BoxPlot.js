@@ -7,13 +7,23 @@ import { echarts } from './BaseChart'
 import { getDecimalScaleFactor, getDecimalScaleLabel } from '../../../../utils'
 
 const EchartsBoxPlot = ({
-  data,
+  data: rawData,
   xAxisTitle,
   yAxisTitle,
   // numberFormat,
   theme,
   subGrouped,
 }) => {
+  // Checks if y values are arrays to prevent crash while calculating
+  const checkBoxplotData = R.pipe(
+    R.last,
+    R.propOr({}, 'y'),
+    R.values,
+    R.last,
+    R.is(Array)
+  )
+  const data = !subGrouped || checkBoxplotData(rawData) ? rawData : []
+
   const yKeys = R.pipe(R.pluck('y'), R.mergeAll, R.keys)(data)
   const xData = R.pluck('x')(data)
   const yData = R.pluck('y')(data)
@@ -115,7 +125,7 @@ const EchartsBoxPlot = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     grid: {
       top: 64,
       // right: 8,

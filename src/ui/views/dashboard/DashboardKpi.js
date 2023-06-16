@@ -9,12 +9,13 @@ import {
   selectNumberFormat,
   selectTheme,
 } from '../../../data/selectors'
+import { chartType } from '../../../utils/enums'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
 import { customSort, forcePath, getLabelFn } from '../../../utils'
 
-const DashboardKpi = ({ obj, length }) => {
+const DashboardKpi = ({ obj }) => {
   const dispatch = useDispatch()
   const themeId = useSelector(selectTheme)
   const kpis = useSelector(selectAssociatedData)
@@ -121,15 +122,14 @@ const DashboardKpi = ({ obj, length }) => {
         flex: '1 1 auto',
       }}
     >
-      {obj.chart === 'Table' ? (
+      {obj.chart === chartType.TABLE ? (
         <TableChart
-          formattedData={formattedKpis}
+          data={formattedKpis}
           numberFormat={commonFormat}
-          colTypes={tableColTypes}
-          length={length}
+          columnTypes={tableColTypes}
           labels={R.prepend('Session')(tableLabels)}
         />
-      ) : obj.chart === 'Bar' ? (
+      ) : obj.chart === chartType.BAR ? (
         <BarPlot
           data={kpiChartData}
           numberFormat={commonFormat}
@@ -140,7 +140,7 @@ const DashboardKpi = ({ obj, length }) => {
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
-      ) : obj.chart === 'Line' ? (
+      ) : obj.chart === chartType.LINE ? (
         <LinePlot
           data={kpiChartData}
           numberFormat={commonFormat}
