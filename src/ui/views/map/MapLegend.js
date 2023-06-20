@@ -43,6 +43,7 @@ import {
   capitalize,
   customSort,
   eitherBoolOrNotNull,
+  formatNumber,
   includesPath,
   serializeNumLabel,
 } from '../../../utils'
@@ -152,6 +153,26 @@ const nonSx = {
 const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
   return <ComponentType {...Component.props} {...extraProps} />
+}
+
+const getMinMaxLabel = (valRange, timeProp, valProp, typeObj, end) => {
+  return R.pathOr(
+    R.path(['props', valProp, 'legendUseNumberFormat'])(typeObj)
+      ? formatNumber(
+          timeProp(end, valRange),
+          R.path(['props', valProp, 'numberFormat'])(typeObj)
+        )
+      : serializeNumLabel(timeProp(end, valRange)),
+    ['props', valProp, 'legendOverride', end]
+  )(typeObj)
+}
+
+const getMinLabel = (valRange, timeProp, valProp, typeObj) => {
+  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'min')
+}
+
+const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
+  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max')
 }
 
 const CategoricalItems = ({ layerKey, colorRange, getLabel = capitalize }) =>
@@ -282,10 +303,10 @@ const MapLegendSizeBySection = ({
           sx={{
             mr: 1,
             fontWeight: 700,
-            whiteSpace: 'nowrap',
+            textAlign: 'center',
           }}
         >
-          {serializeNumLabel(timeProp('min', sizeRange))}
+          {getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
         </Box>
         <Box sx={{ mr: 0.75 }}>
           {addExtraProps(icon, {
@@ -303,8 +324,8 @@ const MapLegendSizeBySection = ({
             },
           })}
         </Box>
-        <Box sx={{ ml: 1, fontWeight: 700 }}>
-          {serializeNumLabel(timeProp('max', sizeRange))}
+        <Box sx={{ ml: 1, fontWeight: 700, textAlign: 'center' }}>
+          {getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
         </Box>
       </Box>
     </>
@@ -415,8 +436,8 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
               ['endGradientColor', themeType],
               colorRange
             ),
-            maxVal: timeProp('max', colorRange),
-            minVal: timeProp('min', colorRange),
+            maxVal: getMaxLabel(colorRange, timeProp, colorProp, typeObj),
+            minVal: getMinLabel(colorRange, timeProp, colorProp, typeObj),
           }}
         />
       )}
@@ -681,13 +702,17 @@ const MapLegendNodeToggle = ({
                   ['endGradientColor', themeType],
                   colorRange
                 ),
-                maxVal: timeProp(
-                  'max',
-                  group && colorDomain ? colorDomain : colorRange
+                maxVal: getMaxLabel(
+                  group && colorDomain ? colorDomain : colorRange,
+                  timeProp,
+                  colorProp,
+                  typeObj
                 ),
-                minVal: timeProp(
-                  'min',
-                  group && colorDomain ? colorDomain : colorRange
+                minVal: getMinLabel(
+                  group && colorDomain ? colorDomain : colorRange,
+                  timeProp,
+                  colorProp,
+                  typeObj
                 ),
               }}
             />
@@ -860,8 +885,8 @@ const MapLegendArcToggle = ({
                   ['endGradientColor', themeType],
                   colorRange
                 ),
-                maxVal: timeProp('max', colorRange),
-                minVal: timeProp('min', colorRange),
+                maxVal: getMaxLabel(colorRange, timeProp, colorProp, typeObj),
+                minVal: getMinLabel(colorRange, timeProp, colorProp, typeObj),
               }}
             />
           )}
