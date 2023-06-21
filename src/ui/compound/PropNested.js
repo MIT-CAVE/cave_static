@@ -1,10 +1,4 @@
-import {
-  Checkbox,
-  Divider,
-  FormGroup,
-  FormControlLabel,
-  Box,
-} from '@mui/material'
+import { Checkbox, FormGroup, FormControlLabel, Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
@@ -131,7 +125,6 @@ const PropNested = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         }}
         enabled={enabled}
       />
-      <Divider orientation="vertical" flexItem />
     </Box>
   )
 }
