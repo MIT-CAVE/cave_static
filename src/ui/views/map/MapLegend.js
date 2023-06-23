@@ -313,11 +313,7 @@ const MapLegendSizeBySection = ({
   const unit = R.path(['props', sizeProp, 'numberFormat', 'unit'])(typeObj)
 
   return (
-    <Grid
-      container
-      // alignItems="flex-start"
-      // justifyContent="center"
-    >
+    <Grid container>
       <Grid item container alignItems="center" justifyContent="center" xs>
         <Grid item xs>
           <SimpleDropdown
