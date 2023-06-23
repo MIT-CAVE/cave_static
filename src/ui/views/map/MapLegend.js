@@ -314,7 +314,7 @@ const MapLegendSizeBySection = ({
 
   return (
     <Grid container>
-      <Grid item container alignItems="center" justifyContent="center" xs>
+      <Grid item container alignItems="center" justifyContent="center" xs={6}>
         <Grid item xs>
           <SimpleDropdown
             value={sizeProp}
@@ -335,18 +335,13 @@ const MapLegendSizeBySection = ({
           </Grid>
         )}
       </Grid>
-      <Grid item container xs justifyContent="center" alignItems="center">
-        <Grid
-          item
-          sx={{
-            mr: 1,
-            fontWeight: 700,
-            textAlign: 'center',
-          }}
-        >
-          {getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
+      <Grid item container alignItems="center" justifyContent="center" xs={6}>
+        <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
+          <OverflowText
+            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
+          />
         </Grid>
-        <Grid item sx={{ mr: 0.75 }}>
+        <Grid item sx={{ pr: 0.75 }}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('startSize')(typeObj),
@@ -354,7 +349,7 @@ const MapLegendSizeBySection = ({
             },
           })}
         </Grid>
-        <Grid item sx={[{ ml: 0.75 }, styles.rightBold]}>
+        <Grid item sx={{ pl: 0.75 }}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('endSize')(typeObj),
@@ -362,8 +357,10 @@ const MapLegendSizeBySection = ({
             },
           })}
         </Grid>
-        <Grid item sx={{ ml: 1, fontWeight: 700, textAlign: 'center' }}>
-          {getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
+        <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
+          <OverflowText
+            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
+          />
         </Grid>
       </Grid>
     </Grid>

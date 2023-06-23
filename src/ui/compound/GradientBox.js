@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import * as R from 'ramda'
 
+import OverflowText from './OverflowText'
+
 export const getGradientBox = R.curry(
   (maxColor, minColor, maxLabel, minLabel) => {
     return (
@@ -13,7 +15,7 @@ export const getGradientBox = R.curry(
       >
         <div
           css={{
-            width: '60px',
+            width: '70px',
             textAlign: 'center',
             marginRight: '10px',
             marginLeft: '10px',
@@ -21,7 +23,7 @@ export const getGradientBox = R.curry(
             flex: 0,
           }}
         >
-          {minLabel}
+          <OverflowText text={minLabel} />
         </div>
         <div
           css={{
@@ -34,14 +36,14 @@ export const getGradientBox = R.curry(
         <div
           css={{
             textAlign: 'center',
-            width: '60px',
+            width: '70px',
             marginRight: '10px',
             marginLeft: '10px',
             fontWeight: 700,
             flex: 0,
           }}
         >
-          {maxLabel}
+          <OverflowText text={maxLabel} />
         </div>
       </div>
     )
