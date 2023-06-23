@@ -577,10 +577,10 @@ export const getTimeValue = (timeIndex) =>
     R.path(['value', timeIndex])
   )
 
-export const serializeNumLabel = (numLabel) =>
+export const serializeNumLabel = (numLabel, precision) =>
   numLabel === Infinity || numLabel === -Infinity
     ? 'NaN'
-    : (+numLabel).toPrecision(3)
+    : (+numLabel).toPrecision(precision ?? 3)
 
 export const countDigits = (num) =>
   num === 0 ? 1 : Math.floor(Math.log10(Math.abs(num))) + 1
