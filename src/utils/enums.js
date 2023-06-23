@@ -61,6 +61,7 @@ export const propVariant = {
   FIELD: 'field',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
+  NESTED: 'nested',
   PICTURE: 'picture',
   RADIO: 'radio',
   ROW: 'row',
