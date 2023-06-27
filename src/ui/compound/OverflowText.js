@@ -15,7 +15,7 @@ const styles = {
   },
 }
 
-const OverflowText = ({ text, speed = 20, sx = [] }) => {
+const OverflowText = ({ text, speed = 20, sx = [], marqueeStyle = {} }) => {
   const [isOverflowing, setIsOverflowing] = useState(false)
 
   const divRef = useCallback((node) => {
@@ -34,6 +34,7 @@ const OverflowText = ({ text, speed = 20, sx = [] }) => {
           gradient={false}
           pauseOnHover
           {...{ speed }}
+          style={marqueeStyle}
         >
           <Box sx={styles.marqueeText}>{text}</Box>
         </Marquee>
@@ -53,6 +54,7 @@ OverflowText.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
+  marqueeStyle: PropTypes.object,
 }
 
 export default OverflowText

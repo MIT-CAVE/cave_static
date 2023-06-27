@@ -3,9 +3,9 @@ import {
   Box,
   Grid,
   Paper,
+  Stack,
   Switch,
   ToggleButton,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
@@ -82,10 +82,10 @@ const styles = {
     fontWeight: 700,
   },
   getCategoryIcon: (layerKey) => ({
-    m: 0.5,
+    m: 0.75,
     p: 0.5,
-    minWidth: '16px',
-    minHeight: '16px',
+    width: '16px',
+    height: '16px',
     ...(layerKey === 'arcs' // thin rectangle
       ? {
           borderRadius: 0,
@@ -98,18 +98,21 @@ const styles = {
       : {
           borderRadius: 1,
         }), // Rounded-border square
-    cursor: 'pointer',
-    // Uncomment if labels are placed inside the color icons
-    // maxWidth: '16ch',
-    // textOverflow: 'ellipsis',
-    // overflow: 'hidden',
-    // textAlign: 'center',
   }),
   categoricalItems: {
     maxHeight: '96px',
     overflow: 'auto',
     lineHeight: '16px',
     alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  categoryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit,minmax(6ch,auto))',
+    width: '100%',
+    minHeight: '64px',
+    gap: '8px',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   unit: {
@@ -212,23 +215,28 @@ const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
   return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max', 'maxLabel')
 }
 
-const CategoricalItems = ({ layerKey, colorRange, getLabel = capitalize }) =>
-  R.values(
-    R.mapObjIndexed(
-      (val, key) => (
-        <Tooltip title={getLabel(key)}>
-          <Paper
-            key={key}
-            sx={[styles.getCategoryIcon(layerKey), { bgcolor: val }]}
-            elevation={3}
-          >
-            {/* {getLabel(key)} */}
-          </Paper>
-        </Tooltip>
-      ),
-      colorRange
-    )
-  )
+const CategoricalItems = ({ layerKey, colorRange, getLabel = capitalize }) => (
+  <Box sx={styles.categoryGrid}>
+    {R.values(
+      R.mapObjIndexed(
+        (val, key) => (
+          <Stack {...{ key }} alignItems="center">
+            <Paper
+              sx={[styles.getCategoryIcon(layerKey), { bgcolor: val }]}
+              elevation={3}
+            />
+            <OverflowText
+              sx={{ width: '6ch', height: '24px', textAlign: 'center' }}
+              text={getLabel(key)}
+              marqueeStyle={{ height: '24px' }}
+            />
+          </Stack>
+        ),
+        colorRange
+      )
+    )}
+  </Box>
+)
 
 const GradientBox = ({ gradientBox }) => (
   <div className="row my-2">
