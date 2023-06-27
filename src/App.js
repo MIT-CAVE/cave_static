@@ -4,12 +4,16 @@ import {
   ThemeProvider,
   ClickAwayListener,
   Box,
+  Card,
+  CardContent,
+  IconButton,
 } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
+import { MdOutlineClose } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from './data/local'
@@ -21,6 +25,7 @@ import {
   selectOpenPanesData,
   selectPinPane,
   selectSecondaryOpenPane,
+  selectSessions,
   selectSync,
   selectTheme,
 } from './data/selectors'
@@ -57,6 +62,17 @@ const styles = {
     height: '100vh',
     top: 0,
   },
+  sessionCard: {
+    cursor: 'move',
+    display: 'flex',
+    position: 'absolute',
+    width: '300px',
+    zindex: 5000,
+  },
+  sessionCardContent: {
+    overflow: 'hidden',
+    overflowwrap: 'break-word',
+  },
 }
 
 const App = () => {
@@ -68,6 +84,7 @@ const App = () => {
   const appBarData = useSelector(selectAppBarData)
   const appBarId = useSelector(selectAppBarId)
   const pin = useSelector(selectPinPane)
+  const sessions = useSelector(selectSessions)
 
   const dispatch = useDispatch()
 
@@ -117,13 +134,64 @@ const App = () => {
       )
     },
   }
+
+  const [sessionCard, setSessionCard] = useState(false)
+  const [sessionCardPosition, setSessionCardPosition] = useState({
+    left: '0px',
+    top: '0px',
+  })
+
+  const handleSessionCardDragStart = (event) => {
+    const cardStyle = window.getComputedStyle(event.target)
+    const xOffset = parseInt(cardStyle.getPropertyValue('left')) - event.clientX
+    const yOffset = parseInt(cardStyle.getPropertyValue('top')) - event.clientY
+    const cardWidth = cardStyle.getPropertyValue('width')
+    const cardHeight = cardStyle.getPropertyValue('height')
+    event.dataTransfer.setData(
+      'text/plain',
+      `${xOffset},${yOffset},${cardWidth},${cardHeight}`
+    )
+  }
+
+  const handleSessionCardDrop = (event) => {
+    const [xOffset, yOffset, cardWidth, cardHeight] = event.dataTransfer
+      .getData('text/plain')
+      .split(',')
+    const xPosition = parseInt(xOffset) + event.clientX
+    const yPosition = parseInt(yOffset) + event.clientY
+    const margin = 100
+    const xMax =
+      window.innerWidth - (APP_BAR_WIDTH + parseInt(cardWidth) + margin)
+    const yMax = window.innerHeight - (parseInt(cardHeight) + margin)
+    setSessionCardPosition({
+      left: `${R.clamp(0, xMax, xPosition)}px`,
+      top: `${R.clamp(0, yMax, yPosition)}px`,
+    })
+    event.preventDefault()
+  }
+
+  const sessionIdCurrent = `${sessions.session_id}`
+  const teamAllSessions = R.pipe(
+    R.prop('data'),
+    R.values,
+    R.find(R.hasPath(['sessions', sessionIdCurrent])),
+    R.defaultTo({})
+  )(sessions)
+  const sessionName = R.path(
+    ['sessions', sessionIdCurrent, 'sessionName'],
+    teamAllSessions
+  )
   return (
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
         <Box sx={styles.root}>
           <SnackBar />
           <AppBar />
-          <Box sx={styles.page}>
+          <Box
+            sx={styles.page}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleSessionCardDrop}
+          >
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <Loader />
               <ErrorBoundary
@@ -134,6 +202,8 @@ const App = () => {
                     name: 'Sessions Pane',
                     variant: 'session',
                   },
+                  sessionCard: sessionCard,
+                  toggleSessionCard: (enabled) => setSessionCard(enabled),
                 })}
               >
                 {renderAppPage(findViewType(appBarId))}
@@ -143,11 +213,35 @@ const App = () => {
                       {renderAppPane({
                         open,
                         pane,
+                        sessionCard: sessionCard,
+                        toggleSessionCard: (enabled) => setSessionCard(enabled),
                         ...(secondaryOpen === '' && pinObj),
                       })}
                       {secondaryOpen && <SecondaryPane {...pinObj} />}
                     </Box>
                   </ClickAwayListener>
+                )}
+                {sessionCard && (
+                  <Card
+                    draggable
+                    onDragStart={handleSessionCardDragStart}
+                    style={R.mergeAll([
+                      {
+                        backgroundColor:
+                          theme.palette.mode === 'dark' ? '#132a73' : '#c2eaff',
+                      },
+                      styles.sessionCard,
+                      sessionCardPosition,
+                    ])}
+                  >
+                    <CardContent style={styles.sessionCardContent}>
+                      {' '}
+                      Current Session: {sessionName}
+                    </CardContent>
+                    <IconButton onClick={() => setSessionCard(false)}>
+                      <MdOutlineClose />
+                    </IconButton>
+                  </Card>
                 )}
               </ErrorBoundary>
             </LocalizationProvider>
