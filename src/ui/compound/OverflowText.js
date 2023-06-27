@@ -10,12 +10,12 @@ const styles = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
   },
-  marqueeText: {
+  marqueeContent: {
     pr: 6,
   },
 }
 
-const OverflowText = ({ text, speed = 20, sx = [], marqueeStyle = {} }) => {
+const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
   const [isOverflowing, setIsOverflowing] = useState(false)
 
   const divRef = useCallback((node) => {
@@ -26,7 +26,7 @@ const OverflowText = ({ text, speed = 20, sx = [], marqueeStyle = {} }) => {
     setIsOverflowing(overflowX || overflowY)
   }, [])
   return (
-    <Box sx={[styles.root, ...forceArray(sx)]} ref={divRef}>
+    <Box sx={[styles.root, ...forceArray(sx)]} ref={divRef} {...props}>
       {isOverflowing ? (
         <Marquee
           direction="left"
@@ -34,12 +34,11 @@ const OverflowText = ({ text, speed = 20, sx = [], marqueeStyle = {} }) => {
           gradient={false}
           pauseOnHover
           {...{ speed }}
-          style={marqueeStyle}
         >
-          <Box sx={styles.marqueeText}>{text}</Box>
+          <Box sx={styles.marqueeContent}>{children || text}</Box>
         </Marquee>
       ) : (
-        <>{text}</>
+        <>{children || text}</>
       )}
     </Box>
   )
@@ -54,7 +53,7 @@ OverflowText.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
-  marqueeStyle: PropTypes.object,
+  children: PropTypes.node,
 }
 
 export default OverflowText
