@@ -12,7 +12,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useState } from 'react'
 import { MdOutlineClose } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -66,12 +66,16 @@ const styles = {
     cursor: 'move',
     display: 'flex',
     position: 'absolute',
-    width: '300px',
+    width: 300,
     zindex: 5000,
   },
   sessionCardContent: {
     overflow: 'hidden',
     overflowwrap: 'break-word',
+  },
+  sessionCardPosition: {
+    left: 0,
+    top: 0,
   },
 }
 
@@ -136,9 +140,25 @@ const App = () => {
   }
 
   const [sessionCard, setSessionCard] = useState(false)
-  const [sessionCardPosition, setSessionCardPosition] = useState({
-    left: '0px',
-    top: '0px',
+  const [sessionCardPosition, setSessionCardPosition] = useState(
+    styles.sessionCardPosition
+  )
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight)
+
+  useLayoutEffect(() => {
+    const handleWindowResize = () => {
+      const height = window.innerHeight
+      const yMax = height - 3 * APP_BAR_WIDTH
+      const yPosition = R.defaultTo(0)(
+        (height * sessionCardPosition.top) / windowHeight
+      )
+      setSessionCardPosition(
+        R.assoc('top', R.clamp(0, yMax, yPosition), sessionCardPosition)
+      )
+      setWindowHeight(height)
+    }
+    window.addEventListener('resize', handleWindowResize)
+    return () => window.removeEventListener('resize', handleWindowResize)
   })
 
   const handleSessionCardDragStart = (event) => {
@@ -154,18 +174,20 @@ const App = () => {
   }
 
   const handleSessionCardDrop = (event) => {
-    const [xOffset, yOffset, cardWidth, cardHeight] = event.dataTransfer
+    const eventDataTransfer = event.dataTransfer
       .getData('text/plain')
       .split(',')
-    const xPosition = parseInt(xOffset) + event.clientX
-    const yPosition = parseInt(yOffset) + event.clientY
-    const margin = 100
-    const xMax =
-      window.innerWidth - (APP_BAR_WIDTH + parseInt(cardWidth) + margin)
-    const yMax = window.innerHeight - (parseInt(cardHeight) + margin)
+    const [xOffset, yOffset, cardWidth, cardHeight] = R.map(
+      parseInt,
+      eventDataTransfer
+    )
+    const xMax = window.innerWidth - (1.5 * APP_BAR_WIDTH + cardWidth)
+    const yMax = window.innerHeight - (0.5 * APP_BAR_WIDTH + cardHeight)
+    const xPosition = xOffset + event.clientX
+    const yPosition = yOffset + event.clientY
     setSessionCardPosition({
-      left: `${R.clamp(0, xMax, xPosition)}px`,
-      top: `${R.clamp(0, yMax, yPosition)}px`,
+      left: R.clamp(0, xMax, xPosition),
+      top: R.clamp(0, yMax, yPosition),
     })
     event.preventDefault()
   }
