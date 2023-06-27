@@ -1,5 +1,6 @@
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
+import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { formatNumber } from '../../../../utils'
 
@@ -35,11 +36,22 @@ const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
   }))
 
   return (
-    <DataGrid
-      sx={{ bgcolor: 'background.paper', minWidth: 0 }}
-      {...{ rows, columns }}
-      rowsPerPageOptions={[25, 50, 100]}
-    />
+    <div style={{ flex: '1 1 auto' }}>
+      <AutoSizer>
+        {({ height, width }) => (
+          <DataGrid
+            sx={{
+              height,
+              width,
+              minWidth: 0,
+              bgcolor: 'background.paper',
+            }}
+            {...{ rows, columns }}
+            rowsPerPageOptions={[25, 50, 100]}
+          />
+        )}
+      </AutoSizer>
+    </div>
   )
 }
 
