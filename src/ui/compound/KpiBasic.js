@@ -26,10 +26,14 @@ const styles = {
     p: 2,
   },
   title: {
-    px: 1,
+    mx: 1,
+    pr: 5,
     fontSize: '24px',
     whiteSpace: 'nowrap',
     color: 'text.secondary',
+    // Force the width of the container to be defined by the KPI value
+    width: 0,
+    minWidth: '100%',
   },
   value: {
     px: 2,
@@ -98,8 +102,8 @@ const KpiBasic = ({
     >
       <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
       <Grid container flexDirection="column" spacing={3}>
-        <Grid item zeroMinWidth xs={11.5}>
-          <OverflowText text={title} sx={styles.title} />
+        <Grid item sx={styles.title}>
+          <OverflowText text={title} />
         </Grid>
         <Grid container item spacing={1} wrap="nowrap">
           {icon && (
