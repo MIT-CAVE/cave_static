@@ -3,9 +3,9 @@ import {
   Box,
   Grid,
   Paper,
+  Stack,
   Switch,
   ToggleButton,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
@@ -81,36 +81,12 @@ const styles = {
   bold: {
     fontWeight: 700,
   },
-  getCategoryIcon: (layerKey) => ({
-    m: 0.5,
+  categoryIcon: {
+    m: 0.75,
     p: 0.5,
-    minWidth: '16px',
-    minHeight: '16px',
-    ...(layerKey === 'arcs' // thin rectangle
-      ? {
-          borderRadius: 0,
-          minHeight: '4px',
-        }
-      : layerKey === 'nodes' // circle
-      ? {
-          borderRadius: '50%',
-        }
-      : {
-          borderRadius: 1,
-        }), // Rounded-border square
-    cursor: 'pointer',
-    // Uncomment if labels are placed inside the color icons
-    // maxWidth: '16ch',
-    // textOverflow: 'ellipsis',
-    // overflow: 'hidden',
-    // textAlign: 'center',
-  }),
-  categoricalItems: {
-    maxHeight: '96px',
-    overflow: 'auto',
-    lineHeight: '16px',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    width: '16px',
+    height: '16px',
+    borderRadius: 1,
   },
   unit: {
     display: 'flex',
@@ -212,23 +188,26 @@ const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
   return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max', 'maxLabel')
 }
 
-const CategoricalItems = ({ layerKey, colorRange, getLabel = capitalize }) =>
-  R.values(
-    R.mapObjIndexed(
-      (val, key) => (
-        <Tooltip title={getLabel(key)}>
-          <Paper
-            key={key}
-            sx={[styles.getCategoryIcon(layerKey), { bgcolor: val }]}
-            elevation={3}
-          >
-            {/* {getLabel(key)} */}
-          </Paper>
-        </Tooltip>
-      ),
-      colorRange
-    )
-  )
+const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
+  <OverflowText sx={{ width: '100%' }}>
+    <Stack direction="row" spacing={3} justifyContent="center">
+      {R.values(
+        R.mapObjIndexed(
+          (val, key) => (
+            <Stack alignItems="center" {...{ key }}>
+              <Paper
+                sx={[styles.categoryIcon, { bgcolor: val }]}
+                elevation={3}
+              />
+              <div>{getLabel(key)}</div>
+            </Stack>
+          ),
+          colorRange
+        )
+      )}
+    </Stack>
+  </OverflowText>
+)
 
 const GradientBox = ({ gradientBox }) => (
   <div className="row my-2">
@@ -451,13 +430,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
         />
       </Grid>
       {isCategorical ? (
-        <Grid container sx={styles.categoricalItems}>
-          <CategoricalItems
-            layerKey="geos"
-            getLabel={getGeoCategoryName}
-            {...{ colorRange }}
-          />
-        </Grid>
+        <CategoricalItems getLabel={getGeoCategoryName} {...{ colorRange }} />
       ) : (
         <GradientBox
           gradientBox={{
@@ -748,15 +721,12 @@ const LegendCard = ({
                 }}
               />
             </Grid>
-            <Grid container item xs alignItems="center">
+            <Grid container item alignItems="center" xs={6}>
               {isCategorical ? (
-                <Grid container sx={styles.categoricalItems}>
-                  <CategoricalItems
-                    layerKey={geometryName}
-                    getLabel={getGeometryCategoryName}
-                    {...{ colorRange }}
-                  />
-                </Grid>
+                <CategoricalItems
+                  getLabel={getGeometryCategoryName}
+                  {...{ colorRange }}
+                />
               ) : (
                 <GradientBox
                   gradientBox={{
