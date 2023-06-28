@@ -135,6 +135,9 @@ const getAppBarItem = ({
             data: {
               api_command: R.prop('apiCommand')(obj),
               api_command_keys: R.prop('apiCommandKeys')(obj),
+              data_name: R.prop('dataName')(obj),
+              data_path: R.prop('dataPath')(obj),
+              data_value: R.prop('dataValue')(obj),
             },
           })
         )

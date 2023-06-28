@@ -33,8 +33,11 @@ const PropButton = ({ prop, sx = [], ...props }) => {
             sendCommand({
               command: 'mutate_session',
               data: {
-                api_command: R.prop('apiCommand', prop),
-                api_command_keys: R.prop('apiCommandKeys', prop),
+                api_command: R.prop('apiCommand')(prop),
+                api_command_keys: R.prop('apiCommandKeys')(prop),
+                data_name: R.prop('dataName')(prop),
+                data_path: R.prop('dataPath')(prop),
+                data_value: R.prop('dataValue')(prop),
               },
             })
           )
