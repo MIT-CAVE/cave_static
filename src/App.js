@@ -67,7 +67,7 @@ const styles = {
     display: 'flex',
     position: 'absolute',
     width: 300,
-    zindex: 5000,
+    zIndex: 5000,
   },
   sessionCardContent: {
     overflow: 'hidden',
