@@ -88,7 +88,7 @@ const Sunburst = ({ data, theme, subGrouped }) => {
     //       fontSize: 20,
     //     },
     //   },
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     series: {
       radius: [60, '90%'],
       label: {
@@ -106,7 +106,7 @@ const Sunburst = ({ data, theme, subGrouped }) => {
       // data: exampleNestedData
     },
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       trigger: 'item',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',

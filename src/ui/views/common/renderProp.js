@@ -1,5 +1,7 @@
 import * as R from 'ramda'
+import { useSelector } from 'react-redux'
 
+import { selectNumberFormat } from '../../../data/selectors'
 import { PROP_WIDTH } from '../../../utils/constants'
 import { propContainer, propId, propVariant } from '../../../utils/enums'
 import PropButton from '../../compound/PropButton'
@@ -11,15 +13,21 @@ import {
   PropDate,
   PropDateTime,
   PropDropdown,
+  PropHRadio,
+  PropHStepper,
   PropHeadColumn,
   PropHeadRow,
+  PropNested,
   PropNumberField,
   PropNumberSlider,
+  PropPicture,
   PropRadio,
   PropText,
   PropTextArea,
   PropTime,
   PropToggle,
+  PropVideo,
+  PropVStepper,
 } from '../../compound'
 
 const invalidVariant = R.curry((type, variant) => {
@@ -36,6 +44,11 @@ const getTogglePropRenderFn = R.ifElse(
   R.always(PropToggle),
   invalidVariant('toggle')
 )
+const getMediaPropRenderFn = R.cond([
+  [R.equals(propVariant.PICTURE), R.always(PropPicture)],
+  [R.equals(propVariant.VIDEO), R.always(PropVideo)],
+  [R.T, invalidVariant('media')],
+])
 const getTextPropRenderFn = R.cond([
   [R.isNil, R.always(PropText)],
   [R.equals(propVariant.SINGLE), R.always(PropText)],
@@ -49,10 +62,14 @@ const getNumberPropRenderFn = R.cond([
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
-  [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
   [R.equals(propVariant.CHECKBOX), R.always(PropCheckbox)],
-  [R.equals(propVariant.RADIO), R.always(PropRadio)],
   [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
+  [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
+  [R.equals(propVariant.HRADIO), R.always(PropHRadio)],
+  [R.equals(propVariant.HSTEPPER), R.always(PropHStepper)],
+  [R.equals(propVariant.NESTED), R.always(PropNested)],
+  [R.equals(propVariant.RADIO), R.always(PropRadio)],
+  [R.equals(propVariant.VSTEPPER), R.always(PropVStepper)],
   [R.T, invalidVariant('selector')],
 ])
 const getDatePropRenderFn = R.cond([
@@ -69,6 +86,7 @@ const getHeaderPropRenderFn = R.cond([
 ])
 
 const getRendererFn = R.cond([
+  [R.equals(propId.MEDIA), R.always(getMediaPropRenderFn)],
   [R.equals(propId.BUTTON), R.always(getButtonPropRenderFn)],
   [R.equals(propId.TEXT), R.always(getTextPropRenderFn)],
   [R.equals(propId.NUMBER), R.always(getNumberPropRenderFn)],
@@ -85,9 +103,15 @@ const getRendererFn = R.cond([
 ])
 
 const PropBase = ({ prop, children }) => {
+  const numberFormatDefault = useSelector(selectNumberFormat)
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     tooltipTitle: R.prop('help'),
+    unit: R.pipe(
+      R.propOr({}, 'numberFormat'),
+      R.mergeRight(numberFormatDefault),
+      R.prop('unit')
+    ),
     // eslint-disable-next-line ramda/cond-simplification
     type: R.cond([
       [R.has('container'), R.prop('container')],

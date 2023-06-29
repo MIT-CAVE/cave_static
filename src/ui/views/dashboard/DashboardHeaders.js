@@ -1,4 +1,4 @@
-import { Box, Button } from '@mui/material'
+import { Box, Button, IconButton } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -30,11 +30,15 @@ import {
   renameKeys,
 } from '../../../utils'
 
+const SwapButton = ({ onClick }) => (
+  <IconButton sx={{ mx: 'auto' }} color="primary" {...{ onClick }}>
+    <FetchedIcon iconName="MdSwapHoriz" size={22} />
+  </IconButton>
+)
+
 const StatisticsHeader = memo(({ obj, index }) => {
   const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectAllowedStats)
-  const sortedStatistics = customSort(statisticTypes)
-  const sortedCategories = customSort(categories)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -46,8 +50,39 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const groupableCategories = R.isNil(groupByOptions)
     ? categories
     : R.pick(groupByOptions, categories)
+  const sortedStatistics = customSort(statisticTypes)
+
+  const sortedLevelsByCategory =
+    R.mapObjIndexed(getCategoryItems)(groupableCategories)
+  const itemGroups = R.pipe(
+    R.pick(R.keys(sortedLevelsByCategory)), // Drop any category not included in `nestedStructure`
+    customSort,
+    R.project(['id', 'grouping', 'layoutDirection']),
+    R.map((item) => R.assoc('subItems', sortedLevelsByCategory[item.id])(item)),
+    R.groupBy(R.prop('grouping'))
+  )(categories)
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  const onSelectGroupFn =
+    (n = '') =>
+    (item, subItem) => {
+      dispatch(
+        mutateLocal({
+          path,
+          sync: !includesPath(R.values(sync), path),
+          value: R.pipe(
+            R.assoc(`category${n}`, item),
+            R.assoc(`level${n}`, subItem)
+          )(obj),
+        })
+      )
+    }
+  const getGroupValues = (n = '') =>
+    R.pipe(
+      R.props([`category${n}`, `level${n}`]),
+      R.when(R.any(R.isNil), R.always(''))
+    )(obj)
+
   return (
     <>
       <HeaderSelectWrapper>
@@ -157,7 +192,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconName: 'MdVerticalAlignTop',
             },
           ]}
-          onSelect={(value) =>
+          onSelect={(value) => {
             dispatch(
               mutateLocal({
                 path,
@@ -165,7 +200,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                 value: R.assoc('grouping', value, obj),
               })
             )
-          }
+          }}
         />
       </HeaderSelectWrapper>
 
@@ -192,7 +227,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
             value={R.propOr('', 'statistic', obj)}
             placeholder="Statistic"
             optionsList={R.pluck('id')(sortedStatistics)}
-            onSelect={(value) =>
+            onSelect={(value) => {
               dispatch(
                 mutateLocal({
                   path,
@@ -200,38 +235,50 @@ const StatisticsHeader = memo(({ obj, index }) => {
                   value: R.assoc('statistic', value, obj),
                 })
               )
-            }
+            }}
           />
         )}
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
         <SelectAccordion
-          values={R.pipe(
-            R.props(['category', 'level']),
-            R.when(R.any(R.isNil), R.always(''))
-          )(obj)}
-          items={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
+          {...{ itemGroups }}
+          values={getGroupValues()}
           placeholder="Group By"
-          subItemLayouts={R.pipe(
-            R.values,
-            R.pluck('layoutDirection')
-          )(sortedCategories)}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
-          onSelect={(item, subItem) => {
+          onSelect={onSelectGroupFn()}
+        />
+      </HeaderSelectWrapper>
+
+      <HeaderSelectWrapper
+        sx={{
+          minWidth: '35px',
+          height: '40%',
+          my: 'auto',
+          borderRadius: '20%',
+        }}
+        elevation={6}
+      >
+        <SwapButton
+          onClick={() => {
+            const [category, level] = getGroupValues()
+            const [category2, level2] = getGroupValues(2)
             dispatch(
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
                 value: R.pipe(
-                  R.assoc('category', item),
-                  R.assoc('level', subItem)
+                  R.assoc('category', category2),
+                  R.assoc('level', level2),
+                  R.assoc('category2', category),
+                  R.assoc('level2', level)
                 )(obj),
               })
             )
           }}
         />
       </HeaderSelectWrapper>
+
       <HeaderSelectWrapper
         clearable={R.has('level2', obj)}
         onClear={() => {
@@ -245,30 +292,12 @@ const StatisticsHeader = memo(({ obj, index }) => {
         }}
       >
         <SelectAccordion
-          values={R.pipe(
-            R.props(['category2', 'level2']),
-            R.when(R.any(R.isNil), R.always(''))
-          )(obj)}
-          items={R.mapObjIndexed(getCategoryItems)(groupableCategories)}
+          {...{ itemGroups }}
+          values={getGroupValues(2)}
           placeholder="Sub Group"
-          subItemLayouts={R.pipe(
-            R.values,
-            R.pluck('layoutDirection')
-          )(sortedCategories)}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
-          onSelect={(item, subItem) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.pipe(
-                  R.assoc('category2', item),
-                  R.assoc('level2', subItem)
-                )(obj),
-              })
-            )
-          }}
+          onSelect={onSelectGroupFn(2)}
         />
       </HeaderSelectWrapper>
     </>
@@ -352,7 +381,7 @@ const KpiHeader = memo(({ obj, index }) => {
             R.project(['id', 'name', 'icon']),
             R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
           )(kpis)}
-          onSelect={(value) =>
+          onSelect={(value) => {
             dispatch(
               mutateLocal({
                 path,
@@ -360,7 +389,7 @@ const KpiHeader = memo(({ obj, index }) => {
                 value: R.assoc('kpi', value, obj),
               })
             )
-          }
+          }}
         />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>

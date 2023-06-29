@@ -95,6 +95,7 @@ const getAppBarItem = ({
   obj,
   color,
   key,
+  pin,
   appBarId,
   changePane,
   sync,
@@ -104,6 +105,7 @@ const getAppBarItem = ({
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
   const path = ['appBar', 'data', 'appBarId']
+
   return type === 'pane' ? (
     <Tab
       sx={styles.tab}
@@ -133,6 +135,9 @@ const getAppBarItem = ({
             data: {
               api_command: R.prop('apiCommand')(obj),
               api_command_keys: R.prop('apiCommandKeys')(obj),
+              data_name: R.prop('dataName')(obj),
+              data_path: R.prop('dataPath')(obj),
+              data_value: R.prop('dataValue')(obj),
             },
           })
         )
@@ -140,12 +145,12 @@ const getAppBarItem = ({
       icon={icon}
       color={color}
     />
-  ) : type === 'map' ? (
+  ) : type === 'map' || type === 'stats' || type === 'kpi' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
       sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
-      onClick={() =>
+      onClick={() => {
         dispatch(
           mutateLocal({
             path,
@@ -153,37 +158,10 @@ const getAppBarItem = ({
             sync: !includesPath(R.values(sync), path),
           })
         )
-      }
-    />
-  ) : type === 'kpi' ? (
-    <ButtonInTabs
-      {...{ key, icon, color }}
-      disabled={loading}
-      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
-      onClick={() =>
-        dispatch(
-          mutateLocal({
-            path,
-            value: key,
-            sync: !includesPath(R.values(sync), path),
-          })
-        )
-      }
-    />
-  ) : type === 'stats' ? (
-    <ButtonInTabs
-      {...{ key, icon, color }}
-      disabled={loading}
-      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
-      onClick={() =>
-        dispatch(
-          mutateLocal({
-            path,
-            value: key,
-            sync: !includesPath(R.values(sync), path),
-          })
-        )
-      }
+        // Automatically close an unpinned pane when switching
+        // to a different Map, Dashboard, or KPI view
+        if (!pin && key !== appBarId) changePane()
+      }}
     />
   ) : (
     []
@@ -268,6 +246,7 @@ const AppBar = () => {
       return getAppBarItem({
         color,
         key,
+        pin,
         obj,
         appBarId,
         changePane,

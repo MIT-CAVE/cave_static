@@ -41,6 +41,7 @@ export const paneId = {
 }
 
 export const propId = {
+  MEDIA: 'media',
   BUTTON: 'button',
   TEXT: 'text',
   NUMBER: 'num',
@@ -52,18 +53,24 @@ export const propId = {
 
 export const propVariant = {
   CHECKBOX: 'checkbox',
+  COLUMN: 'column',
   COMBOBOX: 'combobox',
   DATE: 'date',
   DATETIME: 'datetime',
   DROPDOWN: 'dropdown',
   FIELD: 'field',
-  SINGLE: 'single',
+  HRADIO: 'hradio',
+  HSTEPPER: 'hstepper',
+  NESTED: 'nested',
+  PICTURE: 'picture',
   RADIO: 'radio',
+  ROW: 'row',
+  SINGLE: 'single',
   SLIDER: 'slider',
   TEXTAREA: 'textarea',
   TIME: 'time',
-  COLUMN: 'column',
-  ROW: 'row',
+  VIDEO: 'video',
+  VSTEPPER: 'vstepper',
 }
 
 export const propContainer = {
@@ -98,4 +105,17 @@ export const statId = {
   MIN: 'min',
   MODE: 'mode',
   SUM: 'sum',
+}
+
+export const chartType = {
+  BAR: 'Bar',
+  BOX_PLOT: 'Box Plot',
+  CUMULATIVE_LINE: 'Cumulative Line',
+  LINE: 'Line',
+  STACKED_BAR: 'Stacked Bar',
+  STACKED_WATERFALL: 'Stacked Waterfall',
+  SUNBURST: 'Sunburst',
+  TABLE: 'Table',
+  TREEMAP: 'Treemap',
+  WATERFALL: 'Waterfall',
 }

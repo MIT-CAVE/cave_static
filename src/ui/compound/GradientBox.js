@@ -1,12 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import * as R from 'ramda'
 
-import { serializeNumLabel } from '../../utils'
+import OverflowText from './OverflowText'
 
 export const getGradientBox = R.curry(
   (maxColor, minColor, maxLabel, minLabel) => {
-    const strMaxLabel = serializeNumLabel(maxLabel)
-    const strMinLabel = serializeNumLabel(minLabel)
     return (
       <div
         css={{
@@ -17,16 +15,15 @@ export const getGradientBox = R.curry(
       >
         <div
           css={{
-            width: '60px',
-            textAlign: 'left',
+            width: '70px',
+            textAlign: 'center',
             marginRight: '10px',
             marginLeft: '10px',
             fontWeight: 700,
-            whiteSpace: 'nowrap',
             flex: 0,
           }}
         >
-          {strMinLabel}
+          <OverflowText text={minLabel} />
         </div>
         <div
           css={{
@@ -38,15 +35,15 @@ export const getGradientBox = R.curry(
         />
         <div
           css={{
-            textAlign: 'right',
-            width: '60px',
+            textAlign: 'center',
+            width: '70px',
             marginRight: '10px',
             marginLeft: '10px',
             fontWeight: 700,
             flex: 0,
           }}
         >
-          {strMaxLabel}
+          <OverflowText text={maxLabel} />
         </div>
       </div>
     )

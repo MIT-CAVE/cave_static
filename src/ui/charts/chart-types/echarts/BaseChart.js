@@ -140,7 +140,7 @@ const EchartsPlot = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     grid: {
       top: 64,
       // right: 8,

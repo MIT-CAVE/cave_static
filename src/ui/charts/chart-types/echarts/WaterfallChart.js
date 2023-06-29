@@ -194,7 +194,7 @@ const WaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     legend: {
       type: 'scroll',
       data: yKeys,
@@ -202,7 +202,7 @@ const WaterfallChart = ({
     },
     tooltip: {
       valueFormatter: (value) => formatNumber(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       trigger: 'axis',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
@@ -389,7 +389,7 @@ const StackedWaterfallChart = ({
     if (index > 0 && !renderedLinesByIndex.has(index)) {
       let shape
       if (subGrouped) {
-        const validIndex = R.findIndex(R.propEq('idx', index))(validIndices)
+        const validIndex = R.findIndex(R.propEq(index, 'idx'))(validIndices)
         if (validIndex > 0) {
           const indexPrev = validIndices[validIndex - 1].idx
           const endCoordPrev = api.coord([
@@ -493,12 +493,12 @@ const StackedWaterfallChart = ({
       symbolSize: 16,
       itemStyle: {
         borderWidth: 2,
-        borderColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+        borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       },
       nodes: nodesData,
       tooltip: {
         trigger: 'item',
-        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
         textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
         valueFormatter: (value) => formatNumber(value, numberFormat),
       },
@@ -552,7 +552,7 @@ const StackedWaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     legend: {
       type: 'scroll',
       data: [
@@ -565,7 +565,7 @@ const StackedWaterfallChart = ({
     dataset,
     tooltip: {
       trigger: 'axis',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
       valueFormatter: (value) => formatNumber(value, numberFormat),
     },

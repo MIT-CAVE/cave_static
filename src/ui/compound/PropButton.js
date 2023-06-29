@@ -8,16 +8,17 @@ import { sendCommand } from '../../data/data'
 import { forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
-  p: 1,
+  display: 'flex',
   width: '100%',
+  p: 1,
   pointerEvents: enabled ? '' : 'none',
   opacity: enabled ? '' : 0.7,
 })
 
 const PropButton = ({ prop, sx = [], ...props }) => {
-  const enabled = prop.enabled || false
   const dispatch = useDispatch()
 
+  const enabled = prop.enabled || false
   return (
     <Box
       sx={[getStyles(enabled), ...forceArray(sx)]}
@@ -32,8 +33,11 @@ const PropButton = ({ prop, sx = [], ...props }) => {
             sendCommand({
               command: 'mutate_session',
               data: {
-                api_command: R.prop('apiCommand', prop),
-                api_command_keys: R.prop('apiCommandKeys', prop),
+                api_command: R.prop('apiCommand')(prop),
+                api_command_keys: R.prop('apiCommandKeys')(prop),
+                data_name: R.prop('dataName')(prop),
+                data_path: R.prop('dataPath')(prop),
+                data_value: R.prop('dataValue')(prop),
               },
             })
           )

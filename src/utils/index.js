@@ -577,10 +577,10 @@ export const getTimeValue = (timeIndex) =>
     R.path(['value', timeIndex])
   )
 
-export const serializeNumLabel = (numLabel) =>
+export const serializeNumLabel = (numLabel, precision) =>
   numLabel === Infinity || numLabel === -Infinity
     ? 'NaN'
-    : (+numLabel).toPrecision(3)
+    : (+numLabel).toPrecision(precision ?? 3)
 
 export const countDigits = (num) =>
   num === 0 ? 1 : Math.floor(Math.log10(Math.abs(num))) + 1
@@ -603,4 +603,9 @@ export const getDecimalScaleLabel = R.pipe(
     [R.lte(1e6), R.always('millions')],
     [R.lte(1e3), R.always('thousands')],
   ])
+)
+
+export const capitalize = R.when(
+  R.isNotNil,
+  R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])
 )

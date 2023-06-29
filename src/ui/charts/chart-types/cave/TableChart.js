@@ -1,11 +1,12 @@
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
+import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { formatNumber } from '../../../../utils'
 
-const TableChart = ({ labels, colTypes, formattedData, numberFormat }) => {
+const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
   // labels = R.map(R.replace(/->/, '&rarr;'))(labels)
-  const rows = formattedData.map((d, index) =>
+  const rows = data.map((d, index) =>
     R.converge(
       // `unapply` helps here by processing the input of mergeAll
       // as object arguments instead of an array of objects
@@ -27,19 +28,30 @@ const TableChart = ({ labels, colTypes, formattedData, numberFormat }) => {
     minWidth: 150,
     flex: 1,
     valueFormatter: ({ value }) => formatNumber(value, numberFormat),
-    ...(colTypes[index] === 'number' && {
+    ...(columnTypes[index] === 'number' && {
       headerAlign: 'center',
       align: 'center',
     }),
-    type: colTypes[index],
+    type: columnTypes[index],
   }))
 
   return (
-    <DataGrid
-      sx={{ bgcolor: 'background.paper', minWidth: 0 }}
-      {...{ rows, columns }}
-      rowsPerPageOptions={[25, 50, 100]}
-    />
+    <div style={{ flex: '1 1 auto' }}>
+      <AutoSizer>
+        {({ height, width }) => (
+          <DataGrid
+            sx={{
+              height,
+              width,
+              minWidth: 0,
+              bgcolor: 'background.paper',
+            }}
+            {...{ rows, columns }}
+            rowsPerPageOptions={[25, 50, 100]}
+          />
+        )}
+      </AutoSizer>
+    </div>
   )
 }
 

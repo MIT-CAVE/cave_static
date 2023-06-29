@@ -81,7 +81,7 @@ const Map = ({ mapboxToken }) => {
             radius: 20,
           }),
         R.filter(
-          R.pipe(R.pathEq(['layer', 'id'], layerId.GEOGRAPHY_LAYER), R.not)
+          R.pipe(R.pathEq(layerId.GEOGRAPHY_LAYER, ['layer', 'id']), R.not)
         ),
         R.isEmpty
       )(e),
@@ -95,15 +95,36 @@ const Map = ({ mapboxToken }) => {
         x: R.prop('x', e),
         radius: 20,
       })
+      const pickedCluster = R.find(
+        R.pathEq(layerId.NODE_ICON_CLUSTER_LAYER, ['layer', 'id'])
+      )(pickedItems)
       const pickedNode = R.find(
-        R.pathEq(['layer', 'id'], layerId.NODE_ICON_LAYER)
+        R.pathEq(layerId.NODE_ICON_LAYER, ['layer', 'id'])
       )(pickedItems)
       const pickedArc = R.find(
         (d) =>
-          R.pathEq(['layer', 'id'], layerId.ARC_LAYER, d) ||
-          R.pathEq(['layer', 'id'], layerId.ARC_LAYER_3D, d)
+          R.pathEq(layerId.ARC_LAYER, ['layer', 'id'], d) ||
+          R.pathEq(layerId.ARC_LAYER_3D, ['layer', 'id'], d)
       )(pickedItems)
-      !R.isNil(pickedNode)
+
+      R.isNotNil(pickedCluster)
+        ? dispatch(
+            openMapModal({
+              appBarId,
+              data: {
+                ...R.pathOr({}, ['object', 'properties'])(pickedCluster),
+                feature: 'nodes',
+                type: R.propOr(
+                  pickedCluster.object.properties.type,
+                  'name'
+                )(pickedCluster.object.properties),
+                key: pickedCluster.object.id
+                  ? `node${pickedCluster.object.id}`
+                  : pickedCluster.object.properties.id,
+              },
+            })
+          )
+        : R.isNotNil(pickedNode)
         ? dispatch(
             openMapModal({
               appBarId,
@@ -118,7 +139,7 @@ const Map = ({ mapboxToken }) => {
               },
             })
           )
-        : !R.isNil(pickedArc)
+        : R.isNotNil(pickedArc)
         ? dispatch(
             openMapModal({
               appBarId,

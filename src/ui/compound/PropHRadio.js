@@ -12,12 +12,12 @@ const getStyles = (enabled) => ({
   opacity: enabled ? '' : 0.7,
 })
 
-const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
+const PropHRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, options } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <RadioGroup sx={{ pl: 1 }}>
+      <RadioGroup row sx={{ pl: 1 }}>
         {R.values(
           R.mapObjIndexed((val, key) => (
             <FormControlLabel
@@ -34,6 +34,7 @@ const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                 />
               }
               label={R.prop('name', val)}
+              labelPlacement={'bottom'}
             />
           ))(options)
         )}
@@ -41,7 +42,7 @@ const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     </Box>
   )
 }
-PropRadio.propTypes = {
+PropHRadio.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.array,
   sx: PropTypes.oneOfType([
@@ -54,4 +55,4 @@ PropRadio.propTypes = {
   onChange: PropTypes.func,
 }
 
-export default PropRadio
+export default PropHRadio

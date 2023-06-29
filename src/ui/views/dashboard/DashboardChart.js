@@ -3,8 +3,6 @@ import * as R from 'ramda'
 import { memo, useEffect, useState, useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
 
-//Create placeholder data and refactor it here before it's sent to the index.js.
-//Create placeholder data, the placeholder and the right data.
 import {
   selectFilteredStatsData,
   selectStatisticTypes,
@@ -14,6 +12,7 @@ import {
   selectCategoryFunc,
   selectNumberFormat,
 } from '../../../data/selectors'
+import { chartType } from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -58,7 +57,7 @@ const customSortByX = R.curry((ordering, data) => {
   ])(sublists)
 })
 
-const DashboardChart = ({ obj, length }) => {
+const DashboardChart = ({ obj }) => {
   const themeId = useSelector(selectTheme)
   const debug = useSelector(selectDebug)
   const filteredStatsData = useSelector(selectFilteredStatsData)
@@ -75,15 +74,6 @@ const DashboardChart = ({ obj, length }) => {
   const pathedVar = useMemo(
     () => forcePath(R.propOr([], 'statistic', obj)),
     [obj]
-  )
-
-  // Checks if y values are arrays to prevent crash while calculating
-  const checkBoxplotData = R.pipe(
-    R.last,
-    R.propOr({}, 'y'),
-    R.values,
-    R.last,
-    R.is(Array)
   )
 
   const subGrouped = R.has('level2')(obj)
@@ -310,25 +300,22 @@ const DashboardChart = ({ obj, length }) => {
         flex: '1 1 auto',
       }}
     >
-      {obj.chart === 'Table' && obj.category ? (
+      {obj.chart === chartType.TABLE && obj.category ? (
         <TableChart
-          formattedData={tableData}
+          data={tableData}
           numberFormat={commonFormat}
-          length={length}
           labels={tableLabels}
-          colTypes={tableColTypes}
+          columnTypes={tableColTypes}
         />
-      ) : obj.chart === 'Box Plot' ? (
+      ) : obj.chart === chartType.BOX_PLOT ? (
         <BoxPlot
-          data={
-            !subGrouped || checkBoxplotData(formattedData) ? formattedData : []
-          }
+          data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Bar' ? (
+      ) : obj.chart === chartType.BAR ? (
         <BarPlot
           data={formattedData}
           numberFormat={commonFormat}
@@ -336,7 +323,7 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Stacked Bar' ? (
+      ) : obj.chart === chartType.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
@@ -345,7 +332,7 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Stacked Waterfall' ? (
+      ) : obj.chart === chartType.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
@@ -353,7 +340,7 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Line' ? (
+      ) : obj.chart === chartType.LINE ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
@@ -361,7 +348,7 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Waterfall' ? (
+      ) : obj.chart === chartType.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
@@ -369,7 +356,7 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Cumulative Line' ? (
+      ) : obj.chart === chartType.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
           numberFormat={commonFormat}
@@ -377,15 +364,20 @@ const DashboardChart = ({ obj, length }) => {
           subGrouped={subGrouped}
           {...labels}
         />
-      ) : obj.chart === 'Sunburst' ? (
+      ) : obj.chart === chartType.SUNBURST ? (
         <Sunburst
           data={formattedData}
-          // numberFormat={commonFormat}
+          numberFormat={commonFormat}
           theme={themeId}
           subGrouped={subGrouped}
         />
-      ) : obj.chart === 'Treemap' ? (
-        <Treemap data={formattedData} theme={themeId} subGrouped={subGrouped} />
+      ) : obj.chart === chartType.TREEMAP ? (
+        <Treemap
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          subGrouped={subGrouped}
+        />
       ) : (
         <></>
       )}

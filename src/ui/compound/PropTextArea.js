@@ -6,19 +6,23 @@ import TextInput from './TextInput'
 
 import { forceArray } from '../../utils'
 
-const style = {
-  p: 1,
-  width: '100%',
-  minHeight: (theme) => theme.spacing(5),
+const styles = {
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    p: 1,
+    minHeight: (theme) => theme.spacing(5),
+  },
 }
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, minRows = 2, maxRows = 10 } = prop
+  const { enabled = false, rows = 4 } = prop
   return (
-    <Box sx={[style, ...forceArray(sx)]} {...props}>
+    <Box sx={[styles.root, ...forceArray(sx)]} {...props}>
       <TextInput
         multiline
-        {...{ enabled, minRows, maxRows }}
+        {...{ enabled, rows }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return

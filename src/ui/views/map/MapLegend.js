@@ -1,9 +1,16 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Grid, Switch, ToggleButton } from '@mui/material'
+import {
+  Box,
+  Grid,
+  Paper,
+  Stack,
+  Switch,
+  ToggleButton,
+  Typography,
+} from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
-import { BsSquareFill } from 'react-icons/bs'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { VscLoading } from 'react-icons/vsc'
 import { useSelector, useDispatch } from 'react-redux'
@@ -41,8 +48,10 @@ import {
 } from '../../compound'
 
 import {
+  capitalize,
   customSort,
   eitherBoolOrNotNull,
+  formatNumber,
   includesPath,
   serializeNumLabel,
 } from '../../../utils'
@@ -71,6 +80,25 @@ const styles = {
   },
   bold: {
     fontWeight: 700,
+  },
+  categoryIcon: {
+    m: 0.75,
+    p: 0.5,
+    width: '16px',
+    height: '16px',
+    borderRadius: 1,
+  },
+  unit: {
+    display: 'flex',
+    alignSelf: 'end',
+    ml: 1.5,
+    mb: 1,
+    px: 1.25,
+    border: 1,
+    borderRadius: 1,
+    borderColor: 'text.secondary',
+    fontWeight: 700,
+    wordBreak: 'break-word',
   },
 }
 
@@ -123,12 +151,62 @@ const addExtraProps = (Component, extraProps) => {
   return <ComponentType {...Component.props} {...extraProps} />
 }
 
-const CategoricalBox = ({ title, color, getLabel = R.identity }) => (
-  <Box sx={{ mx: 0.5 }}>
-    {getLabel(title)}
-    <br />
-    <BsSquareFill css={{ color: color, marginTop: '5px' }} />
-  </Box>
+const getMinMaxLabel = (
+  valRange,
+  timeProp,
+  valProp,
+  typeObj,
+  end,
+  labelEnd
+) => {
+  return R.pathOr(
+    R.path(['props', valProp, 'legendOverride', 'useScientificFormat'])(
+      typeObj
+    ) ?? true
+      ? serializeNumLabel(
+          timeProp(end, valRange),
+          R.path(['props', valProp, 'legendOverride', 'scientificPrecision'])(
+            typeObj
+          )
+        )
+      : formatNumber(
+          timeProp(end, valRange),
+          R.pipe(
+            R.path(['props', valProp, 'numberFormat']),
+            R.dissoc('unit')
+          )(typeObj)
+        ),
+    ['props', valProp, 'legendOverride', labelEnd]
+  )(typeObj)
+}
+
+const getMinLabel = (valRange, timeProp, valProp, typeObj) => {
+  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'min', 'minLabel')
+}
+
+const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
+  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max', 'maxLabel')
+}
+
+const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
+  <OverflowText sx={{ width: '100%' }}>
+    <Stack direction="row" spacing={3} justifyContent="center">
+      {R.values(
+        R.mapObjIndexed(
+          (val, key) => (
+            <Stack alignItems="center" {...{ key }}>
+              <Paper
+                sx={[styles.categoryIcon, { bgcolor: val }]}
+                elevation={3}
+              />
+              <div>{getLabel(key)}</div>
+            </Stack>
+          ),
+          colorRange
+        )
+      )}
+    </Stack>
+  </OverflowText>
 )
 
 const GradientBox = ({ gradientBox }) => (
@@ -211,10 +289,12 @@ const MapLegendSizeBySection = ({
   ]
   const syncSize = !includesPath(R.values(sync), path)
 
+  const unit = R.path(['props', sizeProp, 'numberFormat', 'unit'])(typeObj)
+
   return (
-    <>
-      <Grid container alignItems="flex-start" justifyContent="center">
-        <Grid item xs css={{ textAlign: 'center' }}>
+    <Grid container>
+      <Grid item container alignItems="center" justifyContent="center" xs={6}>
+        <Grid item xs>
           <SimpleDropdown
             value={sizeProp}
             getLabel={getPropName}
@@ -226,47 +306,43 @@ const MapLegendSizeBySection = ({
             }}
           />
         </Grid>
+        {unit && (
+          <Grid item>
+            <Typography variant="subtitle1" sx={styles.unit}>
+              {unit}
+            </Typography>
+          </Grid>
+        )}
       </Grid>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          px: 1,
-          mb: 0.5,
-          flex: '1 1 auto',
-        }}
-      >
-        <Box
-          sx={{
-            mr: 1,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {serializeNumLabel(timeProp('min', sizeRange))}
-        </Box>
-        <Box sx={{ mr: 0.75 }}>
+      <Grid item container alignItems="center" justifyContent="center" xs={6}>
+        <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
+          <OverflowText
+            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
+          />
+        </Grid>
+        <Grid item sx={{ pr: 0.75 }}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('startSize')(typeObj),
               height: R.prop('startSize')(typeObj),
             },
           })}
-        </Box>
-        <Box sx={[{ ml: 0.75 }, styles.rightBold]}>
+        </Grid>
+        <Grid item sx={{ pl: 0.75 }}>
           {addExtraProps(icon, {
             css: {
               width: R.prop('endSize')(typeObj),
               height: R.prop('endSize')(typeObj),
             },
           })}
-        </Box>
-        <Box sx={{ ml: 1, fontWeight: 700 }}>
-          {serializeNumLabel(timeProp('max', sizeRange))}
-        </Box>
-      </Box>
-    </>
+        </Grid>
+        <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
+          <OverflowText
+            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
+          />
+        </Grid>
+      </Grid>
+    </Grid>
   )
 }
 
@@ -310,6 +386,15 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
+  const getGeoCategoryName = useCallback(
+    (key) =>
+      R.pathOr(
+        capitalize(key),
+        ['props', colorProp, 'options', key, 'name'],
+        typeObj
+      ),
+    [typeObj, colorProp]
+  )
 
   return (
     <details key={geoType} css={nonSx.typeWrapper} open>
@@ -345,24 +430,7 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
         />
       </Grid>
       {isCategorical ? (
-        <Grid container alignItems="flex-start" justifyContent="center">
-          {R.values(
-            R.mapObjIndexed(
-              (val, key) => (
-                <Grid item xs css={{ textAlign: 'center' }} key={key}>
-                  <CategoricalBox
-                    title={key}
-                    color={val}
-                    getLabel={(str) =>
-                      str.charAt(0).toUpperCase() + str.slice(1)
-                    }
-                  />
-                </Grid>
-              ),
-              colorRange
-            )
-          )}
-        </Grid>
+        <CategoricalItems getLabel={getGeoCategoryName} {...{ colorRange }} />
       ) : (
         <GradientBox
           gradientBox={{
@@ -376,8 +444,8 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
               ['endGradientColor', themeType],
               colorRange
             ),
-            maxVal: timeProp('max', colorRange),
-            minVal: timeProp('min', colorRange),
+            maxVal: getMaxLabel(colorRange, timeProp, colorProp, typeObj),
+            minVal: getMinLabel(colorRange, timeProp, colorProp, typeObj),
           }}
         />
       )}
@@ -414,109 +482,143 @@ const MapLegendNodeToggle = ({
   sizeProp,
   colorProp,
 }) => {
+  return (
+    <LegendCard
+      geometryType={nodeType}
+      typeObj={typeObj}
+      legendGroupId={legendGroupId}
+      sizeProp={sizeProp}
+      colorProp={colorProp}
+      selectEnabledGeometry={selectEnabledNodes}
+      selectGeometryRange={selectNodeRange}
+      geometryName="nodes"
+      icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
+    />
+  )
+}
+
+const MapLegendArcToggle = ({
+  arcType,
+  typeObj,
+  legendGroupId,
+  sizeProp,
+  colorProp,
+}) => {
+  const IconClass =
+    typeObj.lineBy === 'dotted'
+      ? AiOutlineEllipsis
+      : typeObj.lineBy === 'dashed'
+      ? AiOutlineDash
+      : typeObj.lineBy === '3d'
+      ? VscLoading
+      : AiOutlineLine
+  return (
+    <LegendCard
+      geometryType={arcType}
+      typeObj={typeObj}
+      legendGroupId={legendGroupId}
+      sizeProp={sizeProp}
+      colorProp={colorProp}
+      selectEnabledGeometry={selectEnabledArcs}
+      selectGeometryRange={selectArcRange}
+      geometryName="arcs"
+      icon={<IconClass />}
+    />
+  )
+}
+
+const LegendCard = ({
+  geometryType,
+  typeObj,
+  legendGroupId,
+  sizeProp,
+  colorProp,
+  selectEnabledGeometry,
+  selectGeometryRange,
+  geometryName, // arcs/nodes/geos
+  icon,
+}) => {
+  // TODO: extend this for geos?
   const dispatch = useDispatch()
-  const displayedNodes = useSelector(selectEnabledNodes)
-  const nodeRange = useSelector(selectNodeRange)
+  const displayedGeometry = useSelector(selectEnabledGeometry)
+  const geometryRange = useSelector(selectGeometryRange)
   const timeProp = useSelector(selectTimeProp)
   const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
-  const nodeRangesByType = R.propOr(
+
+  const basePath = [
+    'maps',
+    'data',
+    appBarId,
+    'legendGroups',
+    legendGroupId,
+    geometryName,
+    geometryType,
+  ]
+
+  const path = R.append('value', basePath)
+  const syncToggle = !includesPath(R.values(sync), path)
+
+  const groupPath = R.append('group', basePath)
+  const syncGroupToggle = !includesPath(R.values(sync), groupPath)
+
+  const groupCalcColorPath = R.append('groupCalcByColor', basePath)
+  const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
+
+  // TODO: Decide how to handle grouping? Allow for arcs or make sure it is
+  // only for nodes?
+  const allowGrouping = displayedGeometry[geometryType].allowGrouping || false
+  const group = displayedGeometry[geometryType].group || false
+  const groupCalcBySize =
+    displayedGeometry[geometryType].groupCalcBySize || statId.COUNT
+
+  const groupCalcSizePath = R.append('groupCalcBySize', basePath)
+  const syncGroupCalcSize = !includesPath(R.values(sync), groupCalcSizePath)
+  const groupCalcByColor =
+    displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
+
+  const geometryRangesByType = R.propOr(
     {},
     'range',
     useSelector(selectNodeClustersAtZoom)
   )
+  const { color: colorDomain, size: sizeDomain } = R.propOr(
+    {},
+    geometryType,
+    geometryRangesByType
+  )
 
-  const path = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'nodes',
-    nodeType,
-    'value',
-  ]
-  const syncToggle = !includesPath(R.values(sync), path)
-
-  const colorPath = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'nodes',
-    nodeType,
-    'colorBy',
-  ]
+  const colorPath = R.append('colorBy', basePath)
   const syncColor = !includesPath(R.values(sync), colorPath)
 
-  const groupPath = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'nodes',
-    nodeType,
-    'group',
-  ]
-  const syncGroupToggle = !includesPath(R.values(sync), groupPath)
+  const sizeRange = geometryRange(geometryType, sizeProp, true)
+  const colorRange = geometryRange(geometryType, colorProp, false)
+  const isCategorical = !R.has('min', colorRange)
 
-  const groupCalcSizePath = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'nodes',
-    nodeType,
-    'groupCalcBySize',
-  ]
-  const syncGroupCalcSize = !includesPath(R.values(sync), groupCalcSizePath)
-
-  const groupCalcColorPath = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'nodes',
-    nodeType,
-    'groupCalcByColor',
-  ]
-  const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
-
-  const getNodePropName = useCallback(
+  const getGeometryPropName = useCallback(
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
     [typeObj]
   )
-
-  const allowGrouping = displayedNodes[nodeType].allowGrouping || false
-  const group = displayedNodes[nodeType].group || false
-  const groupCalcBySize =
-    displayedNodes[nodeType].groupCalcBySize || statId.COUNT
-  const groupCalcByColor =
-    displayedNodes[nodeType].groupCalcByColor || statId.COUNT
-
-  const { color: colorDomain, size: sizeDomain } = R.propOr(
-    {},
-    nodeType,
-    nodeRangesByType
+  const getGeometryCategoryName = useCallback(
+    (key) =>
+      R.pathOr(
+        capitalize(key),
+        ['props', colorProp, 'options', key, 'name'],
+        typeObj
+      ),
+    [typeObj, colorProp]
   )
-  const sizeRange = nodeRange(nodeType, sizeProp, true)
-  const colorRange = nodeRange(nodeType, colorProp, false)
 
-  const isCategorical = !R.has('min', colorRange)
   return (
-    <details key={nodeType} css={nonSx.typeWrapper} open>
+    <details key={geometryType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
-          icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
-          legendName={R.propOr(nodeType, 'name')(typeObj)}
+          icon={icon}
+          legendName={R.propOr(geometryType, 'name')(typeObj)}
           toggle={
             <Switch
-              checked={eitherBoolOrNotNull(displayedNodes[nodeType])}
+              checked={eitherBoolOrNotNull(displayedGeometry[geometryType])}
               onChange={(event) => {
                 event.target.checked
                   ? dispatch(
@@ -557,11 +659,11 @@ const MapLegendNodeToggle = ({
         />
       </summary>
       <hr />
-      <Grid container spacing={1}>
+      <Grid container spacing={1} alignItems="stretch">
         <Grid
           container
           item
-          xs
+          xs={12}
           css={{
             display: R.isNil(R.prop('sizeByOptions')(typeObj)) ? 'none' : '',
           }}
@@ -569,11 +671,11 @@ const MapLegendNodeToggle = ({
           <MapLegendSizeBySection
             sizeProp={sizeProp}
             sizeRange={group && sizeDomain ? sizeDomain : sizeRange}
-            getPropName={getNodePropName}
+            getPropName={getGeometryPropName}
             typeObj={typeObj}
-            typeName={nodeType}
-            icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
-            feature="nodes"
+            typeName={geometryType}
+            icon={icon}
+            feature={geometryName}
             legendGroup={legendGroupId}
           />
           {group && (
@@ -595,195 +697,23 @@ const MapLegendNodeToggle = ({
         <Grid
           container
           item
-          xs
+          xs={12}
           css={{
             display: R.isNil(R.prop('colorByOptions')(typeObj)) ? 'none' : '',
           }}
         >
-          <Grid container alignItems="flex-start" justifyContent="center">
-            <SimpleDropdown
-              value={colorProp}
-              optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
-              getLabel={getNodePropName}
-              onSelect={(value) => {
-                dispatch(
-                  mutateLocal({ sync: syncColor, path: colorPath, value })
-                )
-              }}
-            />
-          </Grid>
-          {isCategorical ? (
-            <Grid container alignItems="flex-start" justifyContent="center">
-              {R.values(
-                R.mapObjIndexed(
-                  (val, key) => (
-                    <Grid item xs css={{ textAlign: 'center' }} key={key}>
-                      <CategoricalBox
-                        title={key}
-                        color={val}
-                        getLabel={(str) =>
-                          str.charAt(0).toUpperCase() + str.slice(1)
-                        }
-                      />
-                    </Grid>
-                  ),
-                  colorRange
-                )
-              )}
-            </Grid>
-          ) : (
-            <GradientBox
-              gradientBox={{
-                minColor: R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                ),
-                maxColor: R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                ),
-                maxVal: timeProp(
-                  'max',
-                  group && colorDomain ? colorDomain : colorRange
-                ),
-                minVal: timeProp(
-                  'min',
-                  group && colorDomain ? colorDomain : colorRange
-                ),
-              }}
-            />
-          )}
-          {group && (
-            <GroupCalcDropdown
-              value={groupCalcByColor}
-              onSelect={(value) => {
-                dispatch(
-                  mutateLocal({
-                    path: groupCalcColorPath,
-                    sync: syncGroupCalcColor,
-                    value,
-                  })
-                )
-              }}
-            />
-          )}
-        </Grid>
-      </Grid>
-    </details>
-  )
-}
-
-const MapLegendArcToggle = ({
-  arcType,
-  typeObj,
-  legendGroupId,
-  sizeProp,
-  colorProp,
-}) => {
-  const dispatch = useDispatch()
-  const displayedArcs = useSelector(selectEnabledArcs)
-  const arcRange = useSelector(selectArcRange)
-  const themeType = useSelector(selectTheme)
-  const timeProp = useSelector(selectTimeProp)
-  const sync = useSelector(selectSync)
-  const appBarId = useSelector(selectAppBarId)
-
-  const IconClass =
-    typeObj.lineBy === 'dotted'
-      ? AiOutlineEllipsis
-      : typeObj.lineBy === 'dashed'
-      ? AiOutlineDash
-      : typeObj.lineBy === '3d'
-      ? VscLoading
-      : AiOutlineLine
-
-  const sizeRange = arcRange(arcType, sizeProp, true)
-  const colorRange = arcRange(arcType, colorProp, false)
-  const isCategorical = !R.has('min', colorRange)
-  const path = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'arcs',
-    arcType,
-    'value',
-  ]
-  const syncToggle = !includesPath(R.values(sync), path)
-
-  const colorPath = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroupId,
-    'arcs',
-    arcType,
-    'colorBy',
-  ]
-  const syncColor = !includesPath(R.values(sync), colorPath)
-  const getArcPropName = useCallback(
-    (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
-    [typeObj]
-  )
-  return (
-    <details key={arcType} css={nonSx.typeWrapper} open>
-      <summary css={nonSx.itemSummary}>
-        <MapLegendGroupRowToggleLayer
-          icon={<IconClass />}
-          legendName={R.propOr(arcType, 'name')(typeObj)}
-          toggle={
-            <Switch
-              checked={eitherBoolOrNotNull(displayedArcs[arcType])}
-              onChange={(event) => {
-                event.target.checked
-                  ? dispatch(
-                      mutateLocal({ path, sync: syncToggle, value: true })
-                    )
-                  : dispatch(
-                      mutateLocal({ path, sync: syncToggle, value: false })
-                    )
-              }}
-            />
-          }
-        />
-      </summary>
-      <hr />
-      <Grid container spacing={1} alignItems="stretch">
-        <Grid
-          item
-          xs
-          css={{
-            display: R.isNil(R.prop('sizeByOptions')(typeObj)) ? 'none' : '',
-          }}
-        >
-          <MapLegendSizeBySection
-            sizeProp={sizeProp}
-            sizeRange={sizeRange}
-            getPropName={getArcPropName}
-            typeObj={typeObj}
-            typeName={arcType}
-            icon={<IconClass />}
-            feature="arcs"
-            legendGroup={legendGroupId}
-          />
-        </Grid>
-        <Grid
-          item
-          xs
-          css={{
-            display: R.isNil(R.prop('colorByOptions')(typeObj)) ? 'none' : '',
-          }}
-        >
-          <Grid container spacing={1} alignItems="flex-start">
-            <Grid item xs css={{ textAlign: 'center' }}>
+          <Grid container alignItems="center">
+            <Grid
+              container
+              item
+              xs
+              alignItems="stretch"
+              justifyContent="center"
+            >
               <SimpleDropdown
                 value={colorProp}
                 optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
-                getLabel={getArcPropName}
+                getLabel={getGeometryPropName}
                 onSelect={(value) => {
                   dispatch(
                     mutateLocal({ sync: syncColor, path: colorPath, value })
@@ -791,44 +721,56 @@ const MapLegendArcToggle = ({
                 }}
               />
             </Grid>
-          </Grid>
-          {isCategorical ? (
-            <Grid container alignItems="flex-start" justifyContent="center">
-              {R.values(
-                R.mapObjIndexed(
-                  (val, key) => (
-                    <Grid item xs css={{ textAlign: 'center' }} key={key}>
-                      <CategoricalBox
-                        title={key}
-                        color={val}
-                        getLabel={(str) =>
-                          str.charAt(0).toUpperCase() + str.slice(1)
-                        }
-                      />
-                    </Grid>
-                  ),
-                  colorRange
-                )
+            <Grid container item alignItems="center" xs={6}>
+              {isCategorical ? (
+                <CategoricalItems
+                  getLabel={getGeometryCategoryName}
+                  {...{ colorRange }}
+                />
+              ) : (
+                <GradientBox
+                  gradientBox={{
+                    minColor: R.pathOr(
+                      R.prop('startGradientColor', colorRange),
+                      ['startGradientColor', themeType],
+                      colorRange
+                    ),
+                    maxColor: R.pathOr(
+                      R.prop('endGradientColor', colorRange),
+                      ['endGradientColor', themeType],
+                      colorRange
+                    ),
+                    maxVal: getMaxLabel(
+                      group && colorDomain ? colorDomain : colorRange,
+                      timeProp,
+                      colorProp,
+                      typeObj
+                    ),
+                    minVal: getMinLabel(
+                      group && colorDomain ? colorDomain : colorRange,
+                      timeProp,
+                      colorProp,
+                      typeObj
+                    ),
+                  }}
+                />
+              )}
+              {group && (
+                <GroupCalcDropdown
+                  value={groupCalcByColor}
+                  onSelect={(value) => {
+                    dispatch(
+                      mutateLocal({
+                        path: groupCalcColorPath,
+                        sync: syncGroupCalcColor,
+                        value,
+                      })
+                    )
+                  }}
+                />
               )}
             </Grid>
-          ) : (
-            <GradientBox
-              gradientBox={{
-                minColor: R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                ),
-                maxColor: R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                ),
-                maxVal: timeProp('max', colorRange),
-                minVal: timeProp('min', colorRange),
-              }}
-            />
-          )}
+          </Grid>
         </Grid>
       </Grid>
     </details>

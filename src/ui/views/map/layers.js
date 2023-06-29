@@ -90,7 +90,11 @@ const Get3dArcLayer = () => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        const propVal = R.pipe(
+          timePath(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(d[1])
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -204,7 +208,11 @@ const GetArcLayer = () => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
         const colorRange = arcRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
-        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        const propVal = R.pipe(
+          timePath(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(d[1])
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -308,7 +316,11 @@ const GetNodeIconLayer = () => {
       },
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        const propVal = R.pipe(
+          timePath(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(d[1])
         const colorRange = nodeRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         return isCategorical
@@ -596,12 +608,16 @@ const GetGeographyLayer = (openGeo) => {
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])
-        const value = timePath(['props', colorProp, 'value'], geoObj)
+        const value = R.pipe(
+          timePath(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(geoObj)
         const isCategorical = !R.has('min', statRange)
 
         return isCategorical
           ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', value.toString(), statRange)
+              R.propOr('rgb(0,0,0,5)', value, statRange)
                 .replace(/[^\d,.]/g, '')
                 .split(',')
             )

@@ -16,7 +16,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentWillUnmount() {
-    if (!R.isNil(this.state.timer)) clearTimeout(this.state.timer)
+    if (R.isNotNil(this.state.timer)) clearTimeout(this.state.timer)
   }
 
   render() {

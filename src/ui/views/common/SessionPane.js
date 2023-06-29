@@ -143,7 +143,15 @@ const ListItemCard = ({
   )
   return (
     <Card
-      sx={[{ position: 'relative' }, ...forceArray(sx)]}
+      sx={[
+        { position: 'relative' },
+        selected && {
+          border: 1,
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark' ? '#132a73' : '#c2eaff',
+        },
+        ...forceArray(sx),
+      ]}
       elevation={selected ? 12 : 1}
       {...{ disabled, ...props }}
     >

@@ -7,7 +7,7 @@ import { ValueRange } from './ValueRange'
 import { selectNumberFormat } from '../../data/selectors'
 
 const styles = (theme) => ({
-  pt: 3,
+  pt: 1,
   '& .MuiSlider-rail': {
     height: theme.spacing(0.5),
     borderRadius: 'shape.borderRadius',
@@ -22,23 +22,20 @@ const styles = (theme) => ({
   },
 })
 
-const PropNumberSlider = ({ prop, currentVal, onChange, ...props }) => {
+const PropNumberSlider = ({ prop, currentVal, onChange }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
 
-  const max = R.propOr(Infinity, 'maxValue', prop)
-  const min = R.propOr(-Infinity, 'minValue', prop)
-  const numberFormatRaw = prop.numberFormat || {}
   const enabled = prop.enabled || false
-  // TODO: Pass `numberFormat` to `ValueRange` after this component is refactored
+  const min = R.propOr(-Infinity, 'minValue', prop)
+  const max = R.propOr(Infinity, 'maxValue', prop)
+  const numberFormatRaw = prop.numberFormat || {}
   const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <ValueRange
-      {...{ enabled, props }}
-      sx={styles}
-      number
+      {...{ enabled, numberFormat }}
+      sliderProps={{ sx: styles }}
       minValue={min}
       maxValue={max}
-      unit={numberFormat.unit}
       valueStart={R.clamp(
         min,
         max,

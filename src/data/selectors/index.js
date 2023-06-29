@@ -267,7 +267,7 @@ export const selectAppBarId = createSelector(
     const fallbackId = R.pipe(
       sortProps,
       R.toPairs,
-      R.find(R.pathEq([1, 'type'], 'map')),
+      R.find(R.pathEq('map', [1, 'type'])),
       R.prop(0)
     )(appBarData)
     const currentId = R.propOr(
@@ -744,7 +744,8 @@ export const selectArcRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              (R.has('startGradientColor', range) && !R.has('max', range)),
+              (R.has('startGradientColor', range) &&
+                (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
@@ -761,12 +762,13 @@ export const selectArcRange = createSelector(
               )(R.propOr([], type, arcsByType))
             )
           ),
-          size && !R.has('min')
-            ? () => {
-                console.warn('sizeBy does not support categorical variables.')
-                return { min: 0, max: 0 }
-              }
-            : R.identity,
+          R.when(
+            (range) => size && (!R.has('min', range) || !R.has('max', range)),
+            () => {
+              console.warn('sizeBy does not support categorical variables.')
+              return { min: 0, max: 0 }
+            }
+          ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(arcs)
     )
@@ -805,7 +807,8 @@ export const selectNodeRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              (R.has('startGradientColor', range) && !R.has('max', range)),
+              (R.has('startGradientColor', range) &&
+                (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
@@ -822,12 +825,13 @@ export const selectNodeRange = createSelector(
               )(R.propOr([], type, nodesByType))
             )
           ),
-          size && !R.has('min')
-            ? () => {
-                console.warn('sizeBy does not support categorical variables.')
-                return { min: 0, max: 0 }
-              }
-            : R.identity,
+          R.when(
+            (range) => size && (!R.has('min', range) || !R.has('max', range)),
+            () => {
+              console.warn('sizeBy does not support categorical variables.')
+              return { min: 0, max: 0 }
+            }
+          ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(nodeTypes)
     )
@@ -842,7 +846,9 @@ export const selectGeoColorRange = createSelector(
           timePath([type, 'colorByOptions', prop]),
           R.when(
             (range) =>
-              R.has('startGradientColor', range) && !R.has('max', range),
+              R.isEmpty(range) ||
+              (R.has('startGradientColor', range) &&
+                (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
@@ -959,10 +965,12 @@ export const selectNodeClusters = createSelector(
           colorDomain: null,
           sizeDomain: null,
           icon: d['icon'],
+          grouped_ids: [d.id],
           ...R.mergeDeepRight(colorPropObj, sizePropObj),
         }
       },
       reduce: (acc, dProps) => {
+        const id = dProps.grouped_ids
         const colorProp = getVarByProp('colorBy', dProps)
         const sizeProp = getVarByProp('sizeBy', dProps)
         if (sizeProp) {
@@ -978,6 +986,10 @@ export const selectNodeClusters = createSelector(
         if (colorProp && colorProp !== sizeProp) {
           const propValue = dProps[colorProp].value
           acc[colorProp].value = acc[colorProp].value.concat(propValue)
+        }
+        // all the ids of the points grouped in this cluster
+        if (id) {
+          acc.grouped_ids = acc.grouped_ids.concat(id)
         }
       },
     }

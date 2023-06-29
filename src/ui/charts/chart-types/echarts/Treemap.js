@@ -73,14 +73,14 @@ const Treemap = ({ data, theme, subGrouped }) => {
     //       },
     //     }
     //   : null,
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     series: {
       label: {
         show: true,
       },
       itemStyle: {
         borderRadius: 10,
-        borderColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+        borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
         borderWidth: 2,
         gapWidth: 2,
       },
@@ -97,7 +97,7 @@ const Treemap = ({ data, theme, subGrouped }) => {
       levels: [
         {
           itemStyle: {
-            borderColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+            borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
             borderWidth: 2,
             gapWidth: 2,
           },
@@ -125,7 +125,7 @@ const Treemap = ({ data, theme, subGrouped }) => {
       ],
     },
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       trigger: 'item',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',

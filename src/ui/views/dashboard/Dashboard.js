@@ -208,11 +208,11 @@ const Dashboard = () => {
             {R.propOr('stats', 'type', obj) === 'stats' ? (
               obj.statistic && (
                 <Suspense fallback={<CircularProgress sx={styles.loader} />}>
-                  <DashboardChart obj={obj} length={dashboardLayout.length} />
+                  <DashboardChart {...{ obj }} />
                 </Suspense>
               )
             ) : (
-              <DashboardKpi obj={obj} length={dashboardLayout.length} />
+              <DashboardKpi {...{ obj }} />
             )}
           </Paper>
         )}

@@ -23,6 +23,7 @@ const FloatButton = ({ onClick, iconName }) => (
       p: 0.5,
       border: '1px solid',
       borderRadius: 1,
+      marginLeft: 1,
       minHeight: '24px',
       pointerEvents: '',
     }}
@@ -77,7 +78,27 @@ const RefreshButton = () => {
   )
 }
 
-const PaneWrapper = ({ open, pane, width, variant, ...props }) => (
+const SessionCardButton = ({ sessionCard, toggleSessionCard }) => {
+  const iconName = sessionCard
+    ? 'MdOutlineCloseFullscreen'
+    : 'MdOutlineOpenInNew'
+  return (
+    <FloatButton
+      onClick={() => toggleSessionCard(!sessionCard)}
+      iconName={iconName}
+    />
+  )
+}
+
+const PaneWrapper = ({
+  open,
+  pane,
+  sessionCard,
+  toggleSessionCard,
+  width,
+  variant,
+  ...props
+}) => (
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
@@ -85,7 +106,13 @@ const PaneWrapper = ({ open, pane, width, variant, ...props }) => (
     style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
       R.equals(variant, paneId.SESSION) ? (
-        <RefreshButton />
+        <>
+          <SessionCardButton
+            sessionCard={sessionCard}
+            toggleSessionCard={toggleSessionCard}
+          />
+          <RefreshButton />
+        </>
       ) : (
         pane.teamSync && <SyncButton {...{ open, pane }} />
       )
@@ -98,7 +125,14 @@ PaneWrapper.propTypes = {
   pane: PropTypes.object,
 }
 
-const renderAppPane = ({ open, pane, pin, onPin }) => {
+const renderAppPane = ({
+  open,
+  pane,
+  pin,
+  onPin,
+  sessionCard,
+  toggleSessionCard,
+}) => {
   let { width, variant, ...paneProps } = pane
   // Make `PANE_WIDTH` the default width for the Session pane
   const paneWidth =
@@ -108,6 +142,8 @@ const renderAppPane = ({ open, pane, pin, onPin }) => {
       {...{ open, variant, pin, onPin }}
       width={paneWidth}
       pane={paneProps}
+      sessionCard={sessionCard}
+      toggleSessionCard={toggleSessionCard}
     >
       {R.cond([
         // Built-in panes
