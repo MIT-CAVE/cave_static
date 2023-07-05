@@ -15,6 +15,9 @@ import {
   Stack,
   Typography,
   Tooltip,
+  Select as MuiSelect,
+  Autocomplete,
+  TextField,
 } from '@mui/material'
 import { DataGrid, GridColumnMenuProps, GridToolbar, GridToolbarContainer, GridToolbarFilterButton } from '@mui/x-data-grid'
 import * as R from 'ramda'
@@ -31,7 +34,7 @@ import {
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 
-import { FetchedIcon, TextInput } from '../../compound'
+import { FetchedIcon, TextInput, Select, HeaderSelectWrapper} from '../../compound'
 
 import { forceArray, getFreeName } from '../../../utils'
 
@@ -203,12 +206,15 @@ const ListItemSessionCardInput = ({
   onClickConfirm,
   onClickCancel,
   cardHeaderSx,
+  teamOptions,
   sx,
   ...props
 }) => {
   const [inputValues, setInputValues] = useState({
     name: sessionName,
     description: sessionDescription,
+    ...(teamOptions &&
+      teamOptions.length > 0 && { team: teamOptions[0].label }),
   })
   return (
     <Card elevation={18} {...{ sx, ...props }}>
@@ -216,16 +222,36 @@ const ListItemSessionCardInput = ({
         sx={[{ pb: 1 }, ...forceArray(cardHeaderSx)]}
         {...{ title }}
         subheader={
-          <TextInput
-            enabled
-            controlled
-            sx={{ mt: 3 }}
-            value={inputValues.name}
-            label="Session name"
-            onChange={(value) => {
-              setInputValues(R.assoc('name', value)(inputValues))
-            }}
-          />
+          <>
+            {teamOptions && teamOptions.length > 0 && (
+              <Autocomplete
+                fullWidth
+                value={inputValues.team}
+                sx={{ mt: 3 }}
+                enabled
+                disablePortal
+                options={teamOptions}
+                renderInput={(params) => (
+                  // The placeholder in the API serves as a label in the context of the MUI component.
+                  <TextField fullWidth label={'Team'} {...params} />
+                )}
+                onChnage={(event, value) => {
+                  console.log('maxkey')
+                  setInputValues(R.assoc('team', value)(inputValues))
+                }}
+              />
+            )}
+            <TextInput
+              enabled
+              controlled
+              sx={{ mt: 3 }}
+              value={inputValues.name}
+              label="Session name"
+              onChange={(value) => {
+                setInputValues(R.assoc('name', value)(inputValues))
+              }}
+            />
+          </>
         }
       />
       <CardContent>
@@ -250,7 +276,15 @@ const ListItemSessionCardInput = ({
           <Button
             aria-label="confirm changes"
             onClick={() => {
-              onClickConfirm(inputValues.name, inputValues.description)
+              onClickConfirm(
+                inputValues.name,
+                inputValues.description,
+                teamOptions &&
+                  R.pipe(
+                    R.find((option) => option.label === 'new team'),
+                    R.prop('value')
+                  )(teamOptions)
+              )
             }}
             // color="success"
             variant="contained"
@@ -355,8 +389,8 @@ const UnstyledHeader = ({
   />
 )
 
-const CustomToolbar = () => {
-  const onClick = () => {}
+const CustomToolbar = ({ onClickCreateHandler, ...props }) => {
+  const onClick = () => onClickCreateHandler()
   return (
     <GridToolbarContainer>
       <GridToolbarFilterButton
@@ -388,23 +422,25 @@ const CustomDataGridRow = ({ ...props }) => {
 
   const {
     currentAction,
-    teamId,
-    teamName,
-    sessionName,
-    sessionId,
-    sessionIdCurrent,
-    sessionDescription,
-    onClickConfirmEditHandler,
+    index,
     onClickCancelHandler,
-    teamCountSessions,
-    teamLimitSessions,
-    onClickHandler,
+    onClickConfirmCreateHandler,
+    onClickConfirmDuplicateHandler,
+    onClickConfirmEditHandler,
     onClickDuplicateHandler,
     onClickEditHandler,
+    onClickHandler,
     onClickRemoveHandler,
-    index,
+    sessionDescription,
+    sessionId,
+    sessionIdCurrent,
+    sessionName,
     sessionsByTeam,
-    onClickConfirmDuplicateHandler,
+    teamCountSessions,
+    teamId,
+    teamLimitSessions,
+    teamName,
+    teams,
   } = props.row
 
   // if (currentAction.teamId === teamId) {
@@ -443,8 +479,27 @@ const CustomDataGridRow = ({ ...props }) => {
   //   )
   // }
   const selected = sessionId === sessionIdCurrent
+  console.log(currentAction.command)
+  console.log(props.index)
   return (
     <Fragment key={`${teamId}-${sessionName}`}>
+      {props.index === 0 && currentAction.command === 'create' && (
+        <ListItemSessionCardInput
+          key="create-session-form"
+          title="Create session"
+          sessionName={getFreeName(
+            'New session',
+            R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
+          )}
+          sessionDescription=""
+          onClickConfirm={onClickConfirmCreateHandler}
+          onClickCancel={onClickCancelHandler}
+          teamOptions={R.map(
+            (team) => ({ label: team.name, value: team.id }),
+            teams
+          )}
+        />
+      )}
       {sessionId === currentAction.sessionId &&
       currentAction.index >= 0 &&
       currentAction.command === 'edit' ? (
@@ -669,10 +724,11 @@ const SessionPane = ({ width }) => {
     )
   }
   // Create session
-  const onClickCreateHandler = (teamId) => {
-    setCurrentAction({ command: 'create', teamId })
+  const onClickCreateHandler = () => {
+    console.log('create')
+    setCurrentAction({ command: 'create' })
   }
-  const onClickConfirmCreateHandler = (name, description) => {
+  const onClickConfirmCreateHandler = (name, description, teamId) => {
     dispatch(
       sendCommand({
         command: 'session_management',
@@ -681,7 +737,7 @@ const SessionPane = ({ width }) => {
           session_command_data: {
             session_name: name,
             session_description: description,
-            team_id: currentAction.teamId,
+            team_id: teamId,
           },
         },
       })
@@ -782,6 +838,7 @@ const SessionPane = ({ width }) => {
                   currentAction,
                   index,
                   onClickCancelHandler,
+                  onClickConfirmCreateHandler,
                   onClickConfirmDuplicateHandler,
                   onClickConfirmEditHandler,
                   onClickDuplicateHandler,
@@ -872,10 +929,11 @@ const SessionPane = ({ width }) => {
                       { sessionId, sessionName, sessionDescription },
                       index
                     ) => ({
-                      id: `${index}-${teamId}`,
                       currentAction,
+                      id: `${index}-${teamId}`,
                       index,
                       onClickCancelHandler,
+                      onClickConfirmCreateHandler,
                       onClickConfirmDuplicateHandler,
                       onClickConfirmEditHandler,
                       onClickDuplicateHandler,
@@ -891,6 +949,7 @@ const SessionPane = ({ width }) => {
                       teamId,
                       teamLimitSessions,
                       teamName,
+                      teams,
                     }),
                     sessionsByTeam[teamId]
                   )
@@ -909,6 +968,7 @@ const SessionPane = ({ width }) => {
           row: CustomDataGridRow,
           toolbar: CustomToolbar,
         }}
+        slotProps={{ toolbar: { onClickCreateHandler } }}
         // rowsPerPageOptions={[25, 50, 100]}
       />
       <Box

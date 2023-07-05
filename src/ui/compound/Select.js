@@ -62,6 +62,8 @@ const Select = ({
       displayEmpty
       value={selectedValue}
       onOpen={() => {
+        console.log('maxkey: open')
+        console.log(`maxkey: ${selectedValue}, ${JSON.stringify(items)}`)
         setOpen(true)
       }}
       onClose={(event) => {
@@ -98,7 +100,10 @@ const Select = ({
         const { label, value, iconName } = item
         return (
           <MenuItem
+            elevation={10}
             key={index}
+            sx={{ zIndex: 5000, left: '400px', overflow: 'visible' }}
+            zIndex={5000}
             value={value || label || item}
             onClick={() => {
               onSelect && onSelect(value || label || item)
