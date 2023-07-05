@@ -283,7 +283,7 @@ const ListItemSessionCardInput = ({
                 inputValues.description,
                 teamOptions &&
                   R.pipe(
-                    R.find((option) => option.label === 'new team'),
+                    R.find((option) => option.label === inputValues.team),
                     R.prop('value')
                   )(teamOptions)
               )
