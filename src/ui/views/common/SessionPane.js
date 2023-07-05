@@ -60,6 +60,7 @@ const ActionItems = ({ items = [], disabled }) => {
           <Tooltip
             key={label.toLocaleLowerCase()}
             title={label}
+            PopperProps={{ sx: { zIndex: 2002 } }}
             enterDelay={300}
             leaveDelay={300}
           >
@@ -93,6 +94,7 @@ const ActionItems = ({ items = [], disabled }) => {
             }}
             {...{ anchorEl, open }}
             onClose={onCloseHandler}
+            sx={{ zIndex: 2002 }}
             PaperProps={{
               style: {
                 // maxHeight: ITEM_HEIGHT * 4.5,
@@ -398,6 +400,7 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
       <Tooltip
         key={'Create a new session'.toLocaleLowerCase()}
         title="Create a new session"
+        PopperProps={{ sx: { zIndex: 2002 } }}
         enterDelay={300}
         leaveDelay={300}
       >
@@ -782,7 +785,7 @@ const SessionPane = ({ width }) => {
           toolbar: { onClickCreateHandler },
           basePopper: {
             sx: {
-              zIndex: 2123,
+              zIndex: 2001,
             },
           },
         }}
