@@ -60,7 +60,6 @@ const ActionItems = ({ items = [], disabled }) => {
           <Tooltip
             key={label.toLocaleLowerCase()}
             title={label}
-            PopperProps={{ sx: { zIndex: 2002 } }}
             enterDelay={300}
             leaveDelay={300}
           >
@@ -94,7 +93,6 @@ const ActionItems = ({ items = [], disabled }) => {
             }}
             {...{ anchorEl, open }}
             onClose={onCloseHandler}
-            sx={{ zIndex: 2002 }}
             PaperProps={{
               style: {
                 // maxHeight: ITEM_HEIGHT * 4.5,
@@ -395,16 +393,11 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
   const onClick = () => onClickCreateHandler()
   return (
     <GridToolbarContainer>
-      <GridToolbarFilterButton
-        sx={{
-          zIndex: 2002,
-        }}
-      />
+      <GridToolbarFilterButton />
 
       <Tooltip
         key={'Create a new session'.toLocaleLowerCase()}
         title="Create a new session"
-        PopperProps={{ sx: { zIndex: 2002 } }}
         enterDelay={300}
         leaveDelay={300}
       >
@@ -785,7 +778,14 @@ const SessionPane = ({ width }) => {
           row: CustomDataGridRow,
           toolbar: CustomToolbar,
         }}
-        slotProps={{ toolbar: { onClickCreateHandler } }}
+        slotProps={{
+          toolbar: { onClickCreateHandler },
+          basePopper: {
+            sx: {
+              zIndex: 2123,
+            },
+          },
+        }}
       />
       {currentAction.command === 'delete' && (
         <Dialog
