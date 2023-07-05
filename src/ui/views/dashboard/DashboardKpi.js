@@ -8,6 +8,7 @@ import {
   selectAssociatedData,
   selectNumberFormat,
   selectTheme,
+  selectMemoizedKpiFunc,
 } from '../../../data/selectors'
 import { chartType } from '../../../utils/enums'
 
@@ -20,6 +21,7 @@ const DashboardKpi = ({ obj }) => {
   const themeId = useSelector(selectTheme)
   const kpis = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
+  const kpiFunc = useSelector(selectMemoizedKpiFunc)
 
   useEffect(() => {
     if (R.isEmpty(kpis)) {
@@ -34,9 +36,12 @@ const DashboardKpi = ({ obj }) => {
     }
   }, [kpis, dispatch])
 
+  const formattedKpis = kpiFunc(obj)
+
   const isTable = R.prop('chart', obj) === 'Table'
 
   const actualKpiRaw = forcePath(R.propOr([], 'kpi', obj))
+
   const kpiData = R.pipe(
     R.values,
     R.head,
@@ -57,48 +62,6 @@ const DashboardKpi = ({ obj }) => {
     kpiUnits
   )
 
-  const preFormattedKpis = R.pipe(
-    R.values,
-    R.filter((val) => R.includes(val.name, R.propOr([], 'sessions', obj))),
-    R.map((val) => ({
-      x: val.name,
-      y: R.path(['data', 'kpis', 'data'], val),
-    }))
-  )(kpis)
-
-  const formattedKpis = R.map(
-    R.over(
-      R.lensProp('y'),
-      R.pipe(
-        customSort,
-        R.filter(R.has('value')),
-        R.filter(R.pipe(R.prop('id'), R.includes(R.__, actualKpi))),
-        R.indexBy(R.prop('name')),
-        R.pluck('value'),
-        obj.chart === 'Table' ? R.values : R.identity
-      )
-    )
-  )(preFormattedKpis)
-
-  const kpiChartData = R.map((val) =>
-    R.assoc(
-      'y',
-      R.pipe(
-        R.prop('y'),
-        R.map(
-          R.pipe(
-            R.when(
-              R.includes(','),
-              // Convert thousand-separator formatted numbers to float
-              R.replace(/,/g, '')
-            ),
-            parseFloat
-          )
-        )
-      )(val)
-    )(val)
-  )(formattedKpis)
-
   // FIXME: This should receive column types set by designers in the API
   const tableColTypes = isTable
     ? R.pipe(
@@ -106,7 +69,6 @@ const DashboardKpi = ({ obj }) => {
         R.prepend('string')
       )([])
     : []
-
   // For simplicity, `numberFormatDefault` is used to apply number
   // formatting to all values in a chart, as some statistics may
   // be the result of combining different number formats. Although
@@ -114,6 +76,7 @@ const DashboardKpi = ({ obj }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
+
   return (
     <Box
       sx={{
@@ -131,7 +94,7 @@ const DashboardKpi = ({ obj }) => {
         />
       ) : obj.chart === chartType.BAR ? (
         <BarPlot
-          data={kpiChartData}
+          data={formattedKpis}
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(kpiUnits)}
@@ -142,14 +105,11 @@ const DashboardKpi = ({ obj }) => {
         />
       ) : obj.chart === chartType.LINE ? (
         <LinePlot
-          data={kpiChartData}
+          data={formattedKpis}
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(kpiUnits)}
           theme={themeId}
-          // The data structure of the KPI chart is the same
-          // as that of a statistics chart with subgrouped data
-          subGrouped
         />
       ) : null}
     </Box>

@@ -102,40 +102,70 @@ const FlexibleWrapper = ({ children, ...props }) => (
 FlexibleWrapper.propTypes = { children: PropTypes.node }
 
 const EchartsPlot = ({
-  xData,
-  yData,
+  data,
   xAxisTitle,
   yAxisTitle,
   numberFormat,
   chartType,
   theme,
-  subGrouped,
   stack = false,
 }) => {
-  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
-  const series = subGrouped
-    ? R.map((yKey) => ({
-        name: yKey,
-        data: R.pluck(yKey)(yData),
+  if (R.isNil(data) || R.isEmpty(data)) return []
+
+  const xLabels = R.pluck('name', data)
+
+  const yValues = R.has('children', R.head(data))
+    ? R.pluck('children', data)
+    : R.pluck('value', data)
+
+  const subGroupLabels = R.pipe(
+    R.map(R.pluck('name')),
+    R.map(R.filter(R.isNotNil)),
+    R.reduce((a, b) => (R.length(a) > R.length(b) ? a : b), [])
+  )(yValues)
+
+  const series = R.ifElse(
+    (val) => R.type(R.head(R.head(val))) === 'Object',
+    R.pipe(
+      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
+      R.flatten,
+      R.collectBy(R.prop('name')),
+      R.map((d) => ({
+        name: R.head(d).name,
         type: chartType,
-        ...(stack && { stack }),
         smooth: true,
+        ...(stack && { stack }),
         emphasis: {
           focus: 'series',
         },
-      }))(yKeys)
-    : {
-        data: yData,
+        data: R.map(
+          R.pipe(
+            (idx) => R.find(R.propEq(idx, 'index'), d),
+            R.when(R.isNotNil, R.path(['value', 0]))
+          )
+        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+      })),
+      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+    ),
+    (d) => [
+      R.assoc('data', R.unnest(d), {
         type: chartType,
         smooth: true,
-      }
+        ...(stack && { stack }),
+        emphasis: {
+          focus: 'series',
+        },
+      }),
+    ]
+  )(yValues)
 
-  const yMax = subGrouped
-    ? R.reduce(
-        (acc, yArr) => Math.max(acc, ...R.values(yArr)),
-        -Infinity
-      )(yData)
-    : Math.max(...yData)
+  const yMax = R.pipe(
+    R.pluck('data'),
+    R.flatten,
+    R.filter(R.isNotNil),
+    R.apply(Math.max)
+  )(series)
+
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
 
@@ -156,7 +186,7 @@ const EchartsPlot = ({
         fontSize: 16,
       },
       type: 'category',
-      data: xData,
+      data: xLabels,
       axisLabel: {
         // rotate: 45,
         interval: 0,
@@ -205,7 +235,6 @@ const EchartsPlot = ({
       // - https://github.com/apache/echarts/pull/16825
       // - https://github.com/apache/echarts/issues/15654
       type: 'scroll',
-      data: yKeys,
       top: 24,
     },
     series,

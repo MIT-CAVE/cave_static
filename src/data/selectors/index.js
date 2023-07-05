@@ -6,6 +6,7 @@ import {
   DEFAULT_VIEWPORT,
   MIN_ZOOM,
   MAX_ZOOM,
+  MAX_MEMOIZED_CHARTS,
 } from '../../utils/constants'
 import { viewId, statId } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
@@ -20,6 +21,12 @@ import {
   renameKeys,
   sortByOrderNameId,
   toListWithKey,
+  forcePath,
+  customSort,
+  customSortByX,
+  calculateStatAnyDepth,
+  recursiveMap,
+  maxSizedMemoization,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -568,7 +575,6 @@ const selectMemoizedMergeFunc = createSelector(
     }
   }
 )
-
 const getMergedAllProps = (data, localData, memoized) =>
   R.pipe(
     R.propOr(R.propOr({}, 'data', data), 'data'),
@@ -713,6 +719,184 @@ export const selectCategoryFunc = createSelector(
     R.path(
       [category, 'data', R.path(['category', category, 0], stat), level],
       categories
+    )
+)
+export const selectMemoizedChartFunc = createSelector(
+  [
+    selectFilteredStatsData,
+    selectCategoryFunc,
+    selectDebug,
+    selectCategoriesData,
+    selectStatisticTypes,
+  ],
+  (filteredStatsData, categoryFunc, debug, categoriesData, statisticTypes) =>
+    maxSizedMemoization(
+      (obj) => JSON.stringify(obj),
+      (obj) => {
+        const pathedVar = forcePath(R.propOr([], 'statistic', obj))
+        const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
+        const mergeFuncs = {
+          Sum: R.sum,
+          Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
+          Maximum: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
+          Average: R.mean,
+        }
+        // Find the calculation for selected stat(s)
+        const calculation = R.is(Array, actualStat)
+          ? `[${R.reduce(
+              (acc, stat) =>
+                R.insert(
+                  -1,
+                  R.pathOr('0', [stat, 'calculation'])(statisticTypes),
+                  acc
+                ),
+              '',
+              actualStat
+            )}]`
+          : R.pathOr('0', [actualStat, 'calculation'])(statisticTypes)
+
+        // Filter for category if selected
+        const actualStatsData = obj.category
+          ? R.filter(R.hasPath(['category', obj.category]))(
+              R.values(filteredStatsData)
+            )
+          : R.values(filteredStatsData)
+
+        // List of groupBy, subGroupBy etc...
+        // TODO: Currently groupBys only looks for group and subgroup - make this N depth
+        const groupBys = R.without(
+          [undefined],
+          [
+            categoryFunc(obj.category, obj.level),
+            R.has('level2', obj)
+              ? categoryFunc(obj.category2, obj.level2)
+              : undefined,
+          ]
+        )
+        // Calculates stat values without applying mergeFunc
+        const calculatedStats = calculateStatAnyDepth(actualStatsData)(
+          groupBys,
+          calculation
+        )
+
+        // Ordering for the X's in the chart
+        const ordering = R.pathOr(
+          [],
+          [obj.category, 'nestedStructure', obj.level, 'ordering']
+        )(categoriesData)
+
+        // Helper function for grouping table vals for merge function
+        const groupByIdx = R.addIndex(R.groupBy)(
+          (val, idx) => idx % R.length(actualStat)
+        )
+
+        // merge the calculated stats - unless boxplot
+        // NOTE: Boxplot needs subgrouping - handle this in chart adapter
+        const statValues = recursiveMap(
+          R.is(Array),
+          obj.chart === 'Table'
+            ? R.pipe(
+                R.unnest,
+                groupByIdx,
+                R.values,
+                R.map(mergeFuncs[obj.grouping])
+              )
+            : R.pipe(
+                R.filter(R.is(Number)),
+                obj.chart !== 'Box Plot' ? mergeFuncs[obj.grouping] : R.identity
+              ),
+          R.identity,
+          calculatedStats
+        )
+
+        // Helper function to map merged stats to chart input object
+        const recursiveMapLayers = (val) =>
+          R.type(val) === 'Object'
+            ? R.pipe(R.values, R.head, (item) => R.type(item) === 'Object')(val)
+              ? R.values(
+                  R.mapObjIndexed((value, key) => ({
+                    name: R.isNil(obj.category) ? 'All' : key,
+                    children: recursiveMapLayers(value),
+                  }))(val)
+                )
+              : R.values(
+                  R.mapObjIndexed((value, key) => ({
+                    name: key,
+                    value: recursiveMapLayers(value),
+                  }))(val)
+                )
+            : R.is(Array, val)
+            ? val
+            : [val]
+        // Formats and sorts merged stats
+        const getFormattedData = R.pipe(
+          debug
+            ? R.identity
+            : recursiveMap(
+                (val) => R.type(val) !== 'Object',
+                R.identity,
+                R.dissoc(undefined)
+              ),
+          recursiveMapLayers,
+          customSortByX(ordering)
+        )
+
+        const formattedData = getFormattedData(statValues)
+
+        return formattedData
+      },
+      MAX_MEMOIZED_CHARTS
+    )
+)
+export const selectMemoizedKpiFunc = createSelector(
+  selectAssociatedData,
+  (associatedData) =>
+    maxSizedMemoization(
+      (obj) => JSON.stringify(obj),
+      (obj) => {
+        const selectedKpis = forcePath(R.propOr([], 'kpi', obj))
+        const formattedKpis = R.pipe(
+          R.values,
+          R.filter((val) =>
+            R.includes(val.name, R.propOr([], 'sessions', obj))
+          ),
+          R.map((val) => ({
+            name: val.name,
+            children: R.pipe(
+              R.path(['data', 'kpis', 'data']),
+              R.pick(selectedKpis),
+              R.filter(R.has('value')),
+              customSort,
+              R.map((kpi) =>
+                R.assoc(
+                  'value',
+                  [
+                    R.pipe(
+                      R.prop('value'),
+                      R.when(
+                        R.includes(','),
+                        // Convert thousand-separator formatted numbers to float
+                        R.replace(/,/g, '')
+                      ),
+                      parseFloat
+                    )(kpi),
+                  ],
+                  { name: kpi.name || kpi.id }
+                )
+              )
+            )(val),
+          })),
+          R.when(
+            R.always(obj.chart === 'Table'),
+            R.map((session) => ({
+              name: session.name,
+              value: R.unnest(R.pluck('value', session.children)),
+            }))
+          )
+        )(associatedData)
+        return formattedKpis
+      },
+      MAX_MEMOIZED_CHARTS
     )
 )
 // Node, Geo, & Arc derived

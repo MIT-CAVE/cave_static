@@ -8,39 +8,54 @@ const CumulativeLineChart = ({
   yAxisTitle,
   numberFormat,
   theme,
-  subGrouped,
 }) => {
+  const yValues = R.has('children', R.head(data))
+    ? R.pluck('children', data)
+    : R.pluck('value', data)
+
+  const subGroupLabels = R.pipe(
+    R.map(R.pluck('name')),
+    R.reduce((a, b) => (R.length(a) > R.length(b) ? a : b), [])
+  )(yValues)
+
   const accumulate = R.pipe(
-    R.reduce((acc, value) => R.append(R.add(R.last(acc), value), acc), [0]),
-    R.drop(1)
-  )
-
-  const yData = R.pluck('y')(data)
-
-  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
-
-  const yKeysWithVals = R.pipe(
-    R.map((val) => [val, 0]),
-    R.fromPairs
-  )(yKeys)
-
-  const buildSubgroup = R.pipe(
-    R.mapAccum(
-      (acc, value) => [
-        R.append(R.mergeWith(R.add, R.last(acc), value), acc),
-        R.mergeWith(R.add, R.last(acc), value),
-      ],
-      [yKeysWithVals]
-    ),
-    R.last
+    R.ifElse(
+      // Check if subgrouped
+      R.hasPath([0, 'children']),
+      (data) => {
+        const acc = R.zipObj(
+          subGroupLabels,
+          R.repeat(0, R.length(subGroupLabels))
+        )
+        return R.map((d) =>
+          R.assoc(
+            'children',
+            R.map((child) => {
+              acc[child.name] = R.add(acc[child.name], R.head(child.value))
+              return R.assoc('value', [acc[child.name]], child)
+            })(d.children),
+            d
+          )
+        )(data)
+      },
+      R.pipe(
+        R.mapAccum(
+          (acc, item) => [
+            R.add(acc, R.head(item.value)),
+            R.assoc('value', [R.add(acc, R.head(item.value))], item),
+          ],
+          0
+        ),
+        R.last
+      )
+    )
   )
 
   return (
     <EchartsPlot
-      xData={R.pluck('x')(data)}
-      yData={subGrouped ? buildSubgroup(yData) : accumulate(yData)}
+      data={accumulate(data)}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, subGrouped }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
     />
   )
 }

@@ -5,22 +5,22 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import { formatNumber } from '../../../../utils'
 
 const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
-  // labels = R.map(R.replace(/->/, '&rarr;'))(labels)
-  const rows = data.map((d, index) =>
-    R.converge(
-      // `unapply` helps here by processing the input of mergeAll
-      // as object arguments instead of an array of objects
-      R.unapply(R.mergeAll),
-      [
-        // id
-        R.always({ id: index }),
-        // x
-        R.pipe(R.prop('x'), R.objOf(0)),
-        // y
-        R.pipe(R.prop('y'), R.zipObj(R.range(1, R.length(labels)))),
-      ]
-    )(d)
-  )
+  // Convert chart object to nested arrays of values
+  const convertToList = (data, currentRow) =>
+    R.map((d) =>
+      R.has('children', d)
+        ? convertToList(
+            R.prop('children', d),
+            R.append(R.prop('name', d), currentRow)
+          )
+        : R.concat(R.append(R.prop('name', d), currentRow), R.prop('value', d))
+    )(data)
+
+  const rows = R.pipe(
+    R.flatten,
+    R.splitEvery(R.length(labels)),
+    R.addIndex(R.map)(R.pipe(R.flip(R.assoc('id'))))
+  )(convertToList(data, []))
 
   const columns = labels.map((label, index) => ({
     headerName: label,

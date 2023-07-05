@@ -6,120 +6,101 @@ import { echarts } from './BaseChart'
 
 import { getDecimalScaleFactor, getDecimalScaleLabel } from '../../../../utils'
 
+// sort array ascending
+const asc = (arr) => arr.sort((a, b) => a - b)
+const quantile = (arr, q) => {
+  const sorted = asc(arr)
+  const pos = (sorted.length - 1) * q
+  const base = Math.floor(pos)
+  const rest = pos - base
+  if (sorted[base + 1] !== undefined) {
+    return sorted[base] + rest * (sorted[base + 1] - sorted[base])
+  } else {
+    return sorted[base]
+  }
+}
+
+const calculateBoxPlotStats = (data) => {
+  if (R.isNil(data)) return R.repeat(NaN, 5)
+  const max = Math.max(...data)
+  const min = Math.min(...data)
+  const median = R.median(data)
+  const q1 = quantile(data, 0.25)
+  const q3 = quantile(data, 0.75)
+  return [min, q1, median, q3, max]
+}
+
 const EchartsBoxPlot = ({
-  data: rawData,
+  data,
   xAxisTitle,
   yAxisTitle,
   // numberFormat,
   theme,
-  subGrouped,
 }) => {
-  // Checks if y values are arrays to prevent crash while calculating
-  const checkBoxplotData = R.pipe(
-    R.last,
-    R.propOr({}, 'y'),
-    R.values,
-    R.last,
-    R.is(Array)
-  )
-  const data = !subGrouped || checkBoxplotData(rawData) ? rawData : []
+  if (R.isNil(data) || R.isEmpty(data)) return []
 
-  const yKeys = R.pipe(R.pluck('y'), R.mergeAll, R.keys)(data)
-  const xData = R.pluck('x')(data)
-  const yData = R.pluck('y')(data)
+  const xLabels = R.pluck('name', data)
 
-  const yMax = subGrouped
-    ? R.reduce(
-        (acc, yArr) => Math.max(acc, ...R.values(yArr)),
-        -Infinity
-      )(yData)
-    : Math.max(...yData)
+  const yValues = R.has('children', R.head(data))
+    ? R.pluck('children', data)
+    : R.pluck('value', data)
+
+  const subGroupLabels = R.pipe(
+    R.map(R.pluck('name')),
+    R.map(R.filter(R.isNotNil)),
+    R.reduce((a, b) => (R.length(a) > R.length(b) ? a : b), [])
+  )(yValues)
 
   const chartType = 'boxplot'
 
-  let sources
-  let transforms
-  let series
-  let legend
-
-  if (subGrouped) {
-    sources = R.map((yKey) => ({
-      id: `source-${yKey}`,
-      source: R.pipe(
-        R.pluck(yKey),
-        // This fixes an issue when the 1st groupBy + level
-        // matches the 2nd groupBy + level
-        R.map(R.when(R.isNil, R.always([])))
-      )(yData),
-    }))(yKeys)
-
-    transforms = R.map((yKey) => ({
-      fromDatasetId: `source-${yKey}`,
-      id: yKey,
-      transform: {
+  const series = R.ifElse(
+    (val) => R.type(R.head(R.head(val))) === 'Object',
+    R.pipe(
+      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
+      R.flatten,
+      R.collectBy(R.prop('name')),
+      R.map((d) => ({
+        name: R.head(d).name,
         type: chartType,
-        config: { itemNameFormatter: ({ value }) => xData[value] },
-        // print: true,
-      },
-    }))(yKeys)
-
-    series = R.map((yKey) => ({
-      name: yKey,
-      dimensions: ['item', 'min', 'Q1', 'median', 'Q3', 'max'],
-      type: chartType,
-      datasetId: yKey,
-      itemStyle: {
-        color: '#b8c5f2',
-      },
-      encode: {
-        x: 'item',
-        y: ['min', 'Q1', 'median', 'Q3', 'max'],
-        tooltip: ['min', 'Q1', 'median', 'Q3', 'max'],
-      },
-    }))(yKeys)
-
-    legend = {
-      type: 'scroll',
-      data: yKeys,
-      top: 24,
-    }
-  } else {
-    sources = [
-      {
-        id: 'source',
-        source: R.pipe(R.mergeAll, R.values)(yData),
-      },
-    ]
-
-    transforms = [
-      {
-        fromDatasetId: 'source',
-        id: 'transform',
-        transform: {
-          type: chartType,
-          config: { itemNameFormatter: ({ value }) => xData[value] },
-          // print: true,
+        smooth: true,
+        emphasis: {
+          focus: 'series',
         },
-      },
+        data: R.map(
+          R.pipe(
+            (idx) => R.find(R.propEq(idx, 'index'), d),
+            R.when(R.isNotNil, R.prop('value')),
+            calculateBoxPlotStats
+          )
+        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+      })),
+      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+    ),
+    (d) => [
+      R.assoc('data', R.map(calculateBoxPlotStats, d), {
+        type: chartType,
+        smooth: true,
+        emphasis: {
+          focus: 'series',
+        },
+      }),
     ]
+  )(yValues)
 
-    series = {
-      // name: yKey,
-      dimensions: ['item', 'min', 'Q1', 'median', 'Q3', 'max'],
-      type: chartType,
-      datasetId: 'transform',
-      itemStyle: {
-        color: '#b8c5f2',
-      },
-      encode: {
-        x: 'item',
-        y: ['min', 'Q1', 'median', 'Q3', 'max'],
-        tooltip: ['min', 'Q1', 'median', 'Q3', 'max'],
-      },
-    }
+  const yMax = R.pipe(
+    R.pluck('data'),
+    R.flatten,
+    R.filter(R.isNotNil),
+    R.apply(Math.max)
+  )(series)
 
-    legend = null
-  }
+  const legend = R.isEmpty(subGroupLabels)
+    ? null
+    : {
+        type: 'scroll',
+        data: subGroupLabels,
+        top: 24,
+      }
 
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
@@ -133,7 +114,6 @@ const EchartsBoxPlot = ({
       // left: 36,
       // show: true,
     },
-    dataset: [...sources, ...transforms],
     xAxis: {
       name: xAxisTitle,
       nameGap: 40,
@@ -147,7 +127,7 @@ const EchartsBoxPlot = ({
         interval: 0,
       },
       type: 'category',
-      data: xData,
+      data: xLabels,
       axisLine: {
         show: true,
         lineStyle: {
