@@ -76,8 +76,8 @@ const WaterfallChart = ({
     const previousVal = R.pipe(
       R.range(0),
       R.map((d) => api.value(1, d)),
-      R.filter(R.isNotNil),
-      R.sum
+      R.filter(R.both(R.isNotNil, (d) => !isNaN(d))),
+      R.ifElse(R.isEmpty, R.always(NaN), R.sum)
     )(params.dataIndexInside)
 
     const currentVal = !isNaN(previousVal)
