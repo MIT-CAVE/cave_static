@@ -16,7 +16,9 @@ const Sunburst = ({ data, theme }) => {
 
   const subGroupLabels = R.pipe(
     R.map(R.pluck('name')),
-    R.reduce((a, b) => (R.length(a) > R.length(b) ? a : b), [])
+    R.map(R.filter(R.isNotNil)),
+    R.reduce(R.concat, []),
+    R.uniq
   )(yValues)
 
   const assignColors = () => {

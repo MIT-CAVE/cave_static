@@ -121,7 +121,8 @@ const EchartsPlot = ({
   const subGroupLabels = R.pipe(
     R.map(R.pluck('name')),
     R.map(R.filter(R.isNotNil)),
-    R.reduce((a, b) => (R.length(a) > R.length(b) ? a : b), [])
+    R.reduce(R.concat, []),
+    R.uniq
   )(yValues)
 
   const series = R.ifElse(
