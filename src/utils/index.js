@@ -242,19 +242,17 @@ export const recursiveMap = R.curry(
 )
 
 export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
-  const cache = {}
-  const keys = []
+  const cache = new Map()
   const checkCache = (val) => {
     const key = keyFunc(val)
-    if (!R.has(key, cache)) {
-      keys.push(key)
-      cache[key] = resultFunc(val)
-      if (R.length(keys) > maxCache) {
-        const remove = keys.shift()
-        delete cache[remove]
+    if (!cache.has(key)) {
+      cache.set(key, resultFunc(val))
+      if (cache.size > maxCache) {
+        const remove = cache.keys().next().value
+        cache.delete(remove)
       }
     }
-    return cache[key]
+    return cache.get(key)
   }
   return checkCache
 }
