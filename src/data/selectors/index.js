@@ -1279,3 +1279,13 @@ export const selectNodeClustersAtZoom = createSelector(
     },
   }
 )
+
+export const selectNodeRangeAtZoom = createSelector(
+  selectNodeClustersAtZoom,
+  (nodeClusters) => R.propOr({}, 'range')(nodeClusters),
+  {
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)

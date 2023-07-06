@@ -152,6 +152,52 @@ export const mapSlice = createSlice({
         zoom
       )(state)
     },
+    // payload: {value:int|float, appBarId:string}
+    changeZoom: (state, action) => {
+      const minZoom = R.clamp(
+        MIN_ZOOM,
+        MAX_ZOOM,
+        R.pathOr(
+          MIN_ZOOM,
+          [
+            'data',
+            action.payload.appBarId,
+            'mapControls',
+            'viewport',
+            'minZoom',
+          ],
+          state
+        )
+      )
+      const maxZoom = R.clamp(
+        minZoom,
+        MAX_ZOOM,
+        R.pathOr(
+          MAX_ZOOM,
+          [
+            'data',
+            action.payload.appBarId,
+            'mapControls',
+            'viewport',
+            'maxZoom',
+          ],
+          state
+        )
+      )
+      const currentZoom = R.pathOr(
+        minZoom,
+        ['data', action.payload.appBarId, 'mapControls', 'viewport', 'zoom'],
+        state
+      )
+      const zoom = R.pipe(
+        R.add(currentZoom),
+        R.clamp(minZoom, maxZoom)
+      )(action.payload.value)
+      return R.assocPath(
+        ['data', action.payload.appBarId, 'mapControls', 'viewport', 'zoom'],
+        zoom
+      )(state)
+    },
     // payload: {data:object, appBarId:string}
     openMapModal: (state, action) => {
       const currentModal = R.pathOr(
@@ -258,6 +304,7 @@ export const {
   pitchUpdate,
   viewportUpdate,
   setZoom,
+  changeZoom,
   openMapModal,
   closeMapModal,
   openError,

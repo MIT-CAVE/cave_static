@@ -35,7 +35,7 @@ import {
   selectPitchSliderToggle,
   selectAppBarId,
   selectResolveTime,
-  selectNodeClustersAtZoom,
+  selectNodeRangeAtZoom,
 } from '../../../data/selectors'
 import { statId } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
@@ -542,6 +542,7 @@ const LegendCard = ({
   const dispatch = useDispatch()
   const displayedGeometry = useSelector(selectEnabledGeometry)
   const geometryRange = useSelector(selectGeometryRange)
+  const geometryRangesByType = useSelector(selectNodeRangeAtZoom)
   const timeProp = useSelector(selectTimeProp)
   const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
@@ -578,11 +579,6 @@ const LegendCard = ({
   const groupCalcByColor =
     displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
-  const geometryRangesByType = R.propOr(
-    {},
-    'range',
-    useSelector(selectNodeClustersAtZoom)
-  )
   const { color: colorDomain, size: sizeDomain } = R.propOr(
     {},
     geometryType,
