@@ -30,8 +30,8 @@ import {
   selectResolveTime,
   selectData,
   selectAppBarId,
+  selectMapStyleOptions,
 } from '../../../data/selectors'
-import { styleId } from '../../../utils/enums'
 import ClusterModal from '../../compound/ClusterModal'
 import SimpleModal from '../../compound/SimpleModal'
 import { renderPropsLayout } from '../common/renderLayout'
@@ -182,34 +182,13 @@ const ListModal = ({ title, options, onSelect }) => {
   )
 }
 
-// QUESTION: Do we move this to somewhere in the API?
-const mapStyleOptions = {
-  streets: {
-    name: 'Streets',
-    icon: 'MdStreetview',
-    order: 2,
-    styleId: styleId.STREETS,
-  },
-  satelliteStreets: {
-    name: 'Satellite Streets',
-    icon: 'MdSatellite',
-    order: 3,
-    styleId: styleId.SATELLITE_STREETS,
-  },
-  default: {
-    name: 'Default',
-    icon: 'MdMap',
-    order: 1,
-    styleId: null, // `dark` or `light` is determined by the choosen theme
-  },
-}
-
 const MapModal = () => {
   const mapModal = useSelector(selectMapModal)
   const optionalViewports = useSelector(selectOptionalViewports)
   const timeUnits = useSelector(selectTimeUnits)
   const timeLength = useSelector(selectTimeLength)
   const appBarId = useSelector(selectAppBarId)
+  const mapStyleOptions = useSelector(selectMapStyleOptions)
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
   const feature = R.path(['data', 'feature'], mapModal)
@@ -247,8 +226,8 @@ const MapModal = () => {
           placeholder="Choose a map style..."
           options={mapStyleOptions}
           onSelect={(value) => {
-            const styleId = R.path([value, 'styleId'])(mapStyleOptions)
-            dispatch(mapStyleSelection({ appBarId, mapStyle: styleId }))
+            const mapStyle = R.path([value, 'specification'])(mapStyleOptions)
+            dispatch(mapStyleSelection({ appBarId, mapStyle }))
             dispatch(closeMapModal(appBarId))
           }}
         />

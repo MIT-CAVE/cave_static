@@ -452,6 +452,10 @@ export const selectZoom = createSelector(selectViewport, (data) =>
 export const selectMapStyle = createSelector(selectMapControls, (data) =>
   R.prop('mapStyle')(data)
 )
+export const selectMapStyleOptions = createSelector(
+  selectCurrentMapData,
+  (data) => R.prop('styles')(data)
+)
 export const selectPitchSliderToggle = createSelector(
   selectMapControls,
   (data) => R.prop('showPitchSlider')(data)
