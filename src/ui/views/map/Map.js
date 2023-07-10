@@ -23,6 +23,7 @@ import {
   selectStaticMap,
   selectAppBarId,
   selectTouchMode,
+  selectMapStyles,
 } from '../../../data/selectors'
 import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -43,6 +44,7 @@ const Map = ({ mapboxToken }) => {
   const viewport = useSelector(selectViewport)
   const theme = useSelector(selectTheme)
   const mapStyle = useSelector(selectMapStyle)
+  const mapStyles = useSelector(selectMapStyles)
   const mapModal = useSelector(selectMapModal)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
@@ -166,7 +168,8 @@ const Map = ({ mapboxToken }) => {
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
         mapStyle={
-          mapStyle ? mapStyle : `${STYLE_URL_BASE}${getDefaultStyleId(theme)}`
+          (mapStyles && mapStyles[mapStyle]) ||
+          `${STYLE_URL_BASE}${getDefaultStyleId(theme)}`
         }
         mapboxAccessToken={mapboxToken}
       >

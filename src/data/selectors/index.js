@@ -456,6 +456,9 @@ export const selectMapStyleOptions = createSelector(
   selectCurrentMapData,
   (data) => R.prop('styles')(data)
 )
+export const selectMapStyles = createSelector(selectMap, (data) =>
+  R.prop('styles')(data)
+)
 export const selectPitchSliderToggle = createSelector(
   selectMapControls,
   (data) => R.prop('showPitchSlider')(data)

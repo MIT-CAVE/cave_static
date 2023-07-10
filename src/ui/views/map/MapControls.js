@@ -41,6 +41,7 @@ import {
   selectTimeLength,
   selectStaticMap,
   selectAppBarId,
+  selectMapStyleOptions,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -219,6 +220,7 @@ const MapControls = () => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
+  const mapStyleOptions = useSelector(selectMapStyleOptions)
   const dispatch = useDispatch()
 
   const getDegreeFormat = (value) =>
@@ -379,23 +381,25 @@ const MapControls = () => {
           </ButtonGroup>
 
           {/* Map styles */}
-          <ButtonGroup
-            sx={styles.btnGroup}
-            aria-label="contained button group"
-            variant="contained"
-          >
-            <TooltipButton
-              title={tooltipTitles.mapStyles}
-              placement="top"
-              onClick={() =>
-                dispatch(
-                  openMapModal({ data: { feature: 'mapStyles' }, appBarId })
-                )
-              }
+          {mapStyleOptions && (
+            <ButtonGroup
+              sx={styles.btnGroup}
+              aria-label="contained button group"
+              variant="contained"
             >
-              <MdMap />
-            </TooltipButton>
-          </ButtonGroup>
+              <TooltipButton
+                title={tooltipTitles.mapStyles}
+                placement="top"
+                onClick={() =>
+                  dispatch(
+                    openMapModal({ data: { feature: 'mapStyles' }, appBarId })
+                  )
+                }
+              >
+                <MdMap />
+              </TooltipButton>
+            </ButtonGroup>
+          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">

@@ -226,7 +226,7 @@ const MapModal = () => {
           placeholder="Choose a map style..."
           options={mapStyleOptions}
           onSelect={(value) => {
-            const mapStyle = R.path([value, 'specification'])(mapStyleOptions)
+            const mapStyle = R.path([value, 'value'])(mapStyleOptions)
             dispatch(mapStyleSelection({ appBarId, mapStyle }))
             dispatch(closeMapModal(appBarId))
           }}
