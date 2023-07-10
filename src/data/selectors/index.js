@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import {
   DEFAULT_ICON_URL,
   DEFAULT_VIEWPORT,
+  DEFAULT_MAP_STYLES,
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
@@ -449,15 +450,16 @@ export const selectPitch = createSelector(selectViewport, (data) =>
 export const selectZoom = createSelector(selectViewport, (data) =>
   R.prop('zoom')(data)
 )
-export const selectMapStyle = createSelector(selectMapControls, (data) =>
-  R.prop('mapStyle')(data)
+export const selectCurrentMapStyle = createSelector(
+  selectCurrentMapData,
+  (data) => R.prop('currentStyle')(data)
 )
 export const selectMapStyleOptions = createSelector(
-  selectCurrentMapData,
-  (data) => R.prop('styles')(data)
-)
-export const selectMapStyles = createSelector(selectMap, (data) =>
-  R.prop('styles')(data)
+  selectSettingsData,
+  (data) => ({
+    ...DEFAULT_MAP_STYLES,
+    ...R.propOr([], 'additionalMapStyles')(data),
+  })
 )
 export const selectPitchSliderToggle = createSelector(
   selectMapControls,

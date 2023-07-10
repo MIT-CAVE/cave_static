@@ -7,8 +7,6 @@ export const PANE_WIDTH = 450
 export const PROP_WIDTH = 300
 export const KPI_WIDTH = 400
 
-export const STYLE_URL_BASE = 'mapbox://styles/mapbox/'
-
 export const MIN_ZOOM = 2.46
 export const MAX_ZOOM = 22
 
@@ -35,6 +33,71 @@ export const DEFAULT_VIEWPORT = {
   maxPitch: MAX_PITCH,
   minBearing: MIN_BEARING,
   maxBearing: MAX_BEARING,
+}
+
+export const DEFAULT_MAP_STYLES = {
+  _default: {
+    name: 'Default',
+    icon: 'MdMap',
+    order: -3,
+    spec: undefined,
+  },
+  stamen_toner: {
+    name: 'Dark',
+    icon: 'MdDarkMode',
+    order: -2,
+    spec: {
+      version: 8,
+      sources: {
+        'raster-tiles': {
+          type: 'raster',
+          tiles: [
+            'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
+          ],
+          tileSize: 256,
+          attribution:
+            "Map tiles by <a target='_top' rel='noopener' href='http://stamen.com'>Stamen Design</a>, under <a target='_top' rel='noopener' href='http://creativecommons.org/licenses/by/3.0'>CC BY 3.0</a>. Data by <a target='_top' rel='noopener' href='http://openstreetmap.org'>OpenStreetMap</a>, under <a target='_top' rel='noopener' href='http://creativecommons.org/licenses/by-sa/3.0'>CC BY SA</a>",
+        },
+      },
+      layers: [
+        {
+          id: 'simple-tiles',
+          type: 'raster',
+          source: 'raster-tiles',
+          minzoom: 0,
+          maxzoom: 22,
+        },
+      ],
+    },
+  },
+  stamen_toner_lite: {
+    name: 'Light',
+    icon: 'MdLightMode',
+    order: -1,
+    spec: {
+      version: 8,
+      sources: {
+        'raster-tiles': {
+          type: 'raster',
+          tiles: [
+            'https://stamen-tiles.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png',
+          ],
+          tileSize: 256,
+          attribution:
+            "Map tiles by <a target='_top' rel='noopener' href='http://stamen.com'>Stamen Design</a>, under <a target='_top' rel='noopener' href='http://creativecommons.org/licenses/by/3.0'>CC BY 3.0</a>. Data by <a target='_top' rel='noopener' href='http://openstreetmap.org'>OpenStreetMap</a>, under <a target='_top' rel='noopener' href='http://creativecommons.org/licenses/by-sa/3.0'>CC BY SA</a>",
+        },
+      },
+      layers: [
+        {
+          id: 'simple-tiles',
+          type: 'raster',
+          source: 'raster-tiles',
+          minzoom: 0,
+          maxzoom: 22,
+        },
+      ],
+    },
+  },
 }
 
 export const CHART_PALETTE = {

@@ -41,7 +41,6 @@ import {
   selectTimeLength,
   selectStaticMap,
   selectAppBarId,
-  selectMapStyleOptions,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -156,7 +155,7 @@ const tooltipTitles = {
   defaultViewport: 'Map Viewport \u279C Go to default viewport',
   customViewports: 'Map Viewport \u279C See all viewports...',
   mapLegend: 'Map Legend \u279C Arcs, nodes & geo areas',
-  mapStyles: "Map Style \u279C Choose from the map's Mapbox styles",
+  mapStyles: "Map Style \u279C Choose from the map's styles",
 }
 
 const TooltipButton = ({
@@ -220,7 +219,6 @@ const MapControls = () => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
-  const mapStyleOptions = useSelector(selectMapStyleOptions)
   const dispatch = useDispatch()
 
   const getDegreeFormat = (value) =>
@@ -381,25 +379,23 @@ const MapControls = () => {
           </ButtonGroup>
 
           {/* Map styles */}
-          {mapStyleOptions && (
-            <ButtonGroup
-              sx={styles.btnGroup}
-              aria-label="contained button group"
-              variant="contained"
+          <ButtonGroup
+            sx={styles.btnGroup}
+            aria-label="contained button group"
+            variant="contained"
+          >
+            <TooltipButton
+              title={tooltipTitles.mapStyles}
+              placement="top"
+              onClick={() =>
+                dispatch(
+                  openMapModal({ data: { feature: 'mapStyles' }, appBarId })
+                )
+              }
             >
-              <TooltipButton
-                title={tooltipTitles.mapStyles}
-                placement="top"
-                onClick={() =>
-                  dispatch(
-                    openMapModal({ data: { feature: 'mapStyles' }, appBarId })
-                  )
-                }
-              >
-                <MdMap />
-              </TooltipButton>
-            </ButtonGroup>
-          )}
+              <MdMap />
+            </TooltipButton>
+          </ButtonGroup>
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">

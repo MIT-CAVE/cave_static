@@ -16,16 +16,16 @@ import MapModal from './MapModal'
 
 import { viewportUpdate, openMapModal } from '../../../data/local/mapSlice'
 import {
-  selectMapStyle,
+  selectCurrentMapStyle,
   selectTheme,
   selectViewport,
   selectMapModal,
   selectStaticMap,
   selectAppBarId,
   selectTouchMode,
-  selectMapStyles,
+  selectMapStyleOptions,
 } from '../../../data/selectors'
-import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
+import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 const viewportKeys = [
@@ -43,8 +43,8 @@ const Map = ({ mapboxToken }) => {
   const dispatch = useDispatch()
   const viewport = useSelector(selectViewport)
   const theme = useSelector(selectTheme)
-  const mapStyle = useSelector(selectMapStyle)
-  const mapStyles = useSelector(selectMapStyles)
+  const mapStyle = useSelector(selectCurrentMapStyle)
+  const mapStyleOptions = useSelector(selectMapStyleOptions)
   const mapModal = useSelector(selectMapModal)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
@@ -167,10 +167,9 @@ const Map = ({ mapboxToken }) => {
         {...viewport}
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
-        mapStyle={
-          (mapStyles && mapStyles[mapStyle]) ||
-          `${STYLE_URL_BASE}${getDefaultStyleId(theme)}`
-        }
+        mapStyle={R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
+          mapStyleOptions
+        )}
         mapboxAccessToken={mapboxToken}
       >
         <ScaleControl />

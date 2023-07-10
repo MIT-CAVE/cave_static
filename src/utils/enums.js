@@ -18,12 +18,8 @@ export const viewId = {
 }
 
 export const styleId = {
-  STREETS: 'streets-v12',
-  OUTDOORS: 'outdoors-v12',
-  DARK: 'dark-v11',
-  LIGHT: 'light-v11',
-  SATELLITE: 'satellite-v9',
-  SATELLITE_STREETS: 'satellite-streets-v12',
+  DARK: 'stamen_toner',
+  LIGHT: 'stamen_toner_lite',
 }
 
 export const asyncStatus = {

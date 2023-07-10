@@ -41,14 +41,6 @@ export const mapSlice = createSlice({
         state
       )
     },
-    // payload: {mapStyle: string, appBarId:string}
-    mapStyleSelection: (state, action) => {
-      return R.assocPath(
-        ['data', action.payload.appBarId, 'mapControls', 'mapStyle'],
-        R.prop('mapStyle', action.payload),
-        state
-      )
-    },
     // payload: {value: int, appBarId:string}
     bearingUpdate: (state, action) => {
       return R.assocPath(
@@ -292,7 +284,6 @@ export const {
   toggleMapLegend,
   bearingSliderToggle,
   pitchSliderToggle,
-  mapStyleSelection,
   bearingUpdate,
   pitchUpdate,
   viewportUpdate,

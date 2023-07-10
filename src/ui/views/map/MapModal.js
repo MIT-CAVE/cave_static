@@ -15,11 +15,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import SimpleModalOptions from './SimpleModalOptions'
 
 import { sendCommand } from '../../../data/data'
-import {
-  closeMapModal,
-  mapStyleSelection,
-  viewportUpdate,
-} from '../../../data/local/mapSlice'
+import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewports,
@@ -225,9 +221,22 @@ const MapModal = () => {
           title="Map Styles"
           placeholder="Choose a map style..."
           options={mapStyleOptions}
-          onSelect={(value) => {
-            const mapStyle = R.path([value, 'value'])(mapStyleOptions)
-            dispatch(mapStyleSelection({ appBarId, mapStyle }))
+          onSelect={(mapStyle) => {
+            dispatch(
+              sendCommand({
+                command: 'mutate_session',
+                data: {
+                  data_name: 'maps',
+                  data_path: ['data', appBarId, 'currentStyle'],
+                  data_value: R.ifElse(
+                    R.equals('_default'),
+                    R.always(undefined),
+                    R.always(mapStyle)
+                  )(mapStyle),
+                  mutation_type: 'mutate',
+                },
+              })
+            )
             dispatch(closeMapModal(appBarId))
           }}
         />
