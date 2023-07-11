@@ -28,6 +28,7 @@ import {
   selectAppBarId,
   selectMapStyleOptions,
 } from '../../../data/selectors'
+import { DEFAULT_MAP_STYLE_KEY } from '../../../utils/constants'
 import ClusterModal from '../../compound/ClusterModal'
 import SimpleModal from '../../compound/SimpleModal'
 import { renderPropsLayout } from '../common/renderLayout'
@@ -229,7 +230,7 @@ const MapModal = () => {
                   data_name: 'maps',
                   data_path: ['data', appBarId, 'currentStyle'],
                   data_value: R.ifElse(
-                    R.equals('_default'),
+                    R.equals(DEFAULT_MAP_STYLE_KEY),
                     R.always(undefined),
                     R.always(mapStyle)
                   )(mapStyle),

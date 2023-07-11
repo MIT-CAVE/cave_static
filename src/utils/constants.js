@@ -35,8 +35,10 @@ export const DEFAULT_VIEWPORT = {
   maxBearing: MAX_BEARING,
 }
 
+export const DEFAULT_MAP_STYLE_KEY = '_default'
+
 export const DEFAULT_MAP_STYLES = {
-  _default: {
+  DEFAULT_MAP_STYLE_KEY: {
     name: 'Default',
     icon: 'MdMap',
     order: -3,
