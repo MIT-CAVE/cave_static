@@ -30,6 +30,9 @@ import {
   selectSplitNodeData,
   selectNodeClustersAtZoom,
   selectLineData,
+  selectArcTypes,
+  selectLineMatchingKeys,
+  selectLineMatchingKeysByType,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -95,7 +98,6 @@ const Get3dArcLayer = () => {
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(d[1])
-
         return isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', propVal, colorRange)
@@ -579,6 +581,7 @@ const GetNodeIconLayer = () => {
 const GetGeographyLayer = (openGeo) => {
   const enabledGeos = useSelector(selectEnabledGeos)
   const timePath = useSelector(selectTimePath)
+  const resolveTime = useSelector(selectResolveTime)
   const geoColorRange = useSelector(selectGeoColorRange)
   const matchingKeys = useSelector(selectMatchingKeys)
   const matchingKeysByType = useSelector(selectMatchingKeysByType)
@@ -587,6 +590,11 @@ const GetGeographyLayer = (openGeo) => {
   const timeProp = useSelector(selectTimeProp)
   const appBarId = useSelector(selectAppBarId)
   const touchMode = useSelector(selectTouchMode)
+  const enabledArcs = useSelector(selectEnabledArcs)
+  const arcTypes = useSelector(selectArcTypes)
+  const lineMatchingKeys = useSelector(selectLineMatchingKeys)
+  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByType)
+  const arcRange = useSelector(selectArcRange)
 
   const currentTimeout = useRef()
 
@@ -631,35 +639,142 @@ const GetGeographyLayer = (openGeo) => {
     [enabledGeos, themeType, geoColorRange]
   )
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findLineSize = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
+        const propVal = timePath(['props', sizeProp, 'value'], d)
+        return `${R.prop('data_key', d)}${propVal}`
+      },
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
+        const sizeRange = arcRange(d.type, sizeProp, true)
+        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d))
+        return getScaledValue(
+          timeProp('min', sizeRange),
+          timeProp('max', sizeRange),
+          parseFloat(timeProp('startSize', d)),
+          parseFloat(timeProp('endSize', d)),
+          propVal
+        )
+      }
+    ),
+    [enabledArcs, arcRange]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findLineColor = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+        const propVal = timePath(['props', colorProp, 'value'], d[1])
+        return `${R.prop('data_key', d)}${propVal}`
+      },
+      (d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+        const colorRange = arcRange(d.type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const propVal = R.pipe(
+          timePath(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(d)
+
+        return isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', propVal, colorRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledArray(
+              timeProp('min', colorRange),
+              timeProp('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(resolveTime(R.path(['props', colorProp, 'value'], d)))
+            )
+      }
+    ),
+    [enabledArcs, themeType, arcRange]
+  )
+
   const onClick = useCallback(
     (d) => {
       if (!openGeo(d)) return false
       else if (R.pipe(R.prop('object'), R.isNil)(d)) return true
+      const featureType = R.path(['object', 'caveFeature'], d)
+      const featuredMatchingKeys =
+        featureType === 'geos' ? matchingKeys : lineMatchingKeys
+      const featuredTypes = featureType === 'geos' ? geoTypes : arcTypes
+
       const caveType = R.path(['object', 'caveType'], d)
-      const geoProp = R.path([caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
+      const geoProp = R.path([caveType, 'geoJson', 'geoJsonProp'])(
+        featuredTypes
+      )
       const geoObj = R.prop(R.path(['object', 'properties', geoProp], d))(
-        matchingKeys
+        featuredMatchingKeys
       )
       dispatch(
         openMapModal({
           appBarId,
           data: {
             ...geoObj,
-            feature: 'geos',
+            feature: featureType,
             type: R.propOr('Area', 'name', geoObj),
             key: R.propOr('Area', 'data_key', geoObj),
           },
         })
       )
     },
-    [appBarId, dispatch, geoTypes, matchingKeys, openGeo]
+    [
+      appBarId,
+      arcTypes,
+      dispatch,
+      geoTypes,
+      lineMatchingKeys,
+      matchingKeys,
+      openGeo,
+    ]
   )
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
+    const arcNames = R.keys(R.filter(R.identity, enabledArcs))
+
     const fetchCache = async () => {
       const cache = await caches.open('geos')
       const geos = {}
+      for (let arcName of arcNames) {
+        const url = R.pathOr('', [arcName, 'geoJson', 'geoJsonLayer'], arcTypes)
+        // Special catch for empty urls on initial call
+        if (url === '') {
+          break
+        }
+        let response = await cache.match(url)
+        // add to cache if not found
+        if (R.isNil(response)) {
+          await cache.add(url)
+          response = await cache.match(url)
+        }
+        geos[`arc-${arcName}`] = await response.json()
+      }
       for (let geoName of geoNames) {
         const url = R.pathOr('', [geoName, 'geoJson', 'geoJsonLayer'], geoTypes)
         // Special catch for empty urls on initial call
@@ -677,18 +792,31 @@ const GetGeographyLayer = (openGeo) => {
       setSelectedGeos(geos)
     }
     fetchCache()
-  }, [geoTypes, enabledGeos, matchingKeysByType])
+  }, [
+    geoTypes,
+    enabledGeos,
+    arcTypes,
+    enabledArcs,
+    matchingKeysByType,
+    lineMatchingKeysByType,
+  ])
 
   return new GeoJsonLayer({
     id: layerId.GEOGRAPHY_LAYER,
     data: selectedGeos,
-    dataTransform: (data) => {
-      return R.pipe(
+    dataTransform: (data) =>
+      R.pipe(
         R.mapObjIndexed((val, key) => {
+          const featureType = R.test(/(arc-)\w+/, key) ? 'arcs' : 'geos'
+          const featuredKey =
+            featureType === 'geos' ? key : R.slice(4, Infinity, key)
+          const featuredMatchingKeysByType =
+            featureType === 'geos' ? matchingKeysByType : lineMatchingKeysByType
           const keysOfType = R.pipe(
-            R.flip(R.prop)(matchingKeysByType),
+            R.flip(R.prop)(featuredMatchingKeysByType),
             R.keys
-          )(key)
+          )(featuredKey)
+          const typesSet = featureType === 'geos' ? geoTypes : arcTypes
           return R.pipe(
             R.prop('features'),
             R.filter((feature) =>
@@ -696,23 +824,47 @@ const GetGeographyLayer = (openGeo) => {
                 R.path(
                   [
                     'properties',
-                    R.path([key, 'geoJson', 'geoJsonProp'])(geoTypes),
+                    R.path([featuredKey, 'geoJson', 'geoJsonProp'])(typesSet),
                   ],
                   feature
                 ),
                 keysOfType
               )
             ),
-            R.map((d) => R.assoc('caveType', key, d))
+            R.map((d) =>
+              R.pipe(
+                R.assoc('caveType', featuredKey),
+                R.assoc('caveFeature', featureType)
+              )(d)
+            )
           )(val)
         }),
         R.values,
         R.reduce(R.concat, [])
-      )(data)
-    },
+      )(data),
     visible: true,
     positionFormat: `XY`,
-    opacity: 0.05,
+    _subLayerProps: {
+      'polygons-fill': {
+        opacity: 0.05,
+      },
+    },
+    stroked: false,
+    lineWidthUnits: 'pixels',
+    getLineWidth: (d) => {
+      const lineProp = R.path([d.caveType, 'geoJson', 'geoJsonProp'])(arcTypes)
+      const lineObj = R.prop(R.path(['properties', lineProp], d))(
+        lineMatchingKeys
+      )
+      return findLineSize(lineObj)
+    },
+    getLineColor: (d) => {
+      const lineProp = R.path([d.caveType, 'geoJson', 'geoJsonProp'])(arcTypes)
+      const lineObj = R.prop(R.path(['properties', lineProp], d))(
+        lineMatchingKeys
+      )
+      return findLineColor(lineObj)
+    },
     autoHighlight: true,
     getFillColor: (d) => {
       const geoProp = R.path([d.caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
