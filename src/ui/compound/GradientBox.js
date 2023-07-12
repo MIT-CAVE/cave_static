@@ -1,51 +1,39 @@
-/** @jsxImportSource @emotion/react */
-import * as R from 'ramda'
+import { Grid } from '@mui/material'
 
 import OverflowText from './OverflowText'
 
-export const getGradientBox = R.curry(
-  (maxColor, minColor, maxLabel, minLabel) => {
-    return (
-      <div
-        css={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <div
-          css={{
-            width: '70px',
-            textAlign: 'center',
-            marginRight: '10px',
-            marginLeft: '10px',
-            fontWeight: 700,
-            flex: 0,
-          }}
-        >
-          <OverflowText text={minLabel} />
-        </div>
-        <div
-          css={{
-            width: '60px',
-            height: '18px',
-            backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
-            flex: '1 1 auto',
-          }}
-        />
-        <div
-          css={{
-            textAlign: 'center',
-            width: '70px',
-            marginRight: '10px',
-            marginLeft: '10px',
-            fontWeight: 700,
-            flex: 0,
-          }}
-        >
-          <OverflowText text={maxLabel} />
-        </div>
-      </div>
-    )
-  }
+const GradientBox = ({ maxColor, minColor, maxLabel, minLabel }) => (
+  <Grid item container xs justifyContent="space-between" alignItems="center">
+    <Grid
+      zeroMinWidth
+      sx={{
+        mx: 1,
+        fontWeight: 700,
+        textAlign: 'center',
+      }}
+    >
+      <OverflowText text={minLabel} />
+    </Grid>
+    <Grid
+      xs
+      height="18px"
+      minWidth="60px"
+      sx={{
+        my: 2,
+        backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
+      }}
+    />
+    <Grid
+      zeroMinWidth
+      sx={{
+        mx: 1,
+        fontWeight: 700,
+        textAlign: 'center',
+      }}
+    >
+      <OverflowText text={maxLabel} />
+    </Grid>
+  </Grid>
 )
+
+export default GradientBox
