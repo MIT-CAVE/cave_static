@@ -1,5 +1,8 @@
-import { Button, Menu, MenuItem, Paper } from '@mui/material'
+import { Box, Button, Menu, MenuItem, Paper } from '@mui/material'
 import React from 'react'
+
+import FetchedIcon from './FetchedIcon'
+import OverflowText from './OverflowText'
 
 export const SimpleDropdown = ({
   value,
@@ -8,6 +11,7 @@ export const SimpleDropdown = ({
   getLabel = (label) => label,
   enabled = true,
   paperProps,
+  marquee,
   ...props
 }) => {
   const [anchorEl, setAnchorEl] = React.useState(null)
@@ -23,13 +27,27 @@ export const SimpleDropdown = ({
   return (
     <Paper elevation={0} {...paperProps} sx={{ mx: 0.5, my: 1.5 }}>
       <Button
+        fullWidth
+        variant="outlined"
         color="greyscale"
         aria-controls="simple-menu"
         aria-haspopup="true"
         onClick={enabled ? handleClick : () => {}}
         {...props}
       >
-        {getLabel(value)}
+        {marquee ? <OverflowText text={getLabel(value)} /> : getLabel(value)}
+        <Box
+          component="span"
+          display="flex"
+          alignItems="center"
+          justifyContent="end"
+          paddingLeft="4px"
+        >
+          <FetchedIcon
+            size={20}
+            iconName={anchorEl == null ? 'MdArrowDropDown' : 'MdArrowDropUp'}
+          />
+        </Box>
       </Button>
       <Menu
         id="simple-menu"
