@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import {
   Box,
+  Divider,
   Grid,
   Paper,
   Stack,
@@ -44,7 +45,7 @@ import {
   OverflowText,
   SimpleDropdown,
   FetchedIcon,
-  getGradientBox,
+  GradientBox,
 } from '../../compound'
 
 import {
@@ -58,15 +59,26 @@ import {
 
 const styles = {
   paper: {
-    width: 500,
+    width: 700,
     bgcolor: 'background.paper',
     color: 'text.primary',
     border: 1,
     borderColor: 'text.secondary',
     borderRadius: 1,
     boxShadow: 5,
-    p: (theme) => theme.spacing(0, 4, 3),
+    p: (theme) => theme.spacing(0, 2, 2),
     overflowY: 'auto',
+    '&::-webkit-scrollbar': {
+      height: 10,
+      width: '12px',
+      WebkitAppearance: 'none',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      borderRadius: 8,
+      border: '2px solid',
+      borderColor: (theme) => (theme.palette.mode === 'dark' ? '' : '#E7EBF0'),
+      backgroundColor: 'rgba(0 0 0 / 0.5)',
+    },
   },
   root: {
     position: 'absolute',
@@ -90,15 +102,12 @@ const styles = {
   },
   unit: {
     display: 'flex',
-    alignSelf: 'end',
-    ml: 1.5,
-    mb: 1,
-    px: 1.25,
+    justifyContent: 'center',
+    p: '5px 15px', // Matches the built-in padding for the left-side `Dropdown`'s `Button`
     border: 1,
     borderRadius: 1,
     borderColor: 'text.secondary',
     fontWeight: 700,
-    wordBreak: 'break-word',
   },
 }
 
@@ -138,10 +147,9 @@ const nonSx = {
   },
   typeWrapper: {
     border: '1px solid',
-    padding: '5px',
-    paddingTop: '10px',
-    marginTop: '10px',
-    borderRadius: '8px',
+    padding: '12px 4px 8px 4px',
+    marginTop: '12px',
+    borderRadius: '4px',
     // backgroundColor: '#383838',
   },
 }
@@ -209,19 +217,6 @@ const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
   </OverflowText>
 )
 
-const GradientBox = ({ gradientBox }) => (
-  <div className="row my-2">
-    <div className="col-12 mx-auto">
-      {getGradientBox(
-        gradientBox.maxColor,
-        gradientBox.minColor,
-        gradientBox.maxVal,
-        gradientBox.minVal
-      )}
-    </div>
-  </div>
-)
-
 const MapLegendGroupRowToggleLayer = ({
   icon,
   toggle,
@@ -267,54 +262,58 @@ const MapLegendSizeBySection = ({
   sizeRange,
   getPropName,
   typeObj,
-  typeName,
+  syncPath,
   icon,
-  feature,
-  legendGroup,
+  group,
+  propValue,
+  onSelectProp,
 }) => {
   const dispatch = useDispatch()
   const timeProp = useSelector(selectTimeProp)
   const sync = useSelector(selectSync)
-  const appBarId = useSelector(selectAppBarId)
 
-  const path = [
-    'maps',
-    'data',
-    appBarId,
-    'legendGroups',
-    legendGroup,
-    feature,
-    typeName,
-    'sizeBy',
-  ]
-  const syncSize = !includesPath(R.values(sync), path)
+  const syncSize = !includesPath(R.values(sync), syncPath)
 
   const unit = R.path(['props', sizeProp, 'numberFormat', 'unit'])(typeObj)
-
   return (
-    <Grid container>
-      <Grid item container alignItems="center" justifyContent="center" xs={6}>
-        <Grid item xs>
+    <>
+      {/* First row: Prop selector + unit label */}
+      <Grid
+        item
+        container
+        alignItems="center"
+        justifyContent="center"
+        xs={12}
+        spacing={unit ? 0.5 : 0}
+      >
+        <Grid item zeroMinWidth xs>
           <SimpleDropdown
+            paperProps={{ elevation: 3 }}
+            marquee
             value={sizeProp}
             getLabel={getPropName}
             optionsList={R.keys(R.prop('sizeByOptions')(typeObj))}
             onSelect={(value) => {
-              dispatch(
-                mutateLocal({ path: path, sync: syncSize, value: value })
-              )
+              dispatch(mutateLocal({ path: syncPath, sync: syncSize, value }))
             }}
           />
         </Grid>
         {unit && (
-          <Grid item>
-            <Typography variant="subtitle1" sx={styles.unit}>
-              {unit}
-            </Typography>
+          <Grid item xs={4}>
+            <Paper
+              component={Typography}
+              elevation={1}
+              variant="subtitle1"
+              sx={styles.unit}
+            >
+              <OverflowText text={unit} />
+            </Paper>
           </Grid>
         )}
       </Grid>
-      <Grid item container alignItems="center" justifyContent="center" xs={6}>
+
+      {/* Second row: Size icons with value range */}
+      <Grid item container alignItems="center" justifyContent="center" xs={12}>
         <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
           <OverflowText
             text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
@@ -342,7 +341,97 @@ const MapLegendSizeBySection = ({
           />
         </Grid>
       </Grid>
-    </Grid>
+
+      {/* Third row: Clustering functions */}
+      {group && <GroupCalcDropdown value={propValue} onSelect={onSelectProp} />}
+    </>
+  )
+}
+
+const MapLegendColorBySection = ({
+  colorProp,
+  colorRange,
+  valueRange,
+  getPropName,
+  typeObj,
+  syncPath,
+  getCategoryName,
+  group,
+  propValue,
+  onSelectProp,
+}) => {
+  const dispatch = useDispatch()
+  const timeProp = useSelector(selectTimeProp)
+  const sync = useSelector(selectSync)
+  const themeType = useSelector(selectTheme)
+
+  const syncColor = !includesPath(R.values(sync), syncPath)
+  const isCategorical = !R.has('min', colorRange)
+
+  const unit = R.path(['props', colorProp, 'numberFormat', 'unit'])(typeObj)
+
+  return (
+    <>
+      {/* First row: Prop selector + unit label */}
+      <Grid
+        item
+        container
+        alignItems="center"
+        justifyContent="center"
+        xs={12}
+        spacing={unit ? 0.5 : 0}
+      >
+        <Grid item zeroMinWidth xs>
+          <SimpleDropdown
+            paperProps={{ elevation: 3 }}
+            marquee
+            value={colorProp}
+            optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
+            getLabel={getPropName}
+            onSelect={(value) => {
+              dispatch(mutateLocal({ path: syncPath, value, sync: syncColor }))
+            }}
+          />
+        </Grid>
+        {unit && (
+          <Grid item xs={4}>
+            <Paper
+              component={Typography}
+              elevation={1}
+              variant="subtitle1"
+              sx={styles.unit}
+            >
+              <OverflowText text={unit} />
+            </Paper>
+          </Grid>
+        )}
+      </Grid>
+
+      {/* Second row: Color gradient for value range */}
+      <Grid item container alignItems="center" justifyContent="center" xs={12}>
+        {isCategorical ? (
+          <CategoricalItems getLabel={getCategoryName} {...{ colorRange }} />
+        ) : (
+          <GradientBox
+            minColor={R.pathOr(
+              R.prop('startGradientColor', colorRange),
+              ['startGradientColor', themeType],
+              colorRange
+            )}
+            maxColor={R.pathOr(
+              R.prop('endGradientColor')(colorRange),
+              ['endGradientColor', themeType],
+              colorRange
+            )}
+            maxLabel={getMaxLabel(valueRange, timeProp, colorProp, typeObj)}
+            minLabel={getMinLabel(valueRange, timeProp, colorProp, typeObj)}
+          />
+        )}
+      </Grid>
+
+      {/* Third row: Clustering functions */}
+      {group && <GroupCalcDropdown value={propValue} onSelect={onSelectProp} />}
+    </>
   )
 }
 
@@ -419,54 +508,72 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
         />
       </summary>
       <hr />
-      <Grid container spacing={1} alignItems="center" justifyContent="center">
-        <SimpleDropdown
-          optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
-          getLabel={getGeoPropName}
-          value={colorProp}
-          onSelect={(value) => {
-            dispatch(mutateLocal({ sync: syncColor, path: colorPath, value }))
-          }}
-        />
+
+      <Grid
+        container
+        alignItems="center"
+        justifyContent="center"
+        spacing={1}
+        padding="8px"
+      >
+        <Grid item xs={12}>
+          <SimpleDropdown
+            marquee
+            paperProps={{ elevation: 3 }}
+            optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
+            getLabel={getGeoPropName}
+            value={colorProp}
+            onSelect={(value) => {
+              dispatch(mutateLocal({ sync: syncColor, path: colorPath, value }))
+            }}
+          />
+        </Grid>
+
+        <Grid item container xs={12}>
+          {isCategorical ? (
+            <CategoricalItems
+              getLabel={getGeoCategoryName}
+              {...{ colorRange }}
+            />
+          ) : (
+            <GradientBox
+              minColor={R.pathOr(
+                colorRange.startGradientColor,
+                ['startGradientColor', themeType],
+                colorRange
+              )}
+              maxColor={R.pathOr(
+                colorRange.endGradientColor,
+                ['endGradientColor', themeType],
+                colorRange
+              )}
+              minLabel={getMinLabel(colorRange, timeProp, colorProp, typeObj)}
+              maxLabel={getMaxLabel(colorRange, timeProp, colorProp, typeObj)}
+            />
+          )}
+        </Grid>
       </Grid>
-      {isCategorical ? (
-        <CategoricalItems getLabel={getGeoCategoryName} {...{ colorRange }} />
-      ) : (
-        <GradientBox
-          gradientBox={{
-            minColor: R.pathOr(
-              R.prop('startGradientColor', colorRange),
-              ['startGradientColor', themeType],
-              colorRange
-            ),
-            maxColor: R.pathOr(
-              R.prop('endGradientColor', colorRange),
-              ['endGradientColor', themeType],
-              colorRange
-            ),
-            maxVal: getMaxLabel(colorRange, timeProp, colorProp, typeObj),
-            minVal: getMinLabel(colorRange, timeProp, colorProp, typeObj),
-          }}
-        />
-      )}
     </details>
   )
 }
 
-const GroupCalcDropdown = ({ value, onSelect, ...props }) => (
+const GroupCalcDropdown = ({ value, onSelect }) => (
   <Grid
-    container
     item
-    justifyContent="center"
+    container
     alignItems="center"
+    justifyContent="center"
+    paddingLeft="4px"
     // spacing={1}
-    {...props}
+    xs={12}
   >
     <Grid item>
       <FetchedIcon iconName="TbMathFunction" size={24} />
     </Grid>
-    <Grid item>
+    <Grid item xs>
       <SimpleDropdown
+        marquee
+        paperProps={{ elevation: 3 }}
         getLabel={getStatLabel}
         optionsList={R.values(statId)}
         {...{ value, onSelect }}
@@ -543,8 +650,6 @@ const LegendCard = ({
   const displayedGeometry = useSelector(selectEnabledGeometry)
   const geometryRange = useSelector(selectGeometryRange)
   const geometryRangesByType = useSelector(selectNodeRangeAtZoom)
-  const timeProp = useSelector(selectTimeProp)
-  const themeType = useSelector(selectTheme)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
 
@@ -585,12 +690,8 @@ const LegendCard = ({
     geometryRangesByType
   )
 
-  const colorPath = R.append('colorBy', basePath)
-  const syncColor = !includesPath(R.values(sync), colorPath)
-
   const sizeRange = geometryRange(geometryType, sizeProp, true)
   const colorRange = geometryRange(geometryType, colorProp, false)
-  const isCategorical = !R.has('min', colorRange)
 
   const getGeometryPropName = useCallback(
     (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
@@ -655,118 +756,81 @@ const LegendCard = ({
         />
       </summary>
       <hr />
-      <Grid container spacing={1} alignItems="stretch">
+      <Grid container spacing={1}>
         <Grid
-          container
           item
-          xs={12}
-          css={{
+          container
+          xs={5.75}
+          sx={{
+            alignItems: 'start',
             display: R.isNil(R.prop('sizeByOptions')(typeObj)) ? 'none' : '',
           }}
         >
           <MapLegendSizeBySection
-            sizeProp={sizeProp}
+            {...{
+              sizeProp,
+              typeObj,
+              icon,
+              group,
+            }}
             sizeRange={group && sizeDomain ? sizeDomain : sizeRange}
             getPropName={getGeometryPropName}
-            typeObj={typeObj}
-            typeName={geometryType}
-            icon={icon}
-            feature={geometryName}
-            legendGroup={legendGroupId}
+            syncPath={R.append('sizeBy')(basePath)}
+            propValue={groupCalcBySize}
+            onSelectProp={(value) => {
+              dispatch(
+                mutateLocal({
+                  path: groupCalcSizePath,
+                  sync: syncGroupCalcSize,
+                  value,
+                })
+              )
+            }}
           />
-          {group && (
-            <GroupCalcDropdown
-              value={groupCalcBySize}
-              onSelect={(value) => {
-                dispatch(
-                  mutateLocal({
-                    path: groupCalcSizePath,
-                    sync: syncGroupCalcSize,
-                    value,
-                  })
-                )
-              }}
-            />
-          )}
         </Grid>
 
+        <Grid item xs={0.25}>
+          <Divider
+            orientation="vertical"
+            sx={{
+              borderColor: 'rgba(255, 255, 255, 0.6)',
+              borderStyle: 'dotted',
+              pl: 0.15,
+            }}
+          />
+        </Grid>
         <Grid
-          container
           item
-          xs={12}
-          css={{
+          container
+          xs={5.75}
+          sx={{
+            alignItems: 'start',
             display: R.isNil(R.prop('colorByOptions')(typeObj)) ? 'none' : '',
           }}
         >
-          <Grid container alignItems="center">
-            <Grid
-              container
-              item
-              xs
-              alignItems="stretch"
-              justifyContent="center"
-            >
-              <SimpleDropdown
-                value={colorProp}
-                optionsList={R.keys(R.prop('colorByOptions')(typeObj))}
-                getLabel={getGeometryPropName}
-                onSelect={(value) => {
-                  dispatch(
-                    mutateLocal({ sync: syncColor, path: colorPath, value })
-                  )
-                }}
-              />
-            </Grid>
-            <Grid container item alignItems="center" xs={6}>
-              {isCategorical ? (
-                <CategoricalItems
-                  getLabel={getGeometryCategoryName}
-                  {...{ colorRange }}
-                />
-              ) : (
-                <GradientBox
-                  gradientBox={{
-                    minColor: R.pathOr(
-                      R.prop('startGradientColor', colorRange),
-                      ['startGradientColor', themeType],
-                      colorRange
-                    ),
-                    maxColor: R.pathOr(
-                      R.prop('endGradientColor', colorRange),
-                      ['endGradientColor', themeType],
-                      colorRange
-                    ),
-                    maxVal: getMaxLabel(
-                      group && colorDomain ? colorDomain : colorRange,
-                      timeProp,
-                      colorProp,
-                      typeObj
-                    ),
-                    minVal: getMinLabel(
-                      group && colorDomain ? colorDomain : colorRange,
-                      timeProp,
-                      colorProp,
-                      typeObj
-                    ),
-                  }}
-                />
-              )}
-              {group && (
-                <GroupCalcDropdown
-                  value={groupCalcByColor}
-                  onSelect={(value) => {
-                    dispatch(
-                      mutateLocal({
-                        path: groupCalcColorPath,
-                        sync: syncGroupCalcColor,
-                        value,
-                      })
-                    )
-                  }}
-                />
-              )}
-            </Grid>
-          </Grid>
+          <MapLegendColorBySection
+            {...{
+              colorProp,
+              colorRange,
+              typeObj,
+              group,
+            }}
+            valueRange={group && colorDomain ? colorDomain : colorRange}
+            getPropName={getGeometryPropName}
+            getCategoryName={getGeometryCategoryName}
+            typeObj={typeObj}
+            syncPath={R.append('colorBy')(basePath)}
+            propValue={groupCalcByColor}
+            onSelectProp={(value) => {
+              dispatch(
+                mutateLocal({
+                  path: groupCalcColorPath,
+                  sync: syncGroupCalcColor,
+                  value,
+                })
+              )
+            }}
+          />
         </Grid>
       </Grid>
     </details>
