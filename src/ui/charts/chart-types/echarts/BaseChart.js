@@ -9,7 +9,7 @@ import {
   // TreeChart,
   TreemapChart,
   GraphChart,
-  // GaugeChart,
+  GaugeChart,
   // FunnelChart,
   // ParallelChart,
   // SankeyChart,
@@ -86,6 +86,7 @@ echarts.use([
   SunburstChart,
   TreemapChart,
   VisualMapPiecewiseComponent,
+  GaugeChart,
 ])
 
 const FlexibleWrapper = ({ children, ...props }) => (

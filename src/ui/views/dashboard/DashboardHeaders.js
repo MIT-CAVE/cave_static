@@ -12,6 +12,7 @@ import {
   selectAppBarId,
   selectAllowedStats,
 } from '../../../data/selectors'
+import { chartMaxGrouping } from '../../../utils/enums'
 
 import {
   FetchedIcon,
@@ -61,6 +62,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
     R.map((item) => R.assoc('subItems', sortedLevelsByCategory[item.id])(item)),
     R.groupBy(R.prop('grouping'))
   )(categories)
+
+  const removeExtraLevels = (obj) =>
+    chartMaxGrouping[obj.chart] === 1
+      ? R.pipe(R.dissoc('level2'), R.dissoc('category2'))(obj)
+      : obj
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
   const onSelectGroupFn =
@@ -140,6 +146,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               value: 'Treemap',
               iconName: 'TbChartTreemap',
             },
+            {
+              label: 'Gauge',
+              value: 'Gauge',
+              iconName: 'TbGauge',
+            },
           ]}
           displayIcon
           onSelect={(value) => {
@@ -158,7 +169,8 @@ const StatisticsHeader = memo(({ obj, index }) => {
                     // select the first one of the whole stats list
                     // R.assoc('statistic', R.path([0, 'id'])(sortedStatistics))
                     R.assoc('statistic', R.path(['statistic', 0])(obj))
-                  )
+                  ),
+                  removeExtraLevels
                 )(obj),
               })
             )
@@ -250,56 +262,61 @@ const StatisticsHeader = memo(({ obj, index }) => {
         />
       </HeaderSelectWrapper>
 
-      <HeaderSelectWrapper
-        sx={{
-          minWidth: '35px',
-          height: '40%',
-          my: 'auto',
-          borderRadius: '20%',
-        }}
-        elevation={6}
-      >
-        <SwapButton
-          onClick={() => {
-            const [category, level] = getGroupValues()
-            const [category2, level2] = getGroupValues(2)
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.pipe(
-                  R.assoc('category', category2),
-                  R.assoc('level', level2),
-                  R.assoc('category2', category),
-                  R.assoc('level2', level)
-                )(obj),
-              })
-            )
-          }}
-        />
-      </HeaderSelectWrapper>
-
-      <HeaderSelectWrapper
-        clearable={R.has('level2', obj)}
-        onClear={() => {
-          dispatch(
-            mutateLocal({
-              path,
-              sync: !includesPath(R.values(sync), path),
-              value: R.pipe(R.dissoc('category2'), R.dissoc('level2'))(obj),
-            })
-          )
-        }}
-      >
-        <SelectAccordion
-          {...{ itemGroups }}
-          values={getGroupValues(2)}
-          placeholder="Sub Group"
-          getLabel={getLabelFn(categories)}
-          getSubLabel={getSubLabelFn(categories)}
-          onSelect={onSelectGroupFn(2)}
-        />
-      </HeaderSelectWrapper>
+      {chartMaxGrouping[obj.chart] === 2 ? (
+        <>
+          <HeaderSelectWrapper
+            sx={{
+              minWidth: '35px',
+              height: '40%',
+              my: 'auto',
+              borderRadius: '20%',
+            }}
+            elevation={6}
+          >
+            <SwapButton
+              onClick={() => {
+                const [category, level] = getGroupValues()
+                const [category2, level2] = getGroupValues(2)
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.pipe(
+                      R.assoc('category', category2),
+                      R.assoc('level', level2),
+                      R.assoc('category2', category),
+                      R.assoc('level2', level)
+                    )(obj),
+                  })
+                )
+              }}
+            />
+          </HeaderSelectWrapper>
+          <HeaderSelectWrapper
+            clearable={R.has('level2', obj)}
+            onClear={() => {
+              dispatch(
+                mutateLocal({
+                  path,
+                  sync: !includesPath(R.values(sync), path),
+                  value: R.pipe(R.dissoc('category2'), R.dissoc('level2'))(obj),
+                })
+              )
+            }}
+          >
+            <SelectAccordion
+              {...{ itemGroups }}
+              values={getGroupValues(2)}
+              placeholder="Sub Group"
+              getLabel={getLabelFn(categories)}
+              getSubLabel={getSubLabelFn(categories)}
+              onSelect={onSelectGroupFn(2)}
+            />
+          </HeaderSelectWrapper>{' '}
+        </>
+      ) : (
+        []
+      )}
     </>
   )
 })

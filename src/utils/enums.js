@@ -118,4 +118,20 @@ export const chartType = {
   TABLE: 'Table',
   TREEMAP: 'Treemap',
   WATERFALL: 'Waterfall',
+  GAUGE: 'Gauge',
+}
+
+// TODO: Update these when we add support for more than 2 grouping levels
+export const chartMaxGrouping = {
+  Bar: 2,
+  'Box Plot': 2,
+  'Cumulative Line': 2,
+  Line: 2,
+  'Stacked Bar': 2,
+  'Stacked Waterfall': 2,
+  Sunburst: 2,
+  Table: 2,
+  Treemap: 2,
+  WaterFall: 2,
+  Gauge: 1,
 }

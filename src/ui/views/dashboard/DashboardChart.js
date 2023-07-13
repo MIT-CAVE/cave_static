@@ -22,6 +22,7 @@ import {
   WaterfallChart,
   Sunburst,
   Treemap,
+  GaugeChart,
 } from '../../charts'
 
 import { getLabelFn, getSubLabelFn, forcePath } from '../../../utils'
@@ -180,6 +181,13 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+        />
+      ) : obj.chart === chartType.GAUGE ? (
+        <GaugeChart
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
         />
       ) : (
         <></>
