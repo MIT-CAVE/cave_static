@@ -17,7 +17,7 @@ import {
   // CandlestickChart,
   // EffectScatterChart,
   // LinesChart,
-  // HeatmapChart,
+  HeatmapChart,
   // PictorialBarChart,
   // ThemeRiverChart,
   SunburstChart,
@@ -49,7 +49,7 @@ import {
   // DataZoomInsideComponent,
   // DataZoomSliderComponent,
   // VisualMapComponent,
-  // VisualMapContinuousComponent,
+  VisualMapContinuousComponent,
   VisualMapPiecewiseComponent,
   AriaComponent,
   TransformComponent,
@@ -86,7 +86,9 @@ echarts.use([
   SunburstChart,
   TreemapChart,
   VisualMapPiecewiseComponent,
+  VisualMapContinuousComponent,
   GaugeChart,
+  HeatmapChart,
 ])
 
 const FlexibleWrapper = ({ children, ...props }) => (

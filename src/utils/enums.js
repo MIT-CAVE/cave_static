@@ -119,6 +119,7 @@ export const chartType = {
   TREEMAP: 'Treemap',
   WATERFALL: 'Waterfall',
   GAUGE: 'Gauge',
+  HEATMAP: 'Heatmap',
 }
 
 // TODO: Update these when we add support for more than 2 grouping levels
@@ -134,4 +135,5 @@ export const chartMaxGrouping = {
   Treemap: 2,
   WaterFall: 2,
   Gauge: 1,
+  Heatmap: 2,
 }

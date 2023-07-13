@@ -23,6 +23,7 @@ import {
   Sunburst,
   Treemap,
   GaugeChart,
+  Heatmap,
 } from '../../charts'
 
 import { getLabelFn, getSubLabelFn, forcePath } from '../../../utils'
@@ -184,6 +185,13 @@ const DashboardChart = ({ obj }) => {
         />
       ) : obj.chart === chartType.GAUGE ? (
         <GaugeChart
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
+        />
+      ) : obj.chart === chartType.HEATMAP ? (
+        <Heatmap
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}

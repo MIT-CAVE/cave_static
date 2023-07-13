@@ -151,6 +151,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               value: 'Gauge',
               iconName: 'TbGauge',
             },
+            {
+              label: 'Heatmap',
+              value: 'Heatmap',
+              iconName: 'TbLayoutDashboard',
+            },
           ]}
           displayIcon
           onSelect={(value) => {

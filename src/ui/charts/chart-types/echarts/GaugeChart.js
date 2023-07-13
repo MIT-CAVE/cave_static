@@ -1,24 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import * as echarts from 'echarts/core'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
-import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { adjustMinMax, formatNumber, getMinMax } from '../../../../utils'
+import { echarts } from './BaseChart'
 
-const FlexibleWrapper = ({ children, ...props }) => (
-  <div style={{ flex: '1 1 auto' }}>
-    <AutoSizer>
-      {({ height, width }) => (
-        <div css={{ '>': { height, width } }} {...props}>
-          {children}
-        </div>
-      )}
-    </AutoSizer>
-  </div>
-)
-FlexibleWrapper.propTypes = { children: PropTypes.node }
+import { adjustMinMax, formatNumber, getMinMax } from '../../../../utils'
 
 const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
@@ -101,7 +88,7 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
   )(initialSeries)
 
   const series = R.pipe(
-    R.assocPath([0, 'min'], yMin),
+    R.assocPath([0, 'min'], yMin > 0 ? 0 : yMin),
     R.assocPath([0, 'max'], yMax)
   )(initialSeries)
 
