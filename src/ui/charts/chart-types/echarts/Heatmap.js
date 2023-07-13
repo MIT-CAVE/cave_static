@@ -16,8 +16,6 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  if (R.type(R.head(R.head(yValues))) !== 'Object') return []
-
   const subGroupLabels = R.pipe(
     R.map(R.pluck('name')),
     R.map(R.filter(R.isNotNil)),
@@ -33,7 +31,11 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
       R.map((xidx) =>
         R.pipe(
           (idx) => R.find(R.propEq(idx, 'index'), d),
-          R.when(R.isNotNil, (val) => [xidx, yidx, R.path(['value', 0], val)])
+          R.when(R.isNotNil, (val) => [
+            xidx,
+            yidx,
+            R.pathOr(yValues[xidx][0], ['value', 0], val),
+          ])
         )(xidx)
       )(R.range(0, Math.max(...R.pluck('index', d)) + 1))
     ),
