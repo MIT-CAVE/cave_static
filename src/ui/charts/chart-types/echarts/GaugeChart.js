@@ -112,17 +112,15 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
         show: false,
       },
     },
-    yAxis: {
-      name: `${yAxisTitle}`,
-      nameLocation: 'end',
-      nameRotate: 0,
-      nameGap: 25,
-      nameTextStyle: {
-        padding: [0, 0, 0, 900],
-        fontSize: 16,
-        align: 'center',
-        verticalAlign: 'bottom',
+    title: {
+      text: yAxisTitle,
+      left: 'center',
+      top: 15,
+      textStyle: {
+        fontSize: 20,
       },
+    },
+    yAxis: {
       type: 'value',
       axisLine: {
         show: false,
