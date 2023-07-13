@@ -48,7 +48,7 @@ export const combineReducers = (reducers) => {
   const reducerKeys = R.keys(reducers)
   return (state = {}, action) => {
     let hasChanged = false
-    const nextState = R.clone(state)
+    const nextState = structuredClone(state)
     for (let i = 0; i < reducerKeys.length; i++) {
       const key = reducerKeys[i]
       const reducer = reducers[key]
