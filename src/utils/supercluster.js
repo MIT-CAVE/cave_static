@@ -13,6 +13,9 @@ const defaultOptions = {
   // whether to generate numeric ids for input features (in vector tiles)
   generateId: false,
 
+  // deep cloning of data points when clustering (affects performance)
+  deepClone: false,
+
   // a reduce function for calculating custom cluster properties
   reduce: null, // (accumulated, props) => { accumulated.sum += props.sum; }
 
@@ -39,6 +42,11 @@ export default class Supercluster {
     this.trees = new Array(this.options.maxZoom + 1)
     this.stride = this.options.reduce ? 7 : 6
     this.clusterProps = []
+    this._clone = function (data) {
+      return this.options.deepClone
+        ? structuredClone(data)
+        : Object.assign({}, data)
+    }
   }
 
   load(points) {
@@ -434,11 +442,11 @@ export default class Supercluster {
   _map(data, i, clone) {
     if (data[i + OFFSET_NUM] > 1) {
       const props = this.clusterProps[data[i + OFFSET_PROP]]
-      return clone ? Object.assign({}, props) : props
+      return clone ? this._clone(props) : props
     }
     const original = this.points[data[i + OFFSET_ID]].properties
     const result = this.options.map(original)
-    return clone && result === original ? Object.assign({}, result) : result
+    return clone && result === original ? this._clone(result) : result
   }
 }
 
@@ -492,71 +500,71 @@ function yLat(y) {
   return (360 * Math.atan(Math.exp(y2))) / Math.PI - 90
 }
 
-// clone reg exp
-function _cloneRegExp(pattern) {
-  return new RegExp(
-    pattern.source,
-    (pattern.global ? 'g' : '') +
-      (pattern.ignoreCase ? 'i' : '') +
-      (pattern.multiline ? 'm' : '') +
-      (pattern.sticky ? 'y' : '') +
-      (pattern.unicode ? 'u' : '')
-  )
-}
-// Find object type
-function type(val) {
-  return val === null
-    ? 'Null'
-    : val === undefined
-    ? 'Undefined'
-    : Object.prototype.toString.call(val).slice(8, -1)
-}
-
-// deep clone
-// eslint-disable-next-line no-unused-vars
-function _clone(value, refFrom, refTo, deep) {
-  var copy = function copy(copiedValue) {
-    var len = refFrom.length
-    var idx = 0
-    while (idx < len) {
-      if (value === refFrom[idx]) {
-        return refTo[idx]
-      }
-      idx += 1
-    }
-    refFrom[idx] = value
-    refTo[idx] = copiedValue
-    for (var key in value) {
-      if (Object.prototype.hasOwnProperty.call(value, key)) {
-        copiedValue[key] = deep
-          ? _clone(value[key], refFrom, refTo, true)
-          : value[key]
-      }
-    }
-    return copiedValue
-  }
-  switch (type(value)) {
-    case 'Object':
-      return copy(Object.create(Object.getPrototypeOf(value)))
-    case 'Array':
-      return copy([])
-    case 'Date':
-      return new Date(value.valueOf())
-    case 'RegExp':
-      return _cloneRegExp(value)
-    case 'Int8Array':
-    case 'Uint8Array':
-    case 'Uint8ClampedArray':
-    case 'Int16Array':
-    case 'Uint16Array':
-    case 'Int32Array':
-    case 'Uint32Array':
-    case 'Float32Array':
-    case 'Float64Array':
-    case 'BigInt64Array':
-    case 'BigUint64Array':
-      return value.slice()
-    default:
-      return value
-  }
-}
+// // clone reg exp
+// function _cloneRegExp(pattern) {
+//   return new RegExp(
+//     pattern.source,
+//     (pattern.global ? 'g' : '') +
+//       (pattern.ignoreCase ? 'i' : '') +
+//       (pattern.multiline ? 'm' : '') +
+//       (pattern.sticky ? 'y' : '') +
+//       (pattern.unicode ? 'u' : '')
+//   )
+// }
+// // Find object type
+// function type(val) {
+//   return val === null
+//     ? 'Null'
+//     : val === undefined
+//     ? 'Undefined'
+//     : Object.prototype.toString.call(val).slice(8, -1)
+// }
+//
+// // deep clone
+// // BUG: When cloning a `value` array the last element of the array is not cloned.
+// function _clone(value, refFrom, refTo, deep) {
+//   var copy = function copy(copiedValue) {
+//     var len = refFrom.length
+//     var idx = 0
+//     while (idx < len) {
+//       if (value === refFrom[idx]) {
+//         return refTo[idx]
+//       }
+//       idx += 1
+//     }
+//     refFrom[idx] = value
+//     refTo[idx] = copiedValue
+//     for (var key in value) {
+//       if (Object.prototype.hasOwnProperty.call(value, key)) {
+//         copiedValue[key] = deep
+//           ? _clone(value[key], refFrom, refTo, true)
+//           : value[key]
+//       }
+//     }
+//     return copiedValue
+//   }
+//   switch (type(value)) {
+//     case 'Object':
+//       return copy(Object.create(Object.getPrototypeOf(value)))
+//     case 'Array':
+//       return copy([])
+//     case 'Date':
+//       return new Date(value.valueOf())
+//     case 'RegExp':
+//       return _cloneRegExp(value)
+//     case 'Int8Array':
+//     case 'Uint8Array':
+//     case 'Uint8ClampedArray':
+//     case 'Int16Array':
+//     case 'Uint16Array':
+//     case 'Int32Array':
+//     case 'Uint32Array':
+//     case 'Float32Array':
+//     case 'Float64Array':
+//     case 'BigInt64Array':
+//     case 'BigUint64Array':
+//       return value.slice()
+//     default:
+//       return value
+//   }
+// }
