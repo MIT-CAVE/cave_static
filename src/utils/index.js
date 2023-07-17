@@ -38,6 +38,16 @@ const iconPrefix = {
   CSS_DOT_GG: 'Cg',
 }
 
+// Given a list of chart children find all subgroup labels in given order
+// Note: If all labels aren't present in at least one parent order is estimated
+export const findSubgroupLabels = R.pipe(
+  R.map(R.pluck('name')),
+  R.map(R.filter(R.isNotNil)),
+  R.sortBy(R.pipe(R.length, R.negate)),
+  R.unnest,
+  R.uniq
+)
+
 // checks if paths contains the given path, or a path to one of its parents
 export const includesPath = (paths, path) => {
   return R.any((sub) => path.join(',').indexOf(sub.join(',')) === 0)(paths)

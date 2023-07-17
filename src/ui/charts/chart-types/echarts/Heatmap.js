@@ -5,7 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { formatNumber, getMinMax } from '../../../../utils'
+import { findSubgroupLabels, formatNumber, getMinMax } from '../../../../utils'
 
 const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
@@ -16,12 +16,7 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const series = R.pipe(
     R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),

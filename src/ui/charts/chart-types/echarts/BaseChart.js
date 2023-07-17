@@ -63,6 +63,7 @@ import * as R from 'ramda'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 import {
+  findSubgroupLabels,
   formatNumber,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
@@ -112,6 +113,7 @@ const EchartsPlot = ({
   chartType,
   theme,
   stack = false,
+  seriesObj = {},
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -121,12 +123,19 @@ const EchartsPlot = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
+
+  const baseObject = R.mergeRight(
+    {
+      type: chartType,
+      smooth: true,
+      emphasis: {
+        focus: 'series',
+      },
+      ...(stack && { stack }),
+    },
+    seriesObj
+  )
 
   const series = R.ifElse(
     (val) => R.type(R.head(R.head(val))) === 'Object',
@@ -134,33 +143,20 @@ const EchartsPlot = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) => ({
-        name: R.head(d).name,
-        type: chartType,
-        smooth: true,
-        ...(stack && { stack }),
-        emphasis: {
-          focus: 'series',
-        },
-        data: R.map(
-          R.pipe(
-            (idx) => R.find(R.propEq(idx, 'index'), d),
-            R.when(R.isNotNil, R.path(['value', 0]))
-          )
-        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-      })),
+      R.map((d) =>
+        R.mergeRight(baseObject, {
+          name: R.head(d).name,
+          data: R.map(
+            R.pipe(
+              (idx) => R.find(R.propEq(idx, 'index'), d),
+              R.when(R.isNotNil, R.path(['value', 0]))
+            )
+          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+        })
+      ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
-    (d) => [
-      R.assoc('data', R.unnest(d), {
-        type: chartType,
-        smooth: true,
-        ...(stack && { stack }),
-        emphasis: {
-          focus: 'series',
-        },
-      }),
-    ]
+    (d) => [R.assoc('data', R.unnest(d), baseObject)]
   )(yValues)
 
   const yMax = R.pipe(
