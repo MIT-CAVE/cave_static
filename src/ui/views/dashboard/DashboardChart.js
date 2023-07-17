@@ -197,6 +197,14 @@ const DashboardChart = ({ obj }) => {
           theme={themeId}
           {...labels}
         />
+      ) : obj.chart === chartType.STACKED_AREA ? (
+        <LinePlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          area={true}
+          {...labels}
+        />
       ) : (
         <></>
       )}
