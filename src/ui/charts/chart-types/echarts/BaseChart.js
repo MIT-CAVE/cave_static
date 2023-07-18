@@ -3,7 +3,7 @@ import {
   LineChart,
   BarChart,
   // PieChart,
-  // ScatterChart,
+  ScatterChart,
   // RadarChart,
   // MapChart,
   // TreeChart,
@@ -90,6 +90,7 @@ echarts.use([
   VisualMapContinuousComponent,
   GaugeChart,
   HeatmapChart,
+  ScatterChart,
 ])
 
 const FlexibleWrapper = ({ children, ...props }) => (

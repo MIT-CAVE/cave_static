@@ -12,7 +12,7 @@ import {
   selectAppBarId,
   selectAllowedStats,
 } from '../../../data/selectors'
-import { chartMaxGrouping } from '../../../utils/enums'
+import { chartMaxGrouping, chartStatLimits } from '../../../utils/enums'
 
 import {
   FetchedIcon,
@@ -160,6 +160,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
               value: 'Heatmap',
               iconName: 'TbLayoutDashboard',
             },
+            {
+              label: 'Scatter',
+              value: 'Scatter',
+              iconName: 'BiScatterChart',
+            },
           ]}
           displayIcon
           onSelect={(value) => {
@@ -226,12 +231,17 @@ const StatisticsHeader = memo(({ obj, index }) => {
       </HeaderSelectWrapper>
 
       <HeaderSelectWrapper>
-        {R.prop('chart', obj) === 'Table' ? (
+        {R.has(R.prop('chart', obj), chartStatLimits) ? (
           <SelectMulti
             getLabel={getLabelFn(statisticTypes)}
             value={R.propOr([], 'statistic', obj)}
-            header="Select Statistics"
+            header={
+              chartStatLimits[obj.chart] === -1
+                ? 'Select Statistics'
+                : `Select ${chartStatLimits[obj.chart]} Statistics`
+            }
             optionsList={R.pluck('id')(sortedStatistics)}
+            selectionLimit={chartStatLimits[obj.chart]}
             onSelect={(value) => {
               dispatch(
                 mutateLocal({

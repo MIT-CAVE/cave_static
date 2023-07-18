@@ -10,7 +10,7 @@ import {
   selectNumberFormat,
   selectMemoizedChartFunc,
 } from '../../../data/selectors'
-import { chartType } from '../../../utils/enums'
+import { chartType, chartStatLimits } from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -24,6 +24,7 @@ import {
   Treemap,
   GaugeChart,
   Heatmap,
+  ScatterPlot,
 } from '../../charts'
 
 import { getLabelFn, getSubLabelFn, forcePath } from '../../../utils'
@@ -44,7 +45,9 @@ const DashboardChart = ({ obj }) => {
 
   const subGrouped = R.has('level2')(obj)
 
-  const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
+  const actualStat = R.has(R.prop('chart', obj), chartStatLimits)
+    ? pathedVar
+    : obj.statistic
 
   const xAxisTitle = obj.category
     ? `${getLabelFn(categories)(obj.category)}${
@@ -105,7 +108,6 @@ const DashboardChart = ({ obj }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
-
   return (
     <Box
       sx={{
@@ -204,6 +206,13 @@ const DashboardChart = ({ obj }) => {
           theme={themeId}
           area={true}
           {...labels}
+        />
+      ) : obj.chart === chartType.SCATTER ? (
+        <ScatterPlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          labels={tableLabels}
         />
       ) : (
         <></>

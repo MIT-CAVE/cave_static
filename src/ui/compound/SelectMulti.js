@@ -28,6 +28,14 @@ const styles = {
   },
 }
 
+// Add new selections to array while limiting max length.
+// Follows first in last out ordering
+const addSelectionWithLimit = (limit, selection, arr) =>
+  R.pipe(
+    R.prepend(selection),
+    R.when(R.pipe(R.length, R.lt(limit)), R.slice(0, limit))
+  )(arr)
+
 /**
  * A component used to select values from a list of items.
  * @param {Array} items - An array of strings or objects...
@@ -37,6 +45,7 @@ const styles = {
  * @param getLabel
  * @param onClickAway
  * @param onSelect
+ * @param selectionLimit
  * @param props
  * @private
  */
@@ -48,6 +57,7 @@ const SelectMulti = ({
   getLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
+  selectionLimit = -1,
   ...props
 } = {}) => {
   const [open, setOpen] = useState(false)
@@ -78,7 +88,11 @@ const SelectMulti = ({
               const newVal = R.includes(value, selected)
                 ? R.without([value], selected)
                 : R.concat([value], selected)
-              setSelected(newVal)
+              const limitedVal =
+                selectionLimit === -1 || R.includes(value, selected)
+                  ? newVal
+                  : addSelectionWithLimit(selectionLimit, value, selected)
+              setSelected(limitedVal)
             }}
           >
             <Checkbox checked={R.includes(value, selected)} />
@@ -105,6 +119,7 @@ SelectMulti.propTypes = {
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
   children: PropTypes.node,
+  selectionLimit: PropTypes.number,
 }
 
 export default SelectMulti

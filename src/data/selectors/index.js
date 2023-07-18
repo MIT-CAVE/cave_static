@@ -8,7 +8,7 @@ import {
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
 } from '../../utils/constants'
-import { viewId, statId } from '../../utils/enums'
+import { viewId, statId, chartStatLimits } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 
@@ -734,7 +734,9 @@ export const selectMemoizedChartFunc = createSelector(
       (obj) => JSON.stringify(obj),
       (obj) => {
         const pathedVar = forcePath(R.propOr([], 'statistic', obj))
-        const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
+        const actualStat = R.has(R.prop('chart', obj), chartStatLimits)
+          ? pathedVar
+          : obj.statistic
         const mergeFuncs = {
           Sum: R.sum,
           Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
@@ -794,7 +796,7 @@ export const selectMemoizedChartFunc = createSelector(
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
         const statValues = recursiveMap(
           R.is(Array),
-          obj.chart === 'Table'
+          R.has(R.prop('chart', obj), chartStatLimits)
             ? R.pipe(
                 R.unnest,
                 groupByIdx,
@@ -887,7 +889,7 @@ export const selectMemoizedKpiFunc = createSelector(
             )(val),
           })),
           R.when(
-            R.always(obj.chart === 'Table'),
+            R.always(R.has(R.prop('chart', obj), chartStatLimits)),
             R.map((session) => ({
               name: session.name,
               value: R.unnest(R.pluck('value', session.children)),
