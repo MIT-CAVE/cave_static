@@ -18,13 +18,21 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from './data/local'
 import {
-  selectAppBarData,
   selectAppBarId,
+  selectCombinedAppBarData,
+  selectLeftAppBarData,
+  selectLeftGroupedAppBar,
+  selectLeftOpenPane,
+  selectLeftOpenPanesData,
+  selectLeftPinPane,
+  selectLeftSecondaryOpenPane,
   selectMapboxToken,
-  selectOpenPane,
-  selectOpenPanesData,
-  selectPinPane,
-  selectSecondaryOpenPane,
+  selectRightAppBarData,
+  selectRightGroupedAppBar,
+  selectRightOpenPane,
+  selectRightOpenPanesData,
+  selectRightPinPane,
+  selectRightSecondaryOpenPane,
   selectSessions,
   selectSync,
   selectTheme,
@@ -50,6 +58,7 @@ const styles = {
     height: '100vh',
     width: '100vw',
     bgcolor: 'background.paper',
+    overflow: 'hidden',
   },
   page: {
     label: 'workspace',
@@ -71,7 +80,7 @@ const styles = {
   },
   sessionCardContent: {
     overflow: 'hidden',
-    overflowwrap: 'break-word',
+    overflowWrap: 'break-word',
   },
   sessionCardPosition: {
     left: 0,
@@ -82,21 +91,36 @@ const styles = {
 const App = () => {
   const mapboxToken = useSelector(selectMapboxToken)
   const themeId = useSelector(selectTheme)
-  const open = useSelector(selectOpenPane)
-  const secondaryOpen = useSelector(selectSecondaryOpenPane)
-  const sync = useSelector(selectSync)
-  const appBarData = useSelector(selectAppBarData)
   const appBarId = useSelector(selectAppBarId)
-  const pin = useSelector(selectPinPane)
+  const appBarData = useSelector(selectCombinedAppBarData)
+  const leftAppBarData = useSelector(selectLeftAppBarData)
+  const leftGroupedAppBar = useSelector(selectLeftGroupedAppBar)
+  const leftOpen = useSelector(selectLeftOpenPane)
+  const leftOpenPanesData = useSelector(selectLeftOpenPanesData)
+  const leftPin = useSelector(selectLeftPinPane)
+  const leftSecondaryOpen = useSelector(selectLeftSecondaryOpenPane)
+  const rightAppBarData = useSelector(selectRightAppBarData)
+  const rightGroupedAppBar = useSelector(selectRightGroupedAppBar)
+  const rightOpen = useSelector(selectRightOpenPane)
+  const rightOpenPanesData = useSelector(selectRightOpenPanesData)
+  const rightPin = useSelector(selectRightPinPane)
+  const rightSecondaryOpen = useSelector(selectRightSecondaryOpenPane)
   const sessions = useSelector(selectSessions)
-
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const theme = getTheme(themeId)
-  const pane = R.assoc(
+  const leftBar = !R.isEmpty(leftAppBarData)
+  const rightBar = !R.isEmpty(rightAppBarData)
+  const leftPane = R.assoc(
     'icon',
-    R.path([open, 'icon'], appBarData),
-    useSelector(selectOpenPanesData)
+    R.path([leftOpen, 'icon'], leftAppBarData),
+    leftOpenPanesData
+  )
+  const rightPane = R.assoc(
+    'icon',
+    R.path([rightOpen, 'icon'], rightAppBarData),
+    rightOpenPanesData
   )
   const renderAppPage = R.cond([
     [
@@ -113,30 +137,52 @@ const App = () => {
 
   const handlePaneClickAway = useCallback(
     (e) => {
-      if (!pin && R.isNotNil(open) && R.propOr(0, 'x', e) > APP_BAR_WIDTH) {
-        dispatch(
-          mutateLocal({
-            path: ['appBar', 'paneState'],
-            value: {},
-            sync: !includesPath(R.values(sync), ['appBar', 'paneState']),
-          })
-        )
-      }
-    },
-    [dispatch, open, sync, pin]
-  )
-
-  const pinObj = {
-    pin,
-    onPin: () => {
-      dispatch(
-        mutateLocal({
-          path: ['appBar', 'paneState', 'pin'],
-          value: !pin,
-          sync: !includesPath(R.values(sync), ['appBar', 'paneState', 'pin']),
-        })
+      const xPosition = R.propOr(0, 'x', e)
+      const overMin = xPosition > APP_BAR_WIDTH
+      const underMax = xPosition < window.innerWidth - APP_BAR_WIDTH
+      R.forEach(
+        ([side, open, pin, pageClick]) => {
+          if (!pin && R.isNotNil(open) && pageClick) {
+            dispatch(
+              mutateLocal({
+                path: ['appBar', 'paneState', side],
+                value: {},
+                sync: !includesPath(R.values(sync), [
+                  'appBar',
+                  'paneState',
+                  side,
+                ]),
+              })
+            )
+          }
+        },
+        [
+          ['left', leftOpen, leftPin, overMin && (!rightBar || underMax)],
+          ['right', rightOpen, rightPin, (!leftBar || overMin) && underMax],
+        ]
       )
     },
+    [dispatch, sync, leftBar, leftOpen, leftPin, rightBar, rightOpen, rightPin]
+  )
+
+  const getPinObj = (side) => {
+    return {
+      pin: side === 'right' ? rightPin : leftPin,
+      onPin: () => {
+        dispatch(
+          mutateLocal({
+            path: ['appBar', 'paneState', side, 'pin'],
+            value: side === 'right' ? !rightPin : !leftPin,
+            sync: !includesPath(R.values(sync), [
+              'appBar',
+              'paneState',
+              side,
+              'pin',
+            ]),
+          })
+        )
+      },
+    }
   }
 
   const [sessionCard, setSessionCard] = useState(false)
@@ -181,7 +227,7 @@ const App = () => {
       parseInt,
       eventDataTransfer
     )
-    const xMax = window.innerWidth - (1.5 * APP_BAR_WIDTH + cardWidth)
+    const xMax = window.innerWidth - (2 * APP_BAR_WIDTH + cardWidth)
     const yMax = window.innerHeight - (0.5 * APP_BAR_WIDTH + cardHeight)
     const xPosition = xOffset + event.clientX
     const yPosition = yOffset + event.clientY
@@ -208,7 +254,14 @@ const App = () => {
       <ThemeProvider theme={theme}>
         <Box sx={styles.root}>
           <SnackBar />
-          <AppBar />
+          {leftBar && (
+            <AppBar
+              appBar={leftGroupedAppBar}
+              open={leftOpen}
+              pin={leftPin}
+              side="left"
+            />
+          )}
           <Box
             sx={styles.page}
             onDragOver={(event) => event.preventDefault()}
@@ -229,20 +282,56 @@ const App = () => {
                 })}
               >
                 {renderAppPage(findViewType(appBarId))}
-                {open && (
-                  <ClickAwayListener onClickAway={handlePaneClickAway}>
-                    <Box sx={styles.pane}>
-                      {renderAppPane({
-                        open,
-                        pane,
-                        sessionCard: sessionCard,
-                        toggleSessionCard: (enabled) => setSessionCard(enabled),
-                        ...(secondaryOpen === '' && pinObj),
-                      })}
-                      {secondaryOpen && <SecondaryPane {...pinObj} />}
-                    </Box>
-                  </ClickAwayListener>
-                )}
+                <ClickAwayListener onClickAway={handlePaneClickAway}>
+                  <Box>
+                    {R.map(
+                      ([side, open, pane, openPanesData, secondaryOpen]) => {
+                        return (
+                          open && (
+                            <Box key={side} sx={styles.pane}>
+                              {renderAppPane({
+                                side: side,
+                                open: open,
+                                pane: pane,
+                                openPanesData: openPanesData,
+                                secondaryOpen: secondaryOpen,
+                                sessionCard: sessionCard,
+                                toggleSessionCard: (enabled) =>
+                                  setSessionCard(enabled),
+                                ...(secondaryOpen === '' && getPinObj(side)),
+                              })}
+                              {secondaryOpen && (
+                                <SecondaryPane
+                                  side={side}
+                                  open={secondaryOpen}
+                                  pane={openPanesData}
+                                  primaryPane={open}
+                                  {...getPinObj(side)}
+                                />
+                              )}
+                            </Box>
+                          )
+                        )
+                      },
+                      [
+                        [
+                          'left',
+                          leftOpen,
+                          leftPane,
+                          leftOpenPanesData,
+                          leftSecondaryOpen,
+                        ],
+                        [
+                          'right',
+                          rightOpen,
+                          rightPane,
+                          rightOpenPanesData,
+                          rightSecondaryOpen,
+                        ],
+                      ]
+                    )}
+                  </Box>
+                </ClickAwayListener>
                 {sessionCard && (
                   <Card
                     draggable
@@ -257,8 +346,7 @@ const App = () => {
                     ])}
                   >
                     <CardContent style={styles.sessionCardContent}>
-                      {' '}
-                      Current Session: {sessionName}
+                      {`Current Session: ${sessionName}`}
                     </CardContent>
                     <IconButton onClick={() => setSessionCard(false)}>
                       <MdOutlineClose />
@@ -268,6 +356,14 @@ const App = () => {
               </ErrorBoundary>
             </LocalizationProvider>
           </Box>
+          {rightBar && (
+            <AppBar
+              appBar={rightGroupedAppBar}
+              open={rightOpen}
+              pin={rightPin}
+              side="right"
+            />
+          )}
         </Box>
       </ThemeProvider>
     </StyledEngineProvider>

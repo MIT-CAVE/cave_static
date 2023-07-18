@@ -1,5 +1,6 @@
 import { Box, Drawer, IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 
 import FetchedIcon from './FetchedIcon'
 
@@ -10,7 +11,6 @@ import { forceArray } from '../../utils'
 const styles = {
   drawer: {
     '& .MuiDrawer-paper': {
-      left: `${APP_BAR_WIDTH + 1}px`,
       height: '100%',
       overflow: 'hidden',
     },
@@ -19,7 +19,7 @@ const styles = {
     p: 2.5,
     height: '100%',
     boxSizing: 'border-box',
-    maxWidth: `calc(100vw - ${APP_BAR_WIDTH + 1}px)`,
+    maxWidth: `calc(100vw - ${2 * APP_BAR_WIDTH + 1}px)`,
     overflow: 'auto',
     position: 'relative',
   },
@@ -51,10 +51,24 @@ const styles = {
   },
 }
 
-const PaneRoot = ({ disabled, elevation = 3, open, sx = [], ...props }) => (
+const PaneRoot = ({
+  disabled,
+  elevation = 3,
+  open,
+  side,
+  sx = [],
+  ...props
+}) => (
   <Drawer
-    sx={[styles.drawer, ...forceArray(sx)]}
-    anchor="left"
+    sx={[
+      R.assocPath(
+        ['& .MuiDrawer-paper', side],
+        `${APP_BAR_WIDTH + 1}px`,
+        styles.drawerPaper
+      ),
+      ...forceArray(sx),
+    ]}
+    anchor={side}
     variant={open ? 'permanent' : 'persistent'} // 'temporary'
     {...{ disabled, elevation, open, ...props }}
   />
@@ -63,6 +77,7 @@ PaneRoot.propTypes = {
   disabled: PropTypes.bool,
   elevation: PropTypes.oneOf([...Array(25).keys()]),
   open: PropTypes.bool,
+  side: PropTypes.string,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -79,25 +94,32 @@ const PaneHeader = ({
   rightButton,
   pin,
   onPin,
+  side,
   sx = [],
   ...props
 }) => {
   const icon = <FetchedIcon {...{ iconName }} />
+  const pinButton = (
+    <IconButton
+      sx={[
+        styles.pinButton,
+        leftButton && side === 'right' && { mr: 1.5 },
+        rightButton && side === 'left' && { ml: 1.5 },
+      ]}
+      onClick={onPin}
+    >
+      <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+    </IconButton>
+  )
   return (
     <Box sx={[styles.header, ...forceArray(sx)]} {...props}>
+      {pin != null && side === 'right' && pinButton}
       <Box sx={styles.leftButton}>{leftButton}</Box>
       <Box sx={styles.title}>
         {title} {icon}
       </Box>
       <Box sx={styles.rightButton}>{rightButton}</Box>
-      {pin != null && (
-        <IconButton
-          sx={[styles.pinButton, rightButton && { ml: 1.5 }]}
-          onClick={onPin}
-        >
-          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
-        </IconButton>
-      )}
+      {pin != null && side === 'left' && pinButton}
     </Box>
   )
 }
@@ -125,15 +147,16 @@ const Pane = ({
   rightButton,
   pin,
   onPin,
+  side,
   width = 'auto',
   open,
   children,
   ...props
 }) => (
-  <PaneRoot open={!!open} {...props}>
+  <PaneRoot open={!!open} side={side} {...props}>
     <PaneHeader
       title={name}
-      {...{ iconName, leftButton, rightButton, pin, onPin }}
+      {...{ iconName, leftButton, rightButton, pin, onPin, side }}
     />
     <Box sx={[{ minWidth: PANE_WIDTH, width }, styles.content]}>
       <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
@@ -144,6 +167,7 @@ Pane.propTypes = {
   name: PropTypes.string,
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   children: PropTypes.node,
+  side: PropTypes.string,
 }
 
 export { PaneHeader, PaneRoot }

@@ -9,13 +9,7 @@ import renderProp from './renderProp'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
-import {
-  selectCategoriesData,
-  selectOpenPane,
-  selectOpenPanesData,
-  selectSecondaryOpenPane,
-  selectSync,
-} from '../../../data/selectors'
+import { selectCategoriesData, selectSync } from '../../../data/selectors'
 import { propContainer } from '../../../utils/enums'
 
 import { SimpleDropdown, findHighestTruth } from '../../compound'
@@ -57,14 +51,10 @@ const nonSx = {
   },
 }
 
-const ContextPane = () => {
+const ContextPane = ({ open, secondaryOpen, pane, side }) => {
   const categories = useSelector(selectCategoriesData)
-  const dispatch = useDispatch()
-
-  const open = useSelector(selectOpenPane)
-  const pane = useSelector(selectOpenPanesData)
   const sync = useSelector(selectSync)
-  const secondaryOpen = useSelector(selectSecondaryOpenPane)
+  const dispatch = useDispatch()
 
   const sorter = (a, b) => parseInt(a) - parseInt(b)
   const nextContextName = R.pipe(
@@ -190,7 +180,12 @@ const ContextPane = () => {
                           onClick={() =>
                             dispatch(
                               mutateLocal({
-                                path: ['appBar', 'paneState', 'secondaryOpen'],
+                                path: [
+                                  'appBar',
+                                  'paneState',
+                                  side,
+                                  'secondaryOpen',
+                                ],
                                 value: null,
                                 sync: !includesPath(R.values(sync), [
                                   'appBar',
@@ -206,7 +201,12 @@ const ContextPane = () => {
                           onClick={() =>
                             dispatch(
                               mutateLocal({
-                                path: ['appBar', 'paneState', 'secondaryOpen'],
+                                path: [
+                                  'appBar',
+                                  'paneState',
+                                  side,
+                                  'secondaryOpen',
+                                ],
                                 value: { key, category },
                                 sync: !includesPath(R.values(sync), [
                                   'appBar',

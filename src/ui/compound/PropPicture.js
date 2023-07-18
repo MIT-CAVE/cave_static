@@ -55,7 +55,7 @@ const PropPicture = ({ prop, sx = [], ...props }) => {
           setExpanded(false)
         }}
         maxWidth="lg"
-        fullWidth="true"
+        fullWidth
       >
         <img src={prop.value} alt="" style={styles.imgExpanded} />
       </Dialog>

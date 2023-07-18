@@ -9,13 +9,10 @@ import {
   selectTheme,
   selectAppBarId,
   selectSync,
-  selectGroupedAppBar,
-  selectOpenPane,
   selectPanesData,
   selectSessionLoading,
   selectIgnoreLoading,
   selectDataLoading,
-  selectPinPane,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { themeId, paneId } from '../../../utils/enums'
@@ -30,10 +27,17 @@ const styles = {
     flexDirection: 'column',
     height: '100vh',
     width: `${APP_BAR_WIDTH}px`,
-    borderRight: 1,
     borderColor: 'text.secondary',
     bgcolor: 'background.paper',
     zIndex: 2001,
+  },
+  rightRoot: {
+    position: 'absolute',
+    right: 0,
+    borderLeft: 1,
+  },
+  leftRoot: {
+    borderRight: 1,
   },
   navSection: {
     display: 'flex',
@@ -168,12 +172,9 @@ const getAppBarItem = ({
   )
 }
 
-const AppBar = () => {
+const AppBar = ({ appBar, open, pin, side }) => {
   const dispatch = useDispatch()
   const currentThemeId = useSelector(selectTheme)
-  const open = useSelector(selectOpenPane)
-  const pin = useSelector(selectPinPane)
-  const appBar = useSelector(selectGroupedAppBar)
   const appBarId = useSelector(selectAppBarId)
   const panesData = useSelector(selectPanesData)
   const sessionLoading = useSelector(selectSessionLoading)
@@ -222,16 +223,16 @@ const AppBar = () => {
     (pane) => {
       dispatch(
         mutateLocal({
-          path: ['appBar', 'paneState'],
+          path: ['appBar', 'paneState', side],
           value: {
             pin, // Preserves state of a pinned pane
             ...(open === pane ? {} : { open: pane }),
           },
-          sync: !includesPath(R.values(sync), ['appBar', 'paneState']),
+          sync: !includesPath(R.values(sync), ['appBar', 'paneState', side]),
         })
       )
     },
-    [dispatch, sync, open, pin]
+    [dispatch, sync, open, pin, side]
   )
 
   const mapAppBarItems = R.pipe(
@@ -259,7 +260,9 @@ const AppBar = () => {
   )
 
   return (
-    <Box sx={styles.root}>
+    <Box
+      sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}
+    >
       <Tabs
         sx={[styles.navSection, { flexGrow: 1 }]}
         value={getValue('upper')}
