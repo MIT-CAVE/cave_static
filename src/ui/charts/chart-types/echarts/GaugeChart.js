@@ -30,11 +30,12 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
     },
     progress: {
       show: true,
-      overlap: true,
-      roundCap: true,
+      overlap: false,
     },
     axisLine: {
-      roundCap: true,
+      lineStyle: {
+        width: 20,
+      },
     },
     smooth: true,
     emphasis: {
