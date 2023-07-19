@@ -245,6 +245,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                 ? 'Select Statistics'
                 : `Select ${chartStatLimits[obj.chart]} Statistics`
             }
+            ordered={chartStatLimits[obj.chart] !== -1}
             optionsList={R.pluck('id')(sortedStatistics)}
             selectionLimit={chartStatLimits[obj.chart]}
             onSelect={(value) => {
