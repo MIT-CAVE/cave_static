@@ -163,7 +163,12 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Scatter',
               value: 'Scatter',
-              iconName: 'BiScatterChart',
+              iconName: 'MdScatterPlot',
+            },
+            {
+              label: 'Bubble',
+              value: 'Bubble',
+              iconName: 'MdBubbleChart',
             },
           ]}
           displayIcon

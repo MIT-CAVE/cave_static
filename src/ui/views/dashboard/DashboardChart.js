@@ -25,6 +25,7 @@ import {
   GaugeChart,
   Heatmap,
   ScatterPlot,
+  BubblePlot,
 } from '../../charts'
 
 import { getLabelFn, getSubLabelFn, forcePath } from '../../../utils'
@@ -209,6 +210,13 @@ const DashboardChart = ({ obj }) => {
         />
       ) : obj.chart === chartType.SCATTER ? (
         <ScatterPlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          labels={tableLabels}
+        />
+      ) : obj.chart === chartType.BUBBLE ? (
+        <BubblePlot
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}

@@ -122,6 +122,7 @@ export const chartType = {
   GAUGE: 'Gauge',
   HEATMAP: 'Heatmap',
   SCATTER: 'Scatter',
+  BUBBLE: 'Bubble',
 }
 
 // TODO: Update these when we add support for more than 2 grouping levels
@@ -140,10 +141,12 @@ export const chartMaxGrouping = {
   Gauge: 1,
   Heatmap: 2,
   Scatter: 1,
+  Bubble: 1,
 }
 
 // Stat limits for multistat charts
 export const chartStatLimits = {
   Table: -1,
   Scatter: 2,
+  Bubble: 3,
 }
