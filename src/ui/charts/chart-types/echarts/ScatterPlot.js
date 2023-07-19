@@ -5,7 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { formatNumber } from '../../../../utils'
+import { formatNumber, getMinMax } from '../../../../utils'
 
 const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
   if (R.isNil(data) || R.isEmpty(data) || !R.hasPath([0, 'value', 1], data))
@@ -18,7 +18,6 @@ const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
     emphasis: {
       focus: 'series',
     },
-    itemStyle: { opacity: 0.8 },
   }
 
   const series = R.map((val) =>
@@ -30,6 +29,21 @@ const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
       baseObject
     )
   )(data)
+
+  const findAxisRange = (index) =>
+    R.pipe(
+      R.pluck('data'),
+      R.unnest,
+      R.pluck(index),
+      R.filter(R.isNotNil),
+      getMinMax
+    )(series)
+
+  const [xMin, xMax] = findAxisRange(0)
+  const [yMin, yMax] = findAxisRange(1)
+
+  const xRange = xMax - xMin
+  const yRange = yMax - yMin
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
@@ -47,6 +61,9 @@ const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
       nameTextStyle: {
         fontSize: 16,
       },
+      // This fixes bug where points at the max/min don't render
+      min: xMin - 0.01 * xRange,
+      max: xMax + 0.01 * xRange,
       axisLine: {
         show: true,
       },
@@ -60,6 +77,8 @@ const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
         fontSize: 16,
       },
       nameLocation: 'middle',
+      min: yMin - 0.01 * yRange,
+      max: yMax + 0.01 * yRange,
       axisLine: {
         show: true,
       },
