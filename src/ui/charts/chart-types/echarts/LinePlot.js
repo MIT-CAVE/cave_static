@@ -13,14 +13,15 @@ const LinePlot = ({
   yAxisTitle,
   numberFormat,
   theme,
+  stack = false,
   area = false,
 }) => {
   return (
     <EchartsPlot
       data={data}
       chartType="line"
-      seriesObj={area ? { areaStyle: { opacity: 1 } } : {}}
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+      seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack }}
     />
   )
 }

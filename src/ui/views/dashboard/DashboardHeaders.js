@@ -116,9 +116,14 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconName: 'MdStackedLineChart',
             },
             {
+              label: 'Area',
+              value: 'Area',
+              iconName: 'TbChartAreaLineFilled',
+            },
+            {
               label: 'Stacked Area',
               value: 'Stacked Area',
-              iconName: 'TbChartAreaLineFilled',
+              iconName: 'MdAreaChart',
             },
             {
               label: 'Waterfall',

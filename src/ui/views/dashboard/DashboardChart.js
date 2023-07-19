@@ -200,12 +200,21 @@ const DashboardChart = ({ obj }) => {
           theme={themeId}
           {...labels}
         />
+      ) : obj.chart === chartType.AREA ? (
+        <LinePlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          area={true}
+          {...labels}
+        />
       ) : obj.chart === chartType.STACKED_AREA ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
           area={true}
+          stack="x"
           {...labels}
         />
       ) : obj.chart === chartType.SCATTER ? (
