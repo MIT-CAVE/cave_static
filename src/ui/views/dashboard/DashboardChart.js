@@ -10,7 +10,7 @@ import {
   selectNumberFormat,
   selectMemoizedChartFunc,
 } from '../../../data/selectors'
-import { chartType, chartStatLimits } from '../../../utils/enums'
+import { chartType, chartStatUses } from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -46,7 +46,7 @@ const DashboardChart = ({ obj }) => {
 
   const subGrouped = R.has('level2')(obj)
 
-  const actualStat = R.has(R.prop('chart', obj), chartStatLimits)
+  const actualStat = R.has(R.prop('chart', obj), chartStatUses)
     ? pathedVar
     : obj.statistic
 

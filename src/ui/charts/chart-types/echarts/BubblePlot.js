@@ -8,7 +8,12 @@ import { echarts } from './BaseChart'
 import { formatNumber, getMinMax } from '../../../../utils'
 
 const BubblePlot = ({ data, labels, numberFormat, theme }) => {
-  if (R.isNil(data) || R.isEmpty(data) || !R.hasPath([0, 'value', 2], data))
+  if (
+    R.isNil(data) ||
+    R.isEmpty(data) ||
+    !R.hasPath([0, 'value', 2], data) ||
+    R.any(R.equals('undefined'), labels)
+  )
     return []
 
   const baseObject = {

@@ -28,14 +28,6 @@ const styles = {
   },
 }
 
-// Add new selections to array while limiting max length.
-// Follows first in last out ordering
-const addSelectionWithLimit = (limit, selection, arr) =>
-  R.pipe(
-    R.prepend(selection),
-    R.when(R.pipe(R.length, R.lt(limit)), R.slice(0, limit))
-  )(arr)
-
 /**
  * A component used to select values from a list of items.
  * @param {Array} items - An array of strings or objects...
@@ -45,8 +37,6 @@ const addSelectionWithLimit = (limit, selection, arr) =>
  * @param getLabel
  * @param onClickAway
  * @param onSelect
- * @param selectionLimit
- * @param ordered
  * @param props
  * @private
  */
@@ -58,21 +48,10 @@ const SelectMulti = ({
   getLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
-  selectionLimit = -1,
-  ordered = false,
   ...props
 } = {}) => {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState(forcePath(selectedValue))
-  const iconNames = [
-    'MdLooksOne',
-    'MdLooksTwo',
-    'MdLooks3',
-    'MdLooks4',
-    'MdLooks5',
-    'MdLooks6',
-  ]
-
   return (
     <Select
       {...{ disabled, open, ...props }}
@@ -99,30 +78,10 @@ const SelectMulti = ({
               const newVal = R.includes(value, selected)
                 ? R.without([value], selected)
                 : R.concat([value], selected)
-              const limitedVal =
-                selectionLimit === -1 || R.includes(value, selected)
-                  ? newVal
-                  : addSelectionWithLimit(selectionLimit, value, selected)
-              setSelected(limitedVal)
+              setSelected(newVal)
             }}
           >
-            {selectionLimit > 0 && selectionLimit < 7 && ordered ? (
-              <ListItemIcon sx={styles.icon}>
-                {!R.includes(value, selected) ? (
-                  <FetchedIcon
-                    iconName={'MdOutlineCheckBoxOutlineBlank'}
-                    size={28}
-                  />
-                ) : (
-                  <FetchedIcon
-                    iconName={iconNames[R.findIndex(R.equals(value), selected)]}
-                    size={28}
-                  />
-                )}
-              </ListItemIcon>
-            ) : (
-              <Checkbox checked={R.includes(value, selected)} />
-            )}
+            <Checkbox checked={R.includes(value, selected)} />
             {iconName && (
               <ListItemIcon sx={styles.icon}>
                 <FetchedIcon {...{ iconName }} size={24} />
@@ -146,8 +105,6 @@ SelectMulti.propTypes = {
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
   children: PropTypes.node,
-  selectionLimit: PropTypes.number,
-  ordered: PropTypes.bool,
 }
 
 export default SelectMulti

@@ -8,7 +8,12 @@ import { echarts } from './BaseChart'
 import { formatNumber, getMinMax } from '../../../../utils'
 
 const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
-  if (R.isNil(data) || R.isEmpty(data) || !R.hasPath([0, 'value', 1], data))
+  if (
+    R.isNil(data) ||
+    R.isEmpty(data) ||
+    !R.hasPath([0, 'value', 1], data) ||
+    R.any(R.equals('undefined'), labels)
+  )
     return []
 
   const baseObject = {

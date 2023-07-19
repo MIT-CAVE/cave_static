@@ -12,7 +12,7 @@ import {
   selectAppBarId,
   selectAllowedStats,
 } from '../../../data/selectors'
-import { chartMaxGrouping, chartStatLimits } from '../../../utils/enums'
+import { chartMaxGrouping, chartStatUses } from '../../../utils/enums'
 
 import {
   FetchedIcon,
@@ -20,6 +20,7 @@ import {
   Select,
   SelectAccordion,
   SelectMulti,
+  SelectMultiAccordion,
 } from '../../compound'
 
 import {
@@ -241,28 +242,59 @@ const StatisticsHeader = memo(({ obj, index }) => {
       </HeaderSelectWrapper>
 
       <HeaderSelectWrapper>
-        {R.has(R.prop('chart', obj), chartStatLimits) ? (
-          <SelectMulti
-            getLabel={getLabelFn(statisticTypes)}
-            value={R.propOr([], 'statistic', obj)}
-            header={
-              chartStatLimits[obj.chart] === -1
-                ? 'Select Statistics'
-                : `Select ${chartStatLimits[obj.chart]} Statistics`
-            }
-            ordered={chartStatLimits[obj.chart] !== -1}
-            optionsList={R.pluck('id')(sortedStatistics)}
-            selectionLimit={chartStatLimits[obj.chart]}
-            onSelect={(value) => {
-              dispatch(
-                mutateLocal({
-                  path,
-                  sync: !includesPath(R.values(sync), path),
-                  value: R.assoc('statistic', value, obj),
-                })
-              )
-            }}
-          />
+        {R.has(R.prop('chart', obj), chartStatUses) ? (
+          R.length(chartStatUses[obj.chart]) !== 0 ? (
+            <SelectMultiAccordion
+              itemGroups={{
+                undefined: R.addIndex(R.map)((use, idx) => ({
+                  id: idx,
+                  layoutDirection: 'vertical',
+                  subItems: R.pluck('id')(sortedStatistics),
+                }))(chartStatUses[obj.chart]),
+              }}
+              values={R.propOr([], 'statistic', obj)}
+              header="Select Statistics"
+              getLabel={(idx) => {
+                const use = chartStatUses[obj.chart][idx]
+                const currentStats = R.propOr([], 'statistic', obj)
+                return R.is(Array, currentStats) && R.has(idx, currentStats)
+                  ? `${use}: ${getLabelFn(statisticTypes, currentStats[idx])}`
+                  : use
+              }}
+              getSubLabel={(idx, stat) => getLabelFn(statisticTypes, stat)}
+              onSelect={(index, value) => {
+                const newVal = R.equals(
+                  R.path(['statistic', index], obj),
+                  value
+                )
+                  ? undefined
+                  : value
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.assocPath(['statistic', index], newVal, obj),
+                  })
+                )
+              }}
+            />
+          ) : (
+            <SelectMulti
+              getLabel={getLabelFn(statisticTypes)}
+              value={R.propOr([], 'statistic', obj)}
+              header="Select Statistics"
+              optionsList={R.pluck('id')(sortedStatistics)}
+              onSelect={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.assoc('statistic', value, obj),
+                  })
+                )
+              }}
+            />
+          )
         ) : (
           <Select
             getLabel={getLabelFn(statisticTypes)}

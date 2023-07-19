@@ -147,8 +147,8 @@ export const chartMaxGrouping = {
 }
 
 // Stat limits for multistat charts
-export const chartStatLimits = {
-  Table: -1,
-  Scatter: 2,
-  Bubble: 3,
+export const chartStatUses = {
+  Table: [],
+  Scatter: ['X Axis', 'Y Axis'],
+  Bubble: ['X Axis', 'Y Axis', 'Size'],
 }
