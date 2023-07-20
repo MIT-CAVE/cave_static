@@ -18,6 +18,7 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { sendCommand } from '../../../data/data'
 import {
   bearingSliderToggle,
   bearingUpdate,
@@ -48,6 +49,8 @@ import {
   MIN_BEARING,
   MIN_PITCH,
 } from '../../../utils/constants'
+
+import { FetchedIcon } from '../../compound'
 
 import { getSliderMarks, formatNumber } from '../../../utils'
 
@@ -156,6 +159,8 @@ const tooltipTitles = {
   customViewports: 'Map Viewport \u279C See all viewports...',
   mapLegend: 'Map Legend \u279C Arcs, nodes & geo areas',
   mapStyles: "Map Style \u279C Choose from the map's styles",
+  globeProjection: 'Projection \u279C Globe',
+  mercatorProjection: 'Projection \u279C Mercator',
 }
 
 const TooltipButton = ({
@@ -394,6 +399,48 @@ const MapControls = () => {
               }
             >
               <MdMap />
+            </TooltipButton>
+          </ButtonGroup>
+
+          {/* Projection */}
+          <ButtonGroup sx={styles.btnGroup} variant="contained">
+            <TooltipButton
+              title={tooltipTitles.globeProjection}
+              placement="top"
+              onClick={() =>
+                dispatch(
+                  sendCommand({
+                    command: 'mutate_session',
+                    data: {
+                      data_name: 'maps',
+                      data_path: ['data', appBarId, 'currentProjection'],
+                      data_value: 'globe',
+                      mutation_type: 'mutate',
+                    },
+                  })
+                )
+              }
+            >
+              <FetchedIcon iconName="BsGlobe2" />
+            </TooltipButton>
+            <TooltipButton
+              title={tooltipTitles.mercatorProjection}
+              placement="top"
+              onClick={() => {
+                dispatch(
+                  sendCommand({
+                    command: 'mutate_session',
+                    data: {
+                      data_name: 'maps',
+                      data_path: ['data', appBarId, 'currentProjection'],
+                      data_value: 'mercator',
+                      mutation_type: 'mutate',
+                    },
+                  })
+                )
+              }}
+            >
+              <FetchedIcon iconName="BsMap" />
             </TooltipButton>
           </ButtonGroup>
 

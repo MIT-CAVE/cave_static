@@ -25,6 +25,7 @@ import {
   selectSplitNodeData,
   selectLineData,
   selectMatchingKeys,
+  selectCurrentMapProjection,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, GLOBE_FOG_CONFIG } from '../../../utils/constants'
 
@@ -35,6 +36,7 @@ const Map = ({ mapboxToken }) => {
   const viewport = useSelector(selectViewport)
   const theme = useSelector(selectTheme)
   const mapStyle = useSelector(selectCurrentMapStyle)
+  const mapProjection = useSelector(selectCurrentMapProjection)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const appBarId = useSelector(selectAppBarId)
   const arcData = useSelector(selectLineData)
@@ -72,7 +74,7 @@ const Map = ({ mapboxToken }) => {
       }
       iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgString)}`
     })(iconsToLoad)
-  }, [nodeDataSplit, iconUrl, mapStyle, iconData])
+  }, [nodeDataSplit, iconUrl, iconData])
 
   const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
@@ -173,7 +175,7 @@ const Map = ({ mapboxToken }) => {
           mapStyleOptions
         )}
         mapboxAccessToken={mapboxToken}
-        projection="globe"
+        projection={mapProjection}
         fog={GLOBE_FOG_CONFIG}
         onClick={newOnClick}
         onMouseMove={onMouseMove}

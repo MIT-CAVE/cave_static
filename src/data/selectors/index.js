@@ -454,6 +454,10 @@ export const selectCurrentMapStyle = createSelector(
   selectCurrentMapData,
   (data) => R.prop('currentStyle')(data)
 )
+export const selectCurrentMapProjection = createSelector(
+  selectCurrentMapData,
+  (data) => R.prop('currentProjection')(data)
+)
 export const selectMapStyleOptions = createSelector(
   selectSettingsData,
   (data) => ({
