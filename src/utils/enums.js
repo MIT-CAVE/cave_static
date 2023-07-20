@@ -105,6 +105,22 @@ export const statId = {
   MIN: 'min',
   MODE: 'mode',
   SUM: 'sum',
+  AND: 'and',
+  OR: 'or',
+}
+
+export const statFns = {
+  [propId.NUMBER]: [
+    statId.COUNT,
+    statId.MODE,
+    statId.MAX,
+    statId.MEAN,
+    statId.MEDIAN,
+    statId.MIN,
+    statId.SUM,
+  ],
+  [propId.SELECTOR]: [statId.MODE],
+  [propId.TOGGLE]: [statId.MODE, statId.AND, statId.OR],
 }
 
 export const chartType = {
