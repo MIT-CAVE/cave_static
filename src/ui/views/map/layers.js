@@ -397,6 +397,15 @@ const GetNodeIconLayer = () => {
     ).firstChild
   }
 
+  const cloneAttributes = (target, source) => {
+    const attributesNotCloned = new Set(['width, height, viewbox'])
+    const sourceAttributes = [...source.attributes]
+    sourceAttributes.forEach((attr) => {
+      if (!attributesNotCloned.has(attr.nodeName))
+        target.setAttribute(attr.nodeName, attr.nodeValue)
+    })
+  }
+
   useEffect(() => {
     const setIcons = async () => {
       // Set desired render resolution
@@ -434,6 +443,7 @@ const GetNodeIconLayer = () => {
             const group = createGroup(0, groupOffset, scale, parser)
             // move svg data to group
             group.innerHTML = svgElem.innerHTML
+            cloneAttributes(group, svgElem)
             svgElem.innerHTML = ''
             // add group to image
             svgElem.appendChild(group)
@@ -456,6 +466,7 @@ const GetNodeIconLayer = () => {
           const group = createGroup(acc[0], groupOffset, scale, parser)
           // take svg data from icon - put in group
           group.innerHTML = iconElem.innerHTML
+          cloneAttributes(group, iconElem)
           // add group to existing image
           acc[1].appendChild(group)
           // update image size
