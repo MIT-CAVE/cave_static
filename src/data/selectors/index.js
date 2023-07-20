@@ -137,19 +137,32 @@ export const selectMapData = createSelector(selectMap, R.propOr({}, 'data'))
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
   R.propOr({}, 'data')(data)
 )
-export const selectLeftAppBarData = createSelector(selectAppBarData, (data) =>
-  R.propOr({}, 'left')(data)
+export const selectLeftAppBarData = createSelector(
+  selectAppBarData,
+  R.pipe(
+    R.dissoc('appBarId'),
+    R.toPairs,
+    R.filter((keyDataPair) =>
+      R.includes(R.prop('bar', keyDataPair[1]), [
+        'upperLeft',
+        'lowerLeft',
+        'upper',
+        'lower',
+      ])
+    ),
+    R.fromPairs
+  )
 )
-export const selectRightAppBarData = createSelector(selectAppBarData, (data) =>
-  R.propOr({}, 'right')(data)
-)
-export const selectCombinedAppBarData = createSelector(
-  [selectAppBarData, selectLeftAppBarData, selectRightAppBarData],
-  (appBarData, leftAppBarData, rightAppBarData) =>
-    R.mergeDeepLeft(
-      R.mergeDeepLeft(leftAppBarData, rightAppBarData),
-      R.omit(['left', 'right'], appBarData)
-    )
+export const selectRightAppBarData = createSelector(
+  selectAppBarData,
+  R.pipe(
+    R.dissoc('appBarId'),
+    R.toPairs,
+    R.filter(([keyDataPair]) =>
+      R.includes(R.prop('bar', keyDataPair[1]), ['upperRight', 'lowerRight'])
+    ),
+    R.fromPairs
+  )
 )
 export const selectCategoriesData = createSelector(selectCategories, (data) =>
   R.propOr({}, 'data')(data)
@@ -300,16 +313,16 @@ export const selectRightGroupedAppBar = createSelector(
   groupAppBar
 )
 export const selectAppBarId = createSelector(
-  [selectLocalAppBarData, selectCombinedAppBarData],
-  (localAppBarData, combinedAppBarData) => {
+  [selectLocalAppBarData, selectAppBarData],
+  (localAppBarData, appBarData) => {
     const fallbackId = R.pipe(
       sortProps,
       R.toPairs,
       R.find(R.pathEq('map', [1, 'type'])),
       R.prop(0)
-    )(combinedAppBarData)
+    )(appBarData)
     const currentId = R.propOr(
-      R.propOr(fallbackId, 'appBarId', combinedAppBarData),
+      R.propOr(fallbackId, 'appBarId', appBarData),
       'appBarId',
       localAppBarData
     )
@@ -317,9 +330,8 @@ export const selectAppBarId = createSelector(
   }
 )
 export const selectStaticMap = createSelector(
-  [selectAppBarId, selectCombinedAppBarData],
-  (appBarId, combinedAppBarData) =>
-    R.pathOr(false, [appBarId, 'static'], combinedAppBarData)
+  [selectAppBarId, selectAppBarData],
+  (appBarId, appBarData) => R.pathOr(false, [appBarId, 'static'], appBarData)
 )
 // Merged Panes
 export const selectLeftOpenPanesData = createSelector(

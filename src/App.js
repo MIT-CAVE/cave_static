@@ -19,7 +19,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { mutateLocal } from './data/local'
 import {
   selectAppBarId,
-  selectCombinedAppBarData,
+  selectAppBarData,
   selectLeftAppBarData,
   selectLeftGroupedAppBar,
   selectLeftOpenPane,
@@ -92,7 +92,7 @@ const App = () => {
   const mapboxToken = useSelector(selectMapboxToken)
   const themeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
-  const appBarData = useSelector(selectCombinedAppBarData)
+  const appBarData = useSelector(selectAppBarData)
   const leftAppBarData = useSelector(selectLeftAppBarData)
   const leftGroupedAppBar = useSelector(selectLeftGroupedAppBar)
   const leftOpen = useSelector(selectLeftOpenPane)

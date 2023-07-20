@@ -259,33 +259,39 @@ const AppBar = ({ appBar, open, pin, side }) => {
     R.values
   )
 
+  const lowerKey = `lower${
+    R.has('lower', appBar) ? '' : R.replace(side[0], R.toUpper(side[0]), side)
+  }`
+  const upperKey = `upper${
+    R.has('upper', appBar) ? '' : R.replace(side[0], R.toUpper(side[0]), side)
+  }`
   return (
     <Box
       sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}
     >
       <Tabs
         sx={[styles.navSection, { flexGrow: 1 }]}
-        value={getValue('upper')}
+        value={getValue(upperKey)}
         orientation="vertical"
         variant="fullWidth"
         aria-label="Upper App Bar"
       >
         {/* Upper Bar */}
-        {mapAppBarItems(R.propOr({}, 'upper', appBar))}
+        {mapAppBarItems(R.propOr({}, upperKey, appBar))}
       </Tabs>
 
       {/* Lower Bar */}
-      {!R.isEmpty(R.propOr({}, 'lower', appBar)) && (
+      {!R.isEmpty(R.propOr({}, lowerKey, appBar)) && (
         <Divider sx={styles.divider} />
       )}
       <Tabs
         sx={styles.navSection}
-        value={getValue('lower')}
+        value={getValue(lowerKey)}
         orientation="vertical"
         variant="fullWidth"
         aria-label="Lower App Bar"
       >
-        {mapAppBarItems(R.propOr({}, 'lower', appBar))}
+        {mapAppBarItems(R.propOr({}, lowerKey, appBar))}
       </Tabs>
     </Box>
   )
