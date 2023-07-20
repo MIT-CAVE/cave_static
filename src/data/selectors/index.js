@@ -158,7 +158,7 @@ export const selectRightAppBarData = createSelector(
   R.pipe(
     R.dissoc('appBarId'),
     R.toPairs,
-    R.filter(([keyDataPair]) =>
+    R.filter((keyDataPair) =>
       R.includes(R.prop('bar', keyDataPair[1]), ['upperRight', 'lowerRight'])
     ),
     R.fromPairs
@@ -258,6 +258,9 @@ export const selectSync = createSelector(selectLocalSettings, (data) =>
 export const selectTouchMode = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'touch', data)
 )
+export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
+  R.propOr(false, 'mirror', data)
+)
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>
   R.prop('appBar', data)
@@ -311,6 +314,18 @@ export const selectLeftGroupedAppBar = createSelector(
 export const selectRightGroupedAppBar = createSelector(
   [selectRightLocalAppBarData, selectRightAppBarData],
   groupAppBar
+)
+export const selectLeftAppBarDisplay = createSelector(
+  [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
+  (mirrorMode, leftData, rightData) =>
+    (!mirrorMode && !R.isEmpty(leftData)) ||
+    (mirrorMode && !R.isEmpty(rightData))
+)
+export const selectRightAppBarDisplay = createSelector(
+  [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
+  (mirrorMode, leftData, rightData) =>
+    (!mirrorMode && !R.isEmpty(rightData)) ||
+    (mirrorMode && !R.isEmpty(leftData))
 )
 export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData],

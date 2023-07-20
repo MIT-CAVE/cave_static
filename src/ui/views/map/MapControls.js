@@ -42,7 +42,7 @@ import {
   selectTimeLength,
   selectStaticMap,
   selectAppBarId,
-  selectRightAppBarData,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import {
   APP_BAR_WIDTH,
@@ -223,7 +223,7 @@ const MapControls = () => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
-  const rightAppBarData = useSelector(selectRightAppBarData)
+  const rightBar = useSelector(selectRightAppBarDisplay)
   const dispatch = useDispatch()
 
   const getDegreeFormat = (value) =>
@@ -245,7 +245,7 @@ const MapControls = () => {
 
   return (
     <Box
-      sx={styles.getRoot(hover, !R.isEmpty(rightAppBarData))}
+      sx={styles.getRoot(hover, rightBar)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >

@@ -37,7 +37,7 @@ import {
   selectAppBarId,
   selectResolveTime,
   selectNodeClustersAtZoom,
-  selectRightAppBarData,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { statId } from '../../../utils/enums'
@@ -915,7 +915,7 @@ const MapLegend = () => {
   const showPitchSlider = useSelector(selectPitchSliderToggle)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
   const mapLegend = useSelector(selectMapLegend)
-  const rightAppBarData = useSelector(selectRightAppBarData)
+  const rightBar = useSelector(selectRightAppBarDisplay)
   if (!R.propOr(true, 'isOpen', mapLegend)) return null
   return (
     <Box
@@ -923,9 +923,7 @@ const MapLegend = () => {
       sx={[
         styles.root,
         {
-          right:
-            (showPitchSlider ? 100 : 65) +
-            (!R.isEmpty(rightAppBarData) ? APP_BAR_WIDTH : 0),
+          right: (showPitchSlider ? 100 : 65) + (rightBar ? APP_BAR_WIDTH : 0),
         },
       ]}
     >

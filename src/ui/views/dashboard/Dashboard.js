@@ -26,8 +26,8 @@ import {
   selectDashboardLayout,
   selectDashboardLockedLayout,
   selectSync,
-  selectLeftAppBarData,
-  selectRightAppBarData,
+  selectLeftAppBarDisplay,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 
@@ -92,8 +92,8 @@ const Dashboard = () => {
   const dashboardLayout = useSelector(selectDashboardLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const appBarId = useSelector(selectAppBarId)
-  const leftAppBar = !R.isEmpty(useSelector(selectLeftAppBarData))
-  const rightAppBar = !R.isEmpty(useSelector(selectRightAppBarData))
+  const leftBar = useSelector(selectLeftAppBarDisplay)
+  const rightBar = useSelector(selectRightAppBarDisplay)
 
   const DashboardHeader = ({ obj, index }) => {
     const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
@@ -240,10 +240,10 @@ const Dashboard = () => {
       maxWidth={false}
       sx={[
         styles.root,
-        leftAppBar && rightAppBar
+        leftBar && rightBar
           ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
           : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
-        rightAppBar && { mr: APP_BAR_WIDTH },
+        rightBar && { mr: APP_BAR_WIDTH },
       ]}
       disableGutters
     >

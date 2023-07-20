@@ -21,13 +21,16 @@ import {
   selectAppBarId,
   selectAppBarData,
   selectLeftAppBarData,
+  selectLeftAppBarDisplay,
   selectLeftGroupedAppBar,
   selectLeftOpenPane,
   selectLeftOpenPanesData,
   selectLeftPinPane,
   selectLeftSecondaryOpenPane,
   selectMapboxToken,
+  selectMirrorMode,
   selectRightAppBarData,
+  selectRightAppBarDisplay,
   selectRightGroupedAppBar,
   selectRightOpenPane,
   selectRightOpenPanesData,
@@ -94,24 +97,25 @@ const App = () => {
   const appBarId = useSelector(selectAppBarId)
   const appBarData = useSelector(selectAppBarData)
   const leftAppBarData = useSelector(selectLeftAppBarData)
+  const leftBar = useSelector(selectLeftAppBarDisplay)
   const leftGroupedAppBar = useSelector(selectLeftGroupedAppBar)
   const leftOpen = useSelector(selectLeftOpenPane)
   const leftOpenPanesData = useSelector(selectLeftOpenPanesData)
   const leftPin = useSelector(selectLeftPinPane)
   const leftSecondaryOpen = useSelector(selectLeftSecondaryOpenPane)
   const rightAppBarData = useSelector(selectRightAppBarData)
+  const rightBar = useSelector(selectRightAppBarDisplay)
   const rightGroupedAppBar = useSelector(selectRightGroupedAppBar)
   const rightOpen = useSelector(selectRightOpenPane)
   const rightOpenPanesData = useSelector(selectRightOpenPanesData)
   const rightPin = useSelector(selectRightPinPane)
   const rightSecondaryOpen = useSelector(selectRightSecondaryOpenPane)
+  const mirrorMode = useSelector(selectMirrorMode)
   const sessions = useSelector(selectSessions)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const theme = getTheme(themeId)
-  const leftBar = !R.isEmpty(leftAppBarData)
-  const rightBar = !R.isEmpty(rightAppBarData)
   const leftPane = R.assoc(
     'icon',
     R.path([leftOpen, 'icon'], leftAppBarData),
@@ -256,10 +260,11 @@ const App = () => {
           <SnackBar />
           {leftBar && (
             <AppBar
-              appBar={leftGroupedAppBar}
+              appBar={mirrorMode ? rightGroupedAppBar : leftGroupedAppBar}
               open={leftOpen}
               pin={leftPin}
               side="left"
+              source={mirrorMode ? 'right' : 'left'}
             />
           )}
           <Box
@@ -358,10 +363,11 @@ const App = () => {
           </Box>
           {rightBar && (
             <AppBar
-              appBar={rightGroupedAppBar}
+              appBar={mirrorMode ? leftGroupedAppBar : rightGroupedAppBar}
               open={rightOpen}
               pin={rightPin}
               side="right"
+              source={mirrorMode ? 'left' : 'right'}
             />
           )}
         </Box>

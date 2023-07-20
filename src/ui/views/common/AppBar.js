@@ -172,7 +172,7 @@ const getAppBarItem = ({
   )
 }
 
-const AppBar = ({ appBar, open, pin, side }) => {
+const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
   const currentThemeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
@@ -259,12 +259,9 @@ const AppBar = ({ appBar, open, pin, side }) => {
     R.values
   )
 
-  const lowerKey = `lower${
-    R.has('lower', appBar) ? '' : R.replace(side[0], R.toUpper(side[0]), side)
-  }`
-  const upperKey = `upper${
-    R.has('upper', appBar) ? '' : R.replace(side[0], R.toUpper(side[0]), side)
-  }`
+  const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
+  const lowerKey = `lower${!R.has('lower', appBar) && capitalizedSide}`
+  const upperKey = `upper${!R.has('upper', appBar) && capitalizedSide}`
   return (
     <Box
       sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}
