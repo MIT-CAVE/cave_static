@@ -100,6 +100,61 @@ export const DEFAULT_MAP_STYLES = {
       ],
     },
   },
+  OSM: {
+    name: 'OSM',
+    icon: 'MdLightMode',
+    order: -3,
+    spec: {
+      name: 'osm',
+      version: 8,
+      glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+      sources: {
+        'osm-raster-tiles': {
+          type: 'raster',
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        },
+      },
+      layers: [
+        {
+          id: 'osm-raster-layer',
+          type: 'raster',
+          source: 'osm-raster-tiles',
+          minzoom: 0,
+          maxzoom: 22,
+        },
+      ],
+    },
+  },
+}
+
+export const LINE_TYPES = { solid: undefined, dashed: [7, 3], dotted: [2, 2] }
+
+export const GLOBE_FOG_CONFIG = {
+  range: [0.5, 10],
+  color: '#ffffff',
+  'high-color': '#245cdf',
+  'space-color': [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    4,
+    '#010b19',
+    7,
+    '#367ab9',
+  ],
+  'horizon-blend': [
+    'interpolate',
+    ['exponential', 1.2],
+    ['zoom'],
+    5,
+    0.02,
+    7,
+    0.08,
+  ],
+  'star-intensity': ['interpolate', ['linear'], ['zoom'], 5, 0.35, 6, 0],
 }
 
 export const CHART_PALETTE = {
@@ -126,3 +181,5 @@ export const CHART_PALETTE = {
     '#96BFFF',
   ],
 }
+
+export const HIGHLIGHT_COLOR = [0, 0, 128, 128]
