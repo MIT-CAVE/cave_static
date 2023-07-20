@@ -159,7 +159,7 @@ const Map = ({ mapboxToken }) => {
 
   return (
     <Fragment>
-      {true && <MapControls />}
+      <MapControls />
       <ReactMapGL
         {...viewport}
         onMove={(e) => {

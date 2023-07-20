@@ -236,7 +236,7 @@ export const Nodes = ({ highlightLayerId }) => {
                 'icon-image': node.icon,
                 'icon-anchor': 'center',
                 'icon-pitch-alignment': 'map',
-                'icon-size': size / 100,
+                'icon-size': size / 250,
               }}
               paint={{
                 'icon-color': colorString,

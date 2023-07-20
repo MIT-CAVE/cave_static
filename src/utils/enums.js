@@ -17,11 +17,6 @@ export const viewId = {
   KPI: 'kpi',
 }
 
-export const styleId = {
-  DARK: 'stamen_toner',
-  LIGHT: 'stamen_toner_lite',
-}
-
 export const asyncStatus = {
   PENDING: 'pending',
   FAIL: 'fail',
