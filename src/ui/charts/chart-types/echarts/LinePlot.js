@@ -7,12 +7,21 @@ import EchartsPlot from './BaseChart'
  * @todo Implement this component.
  * @todo Write the documentation by following JSDoc 3.
  */
-const LinePlot = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
+const LinePlot = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  stack = false,
+  area = false,
+}) => {
   return (
     <EchartsPlot
       data={data}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
+      seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack }}
     />
   )
 }
@@ -22,6 +31,7 @@ LinePlot.propTypes = {
   theme: PropTypes.string,
   xAxisTitle: PropTypes.string,
   yAxisTitle: PropTypes.string,
+  area: PropTypes.bool,
 }
 
 export { LinePlot }

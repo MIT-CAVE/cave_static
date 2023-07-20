@@ -10,7 +10,7 @@ import {
   selectNumberFormat,
   selectMemoizedChartFunc,
 } from '../../../data/selectors'
-import { chartType } from '../../../utils/enums'
+import { chartType, chartStatUses } from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -22,6 +22,10 @@ import {
   WaterfallChart,
   Sunburst,
   Treemap,
+  GaugeChart,
+  Heatmap,
+  ScatterPlot,
+  BubblePlot,
 } from '../../charts'
 
 import { getLabelFn, getSubLabelFn, forcePath } from '../../../utils'
@@ -42,7 +46,9 @@ const DashboardChart = ({ obj }) => {
 
   const subGrouped = R.has('level2')(obj)
 
-  const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
+  const actualStat = R.has(R.prop('chart', obj), chartStatUses)
+    ? pathedVar
+    : obj.statistic
 
   const xAxisTitle = obj.category
     ? `${getLabelFn(categories)(obj.category)}${
@@ -103,7 +109,6 @@ const DashboardChart = ({ obj }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.dissoc('unit')(numberFormatDefault)
-
   return (
     <Box
       sx={{
@@ -180,6 +185,51 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+        />
+      ) : obj.chart === chartType.GAUGE ? (
+        <GaugeChart
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
+        />
+      ) : obj.chart === chartType.HEATMAP ? (
+        <Heatmap
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          {...labels}
+        />
+      ) : obj.chart === chartType.AREA ? (
+        <LinePlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          area={true}
+          {...labels}
+        />
+      ) : obj.chart === chartType.STACKED_AREA ? (
+        <LinePlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          area={true}
+          stack="x"
+          {...labels}
+        />
+      ) : obj.chart === chartType.SCATTER ? (
+        <ScatterPlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          labels={tableLabels}
+        />
+      ) : obj.chart === chartType.BUBBLE ? (
+        <BubblePlot
+          data={formattedData}
+          numberFormat={commonFormat}
+          theme={themeId}
+          labels={tableLabels}
         />
       ) : (
         <></>

@@ -19,6 +19,8 @@ import {
   selectMatchingKeys,
   selectMatchingKeysByType,
   selectGeoTypes,
+  selectArcTypes,
+  selectLineMatchingKeysByType,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 
@@ -33,14 +35,33 @@ export const Geos = ({ highlightLayerId }) => {
   const geoTypes = useSelector(selectGeoTypes)
   const themeType = useSelector(selectTheme)
   const timeProp = useSelector(selectTimeProp)
+  const enabledArcs = useSelector(selectEnabledArcs)
+  const arcTypes = useSelector(selectArcTypes)
+  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByType)
 
   const [selectedGeos, setSelectedGeos] = useState({})
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
+    const arcNames = R.keys(R.filter(R.identity, enabledArcs))
+
     const fetchCache = async () => {
       const cache = await caches.open('geos')
       const geos = {}
+      for (let arcName of arcNames) {
+        const url = R.pathOr('', [arcName, 'geoJson', 'geoJsonLayer'], arcTypes)
+        // Special catch for empty urls on initial call
+        if (url === '') {
+          break
+        }
+        let response = await cache.match(url)
+        // add to cache if not found
+        if (R.isNil(response)) {
+          await cache.add(url)
+          response = await cache.match(url)
+        }
+        geos[`arc-${arcName}`] = await response.json()
+      }
       for (let geoName of geoNames) {
         const url = R.pathOr('', [geoName, 'geoJson', 'geoJsonLayer'], geoTypes)
         // Special catch for empty urls on initial call
@@ -58,7 +79,14 @@ export const Geos = ({ highlightLayerId }) => {
       setSelectedGeos(geos)
     }
     fetchCache()
-  }, [geoTypes, enabledGeos, matchingKeysByType])
+  }, [
+    geoTypes,
+    enabledGeos,
+    arcTypes,
+    enabledArcs,
+    matchingKeysByType,
+    lineMatchingKeysByType,
+  ])
 
   return Children.toArray(
     R.values(

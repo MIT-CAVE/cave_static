@@ -2,6 +2,8 @@ import * as R from 'ramda'
 
 import EchartsPlot from './BaseChart'
 
+import { findSubgroupLabels } from '../../../../utils'
+
 const CumulativeLineChart = ({
   data,
   xAxisTitle,
@@ -13,12 +15,7 @@ const CumulativeLineChart = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const accumulate = R.pipe(
     R.ifElse(

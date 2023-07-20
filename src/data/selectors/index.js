@@ -9,7 +9,7 @@ import {
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
 } from '../../utils/constants'
-import { viewId, statId } from '../../utils/enums'
+import { viewId, statId, chartStatUses } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 
@@ -743,7 +743,9 @@ export const selectMemoizedChartFunc = createSelector(
       (obj) => JSON.stringify(obj),
       (obj) => {
         const pathedVar = forcePath(R.propOr([], 'statistic', obj))
-        const actualStat = obj.chart === 'Table' ? pathedVar : obj.statistic
+        const actualStat = R.has(R.prop('chart', obj), chartStatUses)
+          ? pathedVar
+          : obj.statistic
         const mergeFuncs = {
           Sum: R.sum,
           Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
@@ -803,7 +805,7 @@ export const selectMemoizedChartFunc = createSelector(
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
         const statValues = recursiveMap(
           R.is(Array),
-          obj.chart === 'Table'
+          R.has(R.prop('chart', obj), chartStatUses)
             ? R.pipe(
                 R.unnest,
                 groupByIdx,
@@ -896,7 +898,7 @@ export const selectMemoizedKpiFunc = createSelector(
             )(val),
           })),
           R.when(
-            R.always(obj.chart === 'Table'),
+            R.always(R.has(R.prop('chart', obj), chartStatUses)),
             R.map((session) => ({
               name: session.name,
               value: R.unnest(R.pluck('value', session.children)),
@@ -916,7 +918,16 @@ export const selectGroupedEnabledArcs = createSelector(
       R.filter((d) => R.propOr(false, d.type, enabledArcs)),
       // 3d arcs grouped under true - others false
       R.toPairs,
-      R.groupBy((d) => R.equals(R.path([1, 'lineBy'], d), '3d')),
+      R.groupBy(
+        R.pipe(
+          R.path([1, 'lineBy']),
+          R.cond([
+            [R.equals('3d'), R.always('3d')],
+            [R.equals('multi'), R.always('multi')],
+            [R.T, R.always('false')],
+          ])
+        )
+      ),
       R.map(R.fromPairs)
     )(filteredArcs)
 )
@@ -924,7 +935,24 @@ export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
   R.toPairs(R.prop('false', data))
 )
 export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
-  R.toPairs(R.prop('true', data))
+  R.toPairs(R.prop('3d', data))
+)
+export const selectMutliLineData = createSelector(
+  selectGroupedEnabledArcs,
+  (data) => R.toPairs(R.prop('multi', data))
+)
+export const selectLineMatchingKeys = createSelector(
+  selectMutliLineData,
+  (data) =>
+    R.pipe(
+      R.map((d) => R.assoc('data_key', d[0], d[1])),
+      R.indexBy(R.prop('geoJsonProp'))
+    )(data)
+)
+export const selectLineMatchingKeysByType = createSelector(
+  selectLineMatchingKeys,
+  (data) =>
+    R.pipe(R.toPairs, R.groupBy(R.path([1, 'type'])), R.map(R.fromPairs))(data)
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectTimePath, selectArcsByType],

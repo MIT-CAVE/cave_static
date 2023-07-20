@@ -4,6 +4,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
+import { findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 // import { exampleNestedData } from './testData'
 
@@ -14,12 +15,7 @@ const Sunburst = ({ data, theme }) => {
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const assignColors = () => {
     let availableColors =

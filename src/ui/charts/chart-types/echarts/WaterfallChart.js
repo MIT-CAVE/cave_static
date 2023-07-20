@@ -10,6 +10,7 @@ import {
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getMinMax,
+  findSubgroupLabels,
 } from '../../../../utils'
 
 /**
@@ -65,12 +66,7 @@ const WaterfallChart = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const renderItem = (params, api) => {
     const previousVal = R.pipe(
@@ -287,12 +283,7 @@ const StackedWaterfallChart = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const categoryBounds = R.ifElse(
     (val) => R.type(R.head(R.head(val))) === 'Object',

@@ -4,7 +4,11 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { getDecimalScaleFactor, getDecimalScaleLabel } from '../../../../utils'
+import {
+  getDecimalScaleFactor,
+  getDecimalScaleLabel,
+  findSubgroupLabels,
+} from '../../../../utils'
 
 // sort array ascending
 const asc = (arr) => arr.sort((a, b) => a - b)
@@ -45,12 +49,7 @@ const EchartsBoxPlot = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const chartType = 'boxplot'
 
