@@ -260,6 +260,8 @@ const MapLegendGroupRowToggleLayer = ({
 const GroupCalcDropdown = ({ propType, value, onSelect }) => {
   const optionsList = [...statFns[propType].values()]
   if (!statFns[propType].has(value)) {
+    // Pick the first element of the list of aggregation
+    // functions when a different prop type is selected
     onSelect(optionsList[0])
   }
   return (
