@@ -110,7 +110,7 @@ export const statId = {
 }
 
 export const statFns = {
-  [propId.NUMBER]: [
+  [propId.NUMBER]: new Set([
     statId.COUNT,
     statId.MODE,
     statId.MAX,
@@ -118,9 +118,9 @@ export const statFns = {
     statId.MEDIAN,
     statId.MIN,
     statId.SUM,
-  ],
-  [propId.SELECTOR]: [statId.MODE],
-  [propId.TOGGLE]: [statId.MODE, statId.AND, statId.OR],
+  ]),
+  [propId.SELECTOR]: new Set([statId.MODE]),
+  [propId.TOGGLE]: new Set([statId.MODE, statId.AND, statId.OR]),
 }
 
 export const chartType = {

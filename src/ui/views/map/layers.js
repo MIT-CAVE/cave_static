@@ -550,7 +550,7 @@ const GetNodeIconLayer = () => {
               )(timeProp(value, colorRange))
             )
           : getScaledColor(
-              [timeProp('min', colorObj), timeProp('max', colorObj)],
+              [timeProp('min', colorDomain), timeProp('max', colorDomain)],
               colorRange,
               value
             )

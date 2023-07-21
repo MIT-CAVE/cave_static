@@ -257,39 +257,44 @@ const MapLegendGroupRowToggleLayer = ({
   )
 }
 
-const GroupCalcDropdown = ({ propType, value, onSelect }) => (
-  <Grid
-    item
-    container
-    alignItems="center"
-    justifyContent="center"
-    paddingLeft="4px"
-    // spacing={1}
-    xs={12}
-  >
-    <Grid item>
-      <FetchedIcon
-        iconName={
-          propType === propId.TOGGLE
-            ? 'TbLogicAnd'
-            : propType === propId.NUMBER
-            ? 'TbMathFunction'
-            : 'TbMathFunction' // TODO: Different icon for a `selector`?
-        }
-        size={24}
-      />
+const GroupCalcDropdown = ({ propType, value, onSelect }) => {
+  const optionsList = [...statFns[propType].values()]
+  if (!statFns[propType].has(value)) {
+    onSelect(optionsList[0])
+  }
+  return (
+    <Grid
+      item
+      container
+      alignItems="center"
+      justifyContent="center"
+      paddingLeft="4px"
+      // spacing={1}
+      xs={12}
+    >
+      <Grid item>
+        <FetchedIcon
+          iconName={
+            propType === propId.TOGGLE
+              ? 'TbLogicAnd'
+              : propType === propId.NUMBER
+              ? 'TbMathFunction'
+              : 'TbMathFunction' // TODO: Different icon for a `selector`?
+          }
+          size={24}
+        />
+      </Grid>
+      <Grid item xs>
+        <SimpleDropdown
+          marquee
+          paperProps={{ elevation: 3 }}
+          getLabel={getStatLabel}
+          {...{ optionsList, value, onSelect }}
+        />
+      </Grid>
     </Grid>
-    <Grid item xs>
-      <SimpleDropdown
-        marquee
-        paperProps={{ elevation: 3 }}
-        getLabel={getStatLabel}
-        optionsList={statFns[propType]}
-        {...{ value, onSelect }}
-      />
-    </Grid>
-  </Grid>
-)
+  )
+}
 
 const MapLegendSizeBySection = ({
   sizeProp,
