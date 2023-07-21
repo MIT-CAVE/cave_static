@@ -26,6 +26,7 @@ import {
   selectLineData,
   selectMatchingKeys,
   selectCurrentMapProjection,
+  selectLineMatchingKeys,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, GLOBE_FOG_CONFIG } from '../../../utils/constants'
 
@@ -42,6 +43,7 @@ const Map = ({ mapboxToken }) => {
   const arcData = useSelector(selectLineData)
   const nodeDataSplit = useSelector(selectSplitNodeData)
   const matchingKeys = useSelector(selectMatchingKeys)
+  const lineMatchingKeys = useSelector(selectLineMatchingKeys)
   const iconUrl = useSelector(selectSettingsIconUrl)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [cursor, setCursor] = useState('auto')
@@ -92,6 +94,9 @@ const Map = ({ mapboxToken }) => {
     (e) => {
       const nodeIds = R.propOr([], false)(nodeDataSplit).map(([id]) => id)
       const arcIds = arcData.map(([id]) => id)
+      const geoArcIds = R.values(
+        R.mapObjIndexed((geo) => geo.data_key)(lineMatchingKeys)
+      )
       const geoIds = R.values(
         R.mapObjIndexed((geo) => geo.data_key)(matchingKeys)
       )
@@ -100,6 +105,9 @@ const Map = ({ mapboxToken }) => {
       )
       const clickedArcs = e.features.filter((feature) =>
         arcIds.includes(feature.layer.id)
+      )
+      const clickedGeoJsonArcs = e.features.filter((feature) =>
+        geoArcIds.includes(feature.layer.id)
       )
       const clickedGeos = e.features.filter((feature) =>
         geoIds.includes(feature.layer.id)
@@ -115,6 +123,12 @@ const Map = ({ mapboxToken }) => {
         feature = 'arcs'
         id = clickedArcs[0].layer.id
         obj = R.head(arcData.filter(([arcId]) => id === arcId))[1]
+      } else if (clickedGeoJsonArcs.length > 0) {
+        feature = 'arcs'
+        id = clickedGeoJsonArcs[0].layer.id
+        obj = R.head(
+          R.filter((geo) => geo.data_key === id)(R.values(lineMatchingKeys))
+        )
       } else if (clickedGeos.length > 0) {
         feature = 'geos'
         id = clickedGeos[0].layer.id
@@ -124,7 +138,7 @@ const Map = ({ mapboxToken }) => {
       } else return
       return [id, feature, obj]
     },
-    [matchingKeys, arcData, nodeDataSplit]
+    [matchingKeys, lineMatchingKeys, arcData, nodeDataSplit]
   )
 
   const onMouseMove = useCallback(
@@ -190,7 +204,11 @@ const Map = ({ mapboxToken }) => {
           'data',
           ...R.propOr([], false)(nodeDataSplit).map(([id]) => id),
           ...arcData.map(([id]) => id),
-          ...R.values(R.mapObjIndexed((geo) => geo.data_key)(matchingKeys)),
+          ...R.pipe(
+            R.mergeLeft(lineMatchingKeys),
+            R.mapObjIndexed((geo) => geo.data_key),
+            R.values
+          )(matchingKeys),
         ]}
       >
         <Geos highlightLayerId={highlightLayerId} />
