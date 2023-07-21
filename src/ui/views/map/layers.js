@@ -42,6 +42,7 @@ import {
   getScaledArray,
   getScaledColor,
   getScaledValue,
+  rgbStrToArray,
 } from '../../../utils'
 
 const getLayerProps = (props) =>
@@ -318,41 +319,30 @@ const GetNodeIconLayer = () => {
       },
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = R.pipe(
+        const value = R.pipe(
           timePath(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
+          R.defaultTo(''),
+          R.toString
         )(d[1])
-        const colorRange = nodeRange(d[1].type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
+        const statRange = nodeRange(d[1].type, colorProp, false)
+        const isCategorical = !R.has('min', statRange)
+        const colorRange = isCategorical
+          ? statRange
+          : R.map((prop) =>
+              R.pathOr(statRange[prop], [prop, themeType])(statRange)
+            )(['startGradientColor', 'endGradientColor'])
+
         return isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', propVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
+          ? rgbStrToArray(
+              R.when(
+                R.has(themeType),
+                R.prop(themeType)
+              )(timeProp(value, colorRange))
             )
-          : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(propVal)
+          : getScaledColor(
+              [timeProp('min', statRange), timeProp('max', statRange)],
+              colorRange,
+              value
             )
       }
     ),
@@ -541,44 +531,39 @@ const GetNodeIconLayer = () => {
       autoHighlight: true,
       sizeScale: 1,
       pickable: true,
-      getIcon: (d) => d['properties'].icon,
+      getIcon: (d) => d.properties.icon,
       getColor: (d) => {
         const nodeType = d.properties.type
         const colorObj = d.properties.colorProp
         const colorDomain = nodeClusters.range[nodeType].color
+        const isCategorical = !R.has('min')(colorDomain)
+        const value = timeProp('value', colorObj)
+        const colorRange = isCategorical
+          ? colorObj
+          : R.map((prop) =>
+              R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
+            )(['startGradientColor', 'endGradientColor'])
 
-        return getScaledArray(
-          timeProp('min', colorDomain),
-          timeProp('max', colorDomain),
-          R.map((val) => parseFloat(val))(
-            R.pathOr(
-              R.prop('startGradientColor', colorObj),
-              ['startGradientColor', themeType],
-              colorObj
+        return isCategorical
+          ? rgbStrToArray(
+              R.when(
+                R.has(themeType),
+                R.prop(themeType)
+              )(timeProp(value, colorRange))
             )
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          ),
-          R.map((val) => parseFloat(val))(
-            R.pathOr(
-              R.prop('endGradientColor', colorObj),
-              ['endGradientColor', themeType],
-              colorObj
+          : getScaledColor(
+              [timeProp('min', colorDomain), timeProp('max', colorDomain)],
+              colorRange,
+              value
             )
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          ),
-          timeProp('value', colorObj)
-        )
       },
       getSize: (d) => {
         const nodeType = d.properties.type
         const sizeObj = d.properties.sizeProp
         const sizeDomain = nodeClusters.range[nodeType].size
-
         return getScaledValue(
-          sizeDomain.min,
-          sizeDomain.max,
+          timeProp('min', sizeDomain),
+          timeProp('max', sizeDomain),
           parseFloat(timeProp('startSize', sizeObj)),
           parseFloat(timeProp('endSize', sizeObj)),
           timeProp('value', sizeObj)

@@ -8,7 +8,7 @@ import {
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
 } from '../../utils/constants'
-import { viewId, statId, chartStatUses } from '../../utils/enums'
+import { propId, statId, viewId, chartStatUses } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 
@@ -1139,16 +1139,17 @@ export const selectNodeClusters = createSelector(
     const getClustersColorLimits = (cluster, colorProp) =>
       R.path(['properties', 'cluster'], cluster)
         ? cluster.properties[colorProp]
-        : R.pick(
-            ['startGradientColor', 'endGradientColor'],
-            cluster.properties.colorByOptions[colorProp]
-          )
+        : cluster.properties.colorByOptions[colorProp]
 
     // Set the "supercluster" constructor parameters
     const options = {
       minZoom: Math.floor(MIN_ZOOM),
       maxZoom: Math.floor(MAX_ZOOM),
       radius: 50 * Math.sqrt(2),
+      // NOTE: Using shallow cloning is sufficient, assuming
+      // that all `data` properties are enumerable and don't
+      // contain any references to another object.
+      deepClone: false,
       map: (d) => {
         const colorProp = getVarByProp('colorBy', d)
         const sizeProp = getVarByProp('sizeBy', d)
@@ -1162,13 +1163,21 @@ export const selectNodeClusters = createSelector(
               }
             : {},
         }
+
+        const isCategorical = d.props[colorProp].type !== propId.NUMBER
         const colorPropObj = {
           [colorProp]: colorProp
             ? {
+                type: d.props[colorProp].type,
                 value: [d.props[colorProp].value],
-                startGradientColor:
-                  d.colorByOptions[colorProp].startGradientColor,
-                endGradientColor: d.colorByOptions[colorProp].endGradientColor,
+                ...(isCategorical
+                  ? d.colorByOptions[colorProp]
+                  : {
+                      startGradientColor:
+                        d.colorByOptions[colorProp].startGradientColor,
+                      endGradientColor:
+                        d.colorByOptions[colorProp].endGradientColor,
+                    }),
               }
             : {},
         }
@@ -1237,6 +1246,10 @@ export const selectNodeClusters = createSelector(
           // The props that we use in the legend for colorBy and sizeBy for a specific node type
           const colorProp = getClusterVarByProp('colorBy', cluster)
           const sizeProp = getClusterVarByProp('sizeBy', cluster)
+          // The prop type of colorProp to determine if the prop is categorical
+          const colorPropType = cluster.properties.cluster
+            ? cluster.properties[colorProp].type
+            : cluster.properties.props[colorProp].type
 
           // gets the values and aggregates by groupCalculationFn
           const getDomainValue = (prop, groupCalculationFn) =>
@@ -1278,10 +1291,13 @@ export const selectNodeClusters = createSelector(
           )
           // Update the types min/max with new values
           ranges[clusterType] = {
-            color: {
-              min: R.min(colorMin, colorValue),
-              max: R.max(colorMax, colorValue),
-            },
+            color:
+              colorPropType === propId.NUMBER
+                ? {
+                    min: R.min(colorMin, +colorValue),
+                    max: R.max(colorMax, +colorValue),
+                  }
+                : {}, // Empty for a categorical prop
             size: {
               min: R.min(sizeMin, sizeValue),
               max: R.max(sizeMax, sizeValue),
