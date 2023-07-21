@@ -78,11 +78,15 @@ const Map = ({ mapboxToken }) => {
 
   const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
-      if (!mapRef.current.hasImage(iconName)) {
+      if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     })(iconData)
   }, [iconData])
+
+  useEffect(() => {
+    loadIconsToStyle()
+  }, [iconData, loadIconsToStyle])
 
   const getFeatureFromEvent = useCallback(
     (e) => {

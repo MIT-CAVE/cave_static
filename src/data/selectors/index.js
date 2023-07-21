@@ -924,10 +924,10 @@ export const selectGroupedEnabledArcs = createSelector(
       R.toPairs,
       R.groupBy(
         R.pipe(
-          R.path([1, 'lineBy']),
+          R.prop(1),
           R.cond([
-            [R.equals('3d'), R.always('3d')],
-            [R.equals('multi'), R.always('multi')],
+            [R.propEq('3d', 'lineBy'), R.always('3d')],
+            [R.has('geoJson'), R.always('geoJson')],
             [R.T, R.always('false')],
           ])
         )
@@ -943,14 +943,14 @@ export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
 )
 export const selectMutliLineData = createSelector(
   selectGroupedEnabledArcs,
-  (data) => R.toPairs(R.prop('multi', data))
+  (data) => R.toPairs(R.prop('geoJson', data))
 )
 export const selectLineMatchingKeys = createSelector(
   selectMutliLineData,
   (data) =>
     R.pipe(
       R.map((d) => R.assoc('data_key', d[0], d[1])),
-      R.indexBy(R.prop('geoJsonProp'))
+      R.indexBy(R.prop('geoJsonValue'))
     )(data)
 )
 export const selectLineMatchingKeysByType = createSelector(
