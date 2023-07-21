@@ -38,7 +38,7 @@ import {
   selectResolveTime,
   selectNodeRangeAtZoom,
 } from '../../../data/selectors'
-import { statId } from '../../../utils/enums'
+import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
 
 import {
@@ -257,6 +257,48 @@ const MapLegendGroupRowToggleLayer = ({
   )
 }
 
+const GroupCalcDropdown = ({ propType, value, onSelect }) => {
+  const optionsList = [...statFns[propType].values()]
+  if (!statFns[propType].has(value)) {
+    // When a different prop type is selected and the
+    // current aggr. fn is not supported, the first
+    // element of the list of agg. Fns is chosen
+    onSelect(optionsList[0])
+  }
+  return (
+    <Grid
+      item
+      container
+      alignItems="center"
+      justifyContent="center"
+      paddingLeft="4px"
+      // spacing={1}
+      xs={12}
+    >
+      <Grid item>
+        <FetchedIcon
+          iconName={
+            propType === propId.TOGGLE
+              ? 'TbLogicAnd'
+              : propType === propId.NUMBER
+              ? 'TbMathFunction'
+              : 'TbMathFunction' // TODO: Different icon for a `selector`?
+          }
+          size={24}
+        />
+      </Grid>
+      <Grid item xs>
+        <SimpleDropdown
+          marquee
+          paperProps={{ elevation: 3 }}
+          getLabel={getStatLabel}
+          {...{ optionsList, value, onSelect }}
+        />
+      </Grid>
+    </Grid>
+  )
+}
+
 const MapLegendSizeBySection = ({
   sizeProp,
   sizeRange,
@@ -343,7 +385,13 @@ const MapLegendSizeBySection = ({
       </Grid>
 
       {/* Third row: Clustering functions */}
-      {group && <GroupCalcDropdown value={propValue} onSelect={onSelectProp} />}
+      {group && (
+        <GroupCalcDropdown
+          propType={typeObj.props[sizeProp].type}
+          value={propValue}
+          onSelect={onSelectProp}
+        />
+      )}
     </>
   )
 }
@@ -430,7 +478,13 @@ const MapLegendColorBySection = ({
       </Grid>
 
       {/* Third row: Clustering functions */}
-      {group && <GroupCalcDropdown value={propValue} onSelect={onSelectProp} />}
+      {group && (
+        <GroupCalcDropdown
+          propType={typeObj.props[colorProp].type}
+          value={propValue}
+          onSelect={onSelectProp}
+        />
+      )}
     </>
   )
 }
@@ -556,31 +610,6 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
     </details>
   )
 }
-
-const GroupCalcDropdown = ({ value, onSelect }) => (
-  <Grid
-    item
-    container
-    alignItems="center"
-    justifyContent="center"
-    paddingLeft="4px"
-    // spacing={1}
-    xs={12}
-  >
-    <Grid item>
-      <FetchedIcon iconName="TbMathFunction" size={24} />
-    </Grid>
-    <Grid item xs>
-      <SimpleDropdown
-        marquee
-        paperProps={{ elevation: 3 }}
-        getLabel={getStatLabel}
-        optionsList={R.values(statId)}
-        {...{ value, onSelect }}
-      />
-    </Grid>
-  </Grid>
-)
 
 const MapLegendNodeToggle = ({
   nodeType,
