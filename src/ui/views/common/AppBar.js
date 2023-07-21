@@ -260,14 +260,22 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   )
 
   const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
-  const lowerKey = `lower${!R.has('lower', appBar) && capitalizedSide}`
-  const upperKey = `upper${!R.has('upper', appBar) && capitalizedSide}`
+  const lowerKey = `lower${R.has('lower', appBar) ? '' : capitalizedSide}`
+  const upperKey = `upper${R.has('upper', appBar) ? '' : capitalizedSide}`
   return (
     <Box
       sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}
     >
       <Tabs
-        sx={[styles.navSection, { flexGrow: 1 }]}
+        sx={[
+          styles.navSection,
+          { flexGrow: 1 },
+          side === 'right' && {
+            '.MuiTabs-indicator': {
+              left: 0,
+            },
+          },
+        ]}
         value={getValue(upperKey)}
         orientation="vertical"
         variant="fullWidth"
