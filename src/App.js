@@ -118,12 +118,12 @@ const App = () => {
   const theme = getTheme(themeId)
   const leftPane = R.assoc(
     'icon',
-    R.path([leftOpen, 'icon'], leftAppBarData),
+    R.path([leftOpen, 'icon'], mirrorMode ? rightAppBarData : leftAppBarData),
     leftOpenPanesData
   )
   const rightPane = R.assoc(
     'icon',
-    R.path([rightOpen, 'icon'], rightAppBarData),
+    R.path([rightOpen, 'icon'], mirrorMode ? leftAppBarData : rightAppBarData),
     rightOpenPanesData
   )
   const renderAppPage = R.cond([
