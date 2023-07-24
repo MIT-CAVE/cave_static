@@ -7,7 +7,7 @@ import { echarts } from './BaseChart'
 
 import { formatNumber, getMinMax } from '../../../../utils'
 
-const BubblePlot = ({ data, labels, numberFormat, theme }) => {
+const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
@@ -30,6 +30,7 @@ const BubblePlot = ({ data, labels, numberFormat, theme }) => {
       {
         data: [val.value],
         name: val.name,
+        color: R.prop(val.name, colors),
       },
       baseObject
     )

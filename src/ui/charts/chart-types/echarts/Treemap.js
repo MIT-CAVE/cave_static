@@ -9,7 +9,7 @@ import { CHART_PALETTE } from '../../../../utils/constants'
 
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({ data, theme }) => {
+const Treemap = ({ data, theme, colors }) => {
   const xLabels = R.pluck('name', data)
 
   const yValues = R.has('children', R.head(data))
@@ -34,7 +34,7 @@ const Treemap = ({ data, theme }) => {
     return assignments
   }
 
-  const assignments = assignColors()
+  const assignments = R.mergeRight(assignColors(), colors)
 
   const normalData = R.isEmpty(subGroupLabels)
     ? R.map((obj) =>

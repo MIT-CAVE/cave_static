@@ -56,6 +56,7 @@ const WaterfallChart = ({
   xAxisTitle,
   yAxisTitle,
   numberFormat,
+  colors,
   theme,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
@@ -146,6 +147,7 @@ const WaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
+          color: R.prop(R.head(d).name, colors),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -157,7 +159,16 @@ const WaterfallChart = ({
       ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
-    (d) => [R.assoc('data', R.unnest(d), baseData)]
+    (d) => [
+      R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
+        colorBy: 'data',
+        color: R.addIndex(R.map)((item, idx) =>
+          R.has(item, colors)
+            ? R.prop(item, colors)
+            : getChartItemColor(theme, idx)
+        )(xLabels),
+      }),
+    ]
   )(yValues)
 
   const [yMin, yMax] = R.pipe(
@@ -274,6 +285,7 @@ const StackedWaterfallChart = ({
   yAxisTitle,
   numberFormat,
   theme,
+  colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -429,6 +441,7 @@ const StackedWaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
+          color: R.prop(R.head(d).name, colors),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -440,7 +453,16 @@ const StackedWaterfallChart = ({
       ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
-    (d) => [R.assoc('data', R.unnest(d), baseData)]
+    (d) => [
+      R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
+        colorBy: 'data',
+        color: R.addIndex(R.map)((item, idx) =>
+          R.has(item, colors)
+            ? R.prop(item, colors)
+            : getChartItemColor(theme, idx)
+        )(xLabels),
+      }),
+    ]
   )(yValues)
 
   const [yMin, yMax] = R.pipe(

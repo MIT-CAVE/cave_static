@@ -8,7 +8,7 @@ import { findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 // import { exampleNestedData } from './testData'
 
-const Sunburst = ({ data, theme }) => {
+const Sunburst = ({ data, theme, colors }) => {
   const xLabels = R.pluck('name', data)
 
   const yValues = R.has('children', R.head(data))
@@ -33,7 +33,7 @@ const Sunburst = ({ data, theme }) => {
     return assignments
   }
 
-  const assignments = assignColors()
+  const assignments = R.mergeLeft(colors, assignColors())
 
   const normalData = R.isEmpty(subGroupLabels)
     ? R.map((obj) =>

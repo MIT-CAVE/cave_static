@@ -7,7 +7,7 @@ import { echarts } from './BaseChart'
 
 import { formatNumber, getMinMax } from '../../../../utils'
 
-const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
+const ScatterPlot = ({ data, labels, numberFormat, theme, colors }) => {
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
@@ -26,10 +26,11 @@ const ScatterPlot = ({ data, labels, numberFormat, theme }) => {
   }
 
   const series = R.map((val) =>
-    R.mergeLeft(
+    R.mergeDeepLeft(
       {
         data: [val.value],
         name: val.name,
+        color: R.prop(val.name, colors),
       },
       baseObject
     )

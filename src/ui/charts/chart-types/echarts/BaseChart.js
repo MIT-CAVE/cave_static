@@ -67,6 +67,7 @@ import {
   formatNumber,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
+  getChartItemColor,
 } from '../../../../utils'
 
 // Register the required components
@@ -115,6 +116,7 @@ const EchartsPlot = ({
   theme,
   stack = false,
   seriesObj = {},
+  colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -138,6 +140,14 @@ const EchartsPlot = ({
     seriesObj
   )
 
+  // Only true if using a line chart with 1 level of grouping
+  const visualMap =
+    chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
+
+  const color = R.addIndex(R.map)((item, idx) =>
+    R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(theme, idx)
+  )(xLabels)
+
   const series = R.ifElse(
     (val) => R.type(R.head(R.head(val))) === 'Object',
     R.pipe(
@@ -147,6 +157,7 @@ const EchartsPlot = ({
       R.map((d) =>
         R.mergeRight(baseObject, {
           name: R.head(d).name,
+          color: R.prop(R.head(d).name, colors),
           data: R.map(
             R.pipe(
               (idx) => R.find(R.propEq(idx, 'index'), d),
@@ -157,7 +168,22 @@ const EchartsPlot = ({
       ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
-    (d) => [R.assoc('data', R.unnest(d), baseObject)]
+    (d) => [
+      R.mergeDeepLeft(
+        R.assoc(
+          'data',
+          R.pipe(
+            R.unnest,
+            visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
+          )(d),
+          baseObject
+        ),
+        {
+          colorBy: 'data',
+          color,
+        }
+      ),
+    ]
   )(yValues)
 
   const yMax = R.pipe(
@@ -169,6 +195,21 @@ const EchartsPlot = ({
 
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
+
+  const lineMap = visualMap
+    ? {
+        visualMap: {
+          type: 'piecewise',
+          show: false,
+          pieces: R.map((idx) => ({
+            max: idx,
+            min: idx - 1,
+            color: color[idx],
+          }))(R.range(0, R.length(xLabels))),
+          dimension: 0,
+        },
+      }
+    : {}
 
   const options = {
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
@@ -247,6 +288,7 @@ const EchartsPlot = ({
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
       },
     },
+    ...lineMap,
   }
 
   // TODO: Prefer FlexibleWrapper here

@@ -5,9 +5,21 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { adjustMinMax, formatNumber, getMinMax } from '../../../../utils'
+import {
+  adjustMinMax,
+  formatNumber,
+  getMinMax,
+  getChartItemColor,
+} from '../../../../utils'
 
-const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
+const GaugeChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat,
+  theme,
+  colors,
+}) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -36,6 +48,9 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
       lineStyle: {
         width: 20,
       },
+    },
+    axisLabel: {
+      distance: 25,
     },
     smooth: true,
     emphasis: {
@@ -77,7 +92,16 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
       R.last
     )(values)
 
-  const initialSeries = [R.assoc('data', createSeriesData(yValues), baseObject)]
+  const initialSeries = [
+    R.mergeDeepLeft(R.assoc('data', createSeriesData(yValues), baseObject), {
+      colorBy: 'data',
+      color: R.addIndex(R.map)((item, idx) =>
+        R.has(item, colors)
+          ? R.prop(item, colors)
+          : getChartItemColor(theme, idx)
+      )(xLabels),
+    }),
+  ]
   const [yMin, yMax] = R.pipe(
     R.head,
     R.prop('data'),
