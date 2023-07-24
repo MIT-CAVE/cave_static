@@ -155,7 +155,7 @@ export const chartMaxGrouping = {
   Sunburst: 2,
   Table: 2,
   Treemap: 2,
-  WaterFall: 2,
+  Waterfall: 2,
   Gauge: 1,
   Heatmap: 2,
   Scatter: 1,
