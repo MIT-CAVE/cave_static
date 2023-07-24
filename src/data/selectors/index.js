@@ -309,28 +309,29 @@ export const selectRightPinPane = createSelector(selectPaneState, (data) =>
 
 const groupAppBar = R.pipe(
   R.mergeDeepRight,
-  R.values,
+  R.toPairs,
   R.groupBy(
     R.cond([
       [
-        R.pipe(R.prop('bar'), R.includes(R.__, ['upperLeft', 'upper'])),
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperLeft', 'upper'])),
         R.always('upperLeft'),
       ],
       [
-        R.pipe(R.prop('bar'), R.includes(R.__, ['lowerLeft', 'lower'])),
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerLeft', 'lower'])),
         R.always('lowerLeft'),
       ],
       [
-        R.pipe(R.prop('bar'), R.includes(R.__, ['upperRight'])),
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperRight'])),
         R.always('upperRight'),
       ],
       [
-        R.pipe(R.prop('bar'), R.includes(R.__, ['lowerRight'])),
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerRight'])),
         R.always('lowerRight'),
       ],
       [R.T, R.always('')],
     ])
-  )
+  ),
+  R.map(R.fromPairs)
 )
 export const selectLeftGroupedAppBar = createSelector(
   [selectLeftLocalAppBarData, selectLeftAppBarData],
