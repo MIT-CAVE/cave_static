@@ -146,29 +146,27 @@ export const selectAppBarData = createSelector(selectAppBar, (data) =>
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
+  // Keep only sub objects with bar: upperLeft, lowerLeft, upper, lower
   R.pipe(
     R.dissoc('appBarId'),
-    R.toPairs,
-    R.filter((keyDataPair) =>
-      R.includes(R.prop('bar', keyDataPair[1]), [
+    R.filter((appBarItem) =>
+      R.includes(R.prop('bar', appBarItem), [
         'upperLeft',
         'lowerLeft',
         'upper',
         'lower',
       ])
-    ),
-    R.fromPairs
+    )
   )
 )
+
 export const selectRightAppBarData = createSelector(
   selectAppBarData,
   R.pipe(
     R.dissoc('appBarId'),
-    R.toPairs,
-    R.filter((keyDataPair) =>
-      R.includes(R.prop('bar', keyDataPair[1]), ['upperRight', 'lowerRight'])
-    ),
-    R.fromPairs
+    R.filter((appBarItem) =>
+      R.includes(R.prop('bar', appBarItem), ['upperRight', 'lowerRight'])
+    )
   )
 )
 export const selectCategoriesData = createSelector(selectCategories, (data) =>
@@ -308,11 +306,31 @@ export const selectRightSecondaryOpenPane = createSelector(
 export const selectRightPinPane = createSelector(selectPaneState, (data) =>
   R.propOr(false, 'pin', R.propOr({}, 'right', data))
 )
+
 const groupAppBar = R.pipe(
   R.mergeDeepRight,
-  R.toPairs,
-  R.groupBy(R.path([1, 'bar'])),
-  R.map(R.fromPairs)
+  R.values,
+  R.groupBy(
+    R.cond([
+      [
+        R.pipe(R.prop('bar'), R.includes(R.__, ['upperLeft', 'upper'])),
+        R.always('upperLeft'),
+      ],
+      [
+        R.pipe(R.prop('bar'), R.includes(R.__, ['lowerLeft', 'lower'])),
+        R.always('lowerLeft'),
+      ],
+      [
+        R.pipe(R.prop('bar'), R.includes(R.__, ['upperRight'])),
+        R.always('upperRight'),
+      ],
+      [
+        R.pipe(R.prop('bar'), R.includes(R.__, ['lowerRight'])),
+        R.always('lowerRight'),
+      ],
+      [R.T, R.always('')],
+    ])
+  )
 )
 export const selectLeftGroupedAppBar = createSelector(
   [selectLeftLocalAppBarData, selectLeftAppBarData],
