@@ -5,6 +5,7 @@ import OverflowText from './OverflowText'
 const GradientBox = ({ maxColor, minColor, maxLabel, minLabel }) => (
   <Grid item container xs justifyContent="space-between" alignItems="center">
     <Grid
+      item
       zeroMinWidth
       sx={{
         mx: 1,
@@ -15,6 +16,7 @@ const GradientBox = ({ maxColor, minColor, maxLabel, minLabel }) => (
       <OverflowText text={minLabel} />
     </Grid>
     <Grid
+      item
       xs
       height="18px"
       minWidth="60px"
@@ -24,6 +26,7 @@ const GradientBox = ({ maxColor, minColor, maxLabel, minLabel }) => (
       }}
     />
     <Grid
+      item
       zeroMinWidth
       sx={{
         mx: 1,

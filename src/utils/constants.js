@@ -18,6 +18,11 @@ export const MAX_PITCH = 60
 export const MIN_BEARING = -180
 export const MAX_BEARING = 180
 
+// Number of chart configurations stored in memory
+// Higher values can increase dashboard switching performance
+// At the cost of system memory (RAM)
+export const MAX_MEMOIZED_CHARTS = 16
+
 export const DEFAULT_VIEWPORT = {
   longitude: -71.08463,
   latitude: 42.36157,

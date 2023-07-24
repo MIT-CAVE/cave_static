@@ -163,6 +163,7 @@ const Map = ({ mapboxToken }) => {
       <MapControls />
       <ReactMapGL
         {...viewport}
+        projection="mercator"
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
         mapStyle={mapStyle || `${STYLE_URL_BASE}${getDefaultStyleId(theme)}`}

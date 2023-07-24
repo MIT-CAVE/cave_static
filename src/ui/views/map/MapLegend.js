@@ -40,7 +40,8 @@ import {
   selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-import { statId } from '../../../utils/enums'
+import { propId, statId, statFns } from '../../../utils/enums'
+
 import { getStatLabel } from '../../../utils/stats'
 
 import {
@@ -166,10 +167,11 @@ const getMinMaxLabel = (
   timeProp,
   valProp,
   typeObj,
+  group,
   end,
   labelEnd
 ) => {
-  return R.pathOr(
+  const getNumLabel = () =>
     R.path(['props', valProp, 'legendOverride', 'useScientificFormat'])(
       typeObj
     ) ?? true
@@ -185,17 +187,39 @@ const getMinMaxLabel = (
             R.path(['props', valProp, 'numberFormat']),
             R.dissoc('unit')
           )(typeObj)
-        ),
-    ['props', valProp, 'legendOverride', labelEnd]
-  )(typeObj)
+        )
+  return group
+    ? getNumLabel(typeObj)
+    : R.pathOr(getNumLabel(typeObj), [
+        'props',
+        valProp,
+        'legendOverride',
+        labelEnd,
+      ])(typeObj)
 }
 
-const getMinLabel = (valRange, timeProp, valProp, typeObj) => {
-  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'min', 'minLabel')
+const getMinLabel = (valRange, timeProp, valProp, typeObj, group) => {
+  return getMinMaxLabel(
+    valRange,
+    timeProp,
+    valProp,
+    typeObj,
+    group,
+    'min',
+    'minLabel'
+  )
 }
 
-const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
-  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max', 'maxLabel')
+const getMaxLabel = (valRange, timeProp, valProp, typeObj, group) => {
+  return getMinMaxLabel(
+    valRange,
+    timeProp,
+    valProp,
+    typeObj,
+    group,
+    'max',
+    'maxLabel'
+  )
 }
 
 const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
@@ -259,6 +283,48 @@ const MapLegendGroupRowToggleLayer = ({
   )
 }
 
+const GroupCalcDropdown = ({ propType, value, onSelect }) => {
+  const optionsList = [...statFns[propType].values()]
+  if (!statFns[propType].has(value)) {
+    // When a different prop type is selected and the
+    // current aggr. fn is not supported, the first
+    // element of the list of agg. Fns is chosen
+    onSelect(optionsList[0])
+  }
+  return (
+    <Grid
+      item
+      container
+      alignItems="center"
+      justifyContent="center"
+      paddingLeft="4px"
+      // spacing={1}
+      xs={12}
+    >
+      <Grid item>
+        <FetchedIcon
+          iconName={
+            propType === propId.TOGGLE
+              ? 'TbLogicAnd'
+              : propType === propId.NUMBER
+              ? 'TbMathFunction'
+              : 'TbMathFunction' // TODO: Different icon for a `selector`?
+          }
+          size={24}
+        />
+      </Grid>
+      <Grid item xs>
+        <SimpleDropdown
+          marquee
+          paperProps={{ elevation: 3 }}
+          getLabel={getStatLabel}
+          {...{ optionsList, value, onSelect }}
+        />
+      </Grid>
+    </Grid>
+  )
+}
+
 const MapLegendSizeBySection = ({
   sizeProp,
   sizeRange,
@@ -318,7 +384,7 @@ const MapLegendSizeBySection = ({
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
           <OverflowText
-            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
+            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
           />
         </Grid>
         <Grid item sx={{ pr: 0.75 }}>
@@ -339,13 +405,19 @@ const MapLegendSizeBySection = ({
         </Grid>
         <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
           <OverflowText
-            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
+            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
           />
         </Grid>
       </Grid>
 
       {/* Third row: Clustering functions */}
-      {group && <GroupCalcDropdown value={propValue} onSelect={onSelectProp} />}
+      {group && (
+        <GroupCalcDropdown
+          propType={typeObj.props[sizeProp].type}
+          value={propValue}
+          onSelect={onSelectProp}
+        />
+      )}
     </>
   )
 }
@@ -425,14 +497,32 @@ const MapLegendColorBySection = ({
               ['endGradientColor', themeType],
               colorRange
             )}
-            maxLabel={getMaxLabel(valueRange, timeProp, colorProp, typeObj)}
-            minLabel={getMinLabel(valueRange, timeProp, colorProp, typeObj)}
+            maxLabel={getMaxLabel(
+              valueRange,
+              timeProp,
+              colorProp,
+              typeObj,
+              group
+            )}
+            minLabel={getMinLabel(
+              valueRange,
+              timeProp,
+              colorProp,
+              typeObj,
+              group
+            )}
           />
         )}
       </Grid>
 
       {/* Third row: Clustering functions */}
-      {group && <GroupCalcDropdown value={propValue} onSelect={onSelectProp} />}
+      {group && (
+        <GroupCalcDropdown
+          propType={typeObj.props[colorProp].type}
+          value={propValue}
+          onSelect={onSelectProp}
+        />
+      )}
     </>
   )
 }
@@ -559,31 +649,6 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
   )
 }
 
-const GroupCalcDropdown = ({ value, onSelect }) => (
-  <Grid
-    item
-    container
-    alignItems="center"
-    justifyContent="center"
-    paddingLeft="4px"
-    // spacing={1}
-    xs={12}
-  >
-    <Grid item>
-      <FetchedIcon iconName="TbMathFunction" size={24} />
-    </Grid>
-    <Grid item xs>
-      <SimpleDropdown
-        marquee
-        paperProps={{ elevation: 3 }}
-        getLabel={getStatLabel}
-        optionsList={R.values(statId)}
-        {...{ value, onSelect }}
-      />
-    </Grid>
-  </Grid>
-)
-
 const MapLegendNodeToggle = ({
   nodeType,
   typeObj,
@@ -651,6 +716,7 @@ const LegendCard = ({
   const dispatch = useDispatch()
   const displayedGeometry = useSelector(selectEnabledGeometry)
   const geometryRange = useSelector(selectGeometryRange)
+  const geometryRangesByType = useSelector(selectNodeRangeAtZoom)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
 
@@ -685,11 +751,6 @@ const LegendCard = ({
   const groupCalcByColor =
     displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
-  const geometryRangesByType = R.propOr(
-    {},
-    'range',
-    useSelector(selectNodeClustersAtZoom)
-  )
   const { color: colorDomain, size: sizeDomain } = R.propOr(
     {},
     geometryType,

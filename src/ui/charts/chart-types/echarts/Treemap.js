@@ -4,21 +4,27 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { renameKeys } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({ data, theme, subGrouped }) => {
-  const yData = R.pluck('y')(data)
-  let yKeys = R.pipe(R.mergeAll, R.keys)(yData)
-  const allKeys = R.pluck('x')(data).concat(yKeys)
+const Treemap = ({ data, theme }) => {
+  const xLabels = R.pluck('name', data)
+
+  const yValues = R.has('children', R.head(data))
+    ? R.pluck('children', data)
+    : R.pluck('value', data)
+
+  const subGroupLabels = R.pipe(
+    R.map(R.pluck('name')),
+    R.map(R.filter(R.isNotNil)),
+    R.reduce(R.concat, []),
+    R.uniq
+  )(yValues)
 
   const assignColors = () => {
     let availableColors =
       theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
-    // availableColors = R.without(['#4992ff'], availableColors)
 
-    // TODO: Random colors must be dropped in 1.4.0
     const assignments = R.pipe(
       R.map((val) => {
         let randomChoice =
@@ -27,33 +33,27 @@ const Treemap = ({ data, theme, subGrouped }) => {
         return [val, randomChoice]
       }),
       R.fromPairs
-    )(allKeys)
+    )(R.concat(xLabels, subGroupLabels))
     return assignments
   }
 
-  let assignments = assignColors()
+  const assignments = assignColors()
 
-  let normalData = R.map((obj) =>
-    R.pipe(
-      renameKeys({ x: 'name', y: 'value' }),
-      R.assocPath(['itemStyle', 'color'], assignments[obj.name])
-    )(obj)
-  )(data)
-
-  const createDatum = (obj = {}) => {
-    let keys = R.keys(obj.y)
-    return {
-      name: obj.x,
-      visualMap: false,
-      itemStyle: { color: assignments[obj.x] },
-      children: R.map((key) => ({
-        value: Math.abs(obj.y[key]),
-        name: key,
-        // itemStyle: { color: assignments[key] },
-        // visualMap: false,
-      }))(keys),
-    }
-  }
+  const normalData = R.isEmpty(subGroupLabels)
+    ? R.map((obj) =>
+        R.pipe(R.assocPath(['itemStyle', 'color'], assignments[obj.name]))(obj)
+      )(data)
+    : R.map((d) => ({
+        name: d.name,
+        itemStyle: { color: assignments[d.name] },
+        visualMap: false,
+        children: R.map((child) => ({
+          value: child.value,
+          name: child.name,
+          itemStyle: { color: assignments[child.name] },
+          visualMap: false,
+        }))(d.children),
+      }))(data)
 
   const options = {
     // visualMap: subGrouped
@@ -92,7 +92,7 @@ const Treemap = ({ data, theme, subGrouped }) => {
       leafDepth: 2,
       roam: false,
       colorAlpha: [0.8, 1],
-      data: subGrouped ? R.map(createDatum, data) : normalData,
+      data: normalData,
       // data: exampleNestedData,
       levels: [
         {

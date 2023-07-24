@@ -109,6 +109,14 @@ export const getCount = (arr) => {
   return R.length(forceArray(arr))
 }
 
+export const getAnd = (arr) => {
+  return R.reduce(R.and, true)(forceArray(arr))
+}
+
+export const getOr = (arr) => {
+  return R.reduce(R.or, false)(forceArray(arr))
+}
+
 // Map an `statId` to its related function
 export const getStatFn = {
   [statId.COUNT]: getCount,
@@ -118,6 +126,8 @@ export const getStatFn = {
   [statId.MIN]: getMin,
   [statId.MODE]: getMode,
   [statId.SUM]: getSum,
+  [statId.AND]: getAnd,
+  [statId.OR]: getOr,
   // [statId.STD_DEV]: getStdDev,
 }
 
@@ -129,5 +139,7 @@ export const getStatLabel = R.cond([
   [R.equals(statId.MIN), R.always('Minimum')],
   [R.equals(statId.MODE), R.always('Mode')],
   [R.equals(statId.SUM), R.always('Sum')],
+  [R.equals(statId.AND), R.always('All <AND>')], // \u2227
+  [R.equals(statId.OR), R.always('Any <OR>')], // \u2228
   [R.T, R.always(null)],
 ])

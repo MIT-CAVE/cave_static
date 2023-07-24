@@ -24,7 +24,7 @@ import {
   pitchSliderToggle,
   pitchUpdate,
   viewportUpdate,
-  setZoom,
+  changeZoom,
   toggleMapLegend,
   openMapModal,
 } from '../../../data/local/mapSlice'
@@ -36,7 +36,6 @@ import {
   selectPitchSliderToggle,
   selectBearing,
   selectPitch,
-  selectZoom,
   selectTime,
   selectTimeUnits,
   selectTimeLength,
@@ -213,7 +212,6 @@ const MapControls = () => {
 
   const bearing = useSelector(selectBearing)
   const pitch = useSelector(selectPitch)
-  const zoom = useSelector(selectZoom)
   const defaultViewport = useSelector(selectDefaultViewport)
   const optionalViewports = useSelector(selectOptionalViewports)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
@@ -286,13 +284,13 @@ const MapControls = () => {
             </TooltipButton>
             <TooltipButton
               title={tooltipTitles.zoomIn}
-              onClick={() => dispatch(setZoom({ appBarId, value: zoom + 0.5 }))}
+              onClick={() => dispatch(changeZoom({ appBarId, value: 0.5 }))}
             >
               <MdAdd />
             </TooltipButton>
             <TooltipButton
               title={tooltipTitles.zoomOut}
-              onClick={() => dispatch(setZoom({ appBarId, value: zoom - 0.5 }))}
+              onClick={() => dispatch(changeZoom({ appBarId, value: -0.5 }))}
             >
               <MdRemove />
             </TooltipButton>

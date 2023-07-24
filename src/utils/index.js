@@ -183,6 +183,80 @@ export const calculateStatSingleGroup = (statistics) => {
     )(groupBy)
 }
 
+export const calculateStatAnyDepth = (statistics) => {
+  const parser = new Parser()
+  const calculate = (group, calculation) => {
+    // define groupSum for each base level group
+    const preSummed = {}
+    parser.functions.groupSum = (statName) => {
+      // groupSum only works for non-derived stats
+      // dont recalculate sum for each stat
+      if (R.isNil(R.prop(statName, preSummed))) {
+        preSummed[statName] = R.sum(R.map(R.path(['values', statName]), group))
+      }
+      return R.prop(statName, preSummed)
+    }
+    return group.map((obj) => {
+      try {
+        return parser.parse(calculation).evaluate(
+          // evaluate each list item
+          R.prop('values', obj)
+        )
+      } catch {
+        // if calculation is malformed return simplified array
+        return parseArray(
+          parser
+            .parse(calculation)
+            .simplify(
+              // evaluate each list item
+              R.prop('values', obj)
+            )
+            .toString()
+        )
+      }
+    })
+  }
+
+  const group = (groupBys, calculation, statistics) =>
+    R.pipe(
+      R.groupBy(R.head(groupBys)),
+      R.length(groupBys) === 1
+        ? R.map((group) => calculate(group, calculation))
+        : R.map((stats) => group(R.tail(groupBys), calculation, stats))
+    )(statistics)
+
+  const groupHelper = (groupBys, calculation) =>
+    group(groupBys, calculation, statistics)
+
+  return groupHelper
+}
+
+export const recursiveMap = R.curry(
+  (endPredicate, endCallback, stepCallback, mappable) =>
+    endPredicate(mappable)
+      ? endCallback(mappable)
+      : R.map(
+          (val) => recursiveMap(endPredicate, endCallback, stepCallback, val),
+          stepCallback(mappable)
+        )
+)
+
+export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
+  const cache = new Map()
+  const checkCache = (val) => {
+    const key = keyFunc(val)
+    if (!cache.has(key)) {
+      cache.set(key, resultFunc(val))
+      if (cache.size > maxCache) {
+        const remove = cache.keys().next().value
+        cache.delete(remove)
+      }
+    }
+    return cache.get(key)
+  }
+  return checkCache
+}
+
 export const calculateStatSubGroup = (statistics) => {
   const parser = new Parser()
 
@@ -609,3 +683,21 @@ export const capitalize = R.when(
   R.isNotNil,
   R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])
 )
+
+export const customSortByX = R.curry((ordering, data) => {
+  // Sort by the predefined `ordering` list
+  const sortByPredef = R.sortBy(
+    R.pipe(R.prop('name'), R.indexOf(R.__, ordering))
+  )
+  // Sort by alphabetical order (ascending)
+  const sortByAlpha = R.sortBy(R.prop('name'))
+  // Separate the items that appear in `ordering` from the rest
+  const sublists = R.partition(
+    R.pipe(R.prop('name'), R.includes(R.__, ordering))
+  )(data)
+
+  return R.converge(R.concat, [
+    R.pipe(R.head, sortByPredef),
+    R.pipe(R.last, sortByAlpha),
+  ])(sublists)
+})

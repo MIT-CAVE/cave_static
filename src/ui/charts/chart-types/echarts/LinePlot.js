@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 
 import EchartsPlot from './BaseChart'
 
@@ -8,20 +7,12 @@ import EchartsPlot from './BaseChart'
  * @todo Implement this component.
  * @todo Write the documentation by following JSDoc 3.
  */
-const LinePlot = ({
-  data,
-  xAxisTitle,
-  yAxisTitle,
-  numberFormat,
-  subGrouped,
-  theme,
-}) => {
+const LinePlot = ({ data, xAxisTitle, yAxisTitle, numberFormat, theme }) => {
   return (
     <EchartsPlot
-      xData={R.pluck('x')(data)}
-      yData={R.pluck('y')(data)}
+      data={data}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, subGrouped }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat }}
     />
   )
 }
