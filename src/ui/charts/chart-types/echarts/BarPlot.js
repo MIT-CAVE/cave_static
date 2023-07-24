@@ -8,13 +8,14 @@ const BarPlot = ({
   yAxisTitle,
   numberFormat,
   theme,
+  colors,
   stack = false,
 }) => {
   return (
     <EchartsPlot
       data={data}
       chartType="bar"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack }}
+      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack, colors }}
     />
   )
 }

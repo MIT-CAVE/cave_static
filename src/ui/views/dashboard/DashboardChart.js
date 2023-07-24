@@ -28,7 +28,12 @@ import {
   BubblePlot,
 } from '../../charts'
 
-import { getLabelFn, getSubLabelFn, forcePath } from '../../../utils'
+import {
+  getLabelFn,
+  getSubLabelFn,
+  forcePath,
+  getColoringFn,
+} from '../../../utils'
 
 const DashboardChart = ({ obj }) => {
   const themeId = useSelector(selectTheme)
@@ -49,6 +54,16 @@ const DashboardChart = ({ obj }) => {
   const actualStat = R.has(R.prop('chart', obj), chartStatUses)
     ? pathedVar
     : obj.statistic
+
+  //TODO: Generalize this for n-level grouping
+  const colors = subGrouped
+    ? obj.chart === chartType.SUNBURST
+      ? R.mergeLeft(
+          getColoringFn(categories, obj.category2, obj.level2),
+          getColoringFn(categories, obj.category, obj.level)
+        )
+      : getColoringFn(categories, obj.category2, obj.level2)
+    : getColoringFn(categories, obj.category, obj.level)
 
   const xAxisTitle = obj.category
     ? `${getLabelFn(categories)(obj.category)}${
@@ -102,6 +117,7 @@ const DashboardChart = ({ obj }) => {
     R.when(R.always(R.has('level')(obj)), R.prepend('string')),
     R.when(R.always(R.has('level2')(obj)), R.prepend('string'))
   )([])
+
   // For simplicity, `numberFormatDefault` is used to apply number
   // formatting to all values in a chart, as some statistics may
   // be the result of combining different number formats. Although
@@ -129,6 +145,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.BAR ? (
@@ -136,6 +153,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.STACKED_BAR ? (
@@ -144,6 +162,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.STACKED_WATERFALL ? (
@@ -151,6 +170,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.LINE ? (
@@ -158,6 +178,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.WATERFALL ? (
@@ -165,6 +186,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.CUMULATIVE_LINE ? (
@@ -172,6 +194,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.SUNBURST ? (
@@ -179,18 +202,21 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
         />
       ) : obj.chart === chartType.TREEMAP ? (
         <Treemap
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
         />
       ) : obj.chart === chartType.GAUGE ? (
         <GaugeChart
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.HEATMAP ? (
@@ -206,6 +232,7 @@ const DashboardChart = ({ obj }) => {
           numberFormat={commonFormat}
           theme={themeId}
           area={true}
+          colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.STACKED_AREA ? (
@@ -213,6 +240,7 @@ const DashboardChart = ({ obj }) => {
           data={formattedData}
           numberFormat={commonFormat}
           theme={themeId}
+          colors={colors}
           area={true}
           stack="x"
           {...labels}
@@ -223,6 +251,7 @@ const DashboardChart = ({ obj }) => {
           numberFormat={commonFormat}
           theme={themeId}
           labels={tableLabels}
+          colors={colors}
         />
       ) : obj.chart === chartType.BUBBLE ? (
         <BubblePlot
@@ -230,6 +259,7 @@ const DashboardChart = ({ obj }) => {
           numberFormat={commonFormat}
           theme={themeId}
           labels={tableLabels}
+          colors={colors}
         />
       ) : (
         <></>

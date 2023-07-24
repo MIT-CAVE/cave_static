@@ -107,6 +107,10 @@ export const getSubLabelFn = R.curry((data, item, subItem) =>
   R.pathOr(subItem, [item, 'nestedStructure', subItem, 'name'])(data)
 )
 
+export const getColoringFn = R.curry((data, item, subItem) =>
+  R.pathOr({}, [item, 'nestedStructure', subItem, 'coloring'])(data)
+)
+
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
   if (!namesSet.has(name)) return name
