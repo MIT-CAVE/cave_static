@@ -319,11 +319,7 @@ const GetNodeIconLayer = () => {
       },
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const value = R.pipe(
-          timePath(['props', colorProp, 'value']),
-          R.defaultTo(''),
-          R.toString
-        )(d[1])
+        const value = timePath(['props', colorProp, 'value'])(d[1])
         const statRange = nodeRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', statRange)
         const colorRange = isCategorical
