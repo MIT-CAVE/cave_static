@@ -156,7 +156,7 @@ const Map = ({ mapboxToken }) => {
     [getFeatureFromEvent]
   )
 
-  const newOnClick = useCallback(
+  const onClick = useCallback(
     (e) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) return
@@ -177,6 +177,20 @@ const Map = ({ mapboxToken }) => {
     [appBarId, dispatch, getFeatureFromEvent]
   )
 
+  console.log(mapStyle)
+  const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
+  useEffect(() => {
+    // This needs to be done because calling setStyle with the same style
+    // breaks it for some reason
+    const newStyle = R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
+      mapStyleOptions
+    )
+    if (JSON.stringify(newStyle) !== JSON.stringify(mapStyleSpec)) {
+      setMapStyleSpec(
+        R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(mapStyleOptions)
+      )
+    }
+  }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
   return (
     <Fragment>
       <MapControls />
@@ -189,13 +203,11 @@ const Map = ({ mapboxToken }) => {
         container="map"
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
-        mapStyle={R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
-          mapStyleOptions
-        )}
+        mapStyle={mapStyleSpec}
         mapboxAccessToken={mapboxToken}
         projection={mapProjection}
         fog={GLOBE_FOG_CONFIG}
-        onClick={newOnClick}
+        onClick={onClick}
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
         ref={mapRef}
