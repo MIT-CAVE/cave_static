@@ -55,7 +55,7 @@ const Map = ({ mapboxToken }) => {
     const iconsToLoad = [
       ...new Set(
         R.pipe(
-          R.propOr([], false),
+          R.propOr([], true),
           R.map((node) => node[1].icon),
           R.append('MdDownloading'),
           R.without(R.keys(iconData))
@@ -92,7 +92,7 @@ const Map = ({ mapboxToken }) => {
 
   const getFeatureFromEvent = useCallback(
     (e) => {
-      const nodeIds = R.propOr([], false)(nodeDataSplit).map(([id]) => id)
+      const nodeIds = R.propOr([], true)(nodeDataSplit).map(([id]) => id)
       const arcIds = arcData.map(([id]) => id)
       const geoArcIds = R.values(
         R.mapObjIndexed((geo) => geo.data_key)(lineMatchingKeys)
@@ -117,7 +117,7 @@ const Map = ({ mapboxToken }) => {
         feature = 'nodes'
         id = clickedNodes[0].layer.id
         obj = R.head(
-          R.propOr([], false)(nodeDataSplit).filter(([nodeId]) => id === nodeId)
+          R.propOr([], true)(nodeDataSplit).filter(([nodeId]) => id === nodeId)
         )[1]
       } else if (clickedArcs.length > 0) {
         feature = 'arcs'
@@ -216,7 +216,7 @@ const Map = ({ mapboxToken }) => {
         cursor={cursor}
         interactiveLayerIds={[
           'data',
-          ...R.propOr([], false)(nodeDataSplit).map(([id]) => id),
+          ...R.propOr([], true)(nodeDataSplit).map(([id]) => id),
           ...arcData.map(([id]) => id),
           ...R.pipe(
             R.mergeLeft(lineMatchingKeys),

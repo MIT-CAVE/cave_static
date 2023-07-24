@@ -299,7 +299,7 @@ export const Nodes = ({ highlightLayerId }) => {
 
   return Children.toArray(
     R.pipe(
-      R.propOr([], false),
+      R.propOr([], true),
       R.mapObjIndexed((obj) => {
         const [id, node] = obj
 
