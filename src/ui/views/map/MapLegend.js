@@ -164,10 +164,11 @@ const getMinMaxLabel = (
   timeProp,
   valProp,
   typeObj,
+  group,
   end,
   labelEnd
 ) => {
-  return R.pathOr(
+  const getNumLabel = () =>
     R.path(['props', valProp, 'legendOverride', 'useScientificFormat'])(
       typeObj
     ) ?? true
@@ -183,17 +184,39 @@ const getMinMaxLabel = (
             R.path(['props', valProp, 'numberFormat']),
             R.dissoc('unit')
           )(typeObj)
-        ),
-    ['props', valProp, 'legendOverride', labelEnd]
-  )(typeObj)
+        )
+  return group
+    ? getNumLabel(typeObj)
+    : R.pathOr(getNumLabel(typeObj), [
+        'props',
+        valProp,
+        'legendOverride',
+        labelEnd,
+      ])(typeObj)
 }
 
-const getMinLabel = (valRange, timeProp, valProp, typeObj) => {
-  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'min', 'minLabel')
+const getMinLabel = (valRange, timeProp, valProp, typeObj, group) => {
+  return getMinMaxLabel(
+    valRange,
+    timeProp,
+    valProp,
+    typeObj,
+    group,
+    'min',
+    'minLabel'
+  )
 }
 
-const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
-  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max', 'maxLabel')
+const getMaxLabel = (valRange, timeProp, valProp, typeObj, group) => {
+  return getMinMaxLabel(
+    valRange,
+    timeProp,
+    valProp,
+    typeObj,
+    group,
+    'max',
+    'maxLabel'
+  )
 }
 
 const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
@@ -358,7 +381,7 @@ const MapLegendSizeBySection = ({
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
           <OverflowText
-            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
+            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
           />
         </Grid>
         <Grid item sx={{ pr: 0.75 }}>
@@ -379,7 +402,7 @@ const MapLegendSizeBySection = ({
         </Grid>
         <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
           <OverflowText
-            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
+            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
           />
         </Grid>
       </Grid>
@@ -471,8 +494,20 @@ const MapLegendColorBySection = ({
               ['endGradientColor', themeType],
               colorRange
             )}
-            maxLabel={getMaxLabel(valueRange, timeProp, colorProp, typeObj)}
-            minLabel={getMinLabel(valueRange, timeProp, colorProp, typeObj)}
+            maxLabel={getMaxLabel(
+              valueRange,
+              timeProp,
+              colorProp,
+              typeObj,
+              group
+            )}
+            minLabel={getMinLabel(
+              valueRange,
+              timeProp,
+              colorProp,
+              typeObj,
+              group
+            )}
           />
         )}
       </Grid>
