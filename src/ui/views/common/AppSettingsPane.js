@@ -15,9 +15,15 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
-import { themeSelection, toggleTouch } from '../../../data/local/settingsSlice'
+import {
+  themeSelection,
+  toggleTouch,
+  toggleMirror,
+} from '../../../data/local/settingsSlice'
 import {
   selectData,
+  selectMirrorMode,
+  selectPaneState,
   selectSync,
   selectSyncToggles,
   selectTheme,
@@ -26,6 +32,8 @@ import {
 import { themeId } from '../../../utils/enums'
 
 import { InfoButton, OverflowText } from '../../compound'
+
+import { includesPath } from '../../../utils'
 
 const styles = {
   paperRoot: {
@@ -123,6 +131,46 @@ const TouchSwitch = ({ ...props }) => {
   )
 }
 
+const MirrorSwitch = ({ ...props }) => {
+  const mirrorMode = useSelector(selectMirrorMode)
+  const paneState = useSelector(selectPaneState)
+  const sync = useSelector(selectSync)
+  const dispatch = useDispatch()
+  return (
+    <FormControl component="fieldset">
+      <FormGroup aria-label="position" row>
+        <FormControlLabel
+          value="start"
+          control={
+            <Switch
+              checked={mirrorMode}
+              onClick={() => {
+                dispatch(toggleMirror())
+                dispatch(
+                  mutateLocal({
+                    path: ['appBar', 'paneState'],
+                    value: {
+                      left: R.propOr({}, 'right', paneState),
+                      right: R.propOr({}, 'left', paneState),
+                    },
+                    sync: !includesPath(R.values(sync), [
+                      'appBar',
+                      'paneState',
+                    ]),
+                  })
+                )
+              }}
+              {...props}
+            />
+          }
+          label={`Mirror mode`}
+          labelPlacement="start"
+        />
+      </FormGroup>
+    </FormControl>
+  )
+}
+
 const SyncSwitch = ({ checked, label, onClick, ...props }) => (
   <Grid container spacing={0} alignItems="center" {...props}>
     <Grid item xs={2}>
@@ -152,6 +200,9 @@ const AppSettingsPane = ({ ...props }) => {
       </FieldContainer>
       <FieldContainer title="Touch">
         <TouchSwitch />
+      </FieldContainer>
+      <FieldContainer title="Mirror">
+        <MirrorSwitch />
       </FieldContainer>
       {R.isEmpty(syncToggles) ? (
         []

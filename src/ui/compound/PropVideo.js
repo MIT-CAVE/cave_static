@@ -24,7 +24,7 @@ const PropVideo = ({ prop, sx = [], ...props }) => (
       title="Embedded Video"
       src={prop.value}
       style={styles.video}
-      frameborder="0"
+      frameBorder="0"
       allow="autoplay; fullscreen; picture-in-picture"
       allowFullScreen
     ></iframe>

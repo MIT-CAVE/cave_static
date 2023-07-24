@@ -1,17 +1,15 @@
 import * as R from 'ramda'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import { renderPropsLayout } from './renderLayout'
 
 import { sendCommand } from '../../../data/data'
-import { selectOpenPane, selectOpenPanesData } from '../../../data/selectors'
 import { layoutType } from '../../../utils/enums'
 
-const OptionsPane = () => {
-  const open = useSelector(selectOpenPane)
+const OptionsPane = ({ open, pane }) => {
   const dispatch = useDispatch()
 
-  const { layout, props: items } = useSelector(selectOpenPanesData)
+  const { layout, props: items } = pane
   // The root elements of an options pane should be arranged in a single
   // column by default, unless explicitly set otherwise by the API designers
   const optsPaneLayout = R.pipe(
