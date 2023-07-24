@@ -6,7 +6,7 @@ import { MdDownloading } from 'react-icons/md'
 import ReactMapGL from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { getDefaultStyleId } from '.'
+import { getDefaultFog, getDefaultStyleId } from '.'
 import ErrorPad from './ErrorPad'
 import KeyPad from './KeyPad'
 import { Geos, Arcs, Nodes } from './layers'
@@ -28,7 +28,7 @@ import {
   selectCurrentMapProjection,
   selectLineMatchingKeys,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH, GLOBE_FOG_CONFIG } from '../../../utils/constants'
+import { APP_BAR_WIDTH } from '../../../utils/constants'
 
 import { fetchIcon } from '../../../utils'
 
@@ -177,7 +177,6 @@ const Map = ({ mapboxToken }) => {
     [appBarId, dispatch, getFeatureFromEvent]
   )
 
-  console.log(mapStyle)
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   useEffect(() => {
     // This needs to be done because calling setStyle with the same style
@@ -206,7 +205,10 @@ const Map = ({ mapboxToken }) => {
         mapStyle={mapStyleSpec}
         mapboxAccessToken={mapboxToken}
         projection={mapProjection}
-        fog={GLOBE_FOG_CONFIG}
+        fog={R.pathOr(getDefaultFog(theme), [
+          mapStyle || getDefaultStyleId(theme),
+          'fog',
+        ])(mapStyleOptions)}
         onClick={onClick}
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
