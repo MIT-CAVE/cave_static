@@ -36,12 +36,11 @@ import {
   selectPitchSliderToggle,
   selectAppBarId,
   selectResolveTime,
-  selectNodeClustersAtZoom,
+  selectNodeRangeAtZoom,
   selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { propId, statId, statFns } from '../../../utils/enums'
-
 import { getStatLabel } from '../../../utils/stats'
 
 import {
