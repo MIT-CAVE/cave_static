@@ -459,10 +459,17 @@ export const selectCurrentMapProjection = createSelector(
   (data) => R.prop('currentProjection')(data)
 )
 export const selectMapStyleOptions = createSelector(
-  selectSettingsData,
-  (data) => ({
+  [selectSettingsData, selectMapboxToken],
+  (data, token) => ({
     ...DEFAULT_MAP_STYLES,
-    ...R.propOr([], 'additionalMapStyles')(data),
+    ...R.pipe(
+      R.propOr([], 'additionalMapStyles'),
+      R.filter(
+        (style) =>
+          token !== '' ||
+          R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
+      )
+    )(data),
   })
 )
 export const selectPitchSliderToggle = createSelector(

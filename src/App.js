@@ -99,10 +99,7 @@ const App = () => {
     useSelector(selectOpenPanesData)
   )
   const renderAppPage = R.cond([
-    [
-      R.equals(viewId.MAP),
-      R.always(mapboxToken ? <Map {...{ mapboxToken }} /> : null),
-    ],
+    [R.equals(viewId.MAP), R.always(<Map {...{ mapboxToken }} />)],
     [R.equals(viewId.DASHBOARD), R.always(<Dashboard />)],
     [R.equals(viewId.KPI), R.always(<Kpi />)],
     [R.T, null],

@@ -3,7 +3,8 @@ import * as R from 'ramda'
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
-import ReactMapGL from 'react-map-gl'
+import ReactMapboxGL from 'react-map-gl'
+import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { getDefaultFog, getDefaultStyleId } from '.'
@@ -48,6 +49,9 @@ const Map = ({ mapboxToken }) => {
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
+
+  const useMapbox = mapboxToken !== ''
+  const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef({})
 
@@ -192,7 +196,7 @@ const Map = ({ mapboxToken }) => {
   }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
   return (
     <Fragment>
-      <MapControls />
+      <MapControls allowProjections={useMapbox} />
       <ReactMapGL
         {...viewport}
         onMove={(e) => {
@@ -203,7 +207,7 @@ const Map = ({ mapboxToken }) => {
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
         mapStyle={mapStyleSpec}
-        mapboxAccessToken={mapboxToken}
+        mapboxAccessToken={useMapbox && mapboxToken}
         projection={mapProjection}
         fog={R.pathOr(getDefaultFog(theme), [
           mapStyle || getDefaultStyleId(theme),

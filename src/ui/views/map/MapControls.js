@@ -208,7 +208,7 @@ TooltipButton.propTypes = {
   children: PropTypes.node,
 }
 
-const MapControls = () => {
+const MapControls = ({ allowProjections }) => {
   const [hover, setHover] = useState(false)
   const [animation, setAnimation] = useState(false)
   const activeAnimation = useRef()
@@ -403,46 +403,48 @@ const MapControls = () => {
           </ButtonGroup>
 
           {/* Projection */}
-          <ButtonGroup sx={styles.btnGroup} variant="contained">
-            <TooltipButton
-              title={tooltipTitles.globeProjection}
-              placement="top"
-              onClick={() =>
-                dispatch(
-                  sendCommand({
-                    command: 'mutate_session',
-                    data: {
-                      data_name: 'maps',
-                      data_path: ['data', appBarId, 'currentProjection'],
-                      data_value: 'globe',
-                      mutation_type: 'mutate',
-                    },
-                  })
-                )
-              }
-            >
-              <FetchedIcon iconName="BsGlobe2" />
-            </TooltipButton>
-            <TooltipButton
-              title={tooltipTitles.mercatorProjection}
-              placement="top"
-              onClick={() => {
-                dispatch(
-                  sendCommand({
-                    command: 'mutate_session',
-                    data: {
-                      data_name: 'maps',
-                      data_path: ['data', appBarId, 'currentProjection'],
-                      data_value: 'mercator',
-                      mutation_type: 'mutate',
-                    },
-                  })
-                )
-              }}
-            >
-              <FetchedIcon iconName="BsMap" />
-            </TooltipButton>
-          </ButtonGroup>
+          {allowProjections && (
+            <ButtonGroup sx={styles.btnGroup} variant="contained">
+              <TooltipButton
+                title={tooltipTitles.globeProjection}
+                placement="top"
+                onClick={() =>
+                  dispatch(
+                    sendCommand({
+                      command: 'mutate_session',
+                      data: {
+                        data_name: 'maps',
+                        data_path: ['data', appBarId, 'currentProjection'],
+                        data_value: 'globe',
+                        mutation_type: 'mutate',
+                      },
+                    })
+                  )
+                }
+              >
+                <FetchedIcon iconName="BsGlobe2" />
+              </TooltipButton>
+              <TooltipButton
+                title={tooltipTitles.mercatorProjection}
+                placement="top"
+                onClick={() => {
+                  dispatch(
+                    sendCommand({
+                      command: 'mutate_session',
+                      data: {
+                        data_name: 'maps',
+                        data_path: ['data', appBarId, 'currentProjection'],
+                        data_value: 'mercator',
+                        mutation_type: 'mutate',
+                      },
+                    })
+                  )
+                }}
+              >
+                <FetchedIcon iconName="BsMap" />
+              </TooltipButton>
+            </ButtonGroup>
+          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
