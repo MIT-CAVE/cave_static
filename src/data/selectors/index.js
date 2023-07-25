@@ -934,10 +934,7 @@ export const selectNodeClusters = createSelector(
       minZoom: Math.floor(MIN_ZOOM),
       maxZoom: Math.floor(MAX_ZOOM),
       radius: 50 * Math.sqrt(2),
-      // NOTE: Using shallow cloning is sufficient, assuming
-      // that all `data` properties are enumerable and don't
-      // contain any references to another object.
-      deepClone: false,
+      deepClone: true,
       map: (d) => {
         const colorProp = getVarByProp('colorBy', d)
         const sizeProp = getVarByProp('sizeBy', d)
