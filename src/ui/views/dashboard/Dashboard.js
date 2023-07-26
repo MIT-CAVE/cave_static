@@ -4,7 +4,7 @@ import { useState, lazy, Suspense } from 'react'
 import { MdAddCircle } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import DashboardHeader from './DashbaordHeaderWrapper'
+import DashboardHeader from './DashboardHeaderWrapper'
 import DashboardKpi from './DashboardKpi'
 
 import { mutateLocal } from '../../../data/local'
