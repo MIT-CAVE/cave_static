@@ -620,7 +620,9 @@ export const checkValidRange = R.pipe(
   R.mapObjIndexed((value, key) =>
     key === 'min' || key === 'max'
       ? R.is(Number, value)
-      : key === 'startGradientColor' || key === 'endGradientColor'
+      : key === 'startGradientColor' ||
+        key === 'endGradientColor' ||
+        key === 'timeValues'
       ? R.is(Object, value)
       : R.is(String, value)
   ),
@@ -628,10 +630,15 @@ export const checkValidRange = R.pipe(
   R.all(R.identity)
 )
 
-export const getTimeValue = (timeIndex) =>
-  R.when(
-    R.prop('timeObject'), // check that this is time object
-    R.path(['value', timeIndex])
+export const getTimeValue = (timeIndex, object) =>
+  recursiveMap(
+    (d) => R.type(d) !== 'Object',
+    R.identity,
+    (d) =>
+      R.has('timeValues', d)
+        ? R.mergeRight(d, R.pathOr({}, ['timeValues', timeIndex], d))
+        : d,
+    object
   )
 
 export const serializeNumLabel = (numLabel, precision) =>

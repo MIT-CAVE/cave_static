@@ -29,7 +29,6 @@ import {
   selectGeoColorRange,
   selectNodeRange,
   selectArcRange,
-  selectTimeProp,
   selectLegendData,
   selectLocalizedArcTypes,
   selectLocalizedNodeTypes,
@@ -37,8 +36,9 @@ import {
   selectSync,
   selectPitchSliderToggle,
   selectAppBarId,
-  selectResolveTime,
   selectNodeRangeAtZoom,
+  selectArcTypeKeys,
+  selectNodeTypeKeys,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
@@ -162,27 +162,19 @@ const addExtraProps = (Component, extraProps) => {
   return <ComponentType {...Component.props} {...extraProps} />
 }
 
-const getMinMaxLabel = (
-  valRange,
-  timeProp,
-  valProp,
-  typeObj,
-  group,
-  end,
-  labelEnd
-) => {
+const getMinMaxLabel = (valRange, valProp, typeObj, group, end, labelEnd) => {
   const getNumLabel = () =>
     R.path(['props', valProp, 'legendOverride', 'useScientificFormat'])(
       typeObj
     ) ?? true
       ? serializeNumLabel(
-          timeProp(end, valRange),
+          R.prop(end, valRange),
           R.path(['props', valProp, 'legendOverride', 'scientificPrecision'])(
             typeObj
           )
         )
       : formatNumber(
-          timeProp(end, valRange),
+          R.prop(end, valRange),
           R.pipe(
             R.path(['props', valProp, 'numberFormat']),
             R.dissoc('unit')
@@ -198,28 +190,12 @@ const getMinMaxLabel = (
       ])(typeObj)
 }
 
-const getMinLabel = (valRange, timeProp, valProp, typeObj, group) => {
-  return getMinMaxLabel(
-    valRange,
-    timeProp,
-    valProp,
-    typeObj,
-    group,
-    'min',
-    'minLabel'
-  )
+const getMinLabel = (valRange, valProp, typeObj, group) => {
+  return getMinMaxLabel(valRange, valProp, typeObj, group, 'min', 'minLabel')
 }
 
-const getMaxLabel = (valRange, timeProp, valProp, typeObj, group) => {
-  return getMinMaxLabel(
-    valRange,
-    timeProp,
-    valProp,
-    typeObj,
-    group,
-    'max',
-    'maxLabel'
-  )
+const getMaxLabel = (valRange, valProp, typeObj, group) => {
+  return getMinMaxLabel(valRange, valProp, typeObj, group, 'max', 'maxLabel')
 }
 
 const CategoricalItems = ({
@@ -379,7 +355,6 @@ const MapLegendSizeBySection = ({
   geometryType,
 }) => {
   const dispatch = useDispatch()
-  const timeProp = useSelector(selectTimeProp)
   const sync = useSelector(selectSync)
 
   const syncSize = !includesPath(R.values(sync), syncPath)
@@ -430,7 +405,7 @@ const MapLegendSizeBySection = ({
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
           <OverflowText
-            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
+            text={getMinLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
           />
         </Grid>
         <Tooltip
@@ -480,7 +455,7 @@ const MapLegendSizeBySection = ({
         </Tooltip>
         <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
           <OverflowText
-            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
+            text={getMaxLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
           />
         </Grid>
       </Grid>
@@ -512,7 +487,6 @@ const MapLegendColorBySection = ({
   geometryType,
 }) => {
   const dispatch = useDispatch()
-  const timeProp = useSelector(selectTimeProp)
   const sync = useSelector(selectSync)
   const themeType = useSelector(selectTheme)
 
@@ -520,7 +494,6 @@ const MapLegendColorBySection = ({
   const isCategorical = !R.has('min', colorRange)
 
   const unit = R.path(['props', colorProp, 'numberFormat', 'unit'])(typeObj)
-
   return (
     <>
       {/* First row: Prop selector + unit label */}
@@ -580,14 +553,14 @@ const MapLegendColorBySection = ({
             )}
             maxLabel={getMaxLabel(
               valueRange,
-              timeProp,
+              R.prop,
               colorProp,
               typeObj,
               group
             )}
             minLabel={getMinLabel(
               valueRange,
-              timeProp,
+              R.prop,
               colorProp,
               typeObj,
               group
@@ -615,14 +588,14 @@ const MapLegendColorBySection = ({
   )
 }
 
-const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
+const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
   const dispatch = useDispatch()
-  const timeProp = useSelector(selectTimeProp)
   const themeType = useSelector(selectTheme)
   const geoColorRange = useSelector(selectGeoColorRange)
   const displayedGeos = useSelector(selectEnabledGeos)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
+  const typeObj = R.prop(geoType, useSelector(selectLocalizedGeoTypes))
 
   const colorRange = geoColorRange(geoType, colorProp)
   const isCategorical = !R.has('min', colorRange)
@@ -730,8 +703,8 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
                 ['endGradientColor', themeType],
                 colorRange
               )}
-              minLabel={getMinLabel(colorRange, timeProp, colorProp, typeObj)}
-              maxLabel={getMaxLabel(colorRange, timeProp, colorProp, typeObj)}
+              minLabel={getMinLabel(colorRange, R.prop, colorProp, typeObj)}
+              maxLabel={getMaxLabel(colorRange, R.prop, colorProp, typeObj)}
               colorPropPath={[
                 'geos',
                 'types',
@@ -749,11 +722,11 @@ const MapLegendGeoToggle = ({ geoType, typeObj, legendGroupId, colorProp }) => {
 
 const MapLegendNodeToggle = ({
   nodeType,
-  typeObj,
   legendGroupId,
   sizeProp,
   colorProp,
 }) => {
+  const typeObj = R.prop(nodeType, useSelector(selectLocalizedNodeTypes))
   return (
     <LegendCard
       geometryType={nodeType}
@@ -771,11 +744,11 @@ const MapLegendNodeToggle = ({
 
 const MapLegendArcToggle = ({
   arcType,
-  typeObj,
   legendGroupId,
   sizeProp,
   colorProp,
 }) => {
+  const typeObj = R.prop(arcType, useSelector(selectLocalizedArcTypes))
   const IconClass =
     typeObj.lineBy === 'dotted'
       ? AiOutlineEllipsis
@@ -1007,11 +980,8 @@ const LegendCard = ({
 }
 
 const MapLegendToggleList = ({ legendObj, ...props }) => {
-  const resolveTime = useSelector(selectResolveTime)
-
-  const nodeTypes = useSelector(selectLocalizedNodeTypes)
-  const arcTypes = useSelector(selectLocalizedArcTypes)
-  const geoTypes = useSelector(selectLocalizedGeoTypes)
+  const nodeTypes = useSelector(selectNodeTypeKeys)
+  const arcTypes = useSelector(selectArcTypeKeys)
 
   const getSortedGroups = (layerKey) =>
     customSort(R.propOr({}, layerKey)(legendObj))
@@ -1030,30 +1000,28 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
         </span>
       </summary>
       {R.map(({ id: nodeType, value, sizeBy, colorBy }) =>
-        R.has(nodeType, nodeTypes) ? (
+        R.includes(nodeType, nodeTypes) ? (
           <MapLegendNodeToggle
             key={nodeType}
             legendGroupId={legendObj.id}
             nodeType={nodeType}
             value={value}
-            sizeProp={resolveTime(sizeBy)}
-            colorProp={resolveTime(colorBy)}
-            typeObj={R.prop(nodeType)(nodeTypes)}
+            sizeProp={sizeBy}
+            colorProp={colorBy}
           />
         ) : (
           []
         )
       )(getSortedGroups('nodes'))}
       {R.map(({ id: arcType, value, sizeBy, colorBy }) =>
-        R.has(arcType, arcTypes) ? (
+        R.includes(arcType, arcTypes) ? (
           <MapLegendArcToggle
             key={arcType}
             legendGroupId={legendObj.id}
             arcType={arcType}
             value={value}
-            sizeProp={resolveTime(sizeBy)}
-            colorProp={resolveTime(colorBy)}
-            typeObj={R.prop(arcType)(arcTypes)}
+            sizeProp={sizeBy}
+            colorProp={colorBy}
           />
         ) : (
           []
@@ -1065,8 +1033,7 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
           legendGroupId={legendObj.id}
           geoType={geoType}
           value={value}
-          colorProp={resolveTime(colorBy)}
-          typeObj={R.prop(geoType)(geoTypes)}
+          colorProp={colorBy}
         />
       ))(getSortedGroups('geos'))}
     </details>

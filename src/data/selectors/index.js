@@ -83,7 +83,24 @@ export const selectMapboxToken = createSelector(selectTokens, (data) =>
 export const selectMessages = createSelector(selectUtilities, (data) =>
   R.prop('messages')(data)
 )
-
+// Local
+export const selectLocal = (state) => R.propOr({}, 'local')(state)
+// Local -> settings
+export const selectLocalSettings = createSelector(selectLocal, (data) =>
+  R.propOr({}, 'settings')(data)
+)
+export const selectTheme = createSelector(selectLocalSettings, (data) =>
+  R.prop('theme')(data)
+)
+export const selectTime = createSelector(selectLocalSettings, (data) =>
+  R.prop('time')(data)
+)
+export const selectSync = createSelector(selectLocalSettings, (data) =>
+  R.propOr(false, 'sync')(data)
+)
+export const selectTouchMode = createSelector(selectLocalSettings, (data) =>
+  R.propOr(false, 'touch', data)
+)
 // Data
 export const selectData = (state) => R.prop('data')(state)
 export const selectIgnoreData = createSelector(selectData, (data) =>
@@ -128,13 +145,16 @@ export const selectPanes = createSelector(selectData, (data) =>
 export const selectMap = createSelector(selectData, R.propOr({}, 'maps'))
 // Data -> Types
 export const selectNodeTypes = createSelector(
-  selectNodes,
-  R.propOr({}, 'types')
+  [selectNodes, selectTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'types', data))
 )
-export const selectArcTypes = createSelector(selectArcs, R.propOr({}, 'types'))
+export const selectArcTypes = createSelector(
+  [selectArcs, selectTime],
+  (arcs, time) => getTimeValue(time, R.propOr({}, 'types', arcs))
+)
 export const selectGeoTypes = createSelector(
-  selectGeos,
-  R.propOr({}, 'types'),
+  [selectGeos, selectTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'types', data)),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Data -> data
@@ -205,8 +225,6 @@ export const selectShowLoading = createSelector(
   [selectIgnoreLoading, selectSessionLoading, selectDataLoading],
   (ignore, session, data) => ignore || session || data
 )
-// Local
-export const selectLocal = (state) => R.propOr({}, 'local')(state)
 // Local -> panes
 export const selectLocalPanes = createSelector(selectLocal, (data) =>
   R.prop('panes')(data)
@@ -222,22 +240,7 @@ export const selectLocalDashboardData = createSelector(
   selectLocalDashboard,
   (data) => R.prop('data', data)
 )
-// Local -> settings
-export const selectLocalSettings = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'settings')(data)
-)
-export const selectTheme = createSelector(selectLocalSettings, (data) =>
-  R.prop('theme')(data)
-)
-export const selectTime = createSelector(selectLocalSettings, (data) =>
-  R.prop('time')(data)
-)
-export const selectSync = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'sync')(data)
-)
-export const selectTouchMode = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'touch', data)
-)
+
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>
   R.prop('appBar', data)
@@ -513,67 +516,80 @@ export const selectLocalGeos = createSelector(selectLocal, (data) =>
   R.prop('geos', data)
 )
 export const selectLocalizedNodeTypes = createSelector(
-  [selectNodeTypes, selectLocalNodes],
-  (nodeTypes, localNodes) => R.propOr(nodeTypes, 'types', localNodes)
+  [selectNodeTypes, selectLocalNodes, selectTime],
+  (nodeTypes, localNodes, time) =>
+    R.propOr(nodeTypes, 'types', getTimeValue(time, localNodes)),
+  {
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
 )
 export const selectLocalizedArcTypes = createSelector(
-  [selectArcTypes, selectLocalArcs],
-  (arcTypes, localArcs) => R.propOr(arcTypes, 'types', localArcs)
+  [selectArcTypes, selectLocalArcs, selectTime],
+  (arcTypes, localArcs, time) =>
+    R.propOr(arcTypes, 'types', getTimeValue(time, localArcs)),
+  {
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
 )
 export const selectLocalizedGeoTypes = createSelector(
-  [selectGeoTypes, selectLocalGeos],
-  (geoTypes, localGeos) => R.propOr(geoTypes, 'types', localGeos)
+  [selectGeoTypes, selectLocalGeos, selectTime],
+  (geoTypes, localGeos, time) =>
+    R.propOr(geoTypes, 'types', getTimeValue(time, localGeos)),
+  {
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)
+export const selectArcTypeKeys = createSelector(
+  selectLocalizedArcTypes,
+  (data) => R.keys(data),
+  {
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)
+export const selectNodeTypeKeys = createSelector(
+  selectLocalizedNodeTypes,
+  (data) => R.keys(data),
+  {
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
 )
 
-const selectMemoizedMergeFunc = createSelector(
-  [selectLocalizedGeoTypes, selectLocalizedNodeTypes, selectLocalizedArcTypes],
-  (geoTypes, nodeTypes, arcTypes) => {
-    // Accepts a feature - returns a memoized merge function
-    const memoized = (feature) => {
-      const data =
-        feature === 'geos'
-          ? geoTypes
-          : feature === 'nodes'
-          ? nodeTypes
-          : feature === 'arcs'
-          ? arcTypes
-          : {}
-      // The merge function memoized for each node
-      const resultFunc = (d) =>
-        R.pipe(
-          R.mergeRight(R.propOr({}, d.type, data)),
-          R.over(
-            R.lensProp('props'),
-            R.mergeDeepRight(R.pathOr({}, [d.type, 'props'])(data))
-          )
-        )(d)
-
-      const vals = {}
-
-      // Store inputs for equalityCheck
-      const rememberedInputs = {}
-
-      // Check memoized cache - run function if needed
-      const checkCache = (value) => {
-        if (
-          R.isNil(R.prop(value[0], rememberedInputs)) ||
-          !R.equals(rememberedInputs[value[0]], value[1])
-        ) {
-          rememberedInputs[value[0]] = value[1]
-          vals[value[0]] = resultFunc(value[1])
-        }
-        return [value[0], vals[value[0]]]
-      }
-
-      return checkCache
-    }
-    // Return seperate function for each feature
-    return {
-      arcs: memoized('arcs'),
-      nodes: memoized('nodes'),
-      geos: memoized('geos'),
-    }
-  }
+const mergeFunc = (data) =>
+  maxSizedMemoization(
+    (d) => d,
+    (d) => [
+      d[0],
+      R.pipe(
+        R.mergeRight(R.propOr({}, d[1].type, data)),
+        R.over(
+          R.lensProp('props'),
+          R.mergeDeepRight(R.pathOr({}, [d[1].type, 'props'])(data))
+        )
+      )(d[1]),
+    ],
+    1000000
+  )
+const selectMemoizedArcMergeFunc = createSelector(
+  selectLocalizedArcTypes,
+  (arcTypes) => mergeFunc(arcTypes)
+)
+const selectMemoizedNodeMergeFunc = createSelector(
+  selectLocalizedNodeTypes,
+  (nodeTypes) => mergeFunc(nodeTypes)
+)
+const selectMemoizedGeoMergeFunc = createSelector(
+  selectLocalizedGeoTypes,
+  (geoTypes) => mergeFunc(geoTypes)
 )
 const getMergedAllProps = (data, localData, memoized) =>
   R.pipe(
@@ -584,36 +600,40 @@ const getMergedAllProps = (data, localData, memoized) =>
   )(localData)
 
 export const selectMergedArcs = createSelector(
-  [selectArcs, selectLocalArcs, selectMemoizedMergeFunc],
-  (arcs, localArcs, mergeFunc) =>
-    getMergedAllProps(arcs, localArcs, mergeFunc['arcs']),
+  [selectArcs, selectLocalArcs, selectMemoizedArcMergeFunc, selectTime],
+  (arcs, localArcs, mergeFunc, time) =>
+    getMergedAllProps(
+      getTimeValue(time, arcs),
+      getTimeValue(time, localArcs),
+      mergeFunc
+    ),
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.prop('data', a) === R.prop('data', b) &&
-        R.prop('types', a) === R.prop('types', b),
+        R.has('data', a)
+          ? R.prop('data', a) === R.prop('data', b) &&
+            R.prop('types', a) === R.prop('types', b)
+          : a === b,
     },
   }
 )
 export const selectMergedNodes = createSelector(
-  [selectNodes, selectLocalNodes, selectMemoizedMergeFunc],
-  (nodes, localNodes, mergeFunc) =>
-    getMergedAllProps(nodes, localNodes, mergeFunc['nodes'])
+  [selectNodes, selectLocalNodes, selectMemoizedNodeMergeFunc, selectTime],
+  (nodes, localNodes, mergeFunc, time) =>
+    getMergedAllProps(
+      getTimeValue(time, nodes),
+      getTimeValue(time, localNodes),
+      mergeFunc
+    )
 )
 export const selectMergedGeos = createSelector(
-  [selectGeos, selectLocalGeos, selectMemoizedMergeFunc],
-  (geos, localGeos, mergeFunc) =>
-    getMergedAllProps(geos, localGeos, mergeFunc['geos'])
-)
-// General
-export const selectResolveTime = createSelector([selectTime], (currentTime) =>
-  getTimeValue(currentTime)
-)
-export const selectTimeProp = createSelector(selectResolveTime, (resolveTime) =>
-  R.pipe(R.prop, resolveTime)
-)
-export const selectTimePath = createSelector(selectTimeProp, (timeProp) =>
-  R.flip(R.reduce(R.flip(timeProp)))
+  [selectGeos, selectLocalGeos, selectMemoizedGeoMergeFunc, selectTime],
+  (geos, localGeos, mergeFunc, time) =>
+    getMergedAllProps(
+      getTimeValue(time, geos),
+      getTimeValue(time, localGeos),
+      mergeFunc
+    )
 )
 // Map (Custom)
 export const selectLayerById = (state, id) =>
@@ -694,21 +714,21 @@ export const selectGeosByType = createSelector(
   )
 )
 export const selectMatchingKeys = createSelector(
-  [selectEnabledGeos, selectGeosByType, selectTimeProp],
-  (enabledGeos, geosByType, timeProp) =>
+  [selectEnabledGeos, selectGeosByType],
+  (enabledGeos, geosByType) =>
     R.pipe(
       R.pick(R.keys(R.filter(R.identity, enabledGeos))),
       R.values,
       R.reduce(R.concat, []),
-      R.indexBy(timeProp('geoJsonValue'))
+      R.indexBy(R.prop('geoJsonValue'))
     )(geosByType)
 )
 export const selectMatchingKeysByType = createSelector(
-  [selectEnabledGeos, selectGeosByType, selectTimeProp],
-  (enabledGeos, geosByType, timeProp) =>
+  [selectEnabledGeos, selectGeosByType],
+  (enabledGeos, geosByType) =>
     R.pipe(
       R.pick(R.keys(R.filter(R.identity, enabledGeos))),
-      R.map(R.indexBy(timeProp('geoJsonValue')))
+      R.map(R.indexBy(R.prop('geoJsonValue')))
     )(geosByType),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
@@ -946,13 +966,13 @@ export const selectLineMatchingKeysByType = createSelector(
     R.pipe(R.toPairs, R.groupBy(R.path([1, 'type'])), R.map(R.fromPairs))(data)
 )
 export const selectArcRange = createSelector(
-  [selectArcTypes, selectTimePath, selectArcsByType],
-  (arcs, timePath, arcsByType) =>
+  [selectArcTypes, selectArcsByType],
+  (arcs, arcsByType) =>
     R.memoizeWith(
       (type, prop, size) => [type, prop, size],
       (type, prop, size) =>
         R.pipe(
-          timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -961,14 +981,8 @@ export const selectArcRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(
-                    acc.max,
-                    timePath(['props', prop, 'value'], value)
-                  ),
-                  min: R.min(
-                    acc.min,
-                    timePath(['props', prop, 'value'], value)
-                  ),
+                  max: R.max(acc.max, R.path(['props', prop, 'value'], value)),
+                  min: R.min(acc.min, R.path(['props', prop, 'value'], value)),
                 }),
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, arcsByType))
@@ -1009,13 +1023,13 @@ export const selectGroupedNodesWithId = createSelector(
 )
 
 export const selectNodeRange = createSelector(
-  [selectNodeTypes, selectTimePath, selectNodesByType],
-  (nodeTypes, timePath, nodesByType) =>
+  [selectNodeTypes, selectNodesByType],
+  (nodeTypes, nodesByType) =>
     R.memoizeWith(
       (type, prop, size) => [type, prop, size],
       (type, prop, size) =>
         R.pipe(
-          timePath([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1024,14 +1038,8 @@ export const selectNodeRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(
-                    acc.max,
-                    timePath(['props', prop, 'value'], value)
-                  ),
-                  min: R.min(
-                    acc.min,
-                    timePath(['props', prop, 'value'], value)
-                  ),
+                  max: R.max(acc.max, R.path(['props', prop, 'value'], value)),
+                  min: R.min(acc.min, R.path(['props', prop, 'value'], value)),
                 }),
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, nodesByType))
@@ -1049,13 +1057,13 @@ export const selectNodeRange = createSelector(
     )
 )
 export const selectGeoColorRange = createSelector(
-  [selectGeoTypes, selectTimePath, selectGeosByType],
-  (geoTypes, timePath, geosByType) =>
+  [selectGeoTypes, selectGeosByType],
+  (geoTypes, geosByType) =>
     R.memoizeWith(
       (type, prop) => [type, prop],
       (type, prop) =>
         R.pipe(
-          timePath([type, 'colorByOptions', prop]),
+          R.path([type, 'colorByOptions', prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1064,14 +1072,8 @@ export const selectGeoColorRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(
-                    acc.max,
-                    timePath(['props', prop, 'value'], value)
-                  ),
-                  min: R.min(
-                    acc.min,
-                    timePath(['props', prop, 'value'], value)
-                  ),
+                  max: R.max(acc.max, R.path(['props', prop, 'value'], value)),
+                  min: R.min(acc.min, R.path(['props', prop, 'value'], value)),
                 }),
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, geosByType))
@@ -1095,8 +1097,8 @@ export const selectGetLegendGroupId = createSelector(
 )
 
 export const selectNodeClusters = createSelector(
-  [selectGroupedNodesWithId, selectEnabledNodes, selectResolveTime],
-  (data, legendObjects, resolveTime) => {
+  [selectGroupedNodesWithId, selectEnabledNodes],
+  (data, legendObjects) => {
     // define helper functions
     const getVarByProp = R.curry((varByKey, nodeObj) =>
       R.path([nodeObj.type, varByKey])(legendObjects)
@@ -1111,11 +1113,7 @@ export const selectNodeClusters = createSelector(
         acc[result].push(d)
         return acc
       }, {})
-    const getPosition = (d) => [
-      resolveTime(d.longitude),
-      resolveTime(d.latitude),
-      resolveTime(d.altitude + 1),
-    ]
+    const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
     const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
       R.pathOr(statId.COUNT, [nodeCluster.properties.type, groupCalculation])(
         legendObjects
@@ -1146,10 +1144,7 @@ export const selectNodeClusters = createSelector(
       minZoom: Math.floor(MIN_ZOOM),
       maxZoom: Math.floor(MAX_ZOOM),
       radius: 50 * Math.sqrt(2),
-      // NOTE: Using shallow cloning is sufficient, assuming
-      // that all `data` properties are enumerable and don't
-      // contain any references to another object.
-      deepClone: false,
+      deepClone: true,
       map: (d) => {
         const colorProp = getVarByProp('colorBy', d)
         const sizeProp = getVarByProp('sizeBy', d)
