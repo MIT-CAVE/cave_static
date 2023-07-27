@@ -130,7 +130,7 @@ const getAppBarItem = ({
     />
   ) : type === 'button' ? (
     <ButtonInTabs
-      key={key}
+      {...{ key, icon, color }}
       disabled={loading}
       onClick={() => {
         dispatch(
@@ -146,8 +146,20 @@ const getAppBarItem = ({
           })
         )
       }}
-      icon={icon}
-      color={color}
+    />
+  ) : type === 'modal' ? (
+    <ButtonInTabs
+      {...{ key, icon, color }}
+      disabled={loading}
+      onClick={() => {
+        dispatch(
+          mutateLocal({
+            path: ['appBar', 'openModal'],
+            value: key,
+            sync: !includesPath(R.values(sync), ['appBar', 'openModal']),
+          })
+        )
+      }}
     />
   ) : type === 'map' || type === 'stats' || type === 'kpi' ? (
     <ButtonInTabs

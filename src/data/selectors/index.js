@@ -125,6 +125,9 @@ export const selectSettings = createSelector(selectData, (data) =>
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
 )
+export const selectModals = createSelector(selectData, (data) =>
+  R.propOr({}, 'modals')(data)
+)
 export const selectMap = createSelector(selectData, R.propOr({}, 'maps'))
 // Data -> Types
 export const selectNodeTypes = createSelector(
@@ -139,6 +142,10 @@ export const selectGeoTypes = createSelector(
 )
 // Data -> data
 export const selectPanesData = createSelector(selectPanes, R.propOr({}, 'data'))
+export const selectModalsData = createSelector(
+  selectModals,
+  R.propOr({}, 'data')
+)
 export const selectMapData = createSelector(selectMap, R.propOr({}, 'data'))
 
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
@@ -239,6 +246,13 @@ export const selectLocalPanes = createSelector(selectLocal, (data) =>
 export const selectLocalPanesData = createSelector(selectLocalPanes, (data) =>
   R.prop('data', data)
 )
+//Local -> modals
+export const selectLocalModals = createSelector(selectLocal, (data) =>
+  R.prop('modals')(data)
+)
+export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
+  R.prop('data', data)
+)
 // Local -> Dashboard
 export const selectLocalDashboard = createSelector(selectLocal, (data) =>
   R.propOr({}, 'dashboards')(data)
@@ -306,7 +320,11 @@ export const selectRightSecondaryOpenPane = createSelector(
 export const selectRightPinPane = createSelector(selectPaneState, (data) =>
   R.propOr(false, 'pin', R.propOr({}, 'right', data))
 )
-
+export const selectOpenModal = createSelector(
+  [selectLocalAppBar, selectAppBar],
+  (localData, data) =>
+    R.propOr(R.propOr({}, 'openModal', data), 'openModal', localData)
+)
 const groupAppBar = R.pipe(
   R.mergeDeepRight,
   R.toPairs,
@@ -390,6 +408,15 @@ export const selectRightOpenPanesData = createSelector(
     R.mergeDeepRight(
       R.propOr({}, rightOpenPane, panesData),
       R.propOr({}, rightOpenPane, localPanesData)
+    ),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectOpenModalData = createSelector(
+  [selectOpenModal, selectModalsData, selectLocalModalsData],
+  (openModal, modalsData, localModalsData) =>
+    R.mergeDeepRight(
+      R.propOr({}, openModal, modalsData),
+      R.propOr({}, openModal, localModalsData)
     ),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
