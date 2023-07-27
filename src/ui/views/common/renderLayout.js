@@ -15,7 +15,6 @@ import {
 const renderPropItem = ({
   layoutItem,
   item: prop,
-  resolveTime = R.identity,
   getCurrentVal,
   onChangeProp,
 }) => {
@@ -23,7 +22,7 @@ const renderPropItem = ({
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
   return renderProp({
     prop: container ? { container, elevation, marquee, ...prop } : prop,
-    currentVal: resolveTime(currentValue),
+    currentVal: currentValue,
     onChange: onChangeProp(prop, prop.id),
   })
 }

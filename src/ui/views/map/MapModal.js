@@ -27,9 +27,10 @@ import {
   selectTimeUnits,
   selectTimeLength,
   selectTime,
-  selectResolveTime,
-  selectData,
   selectAppBarId,
+  selectMergedArcs,
+  selectMergedNodes,
+  selectMergedGeos,
 } from '../../../data/selectors'
 import { styleId } from '../../../utils/enums'
 import ClusterModal from '../../compound/ClusterModal'
@@ -82,9 +83,10 @@ const styles = {
 const OnLayerEventModal = () => {
   const dispatch = useDispatch()
   const mapModal = useSelector(selectMapModal)
-  const resolveTime = useSelector(selectResolveTime)
   const currentTime = useSelector(selectTime)
-  const data = useSelector(selectData)
+  const arcData = useSelector(selectMergedArcs)
+  const nodeData = useSelector(selectMergedNodes)
+  const geoData = useSelector(selectMergedGeos)
 
   const {
     cluster_id,
@@ -96,17 +98,19 @@ const OnLayerEventModal = () => {
     props: items,
   } = R.propOr({}, 'data')(mapModal)
 
+  const featureData =
+    feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
   const getCurrentVal = (propId) =>
-    R.path([feature, 'data', key, 'props', propId, 'value'])(data)
+    R.path([key, 'props', propId, 'value'])(featureData)
 
   const onChangeProp = (prop, propId) => (value) => {
-    const dataPath = ['data', key, 'props', propId, 'value']
-    const currentValue = getCurrentVal(propId)
-    const sentValue = R.prop('timeObject')(currentValue)
-      ? R.has('value')(currentValue)
-        ? R.assocPath(['value', currentTime], value, currentValue)
-        : currentValue
-      : value
+    const usesTime = R.hasPath(
+      [key, 'props', propId, 'timeValues', currentTime, 'value'],
+      featureData
+    )
+    const dataPath = usesTime
+      ? ['data', key, 'props', propId, 'timeValues', `${currentTime}`, 'value']
+      : ['data', key, 'props', propId, 'value']
 
     dispatch(
       sendCommand({
@@ -114,7 +118,7 @@ const OnLayerEventModal = () => {
         data: {
           data_name: feature,
           data_path: dataPath,
-          data_value: sentValue,
+          data_value: value,
           mutation_type: 'mutate',
           api_command: R.prop('apiCommand', prop),
           api_command_keys: R.prop('apiCommandKeys', prop),
@@ -128,7 +132,6 @@ const OnLayerEventModal = () => {
       {renderPropsLayout({
         layout,
         items,
-        resolveTime,
         getCurrentVal,
         onChangeProp,
       })}
@@ -138,7 +141,6 @@ const OnLayerEventModal = () => {
       {renderPropsLayout({
         layout,
         items,
-        resolveTime,
         getCurrentVal,
         onChangeProp,
       })}

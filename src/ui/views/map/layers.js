@@ -14,12 +14,9 @@ import {
   selectEnabledGeos,
   selectGeoColorRange,
   selectSettingsIconUrl,
-  selectResolveTime,
-  selectTimeProp,
   selectArcRange,
   selectNodeRange,
   selectGeoTypes,
-  selectTimePath,
   selectMatchingKeys,
   selectMatchingKeysByType,
   selectAppBarId,
@@ -53,9 +50,6 @@ const lineTypes = { solid: [0, 0], dashed: [7, 3], dotted: [2, 2] }
 const Get3dArcLayer = () => {
   const arcRange = useSelector(selectArcRange)
   const themeType = useSelector(selectTheme)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
   const arcData = useSelector(selectArcData)
   const legendObjects = useSelector(selectEnabledArcs)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,18 +57,18 @@ const Get3dArcLayer = () => {
     R.memoizeWith(
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1])
+        const propVal = R.path(['props', sizeProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d[1].type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
+        const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d[1]))
         return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d[1])),
-          parseFloat(timeProp('endSize', d[1])),
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', d[1])),
+          parseFloat(R.prop('endSize', d[1])),
           propVal
         )
       }
@@ -87,7 +81,7 @@ const Get3dArcLayer = () => {
     R.memoizeWith(
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1])
+        const propVal = R.path(['props', colorProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
@@ -95,7 +89,7 @@ const Get3dArcLayer = () => {
         const colorRange = arcRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const propVal = R.pipe(
-          timePath(['props', colorProp, 'value']),
+          R.path(['props', colorProp, 'value']),
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(d[1])
@@ -106,8 +100,8 @@ const Get3dArcLayer = () => {
                 .split(',')
             )
           : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
               R.map((val) => parseFloat(val))(
                 R.pathOr(
                   R.prop('startGradientColor', colorRange),
@@ -126,9 +120,7 @@ const Get3dArcLayer = () => {
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
-              parseFloat(
-                resolveTime(R.path(['props', colorProp, 'value'], d[1]))
-              )
+              parseFloat(R.path(['props', colorProp, 'value'], d[1]))
             )
       }
     ),
@@ -145,16 +137,16 @@ const Get3dArcLayer = () => {
       wrapLongitude: true,
       getTilt: (d) => R.propOr(0, 'tilt', d[1]),
       greatCircle: false,
-      getHeight: (d) => resolveTime(R.propOr(1, 'height', d[1])),
+      getHeight: (d) => R.propOr(1, 'height', d[1]),
       getSourcePosition: (d) => [
-        resolveTime(d[1].startLongitude),
-        resolveTime(d[1].startLatitude),
-        resolveTime(d[1].startAltitude),
+        d[1].startLongitude,
+        d[1].startLatitude,
+        d[1].startAltitude,
       ],
       getTargetPosition: (d) => [
-        resolveTime(d[1].endLongitude),
-        resolveTime(d[1].endLatitude),
-        resolveTime(d[1].endAltitude),
+        d[1].endLongitude,
+        d[1].endLatitude,
+        d[1].endAltitude,
       ],
       getSourceColor: (d) => findColor(d),
       getTargetColor: (d) => findColor(d),
@@ -170,9 +162,6 @@ const Get3dArcLayer = () => {
 const GetArcLayer = () => {
   const arcRange = useSelector(selectArcRange)
   const themeType = useSelector(selectTheme)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
   const arcData = useSelector(selectLineData)
   const legendObjects = useSelector(selectEnabledArcs)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,18 +169,18 @@ const GetArcLayer = () => {
     R.memoizeWith(
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1])
+        const propVal = R.path(['props', sizeProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d[1].type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
+        const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d[1]))
         return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d[1])),
-          parseFloat(timeProp('endSize', d[1])),
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', d[1])),
+          parseFloat(R.prop('endSize', d[1])),
           propVal
         )
       }
@@ -204,7 +193,7 @@ const GetArcLayer = () => {
     R.memoizeWith(
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1])
+        const propVal = R.path(['props', colorProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
@@ -212,7 +201,7 @@ const GetArcLayer = () => {
         const colorRange = arcRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const propVal = R.pipe(
-          timePath(['props', colorProp, 'value']),
+          R.path(['props', colorProp, 'value']),
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(d[1])
@@ -224,8 +213,8 @@ const GetArcLayer = () => {
                 .split(',')
             )
           : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
               R.map((val) => parseFloat(val))(
                 R.pathOr(
                   R.prop('startGradientColor', colorRange),
@@ -244,9 +233,7 @@ const GetArcLayer = () => {
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
-              parseFloat(
-                resolveTime(R.path(['props', colorProp, 'value'], d[1]))
-              )
+              parseFloat(R.path(['props', colorProp, 'value'], d[1]))
             )
       }
     ),
@@ -263,16 +250,8 @@ const GetArcLayer = () => {
       getPath: (d) =>
         R.propOr(
           [
-            [
-              resolveTime(d[1].startLongitude),
-              resolveTime(d[1].startLatitude),
-              resolveTime(d[1].startAltitude),
-            ],
-            [
-              resolveTime(d[1].endLongitude),
-              resolveTime(d[1].endLatitude),
-              resolveTime(d[1].endAltitude),
-            ],
+            [d[1].startLongitude, d[1].startLatitude, d[1].startAltitude],
+            [d[1].endLongitude, d[1].endLatitude, d[1].endAltitude],
           ],
           'path',
           d[1]
@@ -299,9 +278,6 @@ const GetNodeIconLayer = () => {
   const nodeRange = useSelector(selectNodeRange)
   const themeType = useSelector(selectTheme)
   const iconUrl = useSelector(selectSettingsIconUrl)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
   const legendObjects = useSelector(selectEnabledNodes)
 
   const [iconObj, setIconObj] = useState([
@@ -314,12 +290,12 @@ const GetNodeIconLayer = () => {
     R.memoizeWith(
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        const propVal = R.path(['props', colorProp, 'value'], d[1]).toString()
         return `${d[0]}${propVal}`
       },
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const value = timePath(['props', colorProp, 'value'])(d[1])
+        const value = R.path(['props', colorProp, 'value'])(d[1])
         const statRange = nodeRange(d[1].type, colorProp, false)
         const isCategorical = !R.has('min', statRange)
         const colorRange = isCategorical
@@ -333,10 +309,10 @@ const GetNodeIconLayer = () => {
               R.when(
                 R.has(themeType),
                 R.prop(themeType)
-              )(timeProp(value, colorRange))
+              )(R.prop(value, colorRange))
             )
           : getScaledColor(
-              [timeProp('min', statRange), timeProp('max', statRange)],
+              [R.prop('min', statRange), R.prop('max', statRange)],
               colorRange,
               value
             )
@@ -350,18 +326,18 @@ const GetNodeIconLayer = () => {
     R.memoizeWith(
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1])
+        const propVal = R.path(['props', sizeProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = nodeRange(d[1].type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
+        const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d[1]))
         return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d[1])),
-          parseFloat(timeProp('endSize', d[1])),
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', d[1])),
+          parseFloat(R.prop('endSize', d[1])),
           propVal
         )
       }
@@ -512,11 +488,7 @@ const GetNodeIconLayer = () => {
       getSize: (d) => {
         return findSize(d)
       },
-      getPosition: (d) => [
-        resolveTime(d[1].longitude),
-        resolveTime(d[1].latitude),
-        resolveTime(d[1].altitude + 1),
-      ],
+      getPosition: (d) => [d[1].longitude, d[1].latitude, d[1].altitude + 1],
     }),
     new IconLayer({
       id: layerId.NODE_ICON_CLUSTER_LAYER,
@@ -533,7 +505,7 @@ const GetNodeIconLayer = () => {
         const colorObj = d.properties.colorProp
         const colorDomain = nodeClusters.range[nodeType].color
         const isCategorical = !R.has('min')(colorDomain)
-        const value = timeProp('value', colorObj)
+        const value = R.prop('value', colorObj)
         const colorRange = isCategorical
           ? colorObj
           : R.map((prop) =>
@@ -545,10 +517,10 @@ const GetNodeIconLayer = () => {
               R.when(
                 R.has(themeType),
                 R.prop(themeType)
-              )(timeProp(value, colorRange))
+              )(R.prop(value, colorRange))
             )
           : getScaledColor(
-              [timeProp('min', colorDomain), timeProp('max', colorDomain)],
+              [R.prop('min', colorDomain), R.prop('max', colorDomain)],
               colorRange,
               value
             )
@@ -558,11 +530,11 @@ const GetNodeIconLayer = () => {
         const sizeObj = d.properties.sizeProp
         const sizeDomain = nodeClusters.range[nodeType].size
         return getScaledValue(
-          timeProp('min', sizeDomain),
-          timeProp('max', sizeDomain),
-          parseFloat(timeProp('startSize', sizeObj)),
-          parseFloat(timeProp('endSize', sizeObj)),
-          timeProp('value', sizeObj)
+          R.prop('min', sizeDomain),
+          R.prop('max', sizeDomain),
+          parseFloat(R.prop('startSize', sizeObj)),
+          parseFloat(R.prop('endSize', sizeObj)),
+          R.prop('value', sizeObj)
         )
       },
       getPosition: (d) => R.path(['geometry', 'coordinates'], d),
@@ -572,14 +544,11 @@ const GetNodeIconLayer = () => {
 
 const GetGeographyLayer = (openGeo) => {
   const enabledGeos = useSelector(selectEnabledGeos)
-  const timePath = useSelector(selectTimePath)
-  const resolveTime = useSelector(selectResolveTime)
   const geoColorRange = useSelector(selectGeoColorRange)
   const matchingKeys = useSelector(selectMatchingKeys)
   const matchingKeysByType = useSelector(selectMatchingKeysByType)
   const geoTypes = useSelector(selectGeoTypes)
   const themeType = useSelector(selectTheme)
-  const timeProp = useSelector(selectTimeProp)
   const appBarId = useSelector(selectAppBarId)
   const touchMode = useSelector(selectTouchMode)
   const enabledArcs = useSelector(selectEnabledArcs)
@@ -599,7 +568,7 @@ const GetGeographyLayer = (openGeo) => {
     R.memoizeWith(
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const value = timePath(['props', colorProp, 'value'], geoObj)
+        const value = R.path(['props', colorProp, 'value'], geoObj)
         return `${geoObj.geoJsonValue}${value}`
       },
       (geoObj) => {
@@ -609,7 +578,7 @@ const GetGeographyLayer = (openGeo) => {
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])
         const value = R.pipe(
-          timePath(['props', colorProp, 'value']),
+          R.path(['props', colorProp, 'value']),
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(geoObj)
@@ -622,7 +591,7 @@ const GetGeographyLayer = (openGeo) => {
                 .split(',')
             )
           : getScaledColor(
-              [timeProp('min', statRange), timeProp('max', statRange)],
+              [R.prop('min', statRange), R.prop('max', statRange)],
               colorRange,
               value
             )
@@ -636,18 +605,18 @@ const GetGeographyLayer = (openGeo) => {
     R.memoizeWith(
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const propVal = timePath(['props', sizeProp, 'value'], d)
+        const propVal = R.path(['props', sizeProp, 'value'], d)
         return `${R.prop('data_key', d)}${propVal}`
       },
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
         const sizeRange = arcRange(d.type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d))
+        const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
         return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d)),
-          parseFloat(timeProp('endSize', d)),
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', d)),
+          parseFloat(R.prop('endSize', d)),
           propVal
         )
       }
@@ -660,7 +629,7 @@ const GetGeographyLayer = (openGeo) => {
     R.memoizeWith(
       (d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const propVal = timePath(['props', colorProp, 'value'], d[1])
+        const propVal = R.path(['props', colorProp, 'value'], d[1])
         return `${R.prop('data_key', d)}${propVal}`
       },
       (d) => {
@@ -668,7 +637,7 @@ const GetGeographyLayer = (openGeo) => {
         const colorRange = arcRange(d.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const propVal = R.pipe(
-          timePath(['props', colorProp, 'value']),
+          R.path(['props', colorProp, 'value']),
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(d)
@@ -680,8 +649,8 @@ const GetGeographyLayer = (openGeo) => {
                 .split(',')
             )
           : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
               R.map((val) => parseFloat(val))(
                 R.pathOr(
                   R.prop('startGradientColor', colorRange),
@@ -700,7 +669,7 @@ const GetGeographyLayer = (openGeo) => {
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
-              parseFloat(resolveTime(R.path(['props', colorProp, 'value'], d)))
+              parseFloat(R.path(['props', colorProp, 'value'], d))
             )
       }
     ),
