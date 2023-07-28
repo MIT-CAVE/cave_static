@@ -18,7 +18,7 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { sendCommand } from '../../../data/data'
+import { mutateLocal } from '../../../data/local'
 import {
   bearingSliderToggle,
   bearingUpdate,
@@ -42,6 +42,7 @@ import {
   selectTimeLength,
   selectStaticMap,
   selectAppBarId,
+  selectSync,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -52,7 +53,7 @@ import {
 
 import { FetchedIcon } from '../../compound'
 
-import { getSliderMarks, formatNumber } from '../../../utils'
+import { getSliderMarks, formatNumber, includesPath } from '../../../utils'
 
 const styles = {
   getRoot: (hover) => ({
@@ -224,7 +225,15 @@ const MapControls = ({ allowProjections }) => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+
+  const syncProjection = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    appBarId,
+    'currentProjection',
+  ])
 
   const getDegreeFormat = (value) =>
     formatNumber(value, { unit: 'º', precision: 0, unitSpace: false })
@@ -410,14 +419,10 @@ const MapControls = ({ allowProjections }) => {
                 placement="top"
                 onClick={() =>
                   dispatch(
-                    sendCommand({
-                      command: 'mutate_session',
-                      data: {
-                        data_name: 'maps',
-                        data_path: ['data', appBarId, 'currentProjection'],
-                        data_value: 'globe',
-                        mutation_type: 'mutate',
-                      },
+                    mutateLocal({
+                      path: ['maps', 'data', appBarId, 'currentProjection'],
+                      value: 'globe',
+                      sync: syncProjection,
                     })
                   )
                 }
@@ -429,14 +434,10 @@ const MapControls = ({ allowProjections }) => {
                 placement="top"
                 onClick={() => {
                   dispatch(
-                    sendCommand({
-                      command: 'mutate_session',
-                      data: {
-                        data_name: 'maps',
-                        data_path: ['data', appBarId, 'currentProjection'],
-                        data_value: 'mercator',
-                        mutation_type: 'mutate',
-                      },
+                    mutateLocal({
+                      path: ['maps', 'data', appBarId, 'currentProjection'],
+                      value: 'globe',
+                      sync: syncProjection,
                     })
                   )
                 }}

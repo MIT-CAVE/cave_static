@@ -15,6 +15,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import SimpleModalOptions from './SimpleModalOptions'
 
 import { sendCommand } from '../../../data/data'
+import { mutateLocal } from '../../../data/local'
 import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
@@ -27,6 +28,7 @@ import {
   selectData,
   selectAppBarId,
   selectMapStyleOptions,
+  selectSync,
 } from '../../../data/selectors'
 import { DEFAULT_MAP_STYLE_KEY } from '../../../utils/constants'
 import ClusterModal from '../../compound/ClusterModal'
@@ -35,7 +37,7 @@ import { renderPropsLayout } from '../common/renderLayout'
 
 import { FetchedIcon } from '../../compound'
 
-import { customSort } from '../../../utils'
+import { customSort, includesPath } from '../../../utils'
 
 const styles = {
   modal: {
@@ -186,6 +188,7 @@ const MapModal = () => {
   const timeLength = useSelector(selectTimeLength)
   const appBarId = useSelector(selectAppBarId)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
   const feature = R.path(['data', 'feature'], mapModal)
@@ -195,6 +198,13 @@ const MapModal = () => {
     R.reduce((acc, value) => R.assoc(value, value, acc), {}),
     R.map((value) => ({ name: value, icon: 'MdAvTimer', order: value }))
   )(timeLength)
+
+  const syncStyles = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    appBarId,
+    'currentStyle',
+  ])
   return R.cond([
     [
       R.equals('viewports'),
@@ -224,18 +234,14 @@ const MapModal = () => {
           options={mapStyleOptions}
           onSelect={(mapStyle) => {
             dispatch(
-              sendCommand({
-                command: 'mutate_session',
-                data: {
-                  data_name: 'maps',
-                  data_path: ['data', appBarId, 'currentStyle'],
-                  data_value: R.ifElse(
-                    R.equals(DEFAULT_MAP_STYLE_KEY),
-                    R.always(undefined),
-                    R.always(mapStyle)
-                  )(mapStyle),
-                  mutation_type: 'mutate',
-                },
+              mutateLocal({
+                sync: syncStyles,
+                path: ['maps', 'data', appBarId, 'currentStyle'],
+                value: R.ifElse(
+                  R.equals(DEFAULT_MAP_STYLE_KEY),
+                  R.always(undefined),
+                  R.always(mapStyle)
+                )(mapStyle),
               })
             )
             dispatch(closeMapModal(appBarId))
