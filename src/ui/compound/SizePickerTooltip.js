@@ -12,7 +12,6 @@ const SizePickerTooltip = ({ children, value, onSelect }) => {
         <Box sx={{ width: 250, px: 2, mx: 'auto' }}>
           <Slider
             value={instValue}
-            max={75}
             onChange={(_, val) => setInstValue(val)}
             valueLabelDisplay="auto"
             onChangeCommitted={() => {
