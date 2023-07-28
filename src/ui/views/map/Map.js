@@ -23,11 +23,11 @@ import {
   selectViewport,
   selectAppBarId,
   selectMapStyleOptions,
-  selectSplitNodeData,
-  selectLineData,
-  selectMatchingKeys,
+  selectGroupedEnabledArcs,
+  selectFilteredGeosData,
   selectCurrentMapProjection,
-  selectLineMatchingKeys,
+  selectInteractiveLayerIds,
+  selectNodeData,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 
@@ -41,14 +41,15 @@ const Map = ({ mapboxToken }) => {
   const mapProjection = useSelector(selectCurrentMapProjection)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const appBarId = useSelector(selectAppBarId)
-  const arcData = useSelector(selectLineData)
-  const nodeDataSplit = useSelector(selectSplitNodeData)
-  const matchingKeys = useSelector(selectMatchingKeys)
-  const lineMatchingKeys = useSelector(selectLineMatchingKeys)
+  const arcData = R.propOr({}, 'geoJson')(useSelector(selectGroupedEnabledArcs))
+  const nodeData = useSelector(selectNodeData)
+  const geosData = useSelector(selectFilteredGeosData)
   const iconUrl = useSelector(selectSettingsIconUrl)
+  const interactiveLayerIds = useSelector(selectInteractiveLayerIds)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
+  const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
   const useMapbox = mapboxToken !== ''
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
@@ -59,11 +60,9 @@ const Map = ({ mapboxToken }) => {
     const iconsToLoad = [
       ...new Set(
         R.pipe(
-          R.propOr([], true),
           R.map((node) => node[1].icon),
-          R.append('MdDownloading'),
           R.without(R.keys(iconData))
-        )(nodeDataSplit)
+        )(nodeData)
       ),
     ]
     R.forEach(async (iconName) => {
@@ -80,7 +79,7 @@ const Map = ({ mapboxToken }) => {
       }
       iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgString)}`
     })(iconsToLoad)
-  }, [nodeDataSplit, iconUrl, iconData])
+  }, [nodeData, iconUrl, iconData])
 
   const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
@@ -93,56 +92,49 @@ const Map = ({ mapboxToken }) => {
   useEffect(() => {
     loadIconsToStyle()
   }, [iconData, loadIconsToStyle])
-
   const getFeatureFromEvent = useCallback(
     (e) => {
-      const nodeIds = R.propOr([], true)(nodeDataSplit).map(([id]) => id)
-      const arcIds = arcData.map(([id]) => id)
-      const geoArcIds = R.values(
-        R.mapObjIndexed((geo) => geo.data_key)(lineMatchingKeys)
-      )
-      const geoIds = R.values(
-        R.mapObjIndexed((geo) => geo.data_key)(matchingKeys)
-      )
-      const clickedNodes = e.features.filter((feature) =>
-        nodeIds.includes(feature.layer.id)
-      )
-      const clickedArcs = e.features.filter((feature) =>
-        arcIds.includes(feature.layer.id)
-      )
-      const clickedGeoJsonArcs = e.features.filter((feature) =>
-        geoArcIds.includes(feature.layer.id)
-      )
-      const clickedGeos = e.features.filter((feature) =>
-        geoIds.includes(feature.layer.id)
-      )
-      let id, feature, obj
-      if (clickedNodes.length > 0) {
-        feature = 'nodes'
-        id = clickedNodes[0].layer.id
-        obj = R.head(
-          R.propOr([], true)(nodeDataSplit).filter(([nodeId]) => id === nodeId)
-        )[1]
-      } else if (clickedArcs.length > 0) {
-        feature = 'arcs'
-        id = clickedArcs[0].layer.id
-        obj = R.head(arcData.filter(([arcId]) => id === arcId))[1]
-      } else if (clickedGeoJsonArcs.length > 0) {
-        feature = 'arcs'
-        id = clickedGeoJsonArcs[0].layer.id
-        obj = R.head(
-          R.filter((geo) => geo.data_key === id)(R.values(lineMatchingKeys))
-        )
-      } else if (clickedGeos.length > 0) {
-        feature = 'geos'
-        id = clickedGeos[0].layer.id
-        obj = R.head(
-          R.filter((geo) => geo.data_key === id)(R.values(matchingKeys))
-        )
-      } else return
-      return [id, feature, obj]
+      const clickedNode = R.find((feature) =>
+        R.equals(feature.layer.type, 'symbol')
+      )(e.features)
+      const isCluster =
+        R.isNotNil(clickedNode) &&
+        R.pathOr(false, ['properties', 'isCluster'], clickedNode)
+      const clickedArc = R.find((feature) =>
+        R.equals(feature.layer.type, 'line')
+      )(e.features)
+      const clickedGeo = R.find((feature) =>
+        R.equals(feature.layer.type, 'fill')
+      )(e.features)
+      const topFeature = R.isNotNil(clickedNode)
+        ? [
+            clickedNode.layer.id,
+            'nodes',
+            isCluster
+              ? R.prop('properties')(
+                  JSON.parse(clickedNode.properties.cave_obj)
+                )
+              : JSON.parse(clickedNode.properties.cave_obj),
+          ]
+        : R.isNotNil(clickedArc)
+        ? [
+            clickedArc.layer.id,
+            'arcs',
+            R.hasPath(['properties', 'cave_obj'])(clickedArc)
+              ? JSON.parse(clickedArc.properties.cave_obj)
+              : R.propOr({}, clickedArc.layer.id, arcData),
+          ]
+        : R.isNotNil(clickedGeo)
+        ? [
+            clickedGeo.layer.id,
+            'geos',
+            R.propOr({}, clickedGeo.layer.id, geosData),
+          ]
+        : null
+      return topFeature
+      // return [id, feature, obj]
     },
-    [matchingKeys, lineMatchingKeys, arcData, nodeDataSplit]
+    [arcData, geosData]
   )
 
   const onMouseMove = useCallback(
@@ -150,15 +142,19 @@ const Map = ({ mapboxToken }) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) {
         setCursor('auto')
-        setHighlightLayerId()
+        if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
       } else {
         const [id] = featureObj
         setHighlightLayerId(id)
         setCursor('pointer')
       }
     },
-    [getFeatureFromEvent]
+    [getFeatureFromEvent, highlightLayerId]
   )
+
+  const onMouseOver = useCallback(() => {
+    if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
+  }, [highlightLayerId])
 
   const onClick = useCallback(
     (e) => {
@@ -172,7 +168,7 @@ const Map = ({ mapboxToken }) => {
           data: {
             ...(obj || {}),
             feature: feature,
-            type: R.prop('type')(obj),
+            type: R.propOr(obj.type, 'name')(obj),
             key: id,
           },
         })
@@ -181,14 +177,13 @@ const Map = ({ mapboxToken }) => {
     [appBarId, dispatch, getFeatureFromEvent]
   )
 
-  const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   useEffect(() => {
     // This needs to be done because calling setStyle with the same style
     // breaks it for some reason
     const newStyle = R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
       mapStyleOptions
     )
-    if (JSON.stringify(newStyle) !== JSON.stringify(mapStyleSpec)) {
+    if (!R.equals(newStyle, mapStyleSpec)) {
       setMapStyleSpec(
         R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(mapStyleOptions)
       )
@@ -216,18 +211,11 @@ const Map = ({ mapboxToken }) => {
         onClick={onClick}
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
+        onTouchStart={onClick}
         ref={mapRef}
         cursor={cursor}
-        interactiveLayerIds={[
-          'data',
-          ...R.propOr([], true)(nodeDataSplit).map(([id]) => id),
-          ...arcData.map(([id]) => id),
-          ...R.pipe(
-            R.mergeLeft(lineMatchingKeys),
-            R.mapObjIndexed((geo) => geo.data_key),
-            R.values
-          )(matchingKeys),
-        ]}
+        onMouseOver={onMouseOver}
+        interactiveLayerIds={interactiveLayerIds}
       >
         <Geos highlightLayerId={highlightLayerId} />
         <Arcs highlightLayerId={highlightLayerId} />

@@ -945,12 +945,12 @@ export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
 export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
   R.toPairs(R.prop('3d', data))
 )
-export const selectMutliLineData = createSelector(
+export const selectMultiLineData = createSelector(
   selectGroupedEnabledArcs,
   (data) => R.toPairs(R.prop('geoJson', data))
 )
 export const selectLineMatchingKeys = createSelector(
-  selectMutliLineData,
+  selectMultiLineData,
   (data) =>
     R.pipe(
       R.map((d) => R.assoc('data_key', d[0], d[1])),
@@ -1349,4 +1349,30 @@ export const selectNodeRangeAtZoom = createSelector(
       resultEqualityCheck: R.equals,
     },
   }
+)
+
+export const selectInteractiveLayerIds = createSelector(
+  [
+    selectMatchingKeys,
+    selectLineMatchingKeys,
+    selectLineData,
+    selectSplitNodeData,
+    selectNodeClustersAtZoom,
+  ],
+  (matchingKeys, lineMatchingKeys, lineData, splitNodeData, nodeClusters) => [
+    'data',
+    ...R.propOr([], 'false', splitNodeData).map(([id]) => id),
+    ...R.propOr([], 'data', nodeClusters).map((group) =>
+      R.pathOr(JSON.stringify(0, 2, R.slice(group.properties.grouped_ids)), [
+        'properties',
+        'id',
+      ])(group)
+    ),
+    ...lineData.map(([id]) => id),
+    ...R.pipe(
+      R.mergeLeft(lineMatchingKeys),
+      R.mapObjIndexed((geo) => geo.data_key),
+      R.values
+    )(matchingKeys),
+  ]
 )

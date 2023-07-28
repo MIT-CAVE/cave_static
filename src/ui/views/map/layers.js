@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { Children, useEffect, useState } from 'react'
+import { Children, useEffect, useState, memo } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useSelector } from 'react-redux'
 
@@ -22,12 +22,13 @@ import {
   selectArcTypes,
   selectLineMatchingKeysByType,
   selectLineMatchingKeys,
+  selectNodeClustersAtZoom,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 
 import { getScaledColor, getScaledArray, getScaledValue } from '../../../utils'
 
-export const Geos = ({ highlightLayerId }) => {
+export const Geos = memo(({ highlightLayerId }) => {
   const enabledGeos = useSelector(selectEnabledGeos)
   const timePath = useSelector(selectTimePath)
   const resolveTime = useSelector(selectResolveTime)
@@ -216,16 +217,21 @@ export const Geos = ({ highlightLayerId }) => {
             color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
           }
 
+          const id = R.prop('data_key')(geoObj)
+
           return (
             <Source
               type="geojson"
+              key={id}
+              id={id}
               data={{
                 type: 'FeatureCollection',
                 features: filteredFeatures,
               }}
             >
               <Layer
-                id={R.prop('data_key')(geoObj)}
+                id={id}
+                key={id}
                 type="fill"
                 paint={{
                   'fill-color': `rgba(${color})`,
@@ -253,11 +259,12 @@ export const Geos = ({ highlightLayerId }) => {
             color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
           }
           const size = findLineSize(geoObj)
-
+          const id = R.prop('data_key')(geoObj)
           const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(geoObj)]
-
           return (
             <Source
+              id={id}
+              key={id}
               type="geojson"
               data={{
                 type: 'FeatureCollection',
@@ -265,7 +272,8 @@ export const Geos = ({ highlightLayerId }) => {
               }}
             >
               <Layer
-                id={R.prop('data_key')(geoObj)}
+                id={id}
+                key={id}
                 type="line"
                 layout={{
                   'line-cap': 'round',
@@ -287,10 +295,11 @@ export const Geos = ({ highlightLayerId }) => {
       )(lineMatchingKeys)
     )
   )
-}
+})
 
-export const Nodes = ({ highlightLayerId }) => {
+export const Nodes = memo(({ highlightLayerId }) => {
   const nodeDataSplit = useSelector(selectSplitNodeData)
+  const nodeClusters = useSelector(selectNodeClustersAtZoom)
   const nodeRange = useSelector(selectNodeRange)
   const timePath = useSelector(selectTimePath)
   const timeProp = useSelector(selectTimeProp)
@@ -298,97 +307,185 @@ export const Nodes = ({ highlightLayerId }) => {
   const themeType = useSelector(selectTheme)
 
   return Children.toArray(
-    R.pipe(
-      R.propOr([], true),
-      R.mapObjIndexed((obj) => {
-        const [id, node] = obj
+    R.concat(
+      R.pipe(
+        R.propOr([], false),
+        R.mapObjIndexed((obj) => {
+          const [id, node] = obj
 
-        const sizeProp = R.path([node.type, 'sizeBy'], legendObjects)
-        const sizeRange = nodeRange(node.type, sizeProp, true)
-        const sizePropVal = parseFloat(
-          timePath(['props', sizeProp, 'value'], node)
-        )
-        const size = getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', node)),
-          parseFloat(timeProp('endSize', node)),
-          sizePropVal
-        )
-        const colorProp = R.path([node.type, 'colorBy'], legendObjects)
-        const colorPropVal = R.pipe(
-          timePath(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(node)
-        const colorRange = nodeRange(node.type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        let color = isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+          const sizeProp = R.path([node.type, 'sizeBy'], legendObjects)
+          const sizeRange = nodeRange(node.type, sizeProp, true)
+          const sizePropVal = parseFloat(
+            timePath(['props', sizeProp, 'value'], node)
+          )
+          const size = getScaledValue(
+            timeProp('min', sizeRange),
+            timeProp('max', sizeRange),
+            parseFloat(timeProp('startSize', node)),
+            parseFloat(timeProp('endSize', node)),
+            sizePropVal
+          )
+          const colorProp = R.path([node.type, 'colorBy'], legendObjects)
+          const colorPropVal = R.pipe(
+            timePath(['props', colorProp, 'value']),
+            R.when(R.isNil, R.always('')),
+            (s) => s.toString()
+          )(node)
+          const colorRange = nodeRange(node.type, colorProp, false)
+          const isCategorical = !R.has('min', colorRange)
+          let color = isCategorical
+            ? R.map((val) => parseFloat(val))(
+                R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              )
+            : getScaledArray(
+                timeProp('min', colorRange),
+                timeProp('max', colorRange),
+                R.map((val) => parseFloat(val))(
+                  R.pathOr(
+                    R.prop('startGradientColor', colorRange),
+                    ['startGradientColor', themeType],
+                    colorRange
+                  )
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                ),
+                R.map((val) => parseFloat(val))(
+                  R.pathOr(
+                    R.prop('endGradientColor', colorRange),
+                    ['endGradientColor', themeType],
+                    colorRange
+                  )
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                ),
+                parseFloat(colorPropVal)
+              )
+          if (highlightLayerId === id) {
+            color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
+          }
+          const colorString = `rgb(${color.join(',')})`
+          return (
+            <Source
+              id={id}
+              key={id}
+              type="geojson"
+              data={{
+                type: 'Feature',
+                properties: { cave_obj: node },
+                geometry: {
+                  type: 'Point',
+                  coordinates: [node.longitude, node.latitude],
+                },
+              }}
+            >
+              <Layer
+                id={id}
+                key={id}
+                type="symbol"
+                layout={{
+                  'icon-image': node.icon,
+                  'icon-anchor': 'center',
+                  'icon-pitch-alignment': 'map',
+                  'icon-size': size / 250,
+                  'icon-allow-overlap': true,
+                }}
+                paint={{
+                  'icon-color': colorString,
+                }}
+              />
+            </Source>
+          )
+        }),
+        R.values
+      )(nodeDataSplit),
+      R.pipe(
+        R.propOr([], 'data'),
+        R.map((group) => {
+          const sizeRange = nodeClusters.range[group.properties.type].size
+          const sizePropObj = R.path(['properties', 'sizeProp'], group)
+
+          const size = getScaledValue(
+            R.prop('min', sizeRange),
+            R.prop('max', sizeRange),
+            parseFloat(R.prop('startSize', sizePropObj)),
+            parseFloat(R.prop('endSize', sizePropObj)),
+            parseFloat(sizePropObj.value)
+          )
+
+          const nodeType = group.properties.type
+          const colorObj = group.properties.colorProp
+          const colorDomain = nodeClusters.range[nodeType].color
+          const isCategorical = !R.has('min')(colorDomain)
+          const value = R.prop('value', colorObj)
+          const colorRange = isCategorical
+            ? colorObj
+            : R.map((prop) =>
+                R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
+              )(['startGradientColor', 'endGradientColor'])
+
+          const color = isCategorical
+            ? R.when(
+                R.has(themeType),
+                R.prop(themeType)
+              )(R.prop(value, colorRange))
                 .replace(/[^\d,.]/g, '')
                 .split(',')
-            )
-          : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(colorPropVal)
-            )
-        if (highlightLayerId === id) {
-          color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
-        }
-        const colorString = `rgb(${color.join(',')})`
-        return (
-          <Source
-            type="geojson"
-            data={{
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'Point',
-                coordinates: [node.longitude, node.latitude],
-              },
-            }}
-          >
-            <Layer
+            : getScaledColor(
+                [R.prop('min', colorDomain), R.prop('max', colorDomain)],
+                colorRange,
+                value
+              )
+          const id = R.pathOr(
+            JSON.stringify(0, 2, R.slice(group.properties.grouped_ids)),
+            ['properties', 'id']
+          )(group)
+
+          const highlightedColor =
+            highlightLayerId === id
+              ? color.map((v, i) => v * HIGHLIGHT_COLOR[i])
+              : color
+
+          const colorString = `rgb(${highlightedColor.join(',')})`
+
+          return (
+            <Source
               id={id}
-              type="symbol"
-              layout={{
-                'icon-image': node.icon,
-                'icon-anchor': 'center',
-                'icon-pitch-alignment': 'map',
-                'icon-size': size / 250,
+              type="geojson"
+              key={id}
+              data={{
+                type: 'Feature',
+                properties: { cave_obj: group, isCluster: true },
+                geometry: {
+                  type: 'Point',
+                  coordinates: group.geometry.coordinates,
+                },
               }}
-              paint={{
-                'icon-color': colorString,
-              }}
-            />
-          </Source>
-        )
-      }),
-      R.values
-    )(nodeDataSplit)
+            >
+              <Layer
+                key={id}
+                id={id}
+                type="symbol"
+                layout={{
+                  'icon-image': group.properties.icon,
+                  'icon-anchor': 'center',
+                  'icon-pitch-alignment': 'map',
+                  'icon-size': size / 250,
+                  'icon-allow-overlap': true,
+                }}
+                paint={{
+                  'icon-color': colorString,
+                }}
+              />
+            </Source>
+          )
+        })
+      )(nodeClusters)
+    )
   )
-}
-export const Arcs = ({ highlightLayerId }) => {
+})
+export const Arcs = memo(({ highlightLayerId }) => {
   const arcRange = useSelector(selectArcRange)
   const themeType = useSelector(selectTheme)
   const resolveTime = useSelector(selectResolveTime)
@@ -398,27 +495,27 @@ export const Arcs = ({ highlightLayerId }) => {
   const legendObjects = useSelector(selectEnabledArcs)
 
   return Children.toArray(
-    arcData.map(([id, node]) => {
-      const sizeProp = R.path([node.type, 'sizeBy'], legendObjects)
-      const sizeRange = arcRange(node.type, sizeProp, true)
+    arcData.map(([id, arc]) => {
+      const sizeProp = R.path([arc.type, 'sizeBy'], legendObjects)
+      const sizeRange = arcRange(arc.type, sizeProp, true)
       const sizePropVal = parseFloat(
-        timePath(['props', sizeProp, 'value'], node)
+        timePath(['props', sizeProp, 'value'], arc)
       )
       const size = getScaledValue(
         timeProp('min', sizeRange),
         timeProp('max', sizeRange),
-        parseFloat(timeProp('startSize', node)),
-        parseFloat(timeProp('endSize', node)),
+        parseFloat(timeProp('startSize', arc)),
+        parseFloat(timeProp('endSize', arc)),
         sizePropVal
       )
-      const colorProp = R.path([node.type, 'colorBy'], legendObjects)
-      const colorRange = arcRange(node.type, colorProp, false)
+      const colorProp = R.path([arc.type, 'colorBy'], legendObjects)
+      const colorRange = arcRange(arc.type, colorProp, false)
       const isCategorical = !R.has('min', colorRange)
       const colorPropVal = R.pipe(
         timePath(['props', colorProp, 'value']),
         R.when(R.isNil, R.always('')),
         (s) => s.toString()
-      )(node)
+      )(arc)
 
       let color = isCategorical
         ? R.map((val) => parseFloat(val))(
@@ -447,32 +544,35 @@ export const Arcs = ({ highlightLayerId }) => {
                 .replace(/[^\d,.]/g, '')
                 .split(',')
             ),
-            parseFloat(resolveTime(R.path(['props', colorProp, 'value'], node)))
+            parseFloat(resolveTime(R.path(['props', colorProp, 'value'], arc)))
           )
       if (highlightLayerId === id) {
         color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
       }
       const colorString = `rgb(${color.join(',')})`
 
-      const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(node)]
+      const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(arc)]
 
       return (
         <Source
+          id={id}
+          key={id}
           type="geojson"
           data={{
             type: 'Feature',
-            properties: {},
+            properties: { cave_obj: arc },
             geometry: {
               type: 'LineString',
               coordinates: [
-                [node.startLongitude, node.startLatitude],
-                [node.endLongitude, node.endLatitude],
+                [arc.startLongitude, arc.startLatitude],
+                [arc.endLongitude, arc.endLatitude],
               ],
             },
           }}
         >
           <Layer
             id={id}
+            key={id}
             type="line"
             paint={{
               'line-color': colorString,
@@ -487,4 +587,4 @@ export const Arcs = ({ highlightLayerId }) => {
       )
     })
   )
-}
+})
