@@ -8,7 +8,6 @@ import { themeId } from '../../utils/enums'
 export const initialState = {
   theme: themeId.DARK,
   time: 0,
-  touch: false,
 }
 
 export const settingsSlice = createSlice({
@@ -24,9 +23,6 @@ export const settingsSlice = createSlice({
     // action.payload should be the timeLength
     timeAdvance: (state, action) => {
       state.time = state.time + 1 === action.payload ? 0 : state.time + 1
-    },
-    toggleTouch: (state) => {
-      state.touch = !state.touch
     },
   },
   extraReducers: (builder) => {

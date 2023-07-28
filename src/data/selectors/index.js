@@ -236,9 +236,6 @@ export const selectTime = createSelector(selectLocalSettings, (data) =>
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
 )
-export const selectTouchMode = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'touch', data)
-)
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>
   R.prop('appBar', data)
