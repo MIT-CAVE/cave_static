@@ -436,7 +436,7 @@ const MapControls = ({ allowProjections }) => {
                   dispatch(
                     mutateLocal({
                       path: ['maps', 'data', appBarId, 'currentProjection'],
-                      value: 'globe',
+                      value: 'mercator',
                       sync: syncProjection,
                     })
                   )
