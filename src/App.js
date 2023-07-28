@@ -220,7 +220,7 @@ const App = () => {
                 fallback={renderAppPane({
                   open: 'session',
                   pane: {
-                    icon: 'MdApi',
+                    icon: 'md/MdApi',
                     name: 'Sessions Pane',
                     variant: 'session',
                   },

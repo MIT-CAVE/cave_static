@@ -53,7 +53,6 @@ export default function IconPicker({ onSelect }) {
   const [options, setOptions] = useState([])
 
   const iconUrl = useSelector(selectSettingsIconUrl)
-  console.log(iconUrl)
 
   useEffect(() => {
     const fetchIconList = async () => {

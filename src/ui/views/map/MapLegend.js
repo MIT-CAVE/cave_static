@@ -42,13 +42,14 @@ import {
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
-import IconPicker from '../../compound/IconPicker'
 
 import {
-  OverflowText,
-  SimpleDropdown,
   FetchedIcon,
   GradientBox,
+  IconPicker,
+  OverflowText,
+  SimpleDropdown,
+  SizePickerTooltip,
 } from '../../compound'
 
 import {
@@ -359,7 +360,10 @@ const MapLegendSizeBySection = ({
 
   const syncSize = !includesPath(R.values(sync), syncPath)
 
-  const iconPath = [geometryName, 'types', geometryType, 'icon']
+  const typePath = [geometryName, 'types', geometryType]
+  const iconPath = R.append('icon')(typePath)
+  const startSizePath = R.append('startSize')(typePath)
+  const endSizePath = R.append('endSize')(typePath)
 
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
 
@@ -403,29 +407,48 @@ const MapLegendSizeBySection = ({
 
       {/* Second row: Size icons with value range */}
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
-        <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
-          <OverflowText
-            text={getMinLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
-          />
-        </Grid>
+        <SizePickerTooltip
+          value={R.prop('startSize')(typeObj)}
+          onSelect={(newSize) => {
+            dispatch(
+              mutateLocal({
+                path: startSizePath,
+                sync: !includesPath(R.values(sync), startSizePath),
+                value: newSize,
+              })
+            )
+          }}
+        >
+          <Grid
+            item
+            sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
+            xs={3.5}
+          >
+            <OverflowText
+              text={getMinLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
+            />
+          </Grid>
+        </SizePickerTooltip>
         <Tooltip
           enterTouchDelay={0}
-          open={iconPickerOpen}
+          open={geometryName === 'nodes' && iconPickerOpen}
           onOpen={() => setIconPickerOpen(true)}
           onClose={() => setIconPickerOpen(false)}
           title={
-            <IconPicker
-              onSelect={(iconName) => {
-                setIconPickerOpen(false)
-                dispatch(
-                  mutateLocal({
-                    path: iconPath,
-                    sync: !includesPath(R.values(sync), iconPath),
-                    value: iconName,
-                  })
-                )
-              }}
-            />
+            iconPickerOpen && (
+              <IconPicker
+                onSelect={(iconName) => {
+                  setIconPickerOpen(false)
+                  dispatch(
+                    mutateLocal({
+                      path: iconPath,
+                      sync: !includesPath(R.values(sync), iconPath),
+                      value: iconName,
+                    })
+                  )
+                }}
+              />
+            )
           }
         >
           <Grid
@@ -433,7 +456,7 @@ const MapLegendSizeBySection = ({
             container
             alignItems="center"
             justifyContent={'center'}
-            xs={3.5}
+            xs={4}
           >
             <Grid item sx={{ pr: 0.75 }}>
               {addExtraProps(icon, {
@@ -453,11 +476,28 @@ const MapLegendSizeBySection = ({
             </Grid>
           </Grid>
         </Tooltip>
-        <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
-          <OverflowText
-            text={getMaxLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
-          />
-        </Grid>
+        <SizePickerTooltip
+          value={R.prop('endSize')(typeObj)}
+          onSelect={(newSize) => {
+            dispatch(
+              mutateLocal({
+                path: endSizePath,
+                sync: !includesPath(R.values(sync), endSizePath),
+                value: newSize,
+              })
+            )
+          }}
+        >
+          <Grid
+            item
+            sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
+            xs={3.5}
+          >
+            <OverflowText
+              text={getMaxLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
+            />
+          </Grid>
+        </SizePickerTooltip>
       </Grid>
 
       {/* Third row: Clustering functions */}
