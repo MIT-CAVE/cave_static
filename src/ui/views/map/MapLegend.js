@@ -321,10 +321,10 @@ const GroupCalcDropdown = ({ propType, value, onSelect }) => {
         <FetchedIcon
           iconName={
             propType === propId.TOGGLE
-              ? 'TbLogicAnd'
+              ? 'tb/TbLogicAnd'
               : propType === propId.NUMBER
-              ? 'TbMathFunction'
-              : 'TbMathFunction' // TODO: Different icon for a `selector`?
+              ? 'tb/TbMathFunction'
+              : 'tb/TbMathFunction' // TODO: Different icon for a `selector`?
           }
           size={24}
         />
@@ -884,7 +884,9 @@ const LegendCard = ({
                 }}
               >
                 <FetchedIcon
-                  iconName={group ? 'FaRegObjectGroup' : 'FaRegObjectUngroup'}
+                  iconName={
+                    group ? 'fa6/FaRegObjectGroup' : 'fa6/FaRegObjectUngroup'
+                  }
                   size={26}
                   color="text.primary"
                 />

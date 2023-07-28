@@ -297,7 +297,9 @@ const SecondaryPane = ({ pin, onPin }) => {
       <Box sx={styles.titleDiv}>
         <Box sx={styles.titleText}>{title}</Box>
         <IconButton sx={styles.pinButton} onClick={onPin}>
-          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+          <FetchedIcon
+            iconName={pin ? 'md/MdPushPin' : 'md/MdOutlinePushPin'}
+          />
         </IconButton>
       </Box>
       {R.prop('key', open) === 'Filter' ? (

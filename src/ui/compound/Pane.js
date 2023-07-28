@@ -95,7 +95,9 @@ const PaneHeader = ({
           sx={[styles.pinButton, rightButton && { ml: 1.5 }]}
           onClick={onPin}
         >
-          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+          <FetchedIcon
+            iconName={pin ? 'md/MdPushPin' : 'md/MdOutlinePushPin'}
+          />
         </IconButton>
       )}
     </Box>

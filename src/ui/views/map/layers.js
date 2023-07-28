@@ -378,7 +378,7 @@ const GetNodeIconLayer = () => {
       const groupOffset = iconResolution + 15
       const icons = new Set()
       R.forEach(
-        (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
+        (d) => icons.add(R.propOr('md/MdDownloading', 'icon', d)),
         R.unnest(R.values(nodesByType))
       )
       if ([...icons].every((x) => previousIcons.has(x))) return

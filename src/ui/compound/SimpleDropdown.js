@@ -45,7 +45,9 @@ export const SimpleDropdown = ({
         >
           <FetchedIcon
             size={20}
-            iconName={anchorEl == null ? 'MdArrowDropDown' : 'MdArrowDropUp'}
+            iconName={
+              anchorEl == null ? 'md/MdArrowDropDown' : 'md/MdArrowDropUp'
+            }
           />
         </Box>
       </Button>

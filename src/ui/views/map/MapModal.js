@@ -188,19 +188,19 @@ const ListModal = ({ title, options, onSelect }) => {
 const mapStyleOptions = {
   streets: {
     name: 'Streets',
-    icon: 'MdStreetview',
+    icon: 'md/MdStreetview',
     order: 2,
     styleId: styleId.STREETS,
   },
   satelliteStreets: {
     name: 'Satellite Streets',
-    icon: 'MdSatellite',
+    icon: 'md/MdSatellite',
     order: 3,
     styleId: styleId.SATELLITE_STREETS,
   },
   default: {
     name: 'Default',
-    icon: 'MdMap',
+    icon: 'md/MdMap',
     order: 1,
     styleId: null, // `dark` or `light` is determined by the choosen theme
   },
@@ -219,7 +219,7 @@ const MapModal = () => {
     R.add(1),
     R.range(1),
     R.reduce((acc, value) => R.assoc(value, value, acc), {}),
-    R.map((value) => ({ name: value, icon: 'MdAvTimer', order: value }))
+    R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
   )(timeLength)
   return R.cond([
     [
