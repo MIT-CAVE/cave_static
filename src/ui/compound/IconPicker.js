@@ -56,9 +56,15 @@ export default function IconPicker({ onSelect }) {
 
   useEffect(() => {
     const fetchIconList = async () => {
-      setOptions(
-        R.split('\n')(await (await fetch(`${iconUrl}/icon_list.txt`)).text())
-      )
+      const cache = await caches.open('icon_list')
+      const url = `${iconUrl}/icon_list.txt`
+      let response = await cache.match(url)
+      // add to cache if not found
+      if (R.isNil(response)) {
+        await cache.add(url)
+        response = await cache.match(url)
+      }
+      setOptions(R.split('\n')(await response.text()))
     }
     fetchIconList().catch(console.error)
   }, [iconUrl])
