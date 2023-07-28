@@ -163,9 +163,7 @@ const renderAppPane = ({
         // Custom panes
         [
           R.equals(paneId.OPTIONS),
-          R.always(
-            <OptionsPane open={open} pane={openPanesData} side={side} />
-          ),
+          R.always(<OptionsPane open={open} pane={openPanesData} />),
         ],
         [
           R.equals(paneId.CONTEXT),
