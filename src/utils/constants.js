@@ -118,7 +118,7 @@ export const DEFAULT_MAP_STYLES = {
   OSM: {
     name: 'OSM',
     icon: 'MdFreeBreakfast',
-    order: -3,
+    order: 0,
     spec: {
       name: 'osm',
       version: 8,
