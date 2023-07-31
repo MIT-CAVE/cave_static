@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useState } from 'react'
-import { GithubPicker } from 'react-color'
+import { BlockPicker } from 'react-color'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { VscLoading } from 'react-icons/vsc'
@@ -226,7 +226,7 @@ const CategoricalItems = ({
                 <Tooltip
                   enterTouchDelay={0}
                   title={
-                    <GithubPicker
+                    <BlockPicker
                       color={val}
                       triangle="hide"
                       onChangeComplete={(color) =>

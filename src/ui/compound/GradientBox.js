@@ -1,6 +1,6 @@
 import { Grid, Tooltip } from '@mui/material'
 import * as R from 'ramda'
-import { GithubPicker } from 'react-color'
+import { BlockPicker } from 'react-color'
 import { useDispatch, useSelector } from 'react-redux'
 
 import OverflowText from './OverflowText'
@@ -21,9 +21,9 @@ const GradientBox = ({
   const sync = useSelector(selectSync)
   const themeType = useSelector(selectTheme)
 
-  const getTitle = (endKey) => (
-    <GithubPicker
-      color={minColor}
+  const getTitle = (endKey, color) => (
+    <BlockPicker
+      color={color}
       triangle="hide"
       onChangeComplete={(color) => {
         const path = R.concat(colorPropPath, [endKey, themeType])
@@ -45,7 +45,10 @@ const GradientBox = ({
 
   return (
     <Grid item container xs justifyContent="space-between" alignItems="center">
-      <Tooltip enterTouchDelay={0} title={getTitle('startGradientColor')}>
+      <Tooltip
+        enterTouchDelay={0}
+        title={getTitle('startGradientColor', minColor)}
+      >
         <Grid
           item
           zeroMinWidth
@@ -68,7 +71,10 @@ const GradientBox = ({
           backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
         }}
       />
-      <Tooltip enterTouchDelay={0} title={getTitle('endGradientColor')}>
+      <Tooltip
+        enterTouchDelay={0}
+        title={getTitle('endGradientColor', maxColor)}
+      >
         <Grid
           item
           zeroMinWidth
