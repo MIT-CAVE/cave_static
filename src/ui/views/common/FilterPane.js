@@ -9,7 +9,6 @@ import { mutateLocal } from '../../../data/local'
 import {
   selectCategoriesData,
   selectFiltered,
-  selectSecondaryOpenPane,
   selectSync,
 } from '../../../data/selectors'
 
@@ -46,13 +45,12 @@ const styles = {
   },
 }
 
-const FilterPane = () => {
+const FilterPane = ({ secondaryOpen, side }) => {
   const categories = useSelector(selectCategoriesData)
   const filteredData = useSelector(selectFiltered)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
-  const secondaryOpen = useSelector(selectSecondaryOpenPane)
   const filterableCategories = R.filter(R.propOr(true, 'filter'))(categories)
   return (
     <Box sx={{ mb: 4 }}>
@@ -105,7 +103,7 @@ const FilterPane = () => {
                     onClick={() =>
                       dispatch(
                         mutateLocal({
-                          path: ['appBar', 'paneState', 'secondaryOpen'],
+                          path: ['appBar', 'paneState', side, 'secondaryOpen'],
                           value: null,
                           sync: !includesPath(R.values(sync), [
                             'appBar',
@@ -121,7 +119,7 @@ const FilterPane = () => {
                     onClick={() =>
                       dispatch(
                         mutateLocal({
-                          path: ['appBar', 'paneState', 'secondaryOpen'],
+                          path: ['appBar', 'paneState', side, 'secondaryOpen'],
                           value: { key: 'Filter', category: key },
                           sync: !includesPath(R.values(sync), [
                             'appBar',

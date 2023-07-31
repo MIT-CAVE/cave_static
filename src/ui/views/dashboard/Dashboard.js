@@ -4,7 +4,7 @@ import { useState, lazy, Suspense } from 'react'
 import { MdAddCircle } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import DashboardHeader from './DashbaordHeaderWrapper'
+import DashboardHeader from './DashboardHeaderWrapper'
 import DashboardKpi from './DashboardKpi'
 
 import { mutateLocal } from '../../../data/local'
@@ -13,6 +13,8 @@ import {
   selectDashboardLayout,
   selectDashboardLockedLayout,
   selectSync,
+  selectLeftAppBarDisplay,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 
@@ -25,7 +27,6 @@ const styles = {
     display: 'flex',
     height: '100%',
     p: 1,
-    width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)`,
     color: 'text.primary',
     bgcolor: 'background.paper',
   },
@@ -76,6 +77,8 @@ const Dashboard = () => {
   const dashboardLayout = useSelector(selectDashboardLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const appBarId = useSelector(selectAppBarId)
+  const leftBar = useSelector(selectLeftAppBarDisplay)
+  const rightBar = useSelector(selectRightAppBarDisplay)
 
   const dashboardItem = (obj, index) => {
     if (maximizedIndex != null && index !== maximizedIndex) return null
@@ -121,7 +124,17 @@ const Dashboard = () => {
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout']
   return (
-    <Container maxWidth={false} sx={styles.root} disableGutters>
+    <Container
+      maxWidth={false}
+      sx={[
+        styles.root,
+        leftBar && rightBar
+          ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
+          : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
+        rightBar && { mr: APP_BAR_WIDTH },
+      ]}
+      disableGutters
+    >
       {!isDashboardEmpty && (
         <Grid container spacing={1}>
           {R.concat(dashboardLayout)(emptyGridCells).map(dashboardItem)}

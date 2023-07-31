@@ -39,7 +39,9 @@ import {
   selectNodeRangeAtZoom,
   selectArcTypeKeys,
   selectNodeTypeKeys,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
+import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
 
@@ -1087,12 +1089,17 @@ const MapLegend = () => {
   const showPitchSlider = useSelector(selectPitchSliderToggle)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
   const mapLegend = useSelector(selectMapLegend)
+  const rightBar = useSelector(selectRightAppBarDisplay)
   if (!R.propOr(true, 'isOpen', mapLegend)) return null
-
   return (
     <Box
       key="map-legend"
-      sx={[styles.root, { right: showPitchSlider ? 100 : 65 }]}
+      sx={[
+        styles.root,
+        {
+          right: (showPitchSlider ? 100 : 65) + (rightBar ? APP_BAR_WIDTH : 0),
+        },
+      ]}
     >
       <Box
         sx={[

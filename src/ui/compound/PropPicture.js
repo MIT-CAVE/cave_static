@@ -18,7 +18,6 @@ const styles = {
     position: 'absolute',
     top: '15px',
     left: '15px',
-    zindex: '1',
   },
   img: {
     width: '100%',
@@ -55,7 +54,7 @@ const PropPicture = ({ prop, sx = [], ...props }) => {
           setExpanded(false)
         }}
         maxWidth="lg"
-        fullWidth="true"
+        fullWidth
       >
         <img src={prop.value} alt="" style={styles.imgExpanded} />
       </Dialog>

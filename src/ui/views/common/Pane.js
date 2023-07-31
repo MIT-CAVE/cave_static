@@ -93,6 +93,7 @@ const SessionCardButton = ({ sessionCard, toggleSessionCard }) => {
 const PaneWrapper = ({
   open,
   pane,
+  side,
   sessionCard,
   toggleSessionCard,
   width,
@@ -103,6 +104,7 @@ const PaneWrapper = ({
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
     iconName={R.propOr('bi/BiError', 'icon', pane)}
+    side={side}
     style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
       R.equals(variant, paneId.SESSION) ? (
@@ -123,13 +125,17 @@ const PaneWrapper = ({
 PaneWrapper.propTypes = {
   open: PropTypes.string,
   pane: PropTypes.object,
+  side: PropTypes.string,
 }
 
 const renderAppPane = ({
   open,
+  openPanesData,
+  secondaryOpen,
   pane,
   pin,
   onPin,
+  side,
   sessionCard,
   toggleSessionCard,
 }) => {
@@ -142,17 +148,34 @@ const renderAppPane = ({
       {...{ open, variant, pin, onPin }}
       width={paneWidth}
       pane={paneProps}
+      side={side}
       sessionCard={sessionCard}
       toggleSessionCard={toggleSessionCard}
     >
       {R.cond([
         // Built-in panes
         [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
-        [R.equals(paneId.FILTER), R.always(<FilterPane />)],
+        [
+          R.equals(paneId.FILTER),
+          R.always(<FilterPane secondaryOpen={secondaryOpen} side={side} />),
+        ],
         [R.equals(paneId.SESSION), R.always(<SessionPane width={paneWidth} />)],
         // Custom panes
-        [R.equals(paneId.OPTIONS), R.always(<OptionsPane />)],
-        [R.equals(paneId.CONTEXT), R.always(<ContextPane />)],
+        [
+          R.equals(paneId.OPTIONS),
+          R.always(<OptionsPane open={open} pane={openPanesData} />),
+        ],
+        [
+          R.equals(paneId.CONTEXT),
+          R.always(
+            <ContextPane
+              open={open}
+              pane={openPanesData}
+              secondaryOpen={secondaryOpen}
+              side={side}
+            />
+          ),
+        ],
       ])(variant)}
     </PaneWrapper>
   )
