@@ -7,11 +7,8 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCategoriesData,
-  selectSecondaryOpenPane,
-  selectOpenPane,
   selectFiltered,
   selectSync,
-  selectOpenPanesData,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
 
@@ -28,8 +25,8 @@ const styles = {
   drawerPaper: {
     '& .MuiPaper-root': {
       width: PANE_WIDTH,
-      left: `${APP_BAR_WIDTH + 1 + PANE_WIDTH}px`,
       borderLeft: 1,
+      borderRight: 1,
       borderColor: 'text.secondary',
       p: 2.5,
       boxSizing: 'border-box',
@@ -52,7 +49,6 @@ const styles = {
   pinButton: {
     position: 'absolute',
     top: 8,
-    right: 8,
   },
 }
 
@@ -277,26 +273,30 @@ const FilterPane = ({ filteredData, category, dispatch }) => {
   )
 }
 
-const SecondaryPane = ({ pin, onPin }) => {
+const SecondaryPane = ({ open, pane, primaryPane, side, pin, onPin }) => {
   const categories = useSelector(selectCategoriesData)
-  const open = useSelector(selectSecondaryOpenPane)
   const filteredData = useSelector(selectFiltered)
-  const primaryPane = useSelector(selectOpenPane)
-  const pane = useSelector(selectOpenPanesData)
   const dispatch = useDispatch()
 
   const category = R.prop('category', open)
   const title = R.pathOr(category, [category, 'name'])(categories)
   return (
     <Drawer
-      sx={styles.drawerPaper}
-      anchor="left"
+      sx={R.assocPath(
+        ['& .MuiPaper-root', side],
+        `${APP_BAR_WIDTH + 1 + PANE_WIDTH}px`,
+        styles.drawerPaper
+      )}
+      anchor={side}
       open={!!open}
       variant={open ? 'permanent' : 'persistent'}
     >
       <Box sx={styles.titleDiv}>
         <Box sx={styles.titleText}>{title}</Box>
-        <IconButton sx={styles.pinButton} onClick={onPin}>
+        <IconButton
+          sx={R.assoc(side === 'right' ? 'left' : 'right', 8, styles.pinButton)}
+          onClick={onPin}
+        >
           <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
         </IconButton>
       </Box>

@@ -99,6 +99,9 @@ export const selectTime = createSelector(selectLocalSettings, (data) =>
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
 )
+export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
+  R.propOr(false, 'mirror', data)
+)
 // Data
 export const selectData = (state) => R.prop('data')(state)
 export const selectIgnoreData = createSelector(selectData, (data) =>
@@ -140,6 +143,9 @@ export const selectSettings = createSelector(selectData, (data) =>
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
 )
+export const selectModals = createSelector(selectData, (data) =>
+  R.propOr({}, 'modals')(data)
+)
 export const selectMap = createSelector(selectData, R.propOr({}, 'maps'))
 // Data -> Types
 export const selectNodeTypes = createSelector(
@@ -157,10 +163,39 @@ export const selectGeoTypes = createSelector(
 )
 // Data -> data
 export const selectPanesData = createSelector(selectPanes, R.propOr({}, 'data'))
+export const selectModalsData = createSelector(
+  selectModals,
+  R.propOr({}, 'data')
+)
 export const selectMapData = createSelector(selectMap, R.propOr({}, 'data'))
 
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
   R.propOr({}, 'data')(data)
+)
+export const selectLeftAppBarData = createSelector(
+  selectAppBarData,
+  // Keep only sub objects with bar: upperLeft, lowerLeft, upper, lower
+  R.pipe(
+    R.dissoc('appBarId'),
+    R.filter((appBarItem) =>
+      R.includes(R.prop('bar', appBarItem), [
+        'upperLeft',
+        'lowerLeft',
+        'upper',
+        'lower',
+      ])
+    )
+  )
+)
+
+export const selectRightAppBarData = createSelector(
+  selectAppBarData,
+  R.pipe(
+    R.dissoc('appBarId'),
+    R.filter((appBarItem) =>
+      R.includes(R.prop('bar', appBarItem), ['upperRight', 'lowerRight'])
+    )
+  )
 )
 export const selectCategoriesData = createSelector(selectCategories, (data) =>
   R.propOr({}, 'data')(data)
@@ -230,6 +265,13 @@ export const selectLocalPanes = createSelector(selectLocal, (data) =>
 export const selectLocalPanesData = createSelector(selectLocalPanes, (data) =>
   R.prop('data', data)
 )
+//Local -> modals
+export const selectLocalModals = createSelector(selectLocal, (data) =>
+  R.prop('modals')(data)
+)
+export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
+  R.prop('data', data)
+)
 // Local -> Dashboard
 export const selectLocalDashboard = createSelector(selectLocal, (data) =>
   R.propOr({}, 'dashboards')(data)
@@ -245,28 +287,89 @@ export const selectLocalAppBar = createSelector(selectLocal, (data) =>
 export const selectLocalAppBarData = createSelector(selectLocalAppBar, (data) =>
   R.prop('data', data)
 )
+export const selectLeftLocalAppBarData = createSelector(
+  selectLocalAppBarData,
+  (data) => R.propOr({}, 'left', data)
+)
+export const selectRightLocalAppBarData = createSelector(
+  selectLocalAppBarData,
+  (data) => R.propOr({}, 'right', data)
+)
 export const selectPaneState = createSelector(
   [selectLocalAppBar, selectAppBar],
   (localData, data) =>
     R.propOr(R.propOr({}, 'paneState', data), 'paneState', localData)
 )
-export const selectOpenPane = createSelector(selectPaneState, (data) =>
-  R.propOr('', 'open', data)
+export const selectLeftOpenPane = createSelector(selectPaneState, (data) =>
+  R.propOr('', 'open', R.propOr({}, 'left', data))
 )
-export const selectSecondaryOpenPane = createSelector(selectPaneState, (data) =>
-  R.propOr('', 'secondaryOpen', data)
+export const selectLeftSecondaryOpenPane = createSelector(
+  selectPaneState,
+  (data) => R.propOr('', 'secondaryOpen', R.propOr({}, 'left', data))
 )
-export const selectPinPane = createSelector(selectPaneState, (data) =>
-  R.propOr(false, 'pin', data)
+export const selectLeftPinPane = createSelector(selectPaneState, (data) =>
+  R.propOr(false, 'pin', R.propOr({}, 'left', data))
 )
-export const selectGroupedAppBar = createSelector(
-  [selectLocalAppBarData, selectAppBarData],
-  R.pipe(
-    R.mergeDeepRight,
-    R.toPairs,
-    R.groupBy(R.path([1, 'bar'])),
-    R.map(R.fromPairs)
-  )
+export const selectRightOpenPane = createSelector(selectPaneState, (data) =>
+  R.propOr('', 'open', R.propOr({}, 'right', data))
+)
+export const selectRightSecondaryOpenPane = createSelector(
+  selectPaneState,
+  (data) => R.propOr('', 'secondaryOpen', R.propOr({}, 'right', data))
+)
+export const selectRightPinPane = createSelector(selectPaneState, (data) =>
+  R.propOr(false, 'pin', R.propOr({}, 'right', data))
+)
+export const selectOpenModal = createSelector(
+  [selectLocalAppBar, selectAppBar],
+  (localData, data) =>
+    R.propOr(R.propOr({}, 'openModal', data), 'openModal', localData)
+)
+const groupAppBar = R.pipe(
+  R.mergeDeepRight,
+  R.toPairs,
+  R.groupBy(
+    R.cond([
+      [
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperLeft', 'upper'])),
+        R.always('upperLeft'),
+      ],
+      [
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerLeft', 'lower'])),
+        R.always('lowerLeft'),
+      ],
+      [
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperRight'])),
+        R.always('upperRight'),
+      ],
+      [
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerRight'])),
+        R.always('lowerRight'),
+      ],
+      [R.T, R.always('')],
+    ])
+  ),
+  R.map(R.fromPairs)
+)
+export const selectLeftGroupedAppBar = createSelector(
+  [selectLeftLocalAppBarData, selectLeftAppBarData],
+  groupAppBar
+)
+export const selectRightGroupedAppBar = createSelector(
+  [selectRightLocalAppBarData, selectRightAppBarData],
+  groupAppBar
+)
+export const selectLeftAppBarDisplay = createSelector(
+  [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
+  (mirrorMode, leftData, rightData) =>
+    (!mirrorMode && !R.isEmpty(leftData)) ||
+    (mirrorMode && !R.isEmpty(rightData))
+)
+export const selectRightAppBarDisplay = createSelector(
+  [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
+  (mirrorMode, leftData, rightData) =>
+    (!mirrorMode && !R.isEmpty(rightData)) ||
+    (mirrorMode && !R.isEmpty(leftData))
 )
 export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData],
@@ -290,12 +393,30 @@ export const selectStaticMap = createSelector(
   (appBarId, appBarData) => R.pathOr(false, [appBarId, 'static'], appBarData)
 )
 // Merged Panes
-export const selectOpenPanesData = createSelector(
-  [selectOpenPane, selectPanesData, selectLocalPanesData],
-  (openPane, panesData, localPanesData) =>
+export const selectLeftOpenPanesData = createSelector(
+  [selectLeftOpenPane, selectPanesData, selectLocalPanesData],
+  (leftOpenPane, panesData, localPanesData) =>
     R.mergeDeepRight(
-      R.propOr({}, openPane, panesData),
-      R.propOr({}, openPane, localPanesData)
+      R.propOr({}, leftOpenPane, panesData),
+      R.propOr({}, leftOpenPane, localPanesData)
+    ),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectRightOpenPanesData = createSelector(
+  [selectRightOpenPane, selectPanesData, selectLocalPanesData],
+  (rightOpenPane, panesData, localPanesData) =>
+    R.mergeDeepRight(
+      R.propOr({}, rightOpenPane, panesData),
+      R.propOr({}, rightOpenPane, localPanesData)
+    ),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
+)
+export const selectOpenModalData = createSelector(
+  [selectOpenModal, selectModalsData, selectLocalModalsData],
+  (openModal, modalsData, localModalsData) =>
+    R.mergeDeepRight(
+      R.propOr({}, openModal, modalsData),
+      R.propOr({}, openModal, localModalsData)
     ),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
