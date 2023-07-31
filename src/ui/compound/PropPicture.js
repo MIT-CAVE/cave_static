@@ -18,7 +18,6 @@ const styles = {
     position: 'absolute',
     top: '15px',
     left: '15px',
-    zindex: '1',
   },
   img: {
     width: '100%',
