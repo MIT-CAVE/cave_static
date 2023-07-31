@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import {
   DEFAULT_ICON_URL,
   DEFAULT_VIEWPORT,
+  DEFAULT_MAP_STYLES,
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
@@ -97,9 +98,6 @@ export const selectTime = createSelector(selectLocalSettings, (data) =>
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
-)
-export const selectTouchMode = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'touch', data)
 )
 // Data
 export const selectData = (state) => R.prop('data')(state)
@@ -240,7 +238,6 @@ export const selectLocalDashboardData = createSelector(
   selectLocalDashboard,
   (data) => R.prop('data', data)
 )
-
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>
   R.prop('appBar', data)
@@ -452,8 +449,27 @@ export const selectPitch = createSelector(selectViewport, (data) =>
 export const selectZoom = createSelector(selectViewport, (data) =>
   R.prop('zoom')(data)
 )
-export const selectMapStyle = createSelector(selectMapControls, (data) =>
-  R.prop('mapStyle')(data)
+export const selectCurrentMapStyle = createSelector(
+  selectCurrentMapData,
+  (data) => R.prop('currentStyle')(data)
+)
+export const selectCurrentMapProjection = createSelector(
+  selectCurrentMapData,
+  (data) => R.prop('currentProjection')(data)
+)
+export const selectMapStyleOptions = createSelector(
+  [selectSettingsData, selectMapboxToken],
+  (data, token) => ({
+    ...DEFAULT_MAP_STYLES,
+    ...R.pipe(
+      R.propOr([], 'additionalMapStyles'),
+      R.filter(
+        (style) =>
+          token !== '' ||
+          R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
+      )
+    )(data),
+  })
 )
 export const selectPitchSliderToggle = createSelector(
   selectMapControls,
@@ -931,10 +947,10 @@ export const selectGroupedEnabledArcs = createSelector(
       R.toPairs,
       R.groupBy(
         R.pipe(
-          R.path([1, 'lineBy']),
+          R.prop(1),
           R.cond([
-            [R.equals('3d'), R.always('3d')],
-            [R.equals('geoJson'), R.always('geoJson')],
+            [R.propEq('3d', 'lineBy'), R.always('3d')],
+            [R.has('geoJson'), R.always('geoJson')],
             [R.T, R.always('false')],
           ])
         )
@@ -948,12 +964,12 @@ export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
 export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
   R.toPairs(R.prop('3d', data))
 )
-export const selectMutliLineData = createSelector(
+export const selectMultiLineData = createSelector(
   selectGroupedEnabledArcs,
   (data) => R.toPairs(R.prop('geoJson', data))
 )
 export const selectLineMatchingKeys = createSelector(
-  selectMutliLineData,
+  selectMultiLineData,
   (data) =>
     R.pipe(
       R.map((d) => R.assoc('data_key', d[0], d[1])),
@@ -1327,4 +1343,30 @@ export const selectNodeRangeAtZoom = createSelector(
       resultEqualityCheck: R.equals,
     },
   }
+)
+
+export const selectInteractiveLayerIds = createSelector(
+  [
+    selectMatchingKeys,
+    selectLineMatchingKeys,
+    selectLineData,
+    selectSplitNodeData,
+    selectNodeClustersAtZoom,
+  ],
+  (matchingKeys, lineMatchingKeys, lineData, splitNodeData, nodeClusters) => [
+    'data',
+    ...R.propOr([], 'false', splitNodeData).map(([id]) => id),
+    ...R.propOr([], 'data', nodeClusters).map((group) =>
+      R.pathOr(JSON.stringify(0, 2, R.slice(group.properties.grouped_ids)), [
+        'properties',
+        'id',
+      ])(group)
+    ),
+    ...lineData.map(([id]) => id),
+    ...R.pipe(
+      R.mergeLeft(lineMatchingKeys),
+      R.mapObjIndexed((geo) => geo.data_key),
+      R.values
+    )(matchingKeys),
+  ]
 )

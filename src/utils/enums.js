@@ -17,15 +17,6 @@ export const viewId = {
   KPI: 'kpi',
 }
 
-export const styleId = {
-  STREETS: 'streets-v12',
-  OUTDOORS: 'outdoors-v12',
-  DARK: 'dark-v11',
-  LIGHT: 'light-v11',
-  SATELLITE: 'satellite-v9',
-  SATELLITE_STREETS: 'satellite-streets-v12',
-}
-
 export const asyncStatus = {
   PENDING: 'pending',
   FAIL: 'fail',

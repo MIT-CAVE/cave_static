@@ -18,6 +18,7 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { mutateLocal } from '../../../data/local'
 import {
   bearingSliderToggle,
   bearingUpdate,
@@ -41,6 +42,7 @@ import {
   selectTimeLength,
   selectStaticMap,
   selectAppBarId,
+  selectSync,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -49,7 +51,9 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 
-import { getSliderMarks, formatNumber } from '../../../utils'
+import { FetchedIcon } from '../../compound'
+
+import { getSliderMarks, formatNumber, includesPath } from '../../../utils'
 
 const styles = {
   getRoot: (hover) => ({
@@ -155,7 +159,9 @@ const tooltipTitles = {
   defaultViewport: 'Map Viewport \u279C Go to default viewport',
   customViewports: 'Map Viewport \u279C See all viewports...',
   mapLegend: 'Map Legend \u279C Arcs, nodes & geo areas',
-  mapStyles: "Map Style \u279C Choose from the map's Mapbox styles",
+  mapStyles: "Map Style \u279C Choose from the map's styles",
+  globeProjection: 'Projection \u279C Globe',
+  mercatorProjection: 'Projection \u279C Mercator',
 }
 
 const TooltipButton = ({
@@ -242,7 +248,7 @@ const MapNavButtons = memo(() => {
   )
 })
 
-const MapControls = () => {
+const MapControls = ({ allowProjections }) => {
   const [hover, setHover] = useState(false)
   const [animation, setAnimation] = useState(false)
   const activeAnimation = useRef()
@@ -258,7 +264,15 @@ const MapControls = () => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+
+  const syncProjection = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    appBarId,
+    'currentProjection',
+  ])
 
   const getDegreeFormat = (value) =>
     formatNumber(value, { unit: 'º', precision: 0, unitSpace: false })
@@ -400,6 +414,42 @@ const MapControls = () => {
               <MdMap />
             </TooltipButton>
           </ButtonGroup>
+
+          {/* Projection */}
+          {allowProjections && (
+            <ButtonGroup sx={styles.btnGroup} variant="contained">
+              <TooltipButton
+                title={tooltipTitles.globeProjection}
+                placement="top"
+                onClick={() =>
+                  dispatch(
+                    mutateLocal({
+                      path: ['maps', 'data', appBarId, 'currentProjection'],
+                      value: 'globe',
+                      sync: syncProjection,
+                    })
+                  )
+                }
+              >
+                <FetchedIcon iconName="BsGlobe2" />
+              </TooltipButton>
+              <TooltipButton
+                title={tooltipTitles.mercatorProjection}
+                placement="top"
+                onClick={() => {
+                  dispatch(
+                    mutateLocal({
+                      path: ['maps', 'data', appBarId, 'currentProjection'],
+                      value: 'mercator',
+                      sync: syncProjection,
+                    })
+                  )
+                }}
+              >
+                <FetchedIcon iconName="BsMap" />
+              </TooltipButton>
+            </ButtonGroup>
+          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">

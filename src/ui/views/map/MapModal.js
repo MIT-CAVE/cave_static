@@ -15,11 +15,8 @@ import { useSelector, useDispatch } from 'react-redux'
 import SimpleModalOptions from './SimpleModalOptions'
 
 import { sendCommand } from '../../../data/data'
-import {
-  closeMapModal,
-  mapStyleSelection,
-  viewportUpdate,
-} from '../../../data/local/mapSlice'
+import { mutateLocal } from '../../../data/local'
+import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewports,
@@ -31,15 +28,17 @@ import {
   selectMergedArcs,
   selectMergedNodes,
   selectMergedGeos,
+  selectMapStyleOptions,
+  selectSync,
 } from '../../../data/selectors'
-import { styleId } from '../../../utils/enums'
+import { DEFAULT_MAP_STYLE_KEY } from '../../../utils/constants'
 import ClusterModal from '../../compound/ClusterModal'
 import SimpleModal from '../../compound/SimpleModal'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { FetchedIcon } from '../../compound'
 
-import { customSort } from '../../../utils'
+import { customSort, includesPath } from '../../../utils'
 
 const styles = {
   modal: {
@@ -184,34 +183,14 @@ const ListModal = ({ title, options, onSelect }) => {
   )
 }
 
-// QUESTION: Do we move this to somewhere in the API?
-const mapStyleOptions = {
-  streets: {
-    name: 'Streets',
-    icon: 'MdStreetview',
-    order: 2,
-    styleId: styleId.STREETS,
-  },
-  satelliteStreets: {
-    name: 'Satellite Streets',
-    icon: 'MdSatellite',
-    order: 3,
-    styleId: styleId.SATELLITE_STREETS,
-  },
-  default: {
-    name: 'Default',
-    icon: 'MdMap',
-    order: 1,
-    styleId: null, // `dark` or `light` is determined by the choosen theme
-  },
-}
-
 const MapModal = () => {
   const mapModal = useSelector(selectMapModal)
   const optionalViewports = useSelector(selectOptionalViewports)
   const timeUnits = useSelector(selectTimeUnits)
   const timeLength = useSelector(selectTimeLength)
   const appBarId = useSelector(selectAppBarId)
+  const mapStyleOptions = useSelector(selectMapStyleOptions)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
   const feature = R.path(['data', 'feature'], mapModal)
@@ -221,6 +200,13 @@ const MapModal = () => {
     R.reduce((acc, value) => R.assoc(value, value, acc), {}),
     R.map((value) => ({ name: value, icon: 'MdAvTimer', order: value }))
   )(timeLength)
+
+  const syncStyles = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    appBarId,
+    'currentStyle',
+  ])
   return R.cond([
     [
       R.equals('viewports'),
@@ -248,9 +234,18 @@ const MapModal = () => {
           title="Map Styles"
           placeholder="Choose a map style..."
           options={mapStyleOptions}
-          onSelect={(value) => {
-            const styleId = R.path([value, 'styleId'])(mapStyleOptions)
-            dispatch(mapStyleSelection({ appBarId, mapStyle: styleId }))
+          onSelect={(mapStyle) => {
+            dispatch(
+              mutateLocal({
+                sync: syncStyles,
+                path: ['maps', 'data', appBarId, 'currentStyle'],
+                value: R.ifElse(
+                  R.equals(DEFAULT_MAP_STYLE_KEY),
+                  R.always(undefined),
+                  R.always(mapStyle)
+                )(mapStyle),
+              })
+            )
             dispatch(closeMapModal(appBarId))
           }}
         />
