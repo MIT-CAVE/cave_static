@@ -3,12 +3,7 @@ import * as R from 'ramda'
 
 import { overrideState } from './actions'
 
-import {
-  DEFAULT_VIEWPORT,
-  MAX_ZOOM,
-  MIN_ZOOM,
-  STYLE_URL_BASE,
-} from '../../utils/constants'
+import { DEFAULT_VIEWPORT, MAX_ZOOM, MIN_ZOOM } from '../../utils/constants'
 
 export const mapSlice = createSlice({
   name: 'maps',
@@ -43,16 +38,6 @@ export const mapSlice = createSlice({
           ['data', action.payload, 'mapControls', 'showPitchSlider'],
           state
         ),
-        state
-      )
-    },
-    // payload: {mapStyle: string, appBarId:string}
-    mapStyleSelection: (state, action) => {
-      return R.assocPath(
-        ['data', action.payload.appBarId, 'mapControls', 'mapStyle'],
-        R.propOr(false, 'mapStyle', action.payload)
-          ? `${STYLE_URL_BASE}${R.prop('mapStyle', action.payload)}`
-          : null,
         state
       )
     },
@@ -299,7 +284,6 @@ export const {
   toggleMapLegend,
   bearingSliderToggle,
   pitchSliderToggle,
-  mapStyleSelection,
   bearingUpdate,
   pitchUpdate,
   viewportUpdate,

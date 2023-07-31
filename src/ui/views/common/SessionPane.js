@@ -416,8 +416,6 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
 }
 
 const CustomDataGridRow = ({ ...props }) => {
-  console.log(props)
-
   const {
     currentAction,
     index,
@@ -442,8 +440,6 @@ const CustomDataGridRow = ({ ...props }) => {
   } = props.row
 
   const selected = sessionId === sessionIdCurrent
-  console.log(currentAction.command)
-  console.log(props.index)
   return (
     <Fragment key={`${teamId}-${sessionName}`}>
       {props.index === 0 && currentAction.command === 'create' && (
@@ -586,7 +582,6 @@ const SessionPane = ({ width }) => {
   }
   // Create session
   const onClickCreateHandler = () => {
-    console.log('create')
     setCurrentAction({ command: 'create' })
   }
   const onClickConfirmCreateHandler = (name, description, teamId) => {
