@@ -8,7 +8,6 @@ import {
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
-  LINE_TYPES,
 } from '../../utils/constants'
 import { propId, statId, viewId, chartStatUses } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
@@ -1618,75 +1617,80 @@ export const selectNodeLayerGeoJson = createSelector(
 export const selectArcLayerGeoJson = createSelector(
   [selectArcRange, selectTheme, selectLineData, selectEnabledArcs],
   (arcRange, themeType, arcData, legendObjects) =>
-    R.map(([id, arc]) => {
-      const sizeProp = R.path([arc.type, 'sizeBy'], legendObjects)
-      const sizeRange = arcRange(arc.type, sizeProp, true)
-      const sizePropVal = parseFloat(R.path(['props', sizeProp, 'value'], arc))
-      const size = getScaledValue(
-        R.prop('min', sizeRange),
-        R.prop('max', sizeRange),
-        parseFloat(R.prop('startSize', arc)),
-        parseFloat(R.prop('endSize', arc)),
-        sizePropVal
-      )
-      const colorProp = R.path([arc.type, 'colorBy'], legendObjects)
-      const colorRange = arcRange(arc.type, colorProp, false)
-      const isCategorical = !R.has('min', colorRange)
-      const colorPropVal = R.pipe(
-        R.path(['props', colorProp, 'value']),
-        R.when(R.isNil, R.always('')),
-        (s) => s.toString()
-      )(arc)
+    R.pipe(
+      R.map(([id, arc]) => {
+        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjects)
+        const sizeRange = arcRange(arc.type, sizeProp, true)
+        const sizePropVal = parseFloat(
+          R.path(['props', sizeProp, 'value'], arc)
+        )
+        const size = getScaledValue(
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', arc)),
+          parseFloat(R.prop('endSize', arc)),
+          sizePropVal
+        )
+        const colorProp = R.path([arc.type, 'colorBy'], legendObjects)
+        const colorRange = arcRange(arc.type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const colorPropVal = R.pipe(
+          R.path(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(arc)
 
-      let color = isCategorical
-        ? R.map((val) => parseFloat(val))(
-            R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          )
-        : getScaledArray(
-            R.prop('min', colorRange),
-            R.prop('max', colorRange),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('startGradientColor', colorRange),
-                ['startGradientColor', themeType],
-                colorRange
-              )
+        let color = isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
                 .replace(/[^\d,.]/g, '')
                 .split(',')
-            ),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('endGradientColor', colorRange),
-                ['endGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            parseFloat(R.path(['props', colorProp, 'value'], arc))
-          )
-      const colorString = `rgb(${color.join(',')})`
+            )
+          : getScaledArray(
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(R.path(['props', colorProp, 'value'], arc))
+            )
+        const colorString = `rgb(${color.join(',')})`
 
-      const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(arc)]
+        const dashPattern = R.propOr('solid', 'lineBy')(arc)
 
-      return {
-        type: 'Feature',
-        properties: {
-          cave_obj: arc,
-          cave_name: id,
-          color: colorString,
-          size: size,
-          dash: dashPattern,
-        },
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [arc.startLongitude, arc.startLatitude],
-            [arc.endLongitude, arc.endLatitude],
-          ],
-        },
-      }
-    })(arcData)
+        return {
+          type: 'Feature',
+          properties: {
+            cave_obj: arc,
+            cave_name: id,
+            color: colorString,
+            size: size,
+            dash: dashPattern,
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [arc.startLongitude, arc.startLatitude],
+              [arc.endLongitude, arc.endLatitude],
+            ],
+          },
+        }
+      }),
+      R.groupBy(R.path(['properties', 'dash']))
+    )(arcData)
 )

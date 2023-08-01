@@ -232,7 +232,7 @@ export const Geos = memo(({ highlightLayerId }) => {
           const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
           const id = R.prop('data_key')(geoObj)
-          const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(geoObj)]
+          const dashPattern = R.propOr('solid', 'lineBy')(geoObj)
           return R.mergeRight(filteredFeatures, {
             properties: {
               cave_name: id,
@@ -242,7 +242,8 @@ export const Geos = memo(({ highlightLayerId }) => {
             },
           })
         }),
-        R.values
+        R.values,
+        R.groupBy(R.path(['properties', 'dash']))
       )(lineMatchingKeys),
     [findLineColor, findLineSize, lineMatchingKeys, selectedArcs]
   )
@@ -274,17 +275,17 @@ export const Geos = memo(({ highlightLayerId }) => {
       />
     </Source>,
     <Source
-      id={layerId.MULTI_ARC_LAYER}
-      key={layerId.MULTI_ARC_LAYER}
+      id={layerId.MULTI_ARC_LAYER_SOLID}
+      key={layerId.MULTI_ARC_LAYER_SOLID}
       type="geojson"
       data={{
         type: 'FeatureCollection',
-        features: lineGeoJsonObject,
+        features: R.propOr([], 'solid', lineGeoJsonObject),
       }}
     >
       <Layer
-        id={layerId.MULTI_ARC_LAYER}
-        key={layerId.MULTI_ARC_LAYER}
+        id={layerId.MULTI_ARC_LAYER_SOLID}
+        key={layerId.MULTI_ARC_LAYER_SOLID}
         type="line"
         layout={{
           'line-cap': 'round',
@@ -300,7 +301,68 @@ export const Geos = memo(({ highlightLayerId }) => {
           ],
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
-          'line-dasharray': ['get', 'dash'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.MULTI_ARC_LAYER_DASH}
+      key={layerId.MULTI_ARC_LAYER_DASH}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dashed', lineGeoJsonObject),
+      }}
+    >
+      <Layer
+        id={layerId.MULTI_ARC_LAYER_DASH}
+        key={layerId.MULTI_ARC_LAYER_DASH}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dashed'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.MULTI_ARC_LAYER_DOT}
+      key={layerId.MULTI_ARC_LAYER_DOT}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dotted', lineGeoJsonObject),
+      }}
+    >
+      <Layer
+        id={layerId.MULTI_ARC_LAYER_DOT}
+        key={layerId.MULTI_ARC_LAYER_DOT}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dotted'],
         }}
       />
     </Source>,
@@ -349,16 +411,19 @@ export const Arcs = memo(({ highlightLayerId }) => {
 
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
-  return (
+  return [
     <Source
-      id={layerId.ARC_LAYER}
-      key={layerId.ARC_LAYER}
+      id={layerId.ARC_LAYER_SOLID}
+      key={layerId.ARC_LAYER_SOLID}
       type="geojson"
-      data={{ type: 'FeatureCollection', features: arcLayerGeoJson }}
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'solid', arcLayerGeoJson),
+      }}
     >
       <Layer
-        id={layerId.ARC_LAYER}
-        key={layerId.ARC_LAYER}
+        id={layerId.ARC_LAYER_SOLID}
+        key={layerId.ARC_LAYER_SOLID}
         type="line"
         paint={{
           'line-color': [
@@ -370,9 +435,62 @@ export const Arcs = memo(({ highlightLayerId }) => {
           ],
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
-          'line-dasharray': ['get', 'dash'],
         }}
       />
-    </Source>
-  )
+    </Source>,
+    <Source
+      id={layerId.ARC_LAYER_DASH}
+      key={layerId.ARC_LAYER_DASH}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dashed', arcLayerGeoJson),
+      }}
+    >
+      <Layer
+        id={layerId.ARC_LAYER_DASH}
+        key={layerId.ARC_LAYER_DASH}
+        type="line"
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dashed'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.ARC_LAYER_DOT}
+      key={layerId.ARC_LAYER_DOT}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dotted', arcLayerGeoJson),
+      }}
+    >
+      <Layer
+        id={layerId.ARC_LAYER_DOT}
+        key={layerId.ARC_LAYER_DOT}
+        type="line"
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dotted'],
+        }}
+      />
+    </Source>,
+  ]
 })

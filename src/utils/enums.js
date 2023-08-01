@@ -1,6 +1,10 @@
 export const layerId = {
-  ARC_LAYER: 'arcLayer',
-  MULTI_ARC_LAYER: 'multiArcLayer',
+  ARC_LAYER_SOLID: 'arcLayerSolid',
+  ARC_LAYER_DASH: 'arcLayerDash',
+  ARC_LAYER_DOT: 'arcLayerDot',
+  MULTI_ARC_LAYER_SOLID: 'multiArcLayerSolid',
+  MULTI_ARC_LAYER_DASH: 'multiArcLayerDash',
+  MULTI_ARC_LAYER_DOT: 'multiArcLayerDot',
   GEOGRAPHY_LAYER: 'geographyLayer',
   NODE_ICON_LAYER: 'nodeIconLayer',
 }
