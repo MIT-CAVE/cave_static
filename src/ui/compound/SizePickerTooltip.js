@@ -1,13 +1,14 @@
-import { Box, Slider, Tooltip } from '@mui/material'
+import { Box, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useState } from 'react'
+
+import StableTooltip from './StableTooltip'
 
 const SizePickerTooltip = ({ children, value, onSelect }) => {
   const [instValue, setInstValue] = useState(parseInt(value))
 
   return (
-    <Tooltip
-      enterTouchDelay={0}
+    <StableTooltip
       title={
         <Box sx={{ width: 250, px: 2, mx: 'auto' }}>
           <Slider
@@ -22,7 +23,7 @@ const SizePickerTooltip = ({ children, value, onSelect }) => {
       }
     >
       {children}
-    </Tooltip>
+    </StableTooltip>
   )
 }
 

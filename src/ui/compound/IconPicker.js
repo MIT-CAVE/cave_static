@@ -70,16 +70,15 @@ export default function IconPicker({ onSelect }) {
   }, [iconUrl])
   return (
     <Autocomplete
-      id="virtualize-demo"
       style={{ width: 300 }}
       disableListWrap
       ListboxComponent={ListboxComponent}
       options={options}
-      open={true}
       onChange={(_, value) => onSelect(value)}
       renderInput={(params) => (
         <TextField
           {...params}
+          autoFocus={true}
           variant="outlined"
           label="Search to replace the icon"
           fullWidth

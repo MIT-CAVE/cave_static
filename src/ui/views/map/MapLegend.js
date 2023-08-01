@@ -7,11 +7,10 @@ import {
   Stack,
   Switch,
   ToggleButton,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useState } from 'react'
+import { memo, useCallback } from 'react'
 import { BlockPicker } from 'react-color'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
@@ -52,6 +51,7 @@ import {
   OverflowText,
   SimpleDropdown,
   SizePickerTooltip,
+  StableTooltip,
 } from '../../compound'
 
 import {
@@ -225,8 +225,7 @@ const CategoricalItems = ({
           R.mapObjIndexed(
             (val, key) => (
               <Stack alignItems="center" {...{ key }}>
-                <Tooltip
-                  enterTouchDelay={0}
+                <StableTooltip
                   title={
                     <BlockPicker
                       color={val}
@@ -246,12 +245,14 @@ const CategoricalItems = ({
                     />
                   }
                 >
-                  <Paper
-                    sx={[styles.categoryIcon, { bgcolor: val }]}
-                    elevation={3}
-                  />
-                </Tooltip>
-                <div>{getLabel(key)}</div>
+                  <div>
+                    <Paper
+                      sx={[styles.categoryIcon, { bgcolor: val }]}
+                      elevation={3}
+                    />
+                    <div>{getLabel(key)}</div>
+                  </div>
+                </StableTooltip>
               </Stack>
             ),
             colorRange
@@ -367,8 +368,6 @@ const MapLegendSizeBySection = ({
   const startSizePath = R.append('startSize')(typePath)
   const endSizePath = R.append('endSize')(typePath)
 
-  const [iconPickerOpen, setIconPickerOpen] = useState(false)
-
   const unit = R.path(['props', sizeProp, 'numberFormat', 'unit'])(typeObj)
   return (
     <>
@@ -431,26 +430,20 @@ const MapLegendSizeBySection = ({
             />
           </Grid>
         </SizePickerTooltip>
-        <Tooltip
-          enterTouchDelay={0}
-          open={geometryName === 'nodes' && iconPickerOpen}
-          onOpen={() => setIconPickerOpen(true)}
-          onClose={() => setIconPickerOpen(false)}
+        <StableTooltip
+          enabled={geometryName === 'nodes'}
           title={
-            iconPickerOpen && (
-              <IconPicker
-                onSelect={(iconName) => {
-                  setIconPickerOpen(false)
-                  dispatch(
-                    mutateLocal({
-                      path: iconPath,
-                      sync: !includesPath(R.values(sync), iconPath),
-                      value: iconName,
-                    })
-                  )
-                }}
-              />
-            )
+            <IconPicker
+              onSelect={(iconName) => {
+                dispatch(
+                  mutateLocal({
+                    path: iconPath,
+                    sync: !includesPath(R.values(sync), iconPath),
+                    value: iconName,
+                  })
+                )
+              }}
+            />
           }
         >
           <Grid
@@ -477,7 +470,7 @@ const MapLegendSizeBySection = ({
               })}
             </Grid>
           </Grid>
-        </Tooltip>
+        </StableTooltip>
         <SizePickerTooltip
           value={R.prop('endSize')(typeObj)}
           onSelect={(newSize) => {
