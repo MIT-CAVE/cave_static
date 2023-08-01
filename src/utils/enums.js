@@ -1,9 +1,8 @@
 export const layerId = {
   ARC_LAYER: 'arcLayer',
-  ARC_LAYER_3D: 'arcLayer3D',
-  GEOGRAPHY_LAYER: 'geography',
+  MULTI_ARC_LAYER: 'multiArcLayer',
+  GEOGRAPHY_LAYER: 'geographyLayer',
   NODE_ICON_LAYER: 'nodeIconLayer',
-  NODE_ICON_CLUSTER_LAYER: 'nodeIconClusterLayer',
 }
 
 export const themeId = {

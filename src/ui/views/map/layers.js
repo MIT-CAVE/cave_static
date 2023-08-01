@@ -1,15 +1,11 @@
 import * as R from 'ramda'
-import { Children, useEffect, useState, memo } from 'react'
+import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useSelector } from 'react-redux'
 
 import {
   selectTheme,
-  selectSplitNodeData,
-  selectNodeRange,
   selectEnabledArcs,
-  selectEnabledNodes,
-  selectLineData,
   selectArcRange,
   selectEnabledGeos,
   selectGeoColorRange,
@@ -19,9 +15,11 @@ import {
   selectArcTypes,
   selectLineMatchingKeysByType,
   selectLineMatchingKeys,
-  selectNodeClustersAtZoom,
+  selectNodeLayerGeoJson,
+  selectArcLayerGeoJson,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
+import { layerId } from '../../../utils/enums'
 
 import { getScaledColor, getScaledArray, getScaledValue } from '../../../utils'
 
@@ -40,6 +38,8 @@ export const Geos = memo(({ highlightLayerId }) => {
 
   const [selectedGeos, setSelectedGeos] = useState({})
   const [selectedArcs, setSelectedArcs] = useState({})
+
+  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
@@ -91,487 +91,288 @@ export const Geos = memo(({ highlightLayerId }) => {
     fetchCache()
   }, [arcTypes, enabledArcs, lineMatchingKeysByType])
 
-  const findColor = R.memoizeWith(
-    (geoObj) => {
-      const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-      const value = R.path(['props', colorProp, 'value'], geoObj)
-      return `${geoObj.geoJsonValue}${value}`
-    },
-    (geoObj) => {
-      const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-      const statRange = geoColorRange(geoObj.type, colorProp)
-      const colorRange = R.map((prop) =>
-        R.pathOr(0, [prop, themeType])(statRange)
-      )(['startGradientColor', 'endGradientColor'])
-      const value = R.pipe(
-        R.path(['props', colorProp, 'value']),
-        R.when(R.isNil, R.always('')),
-        (s) => s.toString()
-      )(geoObj)
-      const isCategorical = !R.has('min', statRange)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findColor = useCallback(
+    R.memoizeWith(
+      (geoObj) => {
+        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
+        const value = R.path(['props', colorProp, 'value'], geoObj)
+        return `${geoObj.geoJsonValue}${value}`
+      },
+      (geoObj) => {
+        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
+        const statRange = geoColorRange(geoObj.type, colorProp)
+        const colorRange = R.map((prop) =>
+          R.pathOr(0, [prop, themeType])(statRange)
+        )(['startGradientColor', 'endGradientColor'])
+        const value = R.pipe(
+          R.path(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(geoObj)
+        const isCategorical = !R.has('min', statRange)
 
-      return isCategorical
-        ? R.map((val) => parseFloat(val))(
-            R.propOr('rgb(0,0,0,5)', value, statRange)
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          )
-        : getScaledColor(
-            [R.prop('min', statRange), R.prop('max', statRange)],
-            colorRange,
-            value
-          )
-    }
-  )
-
-  const findLineSize = R.memoizeWith(
-    (d) => {
-      const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-      const propVal = R.path(['props', sizeProp, 'value'], d)
-      return `${R.prop('data_key', d)}${propVal}`
-    },
-    (d) => {
-      const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-      const sizeRange = arcRange(d.type, sizeProp, true)
-      const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
-      return getScaledValue(
-        R.prop('min', sizeRange),
-        R.prop('max', sizeRange),
-        parseFloat(R.prop('startSize', d)),
-        parseFloat(R.prop('endSize', d)),
-        propVal
-      )
-    }
+        return isCategorical
+          ? R.propOr('rgb(0,0,0,5)', value, statRange)
+          : `rgba(${getScaledColor(
+              [R.prop('min', statRange), R.prop('max', statRange)],
+              colorRange,
+              value
+            ).join(',')})`
+      }
+    ),
+    [enabledGeos, geoColorRange, themeType]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findLineColor = R.memoizeWith(
-    (d) => {
-      const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-      const propVal = R.path(['props', colorProp, 'value'], d[1])
-      return `${R.prop('data_key', d)}${propVal}`
-    },
-    (d) => {
-      const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-      const colorRange = arcRange(d.type, colorProp, false)
-      const isCategorical = !R.has('min', colorRange)
-      const propVal = R.pipe(
-        R.path(['props', colorProp, 'value']),
-        R.when(R.isNil, R.always('')),
-        (s) => s.toString()
-      )(d)
-
-      return isCategorical
-        ? R.map((val) => parseFloat(val))(
-            R.propOr('rgb(0,0,0)', propVal, colorRange)
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          )
-        : getScaledArray(
-            R.prop('min', colorRange),
-            R.prop('max', colorRange),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('startGradientColor', colorRange),
-                ['startGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('endGradientColor', colorRange),
-                ['endGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            parseFloat(R.path(['props', colorProp, 'value'], d))
-          )
-    }
+  const findLineSize = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
+        const propVal = R.path(['props', sizeProp, 'value'], d)
+        return `${R.prop('data_key', d)}${propVal}`
+      },
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
+        const sizeRange = arcRange(d.type, sizeProp, true)
+        const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
+        return getScaledValue(
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', d)),
+          parseFloat(R.prop('endSize', d)),
+          propVal
+        )
+      }
+    ),
+    [enabledArcs, arcRange]
   )
 
-  return Children.toArray(
-    R.concat(
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findLineColor = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+        const propVal = R.path(['props', colorProp, 'value'], d[1])
+        return `${R.prop('data_key', d)}${propVal}`
+      },
+      (d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+        const colorRange = arcRange(d.type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const propVal = R.pipe(
+          R.path(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(d)
+
+        return isCategorical
+          ? R.propOr('rgb(0,0,0)', propVal, colorRange)
+          : `rgb(${getScaledArray(
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(R.path(['props', colorProp, 'value'], d))
+            ).join(',')})`
+      }
+    ),
+    [enabledArcs, arcRange, themeType]
+  )
+
+  const geoJsonObject = useMemo(
+    () =>
       R.pipe(
         R.mapObjIndexed((geoObj, geoJsonValue) => {
           const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
           const geoType = R.prop('type')(geoObj)
-          const filteredFeatures = R.filter(
+          const filteredFeature = R.find(
             (feature) =>
               R.path(['properties', geoJsonProp])(feature) === geoJsonValue
           )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
-
-          const layerId = R.prop('data_key')(geoObj)
-
-          let color = findColor(geoObj)
-          if (highlightLayerId === layerId) {
-            color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
-          }
+          const color = findColor(geoObj)
 
           const id = R.prop('data_key')(geoObj)
-
-          return (
-            <Source
-              type="geojson"
-              key={id}
-              id={id}
-              data={{
-                type: 'FeatureCollection',
-                features: filteredFeatures,
-              }}
-            >
-              <Layer
-                id={id}
-                key={id}
-                type="fill"
-                paint={{
-                  'fill-color': `rgba(${color})`,
-                  'fill-opacity': 0.4,
-                }}
-              />
-            </Source>
-          )
+          return R.mergeRight(filteredFeature, {
+            properties: { cave_name: id, color: color },
+          })
         }),
         R.values
       )(matchingKeys),
+    [findColor, matchingKeys, selectedGeos]
+  )
+
+  const lineGeoJsonObject = useMemo(
+    () =>
       R.pipe(
         R.mapObjIndexed((geoObj, geoJsonValue) => {
           const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
           const geoType = R.prop('type')(geoObj)
-          const filteredFeatures = R.filter(
+          const filteredFeatures = R.find(
             (feature) =>
               R.path(['properties', geoJsonProp])(feature) === geoJsonValue
           )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
 
-          const layerId = R.prop('data_key')(geoObj)
-
-          let color = findLineColor(geoObj)
-          if (highlightLayerId === layerId) {
-            color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
-          }
+          const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
           const id = R.prop('data_key')(geoObj)
           const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(geoObj)]
-          return (
-            <Source
-              id={id}
-              key={id}
-              type="geojson"
-              data={{
-                type: 'FeatureCollection',
-                features: filteredFeatures,
-              }}
-            >
-              <Layer
-                id={id}
-                key={id}
-                type="line"
-                layout={{
-                  'line-cap': 'round',
-                  'line-join': 'round',
-                }}
-                paint={{
-                  'line-color': `rgb(${color.join(',')})`,
-                  'line-opacity': 0.8,
-                  'line-width': size,
-                  ...(dashPattern && {
-                    'line-dasharray': dashPattern,
-                  }),
-                }}
-              />
-            </Source>
-          )
+          return R.mergeRight(filteredFeatures, {
+            properties: {
+              cave_name: id,
+              color: color,
+              dash: dashPattern,
+              size: size,
+            },
+          })
         }),
         R.values
-      )(lineMatchingKeys)
-    )
+      )(lineMatchingKeys),
+    [findLineColor, findLineSize, lineMatchingKeys, selectedArcs]
   )
+
+  return [
+    <Source
+      type="geojson"
+      key={layerId.GEOGRAPHY_LAYER}
+      id={layerId.GEOGRAPHY_LAYER}
+      data={{
+        type: 'FeatureCollection',
+        features: geoJsonObject,
+      }}
+    >
+      <Layer
+        id={layerId.GEOGRAPHY_LAYER}
+        key={layerId.GEOGRAPHY_LAYER}
+        type="fill"
+        paint={{
+          'fill-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'fill-opacity': 0.4,
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.MULTI_ARC_LAYER}
+      key={layerId.MULTI_ARC_LAYER}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: lineGeoJsonObject,
+      }}
+    >
+      <Layer
+        id={layerId.MULTI_ARC_LAYER}
+        key={layerId.MULTI_ARC_LAYER}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': ['get', 'dash'],
+        }}
+      />
+    </Source>,
+  ]
 })
 
 export const Nodes = memo(({ highlightLayerId }) => {
-  const nodeDataSplit = useSelector(selectSplitNodeData)
-  const nodeClusters = useSelector(selectNodeClustersAtZoom)
-  const nodeRange = useSelector(selectNodeRange)
-  const legendObjects = useSelector(selectEnabledNodes)
-  const themeType = useSelector(selectTheme)
+  const nodeGeoJson = useSelector(selectNodeLayerGeoJson)
 
-  return Children.toArray(
-    R.concat(
-      R.pipe(
-        R.propOr([], false),
-        R.mapObjIndexed((obj) => {
-          const [id, node] = obj
+  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
-          const sizeProp = R.path([node.type, 'sizeBy'], legendObjects)
-          const sizeRange = nodeRange(node.type, sizeProp, true)
-          const sizePropVal = parseFloat(
-            R.path(['props', sizeProp, 'value'], node)
-          )
-          const size = getScaledValue(
-            R.prop('min', sizeRange),
-            R.prop('max', sizeRange),
-            parseFloat(R.prop('startSize', node)),
-            parseFloat(R.prop('endSize', node)),
-            sizePropVal
-          )
-          const colorProp = R.path([node.type, 'colorBy'], legendObjects)
-          const colorPropVal = R.pipe(
-            R.path(['props', colorProp, 'value']),
-            R.when(R.isNil, R.always('')),
-            (s) => s.toString()
-          )(node)
-          const colorRange = nodeRange(node.type, colorProp, false)
-          const isCategorical = !R.has('min', colorRange)
-          let color = isCategorical
-            ? R.map((val) => parseFloat(val))(
-                R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              )
-            : getScaledArray(
-                R.prop('min', colorRange),
-                R.prop('max', colorRange),
-                R.map((val) => parseFloat(val))(
-                  R.pathOr(
-                    R.prop('startGradientColor', colorRange),
-                    ['startGradientColor', themeType],
-                    colorRange
-                  )
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                R.map((val) => parseFloat(val))(
-                  R.pathOr(
-                    R.prop('endGradientColor', colorRange),
-                    ['endGradientColor', themeType],
-                    colorRange
-                  )
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                parseFloat(colorPropVal)
-              )
-          if (highlightLayerId === id) {
-            color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
-          }
-          const colorString = `rgb(${color.join(',')})`
-          return (
-            <Source
-              id={id}
-              key={id}
-              type="geojson"
-              data={{
-                type: 'Feature',
-                properties: { cave_obj: node },
-                geometry: {
-                  type: 'Point',
-                  coordinates: [node.longitude, node.latitude],
-                },
-              }}
-            >
-              <Layer
-                id={id}
-                key={id}
-                type="symbol"
-                layout={{
-                  'icon-image': node.icon,
-                  'icon-anchor': 'center',
-                  'icon-pitch-alignment': 'map',
-                  'icon-size': size / 250,
-                  'icon-allow-overlap': true,
-                }}
-                paint={{
-                  'icon-color': colorString,
-                }}
-              />
-            </Source>
-          )
-        }),
-        R.values
-      )(nodeDataSplit),
-      R.pipe(
-        R.propOr([], 'data'),
-        R.map((group) => {
-          const sizeRange = nodeClusters.range[group.properties.type].size
-          const sizePropObj = R.path(['properties', 'sizeProp'], group)
-
-          const size = getScaledValue(
-            R.prop('min', sizeRange),
-            R.prop('max', sizeRange),
-            parseFloat(R.prop('startSize', sizePropObj)),
-            parseFloat(R.prop('endSize', sizePropObj)),
-            parseFloat(sizePropObj.value)
-          )
-
-          const nodeType = group.properties.type
-          const colorObj = group.properties.colorProp
-          const colorDomain = nodeClusters.range[nodeType].color
-          const isCategorical = !R.has('min')(colorDomain)
-          const value = R.prop('value', colorObj)
-          const colorRange = isCategorical
-            ? colorObj
-            : R.map((prop) =>
-                R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
-              )(['startGradientColor', 'endGradientColor'])
-
-          const color = isCategorical
-            ? R.when(
-                R.has(themeType),
-                R.prop(themeType)
-              )(R.prop(value, colorRange))
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            : getScaledColor(
-                [R.prop('min', colorDomain), R.prop('max', colorDomain)],
-                colorRange,
-                value
-              )
-          const id = R.pathOr(
-            JSON.stringify(0, 2, R.slice(group.properties.grouped_ids)),
-            ['properties', 'id']
-          )(group)
-
-          const highlightedColor =
-            highlightLayerId === id
-              ? color.map((v, i) => v * HIGHLIGHT_COLOR[i])
-              : color
-
-          const colorString = `rgb(${highlightedColor.join(',')})`
-
-          return (
-            <Source
-              id={id}
-              type="geojson"
-              key={id}
-              data={{
-                type: 'Feature',
-                properties: { cave_obj: group, isCluster: true },
-                geometry: {
-                  type: 'Point',
-                  coordinates: group.geometry.coordinates,
-                },
-              }}
-            >
-              <Layer
-                key={id}
-                id={id}
-                type="symbol"
-                layout={{
-                  'icon-image': group.properties.icon,
-                  'icon-anchor': 'center',
-                  'icon-pitch-alignment': 'map',
-                  'icon-size': size / 250,
-                  'icon-allow-overlap': true,
-                }}
-                paint={{
-                  'icon-color': colorString,
-                }}
-              />
-            </Source>
-          )
-        })
-      )(nodeClusters)
-    )
+  return (
+    <Source
+      id={layerId.NODE_ICON_LAYER}
+      key={layerId.NODE_ICON_LAYER}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: nodeGeoJson,
+      }}
+    >
+      <Layer
+        id={layerId.NODE_ICON_LAYER}
+        key={layerId.NODE_ICON_LAYER}
+        type="symbol"
+        layout={{
+          'icon-image': ['get', 'icon'],
+          'icon-size': ['get', 'size'],
+          'icon-allow-overlap': true,
+        }}
+        paint={{
+          'icon-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+        }}
+      />
+    </Source>
   )
 })
 export const Arcs = memo(({ highlightLayerId }) => {
-  const arcRange = useSelector(selectArcRange)
-  const themeType = useSelector(selectTheme)
-  const arcData = useSelector(selectLineData)
-  const legendObjects = useSelector(selectEnabledArcs)
+  const arcLayerGeoJson = useSelector(selectArcLayerGeoJson)
 
-  return Children.toArray(
-    arcData.map(([id, arc]) => {
-      const sizeProp = R.path([arc.type, 'sizeBy'], legendObjects)
-      const sizeRange = arcRange(arc.type, sizeProp, true)
-      const sizePropVal = parseFloat(R.path(['props', sizeProp, 'value'], arc))
-      const size = getScaledValue(
-        R.prop('min', sizeRange),
-        R.prop('max', sizeRange),
-        parseFloat(R.prop('startSize', arc)),
-        parseFloat(R.prop('endSize', arc)),
-        sizePropVal
-      )
-      const colorProp = R.path([arc.type, 'colorBy'], legendObjects)
-      const colorRange = arcRange(arc.type, colorProp, false)
-      const isCategorical = !R.has('min', colorRange)
-      const colorPropVal = R.pipe(
-        R.path(['props', colorProp, 'value']),
-        R.when(R.isNil, R.always('')),
-        (s) => s.toString()
-      )(arc)
+  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
-      let color = isCategorical
-        ? R.map((val) => parseFloat(val))(
-            R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
-              .replace(/[^\d,.]/g, '')
-              .split(',')
-          )
-        : getScaledArray(
-            R.prop('min', colorRange),
-            R.prop('max', colorRange),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('startGradientColor', colorRange),
-                ['startGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            R.map((val) => parseFloat(val))(
-              R.pathOr(
-                R.prop('endGradientColor', colorRange),
-                ['endGradientColor', themeType],
-                colorRange
-              )
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            ),
-            parseFloat(R.path(['props', colorProp, 'value'], arc))
-          )
-      if (highlightLayerId === id) {
-        color = color.map((v, i) => v * HIGHLIGHT_COLOR[i])
-      }
-      const colorString = `rgb(${color.join(',')})`
-
-      const dashPattern = LINE_TYPES[R.propOr('solid', 'lineBy')(arc)]
-
-      return (
-        <Source
-          id={id}
-          key={id}
-          type="geojson"
-          data={{
-            type: 'Feature',
-            properties: { cave_obj: arc },
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [arc.startLongitude, arc.startLatitude],
-                [arc.endLongitude, arc.endLatitude],
-              ],
-            },
-          }}
-        >
-          <Layer
-            id={id}
-            key={id}
-            type="line"
-            paint={{
-              'line-color': colorString,
-              'line-opacity': 0.8,
-              'line-width': size,
-              ...(dashPattern && {
-                'line-dasharray': dashPattern,
-              }),
-            }}
-          />
-        </Source>
-      )
-    })
+  return (
+    <Source
+      id={layerId.ARC_LAYER}
+      key={layerId.ARC_LAYER}
+      type="geojson"
+      data={{ type: 'FeatureCollection', features: arcLayerGeoJson }}
+    >
+      <Layer
+        id={layerId.ARC_LAYER}
+        key={layerId.ARC_LAYER}
+        type="line"
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': ['get', 'dash'],
+        }}
+      />
+    </Source>
   )
 })
