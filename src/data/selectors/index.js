@@ -28,6 +28,9 @@ import {
   calculateStatAnyDepth,
   recursiveMap,
   maxSizedMemoization,
+  getScaledValue,
+  getScaledArray,
+  getScaledColor,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -1439,7 +1442,6 @@ export const selectNodeClusters = createSelector(
         groups[z] = { data: clusters, range: ranges }
       }
     }
-
     return groups
   }
 )
@@ -1466,28 +1468,229 @@ export const selectNodeRangeAtZoom = createSelector(
   }
 )
 
-export const selectInteractiveLayerIds = createSelector(
-  [
-    selectMatchingKeys,
-    selectLineMatchingKeys,
-    selectLineData,
-    selectSplitNodeData,
-    selectNodeClustersAtZoom,
-  ],
-  (matchingKeys, lineMatchingKeys, lineData, splitNodeData, nodeClusters) => [
-    'data',
-    ...R.propOr([], 'false', splitNodeData).map(([id]) => id),
-    ...R.propOr([], 'data', nodeClusters).map((group) =>
-      R.pathOr(JSON.stringify(0, 2, R.slice(group.properties.grouped_ids)), [
-        'properties',
-        'id',
-      ])(group)
-    ),
-    ...lineData.map(([id]) => id),
-    ...R.pipe(
-      R.mergeLeft(lineMatchingKeys),
-      R.mapObjIndexed((geo) => geo.data_key),
+export const selectNodeGeoJsonObject = createSelector(
+  [selectSplitNodeData, selectNodeRange, selectEnabledNodes, selectTheme],
+  (nodeDataSplit, nodeRange, legendObjects, themeType) =>
+    R.pipe(
+      R.propOr({}, false),
+      R.mapObjIndexed((obj) => {
+        const [id, node] = obj
+
+        const sizeProp = R.path([node.type, 'sizeBy'], legendObjects)
+        const sizeRange = nodeRange(node.type, sizeProp, true)
+        const sizePropVal = parseFloat(
+          R.path(['props', sizeProp, 'value'], node)
+        )
+        const size = getScaledValue(
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', node)),
+          parseFloat(R.prop('endSize', node)),
+          sizePropVal
+        )
+        const colorProp = R.path([node.type, 'colorBy'], legendObjects)
+        const colorPropVal = R.pipe(
+          R.path(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(node)
+        const colorRange = nodeRange(node.type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const color = isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledArray(
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(colorPropVal)
+            )
+        const colorString = `rgb(${color.join(',')})`
+        return {
+          type: 'Feature',
+          properties: {
+            cave_obj: node,
+            cave_name: id,
+            color: colorString,
+            size: size / 250,
+            icon: node.icon,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [node.longitude, node.latitude],
+          },
+        }
+      }),
       R.values
-    )(matchingKeys),
-  ]
+    )(nodeDataSplit)
+)
+export const selectNodeClusterGeoJsonObject = createSelector(
+  [selectNodeClustersAtZoom, selectTheme],
+  (nodeClusters, themeType) =>
+    R.map((group) => {
+      const sizeRange = nodeClusters.range[group.properties.type].size
+      const sizePropObj = R.path(['properties', 'sizeProp'], group)
+
+      const size = getScaledValue(
+        R.prop('min', sizeRange),
+        R.prop('max', sizeRange),
+        parseFloat(R.prop('startSize', sizePropObj)),
+        parseFloat(R.prop('endSize', sizePropObj)),
+        parseFloat(sizePropObj.value)
+      )
+
+      const nodeType = group.properties.type
+      const colorObj = group.properties.colorProp
+      const colorDomain = nodeClusters.range[nodeType].color
+      const isCategorical = !R.has('min')(colorDomain)
+      const value = R.prop('value', colorObj)
+      const colorRange = isCategorical
+        ? colorObj
+        : R.map((prop) =>
+            R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
+          )(['startGradientColor', 'endGradientColor'])
+
+      const color = isCategorical
+        ? R.when(
+            R.has(themeType),
+            R.prop(themeType)
+          )(R.prop(value, colorRange))
+            .replace(/[^\d,.]/g, '')
+            .split(',')
+        : getScaledColor(
+            [R.prop('min', colorDomain), R.prop('max', colorDomain)],
+            colorRange,
+            value
+          )
+      const id = R.pathOr(
+        JSON.stringify(
+          R.slice(0, 2, R.pathOr([], ['properties', 'grouped_ids'], group))
+        ),
+        ['properties', 'id']
+      )(group)
+
+      const colorString = `rgb(${color.join(',')})`
+
+      return {
+        type: 'Feature',
+        properties: {
+          cave_obj: group,
+          cave_isCluster: true,
+          cave_name: id,
+          color: colorString,
+          size: size / 250,
+          icon: group.properties.icon,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: group.geometry.coordinates,
+        },
+      }
+    })(R.propOr([], 'data', nodeClusters))
+)
+
+export const selectNodeLayerGeoJson = createSelector(
+  [selectNodeGeoJsonObject, selectNodeClusterGeoJsonObject],
+  (nodes, clusters) => R.concat(nodes, clusters)
+)
+
+export const selectArcLayerGeoJson = createSelector(
+  [selectArcRange, selectTheme, selectLineData, selectEnabledArcs],
+  (arcRange, themeType, arcData, legendObjects) =>
+    R.pipe(
+      R.map(([id, arc]) => {
+        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjects)
+        const sizeRange = arcRange(arc.type, sizeProp, true)
+        const sizePropVal = parseFloat(
+          R.path(['props', sizeProp, 'value'], arc)
+        )
+        const size = getScaledValue(
+          R.prop('min', sizeRange),
+          R.prop('max', sizeRange),
+          parseFloat(R.prop('startSize', arc)),
+          parseFloat(R.prop('endSize', arc)),
+          sizePropVal
+        )
+        const colorProp = R.path([arc.type, 'colorBy'], legendObjects)
+        const colorRange = arcRange(arc.type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const colorPropVal = R.pipe(
+          R.path(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(arc)
+
+        let color = isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledArray(
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(R.path(['props', colorProp, 'value'], arc))
+            )
+        const colorString = `rgb(${color.join(',')})`
+
+        const dashPattern = R.propOr('solid', 'lineBy')(arc)
+
+        return {
+          type: 'Feature',
+          properties: {
+            cave_obj: arc,
+            cave_name: id,
+            color: colorString,
+            size: size,
+            dash: dashPattern,
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [arc.startLongitude, arc.startLatitude],
+              [arc.endLongitude, arc.endLatitude],
+            ],
+          },
+        }
+      }),
+      R.groupBy(R.path(['properties', 'dash']))
+    )(arcData)
 )

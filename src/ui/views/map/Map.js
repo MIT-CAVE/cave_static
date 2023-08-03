@@ -26,10 +26,10 @@ import {
   selectGroupedEnabledArcs,
   selectFilteredGeosData,
   selectCurrentMapProjection,
-  selectInteractiveLayerIds,
   selectNodeData,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
+import { layerId } from '../../../utils/enums'
 
 import { fetchIcon } from '../../../utils'
 
@@ -45,13 +45,12 @@ const Map = ({ mapboxToken }) => {
   const nodeData = useSelector(selectNodeData)
   const geosData = useSelector(selectFilteredGeosData)
   const iconUrl = useSelector(selectSettingsIconUrl)
-  const interactiveLayerIds = useSelector(selectInteractiveLayerIds)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
-  const useMapbox = mapboxToken !== ''
+  const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== ''
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef({})
@@ -92,6 +91,7 @@ const Map = ({ mapboxToken }) => {
   useEffect(() => {
     loadIconsToStyle()
   }, [iconData, loadIconsToStyle])
+
   const getFeatureFromEvent = useCallback(
     (e) => {
       const clickedNode = R.find((feature) =>
@@ -99,7 +99,7 @@ const Map = ({ mapboxToken }) => {
       )(e.features)
       const isCluster =
         R.isNotNil(clickedNode) &&
-        R.pathOr(false, ['properties', 'isCluster'], clickedNode)
+        R.pathOr(false, ['properties', 'cave_isCluster'], clickedNode)
       const clickedArc = R.find((feature) =>
         R.equals(feature.layer.type, 'line')
       )(e.features)
@@ -108,7 +108,7 @@ const Map = ({ mapboxToken }) => {
       )(e.features)
       const topFeature = R.isNotNil(clickedNode)
         ? [
-            clickedNode.layer.id,
+            clickedNode.properties.cave_name,
             'nodes',
             isCluster
               ? R.prop('properties')(
@@ -118,19 +118,20 @@ const Map = ({ mapboxToken }) => {
           ]
         : R.isNotNil(clickedArc)
         ? [
-            clickedArc.layer.id,
+            clickedArc.properties.cave_name,
             'arcs',
             R.hasPath(['properties', 'cave_obj'])(clickedArc)
               ? JSON.parse(clickedArc.properties.cave_obj)
-              : R.propOr({}, clickedArc.layer.id, arcData),
+              : R.propOr({}, clickedArc.properties.cave_name, arcData),
           ]
         : R.isNotNil(clickedGeo)
         ? [
-            clickedGeo.layer.id,
+            clickedGeo.properties.cave_name,
             'geos',
-            R.propOr({}, clickedGeo.layer.id, geosData),
+            R.propOr({}, clickedGeo.properties.cave_name, geosData),
           ]
         : null
+
       return topFeature
       // return [id, feature, obj]
     },
@@ -190,6 +191,7 @@ const Map = ({ mapboxToken }) => {
       )
     }
   }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
+
   return (
     <Fragment>
       <MapControls allowProjections={useMapbox} />
@@ -215,7 +217,7 @@ const Map = ({ mapboxToken }) => {
         ref={mapRef}
         cursor={cursor}
         onMouseOver={onMouseOver}
-        interactiveLayerIds={interactiveLayerIds}
+        interactiveLayerIds={R.values(layerId)}
       >
         <Geos highlightLayerId={highlightLayerId} />
         <Arcs highlightLayerId={highlightLayerId} />

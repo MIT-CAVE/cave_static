@@ -146,7 +146,7 @@ export const DEFAULT_MAP_STYLES = {
   },
 }
 
-export const LINE_TYPES = { solid: undefined, dashed: [7, 3], dotted: [2, 2] }
+export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
 
 export const CHART_PALETTE = {
   dark: [
@@ -173,4 +173,4 @@ export const CHART_PALETTE = {
   ],
 }
 
-export const HIGHLIGHT_COLOR = [0, 0, 128, 128]
+export const HIGHLIGHT_COLOR = 'rgb(0,0,128)'
