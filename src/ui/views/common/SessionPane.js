@@ -15,7 +15,14 @@ import {
   Stack,
   Typography,
   Tooltip,
+  Autocomplete,
+  TextField,
 } from '@mui/material'
+import {
+  DataGrid,
+  GridToolbarContainer,
+  GridToolbarFilterButton,
+} from '@mui/x-data-grid'
 import * as R from 'ramda'
 import { useEffect, useState, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -202,12 +209,15 @@ const ListItemSessionCardInput = ({
   onClickConfirm,
   onClickCancel,
   cardHeaderSx,
+  teamOptions,
   sx,
   ...props
 }) => {
   const [inputValues, setInputValues] = useState({
     name: sessionName,
     description: sessionDescription,
+    ...(teamOptions &&
+      teamOptions.length > 0 && { team: teamOptions[0].label }),
   })
   return (
     <Card elevation={18} {...{ sx, ...props }}>
@@ -215,16 +225,35 @@ const ListItemSessionCardInput = ({
         sx={[{ pb: 1 }, ...forceArray(cardHeaderSx)]}
         {...{ title }}
         subheader={
-          <TextInput
-            enabled
-            controlled
-            sx={{ mt: 3 }}
-            value={inputValues.name}
-            label="Session name"
-            onChange={(value) => {
-              setInputValues(R.assoc('name', value)(inputValues))
-            }}
-          />
+          <>
+            {teamOptions && teamOptions.length > 0 && (
+              <Autocomplete
+                fullWidth
+                value={inputValues.team}
+                sx={{ mt: 3 }}
+                enabled
+                disablePortal
+                options={teamOptions}
+                renderInput={(params) => (
+                  // The placeholder in the API serves as a label in the context of the MUI component.
+                  <TextField fullWidth label={'Team'} {...params} />
+                )}
+                onChange={(_, value) => {
+                  setInputValues(R.assoc('team', value)(inputValues))
+                }}
+              />
+            )}
+            <TextInput
+              enabled
+              controlled
+              sx={{ mt: 3 }}
+              value={inputValues.name}
+              label="Session name"
+              onChange={(value) => {
+                setInputValues(R.assoc('name', value)(inputValues))
+              }}
+            />
+          </>
         }
       />
       <CardContent>
@@ -249,7 +278,15 @@ const ListItemSessionCardInput = ({
           <Button
             aria-label="confirm changes"
             onClick={() => {
-              onClickConfirm(inputValues.name, inputValues.description)
+              onClickConfirm(
+                inputValues.name,
+                inputValues.description,
+                teamOptions &&
+                  R.pipe(
+                    R.find((option) => option.label === inputValues.team),
+                    R.prop('value')
+                  )(teamOptions)
+              )
             }}
             // color="success"
             variant="contained"
@@ -354,6 +391,132 @@ const UnstyledHeader = ({
   />
 )
 
+const CustomToolbar = ({ onClickCreateHandler }) => {
+  const onClick = () => onClickCreateHandler()
+  return (
+    <GridToolbarContainer>
+      <GridToolbarFilterButton />
+
+      <Tooltip
+        key={'Create a new session'.toLocaleLowerCase()}
+        title="Create a new session"
+        PopperProps={{ sx: { zIndex: 2002 } }}
+        enterDelay={300}
+        leaveDelay={300}
+      >
+        {/* A `span` wrapper to acommodate disabled actions */}
+        <span>
+          <IconButton {...{ onClick }}>
+            <FetchedIcon {...{ iconName: 'MdOutlineAddBox' }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </GridToolbarContainer>
+  )
+}
+
+const CustomDataGridRow = ({ ...props }) => {
+  console.log(props)
+
+  const {
+    currentAction,
+    index,
+    onClickCancelHandler,
+    onClickConfirmCreateHandler,
+    onClickConfirmDuplicateHandler,
+    onClickConfirmEditHandler,
+    onClickDuplicateHandler,
+    onClickEditHandler,
+    onClickHandler,
+    onClickRemoveHandler,
+    sessionDescription,
+    sessionId,
+    sessionIdCurrent,
+    sessionName,
+    sessionsByTeam,
+    teamCountSessions,
+    teamId,
+    teamLimitSessions,
+    teamName,
+    teams,
+  } = props.row
+
+  const selected = sessionId === sessionIdCurrent
+  console.log(currentAction.command)
+  console.log(props.index)
+  return (
+    <Fragment key={`${teamId}-${sessionName}`}>
+      {props.index === 0 && currentAction.command === 'create' && (
+        <ListItemSessionCardInput
+          key="create-session-form"
+          title="Create session"
+          sessionName={getFreeName(
+            'New session',
+            R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
+          )}
+          sessionDescription=""
+          onClickConfirm={onClickConfirmCreateHandler}
+          onClickCancel={onClickCancelHandler}
+          teamOptions={R.map(
+            (team) => ({ label: team.name, value: team.id }),
+            teams
+          )}
+        />
+      )}
+      {sessionId === currentAction.sessionId &&
+      currentAction.index >= 0 &&
+      currentAction.command === 'edit' ? (
+        <ListItemSessionCardInput
+          key={sessionId}
+          title="Edit session"
+          {...{ sessionName, sessionDescription }}
+          onClickConfirm={onClickConfirmEditHandler}
+          onClickCancel={onClickCancelHandler}
+        />
+      ) : (
+        <ListItemSessionCard
+          teamName={teamName}
+          key={sessionId}
+          // When creating, duplicating, editing or deleting a session,
+          // all actions are blocked for any other session
+          disabled={currentAction.command != null}
+          sx={{ my: 1 }}
+          {...{ sessionName, selected }}
+          sessionDescription={sessionDescription || 'No description available.'}
+          selectable={!selected && currentAction.sessionId == null}
+          editable
+          duplicable={+teamCountSessions < +teamLimitSessions}
+          removable
+          onClick={() => onClickHandler(sessionId)}
+          onClickDuplicate={() =>
+            onClickDuplicateHandler(teamId, sessionId, index)
+          }
+          onClickEdit={() => onClickEditHandler(sessionId, index)}
+          onClickRemove={() => onClickRemoveHandler(teamId, sessionId)}
+        />
+      )}
+      {/* Render a duplicate session if applicable */}
+      {currentAction.index === index &&
+        currentAction.command === 'duplicate' && (
+          <ListItemSessionCardInput
+            key={`${currentAction.sessionId}-duplicate`}
+            title="Duplicate session"
+            sessionName={getFreeName(
+              sessionName,
+              R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
+            )}
+            sessionDescription={getFreeName(
+              sessionDescription,
+              R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
+            )}
+            onClickConfirm={onClickConfirmDuplicateHandler}
+            onClickCancel={onClickCancelHandler}
+          />
+        )}
+    </Fragment>
+  )
+}
+
 const SessionPane = ({ width }) => {
   const dispatch = useDispatch()
   const teams = useSelector(selectSortedTeams)
@@ -361,7 +524,6 @@ const SessionPane = ({ width }) => {
   const sessionsByTeam = useSelector(selectSessionsByTeam)
   const [currentAction, setCurrentAction] = useState({})
   const [openDialogDelete, setOpenDialogDelete] = useState(false)
-  const [collapsedTeamIds, setCollapsedTeamIds] = useState({})
 
   // Request session info if we have none
   useEffect(() => {
@@ -422,20 +584,12 @@ const SessionPane = ({ width }) => {
     )
     setCurrentAction({})
   }
-  // Collapse sessions
-  const onClickCollapseHandler = (teamId) => {
-    // `collapsedTeamIds` is a set containing all `teamId` values that are collapsed
-    setCollapsedTeamIds(
-      teamId in collapsedTeamIds
-        ? R.dissoc(teamId)(collapsedTeamIds)
-        : R.assoc(teamId, true)(collapsedTeamIds)
-    )
-  }
   // Create session
-  const onClickCreateHandler = (teamId) => {
-    setCurrentAction({ command: 'create', teamId })
+  const onClickCreateHandler = () => {
+    console.log('create')
+    setCurrentAction({ command: 'create' })
   }
-  const onClickConfirmCreateHandler = (name, description) => {
+  const onClickConfirmCreateHandler = (name, description, teamId) => {
     dispatch(
       sendCommand({
         command: 'session_management',
@@ -444,7 +598,7 @@ const SessionPane = ({ width }) => {
           session_command_data: {
             session_name: name,
             session_description: description,
-            team_id: currentAction.teamId,
+            team_id: teamId,
           },
         },
       })
@@ -574,228 +728,113 @@ const SessionPane = ({ width }) => {
         titleTypographyProps={{ variant: 'h5' }}
         sx={{ py: 3 }}
       />
-      <Box
+      <DataGrid
         sx={{
-          p: 1.5,
-          pt: 0,
-          overflow: 'auto',
-          flex: 1,
-          // scrollbarGutter: 'stable both-edges',
+          '.MuiDataGrid-virtualScrollerRenderZone': {
+            width: '97%',
+          },
         }}
-      >
-        {teams.map(
-          ({
-            name: teamName,
-            id: teamId,
-            teamCountSessions,
-            teamLimitSessions,
-          }) => {
-            const collapsed = teamId in collapsedTeamIds // && currentAction.command === 'collapse'
-            return (
-              <Fragment key={teamName.toLocaleLowerCase()}>
-                {/* Team header */}
-                <UnstyledHeader
-                  disabled={
-                    currentAction.command != null ||
-                    +teamCountSessions >= +teamLimitSessions // `>` is a sanity check
-                  }
-                  title={teamName}
-                  subtitle={`Team${collapsed ? ' (hidden)' : ''}`}
-                  sx={{ pr: 1 }}
-                  actionItems={[
-                    {
-                      label: collapsed ? 'View sessions' : 'Hide sessions',
-                      iconName: collapsed
-                        ? 'MdOutlineChevronRight'
-                        : 'MdOutlineExpandMore',
-                      hidden: false,
-                      onClick: () => onClickCollapseHandler(teamId),
-                    },
-                    {
-                      label: 'Create a new session',
-                      iconName: 'MdOutlineAddBox',
-                      hidden: false,
-                      onClick: () => onClickCreateHandler(teamId),
-                    },
-                  ]}
-                />
-
-                {/* Place the `create` or `duplicate` session card at the top of the team group */}
-                {currentAction.teamId === teamId &&
-                  (currentAction.command === 'create' ? (
-                    <ListItemSessionCardInput
-                      key="create-session-form"
-                      title="Create session"
-                      sessionName={getFreeName(
-                        'New session',
-                        R.pipe(
-                          R.values,
-                          R.pluck('sessionName')
-                        )(sessionsByTeam[teamId])
-                      )}
-                      sessionDescription=""
-                      onClickConfirm={onClickConfirmCreateHandler}
-                      onClickCancel={onClickCancelHandler}
-                    />
-                  ) : (
-                    currentAction.index < 0 &&
-                    currentAction.command === 'duplicate' && (
-                      <ListItemSessionCardInput
-                        key={`${currentAction.sessionId}-duplicate`}
-                        title="Duplicate session"
-                        sessionName={getFreeName(
-                          R.path([
-                            teamId,
-                            currentAction.sessionId,
-                            'sessionName',
-                          ])(sessionsByTeam), // <- Name of the session in the current pending action
-                          R.pipe(
-                            R.values,
-                            R.pluck('sessionName')
-                          )(sessionsByTeam[teamId])
-                        )}
-                        sessionDescription={R.path([
-                          teamId,
-                          currentAction.sessionId,
-                          'sessionDescription',
-                        ])(sessionsByTeam)} // <- Session description in the current pending action
-                        onClickConfirm={onClickConfirmDuplicateHandler}
-                        onClickCancel={onClickCancelHandler}
-                      />
-                    )
-                  ))}
-
-                {/* Render session cards for the team (unless sessions are collapsed) */}
-                {!collapsed &&
-                  R.values(sessionsByTeam[teamId]).map(
-                    ({ sessionId, sessionName, sessionDescription }, index) => {
-                      const selected = sessionId === sessionIdCurrent
-                      return (
-                        <Fragment key={`${teamId}-${sessionName}`}>
-                          {sessionId === currentAction.sessionId &&
-                          currentAction.index >= 0 &&
-                          currentAction.command === 'edit' ? (
-                            <ListItemSessionCardInput
-                              key={sessionId}
-                              title="Edit session"
-                              {...{ sessionName, sessionDescription }}
-                              onClickConfirm={onClickConfirmEditHandler}
-                              onClickCancel={onClickCancelHandler}
-                            />
-                          ) : (
-                            <ListItemSessionCard
-                              key={sessionId}
-                              // When creating, duplicating, editing or deleting a session,
-                              // all actions are blocked for any other session
-                              disabled={currentAction.command != null}
-                              sx={{ my: 1 }}
-                              {...{ sessionName, selected }}
-                              sessionDescription={
-                                sessionDescription ||
-                                'No description available.'
-                              }
-                              selectable={
-                                !selected && currentAction.sessionId == null
-                              }
-                              editable
-                              duplicable={
-                                +teamCountSessions < +teamLimitSessions
-                              }
-                              removable
-                              onClick={() => onClickHandler(sessionId)}
-                              onClickDuplicate={() =>
-                                onClickDuplicateHandler(
-                                  teamId,
-                                  sessionId,
-                                  index
-                                )
-                              }
-                              onClickEdit={() =>
-                                onClickEditHandler(sessionId, index)
-                              }
-                              onClickRemove={() =>
-                                onClickRemoveHandler(teamId, sessionId)
-                              }
-                            />
-                          )}
-                          {/* Render a duplicate session if applicable */}
-                          {currentAction.index === index &&
-                            currentAction.command === 'duplicate' && (
-                              <ListItemSessionCardInput
-                                key={`${currentAction.sessionId}-duplicate`}
-                                title="Duplicate session"
-                                sessionName={getFreeName(
-                                  sessionName,
-                                  R.pipe(
-                                    R.values,
-                                    R.pluck('sessionName')
-                                  )(sessionsByTeam[teamId])
-                                )}
-                                sessionDescription={getFreeName(
-                                  sessionDescription,
-                                  R.pipe(
-                                    R.values,
-                                    R.pluck('sessionName')
-                                  )(sessionsByTeam[teamId])
-                                )}
-                                onClickConfirm={onClickConfirmDuplicateHandler}
-                                onClickCancel={onClickCancelHandler}
-                              />
-                            )}
-                        </Fragment>
-                      )
-                    }
-                  )}
-              </Fragment>
+        rows={R.flatten(
+          R.values(
+            R.mapObjIndexed(
+              ({ teamName, teamId, teamCountSessions, teamLimitSessions }) =>
+                R.values(
+                  R.mapObjIndexed(
+                    (
+                      { sessionId, sessionName, sessionDescription },
+                      index
+                    ) => ({
+                      currentAction,
+                      id: `${index}-${teamId}`,
+                      index,
+                      onClickCancelHandler,
+                      onClickConfirmCreateHandler,
+                      onClickConfirmDuplicateHandler,
+                      onClickConfirmEditHandler,
+                      onClickDuplicateHandler,
+                      onClickEditHandler,
+                      onClickHandler,
+                      onClickRemoveHandler,
+                      sessionDescription,
+                      sessionId,
+                      sessionIdCurrent,
+                      sessionName,
+                      sessionsByTeam,
+                      teamCountSessions,
+                      teamId,
+                      teamLimitSessions,
+                      teamName,
+                      teams,
+                    }),
+                    sessionsByTeam[teamId]
+                  )
+                ),
+              sessions.data
             )
-          }
+          )
         )}
-        {currentAction.command === 'delete' && (
-          <Dialog
-            open={openDialogDelete}
-            onClose={() => {
-              setOpenDialogDelete(false)
-              setCurrentAction({})
-            }}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogTitle id="alert-dialog-title">
-              {`Delete '${R.path([
-                currentAction.teamId,
-                currentAction.sessionId,
-                'sessionName',
-              ])(sessionsByTeam)}' from your team '${R.path([
-                'data',
-                currentAction.teamId,
-                'teamName',
-              ])(sessions)}'? This cannot be undone.`}
-            </DialogTitle>
-            <DialogActions>
-              <Button
-                onClick={() => {
-                  onClickConfirmRemoveHandler()
-                  setCurrentAction({})
-                }}
-                color="error"
-                variant="contained"
-              >
-                Delete
-              </Button>
-              <Button
-                onClick={() => {
-                  setOpenDialogDelete(false)
-                  setCurrentAction({})
-                }}
-                autoFocus
-                variant="contained"
-              >
-                Cancel
-              </Button>
-            </DialogActions>
-          </Dialog>
-        )}
-      </Box>
+        columns={[
+          { field: 'sessionName', headerName: 'Session' },
+          { field: 'teamName', headerName: 'Team' },
+        ]}
+        slots={{
+          row: CustomDataGridRow,
+          toolbar: CustomToolbar,
+        }}
+        slotProps={{
+          toolbar: { onClickCreateHandler },
+          basePopper: {
+            sx: {
+              zIndex: 2001,
+            },
+          },
+        }}
+      />
+      {currentAction.command === 'delete' && (
+        <Dialog
+          open={openDialogDelete}
+          onClose={() => {
+            setOpenDialogDelete(false)
+            setCurrentAction({})
+          }}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {`Delete '${R.path([
+              currentAction.teamId,
+              currentAction.sessionId,
+              'sessionName',
+            ])(sessionsByTeam)}' from your team '${R.path([
+              'data',
+              currentAction.teamId,
+              'teamName',
+            ])(sessions)}'? This cannot be undone.`}
+          </DialogTitle>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                onClickConfirmRemoveHandler()
+                setCurrentAction({})
+              }}
+              color="error"
+              variant="contained"
+            >
+              Delete
+            </Button>
+            <Button
+              onClick={() => {
+                setOpenDialogDelete(false)
+                setCurrentAction({})
+              }}
+              autoFocus
+              variant="contained"
+            >
+              Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   )
 }

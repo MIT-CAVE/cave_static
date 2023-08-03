@@ -10,7 +10,6 @@ import {
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getMinMax,
-  mapIndexed,
 } from '../../../../utils'
 
 /**
@@ -51,75 +50,63 @@ const getBarLayout = R.memoizeWith(
   }
 )
 
-const getWaterfallValues = (rawData) => {
-  const yData = R.pluck('y')(rawData)
-  let yBase = 0
-  for (let i = 0; i < yData.length; i++) {
-    if (yData[i] == null) continue
-
-    rawData[i]['startValue'] = yBase
-    rawData[i]['endValue'] = yBase + yData[i]
-    yBase = rawData[i]['endValue']
-  }
-  return rawData
-}
-
 const WaterfallChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
   numberFormat,
   theme,
-  subGrouped,
 }) => {
-  const xData = R.pluck('x')(data)
-  const yData = R.pluck('y')(data)
-  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+  if (R.isNil(data) || R.isEmpty(data)) return []
 
-  let barX
-  let barY
-  let barIndex
+  const xLabels = R.pluck('name', data)
+
+  const yValues = R.has('children', R.head(data))
+    ? R.pluck('children', data)
+    : R.pluck('value', data)
+
+  const subGroupLabels = R.pipe(
+    R.map(R.pluck('name')),
+    R.map(R.filter(R.isNotNil)),
+    R.reduce(R.concat, []),
+    R.uniq
+  )(yValues)
 
   const renderItem = (params, api) => {
-    const barStartValue = api.value(2)
-    const barEndValue = api.value(3)
-    if (isNaN(barStartValue) || isNaN(barEndValue)) return
+    const previousVal = R.pipe(
+      R.range(0),
+      R.map((d) => api.value(1, d)),
+      R.filter(R.both(R.isNotNil, (d) => !isNaN(d))),
+      R.ifElse(R.isEmpty, R.always(NaN), R.sum)
+    )(params.dataIndexInside)
 
-    const barIndexPrev = barIndex
-    barIndex = params.seriesIndex
+    const currentVal = !isNaN(previousVal)
+      ? previousVal + api.value(1)
+      : api.value(1)
+
     const index = params.dataIndex
     const style = api.style()
 
-    if (barIndex !== barIndexPrev || index === 0) {
-      barX = undefined
-      barY = undefined
-    }
+    const startCoord = api.coord([
+      index === 0 || isNaN(previousVal) ? index : index - 1,
+      isNaN(previousVal) ? 0 : previousVal,
+    ])
+    const endCoord = api.coord([index, currentVal])
 
-    const startCoord = api.coord([index, barStartValue])
-    const endCoord = api.coord([index, barEndValue])
-
-    const seriesLength = subGrouped ? yKeys.length : 1
-    const categoryWidth = params.coordSys.width / xData.length
-    const { barWidth, barGap, halfIntervalX } = getBarLayout(
-      categoryWidth,
-      seriesLength
-    )
-
+    const seriesLength = R.isEmpty(subGroupLabels) ? 1 : subGroupLabels.length
+    const categoryWidth = params.coordSys.width / xLabels.length
+    const { barWidth } = getBarLayout(categoryWidth, seriesLength)
+    const xOffset =
+      barWidth * params.seriesIndex - (barWidth / 2) * seriesLength
     // `startCoord[0]` is used as the reference center of the middle bar
     // to estimate the position of the first bar within the current category.
-    const firstBarX = startCoord[0] - halfIntervalX
-    const barXPrev = barX
-    barX = firstBarX + barIndex * (barWidth + barGap)
-    const barYPrev = barY
-    barY = endCoord[1]
-
     return {
       type: 'group',
       children: [
         {
           type: 'rect',
           shape: {
-            x: barX - barWidth / 2,
+            x: endCoord[0] + xOffset,
             y: endCoord[1],
             width: barWidth,
             height: startCoord[1] - endCoord[1],
@@ -130,9 +117,9 @@ const WaterfallChart = ({
         {
           type: 'line',
           shape: {
-            x1: barXPrev,
-            y1: barYPrev,
-            x2: barX,
+            x1: startCoord[0] + xOffset,
+            y1: startCoord[1],
+            x2: endCoord[0] + xOffset,
             y2: startCoord[1],
           },
           style: api.style({
@@ -145,50 +132,54 @@ const WaterfallChart = ({
     }
   }
 
-  let dataset
-  let series
-  if (subGrouped) {
-    // TODO: Simplify this Ramda pipe
-    dataset = R.map((yKey) => ({
-      id: yKey,
-      source: R.pipe(
-        R.pluck(yKey),
-        R.map(R.objOf('y')),
-        R.zip(R.map(R.objOf('x'))(xData)),
-        R.map(R.mergeAll),
-        getWaterfallValues,
-        R.project(['x', 'y', 'startValue', 'endValue'])
-      )(yData),
-    }))(yKeys)
-
-    series = yKeys.map((yKey, index) => ({
-      type: 'custom',
-      renderItem,
-      id: yKey,
-      name: yKey,
-      datasetIndex: index,
-      emphasis: {
-        focus: 'series',
-      },
-    }))
-  } else {
-    dataset = [{ source: getWaterfallValues(data) }]
-    series = {
-      type: 'custom',
-      renderItem,
-    }
+  const baseData = {
+    type: 'custom',
+    renderItem,
+    smooth: true,
+    emphasis: {
+      focus: 'series',
+    },
   }
 
+  const series = R.ifElse(
+    (val) => R.type(R.head(R.head(val))) === 'Object',
+    R.pipe(
+      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
+      R.flatten,
+      R.collectBy(R.prop('name')),
+      R.map((d) =>
+        R.mergeDeepLeft(baseData, {
+          name: R.head(d).name,
+          data: R.map(
+            // Sort by index, ensuring that empty data is set to undefined
+            R.pipe(
+              (idx) => R.find(R.propEq(idx, 'index'), d),
+              R.when(R.isNotNil, R.path(['value', 0]))
+            )
+          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+        })
+      ),
+      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+    ),
+    (d) => [R.assoc('data', R.unnest(d), baseData)]
+  )(yValues)
+
   const [yMin, yMax] = R.pipe(
-    R.pluck('source'),
-    R.unnest,
-    R.map(R.props(['startValue', 'endValue'])),
-    R.unnest,
+    R.pluck('data'),
+    R.map(
+      R.pipe(
+        R.filter(R.isNotNil),
+        // perform a cumulative sum operation
+        R.mapAccum((a, b) => [a + b, a + b], 0),
+        R.last
+      )
+    ),
+    R.flatten,
     getMinMax,
     // `R.apply` will convert the resulting `[<min>, <max>]`
     // array to arguments for the `adjustMinMax` function
     R.apply(adjustMinMax)
-  )(dataset)
+  )(series)
 
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
@@ -197,7 +188,6 @@ const WaterfallChart = ({
     backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
     legend: {
       type: 'scroll',
-      data: yKeys,
       top: 24,
     },
     tooltip: {
@@ -208,7 +198,6 @@ const WaterfallChart = ({
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
       },
     },
-    dataset,
     grid: {
       top: 64,
       // right: 8,
@@ -225,7 +214,7 @@ const WaterfallChart = ({
       nameGap: 40,
       type: 'category',
       splitLine: { show: false },
-      data: xData,
+      data: xLabels,
       axisLabel: {
         hideOverlap: true,
         interval: 0,
@@ -283,270 +272,290 @@ const WaterfallChart = ({
   )
 }
 
-// TODO: Refactoring needed
 const StackedWaterfallChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
   numberFormat,
   theme,
-  subGrouped,
 }) => {
-  const xData = R.pluck('x')(data)
-  const yData = R.pluck('y')(data)
-  const yKeys = R.pipe(R.mergeAll, R.keys)(yData)
+  if (R.isNil(data) || R.isEmpty(data)) return []
 
-  const categoryBounds = R.pipe(
-    // The total values after summing up each category
-    R.map(R.pipe(R.values, R.sum)),
-    R.reduce((acc, value) => {
-      const startValue = R.isEmpty(acc) ? 0 : R.path([-1, 1])(acc)
-      const endValue = startValue + value
-      return R.append([startValue, endValue])(acc)
-    }, []),
-    R.zipWith(R.prepend, xData),
-    R.map(R.zipObj(['x', 'startValue', 'endValue']))
-  )(yData)
+  const xLabels = R.pluck('name', data)
 
-  const startValues = R.pipe(
-    R.pluck('startValue'),
-    R.map((val) => ({ rising: val, falling: val })),
-    R.zipObj(xData)
-  )(categoryBounds)
+  const yValues = R.has('children', R.head(data))
+    ? R.pluck('children', data)
+    : R.pluck('value', data)
 
-  const getBarBounds = (rawData) => {
-    const yData = R.pluck('y')(rawData)
+  const subGroupLabels = R.pipe(
+    R.map(R.pluck('name')),
+    R.map(R.filter(R.isNotNil)),
+    R.reduce(R.concat, []),
+    R.uniq
+  )(yValues)
 
-    for (let i = 0; i < yData.length; i++) {
-      if (yData[i] == null) continue
+  const categoryBounds = R.ifElse(
+    (val) => R.type(R.head(R.head(val))) === 'Object',
+    R.pipe(
+      // The total values after summing up each category
+      R.map(R.pipe(R.pluck('value'), R.unnest, R.sum)),
+      R.reduce((acc, value) => {
+        const startValue = R.isEmpty(acc) ? 0 : R.path([-1, 1])(acc)
+        const endValue = startValue + value
+        return R.append([startValue, endValue])(acc)
+      }, []),
+      R.zipWith(R.prepend, xLabels),
+      R.map(R.zipObj(['x', 'startValue', 'endValue']))
+    ),
+    R.pipe(
+      // The total values after summing up each category
+      R.map(R.sum),
+      R.reduce((acc, value) => {
+        const startValue = R.isEmpty(acc) ? 0 : R.path([-1, 1])(acc)
+        const endValue = startValue + value
+        return R.append([startValue, endValue])(acc)
+      }, []),
+      R.zipWith(R.prepend, xLabels),
+      R.map(R.zipObj(['x', 'startValue', 'endValue']))
+    )
+  )(yValues)
 
-      const x = rawData[i].x
-      const orientation = yData[i] < 0 ? 'falling' : 'rising'
+  const directionalSum = R.pipe(
+    // perform a cumulative sum operation
+    R.mapAccum(
+      (acc, val) => {
+        const direction = Math.sign(val) === -1 ? 'falling' : 'rising'
+        const newVal = R.assoc(direction, acc[direction] + val, acc)
+        return [newVal, newVal]
+      },
+      { falling: 0, rising: 0 }
+    ),
+    R.last
+  )
 
-      rawData[i].startValue = startValues[x][orientation]
-      rawData[i].endValue = rawData[i].startValue + yData[i]
-      startValues[x][orientation] = rawData[i].endValue
-    }
-    return rawData
-  }
-
-  let barX
-  let barY
-  let barIndex
-  let index
-  const renderedLinesByIndex = new Set()
-  const validIndices = R.pipe(
-    mapIndexed((value, idx) => R.mergeLeft({ idx })(value)),
-    R.reject(R.pipe(R.prop('y'), R.values, R.all(R.isNil)))
-  )(data)
+  const categoryValues = R.ifElse(
+    (val) => R.type(R.head(R.head(val))) === 'Object',
+    R.map(R.pipe(R.pluck('value'), R.unnest, directionalSum)),
+    R.always({})
+  )(yValues)
 
   const renderItem = (params, api) => {
-    const barStartValue = api.value(2)
-    const barEndValue = api.value(3)
+    const index = params.dataIndex
+    const style = api.style()
+    const newValue = api.value(1)
 
-    index = params.dataIndex
-    const barIndexPrev = barIndex
-    barIndex = params.seriesIndex
+    const direction = Math.sign(newValue) === -1 ? 'falling' : 'rising'
 
-    // Prevents re-rendering bugs with uncleared values of dashed line
-    if (barIndex === 0 && index === 0) {
-      barX = undefined
-      barY = undefined
-      renderedLinesByIndex.clear()
-    }
+    const prevColVal = R.prop(
+      'startValue',
+      categoryBounds[params.dataIndexInside]
+    )
 
-    if (isNaN(barStartValue) || isNaN(barEndValue)) return
+    const storedSeriesIndex = R.findIndex(R.propEq(params.seriesName, 'name'))(
+      yValues[index]
+    )
 
-    if (barIndex !== barIndexPrev || index === 0) {
-      barX = undefined
-      barY = undefined
-    }
+    const previousVal =
+      storedSeriesIndex !== 0 && storedSeriesIndex !== -1
+        ? R.path(
+            [params.dataIndexInside, storedSeriesIndex - 1, direction],
+            categoryValues
+          ) + prevColVal
+        : prevColVal
 
-    const startCoord = api.coord([index, barStartValue])
-    const endCoord = api.coord([index, barEndValue])
+    const currentVal = !isNaN(previousVal) ? previousVal + newValue : newValue
+    // coordinates of previous column for connecting line
+    const lineStartCoord = api.coord([
+      index === 0 || isNaN(previousVal) ? index : index - 1,
+      prevColVal,
+    ])
 
-    const categoryWidth = params.coordSys.width / xData.length
+    // coordinates of previous bar in column if exists || lineStartCoord
+    const startCoord = api.coord([
+      index === 0 || isNaN(previousVal) ? index : index - 1,
+      isNaN(previousVal) ? 0 : previousVal,
+    ])
+    const endCoord = api.coord([index, currentVal])
+
+    const categoryWidth = params.coordSys.width / xLabels.length
     const { barWidth } = getBarLayout(categoryWidth, 1)
-
-    const barXPrev = barX
-    barX = startCoord[0]
-    const barYPrev = barY
-    barY = endCoord[1]
 
     const barChart = {
       type: 'rect',
       shape: {
-        x: barX - barWidth / 2,
+        x: endCoord[0] - barWidth / 2,
         y: startCoord[1],
         width: barWidth,
-        height: barY - startCoord[1],
+        height: endCoord[1] - startCoord[1],
       },
-      style: api.style(),
+      style,
     }
 
     // Dashed line connecting the bars
-    let lineConnector
-    if (index > 0 && !renderedLinesByIndex.has(index)) {
-      let shape
-      if (subGrouped) {
-        const validIndex = R.findIndex(R.propEq(index, 'idx'))(validIndices)
-        if (validIndex > 0) {
-          const indexPrev = validIndices[validIndex - 1].idx
-          const endCoordPrev = api.coord([
-            indexPrev,
-            categoryBounds[indexPrev].endValue,
-          ])
-          shape = {
-            x1: endCoordPrev[0],
-            y1: endCoordPrev[1],
-            x2: barX,
-            y2: api.coord([index, categoryBounds[index].startValue])[1],
-            z: 1,
-          }
-        }
-      } else {
-        shape = {
-          x1: barXPrev,
-          y1: barYPrev,
-          x2: barX,
-          y2: startCoord[1],
-        }
-      }
-
-      if (shape) {
-        lineConnector = {
-          type: 'line',
-          shape,
-          style: api.style({
-            stroke: subGrouped
-              ? theme === 'light'
-                ? '#4a4a4a'
-                : '#ffffff'
-              : api.visual('color'),
-            lineWidth: 2,
-            lineDash: [8, 6],
-            symbolSize: 120,
-          }),
-          z2: 1,
-        }
-      }
-      renderedLinesByIndex.add(index)
-    }
+    const lineConnector = [
+      {
+        shape: {
+          x1: startCoord[0],
+          y1: lineStartCoord[1],
+          x2: endCoord[0],
+          y2: lineStartCoord[1],
+        },
+        type: 'line',
+        style: api.style({
+          stroke: theme === 'light' ? '#4a4a4a' : '#ffffff',
+          lineWidth: 2,
+          lineDash: [8, 6],
+          symbolSize: 120,
+        }),
+        z2: 1,
+      },
+    ]
 
     return {
       type: 'group',
       children: R.unless(
-        R.always(lineConnector == null),
-        R.append(lineConnector)
+        R.always(R.isEmpty(lineConnector)),
+        R.concat(lineConnector)
       )([barChart]),
     }
   }
 
-  let dataset
-  let series
-  if (subGrouped) {
-    dataset = R.map((yKey) => ({
-      id: yKey,
-      source: R.pipe(
-        R.pluck(yKey),
-        R.map(R.objOf('y')),
-        R.zip(R.map(R.objOf('x'))(xData)),
-        R.map(R.mergeAll),
-        getBarBounds,
-        R.project(['x', 'y', 'startValue', 'endValue'])
-      )(yData),
-    }))(yKeys)
-
-    const barSeries = mapIndexed((yKey, idx) => ({
-      type: 'custom',
-      renderItem,
-      id: yKey,
-      name: yKey,
-      datasetIndex: idx,
-    }))(yKeys)
-
-    const getGraphSeries = (nodesData) => ({
-      type: 'graph',
-      coordinateSystem: 'cartesian2d',
-      categories: [
-        {
-          name: 'Initial',
-          symbol: 'diamond',
-          itemStyle: {
-            color: getChartItemColor(theme, yKeys.length),
-          },
-        },
-        {
-          name: 'Net Change',
-          symbol: 'circle',
-          itemStyle: {
-            color: getChartItemColor(theme, yKeys.length + 1),
-          },
-        },
-      ],
-      lineStyle: {
-        type: 'dashed',
-        width: 2,
-        color: theme === 'light' ? '#4a4a4a' : '#ffffff',
-      },
-      emphasis: { focus: 'series' },
-      symbolSize: 16,
-      itemStyle: {
-        borderWidth: 2,
-        borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-      },
-      nodes: nodesData,
-      tooltip: {
-        trigger: 'item',
-        backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-        textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
-        valueFormatter: (value) => formatNumber(value, numberFormat),
-      },
-    })
-
-    const getNodes = R.pipe(({ key, seriesName, ...rest }) =>
-      R.map((value) => ({
-        value: value[key],
-        name: `${seriesName} @${value.x}`,
-        ...rest,
-      }))(categoryBounds)
-    )
-
-    const initNodes = getNodes({
-      key: 'startValue',
-      seriesName: 'Initial',
-      category: 0,
-    })
-
-    const netChangeNodes = getNodes({
-      key: 'endValue',
-      seriesName: 'Net Change',
-      category: 1,
-    })
-
-    series = [
-      ...barSeries,
-      getGraphSeries(initNodes, 'Initial'),
-      getGraphSeries(netChangeNodes, 'Net Change'),
-    ]
-  } else {
-    dataset = [{ source: getWaterfallValues(data) }]
-    series = {
-      type: 'custom',
-      renderItem,
-    }
+  const baseData = {
+    type: 'custom',
+    renderItem,
+    smooth: true,
+    emphasis: {
+      focus: 'series',
+    },
   }
 
+  const barSeries = R.ifElse(
+    (val) => R.type(R.head(R.head(val))) === 'Object',
+    R.pipe(
+      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
+      R.flatten,
+      R.collectBy(R.prop('name')),
+      R.map((d) =>
+        R.mergeDeepLeft(baseData, {
+          name: R.head(d).name,
+          data: R.map(
+            // Sort by index, ensuring that empty data is set to undefined
+            R.pipe(
+              (idx) => R.find(R.propEq(idx, 'index'), d),
+              R.when(R.isNotNil, R.path(['value', 0]))
+            )
+          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+        })
+      ),
+      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+    ),
+    (d) => [R.assoc('data', R.unnest(d), baseData)]
+  )(yValues)
+
   const [yMin, yMax] = R.pipe(
-    R.pluck('source'),
-    R.unnest,
-    R.map(R.props(['startValue', 'endValue'])),
-    R.unnest,
+    R.when(
+      (val) => R.type(R.head(R.head(val))) === 'Object',
+      R.pipe(
+        R.mapAccum(
+          (acc, val) => {
+            const categoryVals = R.pipe(
+              R.pluck('value'),
+              R.flatten,
+              R.filter(R.isNotNil)
+            )(val)
+            const max = R.reduce(
+              (acc, item) => (R.gt(item, 0) ? acc + item : acc),
+              0
+            )(categoryVals)
+            const min = R.reduce(
+              (acc, item) => (R.lt(item, 0) ? acc + item : acc),
+              0
+            )(categoryVals)
+            const current = R.map(R.add(R.prop('sum', acc)))({
+              max,
+              min,
+              sum: R.sum(categoryVals),
+            })
+            return [current, current]
+          },
+          { sum: 0 }
+        ),
+        R.last,
+        R.project(['max', 'min']),
+        R.map(R.values)
+      )
+    ),
+    R.flatten,
     getMinMax,
     // `R.apply` will convert the resulting `[<min>, <max>]`
     // array to arguments for the `adjustMinMax` function
     R.apply(adjustMinMax)
-  )(dataset)
+  )(yValues)
+
+  const getGraphSeries = (nodesData) => ({
+    type: 'graph',
+    coordinateSystem: 'cartesian2d',
+    categories: [
+      {
+        name: 'Initial',
+        symbol: 'diamond',
+        itemStyle: {
+          color: getChartItemColor(theme, subGroupLabels.length),
+        },
+      },
+      {
+        name: 'Net Change',
+        symbol: 'circle',
+        itemStyle: {
+          color: getChartItemColor(theme, subGroupLabels.length + 1),
+        },
+      },
+    ],
+    lineStyle: {
+      type: 'dashed',
+      width: 2,
+      color: theme === 'light' ? '#4a4a4a' : '#ffffff',
+    },
+    emphasis: { focus: 'series' },
+    symbolSize: 16,
+    itemStyle: {
+      borderWidth: 2,
+      borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    },
+    nodes: nodesData,
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+      valueFormatter: (value) => formatNumber(value, numberFormat),
+    },
+  })
+
+  const getNodes = R.pipe(({ key, seriesName, ...rest }) =>
+    R.map((value) => ({
+      value: value[key],
+      name: `${seriesName} @${value.x}`,
+      ...rest,
+    }))(categoryBounds)
+  )
+
+  const initNodes = getNodes({
+    key: 'startValue',
+    seriesName: 'Initial',
+    category: 0,
+  })
+
+  const netChangeNodes = getNodes({
+    key: 'endValue',
+    seriesName: 'Net Change',
+    category: 1,
+  })
+
+  const series = [
+    ...barSeries,
+    getGraphSeries(initNodes, 'Initial'),
+    getGraphSeries(netChangeNodes, 'Net Change'),
+  ]
 
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
@@ -556,13 +565,12 @@ const StackedWaterfallChart = ({
     legend: {
       type: 'scroll',
       data: [
-        ...yKeys,
+        ...subGroupLabels,
         { name: 'Initial', icon: 'diamond' },
         { name: 'Net Change', icon: 'circle' },
       ],
       top: 24,
     },
-    dataset,
     tooltip: {
       trigger: 'axis',
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
@@ -585,7 +593,7 @@ const StackedWaterfallChart = ({
       nameGap: 40,
       type: 'category',
       splitLine: { show: false },
-      data: xData,
+      data: xLabels,
       axisLabel: {
         hideOverlap: true,
         interval: 0,

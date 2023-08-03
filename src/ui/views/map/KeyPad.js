@@ -5,8 +5,8 @@ import { useSelector } from 'react-redux'
 
 import {
   selectMapKpis,
-  selectOpenPane,
-  selectSecondaryOpenPane,
+  selectLeftOpenPane,
+  selectLeftSecondaryOpenPane,
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
@@ -27,8 +27,8 @@ const getStyle = (open, secondaryOpen) => ({
 })
 
 const KeyPad = () => {
-  const open = useSelector(selectOpenPane)
-  const secondaryOpen = useSelector(selectSecondaryOpenPane)
+  const open = useSelector(selectLeftOpenPane)
+  const secondaryOpen = useSelector(selectLeftSecondaryOpenPane)
   const mapKpis = useSelector(selectMapKpis)
   if (R.isEmpty(mapKpis)) return null
 

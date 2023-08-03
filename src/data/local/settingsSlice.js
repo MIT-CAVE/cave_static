@@ -9,6 +9,7 @@ export const initialState = {
   theme: themeId.DARK,
   time: 0,
   touch: false,
+  mirror: false,
 }
 
 export const settingsSlice = createSlice({
@@ -28,6 +29,9 @@ export const settingsSlice = createSlice({
     toggleTouch: (state) => {
       state.touch = !state.touch
     },
+    toggleMirror: (state) => {
+      state.mirror = !state.mirror
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(overrideState, (state, action) => {
@@ -36,7 +40,12 @@ export const settingsSlice = createSlice({
   },
 })
 
-export const { themeSelection, timeSelection, timeAdvance, toggleTouch } =
-  settingsSlice.actions
+export const {
+  themeSelection,
+  timeSelection,
+  timeAdvance,
+  toggleTouch,
+  toggleMirror,
+} = settingsSlice.actions
 
 export default settingsSlice.reducer

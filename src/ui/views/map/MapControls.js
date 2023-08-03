@@ -24,7 +24,7 @@ import {
   pitchSliderToggle,
   pitchUpdate,
   viewportUpdate,
-  setZoom,
+  changeZoom,
   toggleMapLegend,
   openMapModal,
 } from '../../../data/local/mapSlice'
@@ -36,14 +36,15 @@ import {
   selectPitchSliderToggle,
   selectBearing,
   selectPitch,
-  selectZoom,
   selectTime,
   selectTimeUnits,
   selectTimeLength,
   selectStaticMap,
   selectAppBarId,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import {
+  APP_BAR_WIDTH,
   MAX_BEARING,
   MAX_PITCH,
   MIN_BEARING,
@@ -53,10 +54,10 @@ import {
 import { getSliderMarks, formatNumber } from '../../../utils'
 
 const styles = {
-  getRoot: (hover) => ({
+  getRoot: (hover, rightBar) => ({
     position: 'absolute',
     bottom: 0,
-    right: 0,
+    right: rightBar ? APP_BAR_WIDTH : 0,
     'button,.MuiSlider-root': {
       opacity: hover ? 1 : 0.8,
     },
@@ -211,7 +212,6 @@ const MapControls = () => {
 
   const bearing = useSelector(selectBearing)
   const pitch = useSelector(selectPitch)
-  const zoom = useSelector(selectZoom)
   const defaultViewport = useSelector(selectDefaultViewport)
   const optionalViewports = useSelector(selectOptionalViewports)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
@@ -221,6 +221,7 @@ const MapControls = () => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
+  const rightBar = useSelector(selectRightAppBarDisplay)
   const dispatch = useDispatch()
 
   const getDegreeFormat = (value) =>
@@ -242,7 +243,7 @@ const MapControls = () => {
 
   return (
     <Box
-      sx={styles.getRoot(hover)}
+      sx={styles.getRoot(hover, rightBar)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -283,13 +284,13 @@ const MapControls = () => {
             </TooltipButton>
             <TooltipButton
               title={tooltipTitles.zoomIn}
-              onClick={() => dispatch(setZoom({ appBarId, value: zoom + 0.5 }))}
+              onClick={() => dispatch(changeZoom({ appBarId, value: 0.5 }))}
             >
               <MdAdd />
             </TooltipButton>
             <TooltipButton
               title={tooltipTitles.zoomOut}
-              onClick={() => dispatch(setZoom({ appBarId, value: zoom - 0.5 }))}
+              onClick={() => dispatch(changeZoom({ appBarId, value: -0.5 }))}
             >
               <MdRemove />
             </TooltipButton>

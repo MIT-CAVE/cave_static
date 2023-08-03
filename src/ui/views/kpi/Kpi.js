@@ -7,7 +7,7 @@ import { renderKpisLayout } from '../common/renderLayout'
 
 const style = (theme) => ({
   height: `calc(100vh - ${theme.spacing(5)})`,
-  maxWidth: `calc(100vw - ${APP_BAR_WIDTH + 1}px - ${theme.spacing(5)})`,
+  maxWidth: `calc(100vw - ${2 * APP_BAR_WIDTH + 1}px - ${theme.spacing(5)})`,
   p: 2.5,
   color: 'text.primary',
   overflow: 'auto',

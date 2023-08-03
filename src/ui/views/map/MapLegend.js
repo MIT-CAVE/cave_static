@@ -36,8 +36,10 @@ import {
   selectPitchSliderToggle,
   selectAppBarId,
   selectResolveTime,
-  selectNodeClustersAtZoom,
+  selectNodeRangeAtZoom,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
+import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
 
@@ -164,10 +166,11 @@ const getMinMaxLabel = (
   timeProp,
   valProp,
   typeObj,
+  group,
   end,
   labelEnd
 ) => {
-  return R.pathOr(
+  const getNumLabel = () =>
     R.path(['props', valProp, 'legendOverride', 'useScientificFormat'])(
       typeObj
     ) ?? true
@@ -183,17 +186,39 @@ const getMinMaxLabel = (
             R.path(['props', valProp, 'numberFormat']),
             R.dissoc('unit')
           )(typeObj)
-        ),
-    ['props', valProp, 'legendOverride', labelEnd]
-  )(typeObj)
+        )
+  return group
+    ? getNumLabel(typeObj)
+    : R.pathOr(getNumLabel(typeObj), [
+        'props',
+        valProp,
+        'legendOverride',
+        labelEnd,
+      ])(typeObj)
 }
 
-const getMinLabel = (valRange, timeProp, valProp, typeObj) => {
-  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'min', 'minLabel')
+const getMinLabel = (valRange, timeProp, valProp, typeObj, group) => {
+  return getMinMaxLabel(
+    valRange,
+    timeProp,
+    valProp,
+    typeObj,
+    group,
+    'min',
+    'minLabel'
+  )
 }
 
-const getMaxLabel = (valRange, timeProp, valProp, typeObj) => {
-  return getMinMaxLabel(valRange, timeProp, valProp, typeObj, 'max', 'maxLabel')
+const getMaxLabel = (valRange, timeProp, valProp, typeObj, group) => {
+  return getMinMaxLabel(
+    valRange,
+    timeProp,
+    valProp,
+    typeObj,
+    group,
+    'max',
+    'maxLabel'
+  )
 }
 
 const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
@@ -358,7 +383,7 @@ const MapLegendSizeBySection = ({
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
           <OverflowText
-            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj)}
+            text={getMinLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
           />
         </Grid>
         <Grid item sx={{ pr: 0.75 }}>
@@ -379,7 +404,7 @@ const MapLegendSizeBySection = ({
         </Grid>
         <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
           <OverflowText
-            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj)}
+            text={getMaxLabel(sizeRange, timeProp, sizeProp, typeObj, group)}
           />
         </Grid>
       </Grid>
@@ -471,8 +496,20 @@ const MapLegendColorBySection = ({
               ['endGradientColor', themeType],
               colorRange
             )}
-            maxLabel={getMaxLabel(valueRange, timeProp, colorProp, typeObj)}
-            minLabel={getMinLabel(valueRange, timeProp, colorProp, typeObj)}
+            maxLabel={getMaxLabel(
+              valueRange,
+              timeProp,
+              colorProp,
+              typeObj,
+              group
+            )}
+            minLabel={getMinLabel(
+              valueRange,
+              timeProp,
+              colorProp,
+              typeObj,
+              group
+            )}
           />
         )}
       </Grid>
@@ -678,6 +715,7 @@ const LegendCard = ({
   const dispatch = useDispatch()
   const displayedGeometry = useSelector(selectEnabledGeometry)
   const geometryRange = useSelector(selectGeometryRange)
+  const geometryRangesByType = useSelector(selectNodeRangeAtZoom)
   const sync = useSelector(selectSync)
   const appBarId = useSelector(selectAppBarId)
 
@@ -712,11 +750,6 @@ const LegendCard = ({
   const groupCalcByColor =
     displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
-  const geometryRangesByType = R.propOr(
-    {},
-    'range',
-    useSelector(selectNodeClustersAtZoom)
-  )
   const { color: colorDomain, size: sizeDomain } = R.propOr(
     {},
     geometryType,
@@ -942,12 +975,17 @@ const MapLegend = () => {
   const showPitchSlider = useSelector(selectPitchSliderToggle)
   const showBearingSlider = useSelector(selectBearingSliderToggle)
   const mapLegend = useSelector(selectMapLegend)
+  const rightBar = useSelector(selectRightAppBarDisplay)
   if (!R.propOr(true, 'isOpen', mapLegend)) return null
-
   return (
     <Box
       key="map-legend"
-      sx={[styles.root, { right: showPitchSlider ? 100 : 65 }]}
+      sx={[
+        styles.root,
+        {
+          right: (showPitchSlider ? 100 : 65) + (rightBar ? APP_BAR_WIDTH : 0),
+        },
+      ]}
     >
       <Box
         sx={[

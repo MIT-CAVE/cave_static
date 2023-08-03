@@ -1,6 +1,6 @@
 {
   "name": "cave_static",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "scripts": {
     "build": "export $(cat .env | xargs) && react-scripts build",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
@@ -36,7 +36,7 @@
     "react-dom": "^18.2.0",
     "react-fast-marquee": "^1.6.0",
     "react-icons": "^4.10.1",
-    "react-map-gl": "7.0.23",
+    "react-map-gl": "^7.0.23",
     "react-redux": "^8.1.1",
     "react-scripts": "^5.0.1",
     "react-transition-group": "^4.4.5",
