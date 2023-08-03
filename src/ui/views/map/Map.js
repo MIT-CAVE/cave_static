@@ -23,6 +23,7 @@ import {
   selectStaticMap,
   selectAppBarId,
   selectTouchMode,
+  selectLeftAppBarDisplay,
 } from '../../../data/selectors'
 import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -47,6 +48,7 @@ const Map = ({ mapboxToken }) => {
   const isStatic = useSelector(selectStaticMap)
   const appBarId = useSelector(selectAppBarId)
   const touchMode = useSelector(selectTouchMode)
+  const leftBar = useSelector(selectLeftAppBarDisplay)
 
   const deckRef = useRef({})
 
@@ -163,6 +165,10 @@ const Map = ({ mapboxToken }) => {
       <MapControls />
       <ReactMapGL
         {...viewport}
+        style={{
+          position: 'fixed',
+          left: leftBar ? APP_BAR_WIDTH : 0,
+        }}
         projection="mercator"
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
@@ -171,6 +177,10 @@ const Map = ({ mapboxToken }) => {
       >
         <ScaleControl />
         <DeckGL
+          style={{
+            position: 'fixed',
+            left: leftBar ? APP_BAR_WIDTH : 0,
+          }}
           onClick={onClick}
           onHover={touchMode ? onClick : R.identity}
           ref={deckRef}
