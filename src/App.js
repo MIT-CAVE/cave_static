@@ -10,6 +10,8 @@ import { useSelector } from 'react-redux'
 import {
   selectAppBarId,
   selectAppBarData,
+  selectLeftAppBarDisplay,
+  selectRightAppBarDisplay,
   selectMapboxToken,
   selectTheme,
 } from './data/selectors'
@@ -52,12 +54,18 @@ const App = () => {
   const themeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
   const appBarData = useSelector(selectAppBarData)
+  const leftBar = useSelector(selectLeftAppBarDisplay)
+  const rightBar = useSelector(selectRightAppBarDisplay)
 
   const theme = getTheme(themeId)
   const renderAppPage = R.cond([
     [
       R.equals(viewId.MAP),
-      R.always(mapboxToken ? <Map {...{ mapboxToken }} /> : null),
+      R.always(
+        mapboxToken && (leftBar || rightBar) ? (
+          <Map {...{ mapboxToken }} />
+        ) : null
+      ),
     ],
     [R.equals(viewId.DASHBOARD), R.always(<Dashboard />)],
     [R.equals(viewId.KPI), R.always(<Kpi />)],
