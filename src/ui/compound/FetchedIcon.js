@@ -7,7 +7,7 @@ import { selectSettingsIconUrl } from '../../data/selectors'
 
 import { fetchIcon, addExtraProps, removeExtraProps } from '../../utils'
 
-const FetchedIcon = ({ iconName = 'MdDownloading', ...props }) => {
+const FetchedIcon = ({ iconName = 'md/MdDownloading', ...props }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const [icon, setIcon] = useState(<MdDownloading />)
   useEffect(() => {

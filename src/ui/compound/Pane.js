@@ -108,7 +108,7 @@ const PaneHeader = ({
       ]}
       onClick={onPin}
     >
-      <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+      <FetchedIcon iconName={pin ? 'md/MdPushPin' : 'md/MdOutlinePushPin'} />
     </IconButton>
   )
   return (

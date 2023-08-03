@@ -85,7 +85,7 @@ const ActionItems = ({ items = [], disabled }) => {
               onClickHandler(event)
             }}
           >
-            <FetchedIcon iconName="MdMoreVert" />
+            <FetchedIcon iconName="md/MdMoreVert" />
           </IconButton>
           <Menu
             id="long-menu"
@@ -290,7 +290,7 @@ const ListItemSessionCardInput = ({
             }}
             // color="success"
             variant="contained"
-            endIcon={<FetchedIcon iconName="MdCheck" size={24} />}
+            endIcon={<FetchedIcon iconName="md/MdCheck" size={24} />}
           >
             Confirm
           </Button>
@@ -299,7 +299,7 @@ const ListItemSessionCardInput = ({
             onClick={onClickCancel}
             color="error"
             variant="contained"
-            startIcon={<FetchedIcon iconName="MdOutlineCancel" />}
+            startIcon={<FetchedIcon iconName="md/MdOutlineCancel" />}
           >
             Cancel
           </Button>
@@ -338,7 +338,7 @@ const ListItemSessionCard = ({
     editable != null
       ? {
           label: 'Edit session',
-          iconName: 'MdEdit',
+          iconName: 'md/MdEdit',
           hidden: hideEdit,
           onClick: onClickEdit,
           disabled: !editable,
@@ -347,7 +347,7 @@ const ListItemSessionCard = ({
     duplicable != null
       ? {
           label: 'Duplicate session',
-          iconName: 'MdCopyAll',
+          iconName: 'md/MdCopyAll',
           hidden: hideDuplicate,
           onClick: onClickDuplicate,
           disabled: !duplicable,
@@ -356,7 +356,7 @@ const ListItemSessionCard = ({
     removable != null
       ? {
           label: 'Delete session',
-          iconName: 'IoMdCloseCircleOutline',
+          iconName: 'io/IoMdCloseCircleOutline',
           hidden: hideRemove,
           onClick: onClickRemove,
           disabled: selected || !removable,
@@ -407,7 +407,7 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
         {/* A `span` wrapper to acommodate disabled actions */}
         <span>
           <IconButton {...{ onClick }}>
-            <FetchedIcon {...{ iconName: 'MdOutlineAddBox' }} />
+            <FetchedIcon {...{ iconName: 'md/MdOutlineAddBox' }} />
           </IconButton>
         </span>
       </Tooltip>

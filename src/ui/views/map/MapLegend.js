@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
+import { BlockPicker } from 'react-color'
 import { AiOutlineDash, AiOutlineEllipsis, AiOutlineLine } from 'react-icons/ai'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { VscLoading } from 'react-icons/vsc'
@@ -44,10 +45,13 @@ import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
 
 import {
-  OverflowText,
-  SimpleDropdown,
   FetchedIcon,
   GradientBox,
+  IconPicker,
+  OverflowText,
+  SimpleDropdown,
+  SizePickerTooltip,
+  StableTooltip,
 } from '../../compound'
 
 import {
@@ -197,26 +201,67 @@ const getMaxLabel = (valRange, valProp, typeObj, group) => {
   return getMinMaxLabel(valRange, valProp, typeObj, group, 'max', 'maxLabel')
 }
 
-const CategoricalItems = ({ colorRange, getLabel = capitalize }) => (
-  <OverflowText sx={{ width: '100%' }}>
-    <Stack direction="row" spacing={3} justifyContent="center">
-      {R.values(
-        R.mapObjIndexed(
-          (val, key) => (
-            <Stack alignItems="center" {...{ key }}>
-              <Paper
-                sx={[styles.categoryIcon, { bgcolor: val }]}
-                elevation={3}
-              />
-              <div>{getLabel(key)}</div>
-            </Stack>
-          ),
-          colorRange
-        )
-      )}
-    </Stack>
-  </OverflowText>
-)
+const CategoricalItems = ({
+  colorRange,
+  getLabel = capitalize,
+  geometryName,
+  geometryType,
+  propId,
+}) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
+
+  const basePath = [
+    geometryName,
+    'types',
+    geometryType,
+    'colorByOptions',
+    propId,
+  ]
+  return (
+    <OverflowText sx={{ width: '100%' }}>
+      <Stack direction="row" spacing={3} justifyContent="center">
+        {R.values(
+          R.mapObjIndexed(
+            (val, key) => (
+              <Stack alignItems="center" {...{ key }}>
+                <StableTooltip
+                  title={
+                    <BlockPicker
+                      color={val}
+                      triangle="hide"
+                      onChangeComplete={(color) =>
+                        dispatch(
+                          mutateLocal({
+                            path: R.append(key, basePath),
+                            sync: !includesPath(
+                              R.values(sync),
+                              R.append(key, basePath)
+                            ),
+                            value: `rgb(${color.rgb.r},${color.rgb.g},${color.rgb.b})`,
+                          })
+                        )
+                      }
+                    />
+                  }
+                >
+                  <div>
+                    <Paper
+                      sx={[styles.categoryIcon, { bgcolor: val }]}
+                      elevation={3}
+                    />
+                    <div>{getLabel(key)}</div>
+                  </div>
+                </StableTooltip>
+              </Stack>
+            ),
+            colorRange
+          )
+        )}
+      </Stack>
+    </OverflowText>
+  )
+}
 
 const MapLegendGroupRowToggleLayer = ({
   icon,
@@ -280,10 +325,10 @@ const GroupCalcDropdown = ({ propType, value, onSelect }) => {
         <FetchedIcon
           iconName={
             propType === propId.TOGGLE
-              ? 'TbLogicAnd'
+              ? 'tb/TbLogicAnd'
               : propType === propId.NUMBER
-              ? 'TbMathFunction'
-              : 'TbMathFunction' // TODO: Different icon for a `selector`?
+              ? 'tb/TbMathFunction'
+              : 'tb/TbMathFunction' // TODO: Different icon for a `selector`?
           }
           size={24}
         />
@@ -310,11 +355,18 @@ const MapLegendSizeBySection = ({
   group,
   propValue,
   onSelectProp,
+  geometryName,
+  geometryType,
 }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
 
   const syncSize = !includesPath(R.values(sync), syncPath)
+
+  const typePath = [geometryName, 'types', geometryType]
+  const iconPath = R.append('icon')(typePath)
+  const startSizePath = R.append('startSize')(typePath)
+  const endSizePath = R.append('endSize')(typePath)
 
   const unit = R.path(['props', sizeProp, 'numberFormat', 'unit'])(typeObj)
   return (
@@ -356,32 +408,91 @@ const MapLegendSizeBySection = ({
 
       {/* Second row: Size icons with value range */}
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
-        <Grid item sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }} xs={3.5}>
-          <OverflowText
-            text={getMinLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
-          />
-        </Grid>
-        <Grid item sx={{ pr: 0.75 }}>
-          {addExtraProps(icon, {
-            css: {
-              width: R.prop('startSize')(typeObj),
-              height: R.prop('startSize')(typeObj),
-            },
-          })}
-        </Grid>
-        <Grid item sx={{ pl: 0.75 }}>
-          {addExtraProps(icon, {
-            css: {
-              width: R.prop('endSize')(typeObj),
-              height: R.prop('endSize')(typeObj),
-            },
-          })}
-        </Grid>
-        <Grid item sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }} xs={3.5}>
-          <OverflowText
-            text={getMaxLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
-          />
-        </Grid>
+        <SizePickerTooltip
+          value={R.prop('startSize')(typeObj)}
+          onSelect={(newSize) => {
+            dispatch(
+              mutateLocal({
+                path: startSizePath,
+                sync: !includesPath(R.values(sync), startSizePath),
+                value: newSize,
+              })
+            )
+          }}
+        >
+          <Grid
+            item
+            sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
+            xs={3.5}
+          >
+            <OverflowText
+              text={getMinLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
+            />
+          </Grid>
+        </SizePickerTooltip>
+        <StableTooltip
+          enabled={geometryName === 'nodes'}
+          title={
+            <IconPicker
+              onSelect={(iconName) => {
+                dispatch(
+                  mutateLocal({
+                    path: iconPath,
+                    sync: !includesPath(R.values(sync), iconPath),
+                    value: iconName,
+                  })
+                )
+              }}
+            />
+          }
+        >
+          <Grid
+            item
+            container
+            alignItems="center"
+            justifyContent={'center'}
+            xs={4}
+          >
+            <Grid item sx={{ pr: 0.75 }}>
+              {addExtraProps(icon, {
+                css: {
+                  width: R.prop('startSize')(typeObj),
+                  height: R.prop('startSize')(typeObj),
+                },
+              })}
+            </Grid>
+            <Grid item sx={{ pl: 0.75 }}>
+              {addExtraProps(icon, {
+                css: {
+                  width: R.prop('endSize')(typeObj),
+                  height: R.prop('endSize')(typeObj),
+                },
+              })}
+            </Grid>
+          </Grid>
+        </StableTooltip>
+        <SizePickerTooltip
+          value={R.prop('endSize')(typeObj)}
+          onSelect={(newSize) => {
+            dispatch(
+              mutateLocal({
+                path: endSizePath,
+                sync: !includesPath(R.values(sync), endSizePath),
+                value: newSize,
+              })
+            )
+          }}
+        >
+          <Grid
+            item
+            sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
+            xs={3.5}
+          >
+            <OverflowText
+              text={getMaxLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
+            />
+          </Grid>
+        </SizePickerTooltip>
       </Grid>
 
       {/* Third row: Clustering functions */}
@@ -407,6 +518,8 @@ const MapLegendColorBySection = ({
   group,
   propValue,
   onSelectProp,
+  geometryName,
+  geometryType,
 }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
@@ -456,7 +569,11 @@ const MapLegendColorBySection = ({
       {/* Second row: Color gradient for value range */}
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         {isCategorical ? (
-          <CategoricalItems getLabel={getCategoryName} {...{ colorRange }} />
+          <CategoricalItems
+            getLabel={getCategoryName}
+            propId={colorProp}
+            {...{ colorRange, geometryName, geometryType }}
+          />
         ) : (
           <GradientBox
             minColor={R.pathOr(
@@ -483,6 +600,13 @@ const MapLegendColorBySection = ({
               typeObj,
               group
             )}
+            colorPropPath={[
+              geometryName,
+              'types',
+              geometryType,
+              'colorByOptions',
+              colorProp,
+            ]}
           />
         )}
       </Grid>
@@ -597,6 +721,9 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
           {isCategorical ? (
             <CategoricalItems
               getLabel={getGeoCategoryName}
+              geometryName="geos"
+              geometryType={geoType}
+              propId={colorProp}
               {...{ colorRange }}
             />
           ) : (
@@ -613,6 +740,13 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
               )}
               minLabel={getMinLabel(colorRange, R.prop, colorProp, typeObj)}
               maxLabel={getMaxLabel(colorRange, R.prop, colorProp, typeObj)}
+              colorPropPath={[
+                'geos',
+                'types',
+                geoType,
+                'colorByOptions',
+                colorProp,
+              ]}
             />
           )}
         </Grid>
@@ -785,7 +919,9 @@ const LegendCard = ({
                 }}
               >
                 <FetchedIcon
-                  iconName={group ? 'FaRegObjectGroup' : 'FaRegObjectUngroup'}
+                  iconName={
+                    group ? 'fa6/FaRegObjectGroup' : 'fa6/FaRegObjectUngroup'
+                  }
                   size={26}
                   color="text.primary"
                 />
@@ -811,6 +947,8 @@ const LegendCard = ({
               typeObj,
               icon,
               group,
+              geometryName,
+              geometryType,
             }}
             sizeRange={group && sizeDomain ? sizeDomain : sizeRange}
             getPropName={getGeometryPropName}
@@ -853,6 +991,8 @@ const LegendCard = ({
               colorRange,
               typeObj,
               group,
+              geometryName,
+              geometryType,
             }}
             valueRange={group && colorDomain ? colorDomain : colorRange}
             getPropName={getGeometryPropName}

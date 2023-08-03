@@ -162,6 +162,7 @@ const Map = ({ mapboxToken }) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) return
       const [id, feature, obj] = featureObj
+      setHighlightLayerId()
 
       dispatch(
         openMapModal({
@@ -213,7 +214,6 @@ const Map = ({ mapboxToken }) => {
         onClick={onClick}
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
-        onTouchStart={onClick}
         ref={mapRef}
         cursor={cursor}
         onMouseOver={onMouseOver}

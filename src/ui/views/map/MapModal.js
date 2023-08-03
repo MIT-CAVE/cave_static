@@ -198,7 +198,7 @@ const MapModal = () => {
     R.add(1),
     R.range(1),
     R.reduce((acc, value) => R.assoc(value, value, acc), {}),
-    R.map((value) => ({ name: value, icon: 'MdAvTimer', order: value }))
+    R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
   )(timeLength)
 
   const syncStyles = !includesPath(R.values(sync), [

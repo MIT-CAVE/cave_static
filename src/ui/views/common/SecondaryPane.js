@@ -297,7 +297,9 @@ const SecondaryPane = ({ open, pane, primaryPane, side, pin, onPin }) => {
           sx={R.assoc(side === 'right' ? 'left' : 'right', 8, styles.pinButton)}
           onClick={onPin}
         >
-          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
+          <FetchedIcon
+            iconName={pin ? 'md/MdPushPin' : 'md/MdOutlinePushPin'}
+          />
         </IconButton>
       </Box>
       {R.prop('key', open) === 'Filter' ? (
