@@ -233,6 +233,10 @@ export const selectNumberFormat = createSelector(
   selectSettingsData,
   R.propOr({}, 'numberFormat')
 )
+export const selectDemoMode = createSelector(
+  selectLocalSettings,
+  (localSettings) => R.propOr(false, 'demo', localSettings)
+)
 export const selectTimeLength = createSelector(selectSettingsData, (data) =>
   R.propOr(0, 'timeLength')(data)
 )
@@ -373,6 +377,19 @@ export const selectRightAppBarDisplay = createSelector(
   (mirrorMode, leftData, rightData) =>
     (!mirrorMode && !R.isEmpty(rightData)) ||
     (mirrorMode && !R.isEmpty(leftData))
+)
+export const selectAppBarViews = createSelector(
+  selectAppBarData,
+  (appBarData) =>
+    R.pipe(
+      R.toPairs,
+      R.filter(
+        (d) =>
+          R.propEq('stats', 'type', d[1]) ||
+          R.propEq('map', 'type', d[1]) | R.propEq('kpi', 'type', d[1])
+      ),
+      R.pluck(0)
+    )(appBarData)
 )
 export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData],

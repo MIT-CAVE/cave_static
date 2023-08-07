@@ -15,7 +15,11 @@ import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 
-import { viewportUpdate, openMapModal } from '../../../data/local/mapSlice'
+import {
+  viewportUpdate,
+  openMapModal,
+  viewportRotate,
+} from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
   selectCurrentMapStyle,
@@ -27,6 +31,8 @@ import {
   selectFilteredGeosData,
   selectCurrentMapProjection,
   selectNodeData,
+  selectAppBarViews,
+  selectDemoMode,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -45,6 +51,8 @@ const Map = ({ mapboxToken }) => {
   const nodeData = useSelector(selectNodeData)
   const geosData = useSelector(selectFilteredGeosData)
   const iconUrl = useSelector(selectSettingsIconUrl)
+  const appBarViews = useSelector(selectAppBarViews)
+  const demoMode = useSelector(selectDemoMode)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
@@ -54,6 +62,32 @@ const Map = ({ mapboxToken }) => {
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef({})
+
+  const demoInterval = useRef(-1)
+
+  useEffect(() => {
+    if (demoMode && demoInterval.current === -1) {
+      dispatch(viewportRotate(appBarId))
+      demoInterval.current = setInterval(
+        () => dispatch(viewportRotate(appBarId)),
+        13
+      )
+    } else if (demoMode) {
+      demoInterval.current = setInterval(
+        () => dispatch(viewportRotate(appBarId)),
+        13
+      )
+    } else if (demoInterval.current !== -1) {
+      clearInterval(demoInterval.current)
+      demoInterval.current = -1
+    }
+    return () => {
+      if (demoInterval.current !== -1) {
+        clearInterval(demoInterval.current)
+        demoInterval.current = -1
+      }
+    }
+  }, [appBarId, appBarViews, demoMode, dispatch])
 
   useEffect(() => {
     const iconsToLoad = [

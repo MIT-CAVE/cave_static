@@ -4,14 +4,18 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useState } from 'react'
-import { useSelector } from 'react-redux'
+import React, { useEffect, useState, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 
+import { mutateLocal } from './data/local'
 import {
   selectAppBarId,
   selectAppBarData,
   selectMapboxToken,
   selectTheme,
+  selectDemoMode,
+  selectAppBarViews,
+  selectSync,
 } from './data/selectors'
 import { getTheme } from './theme'
 import { ErrorBoundary } from './ui/compound'
@@ -24,6 +28,7 @@ import SnackBar from './ui/views/common/SnackBar'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import Kpi from './ui/views/kpi/Kpi'
 import Map from './ui/views/map/Map'
+import { includesPath } from './utils'
 import { APP_BAR_WIDTH } from './utils/constants'
 import { viewId } from './utils/enums'
 // import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
@@ -48,10 +53,53 @@ const styles = {
 }
 
 const App = () => {
+  const dispatch = useDispatch()
   const mapboxToken = useSelector(selectMapboxToken)
   const themeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
   const appBarData = useSelector(selectAppBarData)
+  const appBarViews = useSelector(selectAppBarViews)
+  const demoMode = useSelector(selectDemoMode)
+  const sync = useSelector(selectSync)
+
+  const demoTimeout = useRef(-1)
+
+  const findViewType = (appBarId) =>
+    R.pathOr(viewId.MAP, [appBarId, 'type'], appBarData)
+
+  useEffect(() => {
+    if (demoMode && demoTimeout.current === -1) {
+      const currentViewIndex = R.findIndex(R.equals(appBarId), appBarViews)
+      const isMap = R.pathEq(viewId.MAP, [appBarId, 'type'], appBarData)
+      demoTimeout.current = setTimeout(
+        () => {
+          demoTimeout.current = -1
+          dispatch(
+            mutateLocal({
+              path: ['appBar', 'data', 'appBarId'],
+              value:
+                appBarViews[(currentViewIndex + 1) % R.length(appBarViews)],
+              sync: !includesPath(R.values(sync), [
+                'appBar',
+                'data',
+                'appBarId',
+              ]),
+            })
+          )
+        },
+        isMap ? 100000 : 10000
+      )
+    } else if (demoTimeout.current !== -1 && !demoMode) {
+      clearTimeout(demoTimeout.current)
+      demoTimeout.current = -1
+    }
+    return () => {
+      if (demoTimeout.current !== -1) {
+        clearTimeout(demoTimeout.current)
+        demoTimeout.current = -1
+      }
+    }
+  }, [appBarData, appBarId, appBarViews, demoMode, dispatch, sync])
 
   const theme = getTheme(themeId)
   const renderAppPage = R.cond([
@@ -60,9 +108,6 @@ const App = () => {
     [R.equals(viewId.KPI), R.always(<Kpi />)],
     [R.T, null],
   ])
-
-  const findViewType = (appBarId) =>
-    R.pathOr(viewId.MAP, [appBarId, 'type'], appBarData)
 
   const [sessionCard, setSessionCard] = useState(false)
   const [sessionCardPosition, setSessionCardPosition] = useState(
