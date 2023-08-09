@@ -233,6 +233,10 @@ export const selectNumberFormat = createSelector(
   selectSettingsData,
   R.propOr({}, 'numberFormat')
 )
+export const selectDemoSettings = createSelector(
+  selectSettingsData,
+  R.propOr({}, 'demo')
+)
 export const selectDemoMode = createSelector(
   selectLocalSettings,
   (localSettings) => R.propOr(false, 'demo', localSettings)
@@ -378,15 +382,17 @@ export const selectRightAppBarDisplay = createSelector(
     (!mirrorMode && !R.isEmpty(rightData)) ||
     (mirrorMode && !R.isEmpty(leftData))
 )
-export const selectAppBarViews = createSelector(
-  selectAppBarData,
-  (appBarData) =>
+export const selectDemoViews = createSelector(
+  [selectAppBarData, selectDemoSettings],
+  (appBarData, demoSettings) =>
     R.pipe(
       R.toPairs,
       R.filter(
         (d) =>
-          R.propEq('stats', 'type', d[1]) ||
-          R.propEq('map', 'type', d[1]) | R.propEq('kpi', 'type', d[1])
+          (R.propEq('stats', 'type', d[1]) ||
+            R.propEq('map', 'type', d[1]) ||
+            R.propEq('kpi', 'type', d[1])) &&
+          R.pathOr(true, [d[0], 'show'], demoSettings)
       ),
       R.pluck(0)
     )(appBarData)

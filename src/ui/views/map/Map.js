@@ -31,8 +31,8 @@ import {
   selectFilteredGeosData,
   selectCurrentMapProjection,
   selectNodeData,
-  selectAppBarViews,
   selectDemoMode,
+  selectDemoSettings,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -51,8 +51,8 @@ const Map = ({ mapboxToken }) => {
   const nodeData = useSelector(selectNodeData)
   const geosData = useSelector(selectFilteredGeosData)
   const iconUrl = useSelector(selectSettingsIconUrl)
-  const appBarViews = useSelector(selectAppBarViews)
   const demoMode = useSelector(selectDemoMode)
+  const demoSettings = useSelector(selectDemoSettings)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
@@ -66,15 +66,16 @@ const Map = ({ mapboxToken }) => {
   const demoInterval = useRef(-1)
 
   useEffect(() => {
+    const rate = R.pathOr(0.05, [appBarId, 'scrollSpeed'], demoSettings)
     if (demoMode && demoInterval.current === -1) {
-      dispatch(viewportRotate(appBarId))
+      dispatch(viewportRotate({ appBarId, rate }))
       demoInterval.current = setInterval(
-        () => dispatch(viewportRotate(appBarId)),
+        () => dispatch(viewportRotate({ appBarId, rate })),
         13
       )
     } else if (demoMode) {
       demoInterval.current = setInterval(
-        () => dispatch(viewportRotate(appBarId)),
+        () => dispatch(viewportRotate({ appBarId, rate })),
         13
       )
     } else if (demoInterval.current !== -1) {
@@ -87,7 +88,7 @@ const Map = ({ mapboxToken }) => {
         demoInterval.current = -1
       }
     }
-  }, [appBarId, appBarViews, demoMode, dispatch])
+  }, [appBarId, demoMode, demoSettings, dispatch])
 
   useEffect(() => {
     const iconsToLoad = [

@@ -14,8 +14,9 @@ import {
   selectMapboxToken,
   selectTheme,
   selectDemoMode,
-  selectAppBarViews,
+  selectDemoViews,
   selectSync,
+  selectDemoSettings,
 } from './data/selectors'
 import { getTheme } from './theme'
 import { ErrorBoundary } from './ui/compound'
@@ -58,8 +59,9 @@ const App = () => {
   const themeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
   const appBarData = useSelector(selectAppBarData)
-  const appBarViews = useSelector(selectAppBarViews)
+  const appBarViews = useSelector(selectDemoViews)
   const demoMode = useSelector(selectDemoMode)
+  const demoSettings = useSelector(selectDemoSettings)
   const sync = useSelector(selectSync)
 
   const demoTimeout = useRef(-1)
@@ -69,26 +71,20 @@ const App = () => {
 
   useEffect(() => {
     if (demoMode && demoTimeout.current === -1) {
-      const currentViewIndex = R.findIndex(R.equals(appBarId), appBarViews)
+      const nextViewIndex =
+        (R.findIndex(R.equals(appBarId), appBarViews) + 1) %
+        R.length(appBarViews)
       const isMap = R.pathEq(viewId.MAP, [appBarId, 'type'], appBarData)
-      demoTimeout.current = setTimeout(
-        () => {
-          demoTimeout.current = -1
-          dispatch(
-            mutateLocal({
-              path: ['appBar', 'data', 'appBarId'],
-              value:
-                appBarViews[(currentViewIndex + 1) % R.length(appBarViews)],
-              sync: !includesPath(R.values(sync), [
-                'appBar',
-                'data',
-                'appBarId',
-              ]),
-            })
-          )
-        },
-        isMap ? 100000 : 10000
-      )
+      demoTimeout.current = setTimeout(() => {
+        demoTimeout.current = -1
+        dispatch(
+          mutateLocal({
+            path: ['appBar', 'data', 'appBarId'],
+            value: appBarViews[isNaN(nextViewIndex) ? 0 : nextViewIndex],
+            sync: !includesPath(R.values(sync), ['appBar', 'data', 'appBarId']),
+          })
+        )
+      }, R.pathOr(isMap ? 100 : 10, [appBarId, 'displayTime'], demoSettings) * 1000)
     } else if (demoTimeout.current !== -1 && !demoMode) {
       clearTimeout(demoTimeout.current)
       demoTimeout.current = -1
@@ -99,7 +95,15 @@ const App = () => {
         demoTimeout.current = -1
       }
     }
-  }, [appBarData, appBarId, appBarViews, demoMode, dispatch, sync])
+  }, [
+    appBarData,
+    appBarId,
+    appBarViews,
+    demoMode,
+    demoSettings,
+    dispatch,
+    sync,
+  ])
 
   const theme = getTheme(themeId)
   const renderAppPage = R.cond([

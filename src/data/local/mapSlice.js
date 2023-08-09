@@ -99,17 +99,25 @@ export const mapSlice = createSlice({
         state
       )
     },
-    // payload: appBarId:string
+    // payload: {rate: int|float, appBarId:string}
     viewportRotate: (state, action) => {
       const currentViewport = R.mergeDeepRight(
         DEFAULT_VIEWPORT,
-        R.pathOr({}, ['data', action.payload, 'mapControls', 'viewport'], state)
+        R.pathOr(
+          {},
+          ['data', action.payload.appBarId, 'mapControls', 'viewport'],
+          state
+        )
       )
       return R.assocPath(
-        ['data', action.payload, 'mapControls', 'viewport', 'longitude'],
-        currentViewport.longitude + 0.05 <= 360
-          ? currentViewport.longitude + 0.05
-          : 0,
+        [
+          'data',
+          action.payload.appBarId,
+          'mapControls',
+          'viewport',
+          'longitude',
+        ],
+        (currentViewport.longitude + action.payload.rate) % 360,
         state
       )
     },
