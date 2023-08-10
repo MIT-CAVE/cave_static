@@ -1,6 +1,7 @@
+import { Container, Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import ReactMapboxGL from 'react-map-gl'
@@ -18,31 +19,34 @@ import MapModal from './MapModal'
 import { viewportUpdate, openMapModal } from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
-  selectCurrentMapStyle,
+  selectCurrentMapStyleFunc,
   selectTheme,
-  selectViewport,
-  selectAppBarId,
+  selectViewportFunc,
   selectMapStyleOptions,
-  selectGroupedEnabledArcs,
+  selectGroupedEnabledArcsFunc,
   selectFilteredGeosData,
-  selectCurrentMapProjection,
-  selectNodeData,
+  selectCurrentMapProjectionFunc,
+  selectNodeDataFunc,
+  selectLeftAppBarDisplay,
+  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 import { fetchIcon } from '../../../utils'
 
-const Map = ({ mapboxToken }) => {
+const Map = ({ mapboxToken, mapId }) => {
   const dispatch = useDispatch()
-  const viewport = useSelector(selectViewport)
+  const viewport = useSelector(selectViewportFunc)(mapId)
   const theme = useSelector(selectTheme)
-  const mapStyle = useSelector(selectCurrentMapStyle)
-  const mapProjection = useSelector(selectCurrentMapProjection)
+  const mapStyle = useSelector(selectCurrentMapStyleFunc)(mapId)
+  const mapProjection = useSelector(selectCurrentMapProjectionFunc)(mapId)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
-  const appBarId = useSelector(selectAppBarId)
-  const arcData = R.propOr({}, 'geoJson')(useSelector(selectGroupedEnabledArcs))
-  const nodeData = useSelector(selectNodeData)
+  const arcData = R.propOr(
+    {},
+    'geoJson'
+  )(useSelector(selectGroupedEnabledArcsFunc)(mapId))
+  const nodeData = useSelector(selectNodeDataFunc)(mapId)
   const geosData = useSelector(selectFilteredGeosData)
   const iconUrl = useSelector(selectSettingsIconUrl)
   const [highlightLayerId, setHighlightLayerId] = useState()
@@ -165,7 +169,7 @@ const Map = ({ mapboxToken }) => {
 
       dispatch(
         openMapModal({
-          appBarId,
+          mapId,
           data: {
             ...(obj || {}),
             feature: feature,
@@ -175,7 +179,7 @@ const Map = ({ mapboxToken }) => {
         })
       )
     },
-    [appBarId, dispatch, getFeatureFromEvent]
+    [mapId, dispatch, getFeatureFromEvent]
   )
 
   useEffect(() => {
@@ -192,17 +196,23 @@ const Map = ({ mapboxToken }) => {
   }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
 
   return (
-    <Fragment>
-      <MapControls allowProjections={useMapbox} />
+    <Box
+      sx={{
+        display: 'flex',
+        position: 'relative',
+        flex: '1 1 auto',
+      }}
+    >
+      <MapControls allowProjections={useMapbox} mapId={mapId} />
       <ReactMapGL
         {...viewport}
         onMove={(e) => {
-          dispatch(viewportUpdate({ viewport: e.viewState, appBarId }))
+          dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
         }}
         hash="map"
         container="map"
-        width={`calc(100vw - ${APP_BAR_WIDTH})`}
-        height="100vh"
+        // width={`calc(100vw - ${APP_BAR_WIDTH})`}
+        // height="100vh"
         mapStyle={mapStyleSpec}
         mapboxAccessToken={useMapbox && mapboxToken}
         projection={mapProjection}
@@ -219,17 +229,47 @@ const Map = ({ mapboxToken }) => {
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
       >
-        <Geos highlightLayerId={highlightLayerId} />
-        <Arcs highlightLayerId={highlightLayerId} />
-        <Nodes highlightLayerId={highlightLayerId} />
+        <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Arcs highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Nodes highlightLayerId={highlightLayerId} mapId={mapId} />
       </ReactMapGL>
-      <ErrorPad />
+      <ErrorPad mapId={mapId} />
       <KeyPad />
-      <MapModal />
-      <MapLegend />
-    </Fragment>
+      <MapModal mapId={mapId} />
+      <MapLegend mapId={mapId} />
+    </Box>
   )
 }
 Map.propTypes = { mapboxToken: PropTypes.string }
 
+const styles = {
+  root: {
+    display: 'flex',
+    height: '100%',
+    p: 1,
+    color: 'text.primary',
+    bgcolor: 'background.paper',
+  },
+}
+
+export const MapPage = (props) => {
+  const leftBar = useSelector(selectLeftAppBarDisplay)
+  const rightBar = useSelector(selectRightAppBarDisplay)
+
+  return (
+    <Container
+      maxWidth={false}
+      sx={[
+        styles.root,
+        leftBar && rightBar
+          ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
+          : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
+        rightBar && { mr: APP_BAR_WIDTH },
+      ]}
+      disableGutters
+    >
+      <Map {...props} />
+    </Container>
+  )
+}
 export default Map

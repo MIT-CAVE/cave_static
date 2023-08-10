@@ -5,35 +5,37 @@ import { useSelector } from 'react-redux'
 
 import {
   selectTheme,
-  selectEnabledArcs,
+  selectEnabledArcsFunc,
   selectArcRange,
-  selectEnabledGeos,
+  selectEnabledGeosFunc,
   selectGeoColorRange,
-  selectMatchingKeys,
-  selectMatchingKeysByType,
+  selectMatchingKeysFunc,
+  selectMatchingKeysByTypeFunc,
   selectGeoTypes,
   selectArcTypes,
-  selectLineMatchingKeysByType,
-  selectLineMatchingKeys,
-  selectNodeLayerGeoJson,
-  selectArcLayerGeoJson,
+  selectLineMatchingKeysByTypeFunc,
+  selectLineMatchingKeysFunc,
+  selectNodeLayerGeoJsonFunc,
+  selectArcLayerGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 import { getScaledColor, getScaledArray, getScaledValue } from '../../../utils'
 
-export const Geos = memo(({ highlightLayerId }) => {
-  const enabledGeos = useSelector(selectEnabledGeos)
+export const Geos = memo(({ highlightLayerId, mapId }) => {
+  const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const geoColorRange = useSelector(selectGeoColorRange)
-  const matchingKeys = useSelector(selectMatchingKeys)
-  const matchingKeysByType = useSelector(selectMatchingKeysByType)
+  const matchingKeys = useSelector(selectMatchingKeysFunc)(mapId)
+  const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
   const geoTypes = useSelector(selectGeoTypes)
   const themeType = useSelector(selectTheme)
-  const enabledArcs = useSelector(selectEnabledArcs)
+  const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
   const arcTypes = useSelector(selectArcTypes)
-  const lineMatchingKeys = useSelector(selectLineMatchingKeys)
-  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByType)
+  const lineMatchingKeys = useSelector(selectLineMatchingKeysFunc)(mapId)
+  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByTypeFunc)(
+    mapId
+  )
   const arcRange = useSelector(selectArcRange)
 
   const [selectedGeos, setSelectedGeos] = useState({})
@@ -369,8 +371,8 @@ export const Geos = memo(({ highlightLayerId }) => {
   ]
 })
 
-export const Nodes = memo(({ highlightLayerId }) => {
-  const nodeGeoJson = useSelector(selectNodeLayerGeoJson)
+export const Nodes = memo(({ highlightLayerId, mapId }) => {
+  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
 
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
@@ -406,8 +408,8 @@ export const Nodes = memo(({ highlightLayerId }) => {
     </Source>
   )
 })
-export const Arcs = memo(({ highlightLayerId }) => {
-  const arcLayerGeoJson = useSelector(selectArcLayerGeoJson)
+export const Arcs = memo(({ highlightLayerId, mapId }) => {
+  const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
 
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 

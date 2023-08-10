@@ -8,7 +8,7 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { KpiHeader, StatisticsHeader } from './DashboardHeaders'
+import { KpiHeader, StatisticsHeader, MapHeader } from './DashboardHeaders'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -53,6 +53,11 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
               value: 'kpis',
               iconName: 'MdSpeed',
             },
+            {
+              label: 'Maps',
+              value: 'maps',
+              iconName: 'FaMapMarked',
+            },
           ]}
           onSelect={(value) =>
             dispatch(
@@ -82,8 +87,10 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
       </HeaderSelectWrapper>
       {R.propOr('stats', 'type', obj) === 'stats' ? (
         <StatisticsHeader obj={obj} index={index} />
-      ) : (
+      ) : R.prop('kpis', 'type', obj) === 'kpis' ? (
         <KpiHeader obj={obj} index={index} />
+      ) : (
+        <MapHeader obj={obj} index={index} />
       )}
 
       <Grid

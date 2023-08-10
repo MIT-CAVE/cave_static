@@ -11,6 +11,7 @@ import {
   selectSync,
   selectAppBarId,
   selectAllowedStats,
+  selectMapData,
 } from '../../../data/selectors'
 import { chartMaxGrouping, chartStatUses } from '../../../utils/enums'
 
@@ -246,7 +247,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
           R.length(chartStatUses[obj.chart]) !== 0 ? (
             <SelectMultiAccordion
               itemGroups={{
-                undefined: R.addIndex(R.map)((use, idx) => ({
+                undefined: R.addIndex(R.map)((_, idx) => ({
                   id: idx,
                   layoutDirection: 'vertical',
                   subItems: R.pluck('id')(sortedStatistics),
@@ -261,7 +262,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                   ? `${use}: ${getLabelFn(statisticTypes, currentStats[idx])}`
                   : use
               }}
-              getSubLabel={(idx, stat) => getLabelFn(statisticTypes, stat)}
+              getSubLabel={(_, stat) => getLabelFn(statisticTypes, stat)}
               onSelect={(index, value) => {
                 const newVal = R.equals(
                   R.path(['statistic', index], obj),
@@ -504,4 +505,41 @@ const KpiHeader = memo(({ obj, index }) => {
   )
 })
 
-export { KpiHeader, StatisticsHeader }
+const MapHeader = memo(({ obj, index }) => {
+  const dispatch = useDispatch()
+  const appBarId = useSelector(selectAppBarId)
+
+  const sync = useSelector(selectSync)
+  const maps = useSelector(selectMapData)
+
+  const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  return (
+    <>
+      <HeaderSelectWrapper>
+        <Select
+          value={R.propOr(R.pipe(R.keys, R.head)(maps), 'mapId', obj)}
+          optionsList={R.pipe(
+            R.mapObjIndexed((val, key) => ({
+              label: key,
+              value: key,
+              iconName: 'MdMap',
+            })),
+            R.values
+          )(maps)}
+          displayIcon
+          onSelect={(value) => {
+            dispatch(
+              mutateLocal({
+                path,
+                sync: !includesPath(R.values(sync), path),
+                value: R.assoc('mapId', value, obj),
+              })
+            )
+          }}
+        />
+      </HeaderSelectWrapper>
+    </>
+  )
+})
+
+export { KpiHeader, StatisticsHeader, MapHeader }

@@ -1,10 +1,9 @@
 import { Box, Modal, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import { closeMapModal } from '../../data/local/mapSlice'
-import { selectAppBarId } from '../../data/selectors'
 
 const styles = {
   modal: {
@@ -32,9 +31,8 @@ const styles = {
   },
 }
 
-const SimpleModal = ({ title, children, ...props }) => {
+const SimpleModal = ({ title, children, mapId, ...props }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
 
   const [openTime, setOpenTime] = useState(undefined)
 
@@ -51,7 +49,7 @@ const SimpleModal = ({ title, children, ...props }) => {
       open
       onClose={() => {
         const currentTime = new Date().getTime()
-        if (currentTime - openTime > 500) dispatch(closeMapModal(appBarId))
+        if (currentTime - openTime > 500) dispatch(closeMapModal(mapId))
       }}
       {...props}
     >
@@ -71,6 +69,7 @@ const SimpleModal = ({ title, children, ...props }) => {
 SimpleModal.propTypes = {
   title: PropTypes.string,
   children: PropTypes.node,
+  mapId: PropTypes.string,
 }
 
 export default SimpleModal

@@ -15,9 +15,8 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { openMapModal, closeMapModal } from '../../data/local/mapSlice'
 import {
-  selectAppBarId,
   selectFilteredNodes,
-  selectNodeClustersAtZoom,
+  selectNodeClustersAtZoomFunc,
 } from '../../data/selectors'
 
 const styles = {
@@ -46,18 +45,17 @@ const styles = {
   },
 }
 
-const ClusterModal = ({ title, cluster_id, ...props }) => {
+const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
 
-  const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoom)
+  const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoomFunc)
   const targetCluster = R.find(
     R.allPass([
       R.path(['properties', 'cluster']),
       R.pathEq(cluster_id, ['properties', 'cluster_id']),
       R.pathEq(title, ['properties', 'type']),
     ])
-  )(groupedNodesAtZoom.data)
+  )(groupedNodesAtZoom(mapId).data)
 
   // get all nodes in cluster
   const nodeData = R.toPairs(
@@ -93,7 +91,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
     const [page, setPage] = React.useState(0)
     const [rowsPerPage, setRowsPerPage] = React.useState(10)
 
-    const handleChangePage = (event, newPage) => {
+    const handleChangePage = (_, newPage) => {
       setPage(newPage)
     }
 
@@ -132,7 +130,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
                         // open map modal with node data
                         dispatch(
                           openMapModal({
-                            appBarId,
+                            mapId,
                             data: {
                               ...node[1],
                               feature: 'nodes',
@@ -183,7 +181,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
       open
       onClose={() => {
         const currentTime = new Date().getTime()
-        if (currentTime - openTime > 500) dispatch(closeMapModal(appBarId))
+        if (currentTime - openTime > 500) dispatch(closeMapModal(mapId))
       }}
       {...props}
     >
@@ -203,6 +201,7 @@ const ClusterModal = ({ title, cluster_id, ...props }) => {
 ClusterModal.propTypes = {
   title: PropTypes.string,
   children: PropTypes.node,
+  mapId: PropTypes.string,
 }
 
 export default ClusterModal

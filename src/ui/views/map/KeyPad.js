@@ -3,18 +3,13 @@ import * as R from 'ramda'
 import React, { memo } from 'react'
 import { useSelector } from 'react-redux'
 
-import {
-  selectMapKpis,
-  selectLeftOpenPane,
-  selectLeftSecondaryOpenPane,
-} from '../../../data/selectors'
-import { PANE_WIDTH } from '../../../utils/constants'
+import { selectMapKpis } from '../../../data/selectors'
 import { layoutType } from '../../../utils/enums'
 import { renderKpisLayout } from '../common/renderLayout'
 
-const getStyle = (open, secondaryOpen) => ({
+const getStyle = () => ({
   position: 'absolute',
-  left: 65 + (open ? PANE_WIDTH : 0) + (secondaryOpen ? PANE_WIDTH : 0),
+  left: '10px',
   top: '10px',
   p: 1.5,
   bgcolor: 'background.paper',
@@ -27,8 +22,6 @@ const getStyle = (open, secondaryOpen) => ({
 })
 
 const KeyPad = () => {
-  const open = useSelector(selectLeftOpenPane)
-  const secondaryOpen = useSelector(selectLeftSecondaryOpenPane)
   const mapKpis = useSelector(selectMapKpis)
   if (R.isEmpty(mapKpis)) return null
 
@@ -38,7 +31,7 @@ const KeyPad = () => {
     minColumnWidth: 'min-content',
   }
   return (
-    <Paper key="key-pad" elevation={7} sx={getStyle(open, secondaryOpen)}>
+    <Paper key="key-pad" elevation={7} sx={getStyle()}>
       {renderKpisLayout({ layout, items: mapKpis })}
     </Paper>
   )

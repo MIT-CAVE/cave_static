@@ -486,22 +486,33 @@ export const selectAllowedStats = createSelector(
       : R.pick(statOptions, statisticTypes)
 )
 // Map -> displayedMap
-export const selectCurrentMapData = createSelector(
-  [selectMapData, selectAppBarId],
-  (data, appBarId) => R.prop(appBarId, data)
+// export const selectCurrentMapData = createSelector(
+//   [selectMapData, selectAppBarId],
+//   (data, appBarId) => R.prop(appBarId, data)
+// )
+
+export const selectCurrentMapDataFunc = createSelector(
+  selectMapData,
+  (data) => (mapId) => R.prop(mapId, data)
 )
 
-export const selectDefaultViewport = createSelector(
-  selectCurrentMapData,
-  (data) =>
+export const selectCurrentMapData = createSelector(
+  selectCurrentMapDataFunc,
+  (mapDataFunc) => mapDataFunc('map1')
+)
+
+export const selectDefaultViewportFunc = createSelector(
+  selectCurrentMapDataFunc,
+  (dataFunc) => (mapId) =>
     R.pipe(
       R.propOr({}, 'defaultViewport'),
       R.when(
         R.has('zoom'),
         R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
       )
-    )(data)
+    )(dataFunc(mapId))
 )
+
 // Local -> Map
 export const selectLocalMap = createSelector(selectLocal, (data) =>
   R.propOr({}, 'maps')(data)
@@ -509,34 +520,34 @@ export const selectLocalMap = createSelector(selectLocal, (data) =>
 export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
   R.prop('data')(data)
 )
-export const selectCurrentLocalMapData = createSelector(
-  [selectLocalMapData, selectAppBarId],
-  (data, appBarId) => R.propOr({}, appBarId)(data)
+export const selectCurrentLocalMapDataFunc = createSelector(
+  [selectLocalMapData],
+  (data) => (mapId) => R.propOr({}, mapId)(data)
 )
-export const selectLegendData = createSelector(
-  [selectCurrentMapData, selectCurrentLocalMapData],
-  (mapData, localMapData) =>
+export const selectLegendDataFunc = createSelector(
+  [selectCurrentMapDataFunc, selectCurrentLocalMapDataFunc],
+  (mapDataFunc, localMapDataFunc) => (mapId) =>
     R.propOr(
-      R.propOr({}, 'legendGroups', mapData),
+      R.propOr({}, 'legendGroups', mapDataFunc(mapId)),
       'legendGroups',
-      localMapData
+      localMapDataFunc(mapId)
     )
 )
-export const selectMapControls = createSelector(
-  selectCurrentLocalMapData,
-  (data) => R.propOr({}, 'mapControls')(data)
+export const selectMapControlsFunc = createSelector(
+  selectCurrentLocalMapDataFunc,
+  (dataFunc) => (mapId) => R.propOr({}, 'mapControls')(dataFunc(mapId))
 )
-export const selectMapModal = createSelector(
-  selectCurrentLocalMapData,
-  (data) => R.propOr({}, 'mapModal')(data),
+export const selectMapModalFunc = createSelector(
+  selectCurrentLocalMapDataFunc,
+  (dataFunc) => (mapId) => R.propOr({}, 'mapModal')(dataFunc(mapId)),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
 )
-export const selectMapLegend = createSelector(
-  selectCurrentLocalMapData,
-  (data) => R.propOr({}, 'mapLegend')(data),
+export const selectMapLegendFunc = createSelector(
+  selectCurrentLocalMapDataFunc,
+  (dataFunc) => (mapId) => R.propOr({}, 'mapLegend')(dataFunc(mapId)),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 // Local -> kpis
@@ -555,31 +566,34 @@ export const selectMapKpis = createSelector(
   )
 )
 // Local -> Map -> mapControls
-export const selectViewport = createSelector(
-  [selectMapControls, selectDefaultViewport],
-  (mapControls, defaultViewport) =>
+export const selectViewportFunc = createSelector(
+  [selectMapControlsFunc, selectDefaultViewportFunc],
+  (mapControlsFunc, defaultViewportFunc) => (mapId) =>
     R.mergeAll([
       DEFAULT_VIEWPORT,
-      defaultViewport,
-      R.propOr({}, 'viewport')(mapControls),
+      defaultViewportFunc(mapId),
+      R.propOr({}, 'viewport')(mapControlsFunc(mapId)),
     ])
 )
-export const selectBearing = createSelector(selectViewport, (data) =>
-  R.prop('bearing')(data)
+export const selectBearingFunc = createSelector(
+  selectViewportFunc,
+  (dataFunc) => (mapId) => R.prop('bearing')(dataFunc(mapId))
 )
-export const selectPitch = createSelector(selectViewport, (data) =>
-  R.prop('pitch')(data)
+export const selectPitchFunc = createSelector(
+  selectViewportFunc,
+  (dataFunc) => (mapId) => R.prop('pitch')(dataFunc(mapId))
 )
-export const selectZoom = createSelector(selectViewport, (data) =>
-  R.prop('zoom')(data)
+export const selectZoomFunc = createSelector(
+  selectViewportFunc,
+  (dataFunc) => (mapId) => R.prop('zoom')(dataFunc(mapId))
 )
-export const selectCurrentMapStyle = createSelector(
-  selectCurrentMapData,
-  (data) => R.prop('currentStyle')(data)
+export const selectCurrentMapStyleFunc = createSelector(
+  selectCurrentMapDataFunc,
+  (dataFunc) => (mapId) => R.prop('currentStyle')(dataFunc(mapId))
 )
-export const selectCurrentMapProjection = createSelector(
-  selectCurrentMapData,
-  (data) => R.prop('currentProjection')(data)
+export const selectCurrentMapProjectionFunc = createSelector(
+  selectCurrentMapDataFunc,
+  (dataFunc) => (mapId) => R.prop('currentProjection')(dataFunc(mapId))
 )
 export const selectMapStyleOptions = createSelector(
   [selectSettingsData, selectMapboxToken],
@@ -595,22 +609,22 @@ export const selectMapStyleOptions = createSelector(
     )(data),
   })
 )
-export const selectPitchSliderToggle = createSelector(
-  selectMapControls,
-  (data) => R.prop('showPitchSlider')(data)
+export const selectPitchSliderToggleFunc = createSelector(
+  selectMapControlsFunc,
+  (dataFunc) => (mapId) => R.prop('showPitchSlider')(dataFunc(mapId))
 )
-export const selectBearingSliderToggle = createSelector(
-  selectMapControls,
-  (data) => R.prop('showBearingSlider')(data)
+export const selectBearingSliderToggleFunc = createSelector(
+  selectMapControlsFunc,
+  (dataFunc) => (mapId) => R.prop('showBearingSlider')(dataFunc(mapId))
 )
-export const selectOptionalViewports = createSelector(
-  selectCurrentMapData,
-  (data) => R.propOr({}, 'optionalViewports')(data)
+export const selectOptionalViewportsFunc = createSelector(
+  selectCurrentMapDataFunc,
+  (dataFunc) => (mapId) => R.propOr({}, 'optionalViewports')(dataFunc(mapId))
 )
 // Local -> Map -> layers
 const selectEnabledTypesFn = createSelector(
-  [selectCurrentLocalMapData, selectCurrentMapData],
-  (localMap, mapData) => (layerKey) => {
+  [selectCurrentLocalMapDataFunc, selectCurrentMapDataFunc],
+  (localMapFunc, mapDataFunc) => (mapId, layerKey) => {
     const getEnabledTypes = R.pipe(
       R.propOr({}, 'legendGroups'),
       R.values,
@@ -620,24 +634,24 @@ const selectEnabledTypesFn = createSelector(
     )
     return R.when(
       R.isEmpty,
-      R.always(getEnabledTypes(mapData))
-    )(getEnabledTypes(localMap))
+      R.always(getEnabledTypes(mapDataFunc(mapId)))
+    )(getEnabledTypes(localMapFunc(mapId)))
   },
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
-export const selectEnabledArcs = createSelector(
+export const selectEnabledArcsFunc = createSelector(
   selectEnabledTypesFn,
-  R.applyTo('arcs'),
+  (enabledTypesFunc) => (mapId) => enabledTypesFunc(mapId, 'arcs'),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
-export const selectEnabledNodes = createSelector(
+export const selectEnabledNodesFunc = createSelector(
   selectEnabledTypesFn,
-  R.applyTo('nodes'),
+  (enabledTypesFunc) => (mapId) => enabledTypesFunc(mapId, 'nodes'),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
-export const selectEnabledGeos = createSelector(
+export const selectEnabledGeosFunc = createSelector(
   selectEnabledTypesFn,
-  R.applyTo('geos'),
+  (enabledTypesFunc) => (mapId) => enabledTypesFunc(mapId, 'geos'),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectGeo = createSelector(
@@ -829,11 +843,13 @@ export const selectFilteredGeosData = createSelector(
   [selectFilterFunction, selectMergedGeos],
   (filterFunction, geosData) => filterFunction(geosData)
 )
-export const selectNodeData = createSelector(
-  [selectEnabledNodes, selectFilteredNodes],
-  (enabledNodes, filteredData) =>
+export const selectNodeDataFunc = createSelector(
+  [selectEnabledNodesFunc, selectFilteredNodes],
+  (enabledNodesFunc, filteredData) => (mapId) =>
     R.toPairs(
-      R.filter((d) => R.propOr(false, d.type, enabledNodes))(filteredData)
+      R.filter((d) => R.propOr(false, d.type, enabledNodesFunc(mapId)))(
+        filteredData
+      )
     )
 )
 
@@ -853,21 +869,21 @@ export const selectGeosByType = createSelector(
     R.groupBy(R.prop('type'))
   )
 )
-export const selectMatchingKeys = createSelector(
-  [selectEnabledGeos, selectGeosByType],
-  (enabledGeos, geosByType) =>
+export const selectMatchingKeysFunc = createSelector(
+  [selectEnabledGeosFunc, selectGeosByType],
+  (enabledGeosFunc, geosByType) => (mapId) =>
     R.pipe(
-      R.pick(R.keys(R.filter(R.identity, enabledGeos))),
+      R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
       R.values,
       R.reduce(R.concat, []),
       R.indexBy(R.prop('geoJsonValue'))
     )(geosByType)
 )
-export const selectMatchingKeysByType = createSelector(
-  [selectEnabledGeos, selectGeosByType],
-  (enabledGeos, geosByType) =>
+export const selectMatchingKeysByTypeFunc = createSelector(
+  [selectEnabledGeosFunc, selectGeosByType],
+  (enabledGeosFunc, geosByType) => (mapId) =>
     R.pipe(
-      R.pick(R.keys(R.filter(R.identity, enabledGeos))),
+      R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
       R.map(R.indexBy(R.prop('geoJsonValue')))
     )(geosByType),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
@@ -1062,11 +1078,11 @@ export const selectMemoizedKpiFunc = createSelector(
     )
 )
 // Node, Geo, & Arc derived
-export const selectGroupedEnabledArcs = createSelector(
-  [selectEnabledArcs, selectFilteredArcsData],
-  (enabledArcs, filteredArcs) =>
+export const selectGroupedEnabledArcsFunc = createSelector(
+  [selectEnabledArcsFunc, selectFilteredArcsData],
+  (enabledArcsFunc, filteredArcs) => (mapId) =>
     R.pipe(
-      R.filter((d) => R.propOr(false, d.type, enabledArcs)),
+      R.filter((d) => R.propOr(false, d.type, enabledArcsFunc(mapId))),
       // 3d arcs grouped under true - others false
       R.toPairs,
       R.groupBy(
@@ -1082,28 +1098,34 @@ export const selectGroupedEnabledArcs = createSelector(
       R.map(R.fromPairs)
     )(filteredArcs)
 )
-export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
-  R.toPairs(R.prop('false', data))
+export const selectLineDataFunc = createSelector(
+  selectGroupedEnabledArcsFunc,
+  (dataFunc) => (mapId) => R.toPairs(R.prop('false', dataFunc(mapId)))
 )
-export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
-  R.toPairs(R.prop('3d', data))
+export const selectArcDataFunc = createSelector(
+  selectGroupedEnabledArcsFunc,
+  (dataFunc) => (mapId) => R.toPairs(R.prop('3d', dataFunc(mapId)))
 )
-export const selectMultiLineData = createSelector(
-  selectGroupedEnabledArcs,
-  (data) => R.toPairs(R.prop('geoJson', data))
+export const selectMultiLineDataFunc = createSelector(
+  selectGroupedEnabledArcsFunc,
+  (dataFunc) => (mapId) => R.toPairs(R.prop('geoJson', dataFunc(mapId)))
 )
-export const selectLineMatchingKeys = createSelector(
-  selectMultiLineData,
-  (data) =>
+export const selectLineMatchingKeysFunc = createSelector(
+  selectMultiLineDataFunc,
+  (dataFunc) => (mapId) =>
     R.pipe(
       R.map((d) => R.assoc('data_key', d[0], d[1])),
       R.indexBy(R.prop('geoJsonValue'))
-    )(data)
+    )(dataFunc(mapId))
 )
-export const selectLineMatchingKeysByType = createSelector(
-  selectLineMatchingKeys,
-  (data) =>
-    R.pipe(R.toPairs, R.groupBy(R.path([1, 'type'])), R.map(R.fromPairs))(data)
+export const selectLineMatchingKeysByTypeFunc = createSelector(
+  selectLineMatchingKeysFunc,
+  (dataFunc) => (mapId) =>
+    R.pipe(
+      R.toPairs,
+      R.groupBy(R.path([1, 'type'])),
+      R.map(R.fromPairs)
+    )(dataFunc(mapId))
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectArcsByType],
@@ -1141,19 +1163,21 @@ export const selectArcRange = createSelector(
 )
 
 // Split nodes by those grouped vs those not
-export const selectSplitNodeData = createSelector(
-  [selectEnabledNodes, selectNodeData],
-  (enabledNodes, nodeData) =>
+export const selectSplitNodeDataFunc = createSelector(
+  [selectEnabledNodesFunc, selectNodeDataFunc],
+  (enabledNodesFunc, nodeDataFunc) => (mapId) =>
     R.groupBy((d) => {
       const nodeType = d[1].type
-      return enabledNodes[nodeType].group || false
-    })(nodeData)
+      return enabledNodesFunc(mapId)[nodeType].group || false
+    })(nodeDataFunc(mapId))
 )
 
-export const selectGroupedNodesWithId = createSelector(
-  selectSplitNodeData,
-  (splitNodeData) =>
-    R.map((d) => R.assoc('id', d[0])(d[1]))(R.propOr([], true, splitNodeData)),
+export const selectGroupedNodesWithIdFunc = createSelector(
+  selectSplitNodeDataFunc,
+  (splitNodeDataFunc) => (mapId) =>
+    R.map((d) => R.assoc('id', d[0])(d[1]))(
+      R.propOr([], true, splitNodeDataFunc(mapId))
+    ),
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
@@ -1224,27 +1248,28 @@ export const selectGeoColorRange = createSelector(
     )
 )
 
-export const selectGetLegendGroupId = createSelector(
-  selectLegendData,
-  (legendData) =>
+export const selectGetLegendGroupIdFunc = createSelector(
+  selectLegendDataFunc,
+  (legendDataFunc) => (mapId) =>
     R.curry((layerKey, type) =>
       R.pipe(
         toListWithKey('id'),
         R.find(R.hasPath([layerKey, type])),
         R.prop('id')
-      )(legendData)
+      )(legendDataFunc(mapId))
     )
 )
 
-export const selectNodeClusters = createSelector(
-  [selectGroupedNodesWithId, selectEnabledNodes],
-  (data, legendObjects) => {
+export const selectNodeClustersFunc = createSelector(
+  [selectGroupedNodesWithIdFunc, selectEnabledNodesFunc],
+  (dataFunc, legendObjectsFunc) => (mapId) => {
+    const data = dataFunc(mapId)
     // define helper functions
     const getVarByProp = R.curry((varByKey, nodeObj) =>
-      R.path([nodeObj.type, varByKey])(legendObjects)
+      R.path([nodeObj.type, varByKey])(legendObjectsFunc(mapId))
     )
     const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
-      R.path([nodeCluster.properties.type, varByKey])(legendObjects)
+      R.path([nodeCluster.properties.type, varByKey])(legendObjectsFunc(mapId))
     )
     const getGroups = (ungroupedData, fn) =>
       ungroupedData.reduce((acc, d) => {
@@ -1256,7 +1281,7 @@ export const selectNodeClusters = createSelector(
     const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
     const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
       R.pathOr(statId.COUNT, [nodeCluster.properties.type, groupCalculation])(
-        legendObjects
+        legendObjectsFunc(mapId)
       )
     )
 
@@ -1446,10 +1471,10 @@ export const selectNodeClusters = createSelector(
   }
 )
 
-export const selectNodeClustersAtZoom = createSelector(
-  [selectNodeClusters, selectViewport],
-  (nodeClusters, viewport) =>
-    R.propOr({}, Math.floor(viewport.zoom), nodeClusters),
+export const selectNodeClustersAtZoomFunc = createSelector(
+  [selectNodeClustersFunc, selectViewportFunc],
+  (nodeClustersFunc, viewportFunc) => (mapId) =>
+    R.propOr({}, Math.floor(viewportFunc(mapId).zoom), nodeClustersFunc(mapId)),
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
@@ -1458,9 +1483,10 @@ export const selectNodeClustersAtZoom = createSelector(
   }
 )
 
-export const selectNodeRangeAtZoom = createSelector(
-  selectNodeClustersAtZoom,
-  (nodeClusters) => R.propOr({}, 'range')(nodeClusters),
+export const selectNodeRangeAtZoomFunc = createSelector(
+  selectNodeClustersAtZoomFunc,
+  (nodeClustersFunc) => (mapId) =>
+    R.propOr({}, 'range')(nodeClustersFunc(mapId)),
   {
     memoizeOptions: {
       resultEqualityCheck: R.equals,
@@ -1468,15 +1494,20 @@ export const selectNodeRangeAtZoom = createSelector(
   }
 )
 
-export const selectNodeGeoJsonObject = createSelector(
-  [selectSplitNodeData, selectNodeRange, selectEnabledNodes, selectTheme],
-  (nodeDataSplit, nodeRange, legendObjects, themeType) =>
+export const selectNodeGeoJsonObjectFunc = createSelector(
+  [
+    selectSplitNodeDataFunc,
+    selectNodeRange,
+    selectEnabledNodesFunc,
+    selectTheme,
+  ],
+  (nodeDataSplitFunc, nodeRange, legendObjectsFunc, themeType) => (mapId) =>
     R.pipe(
       R.propOr({}, false),
       R.mapObjIndexed((obj) => {
         const [id, node] = obj
 
-        const sizeProp = R.path([node.type, 'sizeBy'], legendObjects)
+        const sizeProp = R.path([node.type, 'sizeBy'], legendObjectsFunc(mapId))
         const sizeRange = nodeRange(node.type, sizeProp, true)
         const sizePropVal = parseFloat(
           R.path(['props', sizeProp, 'value'], node)
@@ -1488,7 +1519,10 @@ export const selectNodeGeoJsonObject = createSelector(
           parseFloat(R.prop('endSize', node)),
           sizePropVal
         )
-        const colorProp = R.path([node.type, 'colorBy'], legendObjects)
+        const colorProp = R.path(
+          [node.type, 'colorBy'],
+          legendObjectsFunc(mapId)
+        )
         const colorPropVal = R.pipe(
           R.path(['props', colorProp, 'value']),
           R.when(R.isNil, R.always('')),
@@ -1542,13 +1576,14 @@ export const selectNodeGeoJsonObject = createSelector(
         }
       }),
       R.values
-    )(nodeDataSplit)
+    )(nodeDataSplitFunc(mapId))
 )
-export const selectNodeClusterGeoJsonObject = createSelector(
-  [selectNodeClustersAtZoom, selectTheme],
-  (nodeClusters, themeType) =>
+export const selectNodeClusterGeoJsonObjectFunc = createSelector(
+  [selectNodeClustersAtZoomFunc, selectTheme],
+  (nodeClustersFunc, themeType) => (mapId) =>
     R.map((group) => {
-      const sizeRange = nodeClusters.range[group.properties.type].size
+      const sizeRange =
+        nodeClustersFunc(mapId).range[group.properties.type].size
       const sizePropObj = R.path(['properties', 'sizeProp'], group)
 
       const size = getScaledValue(
@@ -1561,7 +1596,7 @@ export const selectNodeClusterGeoJsonObject = createSelector(
 
       const nodeType = group.properties.type
       const colorObj = group.properties.colorProp
-      const colorDomain = nodeClusters.range[nodeType].color
+      const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
       const isCategorical = !R.has('min')(colorDomain)
       const value = R.prop('value', colorObj)
       const colorRange = isCategorical
@@ -1606,20 +1641,21 @@ export const selectNodeClusterGeoJsonObject = createSelector(
           coordinates: group.geometry.coordinates,
         },
       }
-    })(R.propOr([], 'data', nodeClusters))
+    })(R.propOr([], 'data', nodeClustersFunc(mapId)))
 )
 
-export const selectNodeLayerGeoJson = createSelector(
-  [selectNodeGeoJsonObject, selectNodeClusterGeoJsonObject],
-  (nodes, clusters) => R.concat(nodes, clusters)
+export const selectNodeLayerGeoJsonFunc = createSelector(
+  [selectNodeGeoJsonObjectFunc, selectNodeClusterGeoJsonObjectFunc],
+  (nodesFunc, clustersFunc) => (mapId) =>
+    R.concat(nodesFunc(mapId), clustersFunc(mapId))
 )
 
-export const selectArcLayerGeoJson = createSelector(
-  [selectArcRange, selectTheme, selectLineData, selectEnabledArcs],
-  (arcRange, themeType, arcData, legendObjects) =>
+export const selectArcLayerGeoJsonFunc = createSelector(
+  [selectArcRange, selectTheme, selectLineDataFunc, selectEnabledArcsFunc],
+  (arcRange, themeType, arcDataFunc, legendObjectsFunc) => (mapId) =>
     R.pipe(
       R.map(([id, arc]) => {
-        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjects)
+        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjectsFunc(mapId))
         const sizeRange = arcRange(arc.type, sizeProp, true)
         const sizePropVal = parseFloat(
           R.path(['props', sizeProp, 'value'], arc)
@@ -1631,7 +1667,10 @@ export const selectArcLayerGeoJson = createSelector(
           parseFloat(R.prop('endSize', arc)),
           sizePropVal
         )
-        const colorProp = R.path([arc.type, 'colorBy'], legendObjects)
+        const colorProp = R.path(
+          [arc.type, 'colorBy'],
+          legendObjectsFunc(mapId)
+        )
         const colorRange = arcRange(arc.type, colorProp, false)
         const isCategorical = !R.has('min', colorRange)
         const colorPropVal = R.pipe(
@@ -1692,5 +1731,5 @@ export const selectArcLayerGeoJson = createSelector(
         }
       }),
       R.groupBy(R.path(['properties', 'dash']))
-    )(arcData)
+    )(arcDataFunc(mapId))
 )
