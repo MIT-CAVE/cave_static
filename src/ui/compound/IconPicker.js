@@ -74,7 +74,7 @@ export default function IconPicker({ onSelect }) {
       disableListWrap
       ListboxComponent={ListboxComponent}
       options={options}
-      onChange={(_, value) => onSelect(value)}
+      onChange={(_, value) => value != null && onSelect(value)}
       renderInput={(params) => (
         <TextField
           {...params}
