@@ -632,13 +632,20 @@ export const getQuartilesData = R.mapObjIndexed(
   R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
+const allowedRangeKeys = [
+  'startGradientColor',
+  'endGradientColor',
+  'nullColor',
+  'nullSize',
+]
+
 // checks that range is either min/max or list of strings
 export const checkValidRange = R.pipe(
   R.mapObjIndexed((value, key) =>
     key === 'min' || key === 'max'
       ? R.is(Number, value)
-      : key === 'startGradientColor' || key === 'endGradientColor'
-      ? R.is(Object, value)
+      : R.includes(key, allowedRangeKeys)
+      ? R.is(Object, value) || R.is(String, value)
       : R.is(String, value)
   ),
   R.values,

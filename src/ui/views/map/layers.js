@@ -27,9 +27,9 @@ import {
   selectEnabledNodes,
   selectArcData,
   selectTouchMode,
-  selectSplitNodeData,
   selectNodeClustersAtZoom,
   selectLineData,
+  selectMapNodes,
 } from '../../../data/selectors'
 import { layerId } from '../../../utils/enums'
 import { store } from '../../../utils/store'
@@ -67,13 +67,15 @@ const Get3dArcLayer = () => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d[1].type, sizeProp, true)
         const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
-        return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d[1])),
-          parseFloat(timeProp('endSize', d[1])),
-          propVal
-        )
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              timeProp('min', sizeRange),
+              timeProp('max', sizeRange),
+              parseFloat(timeProp('startSize', d[1])),
+              parseFloat(timeProp('endSize', d[1])),
+              propVal
+            )
       }
     ),
     [legendObjects, arcRange]
@@ -97,7 +99,15 @@ const Get3dArcLayer = () => {
           (s) => s.toString()
         )(d[1])
 
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        return R.equals('', propVal)
+          ? nullColor
+          : isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', propVal, colorRange)
                 .replace(/[^\d,.]/g, '')
@@ -185,13 +195,15 @@ const GetArcLayer = () => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = arcRange(d[1].type, sizeProp, true)
         const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
-        return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d[1])),
-          parseFloat(timeProp('endSize', d[1])),
-          propVal
-        )
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              timeProp('min', sizeRange),
+              timeProp('max', sizeRange),
+              parseFloat(timeProp('startSize', d[1])),
+              parseFloat(timeProp('endSize', d[1])),
+              propVal
+            )
       }
     ),
     [legendObjects, arcRange]
@@ -215,7 +227,15 @@ const GetArcLayer = () => {
           (s) => s.toString()
         )(d[1])
 
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        return R.equals('', propVal)
+          ? nullColor
+          : isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', propVal, colorRange)
                 .replace(/[^\d,.]/g, '')
@@ -283,7 +303,7 @@ const GetArcLayer = () => {
         return lineTypes[lineType]
       },
       dashJustified: true,
-      dashGapPickable: true,
+      dashGapPickable: false,
       extensions: [new PathStyleExtension({ dash: true })],
       pickable: true,
     })
@@ -291,7 +311,7 @@ const GetArcLayer = () => {
 }
 
 const GetNodeIconLayer = () => {
-  const nodeDataSplit = useSelector(selectSplitNodeData)
+  const nodeData = useSelector(selectMapNodes)
   const nodeClusters = useSelector(selectNodeClustersAtZoom)
   const nodesByType = useSelector(selectNodesByType)
   const nodeRange = useSelector(selectNodeRange)
@@ -312,7 +332,7 @@ const GetNodeIconLayer = () => {
     R.memoizeWith(
       (d) => {
         const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1]).toString()
+        const propVal = timePath(['props', colorProp, 'value'], d[1])
         return `${d[0]}${propVal}`
       },
       (d) => {
@@ -325,8 +345,14 @@ const GetNodeIconLayer = () => {
           : R.map((prop) =>
               R.pathOr(statRange[prop], [prop, themeType])(statRange)
             )(['startGradientColor', 'endGradientColor'])
-
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
+          ['nullColor', themeType],
+          statRange
+        )
+        return R.isNil(value)
+          ? rgbStrToArray(nullColor)
+          : isCategorical
           ? rgbStrToArray(
               R.when(
                 R.has(themeType),
@@ -355,13 +381,15 @@ const GetNodeIconLayer = () => {
         const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
         const sizeRange = nodeRange(d[1].type, sizeProp, true)
         const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
-        return getScaledValue(
-          timeProp('min', sizeRange),
-          timeProp('max', sizeRange),
-          parseFloat(timeProp('startSize', d[1])),
-          parseFloat(timeProp('endSize', d[1])),
-          propVal
-        )
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              timeProp('min', sizeRange),
+              timeProp('max', sizeRange),
+              parseFloat(timeProp('startSize', d[1])),
+              parseFloat(timeProp('endSize', d[1])),
+              propVal
+            )
       }
     ),
     [legendObjects, nodeRange]
@@ -497,7 +525,7 @@ const GetNodeIconLayer = () => {
     new IconLayer({
       id: layerId.NODE_ICON_LAYER,
       visible: true,
-      data: R.propOr([], false, nodeDataSplit),
+      data: nodeData,
       iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
       iconMapping: iconObj[1],
       autoHighlight: true,
@@ -606,8 +634,14 @@ const GetGeographyLayer = (openGeo) => {
           (s) => s.toString()
         )(geoObj)
         const isCategorical = !R.has('min', statRange)
-
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(255,0,0)', 'nullColor', statRange),
+          ['nullColor', themeType],
+          statRange
+        )
+        return R.equals('', value)
+          ? rgbStrToArray(nullColor)
+          : isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0,5)', value, statRange)
                 .replace(/[^\d,.]/g, '')
