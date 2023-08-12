@@ -112,7 +112,15 @@ export const Geos = memo(({ highlightLayerId }) => {
         )(geoObj)
         const isCategorical = !R.has('min', statRange)
 
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        return R.equals('', value)
+          ? nullColor
+          : isCategorical
           ? R.propOr('rgb(0,0,0,5)', value, statRange)
           : `rgba(${getScaledColor(
               [R.prop('min', statRange), R.prop('max', statRange)],
@@ -136,13 +144,15 @@ export const Geos = memo(({ highlightLayerId }) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
         const sizeRange = arcRange(d.type, sizeProp, true)
         const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
-        return getScaledValue(
-          R.prop('min', sizeRange),
-          R.prop('max', sizeRange),
-          parseFloat(R.prop('startSize', d)),
-          parseFloat(R.prop('endSize', d)),
-          propVal
-        )
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startSize', d)),
+              parseFloat(R.prop('endSize', d)),
+              propVal
+            )
       }
     ),
     [enabledArcs, arcRange]
@@ -166,7 +176,15 @@ export const Geos = memo(({ highlightLayerId }) => {
           (s) => s.toString()
         )(d)
 
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        return R.equals('', propVal)
+          ? nullColor
+          : isCategorical
           ? R.propOr('rgb(0,0,0)', propVal, colorRange)
           : `rgb(${getScaledArray(
               R.prop('min', colorRange),
