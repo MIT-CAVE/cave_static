@@ -106,7 +106,7 @@ const Get3dArcLayer = () => {
         )
 
         return R.equals('', propVal)
-          ? nullColor
+          ? rgbStrToArray(nullColor)
           : isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', propVal, colorRange)
@@ -234,7 +234,7 @@ const GetArcLayer = () => {
         )
 
         return R.equals('', propVal)
-          ? nullColor
+          ? rgbStrToArray(nullColor)
           : isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', propVal, colorRange)
