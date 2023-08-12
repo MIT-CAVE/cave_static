@@ -635,7 +635,7 @@ const GetGeographyLayer = (openGeo) => {
         )(geoObj)
         const isCategorical = !R.has('min', statRange)
         const nullColor = R.pathOr(
-          R.propOr('rgb(255,0,0)', 'nullColor', statRange),
+          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
           ['nullColor', themeType],
           statRange
         )
