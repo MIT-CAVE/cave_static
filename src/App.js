@@ -84,7 +84,7 @@ const App = () => {
             sync: !includesPath(R.values(sync), ['appBar', 'data', 'appBarId']),
           })
         )
-      }, R.pathOr(isMap ? 100 : 10, [appBarId, 'displayTime'], demoSettings) * 1000)
+      }, R.pathOr(isMap ? 20 : 10, [appBarId, 'displayTime'], demoSettings) * 1000)
     } else if (demoTimeout.current !== -1 && !demoMode) {
       clearTimeout(demoTimeout.current)
       demoTimeout.current = -1

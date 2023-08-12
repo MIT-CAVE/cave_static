@@ -66,7 +66,7 @@ const Map = ({ mapboxToken }) => {
   const demoInterval = useRef(-1)
 
   useEffect(() => {
-    const rate = R.pathOr(0.05, [appBarId, 'scrollSpeed'], demoSettings)
+    const rate = R.pathOr(0.15, [appBarId, 'scrollSpeed'], demoSettings)
     if (demoMode && demoInterval.current === -1) {
       dispatch(viewportRotate({ appBarId, rate }))
       demoInterval.current = setInterval(
