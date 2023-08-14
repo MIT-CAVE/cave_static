@@ -1237,14 +1237,11 @@ export const selectMatchingKeys = createSelector(
 
         const statRange = geoRange(d.type, colorProp, false)
 
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-          ['nullColor', themeType],
-          statRange
-        )
         return (
-          !R.equals(nullColor, 'none') ||
-          R.path(['props', colorProp, 'value'])(d)
+          !(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
+          ) || R.path(['props', colorProp, 'value'])(d)
         )
       }),
       R.indexBy(R.prop('geoJsonValue'))
@@ -1261,14 +1258,11 @@ export const selectLineMatchingKeys = createSelector(
 
         const statRange = arcRange(d.type, colorProp, false)
 
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-          ['nullColor', themeType],
-          statRange
-        )
         return (
-          !R.equals(nullColor, 'none') ||
-          R.path(['props', colorProp, 'value'])(d)
+          !(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
+          ) || R.path(['props', colorProp, 'value'])(d)
         )
       }),
       R.indexBy(R.prop('geoJsonValue'))
@@ -1554,6 +1548,13 @@ export const selectNodeGeoJsonObject = createSelector(
         )(node)
         const colorRange = nodeRange(node.type, colorProp, false)
 
+        if (
+          R.has('nullColor', colorRange) &&
+          R.isNil(R.prop('nullColor', colorRange)) &&
+          R.equals('', colorPropVal)
+        )
+          return false
+
         const nullColor = R.pathOr(
           R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
           ['nullColor', themeType],
@@ -1593,22 +1594,20 @@ export const selectNodeGeoJsonObject = createSelector(
         const colorString = R.equals('', colorPropVal)
           ? nullColor
           : `rgb(${color.join(',')})`
-        return R.equals('none', nullColor) && R.equals('', colorPropVal)
-          ? false
-          : {
-              type: 'Feature',
-              properties: {
-                cave_obj: node,
-                cave_name: id,
-                color: colorString,
-                size: size / 250,
-                icon: node.icon,
-              },
-              geometry: {
-                type: 'Point',
-                coordinates: [node.longitude, node.latitude],
-              },
-            }
+        return {
+          type: 'Feature',
+          properties: {
+            cave_obj: node,
+            cave_name: id,
+            color: colorString,
+            size: size / 250,
+            icon: node.icon,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [node.longitude, node.latitude],
+          },
+        }
       }),
       R.values,
       R.filter(R.identity)
@@ -1712,6 +1711,13 @@ export const selectArcLayerGeoJson = createSelector(
           (s) => s.toString()
         )(arc)
 
+        if (
+          R.has('nullColor', colorRange) &&
+          R.isNil(R.prop('nullColor', colorRange)) &&
+          R.equals('', colorPropVal)
+        )
+          return false
+
         const nullColor = R.pathOr(
           R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
           ['nullColor', themeType],
@@ -1753,25 +1759,23 @@ export const selectArcLayerGeoJson = createSelector(
 
         const dashPattern = R.propOr('solid', 'lineBy')(arc)
 
-        return R.equals('none', nullColor) && R.equals('', colorPropVal)
-          ? false
-          : {
-              type: 'Feature',
-              properties: {
-                cave_obj: arc,
-                cave_name: id,
-                color: colorString,
-                size: size,
-                dash: dashPattern,
-              },
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [arc.startLongitude, arc.startLatitude],
-                  [arc.endLongitude, arc.endLatitude],
-                ],
-              },
-            }
+        return {
+          type: 'Feature',
+          properties: {
+            cave_obj: arc,
+            cave_name: id,
+            color: colorString,
+            size: size,
+            dash: dashPattern,
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [arc.startLongitude, arc.startLatitude],
+              [arc.endLongitude, arc.endLatitude],
+            ],
+          },
+        }
       }),
       R.filter(R.identity),
       R.groupBy(R.path(['properties', 'dash']))
