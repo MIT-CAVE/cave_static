@@ -644,9 +644,7 @@ export const checkValidRange = R.pipe(
   R.mapObjIndexed((value, key) =>
     key === 'min' || key === 'max'
       ? R.is(Number, value)
-      : R.includes(key, allowedRangeKeys)
-      ? R.is(Object, value) || R.is(String, value)
-      : R.is(String, value)
+      : R.includes(key, allowedRangeKeys) || R.is(String, value)
   ),
   R.values,
   R.all(R.identity)

@@ -1069,14 +1069,12 @@ export const selectGroupedEnabledArcs = createSelector(
 
         const statRange = arcRange(d.type, colorProp, false)
 
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-          ['nullColor', themeType],
-          statRange
-        )
         return (
           R.propOr(false, d.type, enabledArcs) &&
-          (!R.equals(nullColor, 'none') ||
+          (!(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
+          ) ||
             timePath(['props', colorProp, 'value'])(d))
         )
       }),
@@ -1207,14 +1205,11 @@ export const selectMatchingKeysByType = createSelector(
 
           const statRange = geoRange(d.type, colorProp, false)
 
-          const nullColor = R.pathOr(
-            R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-            ['nullColor', themeType],
-            statRange
-          )
           return (
-            !R.equals(nullColor, 'none') ||
-            timePath(['props', colorProp, 'value'])(d)
+            !(
+              R.has('nullColor', statRange) &&
+              R.isNil(R.prop('nullColor', statRange))
+            ) || timePath(['props', colorProp, 'value'])(d)
           )
         })
       ),
@@ -1488,14 +1483,11 @@ export const selectMapNodes = createSelector(
 
         const statRange = nodeRange(d[1].type, colorProp, false)
 
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-          ['nullColor', themeType],
-          statRange
-        )
         return (
-          !R.equals(nullColor, 'none') ||
-          timePath(['props', colorProp, 'value'])(d[1])
+          !(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
+          ) || timePath(['props', colorProp, 'value'])(d[1])
         )
       })
     )(splitNodeData)
