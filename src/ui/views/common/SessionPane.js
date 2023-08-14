@@ -228,12 +228,13 @@ const ListItemSessionCardInput = ({
           <>
             {teamOptions && teamOptions.length > 0 && (
               <Autocomplete
+                autoSelect
                 fullWidth
                 value={inputValues.team}
                 sx={{ mt: 3 }}
                 enabled
                 disablePortal
-                options={teamOptions}
+                options={R.pluck('label', teamOptions)}
                 renderInput={(params) => (
                   // The placeholder in the API serves as a label in the context of the MUI component.
                   <TextField fullWidth label={'Team'} {...params} />
