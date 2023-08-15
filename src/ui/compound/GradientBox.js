@@ -54,6 +54,8 @@ const GradientBox = ({
             mx: 1,
             fontWeight: 700,
             textAlign: 'center',
+            padding: '8% 32% 8% 2%',
+            margin: '-8% -30% -8% 0',
           }}
         >
           <OverflowText text={minLabel} />
@@ -77,6 +79,8 @@ const GradientBox = ({
             mx: 1,
             fontWeight: 700,
             textAlign: 'center',
+            padding: '8% 2% 8% 32%',
+            margin: '-8% 0 -8% -30%',
           }}
         >
           <OverflowText text={maxLabel} />
