@@ -1062,7 +1062,7 @@ export const selectGroupedEnabledArcs = createSelector(
     selectTheme,
     selectTimePath,
   ],
-  (enabledArcs, filteredArcs, arcRange, themeType, timePath) =>
+  (enabledArcs, filteredArcs, arcRange) =>
     R.pipe(
       R.filter((d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
@@ -1071,11 +1071,10 @@ export const selectGroupedEnabledArcs = createSelector(
 
         return (
           R.propOr(false, d.type, enabledArcs) &&
-          (!(
+          !(
             R.has('nullColor', statRange) &&
             R.isNil(R.prop('nullColor', statRange))
-          ) ||
-            timePath(['props', colorProp, 'value'])(d))
+          )
         )
       }),
       // 3d arcs grouped under true - others false
@@ -1093,12 +1092,36 @@ export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
 
 // Split nodes by those grouped vs those not
 export const selectSplitNodeData = createSelector(
-  [selectEnabledNodes, selectNodeData],
-  (enabledNodes, nodeData) =>
-    R.groupBy((d) => {
-      const nodeType = d[1].type
-      return enabledNodes[nodeType].group || false
-    })(nodeData)
+  [selectEnabledNodes, selectNodeData, selectTimePath],
+  (enabledNodes, nodeData, timePath) =>
+    R.pipe(
+      R.filter((d) => {
+        const nodeType = d[1].type
+        const colorProp = R.path([nodeType, 'colorBy'], enabledNodes)
+        const sizeProp = R.path([nodeType, 'sizeBy'], enabledNodes)
+
+        const nullColor = timePath(['colorBy', colorProp], d[1])
+        const nullSize = timePath(['sizeBy', colorProp], d[1])
+
+        const sizeValue = timePath(['props', sizeProp, 'value'], d[1])
+        const colorValue = timePath(['props', colorProp, 'value'], d[1])
+
+        const groupable = enabledNodes[nodeType].allowGrouping
+
+        return (
+          !(
+            R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
+            R.isNil(nullColor)
+          ) &&
+          (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
+          !(groupable && R.isNil(colorValue))
+        )
+      }),
+      R.groupBy((d) => {
+        const nodeType = d[1].type
+        return enabledNodes[nodeType].group || false
+      })
+    )(nodeData)
 )
 
 export const selectGroupedNodesWithId = createSelector(
@@ -1194,9 +1217,8 @@ export const selectMatchingKeysByType = createSelector(
     selectTimeProp,
     selectTheme,
     selectGeoColorRange,
-    selectTimePath,
   ],
-  (enabledGeos, geosByType, timeProp, themeType, geoRange, timePath) =>
+  (enabledGeos, geosByType, timeProp, themeType, geoRange) =>
     R.pipe(
       R.pick(R.keys(R.filter(R.identity, enabledGeos))),
       R.map(
@@ -1205,11 +1227,9 @@ export const selectMatchingKeysByType = createSelector(
 
           const statRange = geoRange(d.type, colorProp, false)
 
-          return (
-            !(
-              R.has('nullColor', statRange) &&
-              R.isNil(R.prop('nullColor', statRange))
-            ) || timePath(['props', colorProp, 'value'])(d)
+          return !(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
           )
         })
       ),
@@ -1468,27 +1488,6 @@ export const selectNodeRangeAtZoom = createSelector(
 )
 
 export const selectMapNodes = createSelector(
-  [
-    selectSplitNodeData,
-    selectNodeRange,
-    selectTheme,
-    selectEnabledNodes,
-    selectTimePath,
-  ],
-  (splitNodeData, nodeRange, themeType, legendObjects, timePath) =>
-    R.pipe(
-      R.propOr([], false),
-      R.filter((d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-
-        const statRange = nodeRange(d[1].type, colorProp, false)
-
-        return (
-          !(
-            R.has('nullColor', statRange) &&
-            R.isNil(R.prop('nullColor', statRange))
-          ) || timePath(['props', colorProp, 'value'])(d[1])
-        )
-      })
-    )(splitNodeData)
+  selectSplitNodeData,
+  (splitNodeData) => R.propOr([], false)(splitNodeData)
 )
