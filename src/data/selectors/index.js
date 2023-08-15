@@ -824,15 +824,7 @@ export const selectMatchingKeys = createSelector(
       R.indexBy(timeProp('geoJsonValue'))
     )(geosByType)
 )
-export const selectMatchingKeysByType = createSelector(
-  [selectEnabledGeos, selectGeosByType, selectTimeProp],
-  (enabledGeos, geosByType, timeProp) =>
-    R.pipe(
-      R.pick(R.keys(R.filter(R.identity, enabledGeos))),
-      R.map(R.indexBy(timeProp('geoJsonValue')))
-    )(geosByType),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
-)
+
 // Stats derived
 export const selectCategoryFunc = createSelector(
   selectCategoriesData,
@@ -1021,23 +1013,6 @@ export const selectMemoizedKpiFunc = createSelector(
     )
 )
 // Node, Geo, & Arc derived
-export const selectGroupedEnabledArcs = createSelector(
-  [selectEnabledArcs, selectFilteredArcsData],
-  (enabledArcs, filteredArcs) =>
-    R.pipe(
-      R.filter((d) => R.propOr(false, d.type, enabledArcs)),
-      // 3d arcs grouped under true - others false
-      R.toPairs,
-      R.groupBy((d) => R.equals(R.path([1, 'lineBy'], d), '3d')),
-      R.map(R.fromPairs)
-    )(filteredArcs)
-)
-export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
-  R.toPairs(R.prop('false', data))
-)
-export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
-  R.toPairs(R.prop('true', data))
-)
 export const selectArcRange = createSelector(
   [selectArcTypes, selectTimePath, selectArcsByType],
   (arcs, timePath, arcsByType) =>
@@ -1079,14 +1054,74 @@ export const selectArcRange = createSelector(
     )
 )
 
+export const selectGroupedEnabledArcs = createSelector(
+  [
+    selectEnabledArcs,
+    selectFilteredArcsData,
+    selectArcRange,
+    selectTheme,
+    selectTimePath,
+  ],
+  (enabledArcs, filteredArcs, arcRange) =>
+    R.pipe(
+      R.filter((d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+
+        const statRange = arcRange(d.type, colorProp, false)
+
+        return (
+          R.propOr(false, d.type, enabledArcs) &&
+          !(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
+          )
+        )
+      }),
+      // 3d arcs grouped under true - others false
+      R.toPairs,
+      R.groupBy((d) => R.equals(R.path([1, 'lineBy'], d), '3d')),
+      R.map(R.fromPairs)
+    )(filteredArcs)
+)
+export const selectLineData = createSelector(selectGroupedEnabledArcs, (data) =>
+  R.toPairs(R.prop('false', data))
+)
+export const selectArcData = createSelector(selectGroupedEnabledArcs, (data) =>
+  R.toPairs(R.prop('true', data))
+)
+
 // Split nodes by those grouped vs those not
 export const selectSplitNodeData = createSelector(
-  [selectEnabledNodes, selectNodeData],
-  (enabledNodes, nodeData) =>
-    R.groupBy((d) => {
-      const nodeType = d[1].type
-      return enabledNodes[nodeType].group || false
-    })(nodeData)
+  [selectEnabledNodes, selectNodeData, selectTimePath],
+  (enabledNodes, nodeData, timePath) =>
+    R.pipe(
+      R.filter((d) => {
+        const nodeType = d[1].type
+        const colorProp = R.path([nodeType, 'colorBy'], enabledNodes)
+        const sizeProp = R.path([nodeType, 'sizeBy'], enabledNodes)
+
+        const nullColor = timePath(['colorBy', colorProp], d[1])
+        const nullSize = timePath(['sizeBy', colorProp], d[1])
+
+        const sizeValue = timePath(['props', sizeProp, 'value'], d[1])
+        const colorValue = timePath(['props', colorProp, 'value'], d[1])
+
+        const groupable = enabledNodes[nodeType].allowGrouping
+
+        return (
+          !(
+            R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
+            R.isNil(nullColor)
+          ) &&
+          (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
+          !(groupable && R.isNil(colorValue))
+        )
+      }),
+      R.groupBy((d) => {
+        const nodeType = d[1].type
+        return enabledNodes[nodeType].group || false
+      })
+    )(nodeData)
 )
 
 export const selectGroupedNodesWithId = createSelector(
@@ -1173,6 +1208,34 @@ export const selectGeoColorRange = createSelector(
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(geoTypes)
     )
+)
+
+export const selectMatchingKeysByType = createSelector(
+  [
+    selectEnabledGeos,
+    selectGeosByType,
+    selectTimeProp,
+    selectTheme,
+    selectGeoColorRange,
+  ],
+  (enabledGeos, geosByType, timeProp, themeType, geoRange) =>
+    R.pipe(
+      R.pick(R.keys(R.filter(R.identity, enabledGeos))),
+      R.map(
+        R.filter((d) => {
+          const colorProp = R.path([d.type, 'colorBy'], enabledGeos)
+
+          const statRange = geoRange(d.type, colorProp, false)
+
+          return !(
+            R.has('nullColor', statRange) &&
+            R.isNil(R.prop('nullColor', statRange))
+          )
+        })
+      ),
+      R.map(R.indexBy(timeProp('geoJsonValue')))
+    )(geosByType),
+  { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 
 export const selectGetLegendGroupId = createSelector(
@@ -1422,4 +1485,9 @@ export const selectNodeRangeAtZoom = createSelector(
       resultEqualityCheck: R.equals,
     },
   }
+)
+
+export const selectMapNodes = createSelector(
+  selectSplitNodeData,
+  (splitNodeData) => R.propOr([], false)(splitNodeData)
 )
