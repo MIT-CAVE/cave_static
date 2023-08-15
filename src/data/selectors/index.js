@@ -1104,13 +1104,17 @@ export const selectSplitNodeData = createSelector(
         const nullSize = timePath(['sizeBy', colorProp], d[1])
 
         const sizeValue = timePath(['props', sizeProp, 'value'], d[1])
+        const colorValue = timePath(['props', colorProp, 'value'], d[1])
+
+        const groupable = enabledNodes[nodeType].allowGrouping
 
         return (
           !(
             R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
             R.isNil(nullColor)
           ) &&
-          (R.isNotNil(nullSize) || R.isNotNil(sizeValue))
+          (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
+          !(groupable && R.isNil(colorValue))
         )
       }),
       R.groupBy((d) => {
