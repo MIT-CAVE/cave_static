@@ -417,20 +417,21 @@ export const getChartItemColor = (theme, colorIndex) =>
  * @returns {Array} A RGBA equivalent array of the given color.
  * @private
  */
-const rgbObjToRgbaArray = (rgbObj) =>
-  R.append(
-    R.prop('opacity')(rgbObj) * 255, // Alpha
-    R.props(['r', 'g', 'b'])(rgbObj) // RGB array
-  )
+const rgbObjToRgbArray = (rgbObj) => R.props(['r', 'g', 'b'])(rgbObj) // RGB array
 
-export const rgbStrToArray = (rgbStr) => rgbObjToRgbaArray(color(rgbStr))
+export const rgbStrToArray = (rgbStr) => rgbObjToRgbArray(color(rgbStr))
 
 export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
+  const obj = getScaledRgbObj(colorDomain, colorRange, value)
+  return R.append(R.prop('opacity', obj) * 255)(obj)
+})
+
+export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   const getColor = scaleLinear()
     .domain(colorDomain)
     .range(colorRange)
     .clamp(true)
-  return rgbObjToRgbaArray(color(getColor(value)))
+  return rgbObjToRgbArray(color(getColor(value)))
 })
 
 export const getContrastYIQ = (rgbArray) => {

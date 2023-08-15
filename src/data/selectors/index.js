@@ -30,7 +30,7 @@ import {
   maxSizedMemoization,
   getScaledValue,
   getScaledArray,
-  getScaledColor,
+  getScaledRgbObj,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -1145,10 +1145,34 @@ export const selectArcRange = createSelector(
 export const selectSplitNodeData = createSelector(
   [selectEnabledNodes, selectNodeData],
   (enabledNodes, nodeData) =>
-    R.groupBy((d) => {
-      const nodeType = d[1].type
-      return enabledNodes[nodeType].group || false
-    })(nodeData)
+    R.pipe(
+      R.filter((d) => {
+        const nodeType = d[1].type
+        const colorProp = R.path([nodeType, 'colorBy'], enabledNodes)
+        const sizeProp = R.path([nodeType, 'sizeBy'], enabledNodes)
+
+        const nullColor = R.path(['colorBy', colorProp], d[1])
+        const nullSize = R.path(['sizeBy', colorProp], d[1])
+
+        const sizeValue = R.path(['props', sizeProp, 'value'], d[1])
+        const colorValue = R.path(['props', colorProp, 'value'], d[1])
+
+        const groupable = enabledNodes[nodeType].allowGrouping
+
+        return (
+          !(
+            R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
+            R.isNil(nullColor)
+          ) &&
+          (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
+          !(groupable && R.isNil(colorValue))
+        )
+      }),
+      R.groupBy((d) => {
+        const nodeType = d[1].type
+        return enabledNodes[nodeType].group || false
+      })
+    )(nodeData)
 )
 
 export const selectGroupedNodesWithId = createSelector(
@@ -1237,11 +1261,9 @@ export const selectMatchingKeys = createSelector(
 
         const statRange = geoRange(d.type, colorProp, false)
 
-        return (
-          !(
-            R.has('nullColor', statRange) &&
-            R.isNil(R.prop('nullColor', statRange))
-          ) || R.path(['props', colorProp, 'value'])(d)
+        return !(
+          R.has('nullColor', statRange) &&
+          R.isNil(R.prop('nullColor', statRange))
         )
       }),
       R.indexBy(R.prop('geoJsonValue'))
@@ -1258,11 +1280,9 @@ export const selectLineMatchingKeys = createSelector(
 
         const statRange = arcRange(d.type, colorProp, false)
 
-        return (
-          !(
-            R.has('nullColor', statRange) &&
-            R.isNil(R.prop('nullColor', statRange))
-          ) || R.path(['props', colorProp, 'value'])(d)
+        return !(
+          R.has('nullColor', statRange) &&
+          R.isNil(R.prop('nullColor', statRange))
         )
       }),
       R.indexBy(R.prop('geoJsonValue'))
@@ -1548,13 +1568,6 @@ export const selectNodeGeoJsonObject = createSelector(
         )(node)
         const colorRange = nodeRange(node.type, colorProp, false)
 
-        if (
-          R.has('nullColor', colorRange) &&
-          R.isNil(R.prop('nullColor', colorRange)) &&
-          R.equals('', colorPropVal)
-        )
-          return false
-
         const nullColor = R.pathOr(
           R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
           ['nullColor', themeType],
@@ -1609,8 +1622,7 @@ export const selectNodeGeoJsonObject = createSelector(
           },
         }
       }),
-      R.values,
-      R.filter(R.identity)
+      R.values
     )(nodeDataSplit)
 )
 export const selectNodeClusterGeoJsonObject = createSelector(
@@ -1646,7 +1658,7 @@ export const selectNodeClusterGeoJsonObject = createSelector(
           )(R.prop(value, colorRange))
             .replace(/[^\d,.]/g, '')
             .split(',')
-        : getScaledColor(
+        : getScaledRgbObj(
             [R.prop('min', colorDomain), R.prop('max', colorDomain)],
             colorRange,
             value
@@ -1659,7 +1671,6 @@ export const selectNodeClusterGeoJsonObject = createSelector(
       )(group)
 
       const colorString = `rgb(${color.join(',')})`
-
       return {
         type: 'Feature',
         properties: {
