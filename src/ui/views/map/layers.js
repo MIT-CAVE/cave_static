@@ -760,6 +760,7 @@ const GetGeographyLayer = (openGeo) => {
     },
     updateTriggers: {
       onHover: [touchMode],
+      getFillColor: [timePath],
     },
   })
 }
