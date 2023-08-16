@@ -426,7 +426,7 @@ const MapLegendSizeBySection = ({
             xs={3.5}
           >
             <OverflowText
-              text={getMinLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
+              text={getMinLabel(sizeRange, sizeProp, typeObj, group)}
             />
           </Grid>
         </SizePickerTooltip>
@@ -489,7 +489,7 @@ const MapLegendSizeBySection = ({
             xs={3.5}
           >
             <OverflowText
-              text={getMaxLabel(sizeRange, R.prop, sizeProp, typeObj, group)}
+              text={getMaxLabel(sizeRange, sizeProp, typeObj, group)}
             />
           </Grid>
         </SizePickerTooltip>
@@ -738,8 +738,8 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
                 ['endGradientColor', themeType],
                 colorRange
               )}
-              minLabel={getMinLabel(colorRange, R.prop, colorProp, typeObj)}
-              maxLabel={getMaxLabel(colorRange, R.prop, colorProp, typeObj)}
+              minLabel={getMinLabel(colorRange, colorProp, typeObj)}
+              maxLabel={getMaxLabel(colorRange, colorProp, typeObj)}
               colorPropPath={[
                 'geos',
                 'types',
