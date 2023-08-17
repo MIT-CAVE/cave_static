@@ -111,14 +111,13 @@ export const ArcLayer3D = memo(({ ...props }) => {
         context: gl,
         antialias: true,
       })
-
       this.renderer.autoClear = false
     },
     render: function (gl, matrix) {
       const m = new THREE.Matrix4().fromArray(matrix)
       // Note: Y must be inverted, otherwise weird y rendering results
       const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
-      const zoom = this.map.transform.tileZoom + this.map.transform.zoomFraction
+      const zoom = this.map.transform._zoom
       const scale = 1 / Math.pow(2, zoom)
       // Note: Scaling isn't perfect due to perspective changes
       R.forEach((line) => line.scale.set(scale, 1, scale))(lines)

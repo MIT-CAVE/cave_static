@@ -58,7 +58,7 @@ const Map = ({ mapboxToken }) => {
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
-  const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== ''
+  const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== '' && false
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef({})
@@ -239,7 +239,13 @@ const Map = ({ mapboxToken }) => {
         container="map"
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
-        mapStyle={mapStyleSpec}
+        mapStyle={
+          useMapbox
+            ? mapStyleSpec
+            : R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
+                mapStyleOptions
+              )
+        }
         mapboxAccessToken={useMapbox && mapboxToken}
         projection={mapProjection}
         fog={R.pathOr(getDefaultFog(theme), [
