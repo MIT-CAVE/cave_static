@@ -3,6 +3,8 @@ import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useSelector } from 'react-redux'
 
+import { ArcLayer3D } from './CustomLayers'
+
 import {
   selectTheme,
   selectEnabledArcs,
@@ -384,6 +386,7 @@ export const Geos = memo(({ highlightLayerId }) => {
         }}
       />
     </Source>,
+    <ArcLayer3D />,
   ]
 })
 
