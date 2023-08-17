@@ -58,7 +58,7 @@ const Map = ({ mapboxToken }) => {
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
-  const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== '' && false
+  const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== ''
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef({})

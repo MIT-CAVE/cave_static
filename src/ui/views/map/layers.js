@@ -386,7 +386,6 @@ export const Geos = memo(({ highlightLayerId }) => {
         }}
       />
     </Source>,
-    <ArcLayer3D />,
   ]
 })
 
@@ -513,5 +512,6 @@ export const Arcs = memo(({ highlightLayerId }) => {
         }}
       />
     </Source>,
+    <ArcLayer3D />,
   ]
 })
