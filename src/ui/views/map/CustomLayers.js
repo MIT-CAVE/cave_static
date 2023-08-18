@@ -8,7 +8,7 @@ import { HIGHLIGHT_COLOR } from '../../../utils/constants'
 
 import { rgbStrToArray } from '../../../utils'
 
-// Generate custom cylinder segments to allow for constant pixel sizing
+// Generate custom cylinder segments to allow for size scaling
 const generateSegments = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
   const color = R.pathOr('rgb(0,0,0)', ['properties', 'color'], feature)
@@ -18,29 +18,36 @@ const generateSegments = (curve, feature, segments = 80) => {
   return R.reduce((acc, idx) => {
     // Skip every other segment for dashed line
     if (lineType === 'dashed' && idx % 2 === 0) return acc
+
+    // Generate midpoint to place cylinder center
     const midpoint = new THREE.Vector3(
       (points[idx].x + points[idx + 1].x) / 2,
       (points[idx].y + points[idx + 1].y) / 2,
       (points[idx].z + points[idx + 1].z) / 2
     )
+    // find distance between 2 points
     const hypotenuse = Math.sqrt(
       Math.pow(points[idx].x - points[idx + 1].x, 2) +
         Math.pow(points[idx].y - points[idx + 1].y, 2) +
         Math.pow(points[idx].z - points[idx + 1].z, 2)
     )
+    // find vertical angle between 2 points (uses iso names)
     const theta = Math.asin((points[idx].z - points[idx + 1].z) / hypotenuse)
+    // find horizontal angle between 2 points
     const phi =
       Math.atan(
         (points[idx].y - points[idx + 1].y) /
           (points[idx].x - points[idx + 1].x)
       ) +
       Math.PI / 2
+    // generate new cylinder using calculated size
     const geometry = new THREE.CylinderGeometry(
       0.001 * size,
       0.001 * size,
       lineType === 'solid' ? hypotenuse : hypotenuse / 3,
       2
     )
+    // set cylinder color, position, and angle
     const colorArr = rgbStrToArray(color)
     const colorObj = new THREE.Color(
       colorArr[0] / 255,
@@ -56,6 +63,7 @@ const generateSegments = (curve, feature, segments = 80) => {
     cylinder.rotateY(Math.PI / 2)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), theta)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
+    // Add data from feature for highlighting/clicking
     cylinder.userData = {
       cave_name: R.path(['properties', 'cave_name'], feature),
       cave_obj: R.path(['properties', 'cave_obj'], feature),
@@ -63,10 +71,11 @@ const generateSegments = (curve, feature, segments = 80) => {
     return R.append(cylinder, acc)
   }, [])(R.range(0, R.length(points) - 1))
 }
-
+// Converts array of geoJson features to array of Meshes to be added to scene
 const geoJsonToSegments = (features) =>
   R.pipe(
     R.map((feature) => {
+      // convert coordinates to MercatorCoordinates on map
       const arcOrigin = MercatorCoordinate.fromLngLat(
         feature.geometry.coordinates[0],
         0
@@ -134,17 +143,9 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
     onAdd: function (map, gl) {
       this.camera = new THREE.PerspectiveCamera()
       this.scene = new THREE.Scene()
-      // create two three.js lights to illuminate the models
-      const directionalLight = new THREE.DirectionalLight(0xffffff)
-      directionalLight.position.set(0, -70, 100).normalize()
-      this.scene.add(directionalLight)
-
-      const directionalLight2 = new THREE.DirectionalLight(0xffffff)
-      directionalLight2.position.set(0, 70, 100).normalize()
-      this.scene.add(directionalLight2)
-      // add all generated cylinders to scene
       this.map = map
       this.lines = geoJsonToSegments(features || [])
+      // add all generated cylinders to scene
       R.forEach((line) => this.scene.add(line))(this.lines)
       // use the Mapbox GL JS map canvas for three.js
       this.renderer = new THREE.WebGLRenderer({
@@ -200,6 +201,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
       // calculate objects intersecting the picking ray
       const intersects = layer.raycaster.intersectObjects(layer.lines, true)
       if (intersects.length) {
+        // Prevent layers under this one from being clicked/highlighted
         e.stopImmediatePropagation()
         if (click) layer.onClick(intersects[0].object.userData)
       }
@@ -236,7 +238,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
       const zoom = this.map.transform._zoom
       const scale = 1 / Math.pow(2, zoom)
       // Note: Scaling isn't perfect due to perspective changes
-      R.forEach((line) => line.scale.set(1, 1, scale))(this.lines)
+      R.forEach((line) => line.scale.set(1, scale, scale))(this.lines)
       this.camera.projectionMatrix = m.multiply(l)
       this.renderer.resetState()
       this.renderer.render(this.scene, this.camera)
