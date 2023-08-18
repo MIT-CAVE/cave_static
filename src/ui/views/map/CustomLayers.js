@@ -108,7 +108,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   }, [features, layer])
   useEffect(() => {
     // Update onClick if changed
-    if (layer) layer.onClick = onClick
+    if (layer) layer.implementation.onClick = onClick
   }, [onClick, layer])
   // Cleans up event listeners
   useEffect(
