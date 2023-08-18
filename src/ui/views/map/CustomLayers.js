@@ -1,13 +1,15 @@
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { Layer } from 'react-map-gl'
 import * as THREE from 'three'
 
 // Generate custom cylinder segments to allow for constant pixel sizing
-const generateSegments = (curve, segments = 80) => {
+const generateSegments = (curve, lineType = 'solid', segments = 80) => {
   const points = curve.getPoints(segments)
-  return R.map((idx) => {
+  return R.reduce((acc, idx) => {
+    // Skip every other segment for dashed line
+    if (lineType === 'dashed' && idx % 2 === 0) return acc
     const midpoint = new THREE.Vector3(
       (points[idx].x + points[idx + 1].x) / 2,
       (points[idx].y + points[idx + 1].y) / 2,
@@ -25,7 +27,12 @@ const generateSegments = (curve, segments = 80) => {
           (points[idx].x - points[idx + 1].x)
       ) +
       Math.PI / 2
-    const geometry = new THREE.CylinderGeometry(0.01, 0.01, hypotenuse, 2)
+    const geometry = new THREE.CylinderGeometry(
+      0.01,
+      0.01,
+      lineType === 'solid' ? hypotenuse : hypotenuse / 3,
+      2
+    )
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
     })
@@ -36,64 +43,51 @@ const generateSegments = (curve, segments = 80) => {
     cylinder.rotateY(Math.PI / 2)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
-    return cylinder
-  })(R.range(0, R.length(points) - 1))
+    return R.append(cylinder, acc)
+  }, [])(R.range(0, R.length(points) - 1))
 }
 
-export const ArcLayer3D = memo(({ ...props }) => {
-  const modelOrigin = [148.9819, -35.39847]
-  const modelDestination = [-71.0597, 42.3584]
-  const modelAltitude = 0
-  const modelOriginAsMercatorCoordinate = MercatorCoordinate.fromLngLat(
-    modelOrigin,
-    modelAltitude
-  )
-  const modelDestinationAsMercatorCoordinate = MercatorCoordinate.fromLngLat(
-    modelDestination,
-    modelAltitude
-  )
-  // Generate meshes from curve
-  const lines = useMemo(() => {
-    // Generate curve to follow between points
-    const curve = new THREE.CubicBezierCurve3(
-      new THREE.Vector3(
-        modelOriginAsMercatorCoordinate.x,
-        -modelOriginAsMercatorCoordinate.y,
-        0
-      ),
-      new THREE.Vector3(
-        modelOriginAsMercatorCoordinate.x,
-        -modelOriginAsMercatorCoordinate.y,
-        0.25
-      ),
-      new THREE.Vector3(
-        modelDestinationAsMercatorCoordinate.x,
-        -modelDestinationAsMercatorCoordinate.y,
-        0.25
-      ),
-      new THREE.Vector3(
-        modelDestinationAsMercatorCoordinate.x,
-        -modelDestinationAsMercatorCoordinate.y,
+const geoJsonToSegments = (features) =>
+  R.pipe(
+    R.map((feature) => {
+      const arcOrigin = MercatorCoordinate.fromLngLat(
+        feature.geometry.coordinates[0],
         0
       )
-    )
-    return generateSegments(curve)
-  }, [
-    modelDestinationAsMercatorCoordinate.x,
-    modelDestinationAsMercatorCoordinate.y,
-    modelOriginAsMercatorCoordinate.x,
-    modelOriginAsMercatorCoordinate.y,
-  ])
+      const arcDestination = MercatorCoordinate.fromLngLat(
+        feature.geometry.coordinates[1],
+        0
+      )
+      const distance = Math.sqrt(
+        Math.pow(arcOrigin.x - arcDestination.x, 2) +
+          Math.pow(arcOrigin.y - arcDestination.y, 2)
+      )
+      const curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, 0),
+        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, distance),
+        new THREE.Vector3(arcDestination.x, -arcDestination.y, distance),
+        new THREE.Vector3(arcDestination.x, -arcDestination.y, 0)
+      )
+      return generateSegments(curve, feature.properties.dash)
+    }),
+    R.unnest
+  )(features)
 
+export const ArcLayer3D = memo(({ features }) => {
+  const [lines, setLines] = useState([])
+  // Generate meshes from points
+  useEffect(() => {
+    setLines(geoJsonToSegments(features || []))
+  }, [features])
   // configuration of the custom layer per the CustomLayerInterface
+  let clickHandler
   const customLayer = {
     id: '3d-model',
     type: 'custom',
     renderingMode: '3d',
     onAdd: function (map, gl) {
-      this.camera = new THREE.Camera()
+      this.camera = new THREE.PerspectiveCamera()
       this.scene = new THREE.Scene()
-
       // create two three.js lights to illuminate the models
       const directionalLight = new THREE.DirectionalLight(0xffffff)
       directionalLight.position.set(0, -70, 100).normalize()
@@ -112,6 +106,45 @@ export const ArcLayer3D = memo(({ ...props }) => {
         antialias: true,
       })
       this.renderer.autoClear = false
+      this.raycaster = new THREE.Raycaster()
+      this.raycaster.near = -1
+      this.raycaster.far = 1e6
+
+      clickHandler = (e) => this.raycast(this, e)
+      map.getCanvas().addEventListener('mousedown', clickHandler, false)
+      map.moveLayer('3d-model')
+    },
+    onRemove: function () {
+      this.map.getCanvas().removeEventListener('mouseDown', clickHandler)
+    },
+    raycast: (layer, e) => {
+      const point = { x: e.layerX, y: e.layerY }
+      const mouse = new THREE.Vector2()
+      // // scale mouse pixel position to a percentage of the screen's width and height
+      mouse.x = (point.x / e.srcElement.width) * 2 - 1
+      mouse.y = 1 - (point.y / e.srcElement.height) * 2
+      const camInverseProjection = new THREE.Matrix4()
+        .copy(layer.camera.projectionMatrix)
+        .invert()
+      const cameraPosition = new THREE.Vector3().applyMatrix4(
+        camInverseProjection
+      )
+      const mousePosition = new THREE.Vector3(mouse.x, mouse.y, 1).applyMatrix4(
+        camInverseProjection
+      )
+      const viewDirection = mousePosition
+        .clone()
+        .sub(cameraPosition)
+        .normalize()
+
+      layer.raycaster.set(cameraPosition, viewDirection)
+
+      // calculate objects intersecting the picking ray
+      const intersects = layer.raycaster.intersectObjects(lines, true)
+      if (intersects.length) {
+        e.preventDefault()
+        console.log(intersects)
+      }
     },
     render: function (gl, matrix) {
       const m = new THREE.Matrix4().fromArray(matrix)
@@ -120,7 +153,7 @@ export const ArcLayer3D = memo(({ ...props }) => {
       const zoom = this.map.transform._zoom
       const scale = 1 / Math.pow(2, zoom)
       // Note: Scaling isn't perfect due to perspective changes
-      R.forEach((line) => line.scale.set(scale, 1, scale))(lines)
+      R.forEach((line) => line.scale.set(1, 1, scale))(lines)
       this.camera.projectionMatrix = m.multiply(l)
       this.renderer.resetState()
       this.renderer.render(this.scene, this.camera)
