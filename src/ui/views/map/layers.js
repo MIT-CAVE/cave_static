@@ -430,7 +430,6 @@ export const Arcs = memo(({ highlightLayerId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJson)
 
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
-
   return [
     <Source
       id={layerId.ARC_LAYER_SOLID}
@@ -512,6 +511,10 @@ export const Arcs = memo(({ highlightLayerId }) => {
         }}
       />
     </Source>,
-    <ArcLayer3D />,
   ]
+})
+
+export const Arcs3D = memo(() => {
+  const arcLayerGeoJson = useSelector(selectArcLayerGeoJson)
+  return <ArcLayer3D features={R.propOr([], 'dotted', arcLayerGeoJson)} />
 })

@@ -1,6 +1,6 @@
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
-import { memo, useEffect } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { Layer, useMap } from 'react-map-gl'
 import * as THREE from 'three'
 
@@ -99,14 +99,23 @@ const geoJsonToSegments = (features) =>
 export const ArcLayer3D = memo(({ features }) => {
   const { current: map } = useMap()
   const layer = map.getLayer('3d-model')
+  const canvas = map.getCanvas()
+  const clickHandler = useRef()
   useEffect(() => {
     // Generate meshes from array of geoJson features
     if (layer)
       layer.implementation.updateMeshes(geoJsonToSegments(features || []))
   }, [features, layer])
+  // Cleans up event listeners
+  useEffect(
+    () => () => {
+      if (clickHandler.current && canvas)
+        canvas.removeEventListener('mouseDown', clickHandler.current)
+    },
+    [canvas]
+  )
 
   // configuration of the custom layer per the CustomLayerInterface
-  let clickHandler
   const customLayer = {
     id: '3d-model',
     type: 'custom',
@@ -124,7 +133,8 @@ export const ArcLayer3D = memo(({ features }) => {
       this.scene.add(directionalLight2)
       // add all generated cylinders to scene
       this.map = map
-      this.lines = []
+      this.lines = geoJsonToSegments(features || [])
+      R.forEach((line) => this.scene.add(line))(this.lines)
       // use the Mapbox GL JS map canvas for three.js
       this.renderer = new THREE.WebGLRenderer({
         canvas: map.getCanvas(),
@@ -136,13 +146,14 @@ export const ArcLayer3D = memo(({ features }) => {
       this.raycaster.near = -1
       this.raycaster.far = 1e6
 
-      clickHandler = (e) => this.raycast(this, e)
-      map.getCanvas().addEventListener('mousedown', clickHandler, false)
+      clickHandler.current = (e) => this.raycast(this, e)
+      map.getCanvas().addEventListener('mousedown', clickHandler.current, false)
       map.moveLayer('3d-model')
     },
     onRemove: function () {
-      console.log('removed')
-      this.map.getCanvas().removeEventListener('mouseDown', clickHandler)
+      this.map
+        .getCanvas()
+        .removeEventListener('mouseDown', clickHandler.current)
     },
     updateMeshes: function (currentMeshes) {
       this.scene.remove.apply(this.scene, this.scene.children)

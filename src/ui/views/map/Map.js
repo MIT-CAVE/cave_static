@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getDefaultFog, getDefaultStyleId } from '.'
 import ErrorPad from './ErrorPad'
 import KeyPad from './KeyPad'
-import { Geos, Arcs, Nodes } from './layers'
+import { Geos, Arcs, Nodes, Arcs3D } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
@@ -263,6 +263,7 @@ const Map = ({ mapboxToken }) => {
         <Geos highlightLayerId={highlightLayerId} />
         <Arcs highlightLayerId={highlightLayerId} />
         <Nodes highlightLayerId={highlightLayerId} />
+        <Arcs3D />
       </ReactMapGL>
       <ErrorPad />
       <KeyPad />
