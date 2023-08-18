@@ -419,8 +419,7 @@ export const getChartItemColor = (theme, colorIndex) =>
  */
 const rgbObjToRgbArray = (rgbObj) => R.props(['r', 'g', 'b'])(rgbObj) // RGB array
 
-export const rgbStrToArray = (rgbStr) => rgbObjToRgbArray(color(rgbStr))
-
+export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
 export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
   const obj = getScaledRgbObj(colorDomain, colorRange, value)
   return R.append(R.prop('opacity', obj) * 255)(obj)

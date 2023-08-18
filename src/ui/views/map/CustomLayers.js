@@ -1,11 +1,19 @@
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
-import { memo, useEffect, useState } from 'react'
-import { Layer } from 'react-map-gl'
+import { memo, useEffect } from 'react'
+import { Layer, useMap } from 'react-map-gl'
 import * as THREE from 'three'
 
+import { rgbStrToArray } from '../../../utils'
+
 // Generate custom cylinder segments to allow for constant pixel sizing
-const generateSegments = (curve, lineType = 'solid', segments = 80) => {
+const generateSegments = (
+  curve,
+  lineType = 'solid',
+  color = 'rgb(0,0,0)',
+  size = 30,
+  segments = 80
+) => {
   const points = curve.getPoints(segments)
   return R.reduce((acc, idx) => {
     // Skip every other segment for dashed line
@@ -28,15 +36,20 @@ const generateSegments = (curve, lineType = 'solid', segments = 80) => {
       ) +
       Math.PI / 2
     const geometry = new THREE.CylinderGeometry(
-      0.01,
-      0.01,
+      0.001 * size,
+      0.001 * size,
       lineType === 'solid' ? hypotenuse : hypotenuse / 3,
       2
     )
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
-    })
+    const colorArr = rgbStrToArray(color)
+    const colorObj = new THREE.Color(
+      colorArr[0] / 255,
+      colorArr[1] / 255,
+      colorArr[2] / 255
+    )
+    const material = new THREE.MeshBasicMaterial()
     const cylinder = new THREE.Mesh(geometry, material)
+    cylinder.material.color.set(colorObj)
     cylinder.position.x = midpoint.x
     cylinder.position.y = midpoint.y
     cylinder.position.z = midpoint.z
@@ -62,23 +75,36 @@ const geoJsonToSegments = (features) =>
         Math.pow(arcOrigin.x - arcDestination.x, 2) +
           Math.pow(arcOrigin.y - arcDestination.y, 2)
       )
+      // create a bezier curve with height scaling on distance in range 0.01- 0.06
       const curve = new THREE.CubicBezierCurve3(
         new THREE.Vector3(arcOrigin.x, -arcOrigin.y, 0),
-        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, distance),
-        new THREE.Vector3(arcDestination.x, -arcDestination.y, distance),
+        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, distance * 0.05 + 0.01),
+        new THREE.Vector3(
+          arcDestination.x,
+          -arcDestination.y,
+          distance * 0.05 + 0.01
+        ),
         new THREE.Vector3(arcDestination.x, -arcDestination.y, 0)
       )
-      return generateSegments(curve, feature.properties.dash)
+      return generateSegments(
+        curve,
+        R.pathOr('solid', ['properties', 'dash'], feature),
+        R.pathOr('rgb(0,0,0)', ['properties', 'color'], feature),
+        R.pathOr(30, ['properties', 'size'], feature)
+      )
     }),
     R.unnest
   )(features)
 
 export const ArcLayer3D = memo(({ features }) => {
-  const [lines, setLines] = useState([])
-  // Generate meshes from points
+  const { current: map } = useMap()
+  const layer = map.getLayer('3d-model')
   useEffect(() => {
-    setLines(geoJsonToSegments(features || []))
-  }, [features])
+    // Generate meshes from array of geoJson features
+    if (layer)
+      layer.implementation.updateMeshes(geoJsonToSegments(features || []))
+  }, [features, layer])
+
   // configuration of the custom layer per the CustomLayerInterface
   let clickHandler
   const customLayer = {
@@ -97,8 +123,8 @@ export const ArcLayer3D = memo(({ features }) => {
       directionalLight2.position.set(0, 70, 100).normalize()
       this.scene.add(directionalLight2)
       // add all generated cylinders to scene
-      R.forEach((line) => this.scene.add(line))(lines)
       this.map = map
+      this.lines = []
       // use the Mapbox GL JS map canvas for three.js
       this.renderer = new THREE.WebGLRenderer({
         canvas: map.getCanvas(),
@@ -115,7 +141,13 @@ export const ArcLayer3D = memo(({ features }) => {
       map.moveLayer('3d-model')
     },
     onRemove: function () {
+      console.log('removed')
       this.map.getCanvas().removeEventListener('mouseDown', clickHandler)
+    },
+    updateMeshes: function (currentMeshes) {
+      this.scene.remove.apply(this.scene, this.scene.children)
+      R.forEach((line) => this.scene.add(line))(currentMeshes)
+      this.lines = currentMeshes
     },
     raycast: (layer, e) => {
       const point = { x: e.layerX, y: e.layerY }
@@ -140,7 +172,7 @@ export const ArcLayer3D = memo(({ features }) => {
       layer.raycaster.set(cameraPosition, viewDirection)
 
       // calculate objects intersecting the picking ray
-      const intersects = layer.raycaster.intersectObjects(lines, true)
+      const intersects = layer.raycaster.intersectObjects(layer.lines, true)
       if (intersects.length) {
         e.preventDefault()
         console.log(intersects)
@@ -153,7 +185,7 @@ export const ArcLayer3D = memo(({ features }) => {
       const zoom = this.map.transform._zoom
       const scale = 1 / Math.pow(2, zoom)
       // Note: Scaling isn't perfect due to perspective changes
-      R.forEach((line) => line.scale.set(1, 1, scale))(lines)
+      R.forEach((line) => line.scale.set(1, 1, scale))(this.lines)
       this.camera.projectionMatrix = m.multiply(l)
       this.renderer.resetState()
       this.renderer.render(this.scene, this.camera)
