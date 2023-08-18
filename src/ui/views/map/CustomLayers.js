@@ -4,16 +4,16 @@ import { memo, useEffect, useRef } from 'react'
 import { Layer, useMap } from 'react-map-gl'
 import * as THREE from 'three'
 
+import { HIGHLIGHT_COLOR } from '../../../utils/constants'
+
 import { rgbStrToArray } from '../../../utils'
 
 // Generate custom cylinder segments to allow for constant pixel sizing
-const generateSegments = (
-  curve,
-  lineType = 'solid',
-  color = 'rgb(0,0,0)',
-  size = 30,
-  segments = 80
-) => {
+const generateSegments = (curve, feature, segments = 80) => {
+  const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
+  const color = R.pathOr('rgb(0,0,0)', ['properties', 'color'], feature)
+  const size = R.pathOr(30, ['properties', 'size'], feature)
+
   const points = curve.getPoints(segments)
   return R.reduce((acc, idx) => {
     // Skip every other segment for dashed line
@@ -54,8 +54,12 @@ const generateSegments = (
     cylinder.position.y = midpoint.y
     cylinder.position.z = midpoint.z
     cylinder.rotateY(Math.PI / 2)
-    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
+    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), theta)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
+    cylinder.userData = {
+      cave_name: R.path(['properties', 'cave_name'], feature),
+      cave_obj: R.path(['properties', 'cave_obj'], feature),
+    }
     return R.append(cylinder, acc)
   }, [])(R.range(0, R.length(points) - 1))
 }
@@ -86,31 +90,35 @@ const geoJsonToSegments = (features) =>
         ),
         new THREE.Vector3(arcDestination.x, -arcDestination.y, 0)
       )
-      return generateSegments(
-        curve,
-        R.pathOr('solid', ['properties', 'dash'], feature),
-        R.pathOr('rgb(0,0,0)', ['properties', 'color'], feature),
-        R.pathOr(30, ['properties', 'size'], feature)
-      )
+      return generateSegments(curve, feature)
     }),
     R.unnest
   )(features)
 
-export const ArcLayer3D = memo(({ features }) => {
+export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   const { current: map } = useMap()
   const layer = map.getLayer('3d-model')
   const canvas = map.getCanvas()
   const clickHandler = useRef()
+  const hoverHandler = useRef()
   useEffect(() => {
     // Generate meshes from array of geoJson features
     if (layer)
       layer.implementation.updateMeshes(geoJsonToSegments(features || []))
   }, [features, layer])
+  useEffect(() => {
+    // Update onClick if changed
+    if (layer) layer.onClick = onClick
+  }, [onClick, layer])
   // Cleans up event listeners
   useEffect(
     () => () => {
-      if (clickHandler.current && canvas)
-        canvas.removeEventListener('mouseDown', clickHandler.current)
+      if (canvas) {
+        if (clickHandler.current)
+          canvas.removeEventListener('click', clickHandler.current)
+        if (hoverHandler.current)
+          canvas.removeEventListener('mousemove', hoverHandler.current)
+      }
     },
     [canvas]
   )
@@ -120,6 +128,9 @@ export const ArcLayer3D = memo(({ features }) => {
     id: '3d-model',
     type: 'custom',
     renderingMode: '3d',
+    highlightedId: -1,
+    oldColor: -1,
+    onClick,
     onAdd: function (map, gl) {
       this.camera = new THREE.PerspectiveCamera()
       this.scene = new THREE.Scene()
@@ -146,21 +157,25 @@ export const ArcLayer3D = memo(({ features }) => {
       this.raycaster.near = -1
       this.raycaster.far = 1e6
 
-      clickHandler.current = (e) => this.raycast(this, e)
-      map.getCanvas().addEventListener('mousedown', clickHandler.current, false)
+      clickHandler.current = (e) => this.raycast(e, true)
+      hoverHandler.current = (e) => this.raycast(e, false)
+      map.getCanvas().addEventListener('mousemove', hoverHandler.current, false)
+      map.getCanvas().addEventListener('click', clickHandler.current, false)
       map.moveLayer('3d-model')
     },
     onRemove: function () {
       this.map
         .getCanvas()
-        .removeEventListener('mouseDown', clickHandler.current)
+        .removeEventListener('mousemove', hoverHandler.current)
+      this.map.getCanvas().removeEventListener('click', clickHandler.current)
     },
     updateMeshes: function (currentMeshes) {
       this.scene.remove.apply(this.scene, this.scene.children)
       R.forEach((line) => this.scene.add(line))(currentMeshes)
       this.lines = currentMeshes
     },
-    raycast: (layer, e) => {
+    raycast: (e, click) => {
+      const layer = map.getLayer('3d-model').implementation
       const point = { x: e.layerX, y: e.layerY }
       const mouse = new THREE.Vector2()
       // // scale mouse pixel position to a percentage of the screen's width and height
@@ -185,8 +200,33 @@ export const ArcLayer3D = memo(({ features }) => {
       // calculate objects intersecting the picking ray
       const intersects = layer.raycaster.intersectObjects(layer.lines, true)
       if (intersects.length) {
-        e.preventDefault()
-        console.log(intersects)
+        e.stopImmediatePropagation()
+        if (click) layer.onClick(intersects[0].object.userData)
+      }
+      // handle hovering
+      if (!click) {
+        if (intersects.length) {
+          if (layer.highlightedId !== intersects[0].object.userData.cave_name) {
+            layer.highlightedId = intersects[0].object.userData.cave_name
+            layer.oldColor = intersects[0].object.material.color.clone()
+            const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
+            const colorObj = new THREE.Color(
+              colorArr[0] / 255,
+              colorArr[1] / 255,
+              colorArr[2] / 255
+            )
+            R.forEach((line) => {
+              if (line.userData.cave_name === layer.highlightedId)
+                line.material.color.set(colorObj)
+            })(layer.lines)
+          }
+        } else if (layer.highlightedId !== -1) {
+          R.forEach((line) => {
+            if (line.userData.cave_name === layer.highlightedId)
+              line.material.color.set(layer.oldColor)
+          })(layer.lines)
+          layer.highlightedId = -1
+        }
       }
     },
     render: function (gl, matrix) {
