@@ -44,7 +44,7 @@ const generateSegments = (curve, feature, segments = 80) => {
     const geometry = new THREE.CylinderGeometry(
       0.001 * size,
       0.001 * size,
-      lineType === 'solid' ? hypotenuse : hypotenuse / 3,
+      lineType !== 'dotted' ? hypotenuse : hypotenuse / 3,
       2
     )
     // set cylinder color, position, and angle
@@ -176,7 +176,8 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
       this.lines = currentMeshes
     },
     raycast: (e, click) => {
-      const layer = map.getLayer('3d-model').implementation
+      const layer =
+        map.getLayer('3d-model') && map.getLayer('3d-model').implementation
       const point = { x: e.layerX, y: e.layerY }
       const mouse = new THREE.Vector2()
       // // scale mouse pixel position to a percentage of the screen's width and height
@@ -203,12 +204,22 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
       if (intersects.length) {
         // Prevent layers under this one from being clicked/highlighted
         e.stopImmediatePropagation()
+        // Remove current layer highlights
+        const event = new CustomEvent('clearHighlight')
+        document.dispatchEvent(event)
         if (click) layer.onClick(intersects[0].object.userData)
       }
       // handle hovering
       if (!click) {
         if (intersects.length) {
           if (layer.highlightedId !== intersects[0].object.userData.cave_name) {
+            if (layer.highlightedId !== -1) {
+              R.forEach((line) => {
+                if (line.userData.cave_name === layer.highlightedId)
+                  line.material.color.set(layer.oldColor)
+              })(layer.lines)
+            }
+            map.getCanvas().style.cursor = 'pointer'
             layer.highlightedId = intersects[0].object.userData.cave_name
             layer.oldColor = intersects[0].object.material.color.clone()
             const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
@@ -238,7 +249,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
       const zoom = this.map.transform._zoom
       const scale = 1 / Math.pow(2, zoom)
       // Note: Scaling isn't perfect due to perspective changes
-      R.forEach((line) => line.scale.set(1, scale, scale))(this.lines)
+      R.forEach((line) => line.scale.set(1, 1, scale))(this.lines)
       this.camera.projectionMatrix = m.multiply(l)
       this.renderer.resetState()
       this.renderer.render(this.scene, this.camera)

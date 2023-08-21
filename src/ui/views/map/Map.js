@@ -54,7 +54,6 @@ const Map = ({ mapboxToken }) => {
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
   const [highlightLayerId, setHighlightLayerId] = useState()
-  const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
@@ -175,14 +174,15 @@ const Map = ({ mapboxToken }) => {
 
   const onMouseMove = useCallback(
     (e) => {
+      const canvas = mapRef.current.getCanvas()
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) {
-        setCursor('auto')
+        if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
         if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
       } else {
         const [id] = featureObj
         setHighlightLayerId(id)
-        setCursor('pointer')
+        if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
       }
     },
     [getFeatureFromEvent, highlightLayerId]
@@ -227,6 +227,13 @@ const Map = ({ mapboxToken }) => {
     }
   }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
 
+  useEffect(() => {
+    document.addEventListener('clearHighlight', onMouseOver, false)
+    return () =>
+      document.removeEventListener('clearHighlight', onMouseOver, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightLayerId])
+
   return (
     <Fragment>
       <MapControls allowProjections={useMapbox} />
@@ -256,7 +263,6 @@ const Map = ({ mapboxToken }) => {
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
         ref={mapRef}
-        cursor={cursor}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
       >
