@@ -21,6 +21,7 @@ import {
   selectNodeLayerGeoJson,
   selectArcLayerGeoJson,
   selectAppBarId,
+  selectArcLayer3DGeoJson,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -519,10 +520,10 @@ export const Arcs = memo(({ highlightLayerId }) => {
 export const Arcs3D = memo(() => {
   const dispatch = useDispatch()
   const appBarId = useSelector(selectAppBarId)
-  const arcLayerGeoJson = useSelector(selectArcLayerGeoJson)
+  const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJson)
   return (
     <ArcLayer3D
-      features={R.propOr([], 'dotted', arcLayerGeoJson)}
+      features={arcLayerGeoJson}
       onClick={({ cave_name: id, cave_obj: obj }) => {
         dispatch(
           openMapModal({
