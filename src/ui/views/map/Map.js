@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getDefaultFog, getDefaultStyleId } from '.'
 import ErrorPad from './ErrorPad'
 import KeyPad from './KeyPad'
-import { Geos, Arcs, Nodes } from './layers'
+import { Geos, Arcs, Nodes, Arcs3D } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
@@ -54,7 +54,6 @@ const Map = ({ mapboxToken }) => {
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
   const [highlightLayerId, setHighlightLayerId] = useState()
-  const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
@@ -175,14 +174,15 @@ const Map = ({ mapboxToken }) => {
 
   const onMouseMove = useCallback(
     (e) => {
+      const canvas = mapRef.current.getCanvas()
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) {
-        setCursor('auto')
+        if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
         if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
       } else {
         const [id] = featureObj
         setHighlightLayerId(id)
-        setCursor('pointer')
+        if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
       }
     },
     [getFeatureFromEvent, highlightLayerId]
@@ -227,6 +227,13 @@ const Map = ({ mapboxToken }) => {
     }
   }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
 
+  useEffect(() => {
+    document.addEventListener('clearHighlight', onMouseOver, false)
+    return () =>
+      document.removeEventListener('clearHighlight', onMouseOver, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightLayerId])
+
   return (
     <Fragment>
       <MapControls allowProjections={useMapbox} />
@@ -239,7 +246,13 @@ const Map = ({ mapboxToken }) => {
         container="map"
         width={`calc(100vw - ${APP_BAR_WIDTH})`}
         height="100vh"
-        mapStyle={mapStyleSpec}
+        mapStyle={
+          useMapbox
+            ? mapStyleSpec
+            : R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
+                mapStyleOptions
+              )
+        }
         mapboxAccessToken={useMapbox && mapboxToken}
         projection={mapProjection}
         fog={R.pathOr(getDefaultFog(theme), [
@@ -250,13 +263,13 @@ const Map = ({ mapboxToken }) => {
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
         ref={mapRef}
-        cursor={cursor}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
       >
         <Geos highlightLayerId={highlightLayerId} />
         <Arcs highlightLayerId={highlightLayerId} />
         <Nodes highlightLayerId={highlightLayerId} />
+        <Arcs3D />
       </ReactMapGL>
       <ErrorPad />
       <KeyPad />

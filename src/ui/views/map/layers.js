@@ -1,8 +1,11 @@
 import * as R from 'ramda'
 import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source } from 'react-map-gl'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
+import { ArcLayer3D } from './CustomLayers'
+
+import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectTheme,
   selectEnabledArcs,
@@ -17,6 +20,8 @@ import {
   selectLineMatchingKeys,
   selectNodeLayerGeoJson,
   selectArcLayerGeoJson,
+  selectAppBarId,
+  selectArcLayer3DGeoJson,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -428,7 +433,6 @@ export const Arcs = memo(({ highlightLayerId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJson)
 
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
-
   return [
     <Source
       id={layerId.ARC_LAYER_SOLID}
@@ -511,4 +515,28 @@ export const Arcs = memo(({ highlightLayerId }) => {
       />
     </Source>,
   ]
+})
+
+export const Arcs3D = memo(() => {
+  const dispatch = useDispatch()
+  const appBarId = useSelector(selectAppBarId)
+  const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJson)
+  return (
+    <ArcLayer3D
+      features={arcLayerGeoJson}
+      onClick={({ cave_name: id, cave_obj: obj }) => {
+        dispatch(
+          openMapModal({
+            appBarId,
+            data: {
+              ...(obj || {}),
+              feature: 'arcs',
+              type: R.propOr(obj.type, 'name')(obj),
+              key: id,
+            },
+          })
+        )
+      }}
+    />
+  )
 })
