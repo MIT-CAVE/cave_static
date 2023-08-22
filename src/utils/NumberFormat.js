@@ -62,7 +62,7 @@ class NumberFormat {
     })
   }
 
-  setExponentNotation(numString, notationDisplay, showZeroExponent) {
+  setExponentNotation(numString, notation, notationDisplay, showZeroExponent) {
     const [significand, rawExponent] = numString.split(this.exponentSep)
     const expoValue = this.parse(rawExponent)
     if (expoValue === 0 && !showZeroExponent) return significand
@@ -86,7 +86,9 @@ class NumberFormat {
         exponentSep = '\u00d710'
         break
       default:
-        throw new Error(`Invalid notation display "${notationDisplay}"`)
+        throw new Error(
+          `Invalid notation display "${notationDisplay}" for "${notation}" notation `
+        )
     }
 
     let exponent = `${expoValue > 0 && showPlusSign ? '+' : ''}${expoValue}`
@@ -130,6 +132,7 @@ class NumberFormat {
     })
     return this.setExponentNotation(
       numString,
+      notation,
       notationDisplay,
       showZeroExponent
     )
@@ -139,7 +142,7 @@ class NumberFormat {
   // `precision` must be > 0
   precisionFormat(
     num,
-    { precision, notationDisplay = displayOptions.E_LOWER_PLUS }
+    { precision, notation, notationDisplay = displayOptions.E_LOWER_PLUS }
   ) {
     if (!Number(num).toPrecision(precision).includes('e')) {
       return num.toLocaleString(this._locale, {
@@ -153,7 +156,7 @@ class NumberFormat {
       maximumSignificantDigits: precision,
       notation: 'scientific',
     })
-    return this.setExponentNotation(numString, notationDisplay)
+    return this.setExponentNotation(numString, notation, notationDisplay)
   }
 
   // Units are handled outside the ECMAScript 2023 spec,
@@ -174,6 +177,22 @@ class NumberFormat {
   ) {
     if (value == null) return fallbackValue
     if (value === Infinity || value === -Infinity) return 'NaN'
+
+    // Fix `notationDisplay` in case of inconsistency in formatting hierarchy integration
+    notationDisplay =
+      // Allow to catch an invalid `notationDisplay` later in execution
+      !Object.values(displayOptions).includes(notationDisplay)
+        ? notationDisplay
+        : notation === notationOptions.COMPACT ||
+          notation === notationOptions.STANDARD
+        ? notationDisplay === displayOptions.SHORT ||
+          notationDisplay === displayOptions.LONG
+          ? notationDisplay
+          : undefined
+        : notationDisplay === displayOptions.SHORT ||
+          notationDisplay === displayOptions.LONG
+        ? undefined
+        : notationDisplay
 
     const opts = {
       notation,
