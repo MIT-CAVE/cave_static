@@ -39,6 +39,7 @@ import {
   selectArcTypeKeys,
   selectNodeTypeKeys,
   selectRightAppBarDisplay,
+  selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { propId, statId, statFns } from '../../../utils/enums'
@@ -55,12 +56,11 @@ import {
 } from '../../compound'
 
 import {
+  NumberFormat,
   capitalize,
   customSort,
   eitherBoolOrNotNull,
-  formatNumber,
   includesPath,
-  serializeNumLabel,
 } from '../../../utils'
 
 const styles = {
@@ -165,41 +165,27 @@ const addExtraProps = (Component, extraProps) => {
   return <ComponentType {...Component.props} {...extraProps} />
 }
 
-const getMinMaxLabel = (valRange, valProp, typeObj, group, end, labelEnd) => {
+const getMinMaxLabel = (valRange, numberFormatRaw, group, end, labelEnd) => {
+  const numberFormat = R.omit(['unit', 'unitPlacement'])(numberFormatRaw)
   const getNumLabel = () =>
-    R.path(['props', valProp, 'legendOverride', 'useScientificFormat'])(
-      typeObj
-    ) ?? true
-      ? serializeNumLabel(
-          R.prop(end, valRange),
-          R.path(['props', valProp, 'legendOverride', 'scientificPrecision'])(
-            typeObj
-          )
-        )
-      : formatNumber(
-          R.prop(end, valRange),
-          R.pipe(
-            R.path(['props', valProp, 'numberFormat']),
-            R.dissoc('unit')
-          )(typeObj)
-        )
-  return group
-    ? getNumLabel(typeObj)
-    : R.pathOr(getNumLabel(typeObj), [
-        'props',
-        valProp,
-        'legendOverride',
-        labelEnd,
-      ])(typeObj)
+    NumberFormat.format(R.prop(end, valRange), {
+      ...numberFormat,
+      ...(numberFormat.legendNotation != null && {
+        notation: numberFormat.legendNotation,
+        notationDisplay: numberFormat.legendNotationDisplay,
+      }),
+      ...(numberFormat.legendPrecision != null && {
+        precision: numberFormat.legendPrecision,
+      }),
+    })
+  return group ? getNumLabel() : numberFormat[labelEnd] || getNumLabel()
 }
 
-const getMinLabel = (valRange, valProp, typeObj, group) => {
-  return getMinMaxLabel(valRange, valProp, typeObj, group, 'min', 'minLabel')
-}
+const getMinLabel = (valRange, numberFormat, group) =>
+  getMinMaxLabel(valRange, numberFormat, group, 'min', 'legendMinLabel')
 
-const getMaxLabel = (valRange, valProp, typeObj, group) => {
-  return getMinMaxLabel(valRange, valProp, typeObj, group, 'max', 'maxLabel')
-}
+const getMaxLabel = (valRange, numberFormat, group) =>
+  getMinMaxLabel(valRange, numberFormat, group, 'max', 'legendMaxLabel')
 
 const CategoricalItems = ({
   colorRange,
@@ -361,6 +347,9 @@ const MapLegendSizeBySection = ({
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
 
+  const prop = typeObj.props[sizeProp]
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
+
   const syncSize = !includesPath(R.values(sync), syncPath)
 
   const typePath = [geometryName, 'types', geometryType]
@@ -368,7 +357,6 @@ const MapLegendSizeBySection = ({
   const startSizePath = R.append('startSize')(typePath)
   const endSizePath = R.append('endSize')(typePath)
 
-  const unit = R.path(['props', sizeProp, 'numberFormat', 'unit'])(typeObj)
   return (
     <>
       {/* First row: Prop selector + unit label */}
@@ -378,7 +366,7 @@ const MapLegendSizeBySection = ({
         alignItems="center"
         justifyContent="center"
         xs={12}
-        spacing={unit ? 0.5 : 0}
+        spacing={numberFormatProps.unit ? 0.5 : 0}
       >
         <Grid item zeroMinWidth xs>
           <SimpleDropdown
@@ -392,7 +380,7 @@ const MapLegendSizeBySection = ({
             }}
           />
         </Grid>
-        {unit && (
+        {numberFormatProps.unit && (
           <Grid item xs={4}>
             <Paper
               component={Typography}
@@ -400,7 +388,7 @@ const MapLegendSizeBySection = ({
               variant="subtitle1"
               sx={styles.unit}
             >
-              <OverflowText text={unit} />
+              <OverflowText text={numberFormatProps.unit} />
             </Paper>
           </Grid>
         )}
@@ -426,7 +414,7 @@ const MapLegendSizeBySection = ({
             xs={3.5}
           >
             <OverflowText
-              text={getMinLabel(sizeRange, sizeProp, typeObj, group)}
+              text={getMinLabel(sizeRange, numberFormatProps, group)}
             />
           </Grid>
         </SizePickerTooltip>
@@ -489,7 +477,7 @@ const MapLegendSizeBySection = ({
             xs={3.5}
           >
             <OverflowText
-              text={getMaxLabel(sizeRange, sizeProp, typeObj, group)}
+              text={getMaxLabel(sizeRange, numberFormatProps, group)}
             />
           </Grid>
         </SizePickerTooltip>
@@ -528,7 +516,9 @@ const MapLegendColorBySection = ({
   const syncColor = !includesPath(R.values(sync), syncPath)
   const isCategorical = !R.has('min', colorRange)
 
-  const unit = R.path(['props', colorProp, 'numberFormat', 'unit'])(typeObj)
+  const prop = typeObj.props[colorProp]
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
+
   return (
     <>
       {/* First row: Prop selector + unit label */}
@@ -538,7 +528,7 @@ const MapLegendColorBySection = ({
         alignItems="center"
         justifyContent="center"
         xs={12}
-        spacing={unit ? 0.5 : 0}
+        spacing={numberFormatProps.unit ? 0.5 : 0}
       >
         <Grid item zeroMinWidth xs>
           <SimpleDropdown
@@ -552,7 +542,7 @@ const MapLegendColorBySection = ({
             }}
           />
         </Grid>
-        {unit && (
+        {numberFormatProps.unit && (
           <Grid item xs={4}>
             <Paper
               component={Typography}
@@ -560,7 +550,7 @@ const MapLegendColorBySection = ({
               variant="subtitle1"
               sx={styles.unit}
             >
-              <OverflowText text={unit} />
+              <OverflowText text={numberFormatProps.unit} />
             </Paper>
           </Grid>
         )}
@@ -586,20 +576,8 @@ const MapLegendColorBySection = ({
               ['endGradientColor', themeType],
               colorRange
             )}
-            maxLabel={getMaxLabel(
-              valueRange,
-              R.prop,
-              colorProp,
-              typeObj,
-              group
-            )}
-            minLabel={getMinLabel(
-              valueRange,
-              R.prop,
-              colorProp,
-              typeObj,
-              group
-            )}
+            maxLabel={getMaxLabel(valueRange, numberFormatProps, group)}
+            minLabel={getMinLabel(valueRange, numberFormatProps, group)}
             colorPropPath={[
               geometryName,
               'types',
@@ -630,7 +608,11 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
   const displayedGeos = useSelector(selectEnabledGeos)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
+
   const typeObj = R.prop(geoType, useSelector(selectLocalizedGeoTypes))
+
+  const prop = typeObj.props[colorProp]
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
 
   const colorRange = geoColorRange(geoType, colorProp)
   const isCategorical = !R.has('min', colorRange)
@@ -738,8 +720,8 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
                 ['endGradientColor', themeType],
                 colorRange
               )}
-              minLabel={getMinLabel(colorRange, colorProp, typeObj)}
-              maxLabel={getMaxLabel(colorRange, colorProp, typeObj)}
+              minLabel={getMinLabel(colorRange, numberFormatProps)}
+              maxLabel={getMaxLabel(colorRange, numberFormatProps)}
               colorPropPath={[
                 'geos',
                 'types',

@@ -233,6 +233,29 @@ export const selectNumberFormat = createSelector(
   selectSettingsData,
   R.propOr({}, 'numberFormat')
 )
+export const selectNumberFormatPropsFn = createSelector(
+  selectNumberFormat,
+  R.curry((numberFormat, props) =>
+    R.mergeRight(
+      numberFormat,
+      R.pick([
+        'locale',
+        'precision',
+        'notation',
+        'notationDisplay',
+        'trailingZeros',
+        'unit',
+        'unitPlacement',
+        'fallbackValue',
+        'legendPrecision',
+        'legendNotation',
+        'legendNotationDisplay',
+        'legendMinLabel',
+        'legendMaxLabel',
+      ])(props)
+    )
+  )
+)
 export const selectDemoSettings = createSelector(
   selectSettingsData,
   R.propOr({}, 'demo')

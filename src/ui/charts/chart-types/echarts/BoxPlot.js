@@ -5,6 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import { echarts } from './BaseChart'
 
 import {
+  NumberFormat,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   findSubgroupLabels,
@@ -39,7 +40,7 @@ const EchartsBoxPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  // numberFormat,
+  numberFormat,
   colors,
   theme,
 }) => {
@@ -179,6 +180,7 @@ const EchartsBoxPlot = ({
     tooltip: {
       trigger: 'axis',
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
       },

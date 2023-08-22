@@ -52,10 +52,11 @@ import {
   MIN_BEARING,
   MIN_PITCH,
 } from '../../../utils/constants'
+import { unitPlacements } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
-import { getSliderMarks, formatNumber, includesPath } from '../../../utils'
+import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
 
 const styles = {
   getRoot: (hover, rightBar) => ({
@@ -278,7 +279,11 @@ const MapControls = ({ allowProjections }) => {
   ])
 
   const getDegreeFormat = (value) =>
-    formatNumber(value, { unit: 'º', precision: 0, unitSpace: false })
+    NumberFormat.format(value, {
+      unit: 'º',
+      precision: 0,
+      unitPlacement: unitPlacements.AFTER,
+    })
 
   // Ensures that animation stops if component is unmounted
   useEffect(() => {
