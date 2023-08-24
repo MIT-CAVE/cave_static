@@ -14,30 +14,6 @@ const getQuantiles = R.curry((n, values) => {
   return R.map((pct) => quantileSorted(values, pct))(percentiles)
 })
 
-const iconPrefix = {
-  ANT_DESIGN_ICONS: 'Ai',
-  BOX_ICONS: 'Bi',
-  BOOTSTRAP_ICONS: 'Bs',
-  DEV_ICONS: 'Di',
-  FEATHER: 'Fi',
-  FLAT_COLOR_ICONS: 'Fc',
-  FONT_AWESOME: 'Fa',
-  GAME_ICONS: 'Gi',
-  GITHUB_OCTICONS_ICONS: 'Go',
-  GROMMET_ICONS: 'Gr',
-  HERO_ICONS: 'Hi',
-  ICOMOON_FREE: 'Im',
-  IONICONS_FOUR: 'IoIos',
-  IONICONS_FIVE: 'Io',
-  MATERIAL_DESIGN_ICONS: 'Md',
-  REMIX_ICON: 'Ri',
-  SIMPLE_ICON: 'Si',
-  TYPICONS: 'Ti',
-  VS_CODE_ICONS: 'Vsc',
-  WEATHER_ICONS: 'Wi',
-  CSS_DOT_GG: 'Cg',
-}
-
 // Given a list of chart children find all subgroup labels in given order
 // Note: If all labels aren't present in at least one parent order is estimated
 export const findSubgroupLabels = R.pipe(
@@ -441,20 +417,20 @@ export const getChartItemColor = (theme, colorIndex) =>
  * @returns {Array} A RGBA equivalent array of the given color.
  * @private
  */
-const rgbObjToRgbaArray = (rgbObj) =>
-  R.append(
-    R.prop('opacity')(rgbObj) * 255, // Alpha
-    R.props(['r', 'g', 'b'])(rgbObj) // RGB array
-  )
+const rgbObjToRgbArray = (rgbObj) => R.props(['r', 'g', 'b'])(rgbObj) // RGB array
 
-export const rgbStrToArray = (rgbStr) => rgbObjToRgbaArray(color(rgbStr))
-
+export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
 export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
+  const obj = getScaledRgbObj(colorDomain, colorRange, value)
+  return R.append(R.prop('opacity', obj) * 255)(obj)
+})
+
+export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   const getColor = scaleLinear()
     .domain(colorDomain)
     .range(colorRange)
     .clamp(true)
-  return rgbObjToRgbaArray(color(getColor(value)))
+  return rgbObjToRgbArray(color(getColor(value)))
 })
 
 export const getContrastYIQ = (rgbArray) => {
@@ -472,15 +448,8 @@ export const removeExtraProps = (Component, extraProps) => {
 }
 
 export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {
-  const prefixLength = R.cond([
-    [R.pipe(R.take(5), R.equals(iconPrefix.IONICONS_FOUR)), R.always(5)],
-    [R.pipe(R.take(3), R.equals(iconPrefix.VS_CODE_ICONS)), R.always(3)],
-    [R.T, R.always(2)],
-  ])(iconName)
-  const lib = R.toLower(R.take(prefixLength, iconName))
-
   const cache = await caches.open('icons')
-  const url = `${iconUrl}/${lib}/${iconName}.js`
+  const url = `${iconUrl}/${iconName}.js`
   const response = await cache.match(url)
   // If not in cache, fetch from cdn
   if (R.isNil(response)) {
@@ -646,16 +615,20 @@ export const getQuartilesData = R.mapObjIndexed(
   R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
+const allowedRangeKeys = [
+  'startGradientColor',
+  'endGradientColor',
+  'nullColor',
+  'nullSize',
+  'timeValues',
+]
+
 // checks that range is either min/max or list of strings
 export const checkValidRange = R.pipe(
   R.mapObjIndexed((value, key) =>
     key === 'min' || key === 'max'
       ? R.is(Number, value)
-      : key === 'startGradientColor' ||
-        key === 'endGradientColor' ||
-        key === 'timeValues'
-      ? R.is(Object, value)
-      : R.is(String, value)
+      : R.includes(key, allowedRangeKeys) || R.is(String, value)
   ),
   R.values,
   R.all(R.identity)

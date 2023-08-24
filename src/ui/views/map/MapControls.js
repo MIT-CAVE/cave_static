@@ -426,7 +426,7 @@ const MapControls = ({ allowProjections, mapId }) => {
                   )
                 }
               >
-                <FetchedIcon iconName="BsGlobe2" />
+                <FetchedIcon iconName="bs/BsGlobe2" />
               </TooltipButton>
               <TooltipButton
                 title={tooltipTitles.mercatorProjection}
@@ -441,7 +441,7 @@ const MapControls = ({ allowProjections, mapId }) => {
                   )
                 }}
               >
-                <FetchedIcon iconName="BsMap" />
+                <FetchedIcon iconName="bs/BsMap" />
               </TooltipButton>
             </ButtonGroup>
           )}

@@ -37,7 +37,7 @@ const SyncButton = ({ open, pane }) => {
   const dispatch = useDispatch()
   return (
     <FloatButton
-      iconName="MdSync"
+      iconName="md/MdSync"
       onClick={() => {
         if (!pane) return null
         dispatch(
@@ -73,15 +73,15 @@ const RefreshButton = () => {
           })
         )
       }
-      iconName="MdRefresh"
+      iconName="md/MdRefresh"
     />
   )
 }
 
 const SessionCardButton = ({ sessionCard, toggleSessionCard }) => {
   const iconName = sessionCard
-    ? 'MdOutlineCloseFullscreen'
-    : 'MdOutlineOpenInNew'
+    ? 'md/MdOutlineCloseFullscreen'
+    : 'md/MdOutlineOpenInNew'
   return (
     <FloatButton
       onClick={() => toggleSessionCard(!sessionCard)}
@@ -103,7 +103,7 @@ const PaneWrapper = ({
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
-    iconName={R.propOr('BiError', 'icon', pane)}
+    iconName={R.propOr('bi/BiError', 'icon', pane)}
     side={side}
     style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={

@@ -1,8 +1,11 @@
 import * as R from 'ramda'
 import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source } from 'react-map-gl'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
+import { ArcLayer3D } from './CustomLayers'
+
+import { openMapModal } from '../../../data/local/mapSlice'
 import {
   selectTheme,
   selectEnabledArcsFunc,
@@ -17,6 +20,8 @@ import {
   selectLineMatchingKeysFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
+  selectAppBarId,
+  selectArcLayer3DGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -114,7 +119,15 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         )(geoObj)
         const isCategorical = !R.has('min', statRange)
 
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        return R.equals('', value)
+          ? nullColor
+          : isCategorical
           ? R.propOr('rgb(0,0,0,5)', value, statRange)
           : `rgba(${getScaledColor(
               [R.prop('min', statRange), R.prop('max', statRange)],
@@ -138,13 +151,15 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
         const sizeRange = arcRange(d.type, sizeProp, true)
         const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
-        return getScaledValue(
-          R.prop('min', sizeRange),
-          R.prop('max', sizeRange),
-          parseFloat(R.prop('startSize', d)),
-          parseFloat(R.prop('endSize', d)),
-          propVal
-        )
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startSize', d)),
+              parseFloat(R.prop('endSize', d)),
+              propVal
+            )
       }
     ),
     [enabledArcs, arcRange]
@@ -168,7 +183,15 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           (s) => s.toString()
         )(d)
 
-        return isCategorical
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        return R.equals('', propVal)
+          ? nullColor
+          : isCategorical
           ? R.propOr('rgb(0,0,0)', propVal, colorRange)
           : `rgb(${getScaledArray(
               R.prop('min', colorRange),
@@ -412,7 +435,6 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
 
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
-
   return [
     <Source
       id={layerId.ARC_LAYER_SOLID}
@@ -495,4 +517,28 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
       />
     </Source>,
   ]
+})
+
+export const Arcs3D = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const appBarId = useSelector(selectAppBarId)
+  const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc(mapId))
+  return (
+    <ArcLayer3D
+      features={arcLayerGeoJson}
+      onClick={({ cave_name: id, cave_obj: obj }) => {
+        dispatch(
+          openMapModal({
+            appBarId,
+            data: {
+              ...(obj || {}),
+              feature: 'arcs',
+              type: R.propOr(obj.type, 'name')(obj),
+              key: id,
+            },
+          })
+        )
+      }}
+    />
+  )
 })

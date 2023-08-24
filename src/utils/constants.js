@@ -1,6 +1,6 @@
 export const DEFAULT_LOCALE = 'en-US'
 
-export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/0.0.1'
+export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/4.10.1'
 
 export const APP_BAR_WIDTH = 70
 export const PANE_WIDTH = 450
@@ -98,26 +98,26 @@ export const DEFAULT_MAP_STYLE_KEY = '_default'
 export const DEFAULT_MAP_STYLES = {
   [DEFAULT_MAP_STYLE_KEY]: {
     name: 'Default',
-    icon: 'MdMap',
+    icon: 'md/MdMap',
     order: -3,
   },
   dark_matter: {
     name: 'Dark',
-    icon: 'MdDarkMode',
+    icon: 'md/MdDarkMode',
     order: -2,
     spec: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
     fog: DARK_GLOBE_FOG,
   },
   positron: {
     name: 'Light',
-    icon: 'MdLightMode',
+    icon: 'md/MdLightMode',
     order: -1,
     spec: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     fog: LIGHT_GLOBE_FOG,
   },
   OSM: {
     name: 'OSM',
-    icon: 'MdFreeBreakfast',
+    icon: 'md/MdFreeBreakfast',
     order: 0,
     spec: {
       name: 'osm',

@@ -107,7 +107,7 @@ const SelectAccordion = ({
             }}
           >
             <AccordionSummary
-              expandIcon={<FetchedIcon iconName="MdExpandMore" />}
+              expandIcon={<FetchedIcon iconName="md/MdExpandMore" />}
             >
               <Typography sx={styles.heading}>{getLabel(item)}</Typography>
             </AccordionSummary>
@@ -182,7 +182,7 @@ const SelectAccordion = ({
             >
               <AccordionSummary
                 sx={styles.accordionSummary}
-                expandIcon={<FetchedIcon iconName="MdOutlineChevronRight" />}
+                expandIcon={<FetchedIcon iconName="md/MdOutlineChevronRight" />}
               >
                 <Typography sx={styles.heading}>
                   {`${grouping} `}

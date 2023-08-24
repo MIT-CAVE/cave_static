@@ -87,7 +87,23 @@ export const mapSlice = createSlice({
         state
       )
     },
-    // payload: {value:int|float, mapId:string}
+    // payload: {rate: int|float, mapId:string}
+    viewportRotate: (state, action) => {
+      const currentViewport = R.mergeDeepRight(
+        DEFAULT_VIEWPORT,
+        R.pathOr(
+          {},
+          ['data', action.payload.mapId, 'mapControls', 'viewport'],
+          state
+        )
+      )
+      return R.assocPath(
+        ['data', action.payload.mapId, 'mapControls', 'viewport', 'longitude'],
+        (currentViewport.longitude + action.payload.rate) % 360,
+        state
+      )
+    },
+    // payload: {value:int|float, appBarId:string}
     setZoom: (state, action) => {
       const minZoom = R.clamp(
         MIN_ZOOM,
@@ -259,6 +275,7 @@ export const {
   closeMapModal,
   openError,
   closeError,
+  viewportRotate,
 } = mapSlice.actions
 
 export default mapSlice.reducer

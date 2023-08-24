@@ -18,6 +18,7 @@ import { mutateLocal, deleteLocal } from '../../../data/local'
 import { themeSelection, toggleMirror } from '../../../data/local/settingsSlice'
 import {
   selectData,
+  selectDemoMode,
   selectMirrorMode,
   selectPaneState,
   selectSync,
@@ -143,6 +144,37 @@ const MirrorSwitch = ({ ...props }) => {
   )
 }
 
+const DemoSwitch = ({ ...props }) => {
+  const demoMode = useSelector(selectDemoMode)
+  const dispatch = useDispatch()
+  return (
+    <FormControl component="fieldset">
+      <FormGroup aria-label="position" row>
+        <FormControlLabel
+          value="start"
+          control={
+            <Switch
+              checked={demoMode}
+              onClick={() => {
+                dispatch(
+                  mutateLocal({
+                    path: ['settings', 'demo'],
+                    value: !demoMode,
+                    sync: false,
+                  })
+                )
+              }}
+              {...props}
+            />
+          }
+          label={`Demo mode`}
+          labelPlacement="start"
+        />
+      </FormGroup>
+    </FormControl>
+  )
+}
+
 const SyncSwitch = ({ checked, label, onClick, ...props }) => (
   <Grid container spacing={0} alignItems="center" {...props}>
     <Grid item xs={2}>
@@ -172,6 +204,9 @@ const AppSettingsPane = ({ ...props }) => {
       </FieldContainer>
       <FieldContainer title="Mirror">
         <MirrorSwitch />
+      </FieldContainer>
+      <FieldContainer title="Demo">
+        <DemoSwitch />
       </FieldContainer>
       {R.isEmpty(syncToggles) ? (
         []

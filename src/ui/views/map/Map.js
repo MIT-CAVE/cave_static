@@ -11,12 +11,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getDefaultFog, getDefaultStyleId } from '.'
 import ErrorPad from './ErrorPad'
 import KeyPad from './KeyPad'
-import { Geos, Arcs, Nodes } from './layers'
+import { Geos, Arcs, Nodes, Arcs3D } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 
-import { viewportUpdate, openMapModal } from '../../../data/local/mapSlice'
+import {
+  viewportUpdate,
+  openMapModal,
+  viewportRotate,
+} from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
   selectCurrentMapStyleFunc,
@@ -27,6 +31,8 @@ import {
   selectFilteredGeosData,
   selectCurrentMapProjectionFunc,
   selectNodeDataFunc,
+  selectDemoMode,
+  selectDemoSettings,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
 } from '../../../data/selectors'
@@ -49,8 +55,9 @@ const Map = ({ mapboxToken, mapId }) => {
   const nodeData = useSelector(selectNodeDataFunc)(mapId)
   const geosData = useSelector(selectFilteredGeosData)
   const iconUrl = useSelector(selectSettingsIconUrl)
+  const demoMode = useSelector(selectDemoMode)
+  const demoSettings = useSelector(selectDemoSettings)
   const [highlightLayerId, setHighlightLayerId] = useState()
-  const [cursor, setCursor] = useState('auto')
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
 
@@ -58,6 +65,33 @@ const Map = ({ mapboxToken, mapId }) => {
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef({})
+
+  const demoInterval = useRef(-1)
+
+  useEffect(() => {
+    const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
+    if (demoMode && demoInterval.current === -1) {
+      dispatch(viewportRotate({ mapId, rate }))
+      demoInterval.current = setInterval(
+        () => dispatch(viewportRotate({ mapId, rate })),
+        13
+      )
+    } else if (demoMode) {
+      demoInterval.current = setInterval(
+        () => dispatch(viewportRotate({ mapId, rate })),
+        13
+      )
+    } else if (demoInterval.current !== -1) {
+      clearInterval(demoInterval.current)
+      demoInterval.current = -1
+    }
+    return () => {
+      if (demoInterval.current !== -1) {
+        clearInterval(demoInterval.current)
+        demoInterval.current = -1
+      }
+    }
+  }, [mapId, demoMode, demoSettings, dispatch])
 
   useEffect(() => {
     const iconsToLoad = [
@@ -144,14 +178,15 @@ const Map = ({ mapboxToken, mapId }) => {
 
   const onMouseMove = useCallback(
     (e) => {
+      const canvas = mapRef.current.getCanvas()
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) {
-        setCursor('auto')
+        if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
         if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
       } else {
         const [id] = featureObj
         setHighlightLayerId(id)
-        setCursor('pointer')
+        if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
       }
     },
     [getFeatureFromEvent, highlightLayerId]
@@ -166,6 +201,7 @@ const Map = ({ mapboxToken, mapId }) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) return
       const [id, feature, obj] = featureObj
+      setHighlightLayerId()
 
       dispatch(
         openMapModal({
@@ -195,6 +231,13 @@ const Map = ({ mapboxToken, mapId }) => {
     }
   }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
 
+  useEffect(() => {
+    document.addEventListener('clearHighlight', onMouseOver, false)
+    return () =>
+      document.removeEventListener('clearHighlight', onMouseOver, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightLayerId])
+
   return (
     <Box
       sx={{
@@ -223,15 +266,14 @@ const Map = ({ mapboxToken, mapId }) => {
         onClick={onClick}
         onMouseMove={onMouseMove}
         onStyleData={loadIconsToStyle}
-        onTouchStart={onClick}
         ref={mapRef}
-        cursor={cursor}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
       >
         <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
         <Arcs highlightLayerId={highlightLayerId} mapId={mapId} />
         <Nodes highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Arcs3D mapId={mapId} />
       </ReactMapGL>
       <ErrorPad mapId={mapId} />
       <KeyPad />

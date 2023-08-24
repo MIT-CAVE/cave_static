@@ -35,7 +35,7 @@ import {
 
 const SwapButton = ({ onClick }) => (
   <IconButton sx={{ mx: 'auto' }} color="primary" {...{ onClick }}>
-    <FetchedIcon iconName="MdSwapHoriz" size={22} />
+    <FetchedIcon iconName="md/MdSwapHoriz" size={22} />
   </IconButton>
 )
 
@@ -100,82 +100,82 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Bar',
               value: 'Bar',
-              iconName: 'MdBarChart',
+              iconName: 'md/MdBarChart',
             },
             {
               label: 'Stacked Bar',
               value: 'Stacked Bar',
-              iconName: 'MdStackedBarChart',
+              iconName: 'md/MdStackedBarChart',
             },
             {
               label: 'Line',
               value: 'Line',
-              iconName: 'MdShowChart',
+              iconName: 'md/MdShowChart',
             },
             {
               label: 'Cumulative Line',
               value: 'Cumulative Line',
-              iconName: 'MdStackedLineChart',
+              iconName: 'md/MdStackedLineChart',
             },
             {
               label: 'Area',
               value: 'Area',
-              iconName: 'TbChartAreaLineFilled',
+              iconName: 'tb/TbChartAreaLineFilled',
             },
             {
               label: 'Stacked Area',
               value: 'Stacked Area',
-              iconName: 'MdAreaChart',
+              iconName: 'md/MdAreaChart',
             },
             {
               label: 'Waterfall',
               value: 'Waterfall',
-              iconName: 'MdWaterfallChart',
+              iconName: 'md/MdWaterfallChart',
             },
             {
               label: 'Stacked Waterfall',
               value: 'Stacked Waterfall',
-              iconName: 'TbStack2',
+              iconName: 'tb/TbStack2',
             },
             {
               label: 'Box Plot',
               value: 'Box Plot',
-              iconName: 'MdGraphicEq',
+              iconName: 'md/MdGraphicEq',
             },
             {
               label: 'Table',
               value: 'Table',
-              iconName: 'MdTableChart',
+              iconName: 'md/MdTableChart',
             },
             {
               label: 'Sunburst (beta)',
               value: 'Sunburst',
-              iconName: 'MdDonutLarge',
+              iconName: 'md/MdDonutLarge',
             },
             {
               label: 'Treemap (beta)',
               value: 'Treemap',
-              iconName: 'TbChartTreemap',
+              iconName: 'tb/TbChartTreemap',
             },
             {
               label: 'Gauge',
               value: 'Gauge',
-              iconName: 'TbGauge',
+              iconName: 'tb/TbGauge',
             },
             {
               label: 'Heatmap',
               value: 'Heatmap',
-              iconName: 'TbLayoutDashboard',
+              iconName: 'tb/TbLayoutDashboard',
             },
             {
               label: 'Scatter',
               value: 'Scatter',
-              iconName: 'MdScatterPlot',
+              iconName: 'md/MdScatterPlot',
             },
             {
               label: 'Bubble',
               value: 'Bubble',
-              iconName: 'MdBubbleChart',
+              iconName: 'md/MdBubbleChart',
             },
           ]}
           displayIcon
@@ -212,22 +212,22 @@ const StatisticsHeader = memo(({ obj, index }) => {
             {
               label: 'Sum',
               value: 'Sum',
-              iconName: 'MdFunctions',
+              iconName: 'md/MdFunctions',
             },
             {
               label: 'Average',
               value: 'Average',
-              iconName: 'MdVerticalAlignCenter',
+              iconName: 'md/MdVerticalAlignCenter',
             },
             {
               label: 'Minimum',
               value: 'Minimum',
-              iconName: 'MdVerticalAlignBottom',
+              iconName: 'md/MdVerticalAlignBottom',
             },
             {
               label: 'Maximum',
               value: 'Maximum',
-              iconName: 'MdVerticalAlignTop',
+              iconName: 'md/MdVerticalAlignTop',
             },
           ]}
           onSelect={(value) => {
@@ -402,22 +402,22 @@ const KpiHeader = memo(({ obj, index }) => {
             {
               label: 'Bar',
               value: 'Bar',
-              iconName: 'MdBarChart',
+              iconName: 'md/MdBarChart',
             },
             {
               label: 'Line',
               value: 'Line',
-              iconName: 'MdShowChart',
+              iconName: 'md/MdShowChart',
             },
             // {
             //   label: 'Box Plot',
             //   value: 'Box Plot',
-            //   iconName: 'MdGraphicEq',
+            //   iconName: 'md/MdGraphicEq',
             // },
             {
               label: 'Table',
               value: 'Table',
-              iconName: 'MdTableChart',
+              iconName: 'md/MdTableChart',
             },
           ]}
           displayIcon
@@ -497,7 +497,7 @@ const KpiHeader = memo(({ obj, index }) => {
               minWidth: '40px',
             }}
           >
-            <FetchedIcon iconName="MdRefresh" size={32} />
+            <FetchedIcon iconName="md/MdRefresh" size={32} />
           </Box>
         </Button>
       </HeaderSelectWrapper>

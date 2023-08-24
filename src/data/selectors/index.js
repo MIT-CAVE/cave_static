@@ -30,7 +30,7 @@ import {
   maxSizedMemoization,
   getScaledValue,
   getScaledArray,
-  getScaledColor,
+  getScaledRgbObj,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -233,6 +233,14 @@ export const selectNumberFormat = createSelector(
   selectSettingsData,
   R.propOr({}, 'numberFormat')
 )
+export const selectDemoSettings = createSelector(
+  selectSettingsData,
+  R.propOr({}, 'demo')
+)
+export const selectDemoMode = createSelector(
+  selectLocalSettings,
+  (localSettings) => R.propOr(false, 'demo', localSettings)
+)
 export const selectTimeLength = createSelector(selectSettingsData, (data) =>
   R.propOr(0, 'timeLength')(data)
 )
@@ -373,6 +381,21 @@ export const selectRightAppBarDisplay = createSelector(
   (mirrorMode, leftData, rightData) =>
     (!mirrorMode && !R.isEmpty(rightData)) ||
     (mirrorMode && !R.isEmpty(leftData))
+)
+export const selectDemoViews = createSelector(
+  [selectAppBarData, selectDemoSettings],
+  (appBarData, demoSettings) =>
+    R.pipe(
+      R.toPairs,
+      R.filter(
+        (d) =>
+          (R.propEq('stats', 'type', d[1]) ||
+            R.propEq('map', 'type', d[1]) ||
+            R.propEq('kpi', 'type', d[1])) &&
+          R.pathOr(true, [d[0], 'show'], demoSettings)
+      ),
+      R.pluck(0)
+    )(appBarData)
 )
 export const selectAppBarId = createSelector(
   [selectLocalAppBarData, selectAppBarData],
@@ -869,16 +892,6 @@ export const selectGeosByType = createSelector(
     R.groupBy(R.prop('type'))
   )
 )
-export const selectMatchingKeysFunc = createSelector(
-  [selectEnabledGeosFunc, selectGeosByType],
-  (enabledGeosFunc, geosByType) => (mapId) =>
-    R.pipe(
-      R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-      R.values,
-      R.reduce(R.concat, []),
-      R.indexBy(R.prop('geoJsonValue'))
-    )(geosByType)
-)
 export const selectMatchingKeysByTypeFunc = createSelector(
   [selectEnabledGeosFunc, selectGeosByType],
   (enabledGeosFunc, geosByType) => (mapId) =>
@@ -1079,8 +1092,12 @@ export const selectMemoizedKpiFunc = createSelector(
 )
 // Node, Geo, & Arc derived
 export const selectGroupedEnabledArcsFunc = createSelector(
-  [selectEnabledArcsFunc, selectFilteredArcsData],
-  (enabledArcsFunc, filteredArcs) => (mapId) =>
+  [
+    selectEnabledArcsFunc,
+    selectFilteredArcsData,
+    selectCurrentMapProjectionFunc,
+  ],
+  (enabledArcsFunc, filteredArcs, projectionFunc) => (mapId) =>
     R.pipe(
       R.filter((d) => R.propOr(false, d.type, enabledArcsFunc(mapId))),
       // 3d arcs grouped under true - others false
@@ -1089,8 +1106,14 @@ export const selectGroupedEnabledArcsFunc = createSelector(
         R.pipe(
           R.prop(1),
           R.cond([
-            [R.propEq('3d', 'lineBy'), R.always('3d')],
             [R.has('geoJson'), R.always('geoJson')],
+            [
+              R.converge(R.and, [
+                R.propEq('3d', 'displayType'),
+                R.always(R.equals('mercator', projectionFunc(mapId))),
+              ]),
+              R.always('3d'),
+            ],
             [R.T, R.always('false')],
           ])
         )
@@ -1109,23 +1132,6 @@ export const selectArcDataFunc = createSelector(
 export const selectMultiLineDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
   (dataFunc) => (mapId) => R.toPairs(R.prop('geoJson', dataFunc(mapId)))
-)
-export const selectLineMatchingKeysFunc = createSelector(
-  selectMultiLineDataFunc,
-  (dataFunc) => (mapId) =>
-    R.pipe(
-      R.map((d) => R.assoc('data_key', d[0], d[1])),
-      R.indexBy(R.prop('geoJsonValue'))
-    )(dataFunc(mapId))
-)
-export const selectLineMatchingKeysByTypeFunc = createSelector(
-  selectLineMatchingKeysFunc,
-  (dataFunc) => (mapId) =>
-    R.pipe(
-      R.toPairs,
-      R.groupBy(R.path([1, 'type'])),
-      R.map(R.fromPairs)
-    )(dataFunc(mapId))
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectArcsByType],
@@ -1166,10 +1172,34 @@ export const selectArcRange = createSelector(
 export const selectSplitNodeDataFunc = createSelector(
   [selectEnabledNodesFunc, selectNodeDataFunc],
   (enabledNodesFunc, nodeDataFunc) => (mapId) =>
-    R.groupBy((d) => {
-      const nodeType = d[1].type
-      return enabledNodesFunc(mapId)[nodeType].group || false
-    })(nodeDataFunc(mapId))
+    R.pipe(
+      R.filter((d) => {
+        const nodeType = d[1].type
+        const colorProp = R.path([nodeType, 'colorBy'], enabledNodesFunc(mapId))
+        const sizeProp = R.path([nodeType, 'sizeBy'], enabledNodesFunc(mapId))
+
+        const nullColor = R.path(['colorBy', colorProp], d[1])
+        const nullSize = R.path(['sizeBy', colorProp], d[1])
+
+        const sizeValue = R.path(['props', sizeProp, 'value'], d[1])
+        const colorValue = R.path(['props', colorProp, 'value'], d[1])
+
+        const groupable = enabledNodesFunc(mapId)[nodeType].allowGrouping
+
+        return (
+          !(
+            R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
+            R.isNil(nullColor)
+          ) &&
+          (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
+          !(groupable && R.isNil(colorValue))
+        )
+      }),
+      R.groupBy((d) => {
+        const nodeType = d[1].type
+        return enabledNodesFunc(mapId)[nodeType].group || false
+      })
+    )(nodeDataFunc(mapId))
 )
 
 export const selectGroupedNodesWithIdFunc = createSelector(
@@ -1248,7 +1278,56 @@ export const selectGeoColorRange = createSelector(
     )
 )
 
-export const selectGetLegendGroupIdFunc = createSelector(
+export const selectMatchingKeysFunc = createSelector(
+  [selectEnabledGeosFunc, selectGeosByType, selectTheme, selectGeoColorRange],
+  (enabledGeosFunc, geosByType, themeType, geoRange) => (mapId) =>
+    R.pipe(
+      R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
+      R.values,
+      R.reduce(R.concat, []),
+      R.filter((d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledGeosFunc(mapId))
+
+        const statRange = geoRange(d.type, colorProp, false)
+
+        return !(
+          R.has('nullColor', statRange) &&
+          R.isNil(R.prop('nullColor', statRange))
+        )
+      }),
+      R.indexBy(R.prop('geoJsonValue'))
+    )(geosByType)
+)
+
+export const selectLineMatchingKeysFunc = createSelector(
+  [selectMultiLineDataFunc, selectArcRange, selectTheme, selectEnabledArcsFunc],
+  (dataFunc, arcRange, themeType, enabledArcsFunc) => (mapId) =>
+    R.pipe(
+      R.map((d) => R.assoc('data_key', d[0], d[1])),
+      R.filter((d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcsFunc(mapId))
+
+        const statRange = arcRange(d.type, colorProp, false)
+
+        return !(
+          R.has('nullColor', statRange) &&
+          R.isNil(R.prop('nullColor', statRange))
+        )
+      }),
+      R.indexBy(R.prop('geoJsonValue'))
+    )(dataFunc(mapId))
+)
+export const selectLineMatchingKeysByTypeFunc = createSelector(
+  selectLineMatchingKeysFunc,
+  (dataFunc) => (mapId) =>
+    R.pipe(
+      R.toPairs,
+      R.groupBy(R.path([1, 'type'])),
+      R.map(R.fromPairs)
+    )(dataFunc(mapId))
+)
+
+export const selectGetLegendGroupId = createSelector(
   selectLegendDataFunc,
   (legendDataFunc) => (mapId) =>
     R.curry((layerKey, type) =>
@@ -1512,13 +1591,15 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
         const sizePropVal = parseFloat(
           R.path(['props', sizeProp, 'value'], node)
         )
-        const size = getScaledValue(
-          R.prop('min', sizeRange),
-          R.prop('max', sizeRange),
-          parseFloat(R.prop('startSize', node)),
-          parseFloat(R.prop('endSize', node)),
-          sizePropVal
-        )
+        const size = isNaN(sizePropVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startSize', node)),
+              parseFloat(R.prop('endSize', node)),
+              sizePropVal
+            )
         const colorProp = R.path(
           [node.type, 'colorBy'],
           legendObjectsFunc(mapId)
@@ -1529,6 +1610,13 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
           (s) => s.toString()
         )(node)
         const colorRange = nodeRange(node.type, colorProp, false)
+
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
         const isCategorical = !R.has('min', colorRange)
         const color = isCategorical
           ? R.map((val) => parseFloat(val))(
@@ -1559,7 +1647,9 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               ),
               parseFloat(colorPropVal)
             )
-        const colorString = `rgb(${color.join(',')})`
+        const colorString = R.equals('', colorPropVal)
+          ? nullColor
+          : `rgb(${color.join(',')})`
         return {
           type: 'Feature',
           properties: {
@@ -1612,7 +1702,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           )(R.prop(value, colorRange))
             .replace(/[^\d,.]/g, '')
             .split(',')
-        : getScaledColor(
+        : getScaledRgbObj(
             [R.prop('min', colorDomain), R.prop('max', colorDomain)],
             colorRange,
             value
@@ -1625,7 +1715,6 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
       )(group)
 
       const colorString = `rgb(${color.join(',')})`
-
       return {
         type: 'Feature',
         properties: {
@@ -1660,13 +1749,15 @@ export const selectArcLayerGeoJsonFunc = createSelector(
         const sizePropVal = parseFloat(
           R.path(['props', sizeProp, 'value'], arc)
         )
-        const size = getScaledValue(
-          R.prop('min', sizeRange),
-          R.prop('max', sizeRange),
-          parseFloat(R.prop('startSize', arc)),
-          parseFloat(R.prop('endSize', arc)),
-          sizePropVal
-        )
+        const size = isNaN(sizePropVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startSize', arc)),
+              parseFloat(R.prop('endSize', arc)),
+              sizePropVal
+            )
         const colorProp = R.path(
           [arc.type, 'colorBy'],
           legendObjectsFunc(mapId)
@@ -1679,7 +1770,20 @@ export const selectArcLayerGeoJsonFunc = createSelector(
           (s) => s.toString()
         )(arc)
 
-        let color = isCategorical
+        if (
+          R.has('nullColor', colorRange) &&
+          R.isNil(R.prop('nullColor', colorRange)) &&
+          R.equals('', colorPropVal)
+        )
+          return false
+
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        const color = isCategorical
           ? R.map((val) => parseFloat(val))(
               R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
                 .replace(/[^\d,.]/g, '')
@@ -1706,9 +1810,11 @@ export const selectArcLayerGeoJsonFunc = createSelector(
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
-              parseFloat(R.path(['props', colorProp, 'value'], arc))
+              parseFloat(colorPropVal)
             )
-        const colorString = `rgb(${color.join(',')})`
+        const colorString = R.equals('', colorPropVal)
+          ? nullColor
+          : `rgb(${color.join(',')})`
 
         const dashPattern = R.propOr('solid', 'lineBy')(arc)
 
@@ -1730,6 +1836,108 @@ export const selectArcLayerGeoJsonFunc = createSelector(
           },
         }
       }),
+      R.filter(R.identity),
       R.groupBy(R.path(['properties', 'dash']))
+    )(arcDataFunc(mapId))
+)
+
+export const selectArcLayer3DGeoJsonFunc = createSelector(
+  [selectArcRange, selectTheme, selectArcDataFunc, selectEnabledArcsFunc],
+  (arcRange, themeType, arcDataFunc, legendObjectsFunc) => (mapId) =>
+    R.pipe(
+      R.map(([id, arc]) => {
+        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjectsFunc(mapId))
+        const sizeRange = arcRange(arc.type, sizeProp, true)
+        const sizePropVal = parseFloat(
+          R.path(['props', sizeProp, 'value'], arc)
+        )
+        const size = isNaN(sizePropVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startSize', arc)),
+              parseFloat(R.prop('endSize', arc)),
+              sizePropVal
+            )
+        const colorProp = R.path(
+          [arc.type, 'colorBy'],
+          legendObjectsFunc(mapId)
+        )
+        const colorRange = arcRange(arc.type, colorProp, false)
+        const isCategorical = !R.has('min', colorRange)
+        const colorPropVal = R.pipe(
+          R.path(['props', colorProp, 'value']),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(arc)
+
+        if (
+          R.has('nullColor', colorRange) &&
+          R.isNil(R.prop('nullColor', colorRange)) &&
+          R.equals('', colorPropVal)
+        )
+          return false
+
+        const nullColor = R.pathOr(
+          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+          ['nullColor', themeType],
+          colorRange
+        )
+
+        const color = isCategorical
+          ? R.map((val) => parseFloat(val))(
+              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            )
+          : getScaledArray(
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('startGradientColor', colorRange),
+                  ['startGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.pathOr(
+                  R.prop('endGradientColor', colorRange),
+                  ['endGradientColor', themeType],
+                  colorRange
+                )
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(colorPropVal)
+            )
+        const colorString = R.equals('', colorPropVal)
+          ? nullColor
+          : `rgb(${color.join(',')})`
+
+        const dashPattern = R.propOr('solid', 'lineBy')(arc)
+
+        return {
+          type: 'Feature',
+          properties: {
+            cave_obj: arc,
+            cave_name: id,
+            color: colorString,
+            size: size,
+            dash: dashPattern,
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [arc.startLongitude, arc.startLatitude],
+              [arc.endLongitude, arc.endLatitude],
+            ],
+          },
+        }
+      }),
+      R.filter(R.identity)
     )(arcDataFunc(mapId))
 )

@@ -46,12 +46,12 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
             {
               label: 'Statistics',
               value: 'stats',
-              iconName: 'MdMultilineChart',
+              iconName: 'md/MdMultilineChart',
             },
             {
               label: 'KPIs',
               value: 'kpis',
-              iconName: 'MdSpeed',
+              iconName: 'md/MdSpeed',
             },
             {
               label: 'Maps',
