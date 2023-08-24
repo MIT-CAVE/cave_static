@@ -602,7 +602,7 @@ export const selectCurrentMapStyle = createSelector(
 )
 export const selectCurrentMapProjection = createSelector(
   selectCurrentMapData,
-  (data) => R.prop('currentProjection')(data)
+  (data) => R.propOr('mercator', 'currentProjection')(data)
 )
 export const selectMapStyleOptions = createSelector(
   [selectSettingsData, selectMapboxToken],
