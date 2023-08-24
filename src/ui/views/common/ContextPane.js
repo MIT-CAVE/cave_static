@@ -26,6 +26,7 @@ const styles = {
     p: 1,
     mt: 1,
     textAlign: 'left',
+    overflow: 'wrap',
   },
   contextButton: {
     ml: 'auto',
@@ -146,29 +147,37 @@ const ContextPane = ({ open, secondaryOpen, pane, side }) => {
                     : [R.prop(categoryItems[0], dataItem)]
                 }
 
-                const formattedCategory = R.reduce(
-                  R.mergeDeepWith(R.concat),
-                  {}
-                )(
-                  R.values(
-                    R.map((item) => {
-                      return formatCategory(categoryItems, item)
-                    })(data)
-                  )
-                )
+                const formattedCategory =
+                  R.length(categoryItems) > 1
+                    ? R.reduce(
+                        R.mergeDeepWith(R.concat),
+                        {}
+                      )(
+                        R.values(
+                          R.map((item) => {
+                            return formatCategory(categoryItems, item)
+                          })(data)
+                        )
+                      )
+                    : R.unnest(
+                        R.values(
+                          R.map((item) => {
+                            return formatCategory(categoryItems, item)
+                          })(data)
+                        )
+                      )
+
                 const formattedItems = R.map((key) =>
                   R.path([key, R.last(categoryItems)], data)
                 )(R.pathOr([], ['applyCategories', category], val))
-
                 const highestTruths = R.unnest(
                   R.map((item) => findHighestTruth(item, formattedItems))(
                     R.toPairs(formattedCategory)
                   )
                 )
-
                 return (
                   <div key={category}>
-                    <div css={{ marginTop: '10px' }}>
+                    <div css={{ marginTop: '10px', width: '380px' }}>
                       {R.propOr(category, 'name')(categoryObj)}
                       {': '}
                       <span css={nonSx.smallText}>
