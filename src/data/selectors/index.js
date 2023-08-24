@@ -616,7 +616,8 @@ export const selectCurrentMapStyleFunc = createSelector(
 )
 export const selectCurrentMapProjectionFunc = createSelector(
   selectCurrentMapDataFunc,
-  (dataFunc) => (mapId) => R.prop('currentProjection')(dataFunc(mapId))
+  (dataFunc) => (mapId) =>
+    R.propOr('mercator', 'currentProjection')(dataFunc(mapId))
 )
 export const selectMapStyleOptions = createSelector(
   [selectSettingsData, selectMapboxToken],

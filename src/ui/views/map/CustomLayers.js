@@ -61,7 +61,7 @@ const generateSegments = (curve, feature, segments = 80) => {
     cylinder.position.y = midpoint.y
     cylinder.position.z = midpoint.z
     cylinder.rotateY(Math.PI / 2)
-    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), theta)
+    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
     // Add data from feature for highlighting/clicking
     cylinder.userData = {
@@ -75,13 +75,16 @@ const generateSegments = (curve, feature, segments = 80) => {
 const geoJsonToSegments = (features) =>
   R.pipe(
     R.map((feature) => {
+      // Coordinates must go from less -> greater long for theta calc
+      const flipped =
+        feature.geometry.coordinates[0][0] < feature.geometry.coordinates[1][0]
       // convert coordinates to MercatorCoordinates on map
       const arcOrigin = MercatorCoordinate.fromLngLat(
-        feature.geometry.coordinates[0],
+        feature.geometry.coordinates[flipped ? 1 : 0],
         0
       )
       const arcDestination = MercatorCoordinate.fromLngLat(
-        feature.geometry.coordinates[1],
+        feature.geometry.coordinates[flipped ? 0 : 1],
         0
       )
       const distance = Math.sqrt(
@@ -178,67 +181,73 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
     raycast: (e, click) => {
       const layer =
         map.getLayer('3d-model') && map.getLayer('3d-model').implementation
-      const point = { x: e.layerX, y: e.layerY }
-      const mouse = new THREE.Vector2()
-      // // scale mouse pixel position to a percentage of the screen's width and height
-      mouse.x = (point.x / e.srcElement.width) * 2 - 1
-      mouse.y = 1 - (point.y / e.srcElement.height) * 2
-      const camInverseProjection = new THREE.Matrix4()
-        .copy(layer.camera.projectionMatrix)
-        .invert()
-      const cameraPosition = new THREE.Vector3().applyMatrix4(
-        camInverseProjection
-      )
-      const mousePosition = new THREE.Vector3(mouse.x, mouse.y, 1).applyMatrix4(
-        camInverseProjection
-      )
-      const viewDirection = mousePosition
-        .clone()
-        .sub(cameraPosition)
-        .normalize()
+      if (layer) {
+        const point = { x: e.layerX, y: e.layerY }
+        const mouse = new THREE.Vector2()
+        // // scale mouse pixel position to a percentage of the screen's width and height
+        mouse.x = (point.x / e.srcElement.width) * 2 - 1
+        mouse.y = 1 - (point.y / e.srcElement.height) * 2
+        const camInverseProjection = new THREE.Matrix4()
+          .copy(layer.camera.projectionMatrix)
+          .invert()
+        const cameraPosition = new THREE.Vector3().applyMatrix4(
+          camInverseProjection
+        )
+        const mousePosition = new THREE.Vector3(
+          mouse.x,
+          mouse.y,
+          1
+        ).applyMatrix4(camInverseProjection)
+        const viewDirection = mousePosition
+          .clone()
+          .sub(cameraPosition)
+          .normalize()
 
-      layer.raycaster.set(cameraPosition, viewDirection)
+        layer.raycaster.set(cameraPosition, viewDirection)
 
-      // calculate objects intersecting the picking ray
-      const intersects = layer.raycaster.intersectObjects(layer.lines, true)
-      if (intersects.length) {
-        // Prevent layers under this one from being clicked/highlighted
-        e.stopImmediatePropagation()
-        // Remove current layer highlights
-        const event = new CustomEvent('clearHighlight')
-        document.dispatchEvent(event)
-        if (click) layer.onClick(intersects[0].object.userData)
-      }
-      // handle hovering
-      if (!click) {
+        // calculate objects intersecting the picking ray
+        const intersects = layer.raycaster.intersectObjects(layer.lines, true)
         if (intersects.length) {
-          if (layer.highlightedId !== intersects[0].object.userData.cave_name) {
-            if (layer.highlightedId !== -1) {
+          // Prevent layers under this one from being clicked/highlighted
+          e.stopImmediatePropagation()
+          // Remove current layer highlights
+          const event = new CustomEvent('clearHighlight')
+          document.dispatchEvent(event)
+          if (click) layer.onClick(intersects[0].object.userData)
+        }
+        // handle hovering
+        if (!click) {
+          if (intersects.length) {
+            if (
+              layer.highlightedId !== intersects[0].object.userData.cave_name
+            ) {
+              if (layer.highlightedId !== -1) {
+                R.forEach((line) => {
+                  if (line.userData.cave_name === layer.highlightedId)
+                    line.material.color.set(layer.oldColor)
+                })(layer.lines)
+              }
+              map.getCanvas().style.cursor = 'pointer'
+              layer.highlightedId = intersects[0].object.userData.cave_name
+              layer.oldColor = intersects[0].object.material.color.clone()
+              const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
+              const colorObj = new THREE.Color(
+                colorArr[0] / 255,
+                colorArr[1] / 255,
+                colorArr[2] / 255
+              )
               R.forEach((line) => {
                 if (line.userData.cave_name === layer.highlightedId)
-                  line.material.color.set(layer.oldColor)
+                  line.material.color.set(colorObj)
               })(layer.lines)
             }
-            map.getCanvas().style.cursor = 'pointer'
-            layer.highlightedId = intersects[0].object.userData.cave_name
-            layer.oldColor = intersects[0].object.material.color.clone()
-            const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
-            const colorObj = new THREE.Color(
-              colorArr[0] / 255,
-              colorArr[1] / 255,
-              colorArr[2] / 255
-            )
+          } else if (layer.highlightedId !== -1) {
             R.forEach((line) => {
               if (line.userData.cave_name === layer.highlightedId)
-                line.material.color.set(colorObj)
+                line.material.color.set(layer.oldColor)
             })(layer.lines)
+            layer.highlightedId = -1
           }
-        } else if (layer.highlightedId !== -1) {
-          R.forEach((line) => {
-            if (line.userData.cave_name === layer.highlightedId)
-              line.material.color.set(layer.oldColor)
-          })(layer.lines)
-          layer.highlightedId = -1
         }
       }
     },
