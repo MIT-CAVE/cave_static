@@ -522,7 +522,7 @@ const MapHeader = memo(({ obj, index }) => {
             R.mapObjIndexed((val, key) => ({
               label: key,
               value: key,
-              iconName: 'MdMap',
+              iconName: 'md/MdMap',
             })),
             R.values
           )(maps)}

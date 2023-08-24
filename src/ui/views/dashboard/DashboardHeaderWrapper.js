@@ -56,7 +56,7 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
             {
               label: 'Maps',
               value: 'maps',
-              iconName: 'FaMapMarked',
+              iconName: 'fa/FaMapMarked',
             },
           ]}
           onSelect={(value) =>
@@ -87,7 +87,7 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
       </HeaderSelectWrapper>
       {R.propOr('stats', 'type', obj) === 'stats' ? (
         <StatisticsHeader obj={obj} index={index} />
-      ) : R.prop('kpis', 'type', obj) === 'kpis' ? (
+      ) : R.prop('type', obj) === 'kpis' ? (
         <KpiHeader obj={obj} index={index} />
       ) : (
         <MapHeader obj={obj} index={index} />
