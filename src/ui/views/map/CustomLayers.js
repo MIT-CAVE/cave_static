@@ -61,7 +61,7 @@ const generateSegments = (curve, feature, segments = 80) => {
     cylinder.position.y = midpoint.y
     cylinder.position.z = midpoint.z
     cylinder.rotateY(Math.PI / 2)
-    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), theta)
+    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
     cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
     // Add data from feature for highlighting/clicking
     cylinder.userData = {
