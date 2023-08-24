@@ -269,6 +269,9 @@ const Map = ({ mapboxToken, mapId }) => {
         ref={mapRef}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
+        onRender={() => {
+          mapRef.current.resize()
+        }}
       >
         <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
         <Arcs highlightLayerId={highlightLayerId} mapId={mapId} />
