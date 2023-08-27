@@ -270,7 +270,7 @@ const Map = ({ mapboxToken, mapId }) => {
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
         onRender={() => {
-          mapRef.current.resize()
+          mapRef.current && mapRef.current.resize()
         }}
       >
         <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
