@@ -546,9 +546,10 @@ export const selectDefaultViewportFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('defaultViewport', a) && R.has('defaultViewport', b)
-          ? R.equals(a.defaultViewport, b.defaultViewport)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'defaultViewport', a),
+          R.propOr({}, 'defaultViewport', b)
+        ),
     },
   }
 )
@@ -589,26 +590,23 @@ export const selectLegendDataFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('legendGroups', a) && R.has('legendGroups', b)
-          ? R.equals(a.legendGroups, b.legendGroups)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'legendGroups', a),
+          R.propOr({}, 'legendGroups', b)
+        ),
     },
   }
 )
-export const selectMapControlsFunc = createSelector(
+export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
-  (dataObj) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) => R.pathOr({}, ['mapControls', mapId])(dataObj),
-      MAX_MEMOIZED_CHARTS
-    ),
+  (dataObj) => R.propOr({}, 'mapControls')(dataObj),
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('mapControls', a) && R.has('mapControls', b)
-          ? R.equals(a.mapControls, b.mapControls)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'mapControls', a),
+          R.propOr({}, 'mapControls', b)
+        ),
     },
   }
 )
@@ -623,9 +621,7 @@ export const selectMapModalFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('mapModal', a) && R.has('mapModal', b)
-          ? R.equals(a.mapModal, b.mapModal)
-          : a === b,
+        R.equals(R.propOr({}, 'mapModal', a), R.propOr({}, 'mapModal', b)),
     },
   }
 )
@@ -643,9 +639,7 @@ export const selectMapLegendFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('mapLegend', a) && R.has('mapLegend', b)
-          ? R.equals(a.mapLegend, b.mapLegend)
-          : a === b,
+        R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
     },
   }
 )
@@ -665,42 +659,64 @@ export const selectMapKpis = createSelector(
   )
 )
 // Local -> Map -> mapControls
-export const selectViewportFunc = createSelector(
-  [selectMapControlsFunc, selectDefaultViewportFunc],
-  (mapControlsFunc, defaultViewportFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
+export const selectViewportsByMap = createSelector(
+  [selectMapControlsByMap, selectDefaultViewportFunc],
+  (mapControls, defaultViewportFunc) =>
+    R.zipObj(
+      R.keys(mapControls),
+      R.map((mapId) =>
         R.mergeAll([
           DEFAULT_VIEWPORT,
           defaultViewportFunc(mapId),
-          R.propOr({}, 'viewport')(mapControlsFunc(mapId)),
-        ]),
-      MAX_MEMOIZED_CHARTS
+          R.propOr({}, 'viewport')(mapControls[mapId]),
+        ])
+      )(R.keys(mapControls))
     )
 )
 export const selectBearingFunc = createSelector(
-  selectViewportFunc,
-  (dataFunc) =>
+  selectViewportsByMap,
+  (data) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.prop('bearing')(dataFunc(mapId)),
+      (mapId) => R.prop('bearing')(data[mapId]),
       MAX_MEMOIZED_CHARTS
-    )
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(R.pluck('bearing', a), R.pluck('bearing', b)),
+    },
+  }
 )
-export const selectPitchFunc = createSelector(selectViewportFunc, (dataFunc) =>
-  maxSizedMemoization(
-    R.identity,
-    (mapId) => R.prop('pitch')(dataFunc(mapId)),
-    MAX_MEMOIZED_CHARTS
-  )
+export const selectPitchFunc = createSelector(
+  selectViewportsByMap,
+  (data) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.prop('pitch')(data[mapId]),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(R.pluck('pitch', a), R.pluck('pitch', b)),
+    },
+  }
 )
-export const selectZoomFunc = createSelector(selectViewportFunc, (dataFunc) =>
-  maxSizedMemoization(
-    R.identity,
-    (mapId) => R.prop('zoom')(dataFunc(mapId)),
-    MAX_MEMOIZED_CHARTS
-  )
+export const selectZoomFunc = createSelector(
+  selectViewportsByMap,
+  (data) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.prop('zoom')(data[mapId]),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(R.pluck('zoom', R.values(a)), R.pluck('zoom', R.values(b))),
+    },
+  }
 )
 export const selectCurrentMapStyleFunc = createSelector(
   selectCurrentMapDataByMap,
@@ -713,9 +729,10 @@ export const selectCurrentMapStyleFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('currentStyle', a) && R.has('currentStyle', b)
-          ? R.equals(a.currentStyle, b.currentStyle)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'currentStyle', a),
+          R.propOr({}, 'currentStyle', b)
+        ),
     },
   }
 )
@@ -730,9 +747,10 @@ export const selectCurrentMapProjectionFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('currentProjection', a) && R.has('currentProjection', b)
-          ? R.equals(a.currentProjection, b.currentProjection)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'currentProjection', a),
+          R.propOr({}, 'currentProjection', b)
+        ),
     },
   }
 )
@@ -751,22 +769,40 @@ export const selectMapStyleOptions = createSelector(
   })
 )
 export const selectPitchSliderToggleFunc = createSelector(
-  selectMapControlsFunc,
-  (dataFunc) =>
+  selectMapControlsByMap,
+  (controls) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.prop('showPitchSlider')(dataFunc(mapId)),
+      (mapId) => R.prop('showPitchSlider')(controls[mapId]),
       MAX_MEMOIZED_CHARTS
-    )
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(
+          R.pluck('showPitchSlider', R.values(a)),
+          R.pluck('showPitchSlider', R.values(b))
+        ),
+    },
+  }
 )
 export const selectBearingSliderToggleFunc = createSelector(
-  selectMapControlsFunc,
-  (dataFunc) =>
+  selectMapControlsByMap,
+  (controls) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.prop('showBearingSlider')(dataFunc(mapId)),
+      (mapId) => R.prop('showBearingSlider')(controls[mapId]),
       MAX_MEMOIZED_CHARTS
-    )
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(
+          R.pluck('showBearingSlider', R.values(a)),
+          R.pluck('showBearingSlider', R.values(b))
+        ),
+    },
+  }
 )
 export const selectOptionalViewportsFunc = createSelector(
   selectCurrentMapDataByMap,
@@ -779,9 +815,10 @@ export const selectOptionalViewportsFunc = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('optionalViewports', a) && R.has('optionalViewports', b)
-          ? R.equals(a.optionalViewports, b.optionalViewports)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'optionalViewports', a),
+          R.propOr({}, 'optionalViewports', b)
+        ),
     },
   }
 )
@@ -799,7 +836,6 @@ const selectEnabledTypesFn = createSelector(
           R.mergeAll,
           R.mapObjIndexed(R.unless(R.prop('value'), R.F))
         )
-        console.log('evaled')
         return R.when(
           R.isEmpty,
           R.always(getEnabledTypes(mapDataObj))
@@ -810,9 +846,10 @@ const selectEnabledTypesFn = createSelector(
   {
     memoizeOptions: {
       equalityCheck: (a, b) =>
-        R.has('legendGroups', a) && R.has('legendGroups', b)
-          ? R.equals(a.legendGroups, b.legendGroups)
-          : a === b,
+        R.equals(
+          R.propOr({}, 'legendGroups', a),
+          R.propOr({}, 'legendGroups', b)
+        ),
     },
   }
 )
@@ -1790,16 +1827,12 @@ export const selectNodeClustersFunc = createSelector(
 )
 
 export const selectNodeClustersAtZoomFunc = createSelector(
-  [selectNodeClustersFunc, selectViewportFunc],
-  (nodeClustersFunc, viewportFunc) =>
+  [selectNodeClustersFunc, selectZoomFunc],
+  (nodeClustersFunc, zoomFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        R.propOr(
-          {},
-          Math.floor(viewportFunc(mapId).zoom),
-          nodeClustersFunc(mapId)
-        ),
+        R.propOr({}, Math.floor(zoomFunc(mapId)), nodeClustersFunc(mapId)),
       MAX_MEMOIZED_CHARTS
     )
 )

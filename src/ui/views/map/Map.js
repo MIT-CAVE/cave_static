@@ -25,7 +25,6 @@ import {
   selectSettingsIconUrl,
   selectCurrentMapStyleFunc,
   selectTheme,
-  selectViewportFunc,
   selectMapStyleOptions,
   selectGroupedEnabledArcsFunc,
   selectFilteredGeosData,
@@ -35,6 +34,7 @@ import {
   selectDemoSettings,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
+  selectViewportsByMap,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -43,7 +43,7 @@ import { fetchIcon } from '../../../utils'
 
 const Map = ({ mapboxToken, mapId }) => {
   const dispatch = useDispatch()
-  const viewport = useSelector(selectViewportFunc)(mapId)
+  const viewport = useSelector(selectViewportsByMap)[mapId]
   const theme = useSelector(selectTheme)
   const mapStyle = useSelector(selectCurrentMapStyleFunc)(mapId)
   const mapProjection = useSelector(selectCurrentMapProjectionFunc)(mapId)
