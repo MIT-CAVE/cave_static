@@ -63,8 +63,8 @@ import * as R from 'ramda'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 import {
+  NumberFormat,
   findSubgroupLabels,
-  formatNumber,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getChartItemColor,
@@ -282,7 +282,7 @@ const EchartsPlot = ({
     series,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',

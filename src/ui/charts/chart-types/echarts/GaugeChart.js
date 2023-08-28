@@ -6,8 +6,8 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import { echarts } from './BaseChart'
 
 import {
+  NumberFormat,
   adjustMinMax,
-  formatNumber,
   getMinMax,
   getChartItemColor,
 } from '../../../../utils'
@@ -154,7 +154,7 @@ const GaugeChart = ({
     series,
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',

@@ -7,7 +7,9 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { CHART_PALETTE, DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
+import { CHART_PALETTE, DEFAULT_ICON_URL } from './constants'
+
+export { default as NumberFormat } from './NumberFormat'
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
@@ -290,80 +292,6 @@ export const calculateStatSubGroup = (statistics) => {
         })(group)
       )
     )(groupBy)
-}
-
-// Units will be handled outside the ECMAScript 2020 spec,
-// as custom units are not supported by this specification.
-// See: https://tc39.es/proposal-unified-intl-numberformat/section6/locales-currencies-tz_proposed_out.html#sec-measurement-unit-identifiers
-export const formatNumber = (
-  value,
-  {
-    precision = 2,
-    unit,
-    unitSpace,
-    currency = false,
-    trailingZeros = true,
-    nilValue = 'N/A',
-    locale = DEFAULT_LOCALE,
-  }
-) => {
-  if (value == null) return nilValue
-
-  const valueText = value.toLocaleString(locale, {
-    minimumFractionDigits: trailingZeros ? precision : 0,
-    maximumFractionDigits: precision,
-  })
-  // Unless explicitly specified, there should be
-  // no space between a currency unit and its value.
-  const gap = unitSpace ? ' ' : currency ? '' : unitSpace == null ? ' ' : ''
-  return unit
-    ? currency
-      ? `${unit}${gap}${valueText}`
-      : `${valueText}${gap}${unit}`
-    : valueText
-}
-
-// Adapted from Mike Bostock's:
-// https://observablehq.com/@mbostock/localized-number-parsing
-export const getLocaleNumberParts = R.memoizeWith(
-  String,
-  (locale = DEFAULT_LOCALE) => {
-    const parts = new Intl.NumberFormat(locale).formatToParts(12345.6)
-    return {
-      group: parts.find((d) => d.type === 'group').value,
-      decimal: parts.find((d) => d.type === 'decimal').value,
-    }
-  }
-)
-const getLocaleNumberPartsRegEx = R.memoizeWith(String, (locale) => {
-  const { group, decimal } = getLocaleNumberParts(locale)
-  const numerals = [
-    ...new Intl.NumberFormat(locale, { useGrouping: false }).format(9876543210),
-  ].reverse()
-
-  return {
-    group: new RegExp(`[${group}]`, 'g'),
-    decimal: new RegExp(`[${decimal}]`),
-    numeral: new RegExp(`[${numerals.join('')}]`, 'g'),
-    index: new Map(numerals.map((d, i) => [d, i])),
-  }
-})
-export const parseNumber = (numberString, locale = DEFAULT_LOCALE) => {
-  const { decimal: decimalRaw } = getLocaleNumberParts(locale)
-  const { group, decimal, numeral, index } = getLocaleNumberPartsRegEx(locale)
-  const num = numberString
-    .trim()
-    .replace(group, '')
-    .replace(decimal, decimalRaw)
-    .replace(numeral, (d) => index.get(d))
-
-  return num ? Number(num) : NaN
-}
-
-export const isNumericInputValid = (valueStr, locale = DEFAULT_LOCALE) => {
-  const { decimal } = getLocaleNumberParts(locale)
-  const pattern = new RegExp(`^(-|\\+)?(0|[1-9]\\d*)?(\\${decimal})?(\\d+)?$`)
-  return R.test(pattern)(valueStr)
 }
 
 export const getOptimalGridSize = (numColumns, numRows, n) => {

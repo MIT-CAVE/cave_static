@@ -14,10 +14,10 @@ import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
 import { mapKpiToggle } from '../../data/local/kpisSlice'
-import { selectNumberFormat } from '../../data/selectors'
+import { selectNumberFormatPropsFn } from '../../data/selectors'
 import { KPI_WIDTH } from '../../utils/constants'
 
-import { forceArray, formatNumber } from '../../utils'
+import { NumberFormat, forceArray } from '../../utils'
 
 const styles = {
   root: {
@@ -88,18 +88,12 @@ const KpiBasic = ({
   icon,
   style,
   mapKpi,
-  numberFormat: numberFormatRaw = {},
   sx = [],
   ...props
 }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-  const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(props)
   return (
-    <Paper
-      elevation={2}
-      sx={[styles.root, style, ...forceArray(sx)]}
-      {...props}
-    >
+    <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
       <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
       <Grid container flexDirection="column" spacing={3}>
         <Grid item sx={styles.title}>
@@ -113,7 +107,7 @@ const KpiBasic = ({
           )}
           {value != null && (
             <Typography sx={styles.value}>
-              {formatNumber(value, numberFormat)}
+              {NumberFormat.format(value, numberFormatProps)}
             </Typography>
           )}
         </Grid>
@@ -126,7 +120,6 @@ KpiBasic.propTypes = {
   value: PropTypes.number,
   icon: PropTypes.string,
   style: PropTypes.object,
-  numberFormat: PropTypes.object,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

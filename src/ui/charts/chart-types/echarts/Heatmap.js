@@ -5,7 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { findSubgroupLabels, formatNumber, getMinMax } from '../../../../utils'
+import { NumberFormat, findSubgroupLabels, getMinMax } from '../../../../utils'
 
 const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
@@ -119,7 +119,7 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
       },
     },
     tooltip: {
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',

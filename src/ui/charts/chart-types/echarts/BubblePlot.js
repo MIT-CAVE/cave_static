@@ -5,7 +5,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 
 import { echarts } from './BaseChart'
 
-import { formatNumber, getMinMax } from '../../../../utils'
+import { NumberFormat, getMinMax } from '../../../../utils'
 
 const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
   if (
@@ -117,7 +117,7 @@ const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
     tooltip: {
       trigger: 'item',
       formatter: '<b>{a0}</b><br/>{c}<br/>',
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
       textStyle: {
         color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
