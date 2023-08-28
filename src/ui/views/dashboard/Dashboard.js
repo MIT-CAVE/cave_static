@@ -105,10 +105,13 @@ const Dashboard = () => {
                   <DashboardChart {...{ obj }} />
                 </Suspense>
               )
-            ) : R.propOr('stats', 'type', obj) === 'maps' ? (
+            ) : R.propOr('stats', 'type', obj) === 'maps' &&
+              R.prop('mapId', obj) ? (
               <Map mapId={R.prop('mapId', obj)} {...{ mapboxToken }} />
-            ) : (
+            ) : R.propOr('stats', 'type', obj) === 'kpis' ? (
               <DashboardKpi {...{ obj }} />
+            ) : (
+              []
             )}
           </Paper>
         )}

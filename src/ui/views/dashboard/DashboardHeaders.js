@@ -517,16 +517,12 @@ const MapHeader = memo(({ obj, index }) => {
     <>
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr(R.pipe(R.keys, R.head)(maps), 'mapId', obj)}
+          value={R.propOr('', 'mapId', obj)}
+          placeholder={'Select A Map'}
           optionsList={R.pipe(
-            R.mapObjIndexed((val, key) => ({
-              label: key,
-              value: key,
-              iconName: 'md/MdMap',
-            })),
+            R.mapObjIndexed((val, key) => key),
             R.values
           )(maps)}
-          displayIcon
           onSelect={(value) => {
             dispatch(
               mutateLocal({
