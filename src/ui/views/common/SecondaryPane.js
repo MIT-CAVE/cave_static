@@ -3,7 +3,6 @@ import * as R from 'ramda'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCategoriesData,
@@ -54,6 +53,7 @@ const styles = {
 
 const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
   const categories = useSelector(selectCategoriesData)
+  const sync = useSelector(selectSync)
 
   const categoryObj = R.propOr({}, category)(categories)
   const data = R.propOr({}, 'data', categoryObj)
@@ -70,16 +70,25 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
       : [R.prop(categoryItems[0], dataItem)]
   }
 
-  const formattedCategory = R.reduce(
-    R.mergeDeepWith(R.concat),
-    {}
-  )(
-    R.values(
-      R.map((item) => {
-        return formatCategory(categoryItems, item)
-      })(data)
-    )
-  )
+  const formattedCategory =
+    R.length(categoryItems) > 1
+      ? R.reduce(
+          R.mergeDeepWith(R.concat),
+          {}
+        )(
+          R.values(
+            R.map((item) => {
+              return formatCategory(categoryItems, item)
+            })(data)
+          )
+        )
+      : R.unnest(
+          R.values(
+            R.map((item) => {
+              return formatCategory(categoryItems, item)
+            })(data)
+          )
+        )
 
   const selectedItems = R.pathOr(
     [],
@@ -91,81 +100,53 @@ const ContextPane = ({ pane, dispatch, context, category, primaryPane }) => {
     R.path([key, R.last(categoryItems)], data)
   )(selectedItems)
 
+  const path = [
+    'panes',
+    'data',
+    primaryPane,
+    'data',
+    context,
+    'applyCategories',
+    category,
+  ]
+
   const addItem = (item) => {
-    const value = R.is(String, item)
-      ? [
-          R.last(
-            R.filter((obj) =>
-              R.equals(R.path([1, R.last(categoryItems)], obj), item)
-            )(R.toPairs(data))
-          )[0],
-        ]
-      : R.pluck(
-          0,
-          R.filter((obj) =>
-            R.includes(R.path([1, R.last(categoryItems)], obj), item)
-          )(R.toPairs(data))
-        )
+    const value = R.pluck(
+      0,
+      R.filter((obj) =>
+        R.includes(R.path([1, R.last(categoryItems)], obj), item)
+      )(R.toPairs(data))
+    )
     dispatch(
-      sendCommand({
-        command: 'mutate_session',
-        data: {
-          data_name: 'panes',
-          data_path: [
-            'data',
-            primaryPane,
-            'data',
-            context,
-            'applyCategories',
-            category,
-          ],
-          data_value: R.uniq(R.concat(value, selectedItems)),
-          mutation_type: 'mutate',
-        },
+      mutateLocal({
+        path,
+        value: R.uniq(R.concat(value, selectedItems)),
+        sync: !includesPath(R.values(sync), path),
       })
     )
   }
 
   const removeItem = (item) => {
-    const value = R.is(String, item)
-      ? [
-          R.last(
-            R.filter((obj) =>
-              R.equals(R.path([1, R.last(categoryItems)], obj), item)
-            )(R.toPairs(data))
-          )[0],
-        ]
-      : R.pluck(
-          0,
-          R.filter((obj) =>
-            R.includes(R.path([1, R.last(categoryItems)], obj), item)
-          )(R.toPairs(data))
-        )
+    const value = R.pluck(
+      0,
+      R.filter((obj) =>
+        R.includes(R.path([1, R.last(categoryItems)], obj), item)
+      )(R.toPairs(data))
+    )
     dispatch(
-      sendCommand({
-        command: 'mutate_session',
-        data: {
-          data_name: 'panes',
-          data_path: [
-            'data',
-            primaryPane,
-            'data',
-            context,
-            'applyCategories',
-            category,
-          ],
-          data_value: R.without(value, selectedItems),
-          mutation_type: 'mutate',
-        },
+      mutateLocal({
+        path,
+        value: R.without(value, selectedItems),
+        sync: !includesPath(R.values(sync), path),
       })
     )
   }
 
   const selectFunction = (value) => {
     R.is(String, value) && findValue(value, formattedItems) === 'false'
-      ? addItem(value)
+      ? addItem([value])
       : R.is(String, value)
-      ? removeItem(value)
+      ? removeItem([value])
       : findValue(value, formattedItems) !== 'true'
       ? addItem(findBaseItems(value))
       : removeItem(findBaseItems(value))
@@ -297,9 +278,7 @@ const SecondaryPane = ({ open, pane, primaryPane, side, pin, onPin }) => {
           sx={R.assoc(side === 'right' ? 'left' : 'right', 8, styles.pinButton)}
           onClick={onPin}
         >
-          <FetchedIcon
-            iconName={pin ? 'md/MdPushPin' : 'md/MdOutlinePushPin'}
-          />
+          <FetchedIcon iconName={pin ? 'MdPushPin' : 'MdOutlinePushPin'} />
         </IconButton>
       </Box>
       {R.prop('key', open) === 'Filter' ? (
