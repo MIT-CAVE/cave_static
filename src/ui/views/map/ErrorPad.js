@@ -4,7 +4,7 @@ import { MdClose } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { closeError } from '../../../data/local/mapSlice'
-import { selectAppBarId, selectMapModal } from '../../../data/selectors'
+import { selectMapModalFunc } from '../../../data/selectors'
 
 const styles = {
   modal: {
@@ -33,9 +33,8 @@ const styles = {
   },
 }
 
-const ErrorPad = () => {
-  const mapModal = useSelector(selectMapModal)
-  const appBarId = useSelector(selectAppBarId)
+const ErrorPad = ({ mapId }) => {
+  const mapModal = useSelector(selectMapModalFunc)(mapId)
   const dispatch = useDispatch()
   if (!mapModal.isError) return null
 
@@ -58,7 +57,7 @@ const ErrorPad = () => {
           </Typography>
           <MdClose
             cursor="pointer"
-            onClick={() => dispatch(closeError(appBarId))}
+            onClick={() => dispatch(closeError(mapId))}
           />
         </Box>
         <div id="server-modal-description">{mapModal.errorText}</div>

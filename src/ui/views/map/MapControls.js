@@ -31,22 +31,20 @@ import {
 } from '../../../data/local/mapSlice'
 import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
-  selectDefaultViewport,
-  selectOptionalViewports,
-  selectBearingSliderToggle,
-  selectPitchSliderToggle,
-  selectBearing,
-  selectPitch,
+  selectDefaultViewportFunc,
+  selectOptionalViewportsFunc,
+  selectBearingSliderToggleFunc,
+  selectPitchSliderToggleFunc,
+  selectBearingFunc,
+  selectPitchFunc,
   selectTime,
   selectTimeUnits,
   selectTimeLength,
   selectStaticMap,
-  selectAppBarId,
   selectSync,
   selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import {
-  APP_BAR_WIDTH,
   MAX_BEARING,
   MAX_PITCH,
   MIN_BEARING,
@@ -59,10 +57,10 @@ import { FetchedIcon } from '../../compound'
 import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
 
 const styles = {
-  getRoot: (hover, rightBar) => ({
+  getRoot: (hover) => ({
     position: 'absolute',
     bottom: 0,
-    right: rightBar ? APP_BAR_WIDTH : 0,
+    right: 0,
     'button,.MuiSlider-root': {
       opacity: hover ? 1 : 0.8,
     },
@@ -212,9 +210,8 @@ TooltipButton.propTypes = {
   children: PropTypes.node,
 }
 
-const MapNavButtons = memo(() => {
+const MapNavButtons = memo(({ mapId }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
 
   return (
     <ButtonGroup
@@ -225,25 +222,25 @@ const MapNavButtons = memo(() => {
     >
       <TooltipButton
         title={tooltipTitles.pitch}
-        onClick={() => dispatch(pitchSliderToggle(appBarId))}
+        onClick={() => dispatch(pitchSliderToggle(mapId))}
       >
         <MdHeight />
       </TooltipButton>
       <TooltipButton
         title={tooltipTitles.zoomIn}
-        onClick={() => dispatch(changeZoom({ appBarId, value: 0.5 }))}
+        onClick={() => dispatch(changeZoom({ mapId, value: 0.5 }))}
       >
         <MdAdd />
       </TooltipButton>
       <TooltipButton
         title={tooltipTitles.zoomOut}
-        onClick={() => dispatch(changeZoom({ appBarId, value: -0.5 }))}
+        onClick={() => dispatch(changeZoom({ mapId, value: -0.5 }))}
       >
         <MdRemove />
       </TooltipButton>
       <TooltipButton
         title={tooltipTitles.bearing}
-        onClick={() => dispatch(bearingSliderToggle(appBarId))}
+        onClick={() => dispatch(bearingSliderToggle(mapId))}
       >
         <Md360 />
       </TooltipButton>
@@ -251,22 +248,21 @@ const MapNavButtons = memo(() => {
   )
 })
 
-const MapControls = ({ allowProjections }) => {
+const MapControls = ({ allowProjections, mapId }) => {
   const [hover, setHover] = useState(false)
   const [animation, setAnimation] = useState(false)
   const activeAnimation = useRef()
 
-  const bearing = useSelector(selectBearing)
-  const pitch = useSelector(selectPitch)
-  const defaultViewport = useSelector(selectDefaultViewport)
-  const optionalViewports = useSelector(selectOptionalViewports)
-  const showBearingSlider = useSelector(selectBearingSliderToggle)
-  const showPitchSlider = useSelector(selectPitchSliderToggle)
+  const bearing = useSelector(selectBearingFunc)(mapId)
+  const pitch = useSelector(selectPitchFunc)(mapId)
+  const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)
+  const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
+  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const currentTime = useSelector(selectTime)
   const timeUnits = useSelector(selectTimeUnits)
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
-  const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
   const rightBar = useSelector(selectRightAppBarDisplay)
   const dispatch = useDispatch()
@@ -274,7 +270,7 @@ const MapControls = ({ allowProjections }) => {
   const syncProjection = !includesPath(R.values(sync), [
     'maps',
     'data',
-    appBarId,
+    mapId,
     'currentProjection',
   ])
 
@@ -317,15 +313,13 @@ const MapControls = ({ allowProjections }) => {
               valueLabelDisplay="auto"
               valueLabelFormat={getDegreeFormat}
               marks={getSliderMarks(MIN_PITCH, MAX_PITCH, 2, getDegreeFormat)}
-              onChange={(event, value) =>
-                dispatch(pitchUpdate({ appBarId, value }))
-              }
+              onChange={(_, value) => dispatch(pitchUpdate({ mapId, value }))}
             />
           </Box>
         )}
 
         {/* Map controls */}
-        {isStatic ? [] : <MapNavButtons />}
+        {isStatic ? [] : <MapNavButtons mapId={mapId} />}
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
           <ButtonGroup
@@ -373,9 +367,7 @@ const MapControls = ({ allowProjections }) => {
               title={`Set current ${timeUnits}`}
               placement="top"
               onClick={() =>
-                dispatch(
-                  openMapModal({ data: { feature: 'setTime' }, appBarId })
-                )
+                dispatch(openMapModal({ data: { feature: 'setTime' }, mapId }))
               }
             >
               {currentTime + 1}
@@ -398,7 +390,7 @@ const MapControls = ({ allowProjections }) => {
             <TooltipButton
               title={tooltipTitles.mapLegend}
               placement="top"
-              onClick={() => dispatch(toggleMapLegend(appBarId))}
+              onClick={() => dispatch(toggleMapLegend(mapId))}
             >
               <MdApps />
             </TooltipButton>
@@ -415,7 +407,7 @@ const MapControls = ({ allowProjections }) => {
               placement="top"
               onClick={() =>
                 dispatch(
-                  openMapModal({ data: { feature: 'mapStyles' }, appBarId })
+                  openMapModal({ data: { feature: 'mapStyles' }, mapId })
                 )
               }
             >
@@ -432,7 +424,7 @@ const MapControls = ({ allowProjections }) => {
                 onClick={() =>
                   dispatch(
                     mutateLocal({
-                      path: ['maps', 'data', appBarId, 'currentProjection'],
+                      path: ['maps', 'data', mapId, 'currentProjection'],
                       value: 'globe',
                       sync: syncProjection,
                     })
@@ -447,7 +439,7 @@ const MapControls = ({ allowProjections }) => {
                 onClick={() => {
                   dispatch(
                     mutateLocal({
-                      path: ['maps', 'data', appBarId, 'currentProjection'],
+                      path: ['maps', 'data', mapId, 'currentProjection'],
                       value: 'mercator',
                       sync: syncProjection,
                     })
@@ -467,7 +459,7 @@ const MapControls = ({ allowProjections }) => {
                 placement="top"
                 onClick={() =>
                   dispatch(
-                    openMapModal({ data: { feature: 'viewports' }, appBarId })
+                    openMapModal({ data: { feature: 'viewports' }, mapId })
                   )
                 }
               >
@@ -478,9 +470,7 @@ const MapControls = ({ allowProjections }) => {
               title={tooltipTitles.defaultViewport}
               placement="bottom-start"
               onClick={() => {
-                dispatch(
-                  viewportUpdate({ viewport: defaultViewport, appBarId })
-                )
+                dispatch(viewportUpdate({ viewport: defaultViewport, mapId }))
               }}
             >
               <MdHome />
@@ -500,9 +490,7 @@ const MapControls = ({ allowProjections }) => {
             valueLabelDisplay="auto"
             valueLabelFormat={getDegreeFormat}
             marks={getSliderMarks(MIN_BEARING, MAX_BEARING, 5, getDegreeFormat)}
-            onChange={(event, value) =>
-              dispatch(bearingUpdate({ appBarId, value }))
-            }
+            onChange={(_, value) => dispatch(bearingUpdate({ mapId, value }))}
           />
         </Box>
       )}

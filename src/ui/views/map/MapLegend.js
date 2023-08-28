@@ -19,29 +19,27 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectBearingSliderToggle,
-  selectEnabledArcs,
-  selectEnabledNodes,
-  selectEnabledGeos,
-  selectMapLegend,
+  selectBearingSliderToggleFunc,
+  selectEnabledArcsFunc,
+  selectEnabledNodesFunc,
+  selectEnabledGeosFunc,
+  selectMapLegendFunc,
   selectTheme,
   selectGeoColorRange,
   selectNodeRange,
   selectArcRange,
-  selectLegendData,
+  selectLegendDataFunc,
   selectLocalizedArcTypes,
   selectLocalizedNodeTypes,
   selectLocalizedGeoTypes,
   selectSync,
-  selectPitchSliderToggle,
-  selectAppBarId,
-  selectNodeRangeAtZoom,
+  selectPitchSliderToggleFunc,
+  selectNodeRangeAtZoomFunc,
   selectArcTypeKeys,
   selectNodeTypeKeys,
   selectRightAppBarDisplay,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
 
@@ -65,7 +63,7 @@ import {
 
 const styles = {
   paper: {
-    width: 700,
+    width: 600,
     bgcolor: 'background.paper',
     color: 'text.primary',
     border: 1,
@@ -601,12 +599,11 @@ const MapLegendColorBySection = ({
   )
 }
 
-const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
+const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp, mapId }) => {
   const dispatch = useDispatch()
   const themeType = useSelector(selectTheme)
   const geoColorRange = useSelector(selectGeoColorRange)
-  const displayedGeos = useSelector(selectEnabledGeos)
-  const appBarId = useSelector(selectAppBarId)
+  const displayedGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const sync = useSelector(selectSync)
 
   const typeObj = R.prop(geoType, useSelector(selectLocalizedGeoTypes))
@@ -620,7 +617,7 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
   const path = [
     'maps',
     'data',
-    appBarId,
+    mapId,
     'legendGroups',
     legendGroupId,
     'geos',
@@ -632,7 +629,7 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp }) => {
   const colorPath = [
     'maps',
     'data',
-    appBarId,
+    mapId,
     'legendGroups',
     legendGroupId,
     'geos',
@@ -742,6 +739,7 @@ const MapLegendNodeToggle = ({
   legendGroupId,
   sizeProp,
   colorProp,
+  mapId,
 }) => {
   const typeObj = R.prop(nodeType, useSelector(selectLocalizedNodeTypes))
   return (
@@ -751,10 +749,11 @@ const MapLegendNodeToggle = ({
       legendGroupId={legendGroupId}
       sizeProp={sizeProp}
       colorProp={colorProp}
-      selectEnabledGeometry={selectEnabledNodes}
+      selectEnabledGeometryFunc={selectEnabledNodesFunc}
       selectGeometryRange={selectNodeRange}
       geometryName="nodes"
       icon={<FetchedIcon iconName={R.prop('icon', typeObj)} />}
+      mapId={mapId}
     />
   )
 }
@@ -764,6 +763,7 @@ const MapLegendArcToggle = ({
   legendGroupId,
   sizeProp,
   colorProp,
+  mapId,
 }) => {
   const typeObj = R.prop(arcType, useSelector(selectLocalizedArcTypes))
   const IconClass =
@@ -781,10 +781,11 @@ const MapLegendArcToggle = ({
       legendGroupId={legendGroupId}
       sizeProp={sizeProp}
       colorProp={colorProp}
-      selectEnabledGeometry={selectEnabledArcs}
+      selectEnabledGeometryFunc={selectEnabledArcsFunc}
       selectGeometryRange={selectArcRange}
       geometryName="arcs"
       icon={<IconClass />}
+      mapId={mapId}
     />
   )
 }
@@ -795,23 +796,23 @@ const LegendCard = ({
   legendGroupId,
   sizeProp,
   colorProp,
-  selectEnabledGeometry,
+  selectEnabledGeometryFunc,
   selectGeometryRange,
   geometryName, // arcs/nodes/geos
   icon,
+  mapId,
 }) => {
   // TODO: extend this for geos?
   const dispatch = useDispatch()
-  const displayedGeometry = useSelector(selectEnabledGeometry)
+  const displayedGeometry = useSelector(selectEnabledGeometryFunc)(mapId)
   const geometryRange = useSelector(selectGeometryRange)
-  const geometryRangesByType = useSelector(selectNodeRangeAtZoom)
+  const geometryRangesByType = useSelector(selectNodeRangeAtZoomFunc)(mapId)
   const sync = useSelector(selectSync)
-  const appBarId = useSelector(selectAppBarId)
 
   const basePath = [
     'maps',
     'data',
-    appBarId,
+    mapId,
     'legendGroups',
     legendGroupId,
     geometryName,
@@ -998,7 +999,7 @@ const LegendCard = ({
   )
 }
 
-const MapLegendToggleList = ({ legendObj, ...props }) => {
+const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
   const nodeTypes = useSelector(selectNodeTypeKeys)
   const arcTypes = useSelector(selectArcTypeKeys)
 
@@ -1027,6 +1028,7 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
             value={value}
             sizeProp={sizeBy}
             colorProp={colorBy}
+            mapId={mapId}
           />
         ) : (
           []
@@ -1041,6 +1043,7 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
             value={value}
             sizeProp={sizeBy}
             colorProp={colorBy}
+            mapId={mapId}
           />
         ) : (
           []
@@ -1053,18 +1056,18 @@ const MapLegendToggleList = ({ legendObj, ...props }) => {
           geoType={geoType}
           value={value}
           colorProp={colorBy}
+          mapId={mapId}
         />
       ))(getSortedGroups('geos'))}
     </details>
   )
 }
 
-const MapLegend = () => {
-  const legendData = useSelector(selectLegendData)
-  const showPitchSlider = useSelector(selectPitchSliderToggle)
-  const showBearingSlider = useSelector(selectBearingSliderToggle)
-  const mapLegend = useSelector(selectMapLegend)
-  const rightBar = useSelector(selectRightAppBarDisplay)
+const MapLegend = ({ mapId }) => {
+  const legendData = useSelector(selectLegendDataFunc)(mapId)
+  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
+  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+  const mapLegend = useSelector(selectMapLegendFunc)(mapId)
   if (!R.propOr(true, 'isOpen', mapLegend)) return null
   return (
     <Box
@@ -1072,23 +1075,21 @@ const MapLegend = () => {
       sx={[
         styles.root,
         {
-          right: (showPitchSlider ? 100 : 65) + (rightBar ? APP_BAR_WIDTH : 0),
+          right: showPitchSlider ? 100 : 65,
+          height: showBearingSlider
+            ? 'calc(100% - 195px)'
+            : 'calc(100% - 110px)',
         },
       ]}
     >
-      <Box
-        sx={[
-          styles.paper,
-          {
-            maxHeight: showBearingSlider
-              ? 'calc(100vh - 195px)'
-              : 'calc(100vh - 110px)',
-          },
-        ]}
-      >
+      <Box sx={[styles.paper, { maxHeight: '100%' }]}>
         <Box sx={{ mx: 0 }}>
           {R.map((legendObj) => (
-            <MapLegendToggleList key={legendObj.id} {...{ legendObj }} />
+            <MapLegendToggleList
+              key={legendObj.id}
+              mapId={mapId}
+              {...{ legendObj }}
+            />
           ))(customSort(legendData))}
         </Box>
       </Box>

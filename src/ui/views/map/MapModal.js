@@ -19,12 +19,11 @@ import { mutateLocal } from '../../../data/local'
 import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
-  selectOptionalViewports,
-  selectMapModal,
+  selectOptionalViewportsFunc,
+  selectMapModalFunc,
   selectTimeUnits,
   selectTimeLength,
   selectTime,
-  selectAppBarId,
   selectMergedArcs,
   selectMergedNodes,
   selectMergedGeos,
@@ -46,6 +45,7 @@ const styles = {
     p: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   paper: {
     border: 1,
@@ -79,9 +79,9 @@ const styles = {
   },
 }
 
-const OnLayerEventModal = () => {
+const OnLayerEventModal = ({ mapId }) => {
   const dispatch = useDispatch()
-  const mapModal = useSelector(selectMapModal)
+  const mapModal = useSelector(selectMapModalFunc)(mapId)
   const currentTime = useSelector(selectTime)
   const arcData = useSelector(selectMergedArcs)
   const nodeData = useSelector(selectMergedNodes)
@@ -127,7 +127,7 @@ const OnLayerEventModal = () => {
   }
 
   return R.isNotNil(cluster_id) ? (
-    <ClusterModal title={type} cluster_id={cluster_id}>
+    <ClusterModal title={type} cluster_id={cluster_id} mapId={mapId}>
       {renderPropsLayout({
         layout,
         items,
@@ -136,7 +136,7 @@ const OnLayerEventModal = () => {
       })}
     </ClusterModal>
   ) : (
-    <SimpleModal title={name || type}>
+    <SimpleModal title={name || type} mapId={mapId}>
       {renderPropsLayout({
         layout,
         items,
@@ -147,9 +147,8 @@ const OnLayerEventModal = () => {
   )
 }
 
-const ListModal = ({ title, options, onSelect }) => {
+const ListModal = ({ title, options, onSelect, mapId }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
 
   return (
     <Modal
@@ -158,7 +157,7 @@ const ListModal = ({ title, options, onSelect }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => dispatch(closeMapModal(appBarId))}
+      onClose={() => dispatch(closeMapModal(mapId))}
     >
       <Box sx={styles.listPaper}>
         <Box sx={styles.flexSpaceBetween}>
@@ -183,12 +182,11 @@ const ListModal = ({ title, options, onSelect }) => {
   )
 }
 
-const MapModal = () => {
-  const mapModal = useSelector(selectMapModal)
-  const optionalViewports = useSelector(selectOptionalViewports)
+const MapModal = ({ mapId }) => {
+  const mapModal = useSelector(selectMapModalFunc)(mapId)
+  const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const timeUnits = useSelector(selectTimeUnits)
   const timeLength = useSelector(selectTimeLength)
-  const appBarId = useSelector(selectAppBarId)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -204,7 +202,7 @@ const MapModal = () => {
   const syncStyles = !includesPath(R.values(sync), [
     'maps',
     'data',
-    appBarId,
+    mapId,
     'currentStyle',
   ])
   return R.cond([
@@ -221,9 +219,10 @@ const MapModal = () => {
               // added by `customSort` as a helper property
               R.omit(['name', 'icon'])
             )(optionalViewports)
-            dispatch(viewportUpdate({ viewport, appBarId }))
-            dispatch(closeMapModal(appBarId))
+            dispatch(viewportUpdate({ viewport, mapId }))
+            dispatch(closeMapModal(mapId))
           }}
+          mapId={mapId}
         />
       ),
     ],
@@ -238,7 +237,7 @@ const MapModal = () => {
             dispatch(
               mutateLocal({
                 sync: syncStyles,
-                path: ['maps', 'data', appBarId, 'currentStyle'],
+                path: ['maps', 'data', mapId, 'currentStyle'],
                 value: R.ifElse(
                   R.equals(DEFAULT_MAP_STYLE_KEY),
                   R.always(undefined),
@@ -246,8 +245,9 @@ const MapModal = () => {
                 )(mapStyle),
               })
             )
-            dispatch(closeMapModal(appBarId))
+            dispatch(closeMapModal(mapId))
           }}
+          mapId={mapId}
         />
       ),
     ],
@@ -260,12 +260,13 @@ const MapModal = () => {
           options={timeOptions}
           onSelect={(value) => {
             dispatch(timeSelection(value - 1))
-            dispatch(closeMapModal(appBarId))
+            dispatch(closeMapModal(mapId))
           }}
+          mapId={mapId}
         />
       ),
     ],
-    [R.T, R.always(<OnLayerEventModal />)], // 'arcs', 'nodes' or 'geos'
+    [R.T, R.always(<OnLayerEventModal mapId={mapId} />)], // 'arcs', 'nodes' or 'geos'
   ])(feature)
 }
 

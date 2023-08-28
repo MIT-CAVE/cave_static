@@ -15,8 +15,10 @@ import {
   selectSync,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
+  selectMapboxToken,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
+import Map from '../map/Map'
 
 import { includesPath } from '../../../utils'
 
@@ -70,6 +72,7 @@ const styles = {
 
 const Dashboard = () => {
   const dispatch = useDispatch()
+  const mapboxToken = useSelector(selectMapboxToken)
 
   const [maximizedIndex, setMaximizedIndex] = useState(null)
 
@@ -102,8 +105,13 @@ const Dashboard = () => {
                   <DashboardChart {...{ obj }} />
                 </Suspense>
               )
-            ) : (
+            ) : R.propOr('stats', 'type', obj) === 'maps' &&
+              R.prop('mapId', obj) ? (
+              <Map mapId={R.prop('mapId', obj)} {...{ mapboxToken }} />
+            ) : R.propOr('stats', 'type', obj) === 'kpis' ? (
               <DashboardKpi {...{ obj }} />
+            ) : (
+              []
             )}
           </Paper>
         )}
