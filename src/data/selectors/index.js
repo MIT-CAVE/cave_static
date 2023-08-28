@@ -514,26 +514,43 @@ export const selectAllowedStats = createSelector(
 //   (data, appBarId) => R.prop(appBarId, data)
 // )
 
-export const selectCurrentMapDataFunc = createSelector(
+export const selectCurrentMapDataByMap = createSelector(
   selectMapData,
-  (data) => (mapId) => R.prop(mapId, data)
-)
-
-export const selectCurrentMapData = createSelector(
-  selectCurrentMapDataFunc,
-  (mapDataFunc) => mapDataFunc('map1')
+  (data) => {
+    const itemKeys = R.reduce((acc, obj) => {
+      R.forEach((key) => acc.add(key), R.keys(obj))
+      return acc
+    }, new Set())(R.values(data))
+    return R.reduce(
+      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+      {}
+    )(itemKeys.values())
+  }
 )
 
 export const selectDefaultViewportFunc = createSelector(
-  selectCurrentMapDataFunc,
-  (dataFunc) => (mapId) =>
-    R.pipe(
-      R.propOr({}, 'defaultViewport'),
-      R.when(
-        R.has('zoom'),
-        R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
-      )
-    )(dataFunc(mapId))
+  selectCurrentMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.pathOr({}, ['defaultViewport', mapId]),
+          R.when(
+            R.has('zoom'),
+            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+          )
+        )(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('defaultViewport', a) && R.has('defaultViewport', b)
+          ? R.equals(a.defaultViewport, b.defaultViewport)
+          : a === b,
+    },
+  }
 )
 
 // Local -> Map
@@ -543,35 +560,94 @@ export const selectLocalMap = createSelector(selectLocal, (data) =>
 export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
   R.prop('data')(data)
 )
-export const selectCurrentLocalMapDataFunc = createSelector(
+export const selectCurrentLocalMapDataByMap = createSelector(
   [selectLocalMapData],
-  (data) => (mapId) => R.propOr({}, mapId)(data)
+  (data) => {
+    const itemKeys = R.reduce((acc, obj) => {
+      R.forEach((key) => acc.add(key), R.keys(obj))
+      return acc
+    }, new Set())(R.values(data))
+    return R.reduce(
+      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+      {}
+    )(itemKeys.values())
+  }
 )
 export const selectLegendDataFunc = createSelector(
-  [selectCurrentMapDataFunc, selectCurrentLocalMapDataFunc],
-  (mapDataFunc, localMapDataFunc) => (mapId) =>
-    R.propOr(
-      R.propOr({}, 'legendGroups', mapDataFunc(mapId)),
-      'legendGroups',
-      localMapDataFunc(mapId)
-    )
+  [selectCurrentMapDataByMap, selectCurrentLocalMapDataByMap],
+  (mapDataObj, localMapDataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pathOr(
+          R.pathOr({}, ['legendGroups', mapId], mapDataObj),
+          ['legendGroups', mapId],
+          localMapDataObj
+        ),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('legendGroups', a) && R.has('legendGroups', b)
+          ? R.equals(a.legendGroups, b.legendGroups)
+          : a === b,
+    },
+  }
 )
 export const selectMapControlsFunc = createSelector(
-  selectCurrentLocalMapDataFunc,
-  (dataFunc) => (mapId) => R.propOr({}, 'mapControls')(dataFunc(mapId))
+  selectCurrentLocalMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.pathOr({}, ['mapControls', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('mapControls', a) && R.has('mapControls', b)
+          ? R.equals(a.mapControls, b.mapControls)
+          : a === b,
+    },
+  }
 )
 export const selectMapModalFunc = createSelector(
-  selectCurrentLocalMapDataFunc,
-  (dataFunc) => (mapId) => R.propOr({}, 'mapModal')(dataFunc(mapId)),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  selectCurrentLocalMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.pathOr({}, ['mapModal', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('mapModal', a) && R.has('mapModal', b)
+          ? R.equals(a.mapModal, b.mapModal)
+          : a === b,
+    },
+  }
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
 )
 export const selectMapLegendFunc = createSelector(
-  selectCurrentLocalMapDataFunc,
-  (dataFunc) => (mapId) => R.propOr({}, 'mapLegend')(dataFunc(mapId)),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  selectCurrentLocalMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.pathOr({}, ['mapLegend', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('mapLegend', a) && R.has('mapLegend', b)
+          ? R.equals(a.mapLegend, b.mapLegend)
+          : a === b,
+    },
+  }
 )
 // Local -> kpis
 const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
@@ -591,33 +667,74 @@ export const selectMapKpis = createSelector(
 // Local -> Map -> mapControls
 export const selectViewportFunc = createSelector(
   [selectMapControlsFunc, selectDefaultViewportFunc],
-  (mapControlsFunc, defaultViewportFunc) => (mapId) =>
-    R.mergeAll([
-      DEFAULT_VIEWPORT,
-      defaultViewportFunc(mapId),
-      R.propOr({}, 'viewport')(mapControlsFunc(mapId)),
-    ])
+  (mapControlsFunc, defaultViewportFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.mergeAll([
+          DEFAULT_VIEWPORT,
+          defaultViewportFunc(mapId),
+          R.propOr({}, 'viewport')(mapControlsFunc(mapId)),
+        ]),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectBearingFunc = createSelector(
   selectViewportFunc,
-  (dataFunc) => (mapId) => R.prop('bearing')(dataFunc(mapId))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.prop('bearing')(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
-export const selectPitchFunc = createSelector(
-  selectViewportFunc,
-  (dataFunc) => (mapId) => R.prop('pitch')(dataFunc(mapId))
+export const selectPitchFunc = createSelector(selectViewportFunc, (dataFunc) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) => R.prop('pitch')(dataFunc(mapId)),
+    MAX_MEMOIZED_CHARTS
+  )
 )
-export const selectZoomFunc = createSelector(
-  selectViewportFunc,
-  (dataFunc) => (mapId) => R.prop('zoom')(dataFunc(mapId))
+export const selectZoomFunc = createSelector(selectViewportFunc, (dataFunc) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) => R.prop('zoom')(dataFunc(mapId)),
+    MAX_MEMOIZED_CHARTS
+  )
 )
 export const selectCurrentMapStyleFunc = createSelector(
-  selectCurrentMapDataFunc,
-  (dataFunc) => (mapId) => R.prop('currentStyle')(dataFunc(mapId))
+  selectCurrentMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.path(['currentStyle', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('currentStyle', a) && R.has('currentStyle', b)
+          ? R.equals(a.currentStyle, b.currentStyle)
+          : a === b,
+    },
+  }
 )
 export const selectCurrentMapProjectionFunc = createSelector(
-  selectCurrentMapDataFunc,
-  (dataFunc) => (mapId) =>
-    R.propOr('mercator', 'currentProjection')(dataFunc(mapId))
+  selectCurrentMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.pathOr('mercator', ['currentProjection', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('currentProjection', a) && R.has('currentProjection', b)
+          ? R.equals(a.currentProjection, b.currentProjection)
+          : a === b,
+    },
+  }
 )
 export const selectMapStyleOptions = createSelector(
   [selectSettingsData, selectMapboxToken],
@@ -635,48 +752,96 @@ export const selectMapStyleOptions = createSelector(
 )
 export const selectPitchSliderToggleFunc = createSelector(
   selectMapControlsFunc,
-  (dataFunc) => (mapId) => R.prop('showPitchSlider')(dataFunc(mapId))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.prop('showPitchSlider')(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectBearingSliderToggleFunc = createSelector(
   selectMapControlsFunc,
-  (dataFunc) => (mapId) => R.prop('showBearingSlider')(dataFunc(mapId))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.prop('showBearingSlider')(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectOptionalViewportsFunc = createSelector(
-  selectCurrentMapDataFunc,
-  (dataFunc) => (mapId) => R.propOr({}, 'optionalViewports')(dataFunc(mapId))
+  selectCurrentMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.path(['optionalViewports', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('optionalViewports', a) && R.has('optionalViewports', b)
+          ? R.equals(a.optionalViewports, b.optionalViewports)
+          : a === b,
+    },
+  }
 )
 // Local -> Map -> layers
 const selectEnabledTypesFn = createSelector(
-  [selectCurrentLocalMapDataFunc, selectCurrentMapDataFunc],
-  (localMapFunc, mapDataFunc) => (mapId, layerKey) => {
-    const getEnabledTypes = R.pipe(
-      R.propOr({}, 'legendGroups'),
-      R.values,
-      R.pluck(layerKey),
-      R.mergeAll,
-      R.mapObjIndexed(R.unless(R.prop('value'), R.F))
-    )
-    return R.when(
-      R.isEmpty,
-      R.always(getEnabledTypes(mapDataFunc(mapId)))
-    )(getEnabledTypes(localMapFunc(mapId)))
-  },
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (localMapObj, mapDataObj) =>
+    maxSizedMemoization(
+      ({ mapId, layerKey }) => `${mapId}+${layerKey}`,
+      ({ mapId, layerKey }) => {
+        const getEnabledTypes = R.pipe(
+          R.pathOr({}, ['legendGroups', mapId]),
+          R.values,
+          R.pluck(layerKey),
+          R.mergeAll,
+          R.mapObjIndexed(R.unless(R.prop('value'), R.F))
+        )
+        console.log('evaled')
+        return R.when(
+          R.isEmpty,
+          R.always(getEnabledTypes(mapDataObj))
+        )(getEnabledTypes(localMapObj))
+      },
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.has('legendGroups', a) && R.has('legendGroups', b)
+          ? R.equals(a.legendGroups, b.legendGroups)
+          : a === b,
+    },
+  }
 )
 export const selectEnabledArcsFunc = createSelector(
   selectEnabledTypesFn,
-  (enabledTypesFunc) => (mapId) => enabledTypesFunc(mapId, 'arcs'),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (enabledTypesFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => enabledTypesFunc({ mapId, layerKey: 'arcs' }),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectEnabledNodesFunc = createSelector(
   selectEnabledTypesFn,
-  (enabledTypesFunc) => (mapId) => enabledTypesFunc(mapId, 'nodes'),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (enabledTypesFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => enabledTypesFunc({ mapId, layerKey: 'nodes' }),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectEnabledGeosFunc = createSelector(
   selectEnabledTypesFn,
-  (enabledTypesFunc) => (mapId) => enabledTypesFunc(mapId, 'geos'),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (enabledTypesFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => enabledTypesFunc({ mapId, layerKey: 'geos' }),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectGeo = createSelector(
   selectMapLayers,
@@ -869,11 +1034,16 @@ export const selectFilteredGeosData = createSelector(
 )
 export const selectNodeDataFunc = createSelector(
   [selectEnabledNodesFunc, selectFilteredNodes],
-  (enabledNodesFunc, filteredData) => (mapId) =>
-    R.toPairs(
-      R.filter((d) => R.propOr(false, d.type, enabledNodesFunc(mapId)))(
-        filteredData
-      )
+  (enabledNodesFunc, filteredData) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.toPairs(
+          R.filter((d) => R.propOr(false, d.type, enabledNodesFunc(mapId)))(
+            filteredData
+          )
+        ),
+      MAX_MEMOIZED_CHARTS
     )
 )
 
@@ -895,12 +1065,16 @@ export const selectGeosByType = createSelector(
 )
 export const selectMatchingKeysByTypeFunc = createSelector(
   [selectEnabledGeosFunc, selectGeosByType],
-  (enabledGeosFunc, geosByType) => (mapId) =>
-    R.pipe(
-      R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-      R.map(R.indexBy(R.prop('geoJsonValue')))
-    )(geosByType),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  (enabledGeosFunc, geosByType) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
+          R.map(R.indexBy(R.prop('geoJsonValue')))
+        )(geosByType),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 // Stats derived
 export const selectCategoryFunc = createSelector(
@@ -1098,41 +1272,61 @@ export const selectGroupedEnabledArcsFunc = createSelector(
     selectFilteredArcsData,
     selectCurrentMapProjectionFunc,
   ],
-  (enabledArcsFunc, filteredArcs, projectionFunc) => (mapId) =>
-    R.pipe(
-      R.filter((d) => R.propOr(false, d.type, enabledArcsFunc(mapId))),
-      // 3d arcs grouped under true - others false
-      R.toPairs,
-      R.groupBy(
+  (enabledArcsFunc, filteredArcs, projectionFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
         R.pipe(
-          R.prop(1),
-          R.cond([
-            [R.has('geoJson'), R.always('geoJson')],
-            [
-              R.converge(R.and, [
-                R.propEq('3d', 'displayType'),
-                R.always(R.equals('mercator', projectionFunc(mapId))),
-              ]),
-              R.always('3d'),
-            ],
-            [R.T, R.always('false')],
-          ])
-        )
-      ),
-      R.map(R.fromPairs)
-    )(filteredArcs)
+          R.filter((d) => R.propOr(false, d.type, enabledArcsFunc(mapId))),
+          // 3d arcs grouped under true - others false
+          R.toPairs,
+          R.groupBy(
+            R.pipe(
+              R.prop(1),
+              R.cond([
+                [R.has('geoJson'), R.always('geoJson')],
+                [
+                  R.converge(R.and, [
+                    R.propEq('3d', 'displayType'),
+                    R.always(R.equals('mercator', projectionFunc(mapId))),
+                  ]),
+                  R.always('3d'),
+                ],
+                [R.T, R.always('false')],
+              ])
+            )
+          ),
+          R.map(R.fromPairs)
+        )(filteredArcs),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectLineDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
-  (dataFunc) => (mapId) => R.toPairs(R.prop('false', dataFunc(mapId)))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.toPairs(R.prop('false', dataFunc(mapId))),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectArcDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
-  (dataFunc) => (mapId) => R.toPairs(R.prop('3d', dataFunc(mapId)))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.toPairs(R.prop('3d', dataFunc(mapId))),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectMultiLineDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
-  (dataFunc) => (mapId) => R.toPairs(R.prop('geoJson', dataFunc(mapId)))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.toPairs(R.prop('geoJson', dataFunc(mapId))),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectArcRange = createSelector(
   [selectArcTypes, selectArcsByType],
@@ -1172,49 +1366,59 @@ export const selectArcRange = createSelector(
 // Split nodes by those grouped vs those not
 export const selectSplitNodeDataFunc = createSelector(
   [selectEnabledNodesFunc, selectNodeDataFunc],
-  (enabledNodesFunc, nodeDataFunc) => (mapId) =>
-    R.pipe(
-      R.filter((d) => {
-        const nodeType = d[1].type
-        const colorProp = R.path([nodeType, 'colorBy'], enabledNodesFunc(mapId))
-        const sizeProp = R.path([nodeType, 'sizeBy'], enabledNodesFunc(mapId))
+  (enabledNodesFunc, nodeDataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.filter((d) => {
+            const nodeType = d[1].type
+            const colorProp = R.path(
+              [nodeType, 'colorBy'],
+              enabledNodesFunc(mapId)
+            )
+            const sizeProp = R.path(
+              [nodeType, 'sizeBy'],
+              enabledNodesFunc(mapId)
+            )
 
-        const nullColor = R.path(['colorBy', colorProp], d[1])
-        const nullSize = R.path(['sizeBy', colorProp], d[1])
+            const nullColor = R.path(['colorBy', colorProp], d[1])
+            const nullSize = R.path(['sizeBy', colorProp], d[1])
 
-        const sizeValue = R.path(['props', sizeProp, 'value'], d[1])
-        const colorValue = R.path(['props', colorProp, 'value'], d[1])
+            const sizeValue = R.path(['props', sizeProp, 'value'], d[1])
+            const colorValue = R.path(['props', colorProp, 'value'], d[1])
 
-        const groupable = enabledNodesFunc(mapId)[nodeType].allowGrouping
+            const groupable = enabledNodesFunc(mapId)[nodeType].allowGrouping
 
-        return (
-          !(
-            R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
-            R.isNil(nullColor)
-          ) &&
-          (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
-          !(groupable && R.isNil(colorValue))
-        )
-      }),
-      R.groupBy((d) => {
-        const nodeType = d[1].type
-        return enabledNodesFunc(mapId)[nodeType].group || false
-      })
-    )(nodeDataFunc(mapId))
+            return (
+              !(
+                R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
+                R.isNil(nullColor)
+              ) &&
+              (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
+              !(groupable && R.isNil(colorValue))
+            )
+          }),
+          R.groupBy((d) => {
+            const nodeType = d[1].type
+            return enabledNodesFunc(mapId)[nodeType].group || false
+          })
+        )(nodeDataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectGroupedNodesWithIdFunc = createSelector(
   selectSplitNodeDataFunc,
-  (splitNodeDataFunc) => (mapId) =>
-    R.map((d) => R.assoc('id', d[0])(d[1]))(
-      R.propOr([], true, splitNodeDataFunc(mapId))
-    ),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.propOr([], true, a), R.propOr([], true, b)),
-    },
-  }
+  (splitNodeDataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.map((d) => R.assoc('id', d[0])(d[1]))(
+          R.propOr([], true, splitNodeDataFunc(mapId))
+        ),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectNodeRange = createSelector(
@@ -1281,297 +1485,333 @@ export const selectGeoColorRange = createSelector(
 
 export const selectMatchingKeysFunc = createSelector(
   [selectEnabledGeosFunc, selectGeosByType, selectTheme, selectGeoColorRange],
-  (enabledGeosFunc, geosByType, themeType, geoRange) => (mapId) =>
-    R.pipe(
-      R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-      R.values,
-      R.reduce(R.concat, []),
-      R.filter((d) => {
-        const colorProp = R.path([d.type, 'colorBy'], enabledGeosFunc(mapId))
+  (enabledGeosFunc, geosByType, themeType, geoRange) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
+          R.values,
+          R.reduce(R.concat, []),
+          R.filter((d) => {
+            const colorProp = R.path(
+              [d.type, 'colorBy'],
+              enabledGeosFunc(mapId)
+            )
 
-        const statRange = geoRange(d.type, colorProp, false)
+            const statRange = geoRange(d.type, colorProp, false)
 
-        return !(
-          R.has('nullColor', statRange) &&
-          R.isNil(R.prop('nullColor', statRange))
-        )
-      }),
-      R.indexBy(R.prop('geoJsonValue'))
-    )(geosByType)
+            return !(
+              R.has('nullColor', statRange) &&
+              R.isNil(R.prop('nullColor', statRange))
+            )
+          }),
+          R.indexBy(R.prop('geoJsonValue'))
+        )(geosByType),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectLineMatchingKeysFunc = createSelector(
   [selectMultiLineDataFunc, selectArcRange, selectTheme, selectEnabledArcsFunc],
-  (dataFunc, arcRange, themeType, enabledArcsFunc) => (mapId) =>
-    R.pipe(
-      R.map((d) => R.assoc('data_key', d[0], d[1])),
-      R.filter((d) => {
-        const colorProp = R.path([d.type, 'colorBy'], enabledArcsFunc(mapId))
+  (dataFunc, arcRange, themeType, enabledArcsFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.map((d) => R.assoc('data_key', d[0], d[1])),
+          R.filter((d) => {
+            const colorProp = R.path(
+              [d.type, 'colorBy'],
+              enabledArcsFunc(mapId)
+            )
 
-        const statRange = arcRange(d.type, colorProp, false)
+            const statRange = arcRange(d.type, colorProp, false)
 
-        return !(
-          R.has('nullColor', statRange) &&
-          R.isNil(R.prop('nullColor', statRange))
-        )
-      }),
-      R.indexBy(R.prop('geoJsonValue'))
-    )(dataFunc(mapId))
+            return !(
+              R.has('nullColor', statRange) &&
+              R.isNil(R.prop('nullColor', statRange))
+            )
+          }),
+          R.indexBy(R.prop('geoJsonValue'))
+        )(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectLineMatchingKeysByTypeFunc = createSelector(
   selectLineMatchingKeysFunc,
-  (dataFunc) => (mapId) =>
-    R.pipe(
-      R.toPairs,
-      R.groupBy(R.path([1, 'type'])),
-      R.map(R.fromPairs)
-    )(dataFunc(mapId))
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.toPairs,
+          R.groupBy(R.path([1, 'type'])),
+          R.map(R.fromPairs)
+        )(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectGetLegendGroupId = createSelector(
   selectLegendDataFunc,
-  (legendDataFunc) => (mapId) =>
-    R.curry((layerKey, type) =>
-      R.pipe(
-        toListWithKey('id'),
-        R.find(R.hasPath([layerKey, type])),
-        R.prop('id')
-      )(legendDataFunc(mapId))
+  (legendDataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.curry((layerKey, type) =>
+          R.pipe(
+            toListWithKey('id'),
+            R.find(R.hasPath([layerKey, type])),
+            R.prop('id')
+          )(legendDataFunc(mapId))
+        ),
+      MAX_MEMOIZED_CHARTS
     )
 )
 
 export const selectNodeClustersFunc = createSelector(
   [selectGroupedNodesWithIdFunc, selectEnabledNodesFunc],
-  (dataFunc, legendObjectsFunc) => (mapId) => {
-    const data = dataFunc(mapId)
-    // define helper functions
-    const getVarByProp = R.curry((varByKey, nodeObj) =>
-      R.path([nodeObj.type, varByKey])(legendObjectsFunc(mapId))
-    )
-    const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
-      R.path([nodeCluster.properties.type, varByKey])(legendObjectsFunc(mapId))
-    )
-    const getGroups = (ungroupedData, fn) =>
-      ungroupedData.reduce((acc, d) => {
-        const result = fn(d)
-        acc[result] = acc[result] || []
-        acc[result].push(d)
-        return acc
-      }, {})
-    const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
-    const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
-      R.pathOr(statId.COUNT, [nodeCluster.properties.type, groupCalculation])(
-        legendObjectsFunc(mapId)
-      )
-    )
-
-    const getColorGroupFn = R.pipe(
-      getGroupCalculation('groupCalcByColor'),
-      R.nth(R.__, getStatFn)
-    )
-
-    const getSizeGroupFn = R.pipe(
-      getGroupCalculation('groupCalcBySize'),
-      R.nth(R.__, getStatFn)
-    )
-    const getClusterSizeLimits = (cluster, sizeProp) =>
-      R.path(['properties', 'cluster'], cluster)
-        ? cluster.properties[sizeProp]
-        : R.pick(['startSize', 'endSize'], cluster.properties)
-
-    const getClustersColorLimits = (cluster, colorProp) =>
-      R.path(['properties', 'cluster'], cluster)
-        ? cluster.properties[colorProp]
-        : cluster.properties.colorByOptions[colorProp]
-
-    // Set the "supercluster" constructor parameters
-    const options = {
-      minZoom: Math.floor(MIN_ZOOM),
-      maxZoom: Math.floor(MAX_ZOOM),
-      radius: 50 * Math.sqrt(2),
-      deepClone: true,
-      map: (d) => {
-        const colorProp = getVarByProp('colorBy', d)
-        const sizeProp = getVarByProp('sizeBy', d)
-
-        const sizePropObj = {
-          [sizeProp]: sizeProp
-            ? {
-                value: [d.props[sizeProp].value],
-                startSize: d.startSize,
-                endSize: d.endSize,
-              }
-            : {},
-        }
-
-        const isCategorical = d.props[colorProp].type !== propId.NUMBER
-        const colorPropObj = {
-          [colorProp]: colorProp
-            ? {
-                type: d.props[colorProp].type,
-                value: [d.props[colorProp].value],
-                ...(isCategorical
-                  ? d.colorByOptions[colorProp]
-                  : {
-                      startGradientColor:
-                        d.colorByOptions[colorProp].startGradientColor,
-                      endGradientColor:
-                        d.colorByOptions[colorProp].endGradientColor,
-                    }),
-              }
-            : {},
-        }
-        return {
-          type: d.type,
-          colorDomain: null,
-          sizeDomain: null,
-          icon: d['icon'],
-          grouped_ids: [d.id],
-          ...R.mergeDeepRight(colorPropObj, sizePropObj),
-        }
-      },
-      reduce: (acc, dProps) => {
-        const id = dProps.grouped_ids
-        const colorProp = getVarByProp('colorBy', dProps)
-        const sizeProp = getVarByProp('sizeBy', dProps)
-        if (sizeProp) {
-          const propValue = dProps[sizeProp].value
-          acc[sizeProp].value = acc[sizeProp].value.concat(propValue)
-        }
-
-        // BUG: At some point, I noticed that there are more values
-        // in the resulting array than the actual points in the cluster,
-        // e.g. a cluster with two nodes with values 100 and 50 might end
-        // up with an array of values of [100, 50, 60].
-        // Not sure if this bug went away after some other fixes
-        if (colorProp && colorProp !== sizeProp) {
-          const propValue = dProps[colorProp].value
-          acc[colorProp].value = acc[colorProp].value.concat(propValue)
-        }
-        // all the ids of the points grouped in this cluster
-        if (id) {
-          acc.grouped_ids = acc.grouped_ids.concat(id)
-        }
-      },
-    }
-    // create groups
-    const groupsRaw = Object.values(getGroups(data, (d) => d.type))
-    const superCluster = new Supercluster(options)
-    const groups = {}
-    if (data.length > 0) {
-      // Iterate through every zoom level
-      for (let z = options.maxZoom; z >= options.minZoom; z--) {
-        const clusters = groupsRaw.reduce((acc, dataGroup) => {
-          let points = dataGroup.map((d) => ({
-            geometry: { coordinates: getPosition(d) },
-            properties: d,
-          }))
-
-          superCluster.load(points)
-          const groupClustersRaw = superCluster.getClusters(
-            [-180, -90, 180, 90],
-            z
+  (dataFunc, legendObjectsFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => {
+        const data = dataFunc(mapId)
+        // define helper functions
+        const getVarByProp = R.curry((varByKey, nodeObj) =>
+          R.path([nodeObj.type, varByKey])(legendObjectsFunc(mapId))
+        )
+        const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
+          R.path([nodeCluster.properties.type, varByKey])(
+            legendObjectsFunc(mapId)
           )
+        )
+        const getGroups = (ungroupedData, fn) =>
+          ungroupedData.reduce((acc, d) => {
+            const result = fn(d)
+            acc[result] = acc[result] || []
+            acc[result].push(d)
+            return acc
+          }, {})
+        const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
+        const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
+          R.pathOr(statId.COUNT, [
+            nodeCluster.properties.type,
+            groupCalculation,
+          ])(legendObjectsFunc(mapId))
+        )
 
-          // Aggregate clusters into a single data structure
-          return acc.concat(groupClustersRaw)
-        }, [])
+        const getColorGroupFn = R.pipe(
+          getGroupCalculation('groupCalcByColor'),
+          R.nth(R.__, getStatFn)
+        )
 
-        const ranges = {}
+        const getSizeGroupFn = R.pipe(
+          getGroupCalculation('groupCalcBySize'),
+          R.nth(R.__, getStatFn)
+        )
+        const getClusterSizeLimits = (cluster, sizeProp) =>
+          R.path(['properties', 'cluster'], cluster)
+            ? cluster.properties[sizeProp]
+            : R.pick(['startSize', 'endSize'], cluster.properties)
 
-        // find color/size value for each cluster - store min/max by type
-        for (let cluster of clusters) {
-          // The node type in this cluster
-          const clusterType = R.path(['properties', 'type'])(cluster)
-          // The props that we use in the legend for colorBy and sizeBy for a specific node type
-          const colorProp = getClusterVarByProp('colorBy', cluster)
-          const sizeProp = getClusterVarByProp('sizeBy', cluster)
-          // The prop type of colorProp to determine if the prop is categorical
-          const colorPropType = cluster.properties.cluster
-            ? cluster.properties[colorProp].type
-            : cluster.properties.props[colorProp].type
+        const getClustersColorLimits = (cluster, colorProp) =>
+          R.path(['properties', 'cluster'], cluster)
+            ? cluster.properties[colorProp]
+            : cluster.properties.colorByOptions[colorProp]
 
-          // gets the values and aggregates by groupCalculationFn
-          const getDomainValue = (prop, groupCalculationFn) =>
-            cluster.properties.cluster
-              ? groupCalculationFn(cluster.properties[prop].value)
-              : // Nodes that were not within the radius to form a cluster
-                // This uses the calculationFn to apply count properly
-                groupCalculationFn([cluster.properties.props[prop].value])
+        // Set the "supercluster" constructor parameters
+        const options = {
+          minZoom: Math.floor(MIN_ZOOM),
+          maxZoom: Math.floor(MAX_ZOOM),
+          radius: 50 * Math.sqrt(2),
+          deepClone: true,
+          map: (d) => {
+            const colorProp = getVarByProp('colorBy', d)
+            const sizeProp = getVarByProp('sizeBy', d)
 
-          // All elements of a cluster contain the same `nodeType`
-          // required to get the corresponding calculationGroup (color or size)
-          const colorGroupFn = getColorGroupFn(cluster)
-          const sizeGroupFn = getSizeGroupFn(cluster)
-
-          // calculate the color and size value based on the agg func
-          const colorValue = getDomainValue(colorProp, colorGroupFn)
-          const sizeValue = getDomainValue(sizeProp, sizeGroupFn)
-
-          // set the values including min/max size/color
-          cluster.properties.colorProp = {
-            ...getClustersColorLimits(cluster, colorProp),
-            value: colorValue,
-          }
-          cluster.properties.sizeProp = {
-            ...getClusterSizeLimits(cluster, sizeProp),
-            value: sizeValue,
-          }
-
-          // Find the current min/max for this node type
-          const { min: sizeMin, max: sizeMax } = R.pathOr(
-            { min: Infinity, max: -Infinity },
-            [clusterType, 'size'],
-            ranges
-          )
-          const { min: colorMin, max: colorMax } = R.pathOr(
-            { min: Infinity, max: -Infinity },
-            [clusterType, 'color'],
-            ranges
-          )
-          // Update the types min/max with new values
-          ranges[clusterType] = {
-            color:
-              colorPropType === propId.NUMBER
+            const sizePropObj = {
+              [sizeProp]: sizeProp
                 ? {
-                    min: R.min(colorMin, +colorValue),
-                    max: R.max(colorMax, +colorValue),
+                    value: [d.props[sizeProp].value],
+                    startSize: d.startSize,
+                    endSize: d.endSize,
                   }
-                : {}, // Empty for a categorical prop
-            size: {
-              min: R.min(sizeMin, sizeValue),
-              max: R.max(sizeMax, sizeValue),
-            },
+                : {},
+            }
+
+            const isCategorical = d.props[colorProp].type !== propId.NUMBER
+            const colorPropObj = {
+              [colorProp]: colorProp
+                ? {
+                    type: d.props[colorProp].type,
+                    value: [d.props[colorProp].value],
+                    ...(isCategorical
+                      ? d.colorByOptions[colorProp]
+                      : {
+                          startGradientColor:
+                            d.colorByOptions[colorProp].startGradientColor,
+                          endGradientColor:
+                            d.colorByOptions[colorProp].endGradientColor,
+                        }),
+                  }
+                : {},
+            }
+            return {
+              type: d.type,
+              colorDomain: null,
+              sizeDomain: null,
+              icon: d['icon'],
+              grouped_ids: [d.id],
+              ...R.mergeDeepRight(colorPropObj, sizePropObj),
+            }
+          },
+          reduce: (acc, dProps) => {
+            const id = dProps.grouped_ids
+            const colorProp = getVarByProp('colorBy', dProps)
+            const sizeProp = getVarByProp('sizeBy', dProps)
+            if (sizeProp) {
+              const propValue = dProps[sizeProp].value
+              acc[sizeProp].value = acc[sizeProp].value.concat(propValue)
+            }
+
+            // BUG: At some point, I noticed that there are more values
+            // in the resulting array than the actual points in the cluster,
+            // e.g. a cluster with two nodes with values 100 and 50 might end
+            // up with an array of values of [100, 50, 60].
+            // Not sure if this bug went away after some other fixes
+            if (colorProp && colorProp !== sizeProp) {
+              const propValue = dProps[colorProp].value
+              acc[colorProp].value = acc[colorProp].value.concat(propValue)
+            }
+            // all the ids of the points grouped in this cluster
+            if (id) {
+              acc.grouped_ids = acc.grouped_ids.concat(id)
+            }
+          },
+        }
+        // create groups
+        const groupsRaw = Object.values(getGroups(data, (d) => d.type))
+        const superCluster = new Supercluster(options)
+        const groups = {}
+        if (data.length > 0) {
+          // Iterate through every zoom level
+          for (let z = options.maxZoom; z >= options.minZoom; z--) {
+            const clusters = groupsRaw.reduce((acc, dataGroup) => {
+              let points = dataGroup.map((d) => ({
+                geometry: { coordinates: getPosition(d) },
+                properties: d,
+              }))
+
+              superCluster.load(points)
+              const groupClustersRaw = superCluster.getClusters(
+                [-180, -90, 180, 90],
+                z
+              )
+
+              // Aggregate clusters into a single data structure
+              return acc.concat(groupClustersRaw)
+            }, [])
+
+            const ranges = {}
+
+            // find color/size value for each cluster - store min/max by type
+            for (let cluster of clusters) {
+              // The node type in this cluster
+              const clusterType = R.path(['properties', 'type'])(cluster)
+              // The props that we use in the legend for colorBy and sizeBy for a specific node type
+              const colorProp = getClusterVarByProp('colorBy', cluster)
+              const sizeProp = getClusterVarByProp('sizeBy', cluster)
+              // The prop type of colorProp to determine if the prop is categorical
+              const colorPropType = cluster.properties.cluster
+                ? cluster.properties[colorProp].type
+                : cluster.properties.props[colorProp].type
+
+              // gets the values and aggregates by groupCalculationFn
+              const getDomainValue = (prop, groupCalculationFn) =>
+                cluster.properties.cluster
+                  ? groupCalculationFn(cluster.properties[prop].value)
+                  : // Nodes that were not within the radius to form a cluster
+                    // This uses the calculationFn to apply count properly
+                    groupCalculationFn([cluster.properties.props[prop].value])
+
+              // All elements of a cluster contain the same `nodeType`
+              // required to get the corresponding calculationGroup (color or size)
+              const colorGroupFn = getColorGroupFn(cluster)
+              const sizeGroupFn = getSizeGroupFn(cluster)
+
+              // calculate the color and size value based on the agg func
+              const colorValue = getDomainValue(colorProp, colorGroupFn)
+              const sizeValue = getDomainValue(sizeProp, sizeGroupFn)
+
+              // set the values including min/max size/color
+              cluster.properties.colorProp = {
+                ...getClustersColorLimits(cluster, colorProp),
+                value: colorValue,
+              }
+              cluster.properties.sizeProp = {
+                ...getClusterSizeLimits(cluster, sizeProp),
+                value: sizeValue,
+              }
+
+              // Find the current min/max for this node type
+              const { min: sizeMin, max: sizeMax } = R.pathOr(
+                { min: Infinity, max: -Infinity },
+                [clusterType, 'size'],
+                ranges
+              )
+              const { min: colorMin, max: colorMax } = R.pathOr(
+                { min: Infinity, max: -Infinity },
+                [clusterType, 'color'],
+                ranges
+              )
+              // Update the types min/max with new values
+              ranges[clusterType] = {
+                color:
+                  colorPropType === propId.NUMBER
+                    ? {
+                        min: R.min(colorMin, +colorValue),
+                        max: R.max(colorMax, +colorValue),
+                      }
+                    : {}, // Empty for a categorical prop
+                size: {
+                  min: R.min(sizeMin, sizeValue),
+                  max: R.max(sizeMax, sizeValue),
+                },
+              }
+            }
+            groups[z] = { data: clusters, range: ranges }
           }
         }
-        groups[z] = { data: clusters, range: ranges }
-      }
-    }
-    return groups
-  }
+        return groups
+      },
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectNodeClustersAtZoomFunc = createSelector(
   [selectNodeClustersFunc, selectViewportFunc],
-  (nodeClustersFunc, viewportFunc) => (mapId) =>
-    R.propOr({}, Math.floor(viewportFunc(mapId).zoom), nodeClustersFunc(mapId)),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.has('zoom', a) ? R.eqProps('zoom', a, b) : a === b,
-    },
-  }
+  (nodeClustersFunc, viewportFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.propOr(
+          {},
+          Math.floor(viewportFunc(mapId).zoom),
+          nodeClustersFunc(mapId)
+        ),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectNodeRangeAtZoomFunc = createSelector(
   selectNodeClustersAtZoomFunc,
-  (nodeClustersFunc) => (mapId) =>
-    R.propOr({}, 'range')(nodeClustersFunc(mapId)),
-  {
-    memoizeOptions: {
-      resultEqualityCheck: R.equals,
-    },
-  }
+  (nodeClustersFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.propOr({}, 'range')(nodeClustersFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectNodeGeoJsonObjectFunc = createSelector(
@@ -1581,364 +1821,397 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
     selectEnabledNodesFunc,
     selectTheme,
   ],
-  (nodeDataSplitFunc, nodeRange, legendObjectsFunc, themeType) => (mapId) =>
-    R.pipe(
-      R.propOr({}, false),
-      R.mapObjIndexed((obj) => {
-        const [id, node] = obj
+  (nodeDataSplitFunc, nodeRange, legendObjectsFunc, themeType) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.propOr({}, false),
+          R.mapObjIndexed((obj) => {
+            const [id, node] = obj
 
-        const sizeProp = R.path([node.type, 'sizeBy'], legendObjectsFunc(mapId))
-        const sizeRange = nodeRange(node.type, sizeProp, true)
-        const sizePropVal = parseFloat(
-          R.path(['props', sizeProp, 'value'], node)
-        )
-        const size = isNaN(sizePropVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              R.prop('min', sizeRange),
-              R.prop('max', sizeRange),
-              parseFloat(R.prop('startSize', node)),
-              parseFloat(R.prop('endSize', node)),
-              sizePropVal
+            const sizeProp = R.path(
+              [node.type, 'sizeBy'],
+              legendObjectsFunc(mapId)
             )
-        const colorProp = R.path(
-          [node.type, 'colorBy'],
-          legendObjectsFunc(mapId)
-        )
-        const colorPropVal = R.pipe(
-          R.path(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(node)
-        const colorRange = nodeRange(node.type, colorProp, false)
-
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
-
-        const isCategorical = !R.has('min', colorRange)
-        const color = isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
+            const sizeRange = nodeRange(node.type, sizeProp, true)
+            const sizePropVal = parseFloat(
+              R.path(['props', sizeProp, 'value'], node)
             )
-          : getScaledArray(
-              R.prop('min', colorRange),
-              R.prop('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
+            const size = isNaN(sizePropVal)
+              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+              : getScaledValue(
+                  R.prop('min', sizeRange),
+                  R.prop('max', sizeRange),
+                  parseFloat(R.prop('startSize', node)),
+                  parseFloat(R.prop('endSize', node)),
+                  sizePropVal
                 )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(colorPropVal)
+            const colorProp = R.path(
+              [node.type, 'colorBy'],
+              legendObjectsFunc(mapId)
             )
-        const colorString = R.equals('', colorPropVal)
-          ? nullColor
-          : `rgb(${color.join(',')})`
-        return {
-          type: 'Feature',
-          properties: {
-            cave_obj: node,
-            cave_name: id,
-            color: colorString,
-            size: size / 250,
-            icon: node.icon,
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [node.longitude, node.latitude],
-          },
-        }
-      }),
-      R.values
-    )(nodeDataSplitFunc(mapId))
+            const colorPropVal = R.pipe(
+              R.path(['props', colorProp, 'value']),
+              R.when(R.isNil, R.always('')),
+              (s) => s.toString()
+            )(node)
+            const colorRange = nodeRange(node.type, colorProp, false)
+
+            const nullColor = R.pathOr(
+              R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+              ['nullColor', themeType],
+              colorRange
+            )
+
+            const isCategorical = !R.has('min', colorRange)
+            const color = isCategorical
+              ? R.map((val) => parseFloat(val))(
+                  R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                )
+              : getScaledArray(
+                  R.prop('min', colorRange),
+                  R.prop('max', colorRange),
+                  R.map((val) => parseFloat(val))(
+                    R.pathOr(
+                      R.prop('startGradientColor', colorRange),
+                      ['startGradientColor', themeType],
+                      colorRange
+                    )
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  R.map((val) => parseFloat(val))(
+                    R.pathOr(
+                      R.prop('endGradientColor', colorRange),
+                      ['endGradientColor', themeType],
+                      colorRange
+                    )
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  parseFloat(colorPropVal)
+                )
+            const colorString = R.equals('', colorPropVal)
+              ? nullColor
+              : `rgb(${color.join(',')})`
+            return {
+              type: 'Feature',
+              properties: {
+                cave_obj: node,
+                cave_name: id,
+                color: colorString,
+                size: size / 250,
+                icon: node.icon,
+              },
+              geometry: {
+                type: 'Point',
+                coordinates: [node.longitude, node.latitude],
+              },
+            }
+          }),
+          R.values
+        )(nodeDataSplitFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 export const selectNodeClusterGeoJsonObjectFunc = createSelector(
   [selectNodeClustersAtZoomFunc, selectTheme],
-  (nodeClustersFunc, themeType) => (mapId) =>
-    R.map((group) => {
-      const sizeRange =
-        nodeClustersFunc(mapId).range[group.properties.type].size
-      const sizePropObj = R.path(['properties', 'sizeProp'], group)
+  (nodeClustersFunc, themeType) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.map((group) => {
+          const sizeRange =
+            nodeClustersFunc(mapId).range[group.properties.type].size
+          const sizePropObj = R.path(['properties', 'sizeProp'], group)
 
-      const size = getScaledValue(
-        R.prop('min', sizeRange),
-        R.prop('max', sizeRange),
-        parseFloat(R.prop('startSize', sizePropObj)),
-        parseFloat(R.prop('endSize', sizePropObj)),
-        parseFloat(sizePropObj.value)
-      )
-
-      const nodeType = group.properties.type
-      const colorObj = group.properties.colorProp
-      const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-      const isCategorical = !R.has('min')(colorDomain)
-      const value = R.prop('value', colorObj)
-      const colorRange = isCategorical
-        ? colorObj
-        : R.map((prop) =>
-            R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
-          )(['startGradientColor', 'endGradientColor'])
-
-      const color = isCategorical
-        ? R.when(
-            R.has(themeType),
-            R.prop(themeType)
-          )(R.prop(value, colorRange))
-            .replace(/[^\d,.]/g, '')
-            .split(',')
-        : getScaledRgbObj(
-            [R.prop('min', colorDomain), R.prop('max', colorDomain)],
-            colorRange,
-            value
+          const size = getScaledValue(
+            R.prop('min', sizeRange),
+            R.prop('max', sizeRange),
+            parseFloat(R.prop('startSize', sizePropObj)),
+            parseFloat(R.prop('endSize', sizePropObj)),
+            parseFloat(sizePropObj.value)
           )
-      const id = R.pathOr(
-        JSON.stringify(
-          R.slice(0, 2, R.pathOr([], ['properties', 'grouped_ids'], group))
-        ),
-        ['properties', 'id']
-      )(group)
 
-      const colorString = `rgb(${color.join(',')})`
-      return {
-        type: 'Feature',
-        properties: {
-          cave_obj: group,
-          cave_isCluster: true,
-          cave_name: id,
-          color: colorString,
-          size: size / 250,
-          icon: group.properties.icon,
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: group.geometry.coordinates,
-        },
-      }
-    })(R.propOr([], 'data', nodeClustersFunc(mapId)))
+          const nodeType = group.properties.type
+          const colorObj = group.properties.colorProp
+          const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
+          const isCategorical = !R.has('min')(colorDomain)
+          const value = R.prop('value', colorObj)
+          const colorRange = isCategorical
+            ? colorObj
+            : R.map((prop) =>
+                R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
+              )(['startGradientColor', 'endGradientColor'])
+
+          const color = isCategorical
+            ? R.when(
+                R.has(themeType),
+                R.prop(themeType)
+              )(R.prop(value, colorRange))
+                .replace(/[^\d,.]/g, '')
+                .split(',')
+            : getScaledRgbObj(
+                [R.prop('min', colorDomain), R.prop('max', colorDomain)],
+                colorRange,
+                value
+              )
+          const id = R.pathOr(
+            JSON.stringify(
+              R.slice(0, 2, R.pathOr([], ['properties', 'grouped_ids'], group))
+            ),
+            ['properties', 'id']
+          )(group)
+
+          const colorString = `rgb(${color.join(',')})`
+          return {
+            type: 'Feature',
+            properties: {
+              cave_obj: group,
+              cave_isCluster: true,
+              cave_name: id,
+              color: colorString,
+              size: size / 250,
+              icon: group.properties.icon,
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: group.geometry.coordinates,
+            },
+          }
+        })(R.propOr([], 'data', nodeClustersFunc(mapId))),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectNodeLayerGeoJsonFunc = createSelector(
   [selectNodeGeoJsonObjectFunc, selectNodeClusterGeoJsonObjectFunc],
-  (nodesFunc, clustersFunc) => (mapId) =>
-    R.concat(nodesFunc(mapId), clustersFunc(mapId))
+  (nodesFunc, clustersFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.concat(nodesFunc(mapId), clustersFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectArcLayerGeoJsonFunc = createSelector(
   [selectArcRange, selectTheme, selectLineDataFunc, selectEnabledArcsFunc],
-  (arcRange, themeType, arcDataFunc, legendObjectsFunc) => (mapId) =>
-    R.pipe(
-      R.map(([id, arc]) => {
-        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjectsFunc(mapId))
-        const sizeRange = arcRange(arc.type, sizeProp, true)
-        const sizePropVal = parseFloat(
-          R.path(['props', sizeProp, 'value'], arc)
-        )
-        const size = isNaN(sizePropVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              R.prop('min', sizeRange),
-              R.prop('max', sizeRange),
-              parseFloat(R.prop('startSize', arc)),
-              parseFloat(R.prop('endSize', arc)),
-              sizePropVal
+  (arcRange, themeType, arcDataFunc, legendObjectsFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.map(([id, arc]) => {
+            const sizeProp = R.path(
+              [arc.type, 'sizeBy'],
+              legendObjectsFunc(mapId)
             )
-        const colorProp = R.path(
-          [arc.type, 'colorBy'],
-          legendObjectsFunc(mapId)
-        )
-        const colorRange = arcRange(arc.type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        const colorPropVal = R.pipe(
-          R.path(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(arc)
-
-        if (
-          R.has('nullColor', colorRange) &&
-          R.isNil(R.prop('nullColor', colorRange)) &&
-          R.equals('', colorPropVal)
-        )
-          return false
-
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
-
-        const color = isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
+            const sizeRange = arcRange(arc.type, sizeProp, true)
+            const sizePropVal = parseFloat(
+              R.path(['props', sizeProp, 'value'], arc)
             )
-          : getScaledArray(
-              R.prop('min', colorRange),
-              R.prop('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
+            const size = isNaN(sizePropVal)
+              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+              : getScaledValue(
+                  R.prop('min', sizeRange),
+                  R.prop('max', sizeRange),
+                  parseFloat(R.prop('startSize', arc)),
+                  parseFloat(R.prop('endSize', arc)),
+                  sizePropVal
                 )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(colorPropVal)
+            const colorProp = R.path(
+              [arc.type, 'colorBy'],
+              legendObjectsFunc(mapId)
             )
-        const colorString = R.equals('', colorPropVal)
-          ? nullColor
-          : `rgb(${color.join(',')})`
+            const colorRange = arcRange(arc.type, colorProp, false)
+            const isCategorical = !R.has('min', colorRange)
+            const colorPropVal = R.pipe(
+              R.path(['props', colorProp, 'value']),
+              R.when(R.isNil, R.always('')),
+              (s) => s.toString()
+            )(arc)
 
-        const dashPattern = R.propOr('solid', 'lineBy')(arc)
+            if (
+              R.has('nullColor', colorRange) &&
+              R.isNil(R.prop('nullColor', colorRange)) &&
+              R.equals('', colorPropVal)
+            )
+              return false
 
-        return {
-          type: 'Feature',
-          properties: {
-            cave_obj: arc,
-            cave_name: id,
-            color: colorString,
-            size: size,
-            dash: dashPattern,
-          },
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [arc.startLongitude, arc.startLatitude],
-              [arc.endLongitude, arc.endLatitude],
-            ],
-          },
-        }
-      }),
-      R.filter(R.identity),
-      R.groupBy(R.path(['properties', 'dash']))
-    )(arcDataFunc(mapId))
+            const nullColor = R.pathOr(
+              R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+              ['nullColor', themeType],
+              colorRange
+            )
+
+            const color = isCategorical
+              ? R.map((val) => parseFloat(val))(
+                  R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                )
+              : getScaledArray(
+                  R.prop('min', colorRange),
+                  R.prop('max', colorRange),
+                  R.map((val) => parseFloat(val))(
+                    R.pathOr(
+                      R.prop('startGradientColor', colorRange),
+                      ['startGradientColor', themeType],
+                      colorRange
+                    )
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  R.map((val) => parseFloat(val))(
+                    R.pathOr(
+                      R.prop('endGradientColor', colorRange),
+                      ['endGradientColor', themeType],
+                      colorRange
+                    )
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  parseFloat(colorPropVal)
+                )
+            const colorString = R.equals('', colorPropVal)
+              ? nullColor
+              : `rgb(${color.join(',')})`
+
+            const dashPattern = R.propOr('solid', 'lineBy')(arc)
+
+            return {
+              type: 'Feature',
+              properties: {
+                cave_obj: arc,
+                cave_name: id,
+                color: colorString,
+                size: size,
+                dash: dashPattern,
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [arc.startLongitude, arc.startLatitude],
+                  [arc.endLongitude, arc.endLatitude],
+                ],
+              },
+            }
+          }),
+          R.filter(R.identity),
+          R.groupBy(R.path(['properties', 'dash']))
+        )(arcDataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )
 
 export const selectArcLayer3DGeoJsonFunc = createSelector(
   [selectArcRange, selectTheme, selectArcDataFunc, selectEnabledArcsFunc],
-  (arcRange, themeType, arcDataFunc, legendObjectsFunc) => (mapId) =>
-    R.pipe(
-      R.map(([id, arc]) => {
-        const sizeProp = R.path([arc.type, 'sizeBy'], legendObjectsFunc(mapId))
-        const sizeRange = arcRange(arc.type, sizeProp, true)
-        const sizePropVal = parseFloat(
-          R.path(['props', sizeProp, 'value'], arc)
-        )
-        const size = isNaN(sizePropVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              R.prop('min', sizeRange),
-              R.prop('max', sizeRange),
-              parseFloat(R.prop('startSize', arc)),
-              parseFloat(R.prop('endSize', arc)),
-              sizePropVal
+  (arcRange, themeType, arcDataFunc, legendObjectsFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.map(([id, arc]) => {
+            const sizeProp = R.path(
+              [arc.type, 'sizeBy'],
+              legendObjectsFunc(mapId)
             )
-        const colorProp = R.path(
-          [arc.type, 'colorBy'],
-          legendObjectsFunc(mapId)
-        )
-        const colorRange = arcRange(arc.type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        const colorPropVal = R.pipe(
-          R.path(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(arc)
-
-        if (
-          R.has('nullColor', colorRange) &&
-          R.isNil(R.prop('nullColor', colorRange)) &&
-          R.equals('', colorPropVal)
-        )
-          return false
-
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
-
-        const color = isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
+            const sizeRange = arcRange(arc.type, sizeProp, true)
+            const sizePropVal = parseFloat(
+              R.path(['props', sizeProp, 'value'], arc)
             )
-          : getScaledArray(
-              R.prop('min', colorRange),
-              R.prop('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
+            const size = isNaN(sizePropVal)
+              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+              : getScaledValue(
+                  R.prop('min', sizeRange),
+                  R.prop('max', sizeRange),
+                  parseFloat(R.prop('startSize', arc)),
+                  parseFloat(R.prop('endSize', arc)),
+                  sizePropVal
                 )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(colorPropVal)
+            const colorProp = R.path(
+              [arc.type, 'colorBy'],
+              legendObjectsFunc(mapId)
             )
-        const colorString = R.equals('', colorPropVal)
-          ? nullColor
-          : `rgb(${color.join(',')})`
+            const colorRange = arcRange(arc.type, colorProp, false)
+            const isCategorical = !R.has('min', colorRange)
+            const colorPropVal = R.pipe(
+              R.path(['props', colorProp, 'value']),
+              R.when(R.isNil, R.always('')),
+              (s) => s.toString()
+            )(arc)
 
-        const dashPattern = R.propOr('solid', 'lineBy')(arc)
+            if (
+              R.has('nullColor', colorRange) &&
+              R.isNil(R.prop('nullColor', colorRange)) &&
+              R.equals('', colorPropVal)
+            )
+              return false
 
-        return {
-          type: 'Feature',
-          properties: {
-            cave_obj: arc,
-            cave_name: id,
-            color: colorString,
-            size: size,
-            dash: dashPattern,
-          },
-          geometry: {
-            type: 'LineString',
-            coordinates: [
-              [arc.startLongitude, arc.startLatitude],
-              [arc.endLongitude, arc.endLatitude],
-            ],
-          },
-        }
-      }),
-      R.filter(R.identity)
-    )(arcDataFunc(mapId))
+            const nullColor = R.pathOr(
+              R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
+              ['nullColor', themeType],
+              colorRange
+            )
+
+            const color = isCategorical
+              ? R.map((val) => parseFloat(val))(
+                  R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                )
+              : getScaledArray(
+                  R.prop('min', colorRange),
+                  R.prop('max', colorRange),
+                  R.map((val) => parseFloat(val))(
+                    R.pathOr(
+                      R.prop('startGradientColor', colorRange),
+                      ['startGradientColor', themeType],
+                      colorRange
+                    )
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  R.map((val) => parseFloat(val))(
+                    R.pathOr(
+                      R.prop('endGradientColor', colorRange),
+                      ['endGradientColor', themeType],
+                      colorRange
+                    )
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  parseFloat(colorPropVal)
+                )
+            const colorString = R.equals('', colorPropVal)
+              ? nullColor
+              : `rgb(${color.join(',')})`
+
+            const dashPattern = R.propOr('solid', 'lineBy')(arc)
+
+            return {
+              type: 'Feature',
+              properties: {
+                cave_obj: arc,
+                cave_name: id,
+                color: colorString,
+                size: size,
+                dash: dashPattern,
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [arc.startLongitude, arc.startLatitude],
+                  [arc.endLongitude, arc.endLatitude],
+                ],
+              },
+            }
+          }),
+          R.filter(R.identity)
+        )(arcDataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
 )

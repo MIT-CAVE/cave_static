@@ -522,7 +522,7 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
 export const Arcs3D = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const appBarId = useSelector(selectAppBarId)
-  const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc(mapId))
+  const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
   return (
     <ArcLayer3D
       features={arcLayerGeoJson}

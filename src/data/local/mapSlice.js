@@ -192,8 +192,6 @@ export const mapSlice = createSlice({
     },
     // payload: mapId:string
     closeMapModal: (state, action) => {
-      console.trace()
-      console.log(action.payload)
       const currentModal = R.pathOr(
         {
           isOpen: false,
