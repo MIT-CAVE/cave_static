@@ -2,7 +2,7 @@ import { Grid, Input, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { useEffect, useState } from 'react'
 
-import { getSliderMarks, formatNumber } from '../../utils'
+import { NumberFormat, getSliderMarks } from '../../utils'
 
 const styles = {
   inputWrapper: {
@@ -27,7 +27,10 @@ export const ValueRange = ({
   valueStart,
   minValue,
   maxValue,
-  numberFormat,
+  // Here, units are excluded from `format` as
+  // they are rendered in the prop container
+  // eslint-disable-next-line no-unused-vars
+  numberFormat: { unit, unitPlacement, ...numberFormat },
   sliderProps,
   onClickAwayHandler,
 }) => {
@@ -44,8 +47,8 @@ export const ValueRange = ({
   const step = (max - min) / 100
 
   const getLabelFormat = (value) =>
-    formatNumber(value, {
-      ...R.dissoc('unit')(numberFormat),
+    NumberFormat.format(value, {
+      ...numberFormat,
       trailingZeros: false,
     })
   return (
@@ -91,7 +94,7 @@ export const ValueRange = ({
           inputProps={{
             step: step * 10,
             min,
-            max: formatNumber(max, R.dissoc('unit')(numberFormat)),
+            max: NumberFormat.format(max, numberFormat),
             type: 'number',
           }}
         />

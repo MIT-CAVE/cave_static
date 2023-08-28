@@ -3,13 +3,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useMemo, useState } from 'react'
 
-import {
-  getLocaleNumberParts,
-  getStatusIcon,
-  isNumericInputValid,
-  parseNumber,
-  formatNumber,
-} from '../../utils'
+import { NumberFormat, getStatusIcon } from '../../utils'
 
 const NumberInput = ({
   color = 'default',
@@ -19,31 +13,30 @@ const NumberInput = ({
   max,
   placeholder,
   value: defaultValue,
-  // Here, units are excluded from `formatNumber`
-  // as they are rendered on the prop container
+  // Here, units are excluded from `format` as
+  // they are rendered in the prop container
   // eslint-disable-next-line no-unused-vars
-  numberFormat: { unit, currency, ...numberFormat },
+  numberFormat: { unit, unitPlacement, ...numberFormat },
   onClickAway,
 }) => {
-  // const numberFormat = R.omit(['unit', 'currency'])(numberFormat)
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
-    defaultValue == null ? '' : formatNumber(defaultValue, numberFormat)
+    defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
   )
-  const [{ decimal }] = useState(getLocaleNumberParts())
+
   // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
   const { validNaNs, zerosMatch } = useMemo(
     () => ({
-      validNaNs: new RegExp(`^(-|\\+)?0?\\${decimal}?$`),
-      zerosMatch: new RegExp(`\\${decimal}\\d*?[1-9]*(0+)?$`),
+      validNaNs: new RegExp(`^(-|\\+)?0?\\${NumberFormat.decimal}?$`),
+      zerosMatch: new RegExp(`\\${NumberFormat.decimal}\\d*?[1-9]*(0+)?$`),
     }),
-    [decimal]
+    []
   )
 
   const handleChange = (event) => {
     const rawValueText = event.target.value
-    const rawValue = parseNumber(rawValueText)
-    if (!isNumericInputValid(rawValue) && !R.test(validNaNs)(rawValueText))
+    const rawValue = NumberFormat.parse(rawValueText)
+    if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText))
       return
 
     if (isNaN(rawValue)) {
@@ -59,9 +52,9 @@ const NumberInput = ({
         `${newValueText}${
           !forceInt &&
           // was the decimal lost in formatting?
-          rawValueText.includes(decimal) &&
-          !newValueText.includes(decimal)
-            ? decimal
+          rawValueText.includes(NumberFormat.decimal) &&
+          !newValueText.includes(NumberFormat.decimal)
+            ? NumberFormat.decimal
             : ''
         }${trailingZeros != null ? trailingZeros : ''}`
       )
@@ -76,14 +69,15 @@ const NumberInput = ({
       focused={color !== 'default'}
       value={valueText}
       onChange={handleChange}
+      onFocus={() => {
+        setValueText(value)
+      }}
       onBlur={() => {
         if (!enabled) return
 
-        // Extra decimals are always rounded
-        const roundedVal = parseNumber(formatNumber(value, numberFormat))
-        const clampedVal = R.clamp(min, max, roundedVal)
+        const clampedVal = R.clamp(min, max, value)
         setValue(clampedVal)
-        setValueText(formatNumber(clampedVal, numberFormat))
+        setValueText(NumberFormat.format(clampedVal, numberFormat))
         if (clampedVal === defaultValue) return
 
         onClickAway(clampedVal)

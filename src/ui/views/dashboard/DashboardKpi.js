@@ -52,8 +52,8 @@ const DashboardKpi = ({ obj }) => {
 
   const actualKpi = R.pipe(customSort, R.pluck('id'))(kpiData)
   const kpiUnits = R.map((item) => {
-    const { numberFormat = {} } = R.defaultTo({})(kpiData[item])
-    return numberFormat.unit || numberFormatDefault.unit
+    const kpi = R.propOr({}, item)(kpiData)
+    return kpi.unit || numberFormatDefault.unit
   })(actualKpi)
 
   const tableLabels = R.zipWith(
@@ -75,7 +75,7 @@ const DashboardKpi = ({ obj }) => {
   // unlikely in a general `numberFormat` definition, `unit`s are
   // excluded as they will be represented in the header or as part
   // of the axis labels.
-  const commonFormat = R.dissoc('unit')(numberFormatDefault)
+  const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
 
   return (
     <Box

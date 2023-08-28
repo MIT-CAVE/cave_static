@@ -73,8 +73,7 @@ const DashboardChart = ({ obj }) => {
       }`
     : ''
   const stat = R.propOr({}, obj.statistic)(statisticTypes)
-  const { numberFormat = {} } = stat
-  const unit = numberFormat.unit || numberFormatDefault.unit
+  const unit = stat.unit || numberFormatDefault.unit
 
   const yAxisTitle = `${getLabelFn(statisticTypes)(obj.statistic)}${
     unit ? ` [${unit}]` : ''
@@ -84,8 +83,7 @@ const DashboardChart = ({ obj }) => {
 
   const tableStatLabels = R.map((item) => {
     const stat = R.propOr({}, item)(statisticTypes)
-    const { numberFormat = {} } = stat
-    const unit = numberFormat.unit || numberFormatDefault.unit
+    const unit = stat.unit || numberFormatDefault.unit
     return `${getLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
   })(actualStat)
 
@@ -124,7 +122,7 @@ const DashboardChart = ({ obj }) => {
   // unlikely in a general `numberFormat` definition, `unit`s are
   // excluded as they will be represented in the header or as part
   // of the axis labels.
-  const commonFormat = R.dissoc('unit')(numberFormatDefault)
+  const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
   return (
     <Box
       sx={{

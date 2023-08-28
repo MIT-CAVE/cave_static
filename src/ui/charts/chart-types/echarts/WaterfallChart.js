@@ -4,8 +4,8 @@ import * as R from 'ramda'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 import {
+  NumberFormat,
   adjustMinMax,
-  formatNumber,
   getChartItemColor,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
@@ -198,7 +198,7 @@ const WaterfallChart = ({
       top: 24,
     },
     tooltip: {
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       trigger: 'axis',
       textStyle: {
@@ -540,7 +540,7 @@ const StackedWaterfallChart = ({
       trigger: 'item',
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
   })
 
@@ -588,7 +588,7 @@ const StackedWaterfallChart = ({
       trigger: 'axis',
       backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
     grid: {
       top: 64,

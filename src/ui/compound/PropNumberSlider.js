@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 
 import { ValueRange } from './ValueRange'
 
-import { selectNumberFormat } from '../../data/selectors'
+import { selectNumberFormatPropsFn } from '../../data/selectors'
 
 const styles = (theme) => ({
   pt: 1,
@@ -23,16 +23,15 @@ const styles = (theme) => ({
 })
 
 const PropNumberSlider = ({ prop, currentVal, onChange }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
 
   const enabled = prop.enabled || false
   const min = R.propOr(-Infinity, 'minValue', prop)
   const max = R.propOr(Infinity, 'maxValue', prop)
-  const numberFormatRaw = prop.numberFormat || {}
-  const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <ValueRange
-      {...{ enabled, numberFormat }}
+      {...{ enabled }}
+      numberFormat={numberFormatProps}
       sliderProps={{ sx: styles }}
       minValue={min}
       maxValue={max}

@@ -1,14 +1,13 @@
 import { Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
-import { selectNumberFormat } from '../../data/selectors'
+import { selectNumberFormatPropsFn } from '../../data/selectors'
 
-import { forceArray, formatNumber } from '../../utils'
+import { NumberFormat, forceArray } from '../../utils'
 
 const rootStyle = {
   p: 2,
@@ -20,22 +19,15 @@ const KpiMap = ({
   title,
   value,
   icon,
-  numberFormat: numberFormatRaw = {},
   style,
   sx = [],
   mapKpi = true,
   ...props
 }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
-  const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(props)
   if (mapKpi) {
     return (
-      <Paper
-        elevation={10}
-        sx={[rootStyle, style, ...forceArray(sx)]}
-        {...props}
-      >
+      <Paper elevation={10} sx={[rootStyle, style, ...forceArray(sx)]}>
         <Typography sx={{ pb: 1 }} variant="subtitle1">
           <OverflowText text={title} />
         </Typography>
@@ -44,7 +36,9 @@ const KpiMap = ({
             <FetchedIcon iconName={icon} />
           </Grid>
           <Grid item xs={10}>
-            <OverflowText text={formatNumber(value, numberFormat)} />
+            <OverflowText
+              text={NumberFormat.format(value, numberFormatProps)}
+            />
           </Grid>
         </Grid>
       </Paper>

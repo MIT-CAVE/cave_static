@@ -107,11 +107,7 @@ const PropBase = ({ prop, children }) => {
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     tooltipTitle: R.prop('help'),
-    unit: R.pipe(
-      R.propOr({}, 'numberFormat'),
-      R.mergeRight(numberFormatDefault),
-      R.prop('unit')
-    ),
+    unit: R.propOr(numberFormatDefault.unit, 'unit'),
     // eslint-disable-next-line ramda/cond-simplification
     type: R.cond([
       [R.has('container'), R.prop('container')],

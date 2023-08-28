@@ -162,3 +162,31 @@ export const chartStatUses = {
   Scatter: ['X Axis', 'Y Axis'],
   Bubble: ['X Axis', 'Y Axis', 'Size'],
 }
+
+export const unitPlacements = {
+  AFTER: 'after',
+  AFTER_WITH_SPACE: 'afterWithSpace',
+  BEFORE: 'before',
+  BEFORE_WITH_SPACE: 'beforeWithSpace',
+}
+
+export const notationOptions = {
+  COMPACT: 'compact',
+  ENGINEERING: 'engineering',
+  SCIENTIFIC: 'scientific',
+  STANDARD: 'standard',
+  // Emulates `Number.prototype.toPrecision`. This is
+  // not part of the notations supported by ECMAScript.
+  PRECISION: 'precision',
+}
+
+export const displayOptions = {
+  SHORT: 'short',
+  LONG: 'long',
+  E: 'E',
+  E_PLUS: 'E+',
+  E_LOWER: 'e',
+  E_LOWER_PLUS: 'e+',
+  X10: 'x10^',
+  X10_PLUS: 'x10^+',
+}

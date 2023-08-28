@@ -32,16 +32,7 @@ const renderKpiItem = ({ item }) =>
     key: item.id,
     title: item.name || item.id,
     mapKpi: item.mapKpi,
-    ...R.pick([
-      'id',
-      'value',
-      'icon',
-      'numberFormat',
-      'style',
-      'type',
-      'view',
-      'variant',
-    ])(item),
+    ...R.omit(['name', 'mapKpi'])(item),
   })
 
 const getItemRenderFn = R.cond([
