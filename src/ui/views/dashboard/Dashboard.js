@@ -50,17 +50,6 @@ const styles = {
     mr: 'auto',
     mt: '25%',
   },
-  fabAddEmpty: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%,-50%)',
-  },
-  fabAdd: {
-    position: 'absolute',
-    right: 0,
-    bottom: (theme) => theme.spacing(0.5),
-  },
   addIcon: {
     mr: 1,
   },
@@ -150,7 +139,20 @@ const Dashboard = () => {
       )}
       {!lockedLayout && maximizedIndex == null && dashboardLayout.length < 4 ? (
         <Fab
-          sx={isDashboardEmpty ? styles.fabAddEmpty : styles.fabAdd}
+          sx={
+            isDashboardEmpty
+              ? {
+                  position: 'absolute',
+                  top: '50%',
+                  left: rightBar ? '40%' : '50%',
+                  transform: 'translate(-50%,-50%)',
+                }
+              : {
+                  position: 'absolute',
+                  right: rightBar ? `20%` : 0,
+                  bottom: (theme) => theme.spacing(0.5),
+                }
+          }
           size={isDashboardEmpty ? 'large' : 'small'}
           variant="extended"
           onClick={() =>
