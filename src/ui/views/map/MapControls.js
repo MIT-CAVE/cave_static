@@ -42,7 +42,6 @@ import {
   selectTimeLength,
   selectStaticMap,
   selectSync,
-  selectRightAppBarDisplay,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -59,7 +58,6 @@ import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
 const styles = {
   getRoot: (hover) => ({
     position: 'absolute',
-    bottom: 0,
     right: 0,
     'button,.MuiSlider-root': {
       opacity: hover ? 1 : 0.8,
@@ -79,7 +77,7 @@ const styles = {
     bgcolor: 'background.paper',
   },
   mapControls: {
-    mb: 1.5,
+    mb: 5.5,
   },
   rowButtons: {
     display: 'flex',
@@ -264,7 +262,6 @@ const MapControls = ({ allowProjections, mapId }) => {
   const timeLength = useSelector(selectTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const sync = useSelector(selectSync)
-  const rightBar = useSelector(selectRightAppBarDisplay)
   const dispatch = useDispatch()
 
   const syncProjection = !includesPath(R.values(sync), [
@@ -296,12 +293,13 @@ const MapControls = ({ allowProjections, mapId }) => {
   }
 
   return (
-    <Box
-      sx={styles.getRoot(hover, rightBar)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <Box sx={styles.rootBtns}>
+    <>
+      {/* Map controls */}
+      <Box
+        sx={{ ...styles.rootBtns, ...styles.getRoot(hover) }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
         {showPitchSlider && (
           <Box sx={styles.pitch}>
             <Slider
@@ -317,9 +315,13 @@ const MapControls = ({ allowProjections, mapId }) => {
             />
           </Box>
         )}
-
-        {/* Map controls */}
         {isStatic ? [] : <MapNavButtons mapId={mapId} />}
+      </Box>
+      <Box
+        sx={{ ...styles.rootBtns, ...styles.getRoot(hover) }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
           <ButtonGroup
@@ -494,7 +496,7 @@ const MapControls = ({ allowProjections, mapId }) => {
           />
         </Box>
       )}
-    </Box>
+    </>
   )
 }
 
