@@ -35,6 +35,7 @@ import {
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
   selectViewportsByMap,
+  selectMapData,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -57,14 +58,16 @@ const Map = ({ mapboxToken, mapId }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
+  const mapData = useSelector(selectMapData)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
+  const mapExists = R.has(mapId, mapData)
 
   const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== ''
   const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
 
-  const mapRef = useRef({})
+  const mapRef = useRef(false)
 
   const demoInterval = useRef(-1)
 
@@ -238,7 +241,9 @@ const Map = ({ mapboxToken, mapId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightLayerId])
 
-  return (
+  return !mapExists ? (
+    []
+  ) : (
     <Box
       sx={{
         display: 'flex',

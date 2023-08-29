@@ -27,6 +27,7 @@ import {
 import {
   customSort,
   getCategoryItems,
+  getFreeName,
   getLabelFn,
   getSubLabelFn,
   includesPath,
@@ -513,15 +514,71 @@ const MapHeader = memo(({ obj, index }) => {
   const maps = useSelector(selectMapData)
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+
+  const availableValue = R.pipe(
+    R.propOr('', 'mapId'),
+    R.unless(R.has(R.__, maps), R.always(''))
+  )(obj)
   return (
     <>
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr('', 'mapId', obj)}
+          value={availableValue}
           placeholder={'Select A Map'}
+          getLabel={(mapId) => R.pathOr(mapId, [mapId, 'name'], maps)}
           optionsList={R.pipe(
-            R.mapObjIndexed((val, key) => key),
-            R.values
+            R.keys,
+            R.map((k) =>
+              R.assoc('value', k, {
+                subOptions: [
+                  R.pathOr(false, [k, 'duplicate'], maps)
+                    ? {
+                        iconName: 'md/MdDelete',
+                        onClick: (key) => {
+                          dispatch(
+                            mutateLocal({
+                              path: ['maps', 'data'],
+                              sync: !includesPath(R.values(sync), [
+                                'maps',
+                                'data',
+                              ]),
+                              value: R.dissoc(key, maps),
+                            })
+                          )
+                        },
+                      }
+                    : {
+                        iconName: 'md/MdCopyAll',
+                        onClick: (value) => {
+                          const key = getFreeName(value, R.keys(maps))
+                          const name = getFreeName(
+                            R.pathOr(value, [value, 'name'], maps),
+                            R.values(
+                              R.mapObjIndexed(
+                                (val, key) => R.propOr(key, 'name', val),
+                                maps
+                              )
+                            )
+                          )
+                          dispatch(
+                            mutateLocal({
+                              path: ['maps', 'data', key],
+                              sync: !includesPath(R.values(sync), [
+                                'maps',
+                                'data',
+                                key,
+                              ]),
+                              value: R.pipe(
+                                R.assoc('duplicate', true),
+                                R.assoc('name', name)
+                              )(maps[value]),
+                            })
+                          )
+                        },
+                      },
+                ],
+              })
+            )
           )(maps)}
           onSelect={(value) => {
             dispatch(
