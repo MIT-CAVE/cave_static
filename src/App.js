@@ -28,7 +28,6 @@ import SnackBar from './ui/views/common/SnackBar'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
 import { APP_BAR_WIDTH } from './utils/constants'
-import { viewId } from './utils/enums'
 // import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
 
 const styles = {
@@ -67,7 +66,6 @@ const App = () => {
       const nextViewIndex =
         (R.findIndex(R.equals(appBarId), appBarViews) + 1) %
         R.length(appBarViews)
-      const isMap = R.pathEq(viewId.MAP, [appBarId, 'type'], appBarData)
       demoTimeout.current = setTimeout(() => {
         demoTimeout.current = -1
         dispatch(
@@ -77,7 +75,7 @@ const App = () => {
             sync: !includesPath(R.values(sync), ['appBar', 'data', 'appBarId']),
           })
         )
-      }, R.pathOr(isMap ? 20 : 10, [appBarId, 'displayTime'], demoSettings) * 1000)
+      }, R.pathOr(15, [appBarId, 'displayTime'], demoSettings) * 1000)
     } else if (demoTimeout.current !== -1 && !demoMode) {
       clearTimeout(demoTimeout.current)
       demoTimeout.current = -1
