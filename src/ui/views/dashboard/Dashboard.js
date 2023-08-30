@@ -79,7 +79,13 @@ const Dashboard = () => {
     return (
       <Grid
         key={index}
-        sx={styles.gridChart}
+        sx={[
+          styles.gridChart,
+          {
+            height:
+              index === maximizedIndex || numDashboard === 1 ? '100%' : '50%',
+          },
+        ]}
         xs={maximizedIndex != null || numDashboard === 1 ? 12 : 6}
         item
       >

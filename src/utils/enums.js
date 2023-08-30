@@ -134,6 +134,7 @@ export const chartType = {
   HEATMAP: 'Heatmap',
   SCATTER: 'Scatter',
   BUBBLE: 'Bubble',
+  OVERVIEW: 'Overview',
 }
 
 // TODO: Update these when we add support for more than 2 grouping levels

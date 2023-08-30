@@ -9,8 +9,11 @@ import {
   selectNumberFormat,
   selectTheme,
   selectMemoizedKpiFunc,
+  selectKpisLayout,
+  selectMergedKpis,
 } from '../../../data/selectors'
 import { chartType } from '../../../utils/enums'
+import { renderKpisLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
@@ -22,6 +25,8 @@ const DashboardKpi = ({ obj }) => {
   const kpis = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const kpiFunc = useSelector(selectMemoizedKpiFunc)
+  const layout = useSelector(selectKpisLayout)
+  const items = useSelector(selectMergedKpis)
 
   useEffect(() => {
     if (R.isEmpty(kpis)) {
@@ -83,9 +88,32 @@ const DashboardKpi = ({ obj }) => {
         display: 'flex',
         position: 'relative',
         flex: '1 1 auto',
+        height: '50%',
       }}
     >
-      {obj.chart === chartType.TABLE ? (
+      {obj.chart === chartType.OVERVIEW ? (
+        <Box
+          sx={{
+            overflow: 'auto',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            '&::-webkit-scrollbar': {
+              height: 10,
+              width: '12px',
+              WebkitAppearance: 'none',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              borderRadius: 8,
+              border: '2px solid',
+              borderColor: (theme) =>
+                theme.palette.mode === 'dark' ? '' : '#E7EBF0',
+              backgroundColor: 'rgba(0 0 0 / 0.5)',
+            },
+          }}
+        >
+          {renderKpisLayout({ layout, items })}
+        </Box>
+      ) : obj.chart === chartType.TABLE ? (
         <TableChart
           data={formattedKpis}
           numberFormat={commonFormat}

@@ -37,7 +37,6 @@ import {
   selectNodeRangeAtZoomFunc,
   selectArcTypeKeys,
   selectNodeTypeKeys,
-  selectRightAppBarDisplay,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'

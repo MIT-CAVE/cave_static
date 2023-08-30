@@ -11,7 +11,6 @@ import { mutateLocal } from './data/local'
 import {
   selectAppBarId,
   selectAppBarData,
-  selectMapboxToken,
   selectTheme,
   selectDemoMode,
   selectDemoViews,
@@ -27,8 +26,6 @@ import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
 import SessionCard from './ui/views/common/SessionCard'
 import SnackBar from './ui/views/common/SnackBar'
 import Dashboard from './ui/views/dashboard/Dashboard'
-import Kpi from './ui/views/kpi/Kpi'
-import { MapPage } from './ui/views/map/Map'
 import { includesPath } from './utils'
 import { APP_BAR_WIDTH } from './utils/constants'
 import { viewId } from './utils/enums'
@@ -55,7 +52,6 @@ const styles = {
 
 const App = () => {
   const dispatch = useDispatch()
-  const mapboxToken = useSelector(selectMapboxToken)
   const themeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
   const appBarData = useSelector(selectAppBarData)
@@ -65,9 +61,6 @@ const App = () => {
   const sync = useSelector(selectSync)
 
   const demoTimeout = useRef(-1)
-
-  const findViewType = (appBarId) =>
-    R.pathOr(viewId.MAP, [appBarId, 'type'], appBarData)
 
   useEffect(() => {
     if (demoMode && demoTimeout.current === -1) {
@@ -106,15 +99,6 @@ const App = () => {
   ])
 
   const theme = getTheme(themeId)
-  const renderAppPage = R.cond([
-    [
-      R.equals(viewId.MAP),
-      R.always(<MapPage {...{ mapboxToken }} mapId={appBarId} />),
-    ],
-    [R.equals(viewId.DASHBOARD), R.always(<Dashboard />)],
-    [R.equals(viewId.KPI), R.always(<Kpi />)],
-    [R.T, null],
-  ])
 
   const [sessionCard, setSessionCard] = useState(false)
   const [sessionCardPosition, setSessionCardPosition] = useState(
@@ -165,7 +149,7 @@ const App = () => {
                   toggleSessionCard: (enabled) => setSessionCard(enabled),
                 })}
               >
-                {renderAppPage(findViewType(appBarId))}
+                <Dashboard />
                 <Panes
                   sessionCard={sessionCard}
                   setSessionCard={setSessionCard}

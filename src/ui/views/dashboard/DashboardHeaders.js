@@ -420,6 +420,11 @@ const KpiHeader = memo(({ obj, index }) => {
               value: 'Table',
               iconName: 'md/MdTableChart',
             },
+            {
+              label: 'Overview',
+              value: 'Overview',
+              iconName: 'md/MdViewQuilt',
+            },
           ]}
           displayIcon
           onSelect={(value) => {
@@ -433,75 +438,83 @@ const KpiHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
-        <SelectMulti
-          value={R.propOr([], 'sessions', obj)}
-          header="Select Sessions"
-          optionsList={R.pipe(R.values, R.pluck('name'))(kpis)}
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.assoc('sessions', value, obj),
-              })
-            )
-          }}
-        />
-      </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
-        <SelectMulti
-          value={R.propOr([], 'kpi', obj)}
-          header="Select KPIs"
-          optionsList={R.pipe(
-            R.values,
-            R.head,
-            R.path(['data', 'kpis', 'data']),
-            customSort,
-            R.filter(R.has('value')),
-            R.project(['id', 'name', 'icon']),
-            R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
-          )(kpis)}
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.assoc('kpi', value, obj),
-              })
-            )
-          }}
-        />
-      </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
-        <Button
-          sx={{ minWidth: 0 }}
-          variant="outlined"
-          color="greyscale"
-          onClick={() => {
-            dispatch(
-              sendCommand({
-                command: 'get_associated_session_data',
-                data: {
-                  data_names: ['kpis'],
-                },
-              })
-            )
-          }}
-        >
-          <Box
-            component="span"
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '40px',
-            }}
-          >
-            <FetchedIcon iconName="md/MdRefresh" size={32} />
-          </Box>
-        </Button>
-      </HeaderSelectWrapper>
+      {obj.chart !== 'Overview' ? (
+        <>
+          <HeaderSelectWrapper>
+            <SelectMulti
+              value={R.propOr([], 'sessions', obj)}
+              header="Select Sessions"
+              optionsList={R.pipe(R.values, R.pluck('name'))(kpis)}
+              onSelect={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.assoc('sessions', value, obj),
+                  })
+                )
+              }}
+            />
+          </HeaderSelectWrapper>
+          <HeaderSelectWrapper>
+            <SelectMulti
+              value={R.propOr([], 'kpi', obj)}
+              header="Select KPIs"
+              optionsList={R.pipe(
+                R.values,
+                R.head,
+                R.path(['data', 'kpis', 'data']),
+                customSort,
+                R.filter(R.has('value')),
+                R.project(['id', 'name', 'icon']),
+                R.map(
+                  renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
+                )
+              )(kpis)}
+              onSelect={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.assoc('kpi', value, obj),
+                  })
+                )
+              }}
+            />
+          </HeaderSelectWrapper>
+          <HeaderSelectWrapper>
+            <Button
+              sx={{ minWidth: 0 }}
+              variant="outlined"
+              color="greyscale"
+              onClick={() => {
+                dispatch(
+                  sendCommand({
+                    command: 'get_associated_session_data',
+                    data: {
+                      data_names: ['kpis'],
+                    },
+                  })
+                )
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '40px',
+                }}
+              >
+                <FetchedIcon iconName="md/MdRefresh" size={32} />
+              </Box>
+            </Button>
+          </HeaderSelectWrapper>
+        </>
+      ) : (
+        []
+      )}
     </>
   )
 })

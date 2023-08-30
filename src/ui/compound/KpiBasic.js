@@ -95,7 +95,7 @@ const KpiBasic = ({
   return (
     <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
       <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
-      <Grid container flexDirection="column" spacing={3}>
+      <Grid container flexDirection="column" spacing={0}>
         <Grid item sx={styles.title}>
           <OverflowText text={title} />
         </Grid>
