@@ -176,16 +176,10 @@ export const selectAppBarData = createSelector(selectAppBar, (data) =>
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
-  // Keep only sub objects with bar: upperLeft, lowerLeft, upper, lower
+  // Keep only sub objects with bar: upperLeft, lowerLeft
   R.pipe(
-    R.dissoc('appBarId'),
     R.filter((appBarItem) =>
-      R.includes(R.prop('bar', appBarItem), [
-        'upperLeft',
-        'lowerLeft',
-        'upper',
-        'lower',
-      ])
+      R.includes(R.prop('bar', appBarItem), ['upperLeft', 'lowerLeft'])
     )
   )
 )
@@ -193,7 +187,6 @@ export const selectLeftAppBarData = createSelector(
 export const selectRightAppBarData = createSelector(
   selectAppBarData,
   R.pipe(
-    R.dissoc('appBarId'),
     R.filter((appBarItem) =>
       R.includes(R.prop('bar', appBarItem), ['upperRight', 'lowerRight'])
     )
@@ -364,11 +357,11 @@ const groupAppBar = R.pipe(
   R.groupBy(
     R.cond([
       [
-        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperLeft', 'upper'])),
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperLeft'])),
         R.always('upperLeft'),
       ],
       [
-        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerLeft', 'lower'])),
+        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerLeft'])),
         R.always('lowerLeft'),
       ],
       [

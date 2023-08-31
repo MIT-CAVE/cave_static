@@ -270,10 +270,10 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     }),
     R.values
   )
-
+  console.log(appBar)
   const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
-  const lowerKey = `lower${R.has('lower', appBar) ? '' : capitalizedSide}`
-  const upperKey = `upper${R.has('upper', appBar) ? '' : capitalizedSide}`
+  const lowerKey = `lower${capitalizedSide}`
+  const upperKey = `upper${capitalizedSide}`
   return (
     <Box
       sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}
