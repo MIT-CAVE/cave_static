@@ -108,7 +108,7 @@ const getAppBarItem = ({
 }) => {
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
-  const path = ['appBar', 'data', 'appBarId']
+  const path = ['appBar', 'appBarId']
 
   return type === 'pane' ? (
     <Tab

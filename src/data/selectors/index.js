@@ -421,18 +421,18 @@ export const selectDemoViews = createSelector(
     )(appBarData)
 )
 export const selectAppBarId = createSelector(
-  [selectLocalAppBarData, selectAppBarData],
-  (localAppBarData, appBarData) => {
+  [selectLocalAppBar, selectAppBar],
+  (localAppBar, appBar) => {
     const fallbackId = R.pipe(
+      R.prop('data'),
       sortProps,
       R.toPairs,
-      R.find(R.pathEq('map', [1, 'type'])),
-      R.prop(0)
-    )(appBarData)
+      R.path([0, 0])
+    )(appBar)
     const currentId = R.propOr(
-      R.propOr(fallbackId, 'appBarId', appBarData),
+      R.propOr(fallbackId, 'appBarId', appBar),
       'appBarId',
-      localAppBarData
+      localAppBar
     )
     return currentId
   }
