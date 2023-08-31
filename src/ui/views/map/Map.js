@@ -180,15 +180,17 @@ const Map = ({ mapboxToken, mapId }) => {
 
   const onMouseMove = useCallback(
     (e) => {
-      const canvas = mapRef.current.getCanvas()
-      const featureObj = getFeatureFromEvent(e)
-      if (!featureObj) {
-        if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
-        if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
-      } else {
-        const [id] = featureObj
-        setHighlightLayerId(id)
-        if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
+      if (mapRef.current) {
+        const canvas = mapRef.current.getCanvas()
+        const featureObj = getFeatureFromEvent(e)
+        if (!featureObj) {
+          if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
+          if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
+        } else {
+          const [id] = featureObj
+          setHighlightLayerId(id)
+          if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
+        }
       }
     },
     [getFeatureFromEvent, highlightLayerId]
