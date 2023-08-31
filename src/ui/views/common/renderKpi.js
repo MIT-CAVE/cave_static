@@ -2,9 +2,9 @@
 // Perhaps combining props and kpis is a better approach
 import * as R from 'ramda'
 
-import { viewId, kpiId, kpiVariant } from '../../../utils/enums'
+import { kpiId, kpiVariant } from '../../../utils/enums'
 
-import { KpiBasic, KpiHeadColumn, KpiHeadRow, KpiMap } from '../../compound'
+import { KpiBasic, KpiHeadColumn, KpiHeadRow } from '../../compound'
 
 const invalidType = (type) => {
   throw Error(`Invalid type '${type}' for a KPI`)
@@ -34,30 +34,16 @@ const getKpiRenderFn = R.cond([
   [R.T, invalidType],
 ])
 
-const getKpiMapRenderFn = R.ifElse(
-  R.includes(R.__, R.values(kpiId)),
-  R.always(R.always(KpiMap)), // An extra R.always to account for fn(variant)
-  invalidType
-)
+// const getKpiMapRenderFn = R.ifElse(
+//   R.includes(R.__, R.values(kpiId)),
+//   R.always(R.always(KpiMap)), // An extra R.always to account for fn(variant)
+//   invalidType
+// )
 
-const getRendererFn = R.cond([
-  [R.equals(viewId.KPI), R.always(getKpiRenderFn)],
-  [R.equals(viewId.MAP), R.always(getKpiMapRenderFn)],
-  [
-    R.T,
-    (view) => {
-      throw Error(`Invalid view '${view}'`)
-    },
-  ],
-])
+const getRendererFn = R.always(getKpiRenderFn)
 
-const renderKpi = ({
-  view = viewId.KPI,
-  type = kpiId.NUMBER,
-  variant,
-  ...props
-}) => {
-  const kpiViewRendererFn = getRendererFn(view)
+const renderKpi = ({ type = kpiId.NUMBER, variant, ...props }) => {
+  const kpiViewRendererFn = getRendererFn()
   const kpiRendererFn = kpiViewRendererFn(type)
   const KpiComponent = kpiRendererFn(variant)
   return <KpiComponent {...props} />

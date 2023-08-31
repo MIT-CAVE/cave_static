@@ -9,7 +9,7 @@ import {
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
 } from '../../utils/constants'
-import { propId, statId, viewId, chartStatUses } from '../../utils/enums'
+import { propId, statId, chartStatUses } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 
@@ -18,7 +18,6 @@ import {
   filterItems,
   getTimeValue,
   sortProps,
-  sortedListById,
   renameKeys,
   sortByOrderNameId,
   toListWithKey,
@@ -671,15 +670,6 @@ const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
 export const selectMergedKpis = createSelector(
   [selectKpisData, selectLocalKpis],
   (kpisData, localKpis) => R.mergeDeepLeft(localKpis)(kpisData)
-)
-export const selectMapKpis = createSelector(
-  selectMergedKpis,
-  R.pipe(
-    R.filter(R.prop('mapKpi')),
-    R.map(R.assoc('view', viewId.MAP)),
-    sortedListById,
-    R.values
-  )
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(

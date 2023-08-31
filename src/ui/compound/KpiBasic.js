@@ -1,19 +1,10 @@
-import { Box, Grid, Paper, Typography } from '@mui/material'
+import { Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
-import { useState } from 'react'
-import {
-  MdBookmarkAdded,
-  MdBookmarkBorder,
-  MdBookmarkRemove,
-  MdOutlineBookmarkAdd,
-} from 'react-icons/md'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
-import { mapKpiToggle } from '../../data/local/kpisSlice'
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 import { KPI_WIDTH } from '../../utils/constants'
 
@@ -61,40 +52,30 @@ const styles = {
   }),
 }
 
-const KpiToggleIcon = ({ kpiId, mapKpi }) => {
-  const [hover, setHover] = useState(false)
-  const dispatch = useDispatch()
-  return (
-    <Box
-      sx={[styles.kpiToggleIcon, { opacity: mapKpi || hover ? 1 : 0.2 }]}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={() => dispatch(mapKpiToggle(kpiId))}
-    >
-      {R.cond([
-        [R.and(hover), R.always(<MdBookmarkRemove />)],
-        [R.and(!hover), R.always(<MdBookmarkAdded />)],
-        [R.or(hover), R.always(<MdOutlineBookmarkAdd />)],
-        [R.T, R.always(<MdBookmarkBorder />)],
-      ])(mapKpi)}
-    </Box>
-  )
-}
+// const KpiToggleIcon = ({ kpiId, mapKpi }) => {
+//   const [hover, setHover] = useState(false)
+//   const dispatch = useDispatch()
+//   return (
+//     <Box
+//       sx={[styles.kpiToggleIcon, { opacity: mapKpi || hover ? 1 : 0.2 }]}
+//       onMouseEnter={() => setHover(true)}
+//       onMouseLeave={() => setHover(false)}
+//       onClick={() => dispatch(mapKpiToggle(kpiId))}
+//     >
+//       {R.cond([
+//         [R.and(hover), R.always(<MdBookmarkRemove />)],
+//         [R.and(!hover), R.always(<MdBookmarkAdded />)],
+//         [R.or(hover), R.always(<MdOutlineBookmarkAdd />)],
+//         [R.T, R.always(<MdBookmarkBorder />)],
+//       ])(mapKpi)}
+//     </Box>
+//   )
+// }
 
-const KpiBasic = ({
-  id,
-  title,
-  value,
-  icon,
-  style,
-  mapKpi,
-  sx = [],
-  ...props
-}) => {
+const KpiBasic = ({ title, value, icon, style, sx = [], ...props }) => {
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(props)
   return (
     <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
-      <KpiToggleIcon {...{ kpiId: id, mapKpi }} />
       <Grid container flexDirection="column" spacing={0}>
         <Grid item sx={styles.title}>
           <OverflowText text={title} />
