@@ -142,7 +142,9 @@ const renderAppPane = ({
   let { width, variant, ...paneProps } = pane
   // Make `PANE_WIDTH` the default width for the Session pane
   const paneWidth =
-    variant === paneId.SESSION && width == null ? PANE_WIDTH : width
+    (variant === paneId.SESSION || variant === paneId.CONTEXT) && width == null
+      ? PANE_WIDTH
+      : width
   return (
     <PaneWrapper
       {...{ open, variant, pin, onPin }}
