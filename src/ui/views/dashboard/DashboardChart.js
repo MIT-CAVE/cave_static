@@ -5,7 +5,6 @@ import { useSelector } from 'react-redux'
 
 import {
   selectStatisticTypes,
-  selectCategoriesData,
   selectTheme,
   selectNumberFormat,
   selectMemoizedChartFunc,
@@ -37,10 +36,10 @@ import {
 
 const DashboardChart = ({ obj }) => {
   const themeId = useSelector(selectTheme)
-  const categories = useSelector(selectCategoriesData)
   const statisticTypes = useSelector(selectStatisticTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
+  const categories = {}
 
   const formattedData = memoizedChartFunc(obj)
 

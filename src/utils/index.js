@@ -507,16 +507,6 @@ export const getCategoryItems = R.cond([
   ],
 ])
 
-export const filterItems = (items, acceptableFilterCategories) =>
-  R.filter((item) =>
-    R.all((object) =>
-      R.any(
-        (item) => acceptableFilterCategories[object[0]].has(item),
-        object[1]
-      )
-    )(R.toPairs(R.prop('category', item)))
-  )(items)
-
 // sorts sub objects in obj by order prop - ascending
 export const sortProps = (obj) => {
   const sortBy = (a, b) =>

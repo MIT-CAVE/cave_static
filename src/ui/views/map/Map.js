@@ -26,7 +26,7 @@ import {
   selectTheme,
   selectMapStyleOptions,
   selectGroupedEnabledArcsFunc,
-  selectFilteredGeosData,
+  selectMergedGeos,
   selectCurrentMapProjectionFunc,
   selectNodeDataFunc,
   selectDemoMode,
@@ -53,7 +53,7 @@ const Map = ({ mapboxToken, mapId }) => {
     'geoJson'
   )(useSelector(selectGroupedEnabledArcsFunc)(mapId))
   const nodeData = useSelector(selectNodeDataFunc)(mapId)
-  const geosData = useSelector(selectFilteredGeosData)
+  const geosData = useSelector(selectMergedGeos)
   const iconUrl = useSelector(selectSettingsIconUrl)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)

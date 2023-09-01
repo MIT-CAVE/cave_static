@@ -4,8 +4,6 @@ import * as R from 'ramda'
 import { useDispatch } from 'react-redux'
 
 import AppSettingsPane from './AppSettingsPane'
-import ContextPane from './ContextPane'
-import FilterPane from './FilterPane'
 import OptionsPane from './OptionsPane'
 import SessionPane from './SessionPane'
 
@@ -131,7 +129,6 @@ PaneWrapper.propTypes = {
 const renderAppPane = ({
   open,
   openPanesData,
-  secondaryOpen,
   pane,
   pin,
   onPin,
@@ -157,26 +154,11 @@ const renderAppPane = ({
       {R.cond([
         // Built-in panes
         [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
-        [
-          R.equals(paneId.FILTER),
-          R.always(<FilterPane secondaryOpen={secondaryOpen} side={side} />),
-        ],
         [R.equals(paneId.SESSION), R.always(<SessionPane width={paneWidth} />)],
         // Custom panes
         [
           R.equals(paneId.OPTIONS),
           R.always(<OptionsPane open={open} pane={openPanesData} />),
-        ],
-        [
-          R.equals(paneId.CONTEXT),
-          R.always(
-            <ContextPane
-              open={open}
-              pane={openPanesData}
-              secondaryOpen={secondaryOpen}
-              side={side}
-            />
-          ),
         ],
       ])(variant)}
     </PaneWrapper>

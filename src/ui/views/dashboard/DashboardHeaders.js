@@ -7,7 +7,6 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
-  selectCategoriesData,
   selectSync,
   selectAppBarId,
   selectAllowedStats,
@@ -41,7 +40,7 @@ const SwapButton = ({ onClick }) => (
 )
 
 const StatisticsHeader = memo(({ obj, index }) => {
-  const categories = useSelector(selectCategoriesData)
+  const categories = {}
   const statisticTypes = useSelector(selectAllowedStats)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
