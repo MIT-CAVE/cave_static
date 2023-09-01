@@ -270,7 +270,6 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     }),
     R.values
   )
-  console.log(appBar)
   const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
   const lowerKey = `lower${capitalizedSide}`
   const upperKey = `upper${capitalizedSide}`

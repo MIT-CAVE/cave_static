@@ -119,7 +119,7 @@ const Panes = ({ sessionCard, setSessionCard }) => {
       const underMax = xPosition < window.innerWidth - APP_BAR_WIDTH
       R.forEach(
         ([side, open, pin, pageClick]) => {
-          if (!pin && R.isNotNil(open) && pageClick) {
+          if (!pin && R.isNotNil(open) && open !== '' && pageClick) {
             dispatch(
               mutateLocal({
                 path: ['appBar', 'paneState', side],
