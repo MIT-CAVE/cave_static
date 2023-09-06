@@ -1,15 +1,16 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
-  selectStatisticTypes,
+  selectGroupedOutputTypes,
   selectTheme,
   selectNumberFormat,
   selectMemoizedChartFunc,
+  selectStatGroupings,
 } from '../../../data/selectors'
-import { chartType, chartStatUses } from '../../../utils/enums'
+import { chartType } from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -30,51 +31,68 @@ import {
 import {
   getLabelFn,
   getSubLabelFn,
-  forcePath,
   getColoringFn,
+  getGroupLabelFn,
 } from '../../../utils'
 
 const DashboardChart = ({ obj }) => {
   const themeId = useSelector(selectTheme)
-  const statisticTypes = useSelector(selectStatisticTypes)
+  const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
-  const categories = {}
+  const categories = useSelector(selectStatGroupings)
 
   const formattedData = memoizedChartFunc(obj)
 
-  const pathedVar = useMemo(
-    () => forcePath(R.propOr([], 'statistic', obj)),
-    [obj]
-  )
-
-  const subGrouped = R.has('level2')(obj)
-
-  const actualStat = R.has(R.prop('chart', obj), chartStatUses)
-    ? pathedVar
-    : obj.statistic
+  const subGrouped = R.hasPath(['level', 1])(obj)
 
   //TODO: Generalize this for n-level grouping
   const colors = subGrouped
     ? obj.chart === chartType.SUNBURST
       ? R.mergeLeft(
-          getColoringFn(categories, obj.category2, obj.level2),
-          getColoringFn(categories, obj.category, obj.level)
+          getColoringFn(
+            categories,
+            R.path(['category', 1], obj),
+            R.path(['level', 1]),
+            obj
+          ),
+          getColoringFn(
+            categories,
+            R.path(['category', 0], obj),
+            R.path(['level', 0]),
+            obj
+          )
         )
-      : getColoringFn(categories, obj.category2, obj.level2)
-    : getColoringFn(categories, obj.category, obj.level)
+      : getColoringFn(
+          categories,
+          R.path(['category', 1], obj),
+          R.path(['level', 1]),
+          obj
+        )
+    : getColoringFn(
+        categories,
+        R.path(['category', 0], obj),
+        R.path(['level', 0]),
+        obj
+      )
 
   const xAxisTitle = obj.category
-    ? `${getLabelFn(categories)(obj.category)}${
-        obj.level
-          ? ` \u279D ${getSubLabelFn(categories, obj.category, obj.level)}`
+    ? `${getLabelFn(categories)(R.path(['category', 0], obj))}${
+        obj.level && R.path(['level', 0], obj)
+          ? ` \u279D ${getSubLabelFn(
+              categories,
+              R.path(['category', 0], obj),
+              R.path(['level', 0], obj),
+              obj
+            )}`
           : ''
       }`
     : ''
-  const stat = R.propOr({}, obj.statistic)(statisticTypes)
+
+  const stat = R.pathOr({}, obj.statistic)(statisticTypes)
   const unit = stat.unit || numberFormatDefault.unit
 
-  const yAxisTitle = `${getLabelFn(statisticTypes)(obj.statistic)}${
+  const yAxisTitle = `${getGroupLabelFn(statisticTypes)(obj.statistic)}${
     unit ? ` [${unit}]` : ''
   }`
 
@@ -83,9 +101,8 @@ const DashboardChart = ({ obj }) => {
   const tableStatLabels = R.map((item) => {
     const stat = R.propOr({}, item)(statisticTypes)
     const unit = stat.unit || numberFormatDefault.unit
-    return `${getLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
-  })(actualStat)
-
+    return `${getGroupLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
+  })(obj.statistic)
   const tableLabels = R.prepend(
     obj.category
       ? `${getLabelFn(categories)(obj.category)}${
@@ -109,6 +126,7 @@ const DashboardChart = ({ obj }) => {
         )
       : tableStatLabels
   )
+
   const tableColTypes = R.pipe(
     R.concat(R.repeat('number')(R.length(tableStatLabels))),
     R.when(R.always(R.has('level')(obj)), R.prepend('string')),

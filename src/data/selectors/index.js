@@ -1068,64 +1068,65 @@ export const selectMemoizedChartFunc = createSelector(
     selectGroupedOutputTypes,
     selectStatGroupings,
   ],
-  (filteredStatsData, debug, statisticTypes, groupings) =>
+  (groupedOutputs, debug, statisticTypes, groupings) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const pathedVar = forcePath(R.propOr([], 'statistic', obj))
-        const actualStat = R.has(R.prop('chart', obj), chartStatUses)
-          ? pathedVar
-          : obj.statistic
+        const actualStat = R.is(Array, obj.statistic[0])
+          ? obj.statistic
+          : [obj.statistic]
         const mergeFuncs = {
           Sum: R.sum,
           Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
           Maximum: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
           Average: R.mean,
         }
-        // Find the calculation for selected stat(s)
-        const calculation = R.is(Array, actualStat)
-          ? `[${R.reduce(
-              (acc, stat) =>
-                R.insert(
-                  -1,
-                  R.pathOr('0', [stat, 'calculation'])(statisticTypes),
-                  acc
-                ),
-              '',
-              actualStat
-            )}]`
-          : R.pathOr('0', [actualStat, 'calculation'])(statisticTypes)
 
-        // Filter for category if selected
-        const actualStatsData = obj.category
-          ? R.filter(R.hasPath(['category', obj.category]))(
-              R.values(filteredStatsData)
+        // Given an index returns a string to group all similar indicies by
+        const categoryFunc = R.curry((category, level, outputGroup) => {
+          const createParentalPath = (path, currentLevel) => {
+            const parent = R.path(
+              [category, 'nestedStructure', currentLevel, 'parent'],
+              groupings
             )
-          : R.values(filteredStatsData)
-        const categoryFunc = R.always(groupings)
-        // List of groupBy, subGroupBy etc...
-        // TODO: Currently groupBys only looks for group and subgroup - make this N depth
-        const groupBys = R.without(
-          [undefined],
-          [
-            categoryFunc(obj.category, obj.level),
-            R.has('level2', obj)
-              ? categoryFunc(obj.category2, obj.level2)
-              : undefined,
-          ]
-        )
-        // Calculates stat values without applying mergeFunc
-        const calculatedStats = calculateStatAnyDepth(actualStatsData)(
-          groupBys,
-          calculation
-        )
+            if (R.isNil(parent)) return R.prepend(currentLevel, path)
+            else
+              return createParentalPath(R.prepend(currentLevel, path), parent)
+          }
+          const parentalPath = createParentalPath([], level)
+          const groupList = R.path([outputGroup, 'groupLists', category])(
+            groupedOutputs
+          )
 
+          return (index) => {
+            const groupName = R.propOr('undefined', index, groupList)
+            const groupingVal = R.path([category, 'data', groupName])(groupings)
+            return R.props(parentalPath)(groupingVal)
+          }
+        })
+        // List of groupBy, subGroupBy etc...
+        const groupBys = R.map((idx) =>
+          categoryFunc(obj.category[idx], obj.level[idx])
+        )(R.range(0, R.length(obj.category)))
+        // Calculates stat values without applying mergeFunc
+        const calculatedStats = R.map((stat) =>
+          calculateStatAnyDepth(groupedOutputs[stat[0]])(
+            R.isEmpty(groupBys)
+              ? [R.always(['All'])]
+              : R.map(R.applyTo(stat[0]), groupBys),
+            R.pathOr('0', [...stat, 'calculation'])(statisticTypes)
+          )
+        )(actualStat)
         // Ordering for the X's in the chart
-        const ordering = []
-        // R.pathOr(
-        //   [],
-        //   [obj.category, 'nestedStructure', obj.level, 'ordering']
-        // )(categoriesData)
+        const ordering = R.pathOr(
+          [],
+          [
+            R.path(['category', 0], obj),
+            'nestedStructure',
+            R.path(['level', 0], obj),
+            'ordering',
+          ]
+        )(groupings)
 
         // Helper function for grouping table vals for merge function
         const groupByIdx = R.addIndex(R.groupBy)(
@@ -1134,20 +1135,24 @@ export const selectMemoizedChartFunc = createSelector(
 
         // merge the calculated stats - unless boxplot
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-        const statValues = recursiveMap(
-          R.is(Array),
-          R.has(R.prop('chart', obj), chartStatUses)
-            ? R.pipe(
-                R.unnest,
-                groupByIdx,
-                R.values,
-                R.map(mergeFuncs[obj.grouping])
-              )
-            : R.pipe(
-                R.filter(R.is(Number)),
-                obj.chart !== 'Box Plot' ? mergeFuncs[obj.grouping] : R.identity
-              ),
-          R.identity,
+        const statValues = R.map(
+          recursiveMap(
+            R.is(Array),
+            R.has(R.prop('chart', obj), chartStatUses)
+              ? R.pipe(
+                  R.unnest,
+                  groupByIdx,
+                  R.values,
+                  R.map(mergeFuncs[obj.grouping])
+                )
+              : R.pipe(
+                  R.filter(R.is(Number)),
+                  obj.chart !== 'Box Plot'
+                    ? mergeFuncs[obj.grouping]
+                    : R.identity
+                ),
+            R.identity
+          ),
           calculatedStats
         )
 
@@ -1171,21 +1176,25 @@ export const selectMemoizedChartFunc = createSelector(
             ? val
             : [val]
         // Formats and sorts merged stats
-        const getFormattedData = R.pipe(
-          debug
-            ? R.identity
-            : recursiveMap(
-                (val) => R.type(val) !== 'Object',
-                R.identity,
-                R.dissoc(undefined)
-              ),
-          recursiveMapLayers,
-          customSortByX(ordering)
+        const getFormattedData = R.map(
+          R.pipe(
+            debug
+              ? R.identity
+              : recursiveMap(
+                  (val) => R.type(val) !== 'Object',
+                  R.identity,
+                  R.dissoc(undefined)
+                ),
+            recursiveMapLayers,
+            customSortByX(ordering)
+          )
         )
 
         const formattedData = getFormattedData(statValues)
 
-        return formattedData
+        return R.is(Array, obj.statistic[0])
+          ? formattedData
+          : R.head(formattedData)
       },
       MAX_MEMOIZED_CHARTS
     )
