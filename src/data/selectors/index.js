@@ -123,8 +123,8 @@ export const selectGeos = createSelector(selectData, (data) =>
 export const selectAppBar = createSelector(selectData, (data) =>
   R.propOr({}, 'appBar')(data)
 )
-export const selectStats = createSelector(selectData, (data) =>
-  R.propOr({}, 'stats')(data)
+export const selectGroupedOutputs = createSelector(selectData, (data) =>
+  R.propOr({}, 'groupedOutputs')(data)
 )
 export const selectKpis = createSelector(selectData, (data) =>
   R.propOr({}, 'kpis')(data)
@@ -188,8 +188,9 @@ export const selectRightAppBarData = createSelector(
     )
   )
 )
-export const selectStatsData = createSelector(selectStats, (data) =>
-  R.propOr({}, 'data')(data)
+export const selectGroupedOutputsData = createSelector(
+  selectGroupedOutputs,
+  (data) => R.propOr({}, 'data')(data)
 )
 export const selectKpisData = createSelector(selectKpis, (data) =>
   R.propOr({}, 'data')(data)
@@ -258,9 +259,32 @@ export const selectTimeUnits = createSelector(selectSettingsData, (data) =>
 export const selectSyncToggles = createSelector(selectSettingsData, (data) =>
   R.propOr({}, 'sync', data)
 )
-// Data -> stats
-export const selectStatisticTypes = createSelector(selectStats, (data) =>
-  R.propOr({}, 'types')(data)
+// Data -> groupedOutputs
+export const selectGroupedOutputNames = createSelector(
+  selectGroupedOutputsData,
+  R.pipe(
+    R.mapObjIndexed((obj, key) =>
+      R.pipe(
+        R.propOr({}, 'stats'),
+        R.keys,
+        R.reduce(
+          (acc, statKey) =>
+            R.assoc(
+              R.pathOr(statKey, ['stats', statKey, 'name'], obj),
+              [key, statKey],
+              acc
+            ),
+          {}
+        )
+      )(obj)
+    ),
+    R.values,
+    R.mergeAll
+  )
+)
+export const selectGroupedOutputTypes = createSelector(
+  selectGroupedOutputsData,
+  R.map((obj) => R.propOr({}, 'stats')(obj))
 )
 // Data -> dashboard
 export const selectDashboardData = createSelector(selectDash, (data) =>
@@ -479,7 +503,7 @@ export const selectDashboardLockedLayout = createSelector(
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
 )
 export const selectAllowedStats = createSelector(
-  [selectStatisticTypes, selectStatOptions],
+  [selectGroupedOutputTypes, selectStatOptions],
   (statisticTypes, statOptions) =>
     R.isEmpty(statOptions)
       ? statisticTypes
@@ -1031,10 +1055,20 @@ export const selectMatchingKeysByTypeFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
-// Stats derived
+// outputs derived
+export const selectStatGroupings = createSelector(
+  selectGroupedOutputs,
+  R.propOr({}, ['groupings'])
+)
+
 export const selectMemoizedChartFunc = createSelector(
-  [selectStatsData, selectDebug, selectStatisticTypes],
-  (filteredStatsData, debug, statisticTypes) =>
+  [
+    selectGroupedOutputsData,
+    selectDebug,
+    selectGroupedOutputTypes,
+    selectStatGroupings,
+  ],
+  (filteredStatsData, debug, statisticTypes, groupings) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
@@ -1068,18 +1102,18 @@ export const selectMemoizedChartFunc = createSelector(
               R.values(filteredStatsData)
             )
           : R.values(filteredStatsData)
-
+        const categoryFunc = R.always(groupings)
         // List of groupBy, subGroupBy etc...
         // TODO: Currently groupBys only looks for group and subgroup - make this N depth
-        const groupBys = [] //R.without(
-        //   [undefined],
-        //   [
-        //     categoryFunc(obj.category, obj.level),
-        //     R.has('level2', obj)
-        //       ? categoryFunc(obj.category2, obj.level2)
-        //       : undefined,
-        //   ]
-        // )
+        const groupBys = R.without(
+          [undefined],
+          [
+            categoryFunc(obj.category, obj.level),
+            R.has('level2', obj)
+              ? categoryFunc(obj.category2, obj.level2)
+              : undefined,
+          ]
+        )
         // Calculates stat values without applying mergeFunc
         const calculatedStats = calculateStatAnyDepth(actualStatsData)(
           groupBys,

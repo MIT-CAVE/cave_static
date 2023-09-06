@@ -77,7 +77,9 @@ export const passLog = (val) => {
   console.log(val)
   return val
 }
-
+export const getGroupLabelFn = R.curry((data, item) =>
+  R.pathOr(R.last(item), [...item, 'name'])(data)
+)
 export const getLabelFn = R.curry((data, item) =>
   R.pathOr(item, [item, 'name'])(data)
 )
