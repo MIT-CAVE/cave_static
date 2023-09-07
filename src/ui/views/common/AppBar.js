@@ -29,7 +29,6 @@ const styles = {
     width: `${APP_BAR_WIDTH}px`,
     borderColor: 'text.secondary',
     bgcolor: 'background.paper',
-    zIndex: 2001,
   },
   rightRoot: {
     position: 'absolute',
@@ -161,7 +160,7 @@ const getAppBarItem = ({
         )
       }}
     />
-  ) : type === 'map' || type === 'stats' || type === 'kpi' ? (
+  ) : type === 'map' || type === 'stats' || type === 'globalOutput' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
@@ -175,7 +174,7 @@ const getAppBarItem = ({
           })
         )
         // Automatically close an unpinned pane when switching
-        // to a different Map, Dashboard, or KPI view
+        // to a different Map, Dashboard, or globalOutput view
         if (!pin && key !== appBarId) changePane()
       }}
     />

@@ -103,7 +103,7 @@ const Dashboard = () => {
             ) : R.propOr('stats', 'type', obj) === 'maps' &&
               R.prop('mapId', obj) ? (
               <Map mapId={R.prop('mapId', obj)} {...{ mapboxToken }} />
-            ) : R.propOr('stats', 'type', obj) === 'kpis' ? (
+            ) : R.propOr('stats', 'type', obj) === 'globalOutputs' ? (
               <DashboardKpi {...{ obj }} />
             ) : (
               []

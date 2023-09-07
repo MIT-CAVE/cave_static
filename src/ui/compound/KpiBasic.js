@@ -6,14 +6,14 @@ import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
-import { KPI_WIDTH } from '../../utils/constants'
+import { GLOBALOUTPUT_WIDTH } from '../../utils/constants'
 
 import { NumberFormat, forceArray } from '../../utils'
 
 const styles = {
   root: {
     position: 'relative',
-    minWidth: KPI_WIDTH,
+    minWidth: GLOBALOUTPUT_WIDTH,
     p: 2,
   },
   title: {
@@ -22,7 +22,7 @@ const styles = {
     fontSize: '24px',
     whiteSpace: 'nowrap',
     color: 'text.secondary',
-    // Force the width of the container to be defined by the KPI value
+    // Force the width of the container to be defined by the globalOutput value
     width: 0,
     minWidth: '100%',
   },
@@ -43,7 +43,7 @@ const styles = {
     justifyContent: 'center',
     borderRadius: '20%',
   },
-  kpiToggleIcon: (theme) => ({
+  globalOutputToggleIcon: (theme) => ({
     position: 'absolute',
     fontSize: 26,
     top: theme.spacing(1),
@@ -52,15 +52,15 @@ const styles = {
   }),
 }
 
-// const KpiToggleIcon = ({ kpiId, mapKpi }) => {
+// const KpiToggleIcon = ({ globalOutputId, mapKpi }) => {
 //   const [hover, setHover] = useState(false)
 //   const dispatch = useDispatch()
 //   return (
 //     <Box
-//       sx={[styles.kpiToggleIcon, { opacity: mapKpi || hover ? 1 : 0.2 }]}
+//       sx={[styles.globalOutputToggleIcon, { opacity: mapKpi || hover ? 1 : 0.2 }]}
 //       onMouseEnter={() => setHover(true)}
 //       onMouseLeave={() => setHover(false)}
-//       onClick={() => dispatch(mapKpiToggle(kpiId))}
+//       onClick={() => dispatch(mapKpiToggle(globalOutputId))}
 //     >
 //       {R.cond([
 //         [R.and(hover), R.always(<MdBookmarkRemove />)],

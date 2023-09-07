@@ -407,7 +407,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
 const KpiHeader = memo(({ obj, index }) => {
   const dispatch = useDispatch()
 
-  const kpis = useSelector(selectAssociatedData)
+  const globalOutputs = useSelector(selectAssociatedData)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
@@ -463,7 +463,7 @@ const KpiHeader = memo(({ obj, index }) => {
             <SelectMulti
               value={R.propOr([], 'sessions', obj)}
               header="Select Sessions"
-              optionsList={R.pipe(R.values, R.pluck('name'))(kpis)}
+              optionsList={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
               onSelect={(value) => {
                 dispatch(
                   mutateLocal({
@@ -477,25 +477,25 @@ const KpiHeader = memo(({ obj, index }) => {
           </HeaderSelectWrapper>
           <HeaderSelectWrapper>
             <SelectMulti
-              value={R.propOr([], 'kpi', obj)}
-              header="Select KPIs"
+              value={R.propOr([], 'globalOutput', obj)}
+              header="Select Global Outputs"
               optionsList={R.pipe(
                 R.values,
                 R.head,
-                R.path(['data', 'kpis', 'data']),
+                R.path(['data', 'globalOutputs', 'data']),
                 customSort,
                 R.filter(R.has('value')),
                 R.project(['id', 'name', 'icon']),
                 R.map(
                   renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
                 )
-              )(kpis)}
+              )(globalOutputs)}
               onSelect={(value) => {
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('kpi', value, obj),
+                    value: R.assoc('globalOutput', value, obj),
                   })
                 )
               }}
@@ -511,7 +511,7 @@ const KpiHeader = memo(({ obj, index }) => {
                   sendCommand({
                     command: 'get_associated_session_data',
                     data: {
-                      data_names: ['kpis'],
+                      data_names: ['globalOutputs'],
                     },
                   })
                 )

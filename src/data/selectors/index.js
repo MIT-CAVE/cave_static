@@ -127,7 +127,7 @@ export const selectGroupedOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'groupedOutputs')(data)
 )
 export const selectKpis = createSelector(selectData, (data) =>
-  R.propOr({}, 'kpis')(data)
+  R.propOr({}, 'globalOutputs')(data)
 )
 export const selectDash = createSelector(selectData, (data) =>
   R.propOr({}, 'dashboards')(data)
@@ -415,7 +415,7 @@ export const selectDemoViews = createSelector(
         (d) =>
           (R.propEq('stats', 'type', d[1]) ||
             R.propEq('map', 'type', d[1]) ||
-            R.propEq('kpi', 'type', d[1])) &&
+            R.propEq('globalOutput', 'type', d[1])) &&
           R.pathOr(true, [d[0], 'show'], demoSettings)
       ),
       R.pluck(0)
@@ -644,11 +644,15 @@ export const selectMapLegendFunc = createSelector(
     },
   }
 )
-// Local -> kpis
-const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
+// Local -> globalOutputs
+const selectLocalKpis = createSelector(
+  selectLocal,
+  R.propOr({}, 'globalOutputs')
+)
 export const selectMergedKpis = createSelector(
   [selectKpisData, selectLocalKpis],
-  (kpisData, localKpis) => R.mergeDeepLeft(localKpis)(kpisData)
+  (globalOutputsData, localKpis) =>
+    R.mergeDeepLeft(localKpis)(globalOutputsData)
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
@@ -1202,7 +1206,7 @@ export const selectMemoizedKpiFunc = createSelector(
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const selectedKpis = forcePath(R.propOr([], 'kpi', obj))
+        const selectedKpis = forcePath(R.propOr([], 'globalOutput', obj))
         const formattedKpis = R.pipe(
           R.values,
           R.filter((val) =>
@@ -1211,11 +1215,11 @@ export const selectMemoizedKpiFunc = createSelector(
           R.map((val) => ({
             name: val.name,
             children: R.pipe(
-              R.path(['data', 'kpis', 'data']),
+              R.path(['data', 'globalOutputs', 'data']),
               R.pick(selectedKpis),
               R.filter(R.has('value')),
               customSort,
-              R.map((kpi) =>
+              R.map((globalOutput) =>
                 R.assoc(
                   'value',
                   [
@@ -1227,9 +1231,9 @@ export const selectMemoizedKpiFunc = createSelector(
                         R.replace(/,/g, '')
                       ),
                       parseFloat
-                    )(kpi),
+                    )(globalOutput),
                   ],
-                  { name: kpi.name || kpi.id }
+                  { name: globalOutput.name || globalOutput.id }
                 )
               )
             )(val),

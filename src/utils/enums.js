@@ -14,12 +14,6 @@ export const themeId = {
   LIGHT: 'light',
 }
 
-export const viewId = {
-  DASHBOARD: 'stats',
-  MAP: 'map',
-  KPI: 'kpi',
-}
-
 export const asyncStatus = {
   PENDING: 'pending',
   FAIL: 'fail',
@@ -75,13 +69,13 @@ export const propContainer = {
   VERTICAL: 'vertical',
 }
 
-export const kpiId = {
+export const globalOutputId = {
   NUMBER: 'num',
   TEXT: 'text',
   HEAD: 'head',
 }
 
-export const kpiVariant = {
+export const globalOutputVariant = {
   ROW: 'row',
   COLUMN: 'column',
 }

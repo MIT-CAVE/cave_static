@@ -22,49 +22,49 @@ import { customSort, forcePath, getLabelFn } from '../../../utils'
 const DashboardKpi = ({ obj }) => {
   const dispatch = useDispatch()
   const themeId = useSelector(selectTheme)
-  const kpis = useSelector(selectAssociatedData)
+  const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
-  const kpiFunc = useSelector(selectMemoizedKpiFunc)
+  const globalOutputFunc = useSelector(selectMemoizedKpiFunc)
   const layout = useSelector(selectKpisLayout)
   const items = useSelector(selectMergedKpis)
 
   useEffect(() => {
-    if (R.isEmpty(kpis)) {
+    if (R.isEmpty(globalOutputs)) {
       dispatch(
         sendCommand({
           command: 'get_associated_session_data',
           data: {
-            data_names: ['kpis'],
+            data_names: ['globalOutputs'],
           },
         })
       )
     }
-  }, [kpis, dispatch])
+  }, [globalOutputs, dispatch])
 
-  const formattedKpis = kpiFunc(obj)
+  const formattedKpis = globalOutputFunc(obj)
 
   const isTable = R.prop('chart', obj) === 'Table'
 
-  const actualKpiRaw = forcePath(R.propOr([], 'kpi', obj))
+  const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', obj))
 
-  const kpiData = R.pipe(
+  const globalOutputData = R.pipe(
     R.values,
     R.head,
-    R.pathOr({}, ['data', 'kpis', 'data']),
+    R.pathOr({}, ['data', 'globalOutputs', 'data']),
     R.pick(actualKpiRaw),
     R.filter(R.has('value'))
-  )(kpis)
+  )(globalOutputs)
 
-  const actualKpi = R.pipe(customSort, R.pluck('id'))(kpiData)
-  const kpiUnits = R.map((item) => {
-    const kpi = R.propOr({}, item)(kpiData)
-    return kpi.unit || numberFormatDefault.unit
+  const actualKpi = R.pipe(customSort, R.pluck('id'))(globalOutputData)
+  const globalOutputUnits = R.map((item) => {
+    const globalOutput = R.propOr({}, item)(globalOutputData)
+    return globalOutput.unit || numberFormatDefault.unit
   })(actualKpi)
 
   const tableLabels = R.zipWith(
-    (a, b) => `${getLabelFn(kpiData)(a)}${b ? ` [${b}]` : ''} `,
+    (a, b) => `${getLabelFn(globalOutputData)(a)}${b ? ` [${b}]` : ''} `,
     actualKpi,
-    kpiUnits
+    globalOutputUnits
   )
 
   // FIXME: This should receive column types set by designers in the API
@@ -125,9 +125,9 @@ const DashboardKpi = ({ obj }) => {
           data={formattedKpis}
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(kpiUnits)}
+          yAxisTitle={R.join(', ')(globalOutputUnits)}
           theme={themeId}
-          // The data structure of the KPI chart is the same
+          // The data structure of the globalOutput chart is the same
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
@@ -136,7 +136,7 @@ const DashboardKpi = ({ obj }) => {
           data={formattedKpis}
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(kpiUnits)}
+          yAxisTitle={R.join(', ')(globalOutputUnits)}
           theme={themeId}
         />
       ) : null}
