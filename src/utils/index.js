@@ -178,8 +178,13 @@ export const calculateStatAnyDepth = (statistics) => {
   const group = (groupBys, calculation, indicies) =>
     R.pipe(
       R.collectBy(R.pipe(R.head(groupBys), R.join(''))),
-      // TODO check for key conflicts here
-      R.indexBy(R.pipe(R.head, R.head(groupBys), R.last)),
+      R.reduce((acc, value) => {
+        const key = R.pipe(R.head, R.head(groupBys), R.head)(value)
+        const finalName = R.has(key, acc)
+          ? R.pipe(R.head, R.head(groupBys), R.join(', '))(value)
+          : key
+        return R.assoc(finalName, value, acc)
+      }, {}),
       R.length(groupBys) === 1
         ? R.map((group) => calculate(group, calculation))
         : R.map((stats) => group(R.tail(groupBys), calculation, stats))

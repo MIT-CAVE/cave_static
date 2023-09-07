@@ -1089,9 +1089,8 @@ export const selectMemoizedChartFunc = createSelector(
               [category, 'nestedStructure', currentLevel, 'parent'],
               groupings
             )
-            if (R.isNil(parent)) return R.prepend(currentLevel, path)
-            else
-              return createParentalPath(R.prepend(currentLevel, path), parent)
+            if (R.isNil(parent)) return R.append(currentLevel, path)
+            else return createParentalPath(R.append(currentLevel, path), parent)
           }
           const parentalPath = createParentalPath([], level)
           const groupList = R.path([outputGroup, 'groupLists', category])(
