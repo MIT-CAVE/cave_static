@@ -1128,34 +1128,19 @@ export const selectMemoizedChartFunc = createSelector(
           ]
         )(groupings)
 
-        // Helper function for grouping table vals for merge function
-        const groupByIdx = R.addIndex(R.groupBy)(
-          (val, idx) => idx % R.length(actualStat)
-        )
-
         // merge the calculated stats - unless boxplot
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
         const statValues = R.map(
           recursiveMap(
             R.is(Array),
-            R.has(R.prop('chart', obj), chartStatUses)
-              ? R.pipe(
-                  R.unnest,
-                  groupByIdx,
-                  R.values,
-                  R.map(mergeFuncs[obj.grouping])
-                )
-              : R.pipe(
-                  R.filter(R.is(Number)),
-                  obj.chart !== 'Box Plot'
-                    ? mergeFuncs[obj.grouping]
-                    : R.identity
-                ),
+            R.pipe(
+              R.filter(R.is(Number)),
+              obj.chart !== 'Box Plot' ? mergeFuncs[obj.grouping] : R.identity
+            ),
             R.identity
           ),
           calculatedStats
         )
-
         // Helper function to map merged stats to chart input object
         const recursiveMapLayers = (val) =>
           R.type(val) === 'Object'
@@ -1192,8 +1177,21 @@ export const selectMemoizedChartFunc = createSelector(
 
         const formattedData = getFormattedData(statValues)
 
+        const conditionalMerge = (key, a, b) =>
+          key === 'name'
+            ? a
+            : key === 'value'
+            ? R.concat(a, b)
+            : // key === 'children'
+              mergeMultiStatData([a, b])
+
+        const mergeMultiStatData = R.pipe(
+          R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
+          R.values
+        )
+
         return R.is(Array, obj.statistic[0])
-          ? formattedData
+          ? mergeMultiStatData(formattedData)
           : R.head(formattedData)
       },
       MAX_MEMOIZED_CHARTS

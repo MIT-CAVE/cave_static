@@ -78,10 +78,13 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const removeExtraLevels = (obj) =>
     R.isNotNil(chartMaxGrouping[obj.chart])
       ? R.pipe(
-          R.assoc('level', R.slice(0, chartMaxGrouping[obj.chart], obj.level)),
+          R.assoc(
+            'level',
+            R.slice(0, chartMaxGrouping[obj.chart], obj.level || [])
+          ),
           R.assoc(
             'category',
-            R.slice(0, chartMaxGrouping[obj.chart], obj.category)
+            R.slice(0, chartMaxGrouping[obj.chart], obj.category || [])
           )
         )(obj)
       : obj

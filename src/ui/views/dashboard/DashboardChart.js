@@ -105,20 +105,24 @@ const DashboardChart = ({ obj }) => {
   })(obj.statistic)
   const tableLabels = R.prepend(
     obj.category
-      ? `${getLabelFn(categories)(obj.category)}${
-          obj.level
-            ? ` \u279D ${getSubLabelFn(categories, obj.category, obj.level)}`
+      ? `${getLabelFn(categories)(R.path(['category', 0], obj))}${
+          R.path(['level', 0], obj)
+            ? ` \u279D ${getSubLabelFn(
+                categories,
+                R.path(['category', 0], obj),
+                R.path(['level', 0], obj)
+              )}`
             : ''
         }`
       : '',
     subGrouped
       ? R.prepend(
-          `${getLabelFn(categories)(obj.category2)}${
-            obj.level2
+          `${getLabelFn(categories)(R.path(['category', 1], obj))}${
+            R.path(['level', 1], obj)
               ? ` \u279D ${getSubLabelFn(
                   categories,
-                  obj.category2,
-                  obj.level2
+                  R.path(['category', 1], obj),
+                  R.path(['level', 1], obj)
                 )}`
               : ''
           }`,
@@ -132,7 +136,6 @@ const DashboardChart = ({ obj }) => {
     R.when(R.always(R.has('level')(obj)), R.prepend('string')),
     R.when(R.always(R.has('level2')(obj)), R.prepend('string'))
   )([])
-
   // For simplicity, `numberFormatDefault` is used to apply number
   // formatting to all values in a chart, as some statistics may
   // be the result of combining different number formats. Although
@@ -148,7 +151,7 @@ const DashboardChart = ({ obj }) => {
         flex: '1 1 auto',
       }}
     >
-      {obj.chart === chartType.TABLE && obj.category ? (
+      {obj.chart === chartType.TABLE && obj.category && obj.category[0] ? (
         <TableChart
           data={formattedData}
           numberFormat={commonFormat}
