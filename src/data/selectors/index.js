@@ -15,7 +15,6 @@ import Supercluster from '../../utils/supercluster'
 
 import {
   checkValidRange,
-  filterItems,
   getTimeValue,
   sortProps,
   renameKeys,
@@ -124,14 +123,11 @@ export const selectGeos = createSelector(selectData, (data) =>
 export const selectAppBar = createSelector(selectData, (data) =>
   R.propOr({}, 'appBar')(data)
 )
-export const selectCategories = createSelector(selectData, (data) =>
-  R.propOr({}, 'categories')(data)
-)
-export const selectStats = createSelector(selectData, (data) =>
-  R.propOr({}, 'stats')(data)
+export const selectGroupedOutputs = createSelector(selectData, (data) =>
+  R.propOr({}, 'groupedOutputs')(data)
 )
 export const selectKpis = createSelector(selectData, (data) =>
-  R.propOr({}, 'kpis')(data)
+  R.propOr({}, 'globalOutputs')(data)
 )
 export const selectDash = createSelector(selectData, (data) =>
   R.propOr({}, 'dashboards')(data)
@@ -192,11 +188,9 @@ export const selectRightAppBarData = createSelector(
     )
   )
 )
-export const selectCategoriesData = createSelector(selectCategories, (data) =>
-  R.propOr({}, 'data')(data)
-)
-export const selectStatsData = createSelector(selectStats, (data) =>
-  R.propOr({}, 'data')(data)
+export const selectGroupedOutputsData = createSelector(
+  selectGroupedOutputs,
+  (data) => R.propOr({}, 'data')(data)
 )
 export const selectKpisData = createSelector(selectKpis, (data) =>
   R.propOr({}, 'data')(data)
@@ -265,9 +259,32 @@ export const selectTimeUnits = createSelector(selectSettingsData, (data) =>
 export const selectSyncToggles = createSelector(selectSettingsData, (data) =>
   R.propOr({}, 'sync', data)
 )
-// Data -> stats
-export const selectStatisticTypes = createSelector(selectStats, (data) =>
-  R.propOr({}, 'types')(data)
+// Data -> groupedOutputs
+export const selectGroupedOutputNames = createSelector(
+  selectGroupedOutputsData,
+  R.pipe(
+    R.mapObjIndexed((obj, key) =>
+      R.pipe(
+        R.propOr({}, 'stats'),
+        R.keys,
+        R.reduce(
+          (acc, statKey) =>
+            R.assoc(
+              R.pathOr(statKey, ['stats', statKey, 'name'], obj),
+              [key, statKey],
+              acc
+            ),
+          {}
+        )
+      )(obj)
+    ),
+    R.values,
+    R.mergeAll
+  )
+)
+export const selectGroupedOutputTypes = createSelector(
+  selectGroupedOutputsData,
+  R.map((obj) => R.propOr({}, 'stats')(obj))
 )
 // Data -> dashboard
 export const selectDashboardData = createSelector(selectDash, (data) =>
@@ -329,19 +346,11 @@ export const selectPaneState = createSelector(
 export const selectLeftOpenPane = createSelector(selectPaneState, (data) =>
   R.propOr('', 'open', R.propOr({}, 'left', data))
 )
-export const selectLeftSecondaryOpenPane = createSelector(
-  selectPaneState,
-  (data) => R.propOr('', 'secondaryOpen', R.propOr({}, 'left', data))
-)
 export const selectLeftPinPane = createSelector(selectPaneState, (data) =>
   R.propOr(false, 'pin', R.propOr({}, 'left', data))
 )
 export const selectRightOpenPane = createSelector(selectPaneState, (data) =>
   R.propOr('', 'open', R.propOr({}, 'right', data))
-)
-export const selectRightSecondaryOpenPane = createSelector(
-  selectPaneState,
-  (data) => R.propOr('', 'secondaryOpen', R.propOr({}, 'right', data))
 )
 export const selectRightPinPane = createSelector(selectPaneState, (data) =>
   R.propOr(false, 'pin', R.propOr({}, 'right', data))
@@ -406,7 +415,7 @@ export const selectDemoViews = createSelector(
         (d) =>
           (R.propEq('stats', 'type', d[1]) ||
             R.propEq('map', 'type', d[1]) ||
-            R.propEq('kpi', 'type', d[1])) &&
+            R.propEq('globalOutput', 'type', d[1])) &&
           R.pathOr(true, [d[0], 'show'], demoSettings)
       ),
       R.pluck(0)
@@ -461,29 +470,6 @@ export const selectOpenModalData = createSelector(
     ),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
-export const selectFiltered = createSelector(
-  [selectPanes, selectLocalPanes, selectCategoriesData],
-  (panes, localPanes, categoriesData) => {
-    const selected = R.propOr(
-      R.propOr({}, 'filtered', panes),
-      'filtered',
-      localPanes
-    )
-    return R.mapObjIndexed((val, category) => {
-      const smallestItem = R.pipe(
-        R.path([category, 'nestedStructure']),
-        sortProps,
-        R.keys,
-        R.last
-      )(categoriesData)
-      const selectedVal = R.propOr([], category, selected)
-      return R.isEmpty(selectedVal)
-        ? R.pipe(R.prop('data'), R.pluck(smallestItem), R.values)(val)
-        : selectedVal
-    })(categoriesData)
-  },
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
-)
 // Merged Dashboards
 export const selectDashboard = createSelector(
   [selectAppBarId, selectDashboardData, selectLocalDashboardData],
@@ -517,7 +503,7 @@ export const selectDashboardLockedLayout = createSelector(
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
 )
 export const selectAllowedStats = createSelector(
-  [selectStatisticTypes, selectStatOptions],
+  [selectGroupedOutputTypes, selectStatOptions],
   (statisticTypes, statOptions) =>
     R.isEmpty(statOptions)
       ? statisticTypes
@@ -658,11 +644,15 @@ export const selectMapLegendFunc = createSelector(
     },
   }
 )
-// Local -> kpis
-const selectLocalKpis = createSelector(selectLocal, R.propOr({}, 'kpis'))
+// Local -> globalOutputs
+const selectLocalKpis = createSelector(
+  selectLocal,
+  R.propOr({}, 'globalOutputs')
+)
 export const selectMergedKpis = createSelector(
   [selectKpisData, selectLocalKpis],
-  (kpisData, localKpis) => R.mergeDeepLeft(localKpis)(kpisData)
+  (globalOutputsData, localKpis) =>
+    R.mergeDeepLeft(localKpis)(globalOutputsData)
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
@@ -1025,65 +1015,15 @@ export const selectMergedGeos = createSelector(
 export const selectLayerById = (state, id) =>
   R.path(['local', 'map', 'mapLayers', id])(state)
 
-// Filtering
-export const selectAcceptableFilterCategories = createSelector(
-  [selectFiltered, selectCategoriesData],
-  (filtered, categoriesData) => {
-    const allowedCategories = {}
-    for (let category in categoriesData) {
-      allowedCategories[category] = new Set()
-      const smallestItem = R.pipe(
-        R.path([category, 'nestedStructure']),
-        sortProps,
-        R.keys,
-        R.last
-      )(categoriesData)
-      const filteredItems = R.propOr({}, category, filtered)
-      const categoryItems = R.path([category, 'data'], categoriesData)
-      for (let item in categoryItems) {
-        if (
-          R.isEmpty(filteredItems) ||
-          R.includes(
-            R.propOr('', smallestItem, categoryItems[item]),
-            filteredItems
-          )
-        ) {
-          allowedCategories[category].add(item)
-        }
-      }
-    }
-    return allowedCategories
-  }
-)
-export const selectFilterFunction = createSelector(
-  [selectAcceptableFilterCategories],
-  (acceptableFilterCategories) => filterItems(R.__, acceptableFilterCategories)
-)
-export const selectFilteredArcsData = createSelector(
-  [selectFilterFunction, selectMergedArcs],
-  (filterFunction, arcsData) => filterFunction(arcsData)
-)
-export const selectFilteredNodes = createSelector(
-  [selectFilterFunction, selectMergedNodes],
-  (filterFunction, nodesData) => filterFunction(nodesData)
-)
-export const selectFilteredStatsData = createSelector(
-  [selectFilterFunction, selectStatsData],
-  (filterFunction, statsData) => filterFunction(statsData)
-)
-export const selectFilteredGeosData = createSelector(
-  [selectFilterFunction, selectMergedGeos],
-  (filterFunction, geosData) => filterFunction(geosData)
-)
 export const selectNodeDataFunc = createSelector(
-  [selectEnabledNodesFunc, selectFilteredNodes],
-  (enabledNodesFunc, filteredData) =>
+  [selectEnabledNodesFunc, selectMergedNodes],
+  (enabledNodesFunc, mergedData) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
         R.toPairs(
           R.filter((d) => R.propOr(false, d.type, enabledNodesFunc(mapId)))(
-            filteredData
+            mergedData
           )
         ),
       MAX_MEMOIZED_CHARTS
@@ -1091,15 +1031,15 @@ export const selectNodeDataFunc = createSelector(
 )
 
 export const selectNodesByType = createSelector(
-  selectFilteredNodes,
+  selectMergedNodes,
   R.pipe(R.values, R.groupBy(R.prop('type')))
 )
 export const selectArcsByType = createSelector(
-  selectFilteredArcsData,
+  selectMergedArcs,
   R.pipe(R.values, R.groupBy(R.prop('type')))
 )
 export const selectGeosByType = createSelector(
-  selectFilteredGeosData,
+  selectMergedGeos,
   R.pipe(
     R.mapObjIndexed((val, key) => R.assoc('data_key', key, val)),
     R.values,
@@ -1119,105 +1059,91 @@ export const selectMatchingKeysByTypeFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
-// Stats derived
-export const selectCategoryFunc = createSelector(
-  selectCategoriesData,
-  (categories) => (category, level) => (stat) =>
-    R.path(
-      [category, 'data', R.path(['category', category, 0], stat), level],
-      categories
-    )
+// outputs derived
+export const selectStatGroupings = createSelector(
+  selectGroupedOutputs,
+  R.propOr({}, ['groupings'])
 )
+
 export const selectMemoizedChartFunc = createSelector(
   [
-    selectFilteredStatsData,
-    selectCategoryFunc,
+    selectGroupedOutputsData,
     selectDebug,
-    selectCategoriesData,
-    selectStatisticTypes,
+    selectGroupedOutputTypes,
+    selectStatGroupings,
   ],
-  (filteredStatsData, categoryFunc, debug, categoriesData, statisticTypes) =>
+  (groupedOutputs, debug, statisticTypes, groupings) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const pathedVar = forcePath(R.propOr([], 'statistic', obj))
-        const actualStat = R.has(R.prop('chart', obj), chartStatUses)
-          ? pathedVar
-          : obj.statistic
+        const actualStat = R.is(Array, obj.statistic[0])
+          ? obj.statistic
+          : [obj.statistic]
         const mergeFuncs = {
           Sum: R.sum,
           Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
           Maximum: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
           Average: R.mean,
         }
-        // Find the calculation for selected stat(s)
-        const calculation = R.is(Array, actualStat)
-          ? `[${R.reduce(
-              (acc, stat) =>
-                R.insert(
-                  -1,
-                  R.pathOr('0', [stat, 'calculation'])(statisticTypes),
-                  acc
-                ),
-              '',
-              actualStat
-            )}]`
-          : R.pathOr('0', [actualStat, 'calculation'])(statisticTypes)
 
-        // Filter for category if selected
-        const actualStatsData = obj.category
-          ? R.filter(R.hasPath(['category', obj.category]))(
-              R.values(filteredStatsData)
+        // Given an index returns a string to group all similar indicies by
+        const categoryFunc = R.curry((category, level, outputGroup) => {
+          const createParentalPath = (path, currentLevel) => {
+            const parent = R.path(
+              [category, 'nestedStructure', currentLevel, 'parent'],
+              groupings
             )
-          : R.values(filteredStatsData)
+            if (R.isNil(parent)) return R.append(currentLevel, path)
+            else return createParentalPath(R.append(currentLevel, path), parent)
+          }
+          const parentalPath = createParentalPath([], level)
+          const groupList = R.path([outputGroup, 'groupLists', category])(
+            groupedOutputs
+          )
 
+          return (index) => {
+            const groupName = R.propOr('undefined', index, groupList)
+            const groupingVal = R.path([category, 'data', groupName])(groupings)
+            return R.props(parentalPath)(groupingVal)
+          }
+        })
         // List of groupBy, subGroupBy etc...
-        // TODO: Currently groupBys only looks for group and subgroup - make this N depth
-        const groupBys = R.without(
-          [undefined],
-          [
-            categoryFunc(obj.category, obj.level),
-            R.has('level2', obj)
-              ? categoryFunc(obj.category2, obj.level2)
-              : undefined,
-          ]
-        )
+        const groupBys = R.map((idx) =>
+          categoryFunc(obj.category[idx], obj.level[idx])
+        )(R.range(0, R.length(obj.category)))
         // Calculates stat values without applying mergeFunc
-        const calculatedStats = calculateStatAnyDepth(actualStatsData)(
-          groupBys,
-          calculation
-        )
-
+        const calculatedStats = R.map((stat) =>
+          calculateStatAnyDepth(groupedOutputs[stat[0]])(
+            R.isEmpty(groupBys)
+              ? [R.always(['All'])]
+              : R.map(R.applyTo(stat[0]), groupBys),
+            R.pathOr('0', [...stat, 'calculation'])(statisticTypes)
+          )
+        )(actualStat)
         // Ordering for the X's in the chart
         const ordering = R.pathOr(
           [],
-          [obj.category, 'nestedStructure', obj.level, 'ordering']
-        )(categoriesData)
-
-        // Helper function for grouping table vals for merge function
-        const groupByIdx = R.addIndex(R.groupBy)(
-          (val, idx) => idx % R.length(actualStat)
-        )
+          [
+            R.path(['category', 0], obj),
+            'nestedStructure',
+            R.path(['level', 0], obj),
+            'ordering',
+          ]
+        )(groupings)
 
         // merge the calculated stats - unless boxplot
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-        const statValues = recursiveMap(
-          R.is(Array),
-          R.has(R.prop('chart', obj), chartStatUses)
-            ? R.pipe(
-                R.unnest,
-                groupByIdx,
-                R.values,
-                R.map(mergeFuncs[obj.grouping])
-              )
-            : R.pipe(
-                R.filter(R.is(Number)),
-                obj.chart !== 'Box Plot' ? mergeFuncs[obj.grouping] : R.identity
-              ),
-          R.identity,
+        const statValues = R.map(
+          recursiveMap(
+            R.is(Array),
+            R.pipe(
+              R.filter(R.is(Number)),
+              obj.chart !== 'Box Plot' ? mergeFuncs[obj.grouping] : R.identity
+            ),
+            R.identity
+          ),
           calculatedStats
         )
-
         // Helper function to map merged stats to chart input object
         const recursiveMapLayers = (val) =>
           R.type(val) === 'Object'
@@ -1238,21 +1164,38 @@ export const selectMemoizedChartFunc = createSelector(
             ? val
             : [val]
         // Formats and sorts merged stats
-        const getFormattedData = R.pipe(
-          debug
-            ? R.identity
-            : recursiveMap(
-                (val) => R.type(val) !== 'Object',
-                R.identity,
-                R.dissoc(undefined)
-              ),
-          recursiveMapLayers,
-          customSortByX(ordering)
+        const getFormattedData = R.map(
+          R.pipe(
+            debug
+              ? R.identity
+              : recursiveMap(
+                  (val) => R.type(val) !== 'Object',
+                  R.identity,
+                  R.dissoc(undefined)
+                ),
+            recursiveMapLayers,
+            customSortByX(ordering)
+          )
         )
 
         const formattedData = getFormattedData(statValues)
 
-        return formattedData
+        const conditionalMerge = (key, a, b) =>
+          key === 'name'
+            ? a
+            : key === 'value'
+            ? R.concat(a, b)
+            : // key === 'children'
+              mergeMultiStatData([a, b])
+
+        const mergeMultiStatData = R.pipe(
+          R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
+          R.values
+        )
+
+        return R.is(Array, obj.statistic[0])
+          ? mergeMultiStatData(formattedData)
+          : R.head(formattedData)
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1263,7 +1206,7 @@ export const selectMemoizedKpiFunc = createSelector(
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const selectedKpis = forcePath(R.propOr([], 'kpi', obj))
+        const selectedKpis = forcePath(R.propOr([], 'globalOutput', obj))
         const formattedKpis = R.pipe(
           R.values,
           R.filter((val) =>
@@ -1272,11 +1215,11 @@ export const selectMemoizedKpiFunc = createSelector(
           R.map((val) => ({
             name: val.name,
             children: R.pipe(
-              R.path(['data', 'kpis', 'data']),
+              R.path(['data', 'globalOutputs', 'data']),
               R.pick(selectedKpis),
               R.filter(R.has('value')),
               customSort,
-              R.map((kpi) =>
+              R.map((globalOutput) =>
                 R.assoc(
                   'value',
                   [
@@ -1288,9 +1231,9 @@ export const selectMemoizedKpiFunc = createSelector(
                         R.replace(/,/g, '')
                       ),
                       parseFloat
-                    )(kpi),
+                    )(globalOutput),
                   ],
-                  { name: kpi.name || kpi.id }
+                  { name: globalOutput.name || globalOutput.id }
                 )
               )
             )(val),
@@ -1310,12 +1253,8 @@ export const selectMemoizedKpiFunc = createSelector(
 )
 // Node, Geo, & Arc derived
 export const selectGroupedEnabledArcsFunc = createSelector(
-  [
-    selectEnabledArcsFunc,
-    selectFilteredArcsData,
-    selectCurrentMapProjectionFunc,
-  ],
-  (enabledArcsFunc, filteredArcs, projectionFunc) =>
+  [selectEnabledArcsFunc, selectMergedArcs, selectCurrentMapProjectionFunc],
+  (enabledArcsFunc, mergedArcs, projectionFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -1340,7 +1279,7 @@ export const selectGroupedEnabledArcsFunc = createSelector(
             )
           ),
           R.map(R.fromPairs)
-        )(filteredArcs),
+        )(mergedArcs),
       MAX_MEMOIZED_CHARTS
     )
 )

@@ -41,16 +41,16 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
     <Grid container wrap="nowrap" sx={styles.header}>
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr('stats', 'type', obj)}
+          value={R.propOr('groupedOutputs', 'type', obj)}
           optionsList={[
             {
-              label: 'Statistics',
-              value: 'stats',
+              label: 'Grouped Outputs',
+              value: 'groupedOutputs',
               iconName: 'md/MdMultilineChart',
             },
             {
-              label: 'KPIs',
-              value: 'kpis',
+              label: 'Global Outputs',
+              value: 'globalOutputs',
               iconName: 'md/MdSpeed',
             },
             {
@@ -66,11 +66,11 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
                 path,
                 value: R.pipe(
                   R.assoc('type', value),
-                  // If we switch to KPIs and an unsupported plot
+                  // If we switch to globalOutputs and an unsupported plot
                   // is selected, we change to a table
                   R.when(
                     R.both(
-                      R.always(R.equals('kpis')(value)),
+                      R.always(R.equals('globalOutputs')(value)),
                       R.pipe(
                         R.prop('chart'),
                         R.includes(R.__, ['Bar', 'Line', 'Table']),
@@ -85,9 +85,9 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
           }
         />
       </HeaderSelectWrapper>
-      {R.propOr('stats', 'type', obj) === 'stats' ? (
+      {R.propOr('groupedOutputs', 'type', obj) === 'groupedOutputs' ? (
         <StatisticsHeader obj={obj} index={index} />
-      ) : R.prop('type', obj) === 'kpis' ? (
+      ) : R.prop('type', obj) === 'globalOutputs' ? (
         <KpiHeader obj={obj} index={index} />
       ) : (
         <MapHeader obj={obj} index={index} />

@@ -47,6 +47,12 @@ const styles = {
     left: 0,
     top: 0,
   },
+  pane: {
+    display: 'flex',
+    position: 'absolute',
+    height: '100vh',
+    top: 0,
+  },
 }
 
 const App = () => {
@@ -122,6 +128,22 @@ const App = () => {
     event.preventDefault()
   }
 
+  const SessionPane = (
+    <Box sx={styles.pane}>
+      {renderAppPane({
+        side: 'left',
+        open: 'session',
+        pane: {
+          icon: 'md/MdApi',
+          name: 'Sessions Pane',
+          variant: 'session',
+        },
+        sessionCard: sessionCard,
+        toggleSessionCard: (enabled) => setSessionCard(enabled),
+      })}
+    </Box>
+  )
+
   return (
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
@@ -135,18 +157,7 @@ const App = () => {
           >
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <Loader />
-              <ErrorBoundary
-                fallback={renderAppPane({
-                  open: 'session',
-                  pane: {
-                    icon: 'md/MdApi',
-                    name: 'Sessions Pane',
-                    variant: 'session',
-                  },
-                  sessionCard: sessionCard,
-                  toggleSessionCard: (enabled) => setSessionCard(enabled),
-                })}
-              >
+              <ErrorBoundary fallback={SessionPane}>
                 <Dashboard />
                 <Panes
                   sessionCard={sessionCard}

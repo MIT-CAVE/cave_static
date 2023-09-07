@@ -77,7 +77,9 @@ export const passLog = (val) => {
   console.log(val)
   return val
 }
-
+export const getGroupLabelFn = R.curry((data, item) =>
+  R.pathOr(R.last(item), [...item, 'name'])(data)
+)
 export const getLabelFn = R.curry((data, item) =>
   R.pathOr(item, [item, 'name'])(data)
 )
@@ -133,48 +135,6 @@ export const parseArray = (input) => {
   return R.map(R.trim)(items)
 }
 
-export const calculateStatSingleGroup = (statistics) => {
-  const parser = new Parser()
-  return (groupBy, calculation) =>
-    R.pipe(
-      R.flip(R.groupBy)(statistics),
-      R.map((group) => {
-        // define groupSum for each group
-        const preSummed = {}
-        parser.functions.groupSum = (statName) => {
-          // groupSum only works for non-derived stats
-          // dont recalculate sum for each stat
-          if (R.isNil(R.prop(statName, preSummed))) {
-            preSummed[statName] = R.sum(
-              R.map(R.path(['values', statName]), group)
-            )
-          }
-          return R.prop(statName, preSummed)
-        }
-        const calculated = group.map((obj) => {
-          try {
-            return parser.parse(calculation).evaluate(
-              // evaluate each list item
-              R.prop('values', obj)
-            )
-          } catch {
-            // if calculation is malformed return simplified array
-            return parseArray(
-              parser
-                .parse(calculation)
-                .simplify(
-                  // evaluate each list item
-                  R.prop('values', obj)
-                )
-                .toString()
-            )
-          }
-        })
-        return calculated
-      })
-    )(groupBy)
-}
-
 export const calculateStatAnyDepth = (statistics) => {
   const parser = new Parser()
   const calculate = (group, calculation) => {
@@ -184,15 +144,21 @@ export const calculateStatAnyDepth = (statistics) => {
       // groupSum only works for non-derived stats
       // dont recalculate sum for each stat
       if (R.isNil(R.prop(statName, preSummed))) {
-        preSummed[statName] = R.sum(R.map(R.path(['values', statName]), group))
+        preSummed[statName] = R.sum(
+          R.map(
+            (idx) => R.path(['valueLists', statName, idx], statistics),
+            group
+          )
+        )
       }
       return R.prop(statName, preSummed)
     }
-    return group.map((obj) => {
+    return group.map((idx) => {
+      const values = R.pipe(R.prop('valueLists'), R.pluck(idx))(statistics)
       try {
         return parser.parse(calculation).evaluate(
           // evaluate each list item
-          R.prop('values', obj)
+          values
         )
       } catch {
         // if calculation is malformed return simplified array
@@ -201,7 +167,7 @@ export const calculateStatAnyDepth = (statistics) => {
             .parse(calculation)
             .simplify(
               // evaluate each list item
-              R.prop('values', obj)
+              values
             )
             .toString()
         )
@@ -209,16 +175,31 @@ export const calculateStatAnyDepth = (statistics) => {
     })
   }
 
-  const group = (groupBys, calculation, statistics) =>
+  const group = (groupBys, calculation, indicies) =>
     R.pipe(
-      R.groupBy(R.head(groupBys)),
+      R.collectBy(R.pipe(R.head(groupBys), R.join(''))),
+      R.reduce((acc, value) => {
+        const key = R.pipe(R.head, R.head(groupBys), R.head)(value)
+        const finalName = R.has(key, acc)
+          ? R.pipe(R.head, R.head(groupBys), R.join(', '))(value)
+          : key
+        return R.assoc(finalName, value, acc)
+      }, {}),
       R.length(groupBys) === 1
         ? R.map((group) => calculate(group, calculation))
         : R.map((stats) => group(R.tail(groupBys), calculation, stats))
-    )(statistics)
+    )(indicies)
+
+  const indicies = R.pipe(
+    R.prop('valueLists'),
+    R.values,
+    R.head,
+    R.length,
+    R.range(0)
+  )(statistics)
 
   const groupHelper = (groupBys, calculation) =>
-    group(groupBys, calculation, statistics)
+    group(groupBys, calculation, indicies)
 
   return groupHelper
 }
@@ -247,51 +228,6 @@ export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
     return cache.get(key)
   }
   return checkCache
-}
-
-export const calculateStatSubGroup = (statistics) => {
-  const parser = new Parser()
-
-  return (groupBy, secondaryGroupBy, calculation) =>
-    R.pipe(
-      R.flip(R.groupBy)(statistics),
-      R.map((group) => R.groupBy(secondaryGroupBy, group)),
-      R.map((group) =>
-        R.map((subGroup) => {
-          // define groupSum for each subGroup
-          const preSummed = {}
-          parser.functions.groupSum = (statName) => {
-            // groupSum only works for non-derived stats
-            // dont recalculate sum for each stat
-            if (R.isNil(R.prop(statName, preSummed))) {
-              preSummed[statName] = R.sum(
-                R.map(R.path(['values', statName]), subGroup)
-              )
-            }
-            return R.prop(statName, preSummed)
-          }
-          return subGroup.map((obj) => {
-            try {
-              return parser.parse(calculation).evaluate(
-                // evaluate each list item
-                R.prop('values', obj)
-              )
-            } catch {
-              // if calculation is malformed return simpliefied array
-              return parseArray(
-                parser
-                  .parse(calculation)
-                  .simplify(
-                    // evaluate each list item
-                    R.prop('values', obj)
-                  )
-                  .toString()
-              )
-            }
-          })
-        })(group)
-      )
-    )(groupBy)
 }
 
 export const getOptimalGridSize = (numColumns, numRows, n) => {
@@ -506,16 +442,6 @@ export const getCategoryItems = R.cond([
     // R.pipe(R.prop('data'), R.values, R.head, R.keys)
   ],
 ])
-
-export const filterItems = (items, acceptableFilterCategories) =>
-  R.filter((item) =>
-    R.all((object) =>
-      R.any(
-        (item) => acceptableFilterCategories[object[0]].has(item),
-        object[1]
-      )
-    )(R.toPairs(R.prop('category', item)))
-  )(items)
 
 // sorts sub objects in obj by order prop - ascending
 export const sortProps = (obj) => {

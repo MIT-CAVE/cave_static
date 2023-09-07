@@ -135,7 +135,7 @@ export const dataSlice = createSlice({
     nodes: {},
     geos: {},
     stats: {},
-    kpis: {},
+    globalOutputs: {},
     ignore: {},
     associated: {},
   },

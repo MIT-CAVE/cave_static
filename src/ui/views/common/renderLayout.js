@@ -37,7 +37,7 @@ const renderKpiItem = ({ item }) =>
 
 const getItemRenderFn = R.cond([
   [R.equals('prop'), R.always(renderPropItem)],
-  [R.equals('kpi'), R.always(renderKpiItem)],
+  [R.equals('globalOutput'), R.always(renderKpiItem)],
   [R.T, null],
 ])
 
@@ -190,6 +190,6 @@ const renderPropsLayout = ({ ...props }) =>
   getLayoutComponent({ keyName: 'prop', ...props })
 
 const renderKpisLayout = ({ ...props }) =>
-  getLayoutComponent({ keyName: 'kpi', ...props })
+  getLayoutComponent({ keyName: 'globalOutput', ...props })
 
 export { renderPropsLayout, renderKpisLayout }

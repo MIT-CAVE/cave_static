@@ -3,8 +3,8 @@ import * as R from 'ramda'
 
 import { overrideState } from './actions'
 
-export const kpisSlice = createSlice({
-  name: 'kpis',
+export const globalOutputsSlice = createSlice({
+  name: 'globalOutputs',
   initialState: {},
   reducers: {
     mapKpiToggle: (state, action) => {
@@ -14,11 +14,11 @@ export const kpisSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(overrideState, (state, action) =>
-      R.mergeDeepRight(state, R.propOr({}, 'kpis', action.payload))
+      R.mergeDeepRight(state, R.propOr({}, 'globalOutputs', action.payload))
     )
   },
 })
 
-export const { mapKpiToggle } = kpisSlice.actions
+export const { mapKpiToggle } = globalOutputsSlice.actions
 
-export default kpisSlice.reducer
+export default globalOutputsSlice.reducer

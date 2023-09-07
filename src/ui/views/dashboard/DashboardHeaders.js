@@ -7,11 +7,13 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
-  selectCategoriesData,
   selectSync,
   selectAppBarId,
   selectAllowedStats,
   selectMapData,
+  selectGroupedOutputNames,
+  selectStatGroupings,
+  selectGroupedOutputsData,
 } from '../../../data/selectors'
 import { chartMaxGrouping, chartStatUses } from '../../../utils/enums'
 
@@ -29,6 +31,7 @@ import {
   getCategoryItems,
   getFreeName,
   getLabelFn,
+  getGroupLabelFn,
   getSubLabelFn,
   includesPath,
   renameKeys,
@@ -41,20 +44,26 @@ const SwapButton = ({ onClick }) => (
 )
 
 const StatisticsHeader = memo(({ obj, index }) => {
-  const categories = useSelector(selectCategoriesData)
+  const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
+  const groupedOutputs = useSelector(selectGroupedOutputsData)
+  const statNames = useSelector(selectGroupedOutputNames)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const groupByOptions =
-    R.has('statistic')(obj) && R.propIs(String, 'statistic', obj)
-      ? R.path([R.prop('statistic', obj), 'groupByOptions'], statisticTypes)
+    R.has('statistic')(obj) &&
+    R.pathSatisfies(R.is(String), ['statistic', 0], obj)
+      ? R.pipe(
+          R.path([R.prop('statistic', obj)[0], 'groupLists']),
+          R.keys
+        )(groupedOutputs)
       : R.keys(categories)
+
   const groupableCategories = R.isNil(groupByOptions)
     ? categories
     : R.pick(groupByOptions, categories)
-  const sortedStatistics = customSort(statisticTypes)
 
   const sortedLevelsByCategory =
     R.mapObjIndexed(getCategoryItems)(groupableCategories)
@@ -67,28 +76,38 @@ const StatisticsHeader = memo(({ obj, index }) => {
   )(categories)
 
   const removeExtraLevels = (obj) =>
-    chartMaxGrouping[obj.chart] === 1
-      ? R.pipe(R.dissoc('level2'), R.dissoc('category2'))(obj)
+    R.isNotNil(chartMaxGrouping[obj.chart])
+      ? R.pipe(
+          R.assoc(
+            'level',
+            R.slice(0, chartMaxGrouping[obj.chart], obj.level || [])
+          ),
+          R.assoc(
+            'category',
+            R.slice(0, chartMaxGrouping[obj.chart], obj.category || [])
+          )
+        )(obj)
       : obj
 
   const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
   const onSelectGroupFn =
-    (n = '') =>
+    (n = 0) =>
     (item, subItem) => {
       dispatch(
         mutateLocal({
           path,
           sync: !includesPath(R.values(sync), path),
           value: R.pipe(
-            R.assoc(`category${n}`, item),
-            R.assoc(`level${n}`, subItem)
+            R.assocPath([`category`, n], item),
+            R.assocPath([`level`, n], subItem)
           )(obj),
         })
       )
     }
-  const getGroupValues = (n = '') =>
+  const getGroupValues = (n = 0) =>
     R.pipe(
-      R.props([`category${n}`, `level${n}`]),
+      R.props([`category`, `level`]),
+      R.pluck(n),
       R.when(R.any(R.isNil), R.always(''))
     )(obj)
 
@@ -149,12 +168,12 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconName: 'md/MdTableChart',
             },
             {
-              label: 'Sunburst (beta)',
+              label: 'Sunburst',
               value: 'Sunburst',
               iconName: 'md/MdDonutLarge',
             },
             {
-              label: 'Treemap (beta)',
+              label: 'Treemap',
               value: 'Treemap',
               iconName: 'tb/TbChartTreemap',
             },
@@ -187,16 +206,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                 path,
                 value: R.pipe(
                   R.assoc('chart', value),
-                  R.when(
-                    R.pipe(
-                      R.prop('statistic'),
-                      R.both(R.is(Array), R.pipe(R.length, R.lt(1)))
-                    ),
-                    // Uncomment the line below if we want to
-                    // select the first one of the whole stats list
-                    // R.assoc('statistic', R.path([0, 'id'])(sortedStatistics))
-                    R.assoc('statistic', R.path(['statistic', 0])(obj))
-                  ),
+                  R.dissoc('statistic'),
                   removeExtraLevels
                 )(obj),
               })
@@ -242,7 +252,6 @@ const StatisticsHeader = memo(({ obj, index }) => {
           }}
         />
       </HeaderSelectWrapper>
-
       <HeaderSelectWrapper>
         {R.has(R.prop('chart', obj), chartStatUses) ? (
           R.length(chartStatUses[obj.chart]) !== 0 ? (
@@ -251,7 +260,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                 undefined: R.addIndex(R.map)((_, idx) => ({
                   id: idx,
                   layoutDirection: 'vertical',
-                  subItems: R.pluck('id')(sortedStatistics),
+                  subItems: R.values(statNames),
                 }))(chartStatUses[obj.chart]),
               }}
               values={R.propOr([], 'statistic', obj)}
@@ -260,10 +269,13 @@ const StatisticsHeader = memo(({ obj, index }) => {
                 const use = chartStatUses[obj.chart][idx]
                 const currentStats = R.propOr([], 'statistic', obj)
                 return R.is(Array, currentStats) && R.has(idx, currentStats)
-                  ? `${use}: ${getLabelFn(statisticTypes, currentStats[idx])}`
+                  ? `${use}: ${getGroupLabelFn(
+                      statisticTypes,
+                      currentStats[idx]
+                    )}`
                   : use
               }}
-              getSubLabel={(_, stat) => getLabelFn(statisticTypes, stat)}
+              getSubLabel={(_, stat) => getGroupLabelFn(statisticTypes, stat)}
               onSelect={(index, value) => {
                 const newVal = R.equals(
                   R.path(['statistic', index], obj),
@@ -282,10 +294,10 @@ const StatisticsHeader = memo(({ obj, index }) => {
             />
           ) : (
             <SelectMulti
-              getLabel={getLabelFn(statisticTypes)}
+              getLabel={getGroupLabelFn(statisticTypes)}
               value={R.propOr([], 'statistic', obj)}
               header="Select Statistics"
-              optionsList={R.pluck('id')(sortedStatistics)}
+              optionsList={R.values(statNames)}
               onSelect={(value) => {
                 dispatch(
                   mutateLocal({
@@ -299,16 +311,20 @@ const StatisticsHeader = memo(({ obj, index }) => {
           )
         ) : (
           <Select
-            getLabel={getLabelFn(statisticTypes)}
+            getLabel={getGroupLabelFn(statisticTypes)}
             value={R.propOr('', 'statistic', obj)}
             placeholder="Statistic"
-            optionsList={R.pluck('id')(sortedStatistics)}
+            optionsList={R.values(statNames)}
             onSelect={(value) => {
               dispatch(
                 mutateLocal({
                   path,
                   sync: !includesPath(R.values(sync), path),
-                  value: R.assoc('statistic', value, obj),
+                  value: R.pipe(
+                    R.assoc('statistic', value),
+                    R.dissoc('level'),
+                    R.dissoc('category')
+                  )(obj),
                 })
               )
             }}
@@ -340,16 +356,16 @@ const StatisticsHeader = memo(({ obj, index }) => {
             <SwapButton
               onClick={() => {
                 const [category, level] = getGroupValues()
-                const [category2, level2] = getGroupValues(2)
+                const [category2, level2] = getGroupValues(1)
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
                     value: R.pipe(
-                      R.assoc('category', category2),
-                      R.assoc('level', level2),
-                      R.assoc('category2', category),
-                      R.assoc('level2', level)
+                      R.assocPath(['category', 0], category2),
+                      R.assocPath(['level', 0], level2),
+                      R.assocPath(['category', 1], category),
+                      R.assocPath(['level', 1], level)
                     )(obj),
                   })
                 )
@@ -357,24 +373,27 @@ const StatisticsHeader = memo(({ obj, index }) => {
             />
           </HeaderSelectWrapper>
           <HeaderSelectWrapper
-            clearable={R.has('level2', obj)}
+            clearable={R.hasPath(['level', 1], obj)}
             onClear={() => {
               dispatch(
                 mutateLocal({
                   path,
                   sync: !includesPath(R.values(sync), path),
-                  value: R.pipe(R.dissoc('category2'), R.dissoc('level2'))(obj),
+                  value: R.pipe(
+                    R.dissocPath(['category', 1]),
+                    R.dissocPath(['level', 1])
+                  )(obj),
                 })
               )
             }}
           >
             <SelectAccordion
               {...{ itemGroups }}
-              values={getGroupValues(2)}
+              values={getGroupValues(1)}
               placeholder="Sub Group"
               getLabel={getLabelFn(categories)}
               getSubLabel={getSubLabelFn(categories)}
-              onSelect={onSelectGroupFn(2)}
+              onSelect={onSelectGroupFn(1)}
             />
           </HeaderSelectWrapper>{' '}
         </>
@@ -388,7 +407,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
 const KpiHeader = memo(({ obj, index }) => {
   const dispatch = useDispatch()
 
-  const kpis = useSelector(selectAssociatedData)
+  const globalOutputs = useSelector(selectAssociatedData)
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
@@ -444,7 +463,7 @@ const KpiHeader = memo(({ obj, index }) => {
             <SelectMulti
               value={R.propOr([], 'sessions', obj)}
               header="Select Sessions"
-              optionsList={R.pipe(R.values, R.pluck('name'))(kpis)}
+              optionsList={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
               onSelect={(value) => {
                 dispatch(
                   mutateLocal({
@@ -458,25 +477,25 @@ const KpiHeader = memo(({ obj, index }) => {
           </HeaderSelectWrapper>
           <HeaderSelectWrapper>
             <SelectMulti
-              value={R.propOr([], 'kpi', obj)}
-              header="Select KPIs"
+              value={R.propOr([], 'globalOutput', obj)}
+              header="Select Global Outputs"
               optionsList={R.pipe(
                 R.values,
                 R.head,
-                R.path(['data', 'kpis', 'data']),
+                R.path(['data', 'globalOutputs', 'data']),
                 customSort,
                 R.filter(R.has('value')),
                 R.project(['id', 'name', 'icon']),
                 R.map(
                   renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
                 )
-              )(kpis)}
+              )(globalOutputs)}
               onSelect={(value) => {
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('kpi', value, obj),
+                    value: R.assoc('globalOutput', value, obj),
                   })
                 )
               }}
@@ -492,7 +511,7 @@ const KpiHeader = memo(({ obj, index }) => {
                   sendCommand({
                     command: 'get_associated_session_data',
                     data: {
-                      data_names: ['kpis'],
+                      data_names: ['globalOutputs'],
                     },
                   })
                 )

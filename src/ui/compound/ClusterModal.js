@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { openMapModal, closeMapModal } from '../../data/local/mapSlice'
 import {
-  selectFilteredNodes,
+  selectMergedNodes,
   selectNodeClustersAtZoomFunc,
 } from '../../data/selectors'
 
@@ -59,10 +59,7 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
 
   // get all nodes in cluster
   const nodeData = R.toPairs(
-    R.pick(
-      targetCluster.properties.grouped_ids,
-      useSelector(selectFilteredNodes)
-    )
+    R.pick(targetCluster.properties.grouped_ids, useSelector(selectMergedNodes))
   ) //.map(node => node[1])
   // generate table columns for given cluster's props
   const tableColumns = [{ id: 'name', label: 'Name', minWidth: 170 }]

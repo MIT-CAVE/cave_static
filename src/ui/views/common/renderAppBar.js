@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import AppBar from './AppBar'
 import renderAppPane from './Pane'
-import SecondaryPane from './SecondaryPane'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -16,7 +15,6 @@ import {
   selectLeftOpenPane,
   selectLeftOpenPanesData,
   selectLeftPinPane,
-  selectLeftSecondaryOpenPane,
   selectMirrorMode,
   selectRightAppBarData,
   selectRightAppBarDisplay,
@@ -24,7 +22,6 @@ import {
   selectRightOpenPane,
   selectRightOpenPanesData,
   selectRightPinPane,
-  selectRightSecondaryOpenPane,
   selectSync,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
@@ -90,13 +87,11 @@ const Panes = ({ sessionCard, setSessionCard }) => {
   const leftOpen = useSelector(selectLeftOpenPane)
   const leftOpenPanesData = useSelector(selectLeftOpenPanesData)
   const leftPin = useSelector(selectLeftPinPane)
-  const leftSecondaryOpen = useSelector(selectLeftSecondaryOpenPane)
   const rightAppBarData = useSelector(selectRightAppBarData)
   const rightBar = useSelector(selectRightAppBarDisplay)
   const rightOpen = useSelector(selectRightOpenPane)
   const rightOpenPanesData = useSelector(selectRightOpenPanesData)
   const rightPin = useSelector(selectRightPinPane)
-  const rightSecondaryOpen = useSelector(selectRightSecondaryOpenPane)
   const mirrorMode = useSelector(selectMirrorMode)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -165,7 +160,7 @@ const Panes = ({ sessionCard, setSessionCard }) => {
     <ClickAwayListener onClickAway={handlePaneClickAway}>
       <Box>
         {R.map(
-          ([side, open, pane, openPanesData, secondaryOpen]) => {
+          ([side, open, pane, openPanesData]) => {
             return (
               open && (
                 <Box key={side} sx={styles.pane}>
@@ -174,33 +169,17 @@ const Panes = ({ sessionCard, setSessionCard }) => {
                     open: open,
                     pane: pane,
                     openPanesData: openPanesData,
-                    secondaryOpen: secondaryOpen,
                     sessionCard: sessionCard,
                     toggleSessionCard: (enabled) => setSessionCard(enabled),
-                    ...(secondaryOpen === '' && getPinObj(side)),
+                    ...getPinObj(side),
                   })}
-                  {secondaryOpen && (
-                    <SecondaryPane
-                      side={side}
-                      open={secondaryOpen}
-                      pane={openPanesData}
-                      primaryPane={open}
-                      {...getPinObj(side)}
-                    />
-                  )}
                 </Box>
               )
             )
           },
           [
-            ['left', leftOpen, leftPane, leftOpenPanesData, leftSecondaryOpen],
-            [
-              'right',
-              rightOpen,
-              rightPane,
-              rightOpenPanesData,
-              rightSecondaryOpen,
-            ],
+            ['left', leftOpen, leftPane, leftOpenPanesData],
+            ['right', rightOpen, rightPane, rightOpenPanesData],
           ]
         )}
       </Box>
