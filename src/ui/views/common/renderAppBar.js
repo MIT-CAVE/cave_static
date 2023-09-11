@@ -25,6 +25,7 @@ import {
   selectSync,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
+import { paneId } from '../../../utils/enums'
 
 import { includesPath } from '../../../utils'
 
@@ -156,25 +157,46 @@ const Panes = ({ sessionCard, setSessionCard }) => {
       },
     }
   }
+
   return (
     <ClickAwayListener onClickAway={handlePaneClickAway}>
       <Box>
         {R.map(
           ([side, open, pane, openPanesData]) => {
-            return (
-              open && (
-                <Box key={side} sx={styles.pane}>
-                  {renderAppPane({
-                    side: side,
-                    open: open,
-                    pane: pane,
-                    openPanesData: openPanesData,
-                    sessionCard: sessionCard,
-                    toggleSessionCard: (enabled) => setSessionCard(enabled),
-                    ...getPinObj(side),
-                  })}
-                </Box>
-              )
+            const systemPane = R.propOr(
+              {},
+              open,
+              side === 'left' ? leftAppBarData : rightAppBarData
+            )
+            const isSystem =
+              systemPane &&
+              (systemPane.type === paneId.SESSION ||
+                systemPane.type === paneId.APP_SETTINGS)
+            return open ? (
+              <Box key={side} sx={styles.pane}>
+                {renderAppPane({
+                  side: side,
+                  open: open,
+                  pane: isSystem
+                    ? R.mergeLeft(
+                        {
+                          variant: systemPane.type,
+                          name:
+                            systemPane.type === paneId.SESSION
+                              ? 'Sessions'
+                              : 'Settings',
+                        },
+                        systemPane
+                      )
+                    : pane,
+                  openPanesData: openPanesData,
+                  sessionCard: sessionCard,
+                  toggleSessionCard: (enabled) => setSessionCard(enabled),
+                  ...getPinObj(side),
+                })}
+              </Box>
+            ) : (
+              []
             )
           },
           [

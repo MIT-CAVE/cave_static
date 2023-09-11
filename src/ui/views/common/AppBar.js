@@ -109,7 +109,43 @@ const getAppBarItem = ({
   const icon = R.prop('icon', obj)
   const path = ['appBar', 'appBarId']
 
-  return type === 'pane' ? (
+  return type === paneId.SESSION ? (
+    <Tab
+      sx={styles.tab}
+      key={key}
+      value={key}
+      disabled={loading}
+      icon={
+        <FetchedIcon
+          className={nonSx.navIcon}
+          size={25}
+          color={color}
+          iconName={icon}
+        />
+      }
+      onClick={() => {
+        changePane(key)
+      }}
+    />
+  ) : type === paneId.APP_SETTINGS ? (
+    <Tab
+      sx={styles.tab}
+      key={key}
+      value={key}
+      disabled={loading}
+      icon={
+        <FetchedIcon
+          className={nonSx.navIcon}
+          size={25}
+          color={color}
+          iconName={icon}
+        />
+      }
+      onClick={() => {
+        changePane(key)
+      }}
+    />
+  ) : type === 'pane' ? (
     <Tab
       sx={styles.tab}
       key={key}

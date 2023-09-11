@@ -22,7 +22,7 @@ export const asyncStatus = {
 
 export const paneId = {
   SESSION: 'session',
-  APP_SETTINGS: 'appSettings',
+  APP_SETTINGS: 'settings',
   OPTIONS: 'options',
   CONTEXT: 'context',
   FILTER: 'filter',
