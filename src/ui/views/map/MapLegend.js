@@ -619,7 +619,7 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp, mapId }) => {
     mapId,
     'legendGroups',
     legendGroupId,
-    'geos',
+    'data',
     geoType,
     'value',
   ]
@@ -631,7 +631,7 @@ const MapLegendGeoToggle = ({ geoType, legendGroupId, colorProp, mapId }) => {
     mapId,
     'legendGroups',
     legendGroupId,
-    'geos',
+    'data',
     geoType,
     'colorBy',
   ]
@@ -814,7 +814,7 @@ const LegendCard = ({
     mapId,
     'legendGroups',
     legendGroupId,
-    geometryName,
+    'data',
     geometryType,
   ]
 
@@ -827,8 +827,6 @@ const LegendCard = ({
   const groupCalcColorPath = R.append('groupCalcByColor', basePath)
   const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
 
-  // TODO: Decide how to handle grouping? Allow for arcs or make sure it is
-  // only for nodes?
   const allowGrouping = displayedGeometry[geometryType].allowGrouping || false
   const group = displayedGeometry[geometryType].group || false
   const groupCalcBySize =
@@ -1018,46 +1016,40 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
           <hr />
         </span>
       </summary>
-      {R.map(({ id: nodeType, value, sizeBy, colorBy }) =>
-        R.includes(nodeType, nodeTypes) ? (
+      {R.map(({ id, value, sizeBy, colorBy, type }) =>
+        type === 'nodes' && R.includes(id, nodeTypes) ? (
           <MapLegendNodeToggle
-            key={nodeType}
+            key={id}
             legendGroupId={legendObj.id}
-            nodeType={nodeType}
+            nodeType={id}
             value={value}
             sizeProp={sizeBy}
             colorProp={colorBy}
             mapId={mapId}
           />
-        ) : (
-          []
-        )
-      )(getSortedGroups('nodes'))}
-      {R.map(({ id: arcType, value, sizeBy, colorBy }) =>
-        R.includes(arcType, arcTypes) ? (
+        ) : type === 'arcs' && R.includes(id, arcTypes) ? (
           <MapLegendArcToggle
-            key={arcType}
+            key={id}
             legendGroupId={legendObj.id}
-            arcType={arcType}
+            arcType={id}
             value={value}
             sizeProp={sizeBy}
+            colorProp={colorBy}
+            mapId={mapId}
+          />
+        ) : type === 'geos' ? (
+          <MapLegendGeoToggle
+            key={id}
+            legendGroupId={legendObj.id}
+            geoType={id}
+            value={value}
             colorProp={colorBy}
             mapId={mapId}
           />
         ) : (
           []
         )
-      )(getSortedGroups('arcs'))}
-      {R.map(({ id: geoType, value, colorBy }) => (
-        <MapLegendGeoToggle
-          key={geoType}
-          legendGroupId={legendObj.id}
-          geoType={geoType}
-          value={value}
-          colorProp={colorBy}
-          mapId={mapId}
-        />
-      ))(getSortedGroups('geos'))}
+      )(getSortedGroups('data'))}
     </details>
   )
 }

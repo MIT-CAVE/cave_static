@@ -828,8 +828,9 @@ const selectEnabledTypesFn = createSelector(
         const getEnabledTypes = R.pipe(
           R.pathOr({}, ['legendGroups', mapId]),
           R.values,
-          R.pluck(layerKey),
+          R.pluck('data'),
           R.mergeAll,
+          R.filter(R.propEq(layerKey, 'type')),
           R.mapObjIndexed(R.unless(R.prop('value'), R.F))
         )
         return R.when(
