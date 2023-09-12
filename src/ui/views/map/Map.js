@@ -23,7 +23,6 @@ import {
 import {
   selectSettingsIconUrl,
   selectCurrentMapStyleFunc,
-  selectTheme,
   selectMapStyleOptions,
   selectGroupedEnabledArcsFunc,
   selectMergedGeos,
@@ -44,7 +43,6 @@ import { fetchIcon } from '../../../utils'
 const Map = ({ mapboxToken, mapId }) => {
   const dispatch = useDispatch()
   const viewport = useSelector(selectViewportsByMap)[mapId]
-  const theme = useSelector(selectTheme)
   const mapStyle = useSelector(selectCurrentMapStyleFunc)(mapId)
   const mapProjection = useSelector(selectCurrentMapProjectionFunc)(mapId)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
@@ -218,15 +216,15 @@ const Map = ({ mapboxToken, mapId }) => {
   useEffect(() => {
     // This needs to be done because calling setStyle with the same style
     // breaks it for some reason
-    const newStyle = R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(
+    const newStyle = R.path([mapStyle || getDefaultStyleId(), 'spec'])(
       mapStyleOptions
     )
     if (!R.equals(newStyle, mapStyleSpec)) {
       setMapStyleSpec(
-        R.path([mapStyle || getDefaultStyleId(theme), 'spec'])(mapStyleOptions)
+        R.path([mapStyle || getDefaultStyleId(), 'spec'])(mapStyleOptions)
       )
     }
-  }, [mapStyle, mapStyleOptions, theme, mapStyleSpec])
+  }, [mapStyle, mapStyleOptions, mapStyleSpec])
 
   useEffect(() => {
     document.addEventListener('clearHighlight', onMouseOver, false)
@@ -258,8 +256,8 @@ const Map = ({ mapboxToken, mapId }) => {
         mapStyle={mapStyleSpec}
         mapboxAccessToken={useMapbox && mapboxToken}
         projection={mapProjection}
-        fog={R.pathOr(getDefaultFog(theme), [
-          mapStyle || getDefaultStyleId(theme),
+        fog={R.pathOr(getDefaultFog(), [
+          mapStyle || getDefaultStyleId(),
           'fog',
         ])(mapStyleOptions)}
         onClick={onClick}

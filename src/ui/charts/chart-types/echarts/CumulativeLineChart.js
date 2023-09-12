@@ -9,7 +9,6 @@ const CumulativeLineChart = ({
   xAxisTitle,
   yAxisTitle,
   numberFormat,
-  theme,
   colors,
 }) => {
   const yValues = R.has('children', R.head(data))
@@ -55,7 +54,7 @@ const CumulativeLineChart = ({
     <EchartsPlot
       data={accumulate(data)}
       chartType="line"
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, colors }}
+      {...{ xAxisTitle, yAxisTitle, numberFormat, colors }}
     />
   )
 }

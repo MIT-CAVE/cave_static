@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
-  selectTheme,
   selectAppBarId,
   selectSync,
   selectPanesData,
@@ -15,7 +14,7 @@ import {
   selectDataLoading,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-import { themeId, paneId } from '../../../utils/enums'
+import { paneId } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
@@ -76,8 +75,7 @@ const styles = {
   navBtnActive: {
     border: 3,
     borderColor: 'text.primary',
-    bgcolor: (theme) =>
-      theme.palette.mode === themeId.DARK ? 'grey.600' : 'grey.400',
+    bgcolor: 'grey.600',
   },
 }
 
@@ -221,7 +219,6 @@ const getAppBarItem = ({
 
 const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
-  const currentThemeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
   const panesData = useSelector(selectPanesData)
   const sessionLoading = useSelector(selectSessionLoading)
@@ -285,10 +282,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   const mapAppBarItems = R.pipe(
     sortProps,
     R.mapObjIndexed((obj, key) => {
-      const color = R.propOr(
-        R.prop('color', obj),
-        currentThemeId
-      )(R.prop('color', obj))
+      const color = R.prop('color', obj)
       const variant = R.pathOr(false, [key, 'variant'], panesData)
       const disabled = R.equals(variant, paneId.SESSION) ? false : loading
       return getAppBarItem({

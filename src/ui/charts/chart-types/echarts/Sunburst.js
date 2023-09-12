@@ -8,7 +8,7 @@ import { findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 // import { exampleNestedData } from './testData'
 
-const Sunburst = ({ data, theme, colors }) => {
+const Sunburst = ({ data, colors }) => {
   const xLabels = R.pluck('name', data)
 
   const yValues = R.has('children', R.head(data))
@@ -18,8 +18,7 @@ const Sunburst = ({ data, theme, colors }) => {
   const subGroupLabels = findSubgroupLabels(yValues)
 
   const assignColors = () => {
-    let availableColors =
-      theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
+    let availableColors = CHART_PALETTE
 
     const assignments = R.pipe(
       R.map((val) => {
@@ -84,7 +83,7 @@ const Sunburst = ({ data, theme, colors }) => {
     //       fontSize: 20,
     //     },
     //   },
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     series: {
       radius: [60, '90%'],
       label: {
@@ -102,10 +101,10 @@ const Sunburst = ({ data, theme, colors }) => {
       // data: exampleNestedData
     },
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+      backgroundColor: '#4a4a4a',
       trigger: 'item',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
   }
@@ -118,7 +117,6 @@ const Sunburst = ({ data, theme, colors }) => {
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

@@ -7,7 +7,7 @@ import OverflowText from './OverflowText'
 import StableTooltip from './StableTooltip'
 
 import { mutateLocal } from '../../data/local'
-import { selectSync, selectTheme } from '../../data/selectors'
+import { selectSync } from '../../data/selectors'
 
 import { includesPath } from '../../utils'
 
@@ -20,19 +20,13 @@ const GradientBox = ({
 }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
-  const themeType = useSelector(selectTheme)
 
   const getTitle = (endKey, color) => (
     <BlockPicker
       color={color}
       triangle="hide"
       onChangeComplete={(color) => {
-        const path = R.concat(colorPropPath, [endKey, themeType])
-        console.log({
-          path: path,
-          sync: !includesPath(R.values(sync), path),
-          value: `rgb(${color.rgb.r},${color.rgb.g},${color.rgb.b})`,
-        })
+        const path = R.concat(colorPropPath, [endKey])
         return dispatch(
           mutateLocal({
             path: path,

@@ -42,7 +42,6 @@ const EchartsBoxPlot = ({
   yAxisTitle,
   numberFormat,
   colors,
-  theme,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -89,9 +88,7 @@ const EchartsBoxPlot = ({
         },
         colorBy: 'data',
         color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors)
-            ? R.prop(item, colors)
-            : getChartItemColor(theme, idx)
+          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
         )(xLabels),
       }),
     ]
@@ -116,7 +113,7 @@ const EchartsBoxPlot = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     grid: {
       top: 64,
       // right: 8,
@@ -179,10 +176,10 @@ const EchartsBoxPlot = ({
     legend,
     tooltip: {
       trigger: 'axis',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: '#4a4a4a',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
   }
@@ -196,7 +193,6 @@ const EchartsBoxPlot = ({
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

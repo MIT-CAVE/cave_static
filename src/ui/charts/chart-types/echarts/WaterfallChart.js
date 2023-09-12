@@ -57,7 +57,6 @@ const WaterfallChart = ({
   yAxisTitle,
   numberFormat,
   colors,
-  theme,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -163,9 +162,7 @@ const WaterfallChart = ({
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
         color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors)
-            ? R.prop(item, colors)
-            : getChartItemColor(theme, idx)
+          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
         )(xLabels),
       }),
     ]
@@ -192,17 +189,17 @@ const WaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     legend: {
       type: 'scroll',
       top: 24,
     },
     tooltip: {
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+      backgroundColor: '#4a4a4a',
       trigger: 'axis',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
     grid: {
@@ -269,7 +266,6 @@ const WaterfallChart = ({
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />
@@ -284,7 +280,6 @@ const StackedWaterfallChart = ({
   xAxisTitle,
   yAxisTitle,
   numberFormat,
-  theme,
   colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
@@ -405,7 +400,7 @@ const StackedWaterfallChart = ({
         },
         type: 'line',
         style: api.style({
-          stroke: theme === 'light' ? '#4a4a4a' : '#ffffff',
+          stroke: '#ffffff',
           lineWidth: 2,
           lineDash: [8, 6],
           symbolSize: 120,
@@ -457,9 +452,7 @@ const StackedWaterfallChart = ({
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
         color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors)
-            ? R.prop(item, colors)
-            : getChartItemColor(theme, idx)
+          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
         )(xLabels),
       }),
     ]
@@ -513,33 +506,33 @@ const StackedWaterfallChart = ({
         name: 'Initial',
         symbol: 'diamond',
         itemStyle: {
-          color: getChartItemColor(theme, subGroupLabels.length),
+          color: getChartItemColor(subGroupLabels.length),
         },
       },
       {
         name: 'Net Change',
         symbol: 'circle',
         itemStyle: {
-          color: getChartItemColor(theme, subGroupLabels.length + 1),
+          color: getChartItemColor(subGroupLabels.length + 1),
         },
       },
     ],
     lineStyle: {
       type: 'dashed',
       width: 2,
-      color: theme === 'light' ? '#4a4a4a' : '#ffffff',
+      color: '#ffffff',
     },
     emphasis: { focus: 'series' },
     symbolSize: 16,
     itemStyle: {
       borderWidth: 2,
-      borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+      borderColor: '#4a4a4a',
     },
     nodes: nodesData,
     tooltip: {
       trigger: 'item',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+      backgroundColor: '#4a4a4a',
+      textStyle: { color: '#ffffff' },
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
   })
@@ -574,7 +567,7 @@ const StackedWaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     legend: {
       type: 'scroll',
       data: [
@@ -586,8 +579,8 @@ const StackedWaterfallChart = ({
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
+      backgroundColor: '#4a4a4a',
+      textStyle: { color: '#ffffff' },
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
     grid: {
@@ -654,7 +647,6 @@ const StackedWaterfallChart = ({
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

@@ -1,5 +1,10 @@
 import './App.css'
-import { StyledEngineProvider, ThemeProvider, Box } from '@mui/material'
+import {
+  StyledEngineProvider,
+  ThemeProvider,
+  Box,
+  createTheme,
+} from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import PropTypes from 'prop-types'
@@ -11,13 +16,11 @@ import { mutateLocal } from './data/local'
 import {
   selectAppBarId,
   selectAppBarData,
-  selectTheme,
   selectDemoMode,
   selectDemoViews,
   selectSync,
   selectDemoSettings,
 } from './data/selectors'
-import { getTheme } from './theme'
 import { ErrorBoundary } from './ui/compound'
 import Loader from './ui/views/common/Loader'
 import AppModal from './ui/views/common/Modal'
@@ -57,7 +60,6 @@ const styles = {
 
 const App = () => {
   const dispatch = useDispatch()
-  const themeId = useSelector(selectTheme)
   const appBarId = useSelector(selectAppBarId)
   const appBarData = useSelector(selectAppBarData)
   const appBarViews = useSelector(selectDemoViews)
@@ -102,8 +104,6 @@ const App = () => {
     sync,
   ])
 
-  const theme = getTheme(themeId)
-
   const [sessionCard, setSessionCard] = useState(false)
   const [sessionCardPosition, setSessionCardPosition] = useState(
     styles.sessionCardPosition
@@ -146,7 +146,22 @@ const App = () => {
 
   return (
     <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider
+        theme={createTheme({
+          palette: {
+            mode: 'dark',
+            greyscale: {
+              main: '#f2f4f9',
+              light: '#99a0b4',
+              dark: '#373b47',
+              contrastText: '#000000',
+            },
+            background: {
+              paper: '#4a4a4a',
+            },
+          },
+        })}
+      >
         <Box sx={styles.root}>
           <SnackBar />
           <LeftAppBar />

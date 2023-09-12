@@ -148,29 +148,16 @@ export const DEFAULT_MAP_STYLES = {
 
 export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
 
-export const CHART_PALETTE = {
-  dark: [
-    '#4992ff',
-    '#7cffb2',
-    '#fddd60',
-    '#ff6e76',
-    '#58d9f9',
-    '#05c091',
-    '#ff8a45',
-    '#8d48e3',
-    '#dd79ff',
-  ],
-  light: [
-    '#37A2DA',
-    '#32C5E9',
-    '#9FE6B8',
-    '#FFDB5C',
-    '#ff9f7f',
-    '#fb7293',
-    '#e7bcf3',
-    '#8378EA',
-    '#96BFFF',
-  ],
-}
+export const CHART_PALETTE = [
+  '#4992ff',
+  '#7cffb2',
+  '#fddd60',
+  '#ff6e76',
+  '#58d9f9',
+  '#05c091',
+  '#ff8a45',
+  '#8d48e3',
+  '#dd79ff',
+]
 
 export const HIGHLIGHT_COLOR = 'rgb(0,0,128)'

@@ -7,7 +7,6 @@ import { sendCommand } from '../../../data/data'
 import {
   selectAssociatedData,
   selectNumberFormat,
-  selectTheme,
   selectMemoizedKpiFunc,
   selectKpisLayout,
   selectMergedKpis,
@@ -21,7 +20,6 @@ import { customSort, forcePath, getLabelFn } from '../../../utils'
 
 const DashboardKpi = ({ obj }) => {
   const dispatch = useDispatch()
-  const themeId = useSelector(selectTheme)
   const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const globalOutputFunc = useSelector(selectMemoizedKpiFunc)
@@ -126,7 +124,6 @@ const DashboardKpi = ({ obj }) => {
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
-          theme={themeId}
           // The data structure of the globalOutput chart is the same
           // as that of a statistics chart with subgrouped data
           subGrouped
@@ -137,7 +134,6 @@ const DashboardKpi = ({ obj }) => {
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
-          theme={themeId}
         />
       ) : null}
     </Box>

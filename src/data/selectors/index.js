@@ -91,9 +91,6 @@ export const selectLocal = (state) => R.propOr({}, 'local')(state)
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
   R.propOr({}, 'settings')(data)
 )
-export const selectTheme = createSelector(selectLocalSettings, (data) =>
-  R.prop('theme')(data)
-)
 export const selectTime = createSelector(selectLocalSettings, (data) =>
   R.prop('time')(data)
 )
@@ -1497,8 +1494,8 @@ export const selectGeoColorRange = createSelector(
 )
 
 export const selectMatchingKeysFunc = createSelector(
-  [selectEnabledGeosFunc, selectGeosByType, selectTheme, selectGeoColorRange],
-  (enabledGeosFunc, geosByType, themeType, geoRange) =>
+  [selectEnabledGeosFunc, selectGeosByType, selectGeoColorRange],
+  (enabledGeosFunc, geosByType, geoRange) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -1526,8 +1523,8 @@ export const selectMatchingKeysFunc = createSelector(
 )
 
 export const selectLineMatchingKeysFunc = createSelector(
-  [selectMultiLineDataFunc, selectArcRange, selectTheme, selectEnabledArcsFunc],
-  (dataFunc, arcRange, themeType, enabledArcsFunc) =>
+  [selectMultiLineDataFunc, selectArcRange, selectEnabledArcsFunc],
+  (dataFunc, arcRange, enabledArcsFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -1802,13 +1799,8 @@ export const selectNodeRangeAtZoomFunc = createSelector(
 )
 
 export const selectNodeGeoJsonObjectFunc = createSelector(
-  [
-    selectSplitNodeDataFunc,
-    selectNodeRange,
-    selectEnabledNodesFunc,
-    selectTheme,
-  ],
-  (nodeDataSplitFunc, nodeRange, legendObjectsFunc, themeType) =>
+  [selectSplitNodeDataFunc, selectNodeRange, selectEnabledNodesFunc],
+  (nodeDataSplitFunc, nodeRange, legendObjectsFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -1839,11 +1831,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             )(node)
             const colorRange = nodeRange(node.type, colorProp, false, mapId)
 
-            const nullColor = R.pathOr(
-              R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-              ['nullColor', themeType],
-              colorRange
-            )
+            const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
 
             const isCategorical = !R.has('min', colorRange)
             const color = isCategorical
@@ -1856,20 +1844,12 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
                   R.prop('min', colorRange),
                   R.prop('max', colorRange),
                   R.map((val) => parseFloat(val))(
-                    R.pathOr(
-                      R.prop('startGradientColor', colorRange),
-                      ['startGradientColor', themeType],
-                      colorRange
-                    )
+                    R.prop('startGradientColor', colorRange)
                       .replace(/[^\d,.]/g, '')
                       .split(',')
                   ),
                   R.map((val) => parseFloat(val))(
-                    R.pathOr(
-                      R.prop('endGradientColor', colorRange),
-                      ['endGradientColor', themeType],
-                      colorRange
-                    )
+                    R.prop('endGradientColor', colorRange)
                       .replace(/[^\d,.]/g, '')
                       .split(',')
                   ),
@@ -1899,8 +1879,8 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
     )
 )
 export const selectNodeClusterGeoJsonObjectFunc = createSelector(
-  [selectNodeClustersAtZoomFunc, selectTheme, selectEnabledNodesFunc],
-  (nodeClustersFunc, themeType, legendObjectsFunc) =>
+  [selectNodeClustersAtZoomFunc, selectEnabledNodesFunc],
+  (nodeClustersFunc, legendObjectsFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -1933,10 +1913,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                 'endGradientColor',
               ])
           const color = isCategorical
-            ? R.when(
-                R.has(themeType),
-                R.prop(themeType)
-              )(R.prop(value, colorRange))
+            ? R.prop(value, colorRange)
                 .replace(/[^\d,.]/g, '')
                 .split(',')
             : getScaledRgbObj(
@@ -1982,8 +1959,8 @@ export const selectNodeLayerGeoJsonFunc = createSelector(
 )
 
 export const selectArcLayerGeoJsonFunc = createSelector(
-  [selectArcRange, selectTheme, selectLineDataFunc, selectEnabledArcsFunc],
-  (arcRange, themeType, arcDataFunc, legendObjectsFunc) =>
+  [selectArcRange, selectLineDataFunc, selectEnabledArcsFunc],
+  (arcRange, arcDataFunc, legendObjectsFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -2023,11 +2000,7 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             )
               return false
 
-            const nullColor = R.pathOr(
-              R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-              ['nullColor', themeType],
-              colorRange
-            )
+            const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
 
             const color = isCategorical
               ? R.map((val) => parseFloat(val))(
@@ -2039,20 +2012,12 @@ export const selectArcLayerGeoJsonFunc = createSelector(
                   R.prop('min', colorRange),
                   R.prop('max', colorRange),
                   R.map((val) => parseFloat(val))(
-                    R.pathOr(
-                      R.prop('startGradientColor', colorRange),
-                      ['startGradientColor', themeType],
-                      colorRange
-                    )
+                    R.prop('startGradientColor', colorRange)
                       .replace(/[^\d,.]/g, '')
                       .split(',')
                   ),
                   R.map((val) => parseFloat(val))(
-                    R.pathOr(
-                      R.prop('endGradientColor', colorRange),
-                      ['endGradientColor', themeType],
-                      colorRange
-                    )
+                    R.prop('endGradientColor', colorRange)
                       .replace(/[^\d,.]/g, '')
                       .split(',')
                   ),
@@ -2090,8 +2055,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
 )
 
 export const selectArcLayer3DGeoJsonFunc = createSelector(
-  [selectArcRange, selectTheme, selectArcDataFunc, selectEnabledArcsFunc],
-  (arcRange, themeType, arcDataFunc, legendObjectsFunc) =>
+  [selectArcRange, selectArcDataFunc, selectEnabledArcsFunc],
+  (arcRange, arcDataFunc, legendObjectsFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -2129,11 +2094,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             )
               return false
 
-            const nullColor = R.pathOr(
-              R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-              ['nullColor', themeType],
-              colorRange
-            )
+            const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
 
             const color = isCategorical
               ? R.map((val) => parseFloat(val))(
@@ -2145,20 +2106,12 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
                   R.prop('min', colorRange),
                   R.prop('max', colorRange),
                   R.map((val) => parseFloat(val))(
-                    R.pathOr(
-                      R.prop('startGradientColor', colorRange),
-                      ['startGradientColor', themeType],
-                      colorRange
-                    )
+                    R.prop('startGradientColor', colorRange)
                       .replace(/[^\d,.]/g, '')
                       .split(',')
                   ),
                   R.map((val) => parseFloat(val))(
-                    R.pathOr(
-                      R.prop('endGradientColor', colorRange),
-                      ['endGradientColor', themeType],
-                      colorRange
-                    )
+                    R.prop('endGradientColor', colorRange)
                       .replace(/[^\d,.]/g, '')
                       .split(',')
                   ),

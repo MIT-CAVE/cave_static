@@ -9,7 +9,7 @@ import { CHART_PALETTE } from '../../../../utils/constants'
 
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({ data, theme, colors }) => {
+const Treemap = ({ data, colors }) => {
   const xLabels = R.pluck('name', data)
 
   const yValues = R.has('children', R.head(data))
@@ -19,8 +19,7 @@ const Treemap = ({ data, theme, colors }) => {
   const subGroupLabels = findSubgroupLabels(yValues)
 
   const assignColors = () => {
-    let availableColors =
-      theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
+    let availableColors = CHART_PALETTE
 
     const assignments = R.pipe(
       R.map((val) => {
@@ -70,14 +69,14 @@ const Treemap = ({ data, theme, colors }) => {
     //       },
     //     }
     //   : null,
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     series: {
       label: {
         show: true,
       },
       itemStyle: {
         borderRadius: 10,
-        borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+        borderColor: '#4a4a4a',
         borderWidth: 2,
         gapWidth: 2,
       },
@@ -94,7 +93,7 @@ const Treemap = ({ data, theme, colors }) => {
       levels: [
         {
           itemStyle: {
-            borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+            borderColor: '#4a4a4a',
             borderWidth: 2,
             gapWidth: 2,
           },
@@ -122,10 +121,10 @@ const Treemap = ({ data, theme, colors }) => {
       ],
     },
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+      backgroundColor: '#4a4a4a',
       trigger: 'item',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
   }
@@ -138,7 +137,6 @@ const Treemap = ({ data, theme, colors }) => {
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

@@ -15,7 +15,7 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
-import { themeSelection, toggleMirror } from '../../../data/local/settingsSlice'
+import { toggleMirror } from '../../../data/local/settingsSlice'
 import {
   selectData,
   selectDemoMode,
@@ -23,9 +23,7 @@ import {
   selectPaneState,
   selectSync,
   selectSyncToggles,
-  selectTheme,
 } from '../../../data/selectors'
-import { themeId } from '../../../utils/enums'
 
 import { InfoButton, OverflowText } from '../../compound'
 
@@ -85,24 +83,6 @@ FieldContainer.propTypes = {
   help: PropTypes.string,
   children: PropTypes.node,
 }
-
-const ThemeSwitch = ({ onClick, ...props }) => {
-  const selectedTheme = useSelector(selectTheme)
-  const isDark = selectedTheme === themeId.DARK
-  return (
-    <FormControl component="fieldset">
-      <FormGroup aria-label="position" row>
-        <FormControlLabel
-          value="start"
-          control={<Switch checked={isDark} {...{ onClick, ...props }} />}
-          label={`${isDark ? 'Dark' : 'Light'} mode`}
-          labelPlacement="start"
-        />
-      </FormGroup>
-    </FormControl>
-  )
-}
-ThemeSwitch.propTypes = { onClick: PropTypes.func }
 
 const MirrorSwitch = ({ ...props }) => {
   const mirrorMode = useSelector(selectMirrorMode)
@@ -199,9 +179,6 @@ const AppSettingsPane = ({ ...props }) => {
 
   return (
     <>
-      <FieldContainer title="Theme">
-        <ThemeSwitch onClick={() => dispatch(themeSelection())} />
-      </FieldContainer>
       <FieldContainer title="Mirror">
         <MirrorSwitch />
       </FieldContainer>

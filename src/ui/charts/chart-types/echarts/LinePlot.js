@@ -12,7 +12,6 @@ const LinePlot = ({
   xAxisTitle,
   yAxisTitle,
   numberFormat,
-  theme,
   colors,
   stack = false,
   area = false,
@@ -22,14 +21,13 @@ const LinePlot = ({
       data={data}
       chartType="line"
       seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
-      {...{ theme, xAxisTitle, yAxisTitle, numberFormat, stack, colors }}
+      {...{ xAxisTitle, yAxisTitle, numberFormat, stack, colors }}
     />
   )
 }
 LinePlot.propTypes = {
   data: PropTypes.array,
   numberFormat: PropTypes.object,
-  theme: PropTypes.string,
   xAxisTitle: PropTypes.string,
   yAxisTitle: PropTypes.string,
   area: PropTypes.bool,

@@ -9,11 +9,6 @@ export const layerId = {
   NODE_ICON_LAYER: 'nodeIconLayer',
 }
 
-export const themeId = {
-  DARK: 'dark',
-  LIGHT: 'light',
-}
-
 export const asyncStatus = {
   PENDING: 'pending',
   FAIL: 'fail',

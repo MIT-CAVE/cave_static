@@ -113,7 +113,6 @@ const EchartsPlot = ({
   yAxisTitle,
   numberFormat,
   chartType,
-  theme,
   stack = false,
   seriesObj = {},
   colors,
@@ -145,7 +144,7 @@ const EchartsPlot = ({
     chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
 
   const color = R.addIndex(R.map)((item, idx) =>
-    R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(theme, idx)
+    R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
   )(xLabels)
 
   const series = R.ifElse(
@@ -212,7 +211,7 @@ const EchartsPlot = ({
     : {}
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     grid: {
       top: 64,
       // right: 8,
@@ -283,9 +282,9 @@ const EchartsPlot = ({
     tooltip: {
       trigger: 'axis',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: '#4a4a4a',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
     ...lineMap,
@@ -300,7 +299,6 @@ const EchartsPlot = ({
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

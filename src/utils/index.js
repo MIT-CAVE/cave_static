@@ -271,8 +271,8 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
-export const getChartItemColor = (theme, colorIndex) =>
-  CHART_PALETTE[theme][colorIndex % CHART_PALETTE[theme].length]
+export const getChartItemColor = (colorIndex) =>
+  CHART_PALETTE[colorIndex % CHART_PALETTE.length]
 
 /**
  * Converts a d3-color RGB object into a conventional RGBA array.

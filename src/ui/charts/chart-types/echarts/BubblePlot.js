@@ -7,7 +7,7 @@ import { echarts } from './BaseChart'
 
 import { NumberFormat, getMinMax } from '../../../../utils'
 
-const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
+const BubblePlot = ({ data, labels, numberFormat, colors }) => {
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
@@ -60,7 +60,7 @@ const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
   )(initialSeries)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     grid: {
       top: 64,
       // right: 8,
@@ -118,9 +118,9 @@ const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
       trigger: 'item',
       formatter: '<b>{a0}</b><br/>{c}<br/>',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: '#4a4a4a',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
   }
@@ -134,7 +134,6 @@ const BubblePlot = ({ data, labels, numberFormat, theme, colors }) => {
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

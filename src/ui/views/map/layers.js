@@ -7,7 +7,6 @@ import { ArcLayer3D } from './CustomLayers'
 
 import { openMapModal } from '../../../data/local/mapSlice'
 import {
-  selectTheme,
   selectEnabledArcsFunc,
   selectArcRange,
   selectEnabledGeosFunc,
@@ -34,7 +33,6 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
   const matchingKeys = useSelector(selectMatchingKeysFunc)(mapId)
   const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
   const geoTypes = useSelector(selectGeoTypes)
-  const themeType = useSelector(selectTheme)
   const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
   const arcTypes = useSelector(selectArcTypes)
   const lineMatchingKeys = useSelector(selectLineMatchingKeysFunc)(mapId)
@@ -109,9 +107,10 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
         const statRange = geoColorRange(geoObj.type, colorProp, mapId)
-        const colorRange = R.map((prop) =>
-          R.pathOr(0, [prop, themeType])(statRange)
-        )(['startGradientColor', 'endGradientColor'])
+        const colorRange = R.map((prop) => R.pathOr(0, [prop])(statRange))([
+          'startGradientColor',
+          'endGradientColor',
+        ])
         const value = R.pipe(
           R.path(['props', colorProp, 'value']),
           R.when(R.isNil, R.always('')),
@@ -119,11 +118,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         )(geoObj)
         const isCategorical = !R.has('min', statRange)
 
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
+        const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
 
         return R.equals('', value)
           ? nullColor
@@ -136,7 +131,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             ).join(',')})`
       }
     ),
-    [enabledGeos, geoColorRange, themeType]
+    [enabledGeos, geoColorRange]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,11 +178,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           (s) => s.toString()
         )(d)
 
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
+        const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
 
         return R.equals('', propVal)
           ? nullColor
@@ -197,20 +188,12 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
               R.prop('min', colorRange),
               R.prop('max', colorRange),
               R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
+                R.prop('startGradientColor', colorRange)
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
               R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
+                R.prop('endGradientColor', colorRange)
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
@@ -218,7 +201,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             ).join(',')})`
       }
     ),
-    [enabledArcs, arcRange, themeType]
+    [enabledArcs, arcRange]
   )
 
   const geoJsonObject = useMemo(

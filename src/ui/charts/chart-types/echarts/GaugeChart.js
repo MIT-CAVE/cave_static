@@ -12,14 +12,7 @@ import {
   getChartItemColor,
 } from '../../../../utils'
 
-const GaugeChart = ({
-  data,
-  xAxisTitle,
-  yAxisTitle,
-  numberFormat,
-  theme,
-  colors,
-}) => {
+const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -96,9 +89,7 @@ const GaugeChart = ({
     R.mergeDeepLeft(R.assoc('data', createSeriesData(yValues), baseObject), {
       colorBy: 'data',
       color: R.addIndex(R.map)((item, idx) =>
-        R.has(item, colors)
-          ? R.prop(item, colors)
-          : getChartItemColor(theme, idx)
+        R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
       )(xLabels),
     }),
   ]
@@ -118,7 +109,7 @@ const GaugeChart = ({
   )(initialSeries)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     grid: {
       top: 64,
       // right: 8,
@@ -155,9 +146,9 @@ const GaugeChart = ({
     tooltip: {
       trigger: 'axis',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: '#4a4a4a',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
   }
@@ -171,7 +162,6 @@ const GaugeChart = ({
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

@@ -7,7 +7,7 @@ import { echarts } from './BaseChart'
 
 import { NumberFormat, findSubgroupLabels, getMinMax } from '../../../../utils'
 
-const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
+const Heatmap = ({ data, xAxisTitle, numberFormat }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -41,7 +41,7 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
   const [yMin, yMax] = R.pipe(R.pluck(2), getMinMax)(series)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    backgroundColor: '#4a4a4a',
     grid: {
       top: 64,
       // right: 8,
@@ -120,9 +120,9 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
     },
     tooltip: {
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
+      backgroundColor: '#4a4a4a',
       textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
+        color: '#ffffff',
       },
     },
   }
@@ -136,7 +136,6 @@ const Heatmap = ({ data, xAxisTitle, numberFormat, theme }) => {
             echarts={echarts}
             option={options}
             style={{ height, width }}
-            theme={theme}
             notMerge
             // lazyUpdate
           />

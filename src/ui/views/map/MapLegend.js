@@ -24,7 +24,6 @@ import {
   selectEnabledNodesFunc,
   selectEnabledGeosFunc,
   selectMapLegendFunc,
-  selectTheme,
   selectGeoColorRange,
   selectNodeRange,
   selectArcRange,
@@ -79,7 +78,7 @@ const styles = {
     '&::-webkit-scrollbar-thumb': {
       borderRadius: 8,
       border: '2px solid',
-      borderColor: (theme) => (theme.palette.mode === 'dark' ? '' : '#E7EBF0'),
+      borderColor: '',
       backgroundColor: 'rgba(0 0 0 / 0.5)',
     },
   },
@@ -522,7 +521,6 @@ const MapLegendColorBySection = ({
 }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
-  const themeType = useSelector(selectTheme)
 
   const syncColor = !includesPath(R.values(sync), syncPath)
   const isCategorical = !R.has('min', colorRange)
@@ -577,16 +575,8 @@ const MapLegendColorBySection = ({
           />
         ) : (
           <GradientBox
-            minColor={R.pathOr(
-              R.prop('startGradientColor', colorRange),
-              ['startGradientColor', themeType],
-              colorRange
-            )}
-            maxColor={R.pathOr(
-              R.prop('endGradientColor')(colorRange),
-              ['endGradientColor', themeType],
-              colorRange
-            )}
+            minColor={R.prop('startGradientColor', colorRange)}
+            maxColor={R.prop('endGradientColor')(colorRange)}
             maxLabel={getMaxLabel(valueRange, numberFormatProps, group)}
             minLabel={getMinLabel(valueRange, numberFormatProps, group)}
             colorPropPath={[
@@ -622,7 +612,6 @@ const MapLegendGeoToggle = ({
   legendObj,
 }) => {
   const dispatch = useDispatch()
-  const themeType = useSelector(selectTheme)
   const geoColorRange = useSelector(selectGeoColorRange)
   const displayedGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const sync = useSelector(selectSync)
@@ -726,16 +715,8 @@ const MapLegendGeoToggle = ({
             />
           ) : (
             <GradientBox
-              minColor={R.pathOr(
-                colorRange.startGradientColor,
-                ['startGradientColor', themeType],
-                colorRange
-              )}
-              maxColor={R.pathOr(
-                colorRange.endGradientColor,
-                ['endGradientColor', themeType],
-                colorRange
-              )}
+              minColor={colorRange.startGradientColor}
+              maxColor={colorRange.endGradientColor}
               minLabel={getMinLabel(colorRange, numberFormatProps)}
               maxLabel={getMaxLabel(colorRange, numberFormatProps)}
               colorPropPath={[

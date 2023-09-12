@@ -5,7 +5,6 @@ import { useSelector } from 'react-redux'
 
 import {
   selectGroupedOutputTypes,
-  selectTheme,
   selectNumberFormat,
   selectMemoizedChartFunc,
   selectStatGroupings,
@@ -36,7 +35,6 @@ import {
 } from '../../../utils'
 
 const DashboardChart = ({ obj }) => {
-  const themeId = useSelector(selectTheme)
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
@@ -162,7 +160,6 @@ const DashboardChart = ({ obj }) => {
         <BoxPlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -170,7 +167,6 @@ const DashboardChart = ({ obj }) => {
         <BarPlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -179,7 +175,6 @@ const DashboardChart = ({ obj }) => {
           stack="x"
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -187,7 +182,6 @@ const DashboardChart = ({ obj }) => {
         <StackedWaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -195,7 +189,6 @@ const DashboardChart = ({ obj }) => {
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -203,7 +196,6 @@ const DashboardChart = ({ obj }) => {
         <WaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -211,7 +203,6 @@ const DashboardChart = ({ obj }) => {
         <CumulativeLineChart
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
@@ -219,36 +210,27 @@ const DashboardChart = ({ obj }) => {
         <Sunburst
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
         />
       ) : obj.chart === chartType.TREEMAP ? (
         <Treemap
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
         />
       ) : obj.chart === chartType.GAUGE ? (
         <GaugeChart
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           {...labels}
         />
       ) : obj.chart === chartType.HEATMAP ? (
-        <Heatmap
-          data={formattedData}
-          numberFormat={commonFormat}
-          theme={themeId}
-          {...labels}
-        />
+        <Heatmap data={formattedData} numberFormat={commonFormat} {...labels} />
       ) : obj.chart === chartType.AREA ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           area={true}
           colors={colors}
           {...labels}
@@ -257,7 +239,6 @@ const DashboardChart = ({ obj }) => {
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           colors={colors}
           area={true}
           stack="x"
@@ -267,7 +248,6 @@ const DashboardChart = ({ obj }) => {
         <ScatterPlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           labels={tableLabels}
           colors={colors}
         />
@@ -275,7 +255,6 @@ const DashboardChart = ({ obj }) => {
         <BubblePlot
           data={formattedData}
           numberFormat={commonFormat}
-          theme={themeId}
           labels={tableLabels}
           colors={colors}
         />
