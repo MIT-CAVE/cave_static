@@ -1831,12 +1831,16 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             )(node)
             const colorRange = nodeRange(node.type, colorProp, false, mapId)
 
-            const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
+            const nullColor = R.propOr(
+              'rgba(0,0,0,255)',
+              'nullColor',
+              colorRange
+            )
 
             const isCategorical = !R.has('min', colorRange)
             const color = isCategorical
               ? R.map((val) => parseFloat(val))(
-                  R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
                     .replace(/[^\d,.]/g, '')
                     .split(',')
                 )
@@ -1857,7 +1861,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
                 )
             const colorString = R.equals('', colorPropVal)
               ? nullColor
-              : `rgb(${color.join(',')})`
+              : `rgba(${color.join(',')})`
             return {
               type: 'Feature',
               properties: {
@@ -1927,7 +1931,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
             ),
             ['properties', 'id']
           )(group)
-          const colorString = `rgb(${color.join(',')})`
+          const colorString = `rgba(${color.join(',')})`
           return {
             type: 'Feature',
             properties: {
@@ -2000,11 +2004,15 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             )
               return false
 
-            const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
+            const nullColor = R.propOr(
+              'rgba(0,0,0,255)',
+              'nullColor',
+              colorRange
+            )
 
             const color = isCategorical
               ? R.map((val) => parseFloat(val))(
-                  R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
                     .replace(/[^\d,.]/g, '')
                     .split(',')
                 )
@@ -2025,7 +2033,7 @@ export const selectArcLayerGeoJsonFunc = createSelector(
                 )
             const colorString = R.equals('', colorPropVal)
               ? nullColor
-              : `rgb(${color.join(',')})`
+              : `rgba(${color.join(',')})`
 
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
 
@@ -2094,11 +2102,15 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             )
               return false
 
-            const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
+            const nullColor = R.propOr(
+              'rgba(0,0,0,255)',
+              'nullColor',
+              colorRange
+            )
 
             const color = isCategorical
               ? R.map((val) => parseFloat(val))(
-                  R.propOr('rgb(0,0,0)', colorPropVal, colorRange)
+                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
                     .replace(/[^\d,.]/g, '')
                     .split(',')
                 )
@@ -2119,7 +2131,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
                 )
             const colorString = R.equals('', colorPropVal)
               ? nullColor
-              : `rgb(${color.join(',')})`
+              : `rgba(${color.join(',')})`
 
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
 

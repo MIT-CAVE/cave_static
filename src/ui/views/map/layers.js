@@ -118,12 +118,12 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         )(geoObj)
         const isCategorical = !R.has('min', statRange)
 
-        const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
+        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
 
         return R.equals('', value)
           ? nullColor
           : isCategorical
-          ? R.propOr('rgb(0,0,0,5)', value, statRange)
+          ? R.propOr('rgba(0,0,0,5)', value, statRange)
           : `rgba(${getScaledColor(
               [R.prop('min', statRange), R.prop('max', statRange)],
               colorRange,
@@ -178,13 +178,13 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           (s) => s.toString()
         )(d)
 
-        const nullColor = R.propOr('rgb(0,0,0)', 'nullColor', colorRange)
+        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
 
         return R.equals('', propVal)
           ? nullColor
           : isCategorical
-          ? R.propOr('rgb(0,0,0)', propVal, colorRange)
-          : `rgb(${getScaledArray(
+          ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
+          : `rgba(${getScaledArray(
               R.prop('min', colorRange),
               R.prop('max', colorRange),
               R.map((val) => parseFloat(val))(

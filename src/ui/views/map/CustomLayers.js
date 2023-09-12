@@ -11,7 +11,7 @@ import { rgbStrToArray } from '../../../utils'
 // Generate custom cylinder segments to allow for size scaling
 const generateSegments = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
-  const color = R.pathOr('rgb(0,0,0)', ['properties', 'color'], feature)
+  const color = R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], feature)
   const size = R.pathOr(30, ['properties', 'size'], feature)
 
   const points = curve.getPoints(segments)

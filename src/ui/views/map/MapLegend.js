@@ -220,7 +220,9 @@ const CategoricalItems = ({
                               R.values(sync),
                               R.append(key, basePath)
                             ),
-                            value: `rgb(${color.rgb.r},${color.rgb.g},${color.rgb.b})`,
+                            value: `rgba(${color.rgb.r},${color.rgb.g},${
+                              color.rgb.b
+                            },${color.rgb.a * 255})`,
                           })
                         )
                       }
@@ -587,6 +589,8 @@ const MapLegendColorBySection = ({
               legendGroupId,
               'data',
               geometryType,
+              'colorByOptions',
+              colorProp,
             ]}
           />
         )}

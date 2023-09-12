@@ -281,26 +281,23 @@ export const getChartItemColor = (colorIndex) =>
  * @returns {Array} A RGBA equivalent array of the given color.
  * @private
  */
-const rgbObjToRgbArray = (rgbObj) => R.props(['r', 'g', 'b'])(rgbObj) // RGB array
+const rgbObjToRgbaArray = (rgbObj) => {
+  const opacity = R.prop('opacity', rgbObj) * 255
+  return R.pipe(R.props(['r', 'g', 'b']), R.append(opacity))(rgbObj)
+} // RGBA array
 
 export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
-export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
-  const obj = getScaledRgbObj(colorDomain, colorRange, value)
-  return R.append(R.prop('opacity', obj) * 255)(obj)
-})
+export const getScaledColor = R.curry((colorDomain, colorRange, value) =>
+  getScaledRgbObj(colorDomain, colorRange, value)
+)
 
 export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   const getColor = scaleLinear()
     .domain(colorDomain)
     .range(colorRange)
     .clamp(true)
-  return rgbObjToRgbArray(color(getColor(value)))
+  return rgbObjToRgbaArray(color(getColor(value)))
 })
-
-export const getContrastYIQ = (rgbArray) => {
-  const yiq = (rgbArray[0] * 299 + rgbArray[1] * 587 + rgbArray[2] * 114) / 1000
-  return yiq >= 128 ? [0, 0, 0] : [255, 255, 255]
-}
 
 export const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type

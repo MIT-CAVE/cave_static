@@ -160,4 +160,4 @@ export const CHART_PALETTE = [
   '#dd79ff',
 ]
 
-export const HIGHLIGHT_COLOR = 'rgb(0,0,128)'
+export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'

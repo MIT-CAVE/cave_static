@@ -27,17 +27,19 @@ const GradientBox = ({
       triangle="hide"
       onChangeComplete={(color) => {
         const path = R.concat(colorPropPath, [endKey])
+        console.log({ path, color })
         return dispatch(
           mutateLocal({
             path: path,
             sync: !includesPath(R.values(sync), path),
-            value: `rgb(${color.rgb.r},${color.rgb.g},${color.rgb.b})`,
+            value: `rgba(${color.rgb.r},${color.rgb.g},${color.rgb.b},${
+              color.rgb.a * 255
+            })`,
           })
         )
       }}
     />
   )
-
   return (
     <Grid item container xs justifyContent="space-between" alignItems="center">
       <StableTooltip title={getTitle('startGradientColor', minColor)}>
