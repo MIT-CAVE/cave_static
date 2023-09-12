@@ -89,7 +89,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
         )(obj)
       : obj
 
-  const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  const path = ['pages', 'data', appBarId, 'pageLayout', index]
   const onSelectGroupFn =
     (n = 0) =>
     (item, subItem) => {
@@ -411,7 +411,7 @@ const KpiHeader = memo(({ obj, index }) => {
   const appBarId = useSelector(selectAppBarId)
   const sync = useSelector(selectSync)
 
-  const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  const path = ['pages', 'data', appBarId, 'pageLayout', index]
 
   return (
     <>
@@ -545,7 +545,7 @@ const MapHeader = memo(({ obj, index }) => {
   const sync = useSelector(selectSync)
   const maps = useSelector(selectMapData)
 
-  const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  const path = ['pages', 'data', appBarId, 'pageLayout', index]
 
   const availableValue = R.pipe(
     R.propOr('', 'mapId'),

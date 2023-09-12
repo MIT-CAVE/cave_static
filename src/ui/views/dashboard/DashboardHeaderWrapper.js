@@ -13,7 +13,7 @@ import { KpiHeader, StatisticsHeader, MapHeader } from './DashboardHeaders'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAppBarId,
-  selectDashboardLayout,
+  selectpageLayout,
   selectDashboardLockedLayout,
   selectSync,
 } from '../../../data/selectors'
@@ -32,11 +32,11 @@ const styles = {
 const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
-  const dashboardLayout = useSelector(selectDashboardLayout)
+  const pageLayout = useSelector(selectpageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const appBarId = useSelector(selectAppBarId)
 
-  const path = ['dashboards', 'data', appBarId, 'dashboardLayout', index]
+  const path = ['pages', 'data', appBarId, 'pageLayout', index]
   return (
     <Grid container wrap="nowrap" sx={styles.header}>
       <HeaderSelectWrapper>
@@ -100,7 +100,7 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
         justifyContent="flex-end"
         alignItems="center"
       >
-        {dashboardLayout.length > 1 && (
+        {pageLayout.length > 1 && (
           <Grid item>
             {maximizedIndex == null ? (
               <IconButton onClick={() => setMaximizedIndex(index)}>
@@ -123,7 +123,7 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
               onClick={() => {
                 dispatch(
                   mutateLocal({
-                    value: R.remove(index, 1)(dashboardLayout),
+                    value: R.remove(index, 1)(pageLayout),
                     path: R.init(path),
                     sync: !includesPath(R.values(sync), R.init(path)),
                   })

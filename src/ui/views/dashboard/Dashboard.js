@@ -10,7 +10,7 @@ import DashboardKpi from './DashboardKpi'
 import { mutateLocal } from '../../../data/local'
 import {
   selectAppBarId,
-  selectDashboardLayout,
+  selectpageLayout,
   selectDashboardLockedLayout,
   selectSync,
   selectLeftAppBarDisplay,
@@ -66,7 +66,7 @@ const Dashboard = () => {
   const [maximizedIndex, setMaximizedIndex] = useState(null)
 
   const sync = useSelector(selectSync)
-  const dashboardLayout = useSelector(selectDashboardLayout)
+  const pageLayout = useSelector(selectpageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const appBarId = useSelector(selectAppBarId)
   const leftBar = useSelector(selectLeftAppBarDisplay)
@@ -75,7 +75,7 @@ const Dashboard = () => {
   const dashboardItem = (obj, index) => {
     if (maximizedIndex != null && index !== maximizedIndex) return null
 
-    const numDashboard = R.length(dashboardLayout)
+    const numDashboard = R.length(pageLayout)
     return (
       <Grid
         key={index}
@@ -119,13 +119,13 @@ const Dashboard = () => {
     grouping: 'Sum',
   }
 
-  const isDashboardEmpty = R.isEmpty(dashboardLayout)
+  const isDashboardEmpty = R.isEmpty(pageLayout)
   const emptyGridCells = R.pipe(
     R.length,
     R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
-  )(dashboardLayout)
+  )(pageLayout)
 
-  const path = ['dashboards', 'data', appBarId, 'dashboardLayout']
+  const path = ['pages', 'data', appBarId, 'pageLayout']
   return (
     <Container
       maxWidth={false}
@@ -140,10 +140,10 @@ const Dashboard = () => {
     >
       {!isDashboardEmpty && (
         <Grid container spacing={1}>
-          {R.concat(dashboardLayout)(emptyGridCells).map(dashboardItem)}
+          {R.concat(pageLayout)(emptyGridCells).map(dashboardItem)}
         </Grid>
       )}
-      {!lockedLayout && maximizedIndex == null && dashboardLayout.length < 4 ? (
+      {!lockedLayout && maximizedIndex == null && pageLayout.length < 4 ? (
         <Fab
           sx={
             isDashboardEmpty
@@ -166,7 +166,7 @@ const Dashboard = () => {
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
-                value: R.append(dashboardDefaults)(dashboardLayout),
+                value: R.append(dashboardDefaults)(pageLayout),
               })
             )
           }

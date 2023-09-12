@@ -127,7 +127,7 @@ export const selectKpis = createSelector(selectData, (data) =>
   R.propOr({}, 'globalOutputs')(data)
 )
 export const selectDash = createSelector(selectData, (data) =>
-  R.propOr({}, 'dashboards')(data)
+  R.propOr({}, 'pages')(data)
 )
 export const selectAssociated = createSelector(selectData, (data) =>
   R.propOr({}, 'associated')(data)
@@ -317,7 +317,7 @@ export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
 )
 // Local -> Dashboard
 export const selectLocalDashboard = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'dashboards')(data)
+  R.propOr({}, 'pages')(data)
 )
 export const selectLocalDashboardData = createSelector(
   selectLocalDashboard,
@@ -470,7 +470,7 @@ export const selectOpenModalData = createSelector(
     ),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
-// Merged Dashboards
+// Merged pages
 export const selectDashboard = createSelector(
   [selectAppBarId, selectDashboardData, selectLocalDashboardData],
   (appBarId, dashboardData, localdashboardData) =>
@@ -489,12 +489,12 @@ export const selectStatOptions = createSelector(
       localDashboardData
     )
 )
-export const selectDashboardLayout = createSelector(
+export const selectpageLayout = createSelector(
   [selectAppBarId, selectDashboardData, selectLocalDashboardData],
   (appBarId, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr({}, [appBarId, 'dashboardLayout'], dashboardData),
-      [appBarId, 'dashboardLayout'],
+      R.pathOr({}, [appBarId, 'pageLayout'], dashboardData),
+      [appBarId, 'pageLayout'],
       localDashboardData
     )
 )
