@@ -194,7 +194,7 @@ const getAppBarItem = ({
         )
       }}
     />
-  ) : type === 'map' || type === 'stats' || type === 'globalOutput' ? (
+  ) : type === 'page' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
@@ -208,7 +208,7 @@ const getAppBarItem = ({
           })
         )
         // Automatically close an unpinned pane when switching
-        // to a different Map, Dashboard, or globalOutput view
+        // to a different page
         if (!pin && key !== appBarId) changePane()
       }}
     />
