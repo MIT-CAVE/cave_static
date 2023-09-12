@@ -165,7 +165,10 @@ export const selectModalsData = createSelector(
   selectModals,
   R.propOr({}, 'data')
 )
-export const selectMapData = createSelector(selectMap, R.propOr({}, 'data'))
+export const selectMapData = createSelector(
+  [selectMap, selectTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+)
 
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
   R.propOr({}, 'data')(data)
@@ -559,8 +562,9 @@ export const selectDefaultViewportFunc = createSelector(
 export const selectLocalMap = createSelector(selectLocal, (data) =>
   R.propOr({}, 'maps')(data)
 )
-export const selectLocalMapData = createSelector(selectLocalMap, (data) =>
-  R.prop('data')(data)
+export const selectLocalMapData = createSelector(
+  [selectLocalMap, selectTime],
+  (data, time) => getTimeValue(time, R.prop('data')(data))
 )
 export const selectCurrentLocalMapDataByMap = createSelector(
   [selectLocalMapData],
@@ -819,7 +823,8 @@ export const selectOptionalViewportsFunc = createSelector(
   }
 )
 // Local -> Map -> layers
-const selectEnabledTypesFn = createSelector(
+
+const selectLegendTypesFn = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
   (localMapObj, mapDataObj) =>
     maxSizedMemoization(
@@ -830,8 +835,7 @@ const selectEnabledTypesFn = createSelector(
           R.values,
           R.pluck('data'),
           R.mergeAll,
-          R.filter(R.propEq(layerKey, 'type')),
-          R.mapObjIndexed(R.unless(R.prop('value'), R.F))
+          R.filter(R.propEq(layerKey, 'type'))
         )
         return R.when(
           R.isEmpty,
@@ -849,6 +853,32 @@ const selectEnabledTypesFn = createSelector(
         ),
     },
   }
+)
+
+export const selectAllNodeIcons = createSelector(
+  selectLegendTypesFn,
+  (typesFn) =>
+    maxSizedMemoization(
+      (mapId) => mapId,
+      (mapId) => {
+        return R.pipe(
+          R.pluck('icon'),
+          R.values
+        )(typesFn({ mapId, layerKey: 'nodes' }))
+      },
+      MAX_MEMOIZED_CHARTS
+    )
+)
+export const selectEnabledTypesFn = createSelector(
+  selectLegendTypesFn,
+  (typesFn) =>
+    maxSizedMemoization(
+      ({ mapId, layerKey }) => `${mapId}+${layerKey}`,
+      ({ mapId, layerKey }) => {
+        const allTypes = typesFn({ mapId, layerKey })
+        return R.mapObjIndexed(R.unless(R.prop('value'), R.F))(allTypes)
+      }
+    )
 )
 export const selectEnabledArcsFunc = createSelector(
   selectEnabledTypesFn,
@@ -1312,11 +1342,11 @@ export const selectMultiLineDataFunc = createSelector(
     )
 )
 export const selectArcRange = createSelector(
-  [selectArcTypes, selectArcsByType],
-  (arcs, arcsByType) =>
+  [selectArcsByType, selectLegendTypesFn],
+  (arcsByType, legendObjectsFunc) =>
     R.memoizeWith(
-      (type, prop, size) => [type, prop, size],
-      (type, prop, size) =>
+      (type, prop, size, mapId) => JSON.stringify([type, prop, size, mapId]),
+      (type, prop, size, mapId) =>
         R.pipe(
           R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
           R.when(
@@ -1342,7 +1372,7 @@ export const selectArcRange = createSelector(
             }
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(arcs)
+        )(legendObjectsFunc({ mapId, layerKey: 'arcs' }))
     )
 )
 
@@ -1405,11 +1435,11 @@ export const selectGroupedNodesWithIdFunc = createSelector(
 )
 
 export const selectNodeRange = createSelector(
-  [selectNodeTypes, selectNodesByType],
-  (nodeTypes, nodesByType) =>
+  [selectLegendTypesFn, selectNodesByType],
+  (legendObjectsFunc, nodesByType) =>
     R.memoizeWith(
-      (type, prop, size) => [type, prop, size],
-      (type, prop, size) =>
+      (type, prop, size, mapId) => JSON.stringify([type, prop, size, mapId]),
+      (type, prop, size, mapId) =>
         R.pipe(
           R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
           R.when(
@@ -1435,15 +1465,15 @@ export const selectNodeRange = createSelector(
             }
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(nodeTypes)
+        )(legendObjectsFunc({ mapId, layerKey: 'nodes' }))
     )
 )
 export const selectGeoColorRange = createSelector(
-  [selectGeoTypes, selectGeosByType],
-  (geoTypes, geosByType) =>
+  [selectLegendTypesFn, selectGeosByType],
+  (legendObjectsFunc, geosByType) =>
     R.memoizeWith(
-      (type, prop) => [type, prop],
-      (type, prop) =>
+      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+      (type, prop, mapId) =>
         R.pipe(
           R.path([type, 'colorByOptions', prop]),
           R.when(
@@ -1462,7 +1492,7 @@ export const selectGeoColorRange = createSelector(
             )
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(geoTypes)
+        )(legendObjectsFunc({ mapId, layerKey: 'geos' }))
     )
 )
 
@@ -1593,15 +1623,6 @@ export const selectNodeClustersFunc = createSelector(
           getGroupCalculation('groupCalcBySize'),
           R.nth(R.__, getStatFn)
         )
-        const getClusterSizeLimits = (cluster, sizeProp) =>
-          R.path(['properties', 'cluster'], cluster)
-            ? cluster.properties[sizeProp]
-            : R.pick(['startSize', 'endSize'], cluster.properties)
-
-        const getClustersColorLimits = (cluster, colorProp) =>
-          R.path(['properties', 'cluster'], cluster)
-            ? cluster.properties[colorProp]
-            : cluster.properties.colorByOptions[colorProp]
 
         // Set the "supercluster" constructor parameters
         const options = {
@@ -1617,26 +1638,15 @@ export const selectNodeClustersFunc = createSelector(
               [sizeProp]: sizeProp
                 ? {
                     value: [d.props[sizeProp].value],
-                    startSize: d.startSize,
-                    endSize: d.endSize,
                   }
                 : {},
             }
 
-            const isCategorical = d.props[colorProp].type !== propId.NUMBER
             const colorPropObj = {
               [colorProp]: colorProp
                 ? {
                     type: d.props[colorProp].type,
                     value: [d.props[colorProp].value],
-                    ...(isCategorical
-                      ? d.colorByOptions[colorProp]
-                      : {
-                          startGradientColor:
-                            d.colorByOptions[colorProp].startGradientColor,
-                          endGradientColor:
-                            d.colorByOptions[colorProp].endGradientColor,
-                        }),
                   }
                 : {},
             }
@@ -1729,11 +1739,9 @@ export const selectNodeClustersFunc = createSelector(
 
               // set the values including min/max size/color
               cluster.properties.colorProp = {
-                ...getClustersColorLimits(cluster, colorProp),
                 value: colorValue,
               }
               cluster.properties.sizeProp = {
-                ...getClusterSizeLimits(cluster, sizeProp),
                 value: sizeValue,
               }
 
@@ -1808,12 +1816,9 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
           R.propOr({}, false),
           R.mapObjIndexed((obj) => {
             const [id, node] = obj
-
-            const sizeProp = R.path(
-              [node.type, 'sizeBy'],
-              legendObjectsFunc(mapId)
-            )
-            const sizeRange = nodeRange(node.type, sizeProp, true)
+            const legendObj = legendObjectsFunc(mapId)[node.type]
+            const sizeProp = legendObj.sizeBy
+            const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(
               R.path(['props', sizeProp, 'value'], node)
             )
@@ -1822,20 +1827,17 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               : getScaledValue(
                   R.prop('min', sizeRange),
                   R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', node)),
-                  parseFloat(R.prop('endSize', node)),
+                  parseFloat(R.prop('startSize', legendObj)),
+                  parseFloat(R.prop('endSize', legendObj)),
                   sizePropVal
                 )
-            const colorProp = R.path(
-              [node.type, 'colorBy'],
-              legendObjectsFunc(mapId)
-            )
+            const colorProp = legendObj.colorBy
             const colorPropVal = R.pipe(
               R.path(['props', colorProp, 'value']),
               R.when(R.isNil, R.always('')),
               (s) => s.toString()
             )(node)
-            const colorRange = nodeRange(node.type, colorProp, false)
+            const colorRange = nodeRange(node.type, colorProp, false, mapId)
 
             const nullColor = R.pathOr(
               R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
@@ -1883,7 +1885,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
                 cave_name: id,
                 color: colorString,
                 size: size / 250,
-                icon: node.icon,
+                icon: legendObj.icon,
               },
               geometry: {
                 type: 'Point',
@@ -1897,12 +1899,14 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
     )
 )
 export const selectNodeClusterGeoJsonObjectFunc = createSelector(
-  [selectNodeClustersAtZoomFunc, selectTheme],
-  (nodeClustersFunc, themeType) =>
+  [selectNodeClustersAtZoomFunc, selectTheme, selectEnabledNodesFunc],
+  (nodeClustersFunc, themeType, legendObjectsFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
         R.map((group) => {
+          const nodeType = group.properties.type
+          const legendObj = legendObjectsFunc(mapId)[nodeType]
           const sizeRange =
             nodeClustersFunc(mapId).range[group.properties.type].size
           const sizePropObj = R.path(['properties', 'sizeProp'], group)
@@ -1910,22 +1914,24 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const size = getScaledValue(
             R.prop('min', sizeRange),
             R.prop('max', sizeRange),
-            parseFloat(R.prop('startSize', sizePropObj)),
-            parseFloat(R.prop('endSize', sizePropObj)),
+            parseFloat(R.prop('startSize', legendObj)),
+            parseFloat(R.prop('endSize', legendObj)),
             parseFloat(sizePropObj.value)
           )
 
-          const nodeType = group.properties.type
+          const colorProp = legendObj.colorBy
           const colorObj = group.properties.colorProp
           const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const isCategorical = !R.has('min')(colorDomain)
+          const isCategorical = !R.has('min')(
+            legendObj.colorByOptions[colorProp]
+          )
           const value = R.prop('value', colorObj)
           const colorRange = isCategorical
-            ? colorObj
-            : R.map((prop) =>
-                R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
-              )(['startGradientColor', 'endGradientColor'])
-
+            ? legendObj.colorByOptions[colorProp]
+            : R.map((prop) => legendObj.colorByOptions[colorProp][prop])([
+                'startGradientColor',
+                'endGradientColor',
+              ])
           const color = isCategorical
             ? R.when(
                 R.has(themeType),
@@ -1944,7 +1950,6 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
             ),
             ['properties', 'id']
           )(group)
-
           const colorString = `rgb(${color.join(',')})`
           return {
             type: 'Feature',
@@ -1954,7 +1959,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               cave_name: id,
               color: colorString,
               size: size / 250,
-              icon: group.properties.icon,
+              icon: legendObj.icon,
             },
             geometry: {
               type: 'Point',
@@ -1988,7 +1993,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               [arc.type, 'sizeBy'],
               legendObjectsFunc(mapId)
             )
-            const sizeRange = arcRange(arc.type, sizeProp, true)
+            const legendObj = legendObjectsFunc(mapId)[arc.type]
+            const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(
               R.path(['props', sizeProp, 'value'], arc)
             )
@@ -1997,15 +2003,12 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               : getScaledValue(
                   R.prop('min', sizeRange),
                   R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', arc)),
-                  parseFloat(R.prop('endSize', arc)),
+                  parseFloat(R.prop('startSize', legendObj)),
+                  parseFloat(R.prop('endSize', legendObj)),
                   sizePropVal
                 )
-            const colorProp = R.path(
-              [arc.type, 'colorBy'],
-              legendObjectsFunc(mapId)
-            )
-            const colorRange = arcRange(arc.type, colorProp, false)
+            const colorProp = legendObj.colorBy
+            const colorRange = arcRange(arc.type, colorProp, false, mapId)
             const isCategorical = !R.has('min', colorRange)
             const colorPropVal = R.pipe(
               R.path(['props', colorProp, 'value']),
@@ -2059,7 +2062,7 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               ? nullColor
               : `rgb(${color.join(',')})`
 
-            const dashPattern = R.propOr('solid', 'lineBy')(arc)
+            const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
 
             return {
               type: 'Feature',
@@ -2094,11 +2097,10 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
       (mapId) =>
         R.pipe(
           R.map(([id, arc]) => {
-            const sizeProp = R.path(
-              [arc.type, 'sizeBy'],
-              legendObjectsFunc(mapId)
-            )
-            const sizeRange = arcRange(arc.type, sizeProp, true)
+            const legendObj = legendObjectsFunc(mapId)[arc.type]
+
+            const sizeProp = legendObj.sizeBy
+            const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(
               R.path(['props', sizeProp, 'value'], arc)
             )
@@ -2111,11 +2113,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
                   parseFloat(R.prop('endSize', arc)),
                   sizePropVal
                 )
-            const colorProp = R.path(
-              [arc.type, 'colorBy'],
-              legendObjectsFunc(mapId)
-            )
-            const colorRange = arcRange(arc.type, colorProp, false)
+            const colorProp = legendObj.colorBy
+            const colorRange = arcRange(arc.type, colorProp, false, mapId)
             const isCategorical = !R.has('min', colorRange)
             const colorPropVal = R.pipe(
               R.path(['props', colorProp, 'value']),
@@ -2169,7 +2168,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
               ? nullColor
               : `rgb(${color.join(',')})`
 
-            const dashPattern = R.propOr('solid', 'lineBy')(arc)
+            const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
 
             return {
               type: 'Feature',

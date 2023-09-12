@@ -28,13 +28,13 @@ import {
   selectGroupedEnabledArcsFunc,
   selectMergedGeos,
   selectCurrentMapProjectionFunc,
-  selectNodeDataFunc,
   selectDemoMode,
   selectDemoSettings,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
   selectViewportsByMap,
   selectMapData,
+  selectAllNodeIcons,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -52,12 +52,12 @@ const Map = ({ mapboxToken, mapId }) => {
     {},
     'geoJson'
   )(useSelector(selectGroupedEnabledArcsFunc)(mapId))
-  const nodeData = useSelector(selectNodeDataFunc)(mapId)
   const geosData = useSelector(selectMergedGeos)
   const iconUrl = useSelector(selectSettingsIconUrl)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
   const mapData = useSelector(selectMapData)
+  const nodeIcons = useSelector(selectAllNodeIcons)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
@@ -69,7 +69,6 @@ const Map = ({ mapboxToken, mapId }) => {
   const mapRef = useRef(false)
 
   const demoInterval = useRef(-1)
-
   useEffect(() => {
     const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
     if (demoMode && demoInterval.current === -1) {
@@ -94,15 +93,9 @@ const Map = ({ mapboxToken, mapId }) => {
       }
     }
   }, [mapId, demoMode, demoSettings, dispatch])
-
   useEffect(() => {
     const iconsToLoad = [
-      ...new Set(
-        R.pipe(
-          R.map((node) => node[1].icon),
-          R.without(R.keys(iconData))
-        )(nodeData)
-      ),
+      ...new Set(R.without(R.keys(iconData))(nodeIcons(mapId))),
     ]
     R.forEach(async (iconName) => {
       const iconComponent =
@@ -118,7 +111,7 @@ const Map = ({ mapboxToken, mapId }) => {
       }
       iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgString)}`
     })(iconsToLoad)
-  }, [nodeData, iconUrl, iconData])
+  }, [iconUrl, iconData, nodeIcons, mapId])
 
   const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {

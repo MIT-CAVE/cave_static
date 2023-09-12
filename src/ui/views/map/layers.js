@@ -108,7 +108,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       },
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geoColorRange(geoObj.type, colorProp)
+        const statRange = geoColorRange(geoObj.type, colorProp, mapId)
         const colorRange = R.map((prop) =>
           R.pathOr(0, [prop, themeType])(statRange)
         )(['startGradientColor', 'endGradientColor'])
@@ -149,15 +149,15 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       },
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const sizeRange = arcRange(d.type, sizeProp, true)
+        const sizeRange = arcRange(d.type, sizeProp, true, mapId)
         const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
         return isNaN(propVal)
           ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
           : getScaledValue(
               R.prop('min', sizeRange),
               R.prop('max', sizeRange),
-              parseFloat(R.prop('startSize', d)),
-              parseFloat(R.prop('endSize', d)),
+              parseFloat(R.path([d.type, 'startSize'], enabledArcs)),
+              parseFloat(R.path([d.type, 'endSize'], enabledArcs)),
               propVal
             )
       }
@@ -175,7 +175,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       },
       (d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const colorRange = arcRange(d.type, colorProp, false)
+        const colorRange = arcRange(d.type, colorProp, false, mapId)
         const isCategorical = !R.has('min', colorRange)
         const propVal = R.pipe(
           R.path(['props', colorProp, 'value']),
@@ -257,7 +257,10 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
           const id = R.prop('data_key')(geoObj)
-          const dashPattern = R.propOr('solid', 'lineBy')(geoObj)
+          const dashPattern = R.propOr(
+            'solid',
+            'lineBy'
+          )(R.path([geoType, 'colorBy'], enabledArcs))
           return R.mergeRight(filteredFeatures, {
             properties: {
               cave_name: id,
@@ -270,7 +273,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         R.values,
         R.groupBy(R.path(['properties', 'dash']))
       )(lineMatchingKeys),
-    [findLineColor, findLineSize, lineMatchingKeys, selectedArcs]
+    [enabledArcs, findLineColor, findLineSize, lineMatchingKeys, selectedArcs]
   )
 
   return [
@@ -396,7 +399,6 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
 
 export const Nodes = memo(({ highlightLayerId, mapId }) => {
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
   return (
@@ -433,7 +435,6 @@ export const Nodes = memo(({ highlightLayerId, mapId }) => {
 })
 export const Arcs = memo(({ highlightLayerId, mapId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
-
   const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
   return [
     <Source
