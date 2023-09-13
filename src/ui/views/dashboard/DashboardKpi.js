@@ -16,7 +16,7 @@ import { renderKpisLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
-import { customSort, forcePath, getLabelFn } from '../../../utils'
+import { withIndex, forcePath, getLabelFn } from '../../../utils'
 
 const DashboardKpi = ({ obj }) => {
   const dispatch = useDispatch()
@@ -53,7 +53,7 @@ const DashboardKpi = ({ obj }) => {
     R.filter(R.has('value'))
   )(globalOutputs)
 
-  const actualKpi = R.pipe(customSort, R.pluck('id'))(globalOutputData)
+  const actualKpi = R.pipe(withIndex, R.pluck('id'))(globalOutputData)
   const globalOutputUnits = R.map((item) => {
     const globalOutput = R.propOr({}, item)(globalOutputData)
     return globalOutput.unit || numberFormatDefault.unit

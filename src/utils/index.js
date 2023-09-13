@@ -422,20 +422,12 @@ export const sortByOrderNameId = R.sortWith([
   R.ascend(R.prop('id')),
 ])
 
-/**
- * list - a list of items with 'order' props to specify their position in the
- * list.
- * @returns {Array} An ascending list that contains the items sorted first
- * followed by the rest of the items without an `order` prop in alphabetical
- * `order`.
- * @private
- */
-export const customSort = R.pipe(toListWithKey('id'), sortByOrderNameId)
+export const withIndex = toListWithKey('id')
 
 export const getCategoryItems = R.cond([
   [
     R.has('nestedStructure'),
-    R.pipe(R.prop('nestedStructure'), customSort, R.pluck('id')),
+    R.pipe(R.prop('nestedStructure'), withIndex, R.pluck('id')),
   ],
   // The category value has not been loaded yet or is empty
   [R.isEmpty, R.always([])],
@@ -450,17 +442,6 @@ export const getCategoryItems = R.cond([
     // R.pipe(R.prop('data'), R.values, R.head, R.keys)
   ],
 ])
-
-// sorts sub objects in obj by order prop - ascending
-export const sortProps = (obj) => {
-  const sortBy = (a, b) =>
-    R.pathOr(0, [a, 'order'], obj) - R.pathOr(0, [b, 'order'], obj)
-  return R.pipe(
-    R.keys,
-    R.sort(sortBy),
-    R.reduce((res, key) => R.assoc(key, obj[key], res), {})
-  )(obj)
-}
 
 export const getSliderMarks = R.curry(
   (min, max, numMarks, getLabelFormat, extraValues = []) =>
@@ -504,6 +485,38 @@ export const getTimeValue = (timeIndex, object) =>
       R.has('timeValues', d)
         ? R.mergeRight(d, R.pathOr({}, ['timeValues', timeIndex], d))
         : d,
+    object
+  )
+
+export const orderEntireDict = (object) =>
+  recursiveMap(
+    (d) => R.type(d) !== 'Object',
+    R.identity,
+    (d) =>
+      R.mergeAll([
+        d,
+        // sort subkeys alphabetically
+        R.pipe(
+          R.omit([
+            'order',
+            ...R.keys(R.propOr({}, 'order')(d)),
+            ...R.filter((key) => R.type(d[key]) !== 'Object')(R.keys(d)),
+          ]),
+          R.mapObjIndexed((subObj, key) =>
+            R.reduce((acc, subKey) => {
+              acc[subKey] = R.path([key, subKey], d)
+              return acc
+            }, {})(R.keys(subObj).sort())
+          )
+        )(d),
+        // sort subkeys by order
+        R.mapObjIndexed((ordering, key) =>
+          R.reduce((acc, subKey) => {
+            acc[subKey] = R.path([key, subKey], d)
+            return acc
+          }, {})(ordering)
+        )(R.propOr({}, 'order')(d)),
+      ]),
     object
   )
 

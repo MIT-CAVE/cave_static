@@ -16,19 +16,19 @@ import Supercluster from '../../utils/supercluster'
 import {
   checkValidRange,
   getTimeValue,
-  sortProps,
   renameKeys,
   sortByOrderNameId,
   toListWithKey,
   forcePath,
-  customSort,
   customSortByX,
+  withIndex,
   calculateStatAnyDepth,
   recursiveMap,
   maxSizedMemoization,
   getScaledValue,
   getScaledArray,
   getScaledRgbObj,
+  orderEntireDict,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -118,10 +118,10 @@ export const selectGeos = createSelector(selectData, (data) =>
   R.propOr({}, 'geos')(data)
 )
 export const selectAppBar = createSelector(selectData, (data) =>
-  R.propOr({}, 'appBar')(data)
+  orderEntireDict(R.propOr({}, 'appBar')(data))
 )
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
-  R.propOr({}, 'groupedOutputs')(data)
+  orderEntireDict(R.propOr({}, 'groupedOutputs')(data))
 )
 export const selectKpis = createSelector(selectData, (data) =>
   R.propOr({}, 'globalOutputs')(data)
@@ -133,7 +133,7 @@ export const selectAssociated = createSelector(selectData, (data) =>
   R.propOr({}, 'associated')(data)
 )
 export const selectSettings = createSelector(selectData, (data) =>
-  R.propOr({}, 'settings')(data)
+  orderEntireDict(R.propOr({}, 'settings')(data))
 )
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
@@ -141,7 +141,9 @@ export const selectPanes = createSelector(selectData, (data) =>
 export const selectModals = createSelector(selectData, (data) =>
   R.propOr({}, 'modals')(data)
 )
-export const selectMap = createSelector(selectData, R.propOr({}, 'maps'))
+export const selectMap = createSelector(selectData, (data) =>
+  orderEntireDict(R.propOr({}, 'maps', data))
+)
 // Data -> Types
 export const selectNodeTypes = createSelector(
   [selectNodes, selectTime],
@@ -424,12 +426,7 @@ export const selectDemoViews = createSelector(
 export const selectAppBarId = createSelector(
   [selectLocalAppBar, selectAppBar],
   (localAppBar, appBar) => {
-    const fallbackId = R.pipe(
-      R.prop('data'),
-      sortProps,
-      R.toPairs,
-      R.path([0, 0])
-    )(appBar)
+    const fallbackId = R.pipe(R.prop('data'), R.toPairs, R.path([0, 0]))(appBar)
     const currentId = R.propOr(
       R.propOr(fallbackId, 'appBarId', appBar),
       'appBarId',
@@ -557,7 +554,7 @@ export const selectDefaultViewportFunc = createSelector(
 
 // Local -> Map
 export const selectLocalMap = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'maps')(data)
+  orderEntireDict(R.propOr({}, 'maps')(data))
 )
 export const selectLocalMapData = createSelector(
   [selectLocalMap, selectTime],
@@ -1246,7 +1243,7 @@ export const selectMemoizedKpiFunc = createSelector(
               R.path(['data', 'globalOutputs', 'data']),
               R.pick(selectedKpis),
               R.filter(R.has('value')),
-              customSort,
+              withIndex,
               R.map((globalOutput) =>
                 R.assoc(
                   'value',

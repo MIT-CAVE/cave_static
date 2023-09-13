@@ -67,7 +67,6 @@ const Map = ({ mapboxToken, mapId }) => {
   const mapRef = useRef(false)
 
   const demoInterval = useRef(-1)
-
   useEffect(() => {
     const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
     if (demoMode && demoInterval.current === -1) {

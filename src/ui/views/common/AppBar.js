@@ -18,7 +18,7 @@ import { paneId } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
-import { sortProps, includesPath } from '../../../utils'
+import { includesPath } from '../../../utils'
 
 const styles = {
   root: {
@@ -280,7 +280,6 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   )
 
   const mapAppBarItems = R.pipe(
-    sortProps,
     R.mapObjIndexed((obj, key) => {
       const color = R.prop('color', obj)
       const variant = R.pathOr(false, [key, 'variant'], panesData)

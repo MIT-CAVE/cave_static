@@ -54,7 +54,7 @@ import {
 import {
   NumberFormat,
   capitalize,
-  customSort,
+  withIndex,
   eitherBoolOrNotNull,
   includesPath,
 } from '../../../utils'
@@ -1020,7 +1020,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
   const arcTypes = useSelector(selectArcTypeKeys)
 
   const getSortedGroups = (layerKey) =>
-    customSort(R.propOr({}, layerKey)(legendObj))
+    withIndex(R.propOr({}, layerKey)(legendObj))
 
   return (
     <details {...props} open css={nonSx.primaryDetails}>
@@ -1104,7 +1104,7 @@ const MapLegend = ({ mapId }) => {
               mapId={mapId}
               {...{ legendObj }}
             />
-          ))(customSort(legendData))}
+          ))(withIndex(legendData))}
         </Box>
       </Box>
     </Box>

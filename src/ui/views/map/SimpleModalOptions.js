@@ -8,7 +8,7 @@ import { closeMapModal } from '../../../data/local/mapSlice'
 
 import { Select } from '../../compound'
 
-import { customSort } from '../../../utils'
+import { withIndex } from '../../../utils'
 
 const styles = {
   modal: {
@@ -76,7 +76,7 @@ const SimpleModalOptions = ({
             label: name,
             value: id,
             iconName: icon,
-          }))(customSort(options))}
+          }))(withIndex(options))}
           {...{ placeholder, onSelect }}
         />
       </Box>

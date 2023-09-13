@@ -37,7 +37,7 @@ import { renderPropsLayout } from '../common/renderLayout'
 
 import { FetchedIcon } from '../../compound'
 
-import { customSort, includesPath } from '../../../utils'
+import { withIndex, includesPath } from '../../../utils'
 
 const styles = {
   modal: {
@@ -165,7 +165,7 @@ const ListModal = ({ title, options, onSelect, mapId }) => {
           </Typography>
         </Box>
         <List>
-          {customSort(options).map(({ id, name, icon }) => (
+          {withIndex(options).map(({ id, name, icon }) => (
             <ListItemButton key={id} onClick={() => onSelect(id)}>
               <ListItemAvatar>
                 <Avatar>
@@ -215,7 +215,7 @@ const MapModal = ({ mapId }) => {
             const viewport = R.pipe(
               R.prop(value),
               // `id` is not necessary here, since that is only
-              // added by `customSort` as a helper property
+              // added by `withIndex` as a helper property
               R.omit(['name', 'icon'])
             )(optionalViewports)
             dispatch(viewportUpdate({ viewport, mapId }))

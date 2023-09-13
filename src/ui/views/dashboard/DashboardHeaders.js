@@ -27,7 +27,7 @@ import {
 } from '../../compound'
 
 import {
-  customSort,
+  withIndex,
   getCategoryItems,
   getFreeName,
   getLabelFn,
@@ -69,12 +69,11 @@ const StatisticsHeader = memo(({ obj, index }) => {
     R.mapObjIndexed(getCategoryItems)(groupableCategories)
   const itemGroups = R.pipe(
     R.pick(R.keys(sortedLevelsByCategory)), // Drop any category not included in `nestedStructure`
-    customSort,
+    withIndex,
     R.project(['id', 'grouping', 'layoutDirection']),
     R.map((item) => R.assoc('subItems', sortedLevelsByCategory[item.id])(item)),
     R.groupBy(R.prop('grouping'))
   )(categories)
-
   const removeExtraLevels = (obj) =>
     R.isNotNil(chartMaxGrouping[obj.chart])
       ? R.pipe(
@@ -483,7 +482,7 @@ const KpiHeader = memo(({ obj, index }) => {
                 R.values,
                 R.head,
                 R.path(['data', 'globalOutputs', 'data']),
-                customSort,
+                withIndex,
                 R.filter(R.has('value')),
                 R.project(['id', 'name', 'icon']),
                 R.map(
