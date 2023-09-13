@@ -248,7 +248,7 @@ const Map = ({ mapboxToken, mapId }) => {
       <ReactMapGL
         {...viewport}
         onMove={(e) => {
-          console.log(e)
+          // Prevents setting incorrect viewport on load
           if (e.viewState.zoom !== 0)
             dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
         }}
