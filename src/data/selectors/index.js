@@ -974,10 +974,10 @@ const mergeFunc = (data) =>
     (d) => [
       d[0],
       R.pipe(
-        R.mergeRight(R.propOr({}, d[1].type, data)),
+        R.mergeLeft(R.dissoc('values', R.propOr({}, d[1].type, data))),
         R.over(
-          R.lensProp('props'),
-          R.mergeDeepRight(R.pathOr({}, [d[1].type, 'props'])(data))
+          R.lensProp('values'),
+          R.mergeRight(R.pathOr({}, [d[1].type, 'values'])(data))
         )
       )(d[1]),
     ],
@@ -1354,8 +1354,8 @@ export const selectArcRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['props', prop, 'value'], value)),
-                  min: R.min(acc.min, R.path(['props', prop, 'value'], value)),
+                  max: R.max(acc.max, R.path(['values', prop], value)),
+                  min: R.min(acc.min, R.path(['values', prop], value)),
                 }),
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, arcsByType))
@@ -1395,8 +1395,8 @@ export const selectSplitNodeDataFunc = createSelector(
             const nullColor = R.path(['colorBy', colorProp], d[1])
             const nullSize = R.path(['sizeBy', colorProp], d[1])
 
-            const sizeValue = R.path(['props', sizeProp, 'value'], d[1])
-            const colorValue = R.path(['props', colorProp, 'value'], d[1])
+            const sizeValue = R.path(['values', sizeProp], d[1])
+            const colorValue = R.path(['values', colorProp], d[1])
 
             const groupable = enabledNodesFunc(mapId)[nodeType].allowGrouping
 
@@ -1447,8 +1447,8 @@ export const selectNodeRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['props', prop, 'value'], value)),
-                  min: R.min(acc.min, R.path(['props', prop, 'value'], value)),
+                  max: R.max(acc.max, R.path(['values', prop], value)),
+                  min: R.min(acc.min, R.path(['values', prop], value)),
                 }),
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, nodesByType))
@@ -1481,8 +1481,8 @@ export const selectGeoColorRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['props', prop, 'value'], value)),
-                  min: R.min(acc.min, R.path(['props', prop, 'value'], value)),
+                  max: R.max(acc.max, R.path(['values', prop], value)),
+                  min: R.min(acc.min, R.path(['values', prop], value)),
                 }),
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, geosByType))
@@ -1634,7 +1634,7 @@ export const selectNodeClustersFunc = createSelector(
             const sizePropObj = {
               [sizeProp]: sizeProp
                 ? {
-                    value: [d.props[sizeProp].value],
+                    value: [d.values[sizeProp]],
                   }
                 : {},
             }
@@ -1643,7 +1643,7 @@ export const selectNodeClustersFunc = createSelector(
               [colorProp]: colorProp
                 ? {
                     type: d.props[colorProp].type,
-                    value: [d.props[colorProp].value],
+                    value: [d.values[colorProp]],
                   }
                 : {},
             }
@@ -1723,7 +1723,7 @@ export const selectNodeClustersFunc = createSelector(
                   ? groupCalculationFn(cluster.properties[prop].value)
                   : // Nodes that were not within the radius to form a cluster
                     // This uses the calculationFn to apply count properly
-                    groupCalculationFn([cluster.properties.props[prop].value])
+                    groupCalculationFn([cluster.properties.values[prop]])
 
               // All elements of a cluster contain the same `nodeType`
               // required to get the corresponding calculationGroup (color or size)
@@ -1811,9 +1811,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             const legendObj = legendObjectsFunc(mapId)[node.type]
             const sizeProp = legendObj.sizeBy
             const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
-            const sizePropVal = parseFloat(
-              R.path(['props', sizeProp, 'value'], node)
-            )
+            const sizePropVal = parseFloat(R.path(['values', sizeProp], node))
             const size = isNaN(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
               : getScaledValue(
@@ -1825,7 +1823,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
                 )
             const colorProp = legendObj.colorBy
             const colorPropVal = R.pipe(
-              R.path(['props', colorProp, 'value']),
+              R.path(['values', colorProp]),
               R.when(R.isNil, R.always('')),
               (s) => s.toString()
             )(node)
@@ -1976,9 +1974,7 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             )
             const legendObj = legendObjectsFunc(mapId)[arc.type]
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
-            const sizePropVal = parseFloat(
-              R.path(['props', sizeProp, 'value'], arc)
-            )
+            const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
             const size = isNaN(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
               : getScaledValue(
@@ -1992,7 +1988,7 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             const colorRange = arcRange(arc.type, colorProp, false, mapId)
             const isCategorical = !R.has('min', colorRange)
             const colorPropVal = R.pipe(
-              R.path(['props', colorProp, 'value']),
+              R.path(['values', colorProp]),
               R.when(R.isNil, R.always('')),
               (s) => s.toString()
             )(arc)
@@ -2074,9 +2070,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
 
             const sizeProp = legendObj.sizeBy
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
-            const sizePropVal = parseFloat(
-              R.path(['props', sizeProp, 'value'], arc)
-            )
+            const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
             const size = isNaN(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
               : getScaledValue(
@@ -2090,7 +2084,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             const colorRange = arcRange(arc.type, colorProp, false, mapId)
             const isCategorical = !R.has('min', colorRange)
             const colorPropVal = R.pipe(
-              R.path(['props', colorProp, 'value']),
+              R.path(['values', colorProp]),
               R.when(R.isNil, R.always('')),
               (s) => s.toString()
             )(arc)

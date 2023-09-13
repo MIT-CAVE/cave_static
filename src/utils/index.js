@@ -375,6 +375,17 @@ export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.2) =>
       ]
 
 /**
+ * @param {Object} props Props dictionary
+ * @param {Object} values Values dictionary with value for each prop
+ * @returns {Object} props with values added
+ */
+export const addValuesToProps = (props, values) =>
+  R.mapObjIndexed((prop, propId) => {
+    const value = R.prop(propId, values)
+    return R.assoc('value', value, prop)
+  }, props)
+
+/**
  * Creates a list of all values that a given internal
  * key can take within a given object.
  */

@@ -14,7 +14,7 @@ import {
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
 
-import { includesPath } from '../../../utils'
+import { addValuesToProps, includesPath } from '../../../utils'
 
 const styles = {
   modal: {
@@ -59,7 +59,8 @@ const AppModal = () => {
   const dispatch = useDispatch()
   if (R.isEmpty(open)) return null
 
-  const { layout, name, props } = modal
+  const { layout, name, props, values } = modal
+  const propsWithValues = addValuesToProps(props, values)
   const modalLayout = R.pipe(
     R.defaultTo({ type: layoutType.GRID }),
     R.unless(R.has('numColumns'), R.assoc('numColumns', 1))
@@ -70,7 +71,7 @@ const AppModal = () => {
         command: 'mutate_session',
         data: {
           data_name: 'modals',
-          data_path: ['data', open, 'props', propId, 'value'],
+          data_path: ['data', open, 'values', propId],
           data_value: value,
           mutation_type: 'mutate',
           api_command: R.prop('apiCommand', prop),
@@ -99,7 +100,11 @@ const AppModal = () => {
     >
       <Box sx={styles.paper}>
         <Box sx={styles.header}>{name}</Box>
-        {renderPropsLayout({ layout: modalLayout, items: props, onChangeProp })}
+        {renderPropsLayout({
+          layout: modalLayout,
+          items: propsWithValues,
+          onChangeProp,
+        })}
       </Box>
     </Modal>
   )

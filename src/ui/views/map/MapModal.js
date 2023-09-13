@@ -99,17 +99,16 @@ const OnLayerEventModal = ({ mapId }) => {
 
   const featureData =
     feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
-  const getCurrentVal = (propId) =>
-    R.path([key, 'props', propId, 'value'])(featureData)
+  const getCurrentVal = (propId) => R.path([key, 'values', propId])(featureData)
 
   const onChangeProp = (prop, propId) => (value) => {
     const usesTime = R.hasPath(
-      [key, 'props', propId, 'timeValues', currentTime, 'value'],
+      [key, 'values', 'timeValues', currentTime, propId],
       featureData
     )
     const dataPath = usesTime
-      ? ['data', key, 'props', propId, 'timeValues', `${currentTime}`, 'value']
-      : ['data', key, 'props', propId, 'value']
+      ? ['data', key, 'values', 'timeValues', `${currentTime}`, propId]
+      : ['data', key, 'values', propId]
 
     dispatch(
       sendCommand({

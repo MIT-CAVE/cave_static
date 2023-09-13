@@ -101,7 +101,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
     R.memoizeWith(
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const value = R.path(['props', colorProp, 'value'], geoObj)
+        const value = R.path(['values', colorProp], geoObj)
         return `${geoObj.geoJsonValue}${value}`
       },
       (geoObj) => {
@@ -112,7 +112,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           'endGradientColor',
         ])
         const value = R.pipe(
-          R.path(['props', colorProp, 'value']),
+          R.path(['values', colorProp]),
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(geoObj)
@@ -139,13 +139,13 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
     R.memoizeWith(
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const propVal = R.path(['props', sizeProp, 'value'], d)
+        const propVal = R.path(['values', sizeProp], d)
         return `${R.prop('data_key', d)}${propVal}`
       },
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
         const sizeRange = arcRange(d.type, sizeProp, true, mapId)
-        const propVal = parseFloat(R.path(['props', sizeProp, 'value'], d))
+        const propVal = parseFloat(R.path(['values', sizeProp], d))
         return isNaN(propVal)
           ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
           : getScaledValue(
@@ -165,7 +165,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
     R.memoizeWith(
       (d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const propVal = R.path(['props', colorProp, 'value'], d[1])
+        const propVal = R.path(['values', colorProp], d[1])
         return `${R.prop('data_key', d)}${propVal}`
       },
       (d) => {
@@ -173,7 +173,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         const colorRange = arcRange(d.type, colorProp, false, mapId)
         const isCategorical = !R.has('min', colorRange)
         const propVal = R.pipe(
-          R.path(['props', colorProp, 'value']),
+          R.path(['values', colorProp]),
           R.when(R.isNil, R.always('')),
           (s) => s.toString()
         )(d)
@@ -197,7 +197,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               ),
-              parseFloat(R.path(['props', colorProp, 'value'], d))
+              parseFloat(R.path(['values', colorProp], d))
             ).join(',')})`
       }
     ),
