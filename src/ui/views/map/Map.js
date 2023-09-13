@@ -233,7 +233,7 @@ const Map = ({ mapboxToken, mapId }) => {
       document.removeEventListener('clearHighlight', onMouseOver, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightLayerId])
-  console.log(viewport)
+
   return !mapExists ? (
     []
   ) : (
