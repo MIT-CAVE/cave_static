@@ -657,17 +657,17 @@ export const selectMergedKpis = createSelector(
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
-  [selectMapControlsByMap, selectDefaultViewportFunc],
-  (mapControls, defaultViewportFunc) =>
+  [selectMapControlsByMap, selectDefaultViewportFunc, selectMapData],
+  (mapControls, defaultViewportFunc, maps) =>
     R.zipObj(
-      R.keys(mapControls),
+      R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq)(maps),
       R.map((mapId) =>
         R.mergeAll([
           DEFAULT_VIEWPORT,
           defaultViewportFunc(mapId),
           R.propOr({}, 'viewport')(mapControls[mapId]),
         ])
-      )(R.keys(mapControls))
+      )(R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq)(maps))
     )
 )
 export const selectBearingFunc = createSelector(

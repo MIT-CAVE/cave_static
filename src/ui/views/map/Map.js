@@ -67,6 +67,7 @@ const Map = ({ mapboxToken, mapId }) => {
   const mapRef = useRef(false)
 
   const demoInterval = useRef(-1)
+
   useEffect(() => {
     const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
     if (demoMode && demoInterval.current === -1) {
@@ -232,7 +233,7 @@ const Map = ({ mapboxToken, mapId }) => {
       document.removeEventListener('clearHighlight', onMouseOver, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightLayerId])
-
+  console.log(viewport)
   return !mapExists ? (
     []
   ) : (
@@ -247,7 +248,9 @@ const Map = ({ mapboxToken, mapId }) => {
       <ReactMapGL
         {...viewport}
         onMove={(e) => {
-          dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
+          console.log(e)
+          if (e.viewState.zoom !== 0)
+            dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
         }}
         hash="map"
         container="map"
