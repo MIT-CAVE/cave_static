@@ -15,14 +15,14 @@ import OverflowText from './OverflowText'
 
 import { mapKpiToggle } from '../../data/local/kpisSlice'
 import { selectNumberFormat } from '../../data/selectors'
-import { KPI_WIDTH } from '../../utils/constants'
+import { KPI_MIN_WIDTH } from '../../utils/constants'
 
 import { forceArray, formatNumber } from '../../utils'
 
 const styles = {
   root: {
     position: 'relative',
-    minWidth: KPI_WIDTH,
+    minWidth: KPI_MIN_WIDTH,
     p: 2,
   },
   title: {

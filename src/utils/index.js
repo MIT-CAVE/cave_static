@@ -383,10 +383,10 @@ export const getOptimalGridSize = (numRows, numColumns, numItems) => {
   const closestSquare = Math.sqrt(numItems)
   const maxDimension = Math.max(numColumns, numRows)
   if (closestSquare < maxDimension) {
-    const newDimension = Math.ceil((numItems - gridSize) / maxDimension)
+    const extraNumDimension = Math.ceil((numItems - gridSize) / maxDimension)
     return numRows === maxDimension
-      ? [numRows, numColumns + newDimension]
-      : [numRows + newDimension, numColumns]
+      ? [numRows, numColumns + extraNumDimension]
+      : [numRows + extraNumDimension, numColumns]
   }
 
   return numRows === maxDimension

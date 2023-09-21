@@ -5,7 +5,7 @@ import * as R from 'ramda'
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
-import { KPI_WIDTH } from '../../utils/constants'
+import { KPI_MIN_WIDTH } from '../../utils/constants'
 
 import { forceArray } from '../../utils'
 
@@ -14,7 +14,7 @@ const styles = {
     display: 'flex',
     position: 'relative',
     flexDirection: 'column',
-    minWidth: KPI_WIDTH,
+    minWidth: KPI_MIN_WIDTH,
     px: 1,
     justifyContent: 'center',
     textAlign: 'center',
@@ -23,7 +23,7 @@ const styles = {
     display: 'flex',
     position: 'relative',
     flexDirection: 'column',
-    minWidth: KPI_WIDTH,
+    minWidth: KPI_MIN_WIDTH,
     px: 2,
     placeContent: 'center',
     // textAlign: 'start',

@@ -4,8 +4,8 @@ export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/0.0.1'
 
 export const APP_BAR_WIDTH = 70
 export const PANE_WIDTH = 450
-export const PROP_WIDTH = 200
-export const KPI_WIDTH = 400
+export const PROP_MIN_WIDTH = 200
+export const KPI_MIN_WIDTH = 400
 
 export const STYLE_URL_BASE = 'mapbox://styles/mapbox/'
 

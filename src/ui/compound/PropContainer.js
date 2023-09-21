@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import InfoButton from './InfoButton'
 import OverflowText from './OverflowText'
 
-import { PROP_WIDTH } from '../../utils/constants'
+import { PROP_MIN_WIDTH } from '../../utils/constants'
 import { propContainer } from '../../utils/enums'
 
 import { forceArray } from '../../utils'
@@ -15,7 +15,7 @@ const styles = {
     flexDirection: 'column',
     position: 'relative',
     justifyContent: 'center',
-    minWidth: PROP_WIDTH,
+    minWidth: PROP_MIN_WIDTH,
     boxSizing: 'border-box',
     p: 1,
   },
