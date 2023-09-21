@@ -82,9 +82,22 @@ const PropTitle = ({
   </Grid>
 )
 
-const HorizontalContainer = ({ title, marquee, unit, children, ...props }) => (
-  <BaseContainer {...props}>
-    <Grid container alignItems="center" mt={1.5} overflow="auto" height="100%">
+const HorizontalContainer = ({
+  title,
+  marquee,
+  tooltipTitle,
+  unit,
+  children,
+  ...props
+}) => (
+  <BaseContainer {...{ tooltipTitle, ...props }}>
+    <Grid
+      container
+      alignItems="center"
+      mt={tooltipTitle ? 3.5 : 0}
+      overflow="auto"
+      height="100%"
+    >
       <Grid item zeroMinWidth xs minWidth="5ch" pl={1}>
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
