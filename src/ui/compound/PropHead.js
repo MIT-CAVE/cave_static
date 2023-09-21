@@ -1,67 +1,69 @@
-import { Box, Divider, Typography } from '@mui/material'
+import { Divider, Grid, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React from 'react'
 
 import InfoButton from './InfoButton'
+import OverflowText from './OverflowText'
+
+import { PROP_WIDTH } from '../../utils/constants'
 
 import { forceArray } from '../../utils'
 
 const styles = {
+  root: {
+    minWidth: PROP_WIDTH,
+    alignItems: 'center',
+  },
   column: {
-    display: 'flex',
-    position: 'relative',
-    alignItems: 'flex-start',
-    px: 0,
-    py: 1,
-    mx: 1,
-    my: 1.5,
+    alignContent: 'end',
   },
   row: {
-    display: 'flex',
-    position: 'relative',
-    alignItems: 'center',
-    textAlign: 'start',
     border: 1,
     borderColor: 'grey.500',
-    p: 2,
-
-    flex: '1 1 auto',
-  },
-  info: {
-    ml: 1,
-    textAlign: 'right',
-    flex: '1 1 auto',
   },
   divider: {
     height: '2px',
-    mb: 1,
     opacity: 1,
+  },
+  title: {
+    py: 1,
+    my: 1,
+    pl: 1,
   },
 }
 
-const PropHead = ({ prop = {}, sx = [], wrapperStyle, children, ...props }) => {
-  const { id, name, help, style } = prop
-  return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      sx={[style, ...forceArray(sx)]}
-      {...R.dissoc('currentVal', props)}
+const BaseContainer = ({
+  prop: { id, name, help, style },
+  variantStyle,
+  sx,
+  children,
+  ...props
+}) => (
+  <Grid
+    container
+    sx={[variantStyle, styles.root, style, ...forceArray(sx)]}
+    {...R.dissoc('currentVal')(props)}
+  >
+    <Grid
+      item
+      zeroMinWidth
+      xs
+      component={Typography}
+      variant="h5"
+      sx={styles.title}
     >
-      <Box sx={wrapperStyle}>
-        <Typography variant="h5">{name || id}</Typography>
-        {help && (
-          <Box sx={styles.info}>
-            <InfoButton text={help} sx={{ fontSize: 24 }} />
-          </Box>
-        )}
-      </Box>
-      {children}
-    </Box>
-  )
-}
-PropHead.propTypes = {
+      <OverflowText text={name || id} />
+    </Grid>
+    {help && (
+      <Grid item p={0.5}>
+        <InfoButton text={help} sx={{ fontSize: 24 }} />
+      </Grid>
+    )}
+    {children}
+  </Grid>
+)
+BaseContainer.propTypes = {
   prop: PropTypes.object,
   style: PropTypes.object,
   sx: PropTypes.oneOfType([
@@ -75,11 +77,13 @@ PropHead.propTypes = {
 }
 
 const PropHeadColumn = (props) => (
-  <PropHead wrapperStyle={styles.column} {...props}>
-    <Divider sx={styles.divider} />
-  </PropHead>
+  <BaseContainer variantStyle={styles.column} {...props}>
+    <Grid item xs={12} component={Divider} sx={styles.divider} />
+  </BaseContainer>
 )
 
-const PropHeadRow = (props) => <PropHead wrapperStyle={styles.row} {...props} />
+const PropHeadRow = (props) => (
+  <BaseContainer variantStyle={styles.row} {...props} />
+)
 
 export { PropHeadColumn, PropHeadRow }
