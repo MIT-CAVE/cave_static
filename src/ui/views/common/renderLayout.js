@@ -112,8 +112,16 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
   ])(maxHeightBy)
 
   const numItems = R.pipe(R.defaultTo(unusedItems), R.values, R.length)(data)
-  const { numColumns: numColumnsOptimal, numRows: numRowsOptimal } =
-    getOptimalGridSize(numColumns, numRows, numItems)
+
+  const getMaxDimension = (prop) =>
+    R.pipe(R.values, R.pluck(prop), R.reduce(R.max, 1))(data)
+
+  const [numRowsOptimal, numColumnsOptimal] = getOptimalGridSize(
+    numRows === 'auto' ? getMaxDimension('row') : numRows,
+    numColumns === 'auto' ? getMaxDimension('column') : numColumns,
+    numItems
+  )
+
   const numFillers = R.isNil(data)
     ? R.min(numColumnsOptimal * numRowsOptimal, numItems)
     : 0

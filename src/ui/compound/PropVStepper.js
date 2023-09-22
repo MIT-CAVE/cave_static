@@ -9,7 +9,7 @@ const getStyles = (enabled, nOpts) => ({
   box: {
     display: 'flex',
     width: '100%',
-    height: R.inc(nOpts) * 25,
+    height: (nOpts + 2) * 25,
     p: 1,
     pointerEvents: enabled ? '' : 'none',
     opacity: enabled ? '' : 0.7,
@@ -18,6 +18,7 @@ const getStyles = (enabled, nOpts) => ({
   },
   slider: {
     height: nOpts * 25,
+    mt: 1,
   },
 })
 
@@ -37,7 +38,7 @@ const PropVStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   return (
     <Box sx={[getStyles(enabled, nOpts).box, ...forceArray(sx)]} {...props}>
       <Slider
-        style={getStyles(enabled, nOpts).slider}
+        sx={getStyles(enabled, nOpts).slider}
         min={0}
         max={R.dec(nOpts)}
         step={null}
