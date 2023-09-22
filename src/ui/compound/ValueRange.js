@@ -41,13 +41,13 @@ export const ValueRange = ({
     setValueCurrent(valueStart)
   }, [minValue, maxValue, valueStart])
 
-  const step = (max - min) / 100
-
+  const step = 1 / Math.pow(10, numberFormat.precision)
   const getLabelFormat = (value) =>
     formatNumber(value, {
       ...R.dissoc('unit')(numberFormat),
       trailingZeros: false,
     })
+
   return (
     <Grid container spacing={2} alignItems="center">
       <Grid item xs sx={{ mx: 2 }}>
@@ -89,7 +89,7 @@ export const ValueRange = ({
             onClickAwayHandler(R.clamp(min, max, value))
           }}
           inputProps={{
-            step: step * 10,
+            step,
             min,
             max: formatNumber(max, R.dissoc('unit')(numberFormat)),
             type: 'number',

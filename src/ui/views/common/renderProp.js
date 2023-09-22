@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormat } from '../../../data/selectors'
-import { PROP_WIDTH } from '../../../utils/constants'
 import { propContainer, propId, propVariant } from '../../../utils/enums'
 import PropButton from '../../compound/PropButton'
 
@@ -133,8 +132,8 @@ const renderProp = ({ ...props }) => {
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
   return (
-    <PropBase {...{ prop }} key={R.prop('id', prop)}>
-      <PropComponent sx={{ minWidth: PROP_WIDTH }} {...props} />
+    <PropBase {...{ prop }} key={prop.id}>
+      <PropComponent sx={{ boxSizing: 'border-box' }} {...props} />
     </PropBase>
   )
 }
