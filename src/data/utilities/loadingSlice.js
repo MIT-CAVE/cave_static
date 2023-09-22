@@ -10,7 +10,11 @@ export const loadingSlice = createSlice({
   reducers: {
     // Update loading from ws message
     updateLoading: (state, action) => {
-      return R.assocPath(action.payload.data_path, action.payload.data, state)
+      return R.assocPath(
+        action.payload.data.data_path,
+        action.payload.data.data,
+        state
+      )
     },
   },
 })

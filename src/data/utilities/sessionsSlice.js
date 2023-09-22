@@ -10,7 +10,11 @@ export const sessionsSlice = createSlice({
   reducers: {
     // Update sessions from ws message
     updateSessions: (state, action) => {
-      return R.assocPath(action.payload.data_path, action.payload.data, state)
+      return R.assocPath(
+        action.payload.data.data_path,
+        action.payload.data.data,
+        state
+      )
     },
   },
 })
