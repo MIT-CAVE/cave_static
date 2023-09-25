@@ -37,9 +37,9 @@ import {
   selectPitchSliderToggleFunc,
   selectBearingFunc,
   selectPitchFunc,
-  selectTime,
-  selectTimeUnits,
-  selectTimeLength,
+  selectCurrentTime,
+  selectCurrentTimeUnits,
+  selectCurrentTimeLength,
   selectStaticMap,
   selectSync,
 } from '../../../data/selectors'
@@ -257,9 +257,9 @@ const MapControls = ({ allowProjections, mapId }) => {
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
-  const currentTime = useSelector(selectTime)
-  const timeUnits = useSelector(selectTimeUnits)
-  const timeLength = useSelector(selectTimeLength)
+  const currentTime = useSelector(selectCurrentTime)
+  const timeUnits = useSelector(selectCurrentTimeUnits)
+  const timeLength = useSelector(selectCurrentTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()

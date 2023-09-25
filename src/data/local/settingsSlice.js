@@ -4,7 +4,7 @@ import * as R from 'ramda'
 import { overrideState } from './actions'
 
 export const initialState = {
-  time: 0,
+  currentTime: 0,
   mirror: false,
 }
 
@@ -13,11 +13,12 @@ export const settingsSlice = createSlice({
   initialState,
   reducers: {
     timeSelection: (state, action) => {
-      state.time = action.payload
+      state.currentTime = action.payload
     },
     // action.payload should be the timeLength
     timeAdvance: (state, action) => {
-      state.time = state.time + 1 === action.payload ? 0 : state.time + 1
+      state.currentTime =
+        state.currentTime + 1 === action.payload ? 0 : state.currentTime + 1
     },
     toggleMirror: (state) => {
       state.mirror = !state.mirror

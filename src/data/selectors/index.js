@@ -91,8 +91,8 @@ export const selectLocal = (state) => R.propOr({}, 'local')(state)
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
   R.propOr({}, 'settings')(data)
 )
-export const selectTime = createSelector(selectLocalSettings, (data) =>
-  R.prop('time')(data)
+export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
+  R.prop('currentTime')(data)
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
@@ -146,15 +146,15 @@ export const selectMap = createSelector(selectData, (data) =>
 )
 // Data -> Types
 export const selectNodeTypes = createSelector(
-  [selectNodes, selectTime],
+  [selectNodes, selectCurrentTime],
   (data, time) => getTimeValue(time, R.propOr({}, 'types', data))
 )
 export const selectArcTypes = createSelector(
-  [selectArcs, selectTime],
+  [selectArcs, selectCurrentTime],
   (arcs, time) => getTimeValue(time, R.propOr({}, 'types', arcs))
 )
 export const selectGeoTypes = createSelector(
-  [selectGeos, selectTime],
+  [selectGeos, selectCurrentTime],
   (data, time) => getTimeValue(time, R.propOr({}, 'types', data)),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
@@ -165,7 +165,7 @@ export const selectModalsData = createSelector(
   R.propOr({}, 'data')
 )
 export const selectMapData = createSelector(
-  [selectMap, selectTime],
+  [selectMap, selectCurrentTime],
   (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
 )
 
@@ -252,11 +252,17 @@ export const selectDemoMode = createSelector(
   selectLocalSettings,
   (localSettings) => R.propOr(false, 'demo', localSettings)
 )
-export const selectTimeLength = createSelector(selectSettingsData, (data) =>
-  R.propOr(0, 'timeLength')(data)
+export const selectTimeSettings = createSelector(
+  selectSettingsData,
+  R.propOr({}, 'time')
 )
-export const selectTimeUnits = createSelector(selectSettingsData, (data) =>
-  R.propOr('unit', 'timeUnits')(data)
+export const selectCurrentTimeLength = createSelector(
+  selectTimeSettings,
+  (data) => R.propOr(0, 'timeLength')(data)
+)
+export const selectCurrentTimeUnits = createSelector(
+  selectTimeSettings,
+  (data) => R.propOr('unit', 'timeUnits')(data)
 )
 export const selectSyncToggles = createSelector(selectSettingsData, (data) =>
   R.propOr({}, 'sync', data)
@@ -557,7 +563,7 @@ export const selectLocalMap = createSelector(selectLocal, (data) =>
   orderEntireDict(R.propOr({}, 'maps')(data))
 )
 export const selectLocalMapData = createSelector(
-  [selectLocalMap, selectTime],
+  [selectLocalMap, selectCurrentTime],
   (data, time) => getTimeValue(time, R.prop('data')(data))
 )
 export const selectCurrentLocalMapDataByMap = createSelector(
@@ -917,7 +923,7 @@ export const selectLocalGeos = createSelector(selectLocal, (data) =>
   R.prop('geos', data)
 )
 export const selectLocalizedNodeTypes = createSelector(
-  [selectNodeTypes, selectLocalNodes, selectTime],
+  [selectNodeTypes, selectLocalNodes, selectCurrentTime],
   (nodeTypes, localNodes, time) =>
     R.propOr(nodeTypes, 'types', getTimeValue(time, localNodes)),
   {
@@ -927,7 +933,7 @@ export const selectLocalizedNodeTypes = createSelector(
   }
 )
 export const selectLocalizedArcTypes = createSelector(
-  [selectArcTypes, selectLocalArcs, selectTime],
+  [selectArcTypes, selectLocalArcs, selectCurrentTime],
   (arcTypes, localArcs, time) =>
     R.propOr(arcTypes, 'types', getTimeValue(time, localArcs)),
   {
@@ -937,7 +943,7 @@ export const selectLocalizedArcTypes = createSelector(
   }
 )
 export const selectLocalizedGeoTypes = createSelector(
-  [selectGeoTypes, selectLocalGeos, selectTime],
+  [selectGeoTypes, selectLocalGeos, selectCurrentTime],
   (geoTypes, localGeos, time) =>
     R.propOr(geoTypes, 'types', getTimeValue(time, localGeos)),
   {
@@ -1001,7 +1007,7 @@ const getMergedAllProps = (data, localData, memoized) =>
   )(localData)
 
 export const selectMergedArcs = createSelector(
-  [selectArcs, selectLocalArcs, selectMemoizedArcMergeFunc, selectTime],
+  [selectArcs, selectLocalArcs, selectMemoizedArcMergeFunc, selectCurrentTime],
   (arcs, localArcs, mergeFunc, time) =>
     getMergedAllProps(
       getTimeValue(time, arcs),
@@ -1019,7 +1025,12 @@ export const selectMergedArcs = createSelector(
   }
 )
 export const selectMergedNodes = createSelector(
-  [selectNodes, selectLocalNodes, selectMemoizedNodeMergeFunc, selectTime],
+  [
+    selectNodes,
+    selectLocalNodes,
+    selectMemoizedNodeMergeFunc,
+    selectCurrentTime,
+  ],
   (nodes, localNodes, mergeFunc, time) =>
     getMergedAllProps(
       getTimeValue(time, nodes),
@@ -1028,7 +1039,7 @@ export const selectMergedNodes = createSelector(
     )
 )
 export const selectMergedGeos = createSelector(
-  [selectGeos, selectLocalGeos, selectMemoizedGeoMergeFunc, selectTime],
+  [selectGeos, selectLocalGeos, selectMemoizedGeoMergeFunc, selectCurrentTime],
   (geos, localGeos, mergeFunc, time) =>
     getMergedAllProps(
       getTimeValue(time, geos),

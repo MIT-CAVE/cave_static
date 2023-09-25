@@ -21,9 +21,9 @@ import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewportsFunc,
   selectMapModalFunc,
-  selectTimeUnits,
-  selectTimeLength,
-  selectTime,
+  selectCurrentTimeUnits,
+  selectCurrentTimeLength,
+  selectCurrentTime,
   selectMergedArcs,
   selectMergedNodes,
   selectMergedGeos,
@@ -82,7 +82,7 @@ const styles = {
 const OnLayerEventModal = ({ mapId }) => {
   const dispatch = useDispatch()
   const mapModal = useSelector(selectMapModalFunc)(mapId)
-  const currentTime = useSelector(selectTime)
+  const currentTime = useSelector(selectCurrentTime)
   const arcData = useSelector(selectMergedArcs)
   const nodeData = useSelector(selectMergedNodes)
   const geoData = useSelector(selectMergedGeos)
@@ -184,8 +184,8 @@ const ListModal = ({ title, options, onSelect, mapId }) => {
 const MapModal = ({ mapId }) => {
   const mapModal = useSelector(selectMapModalFunc)(mapId)
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
-  const timeUnits = useSelector(selectTimeUnits)
-  const timeLength = useSelector(selectTimeLength)
+  const timeUnits = useSelector(selectCurrentTimeUnits)
+  const timeLength = useSelector(selectCurrentTimeLength)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
