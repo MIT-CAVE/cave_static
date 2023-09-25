@@ -128,9 +128,14 @@ const renderProp = ({ ...props }) => {
   const { type, variant } = prop
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
+  // default enabled to true
+  const enabled = R.propOr(true, 'enabled', prop)
   return (
     <PropBase {...{ prop }} key={R.prop('id', prop)}>
-      <PropComponent sx={{ minWidth: PROP_WIDTH }} {...props} />
+      <PropComponent
+        sx={{ minWidth: PROP_WIDTH }}
+        {...R.assocPath(['prop', 'enabled'], enabled, props)}
+      />
     </PropBase>
   )
 }
