@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
-  selectAppBarId,
+  selectCurrentPage,
   selectSync,
   selectPanesData,
   selectSessionLoading,
@@ -97,7 +97,7 @@ const getAppBarItem = ({
   color,
   key,
   pin,
-  appBarId,
+  currentPage,
   changePane,
   sync,
   loading,
@@ -105,7 +105,7 @@ const getAppBarItem = ({
 }) => {
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
-  const path = ['appBar', 'appBarId']
+  const path = ['pages', 'currentPage']
 
   return type === paneId.SESSION ? (
     <Tab
@@ -198,7 +198,10 @@ const getAppBarItem = ({
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
-      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
+      sx={[
+        styles.navBtn,
+        R.equals(currentPage, key) ? styles.navBtnActive : {},
+      ]}
       onClick={() => {
         dispatch(
           mutateLocal({
@@ -209,7 +212,7 @@ const getAppBarItem = ({
         )
         // Automatically close an unpinned pane when switching
         // to a different page
-        if (!pin && key !== appBarId) changePane()
+        if (!pin && key !== currentPage) changePane()
       }}
     />
   ) : (
@@ -219,7 +222,7 @@ const getAppBarItem = ({
 
 const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const panesData = useSelector(selectPanesData)
   const sessionLoading = useSelector(selectSessionLoading)
   const dataLoading = useSelector(selectDataLoading)
@@ -267,12 +270,12 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     (pane) => {
       dispatch(
         mutateLocal({
-          path: ['appBar', 'paneState', side],
+          path: ['panes', 'paneState', side],
           value: {
             pin, // Preserves state of a pinned pane
             ...(open === pane ? {} : { open: pane }),
           },
-          sync: !includesPath(R.values(sync), ['appBar', 'paneState', side]),
+          sync: !includesPath(R.values(sync), ['panes', 'paneState', side]),
         })
       )
     },
@@ -289,7 +292,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         key,
         pin,
         obj,
-        appBarId,
+        currentPage,
         changePane,
         sync,
         loading: disabled,

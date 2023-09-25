@@ -126,7 +126,7 @@ export const selectGroupedOutputs = createSelector(selectData, (data) =>
 export const selectKpis = createSelector(selectData, (data) =>
   R.propOr({}, 'globalOutputs')(data)
 )
-export const selectDash = createSelector(selectData, (data) =>
+export const selectPages = createSelector(selectData, (data) =>
   R.propOr({}, 'pages')(data)
 )
 export const selectAssociated = createSelector(selectData, (data) =>
@@ -295,7 +295,7 @@ export const selectGroupedOutputTypes = createSelector(
   R.map((obj) => R.propOr({}, 'stats')(obj))
 )
 // Data -> dashboard
-export const selectDashboardData = createSelector(selectDash, (data) =>
+export const selectDashboardData = createSelector(selectPages, (data) =>
   R.propOr({}, 'data')(data)
 )
 // Data -> panes
@@ -324,12 +324,11 @@ export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
   R.prop('data', data)
 )
 // Local -> Dashboard
-export const selectLocalDashboard = createSelector(selectLocal, (data) =>
+export const selectLocalPages = createSelector(selectLocal, (data) =>
   R.propOr({}, 'pages')(data)
 )
-export const selectLocalDashboardData = createSelector(
-  selectLocalDashboard,
-  (data) => R.prop('data', data)
+export const selectLocalPagesData = createSelector(selectLocalPages, (data) =>
+  R.prop('data', data)
 )
 // Local -> appBar (Custom)
 export const selectLocalAppBar = createSelector(selectLocal, (data) =>
@@ -347,7 +346,7 @@ export const selectRightLocalAppBarData = createSelector(
   (data) => R.propOr({}, 'right', data)
 )
 export const selectPaneState = createSelector(
-  [selectLocalAppBar, selectAppBar],
+  [selectLocalPanes, selectPanes],
   (localData, data) =>
     R.propOr(R.propOr({}, 'paneState', data), 'paneState', localData)
 )
@@ -363,6 +362,100 @@ export const selectRightOpenPane = createSelector(selectPaneState, (data) =>
 export const selectRightPinPane = createSelector(selectPaneState, (data) =>
   R.propOr(false, 'pin', R.propOr({}, 'right', data))
 )
+// Merged pages
+export const selectCurrentPage = createSelector(
+  [selectLocalPages, selectPages],
+  (localPages, pages) => {
+    const fallbackId = R.pipe(R.prop('data'), R.keys, R.prop(0))(pages)
+    const currentId = R.propOr(
+      R.propOr(fallbackId, 'currentPage', pages),
+      'currentPage',
+      localPages
+    )
+    return currentId
+  }
+)
+export const selectDashboard = createSelector(
+  [selectCurrentPage, selectDashboardData, selectLocalPagesData],
+  (currentPage, dashboardData, localdashboardData) =>
+    R.propOr(
+      R.propOr({}, currentPage, dashboardData),
+      currentPage,
+      localdashboardData
+    )
+)
+export const selectStatOptions = createSelector(
+  [selectCurrentPage, selectDashboardData, selectLocalPagesData],
+  (currentPage, dashboardData, localDashboardData) =>
+    R.pathOr(
+      R.pathOr([], [currentPage, 'statOptions'], dashboardData),
+      [currentPage, 'statOptions'],
+      localDashboardData
+    )
+)
+export const selectpageLayout = createSelector(
+  [selectCurrentPage, selectDashboardData, selectLocalPagesData],
+  (currentPage, dashboardData, localDashboardData) =>
+    R.pathOr(
+      R.pathOr({}, [currentPage, 'pageLayout'], dashboardData),
+      [currentPage, 'pageLayout'],
+      localDashboardData
+    )
+)
+export const selectDashboardLockedLayout = createSelector(
+  selectDashboard,
+  (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
+)
+export const selectAllowedStats = createSelector(
+  [selectGroupedOutputTypes, selectStatOptions],
+  (statisticTypes, statOptions) =>
+    R.isEmpty(statOptions)
+      ? statisticTypes
+      : R.pick(statOptions, statisticTypes)
+)
+
+export const selectCurrentMapDataByMap = createSelector(
+  selectMapData,
+  (data) => {
+    const itemKeys = R.reduce((acc, obj) => {
+      R.forEach((key) => acc.add(key), R.keys(obj))
+      return acc
+    }, new Set())(R.values(data))
+    return R.reduce(
+      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+      {}
+    )(itemKeys.values())
+  }
+)
+
+export const selectDefaultViewportFunc = createSelector(
+  selectCurrentMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.pathOr({}, ['defaultViewport', mapId]),
+          R.when(
+            R.has('zoom'),
+            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+          )
+        )(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(
+          R.propOr({}, 'defaultViewport', a),
+          R.propOr({}, 'defaultViewport', b)
+        ),
+    },
+  }
+)
+
+// Merged appBar
+
 export const selectOpenModal = createSelector(
   [selectLocalAppBar, selectAppBar],
   (localData, data) =>
@@ -429,21 +522,10 @@ export const selectDemoViews = createSelector(
       R.pluck(0)
     )(appBarData)
 )
-export const selectAppBarId = createSelector(
-  [selectLocalAppBar, selectAppBar],
-  (localAppBar, appBar) => {
-    const fallbackId = R.pipe(R.prop('data'), R.toPairs, R.path([0, 0]))(appBar)
-    const currentId = R.propOr(
-      R.propOr(fallbackId, 'appBarId', appBar),
-      'appBarId',
-      localAppBar
-    )
-    return currentId
-  }
-)
 export const selectStaticMap = createSelector(
-  [selectAppBarId, selectAppBarData],
-  (appBarId, appBarData) => R.pathOr(false, [appBarId, 'static'], appBarData)
+  [selectCurrentPage, selectAppBarData],
+  (currentPage, appBarData) =>
+    R.pathOr(false, [currentPage, 'static'], appBarData)
 )
 // Merged Panes
 export const selectLeftOpenPanesData = createSelector(
@@ -472,90 +554,6 @@ export const selectOpenModalData = createSelector(
       R.propOr({}, openModal, localModalsData)
     ),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
-)
-// Merged pages
-export const selectDashboard = createSelector(
-  [selectAppBarId, selectDashboardData, selectLocalDashboardData],
-  (appBarId, dashboardData, localdashboardData) =>
-    R.propOr(
-      R.propOr({}, appBarId, dashboardData),
-      appBarId,
-      localdashboardData
-    )
-)
-export const selectStatOptions = createSelector(
-  [selectAppBarId, selectDashboardData, selectLocalDashboardData],
-  (appBarId, dashboardData, localDashboardData) =>
-    R.pathOr(
-      R.pathOr([], [appBarId, 'statOptions'], dashboardData),
-      [appBarId, 'statOptions'],
-      localDashboardData
-    )
-)
-export const selectpageLayout = createSelector(
-  [selectAppBarId, selectDashboardData, selectLocalDashboardData],
-  (appBarId, dashboardData, localDashboardData) =>
-    R.pathOr(
-      R.pathOr({}, [appBarId, 'pageLayout'], dashboardData),
-      [appBarId, 'pageLayout'],
-      localDashboardData
-    )
-)
-export const selectDashboardLockedLayout = createSelector(
-  selectDashboard,
-  (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
-)
-export const selectAllowedStats = createSelector(
-  [selectGroupedOutputTypes, selectStatOptions],
-  (statisticTypes, statOptions) =>
-    R.isEmpty(statOptions)
-      ? statisticTypes
-      : R.pick(statOptions, statisticTypes)
-)
-// Map -> displayedMap
-// export const selectCurrentMapData = createSelector(
-//   [selectMapData, selectAppBarId],
-//   (data, appBarId) => R.prop(appBarId, data)
-// )
-
-export const selectCurrentMapDataByMap = createSelector(
-  selectMapData,
-  (data) => {
-    const itemKeys = R.reduce((acc, obj) => {
-      R.forEach((key) => acc.add(key), R.keys(obj))
-      return acc
-    }, new Set())(R.values(data))
-    return R.reduce(
-      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-      {}
-    )(itemKeys.values())
-  }
-)
-
-export const selectDefaultViewportFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pathOr({}, ['defaultViewport', mapId]),
-          R.when(
-            R.has('zoom'),
-            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
-          )
-        )(dataObj),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'defaultViewport', a),
-          R.propOr({}, 'defaultViewport', b)
-        ),
-    },
-  }
 )
 
 // Local -> Map

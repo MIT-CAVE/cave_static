@@ -19,7 +19,7 @@ import {
   selectLineMatchingKeysFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
-  selectAppBarId,
+  selectCurrentPage,
   selectArcLayer3DGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
@@ -505,7 +505,7 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
 
 export const Arcs3D = memo(({ mapId }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
   return (
     <ArcLayer3D
@@ -513,7 +513,7 @@ export const Arcs3D = memo(({ mapId }) => {
       onClick={({ cave_name: id, cave_obj: obj }) => {
         dispatch(
           openMapModal({
-            appBarId,
+            currentPage,
             data: {
               ...(obj || {}),
               feature: 'arcs',

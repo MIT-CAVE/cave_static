@@ -101,15 +101,12 @@ const MirrorSwitch = ({ ...props }) => {
                 dispatch(toggleMirror())
                 dispatch(
                   mutateLocal({
-                    path: ['appBar', 'paneState'],
+                    path: ['panes', 'paneState'],
                     value: {
                       left: R.propOr({}, 'right', paneState),
                       right: R.propOr({}, 'left', paneState),
                     },
-                    sync: !includesPath(R.values(sync), [
-                      'appBar',
-                      'paneState',
-                    ]),
+                    sync: !includesPath(R.values(sync), ['panes', 'paneState']),
                   })
                 )
               }}

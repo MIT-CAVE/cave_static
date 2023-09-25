@@ -103,7 +103,7 @@ export const mapSlice = createSlice({
         state
       )
     },
-    // payload: {value:int|float, appBarId:string}
+    // payload: {value:int|float, currentPage:string}
     setZoom: (state, action) => {
       const minZoom = R.clamp(
         MIN_ZOOM,

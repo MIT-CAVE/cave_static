@@ -9,7 +9,7 @@ import DashboardKpi from './DashboardKpi'
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectAppBarId,
+  selectCurrentPage,
   selectpageLayout,
   selectDashboardLockedLayout,
   selectSync,
@@ -68,7 +68,7 @@ const Dashboard = () => {
   const sync = useSelector(selectSync)
   const pageLayout = useSelector(selectpageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const rightBar = useSelector(selectRightAppBarDisplay)
 
@@ -125,7 +125,7 @@ const Dashboard = () => {
     R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
   )(pageLayout)
 
-  const path = ['pages', 'data', appBarId, 'pageLayout']
+  const path = ['pages', 'data', currentPage, 'pageLayout']
   return (
     <Container
       maxWidth={false}

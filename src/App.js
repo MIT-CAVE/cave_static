@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from './data/local'
 import {
-  selectAppBarId,
+  selectCurrentPage,
   selectAppBarData,
   selectDemoMode,
   selectDemoViews,
@@ -60,7 +60,7 @@ const styles = {
 
 const App = () => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const appBarData = useSelector(selectAppBarData)
   const appBarViews = useSelector(selectDemoViews)
   const demoMode = useSelector(selectDemoMode)
@@ -72,18 +72,22 @@ const App = () => {
   useEffect(() => {
     if (demoMode && demoTimeout.current === -1) {
       const nextViewIndex =
-        (R.findIndex(R.equals(appBarId), appBarViews) + 1) %
+        (R.findIndex(R.equals(currentPage), appBarViews) + 1) %
         R.length(appBarViews)
       demoTimeout.current = setTimeout(() => {
         demoTimeout.current = -1
         dispatch(
           mutateLocal({
-            path: ['appBar', 'data', 'appBarId'],
+            path: ['appBar', 'data', 'currentPage'],
             value: appBarViews[isNaN(nextViewIndex) ? 0 : nextViewIndex],
-            sync: !includesPath(R.values(sync), ['appBar', 'data', 'appBarId']),
+            sync: !includesPath(R.values(sync), [
+              'appBar',
+              'data',
+              'currentPage',
+            ]),
           })
         )
-      }, R.pathOr(15, [appBarId, 'displayTime'], demoSettings) * 1000)
+      }, R.pathOr(15, [currentPage, 'displayTime'], demoSettings) * 1000)
     } else if (demoTimeout.current !== -1 && !demoMode) {
       clearTimeout(demoTimeout.current)
       demoTimeout.current = -1
@@ -96,7 +100,7 @@ const App = () => {
     }
   }, [
     appBarData,
-    appBarId,
+    currentPage,
     appBarViews,
     demoMode,
     demoSettings,

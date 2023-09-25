@@ -118,10 +118,10 @@ const Panes = ({ sessionCard, setSessionCard }) => {
           if (!pin && R.isNotNil(open) && open !== '' && pageClick) {
             dispatch(
               mutateLocal({
-                path: ['appBar', 'paneState', side],
+                path: ['panes', 'paneState', side],
                 value: {},
                 sync: !includesPath(R.values(sync), [
-                  'appBar',
+                  'panes',
                   'paneState',
                   side,
                 ]),
@@ -144,10 +144,10 @@ const Panes = ({ sessionCard, setSessionCard }) => {
       onPin: () => {
         dispatch(
           mutateLocal({
-            path: ['appBar', 'paneState', side, 'pin'],
+            path: ['panes', 'paneState', side, 'pin'],
             value: side === 'right' ? !rightPin : !leftPin,
             sync: !includesPath(R.values(sync), [
-              'appBar',
+              'panes',
               'paneState',
               side,
               'pin',

@@ -12,7 +12,7 @@ import { KpiHeader, StatisticsHeader, MapHeader } from './DashboardHeaders'
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectAppBarId,
+  selectCurrentPage,
   selectpageLayout,
   selectDashboardLockedLayout,
   selectSync,
@@ -34,9 +34,9 @@ const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
   const sync = useSelector(selectSync)
   const pageLayout = useSelector(selectpageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
 
-  const path = ['pages', 'data', appBarId, 'pageLayout', index]
+  const path = ['pages', 'data', currentPage, 'pageLayout', index]
   return (
     <Grid container wrap="nowrap" sx={styles.header}>
       <HeaderSelectWrapper>

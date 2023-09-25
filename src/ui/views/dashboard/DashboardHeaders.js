@@ -8,7 +8,7 @@ import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
   selectSync,
-  selectAppBarId,
+  selectCurrentPage,
   selectAllowedStats,
   selectMapData,
   selectGroupedOutputNames,
@@ -48,7 +48,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const statisticTypes = useSelector(selectAllowedStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
   const statNames = useSelector(selectGroupedOutputNames)
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
@@ -88,7 +88,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
         )(obj)
       : obj
 
-  const path = ['pages', 'data', appBarId, 'pageLayout', index]
+  const path = ['pages', 'data', currentPage, 'pageLayout', index]
   const onSelectGroupFn =
     (n = 0) =>
     (item, subItem) => {
@@ -407,10 +407,10 @@ const KpiHeader = memo(({ obj, index }) => {
   const dispatch = useDispatch()
 
   const globalOutputs = useSelector(selectAssociatedData)
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
 
-  const path = ['pages', 'data', appBarId, 'pageLayout', index]
+  const path = ['pages', 'data', currentPage, 'pageLayout', index]
 
   return (
     <>
@@ -539,12 +539,12 @@ const KpiHeader = memo(({ obj, index }) => {
 
 const MapHeader = memo(({ obj, index }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
 
   const sync = useSelector(selectSync)
   const maps = useSelector(selectMapData)
 
-  const path = ['pages', 'data', appBarId, 'pageLayout', index]
+  const path = ['pages', 'data', currentPage, 'pageLayout', index]
 
   const availableValue = R.pipe(
     R.propOr('', 'mapId'),
