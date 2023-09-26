@@ -163,7 +163,7 @@ export const mapSlice = createSlice({
         zoom
       )(state)
     },
-    // payload: {data:object, mapId:string}
+    // payload: data:object
     openMapModal: (state, action) => {
       const currentModal = R.pathOr(
         {
@@ -171,10 +171,8 @@ export const mapSlice = createSlice({
           data: {
             feature: '',
           },
-          isError: false,
-          errorText: '',
         },
-        ['data', action.payload.mapId, 'mapModal'],
+        ['mapModal'],
         state
       )
       const openedModal = R.assoc(
@@ -185,70 +183,26 @@ export const mapSlice = createSlice({
         currentModal
       )
       return R.assocPath(
-        ['data', action.payload.mapId, 'mapModal'],
-        R.assoc('data', action.payload.data, openedModal),
+        ['mapModal'],
+        R.assoc('data', action.payload, openedModal),
         state
       )
     },
-    // payload: mapId:string
-    closeMapModal: (state, action) => {
+    closeMapModal: (state) => {
       const currentModal = R.pathOr(
         {
           isOpen: false,
           data: {
             feature: '',
           },
-          isError: false,
-          errorText: '',
         },
-        ['data', action.payload, 'mapModal'],
+        ['mapModal'],
         state
       )
       const closedModal = R.assoc('isOpen', false, currentModal)
       return R.assocPath(
-        ['data', action.payload, 'mapModal'],
+        ['mapModal'],
         R.assoc('data', { feature: '' }, closedModal),
-        state
-      )
-    },
-    // payload: {errorText:string, mapId:string}
-    openError: (state, action) => {
-      const currentModal = R.pathOr(
-        {
-          isOpen: false,
-          data: {
-            feature: '',
-          },
-          isError: false,
-          errorText: '',
-        },
-        ['data', action.payload.mapId, 'mapModal'],
-        state
-      )
-      const errorModal = R.assoc('isError', true, currentModal)
-      return R.assocPath(
-        ['data', action.payload.mapId, 'mapModal'],
-        R.assoc('errorText', action.payload.errorText, errorModal),
-        state
-      )
-    },
-    // payload: mapId:string
-    closeError: (state, action) => {
-      const currentModal = R.pathOr(
-        {
-          isOpen: false,
-          data: {
-            feature: '',
-          },
-          isError: false,
-          errorText: '',
-        },
-        ['data', action.payload, 'mapModal'],
-        state
-      )
-      return R.assocPath(
-        ['data', action.payload, 'mapModal'],
-        R.assoc('isError', false, currentModal),
         state
       )
     },
@@ -271,8 +225,6 @@ export const {
   changeZoom,
   openMapModal,
   closeMapModal,
-  openError,
-  closeError,
   viewportRotate,
 } = mapSlice.actions
 

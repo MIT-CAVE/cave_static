@@ -369,7 +369,7 @@ const MapControls = ({ allowProjections, mapId }) => {
               title={`Set current ${timeUnits}`}
               placement="top"
               onClick={() =>
-                dispatch(openMapModal({ data: { feature: 'setTime' }, mapId }))
+                dispatch(openMapModal({ feature: 'setTime', mapId }))
               }
             >
               {currentTime + 1}
@@ -408,9 +408,7 @@ const MapControls = ({ allowProjections, mapId }) => {
               title={tooltipTitles.mapStyles}
               placement="top"
               onClick={() =>
-                dispatch(
-                  openMapModal({ data: { feature: 'mapStyles' }, mapId })
-                )
+                dispatch(openMapModal({ feature: 'mapStyles', mapId }))
               }
             >
               <MdMap />
@@ -460,9 +458,7 @@ const MapControls = ({ allowProjections, mapId }) => {
                 title={tooltipTitles.customViewports}
                 placement="top"
                 onClick={() =>
-                  dispatch(
-                    openMapModal({ data: { feature: 'viewports' }, mapId })
-                  )
+                  dispatch(openMapModal({ feature: 'viewports', mapId }))
                 }
               >
                 <MdGpsFixed />

@@ -20,7 +20,7 @@ import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewportsFunc,
-  selectMapModalFunc,
+  selectMapModal,
   selectCurrentTimeUnits,
   selectCurrentTimeLength,
   selectCurrentTime,
@@ -32,7 +32,7 @@ import {
 } from '../../../data/selectors'
 import { DEFAULT_MAP_STYLE_KEY } from '../../../utils/constants'
 import ClusterModal from '../../compound/ClusterModal'
-import SimpleModal from '../../compound/SimpleModal'
+import { GeneralModal } from '../common/Modal'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { FetchedIcon } from '../../compound'
@@ -81,7 +81,7 @@ const styles = {
 
 const OnLayerEventModal = ({ mapId }) => {
   const dispatch = useDispatch()
-  const mapModal = useSelector(selectMapModalFunc)(mapId)
+  const mapModal = useSelector(selectMapModal)
   const currentTime = useSelector(selectCurrentTime)
   const arcData = useSelector(selectMergedArcs)
   const nodeData = useSelector(selectMergedNodes)
@@ -96,7 +96,6 @@ const OnLayerEventModal = ({ mapId }) => {
     layout,
     props: items,
   } = R.propOr({}, 'data')(mapModal)
-
   const featureData =
     feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
   const getCurrentVal = (propId) => R.path([key, 'values', propId])(featureData)
@@ -125,6 +124,8 @@ const OnLayerEventModal = ({ mapId }) => {
     )
   }
 
+  const onClose = () => dispatch(closeMapModal())
+
   return R.isNotNil(cluster_id) ? (
     <ClusterModal title={type} cluster_id={cluster_id} mapId={mapId}>
       {renderPropsLayout({
@@ -135,14 +136,14 @@ const OnLayerEventModal = ({ mapId }) => {
       })}
     </ClusterModal>
   ) : (
-    <SimpleModal title={name || type} mapId={mapId}>
+    <GeneralModal title={name || type} onClose={onClose}>
       {renderPropsLayout({
         layout,
         items,
         getCurrentVal,
         onChangeProp,
       })}
-    </SimpleModal>
+    </GeneralModal>
   )
 }
 
@@ -182,7 +183,7 @@ const ListModal = ({ title, options, onSelect, mapId }) => {
 }
 
 const MapModal = ({ mapId }) => {
-  const mapModal = useSelector(selectMapModalFunc)(mapId)
+  const mapModal = useSelector(selectMapModal)
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
@@ -191,13 +192,13 @@ const MapModal = ({ mapId }) => {
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
   const feature = R.path(['data', 'feature'], mapModal)
+  const modelMap = R.pathOr('', ['data', mapId], mapModal)
   const timeOptions = R.pipe(
     R.add(1),
     R.range(1),
     R.reduce((acc, value) => R.assoc(value, value, acc), {}),
     R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
   )(timeLength)
-
   const syncStyles = !includesPath(R.values(sync), [
     'maps',
     'data',
@@ -206,7 +207,7 @@ const MapModal = ({ mapId }) => {
   ])
   return R.cond([
     [
-      R.equals('viewports'),
+      (d) => R.equals('viewports', d) && R.equals(mapId, modelMap),
       R.always(
         <ListModal
           title="Map Viewports"
@@ -226,7 +227,7 @@ const MapModal = ({ mapId }) => {
       ),
     ],
     [
-      R.equals('mapStyles'),
+      (d) => R.equals('mapStyles', d) && R.equals(mapId, modelMap),
       R.always(
         <ListModal
           title="Map Styles"
@@ -251,7 +252,7 @@ const MapModal = ({ mapId }) => {
       ),
     ],
     [
-      R.equals('setTime'),
+      (d) => R.equals('setTime', d) && R.equals(mapId, modelMap),
       R.always(
         <SimpleModalOptions
           title={`Set ${timeUnits}`}

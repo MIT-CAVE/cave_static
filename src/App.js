@@ -23,7 +23,7 @@ import {
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
 import Loader from './ui/views/common/Loader'
-import AppModal from './ui/views/common/Modal'
+import { AppModal } from './ui/views/common/Modal'
 import renderAppPane from './ui/views/common/Pane'
 import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
 import SessionCard from './ui/views/common/SessionCard'

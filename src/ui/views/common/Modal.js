@@ -52,6 +52,24 @@ const styles = {
   },
 }
 
+const GeneralModal = ({ title, children, onClose }) => {
+  return (
+    <Modal
+      sx={styles.modal}
+      disablePortal
+      disableEnforceFocus
+      disableAutoFocus
+      open
+      onClose={onClose}
+    >
+      <Box sx={styles.paper}>
+        <Box sx={styles.header}>{title}</Box>
+        {children}
+      </Box>
+    </Modal>
+  )
+}
+
 const AppModal = () => {
   const open = useSelector(selectOpenModal)
   const modal = useSelector(selectOpenModalData)
@@ -65,6 +83,15 @@ const AppModal = () => {
     R.defaultTo({ type: layoutType.GRID }),
     R.unless(R.has('numColumns'), R.assoc('numColumns', 1))
   )(layout)
+  const onClose = () => {
+    dispatch(
+      mutateLocal({
+        path: ['appBar', 'openModal'],
+        value: '',
+        sync: !includesPath(R.values(sync), ['appBar', 'openModal']),
+      })
+    )
+  }
   const onChangeProp = (prop, propId) => (value) => {
     dispatch(
       sendCommand({
@@ -82,32 +109,13 @@ const AppModal = () => {
   }
 
   return (
-    <Modal
-      sx={styles.modal}
-      disablePortal
-      disableEnforceFocus
-      disableAutoFocus
-      open
-      onClose={() => {
-        dispatch(
-          mutateLocal({
-            path: ['appBar', 'openModal'],
-            value: '',
-            sync: !includesPath(R.values(sync), ['appBar', 'openModal']),
-          })
-        )
-      }}
-    >
-      <Box sx={styles.paper}>
-        <Box sx={styles.header}>{name}</Box>
-        {renderPropsLayout({
-          layout: modalLayout,
-          items: propsWithValues,
-          onChangeProp,
-        })}
-      </Box>
-    </Modal>
+    <GeneralModal title={name} onClose={onClose}>
+      {renderPropsLayout({
+        layout: modalLayout,
+        items: propsWithValues,
+        onChangeProp,
+      })}
+    </GeneralModal>
   )
 }
-
-export default AppModal
+export { AppModal, GeneralModal }

@@ -613,20 +613,16 @@ export const selectMapControlsByMap = createSelector(
     },
   }
 )
-export const selectMapModalFunc = createSelector(
-  selectCurrentLocalMapDataByMap,
-  (dataObj) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) => R.pathOr({}, ['mapModal', mapId])(dataObj),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.propOr({}, 'mapModal', a), R.propOr({}, 'mapModal', b)),
+export const selectMapModal = createSelector(selectLocalMap, (data) =>
+  R.propOr(
+    {
+      isOpen: false,
+      data: {
+        feature: '',
+      },
     },
-  }
+    'mapModal'
+  )(data)
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)

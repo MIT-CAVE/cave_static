@@ -9,7 +9,6 @@ import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { getDefaultFog, getDefaultStyleId } from '.'
-import ErrorPad from './ErrorPad'
 import { Geos, Arcs, Nodes, Arcs3D } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
@@ -200,13 +199,11 @@ const Map = ({ mapboxToken, mapId }) => {
 
       dispatch(
         openMapModal({
+          ...(obj || {}),
+          feature: feature,
+          type: R.propOr(obj.type, 'name')(obj),
+          key: id,
           mapId,
-          data: {
-            ...(obj || {}),
-            feature: feature,
-            type: R.propOr(obj.type, 'name')(obj),
-            key: id,
-          },
         })
       )
     },
@@ -277,7 +274,6 @@ const Map = ({ mapboxToken, mapId }) => {
         <Nodes highlightLayerId={highlightLayerId} mapId={mapId} />
         <Arcs3D mapId={mapId} />
       </ReactMapGL>
-      <ErrorPad mapId={mapId} />
       <MapModal mapId={mapId} />
       <MapLegend mapId={mapId} />
     </Box>
