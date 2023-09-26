@@ -17,12 +17,13 @@ const PropHRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const [value] = R.defaultTo(prop.value, currentVal)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <RadioGroup row sx={{ pl: 1 }}>
+      <RadioGroup row sx={{ flexWrap: 'nowrap' }}>
         {R.values(
           R.mapObjIndexed((val, key) => (
             <FormControlLabel
               key={key}
               disabled={!enabled}
+              sx={{ textAlign: 'center', whiteSpace: 'nowrap' }}
               control={
                 <Radio
                   value={value}

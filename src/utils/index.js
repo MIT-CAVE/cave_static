@@ -230,27 +230,22 @@ export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
   return checkCache
 }
 
-export const getOptimalGridSize = (numColumns, numRows, n) => {
-  const r = Math.sqrt(n)
-  return numColumns === 'auto' && numRows === 'auto'
-    ? {
-        numColumns: Math.floor(r),
-        numRows: Math.ceil(n / Math.floor(r)),
-      }
-    : numColumns === 'auto'
-    ? {
-        numColumns: Math.ceil(n / numRows),
-        numRows,
-      }
-    : numRows === 'auto'
-    ? {
-        numColumns,
-        numRows: Math.ceil(n / numColumns),
-      }
-    : {
-        numColumns,
-        numRows,
-      }
+export const getOptimalGridSize = (numRows, numColumns, numItems) => {
+  const gridSize = numRows * numColumns
+  if (numItems <= gridSize) return [numRows, numColumns]
+
+  const closestSquare = Math.sqrt(numItems)
+  const maxDimension = Math.max(numColumns, numRows)
+  if (closestSquare < maxDimension) {
+    const newDimension = Math.ceil((numItems - gridSize) / maxDimension)
+    return numRows === maxDimension
+      ? [numRows, numColumns + newDimension]
+      : [numRows + newDimension, numColumns]
+  }
+
+  return numRows === maxDimension
+    ? [Math.ceil(closestSquare), Math.floor(closestSquare)]
+    : [Math.floor(closestSquare), Math.ceil(closestSquare)]
 }
 
 export const getScaledValue = (minVal, maxVal, minScale, maxScale, value) => {

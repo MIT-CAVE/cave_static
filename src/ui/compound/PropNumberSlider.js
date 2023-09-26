@@ -7,7 +7,7 @@ import { ValueRange } from './ValueRange'
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
 const styles = (theme) => ({
-  pt: 1,
+  mt: 2,
   '& .MuiSlider-rail': {
     height: theme.spacing(0.5),
     borderRadius: 'shape.borderRadius',

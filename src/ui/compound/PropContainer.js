@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import InfoButton from './InfoButton'
 import OverflowText from './OverflowText'
 
-import { PROP_WIDTH } from '../../utils/constants'
+import { PROP_MIN_WIDTH } from '../../utils/constants'
 import { propContainer } from '../../utils/enums'
 
 import { forceArray } from '../../utils'
@@ -14,24 +14,27 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    minWidth: PROP_MIN_WIDTH,
+    boxSizing: 'border-box',
     p: 1,
   },
   info: (theme) => ({
     top: theme.spacing(1),
     right: theme.spacing(1),
     position: 'absolute',
+    mb: 1,
   }),
   unit: {
     display: 'flex',
     alignSelf: 'end',
-    ml: 1.5,
-    mb: 1,
+    mx: 0.5,
     px: 1.25,
     border: 1,
     borderRadius: 1,
     borderColor: 'text.secondary',
     fontWeight: 700,
+    justifyContent: 'center',
   },
 }
 
@@ -59,19 +62,19 @@ const BaseContainer = ({
 const PropTitle = ({
   title,
   unit,
-  marquee,
+  marquee = true,
   titleVariant = 'subtitle1',
   ...props
 }) => (
-  <Grid container maxWidth={PROP_WIDTH} alignSelf="center" {...props}>
+  <Grid container alignSelf="center" {...props}>
     <Grid item zeroMinWidth xs>
       <Typography noWrap={marquee} variant={titleVariant}>
-        {true ? <OverflowText text={title} /> : title}
+        {marquee ? <OverflowText text={title} /> : title}
       </Typography>
     </Grid>
     {unit && (
-      <Grid item maxWidth="33.33%">
-        <Typography variant="subtitle1" sx={styles.unit}>
+      <Grid item zeroMinWidth maxWidth="33.33%">
+        <Typography variant="subtitle1" minWidth="1ch" sx={[styles.unit, {}]}>
           <OverflowText text={unit} />
         </Typography>
       </Grid>
@@ -81,17 +84,24 @@ const PropTitle = ({
 
 const HorizontalContainer = ({
   title,
-  marquee = true,
+  marquee,
+  tooltipTitle,
   unit,
   children,
   ...props
 }) => (
-  <BaseContainer {...props}>
-    <Grid container alignItems="center">
-      <Grid item maxWidth={PROP_WIDTH / 2} paddingLeft={1} marginRight={3}>
+  <BaseContainer {...{ tooltipTitle, ...props }}>
+    <Grid
+      container
+      alignItems="center"
+      mt={tooltipTitle ? 3.5 : 0}
+      overflow="auto"
+      height="100%"
+    >
+      <Grid item zeroMinWidth xs minWidth="5ch" pl={1}>
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid item xs minWidth={PROP_WIDTH} paddingTop={1}>
+      <Grid item xs={7.5}>
         {children}
       </Grid>
     </Grid>
@@ -108,15 +118,10 @@ const VerticalContainer = ({
 }) => (
   <BaseContainer {...{ tooltipTitle, ...props }}>
     <Grid container direction="column" flexGrow={1}>
-      <Grid
-        item
-        paddingLeft={1}
-        paddingTop={0.5}
-        paddingRight={tooltipTitle ? 4.5 : 1}
-      >
+      <Grid item pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid container item xs alignItems="center">
+      <Grid item container alignItems="center" overflow="auto" flexGrow={1}>
         {children}
       </Grid>
     </Grid>
