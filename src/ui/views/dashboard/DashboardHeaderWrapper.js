@@ -13,7 +13,7 @@ import { KpiHeader, StatisticsHeader, MapHeader } from './DashboardHeaders'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
-  selectpageLayout,
+  selectPageLayout,
   selectDashboardLockedLayout,
   selectSync,
 } from '../../../data/selectors'
@@ -32,7 +32,7 @@ const styles = {
 const DashboardHeader = ({ obj, index, maximizedIndex, setMaximizedIndex }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
-  const pageLayout = useSelector(selectpageLayout)
+  const pageLayout = useSelector(selectPageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const currentPage = useSelector(selectCurrentPage)
 

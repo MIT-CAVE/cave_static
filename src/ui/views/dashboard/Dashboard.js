@@ -10,7 +10,7 @@ import DashboardKpi from './DashboardKpi'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
-  selectpageLayout,
+  selectPageLayout,
   selectDashboardLockedLayout,
   selectSync,
   selectLeftAppBarDisplay,
@@ -66,7 +66,7 @@ const Dashboard = () => {
   const [maximizedIndex, setMaximizedIndex] = useState(null)
 
   const sync = useSelector(selectSync)
-  const pageLayout = useSelector(selectpageLayout)
+  const pageLayout = useSelector(selectPageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const currentPage = useSelector(selectCurrentPage)
   const leftBar = useSelector(selectLeftAppBarDisplay)

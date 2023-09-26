@@ -393,7 +393,7 @@ export const selectStatOptions = createSelector(
       localDashboardData
     )
 )
-export const selectpageLayout = createSelector(
+export const selectPageLayout = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
     R.pathOr(
