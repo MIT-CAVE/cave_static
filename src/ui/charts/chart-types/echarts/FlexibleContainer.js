@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import { Children } from 'react'
-import AutoSizer from 'react-virtualized-auto-sizer'
+import { AutoSizer } from 'react-virtualized'
 
 import { addExtraProps } from '../../../../utils'
 
