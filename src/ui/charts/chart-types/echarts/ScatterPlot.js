@@ -106,7 +106,7 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { ScatterPlot }

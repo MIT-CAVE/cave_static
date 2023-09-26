@@ -108,7 +108,7 @@ const Sunburst = ({ data, colors }) => {
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Sunburst }

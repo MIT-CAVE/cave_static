@@ -182,7 +182,7 @@ const EchartsBoxPlot = ({
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { EchartsBoxPlot as BoxPlot }

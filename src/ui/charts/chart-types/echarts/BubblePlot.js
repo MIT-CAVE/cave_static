@@ -122,7 +122,7 @@ const BubblePlot = ({ data, labels, numberFormat, colors }) => {
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { BubblePlot }

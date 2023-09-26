@@ -288,7 +288,7 @@ const EchartsPlot = ({
     ...lineMap,
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export default EchartsPlot

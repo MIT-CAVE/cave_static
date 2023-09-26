@@ -150,7 +150,7 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { GaugeChart }

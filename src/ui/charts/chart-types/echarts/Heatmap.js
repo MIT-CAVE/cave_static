@@ -124,7 +124,7 @@ const Heatmap = ({ data, xAxisTitle, numberFormat }) => {
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Heatmap }

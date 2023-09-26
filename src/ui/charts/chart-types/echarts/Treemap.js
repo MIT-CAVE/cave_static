@@ -127,7 +127,7 @@ const Treemap = ({ data, colors }) => {
     },
   }
 
-  return <FlexibleChart option={options} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Treemap }
