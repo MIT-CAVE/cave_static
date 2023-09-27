@@ -1,6 +1,5 @@
 import { useState } from 'react'
 
-// TODO: Reuse for `SessionPane` and `SimpleDropdown`
 export const useMenu = () => {
   const [anchorEl, setAnchorEl] = useState(null)
 
