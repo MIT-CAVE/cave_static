@@ -60,33 +60,22 @@ import {
 } from '../../../utils'
 
 const styles = {
+  root: {
+    position: 'absolute',
+    top: '10px',
+    zIndex: 1,
+    overflow: 'auto',
+  },
   paper: {
     width: 600,
+    p: (theme) => theme.spacing(0, 2, 2),
+    mx: 0,
     bgcolor: 'background.paper',
     color: 'text.primary',
     border: 1,
     borderColor: 'text.secondary',
     borderRadius: 1,
     boxShadow: 5,
-    p: (theme) => theme.spacing(0, 2, 2),
-    overflowY: 'auto',
-    '&::-webkit-scrollbar': {
-      height: 10,
-      width: '12px',
-      WebkitAppearance: 'none',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      borderRadius: 8,
-      border: '2px solid',
-      borderColor: '',
-      backgroundColor: 'rgba(0 0 0 / 0.5)',
-    },
-  },
-  root: {
-    position: 'absolute',
-    top: '10px',
-    overflowY: 'hidden',
-    zIndex: 1,
   },
   overflowAlignLeft: {
     textAlign: 'left',
@@ -1083,29 +1072,31 @@ const MapLegend = ({ mapId }) => {
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const mapLegend = useSelector(selectMapLegendFunc)(mapId)
   if (!R.propOr(true, 'isOpen', mapLegend)) return null
+
   return (
     <Box
       key="map-legend"
       sx={[
         styles.root,
         {
-          right: showPitchSlider ? 100 : 65,
-          height: showBearingSlider
-            ? 'calc(100% - 195px)'
+          right: showPitchSlider ? 100 : 64,
+          maxHeight: showBearingSlider
+            ? 'calc(100% - 165px)'
             : 'calc(100% - 110px)',
+          maxWidth: showPitchSlider
+            ? 'calc(100% - 104px)'
+            : 'calc(100% - 68px)',
         },
       ]}
     >
-      <Box sx={[styles.paper, { maxHeight: '100%' }]}>
-        <Box sx={{ mx: 0 }}>
-          {R.map((legendObj) => (
-            <MapLegendToggleList
-              key={legendObj.id}
-              mapId={mapId}
-              {...{ legendObj }}
-            />
-          ))(withIndex(legendData))}
-        </Box>
+      <Box sx={styles.paper}>
+        {R.map((legendObj) => (
+          <MapLegendToggleList
+            key={legendObj.id}
+            mapId={mapId}
+            {...{ legendObj }}
+          />
+        ))(withIndex(legendData))}
       </Box>
     </Box>
   )
