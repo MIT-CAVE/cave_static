@@ -57,8 +57,6 @@ import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
 
 const styles = {
   getRoot: (hover) => ({
-    position: 'absolute',
-    right: 0,
     'button,.MuiSlider-root': {
       opacity: hover ? 1 : 0.8,
     },
@@ -68,7 +66,7 @@ const styles = {
   }),
   rootBtns: {
     position: 'absolute',
-    right: '6px',
+    right: '4px',
     bottom: '24px',
     zIndex: 1,
     textAlign: 'right',
