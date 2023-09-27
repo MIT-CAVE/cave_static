@@ -1,3 +1,5 @@
+import { chartType } from './enums'
+
 export const DEFAULT_LOCALE = 'en-US'
 
 export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/4.10.1'
@@ -162,3 +164,8 @@ export const CHART_PALETTE = [
 ]
 
 export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
+
+export const VIEW_DEFAULTS = {
+  chart: chartType.BAR,
+  grouping: 'Sum',
+}

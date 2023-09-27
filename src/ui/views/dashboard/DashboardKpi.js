@@ -18,7 +18,7 @@ import { BarPlot, LinePlot, TableChart } from '../../charts'
 
 import { withIndex, forcePath, getLabelFn } from '../../../utils'
 
-const DashboardKpi = ({ obj }) => {
+const DashboardKpi = ({ view }) => {
   const dispatch = useDispatch()
   const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -39,11 +39,11 @@ const DashboardKpi = ({ obj }) => {
     }
   }, [globalOutputs, dispatch])
 
-  const formattedKpis = globalOutputFunc(obj)
+  const formattedKpis = globalOutputFunc(view)
 
-  const isTable = R.prop('chart', obj) === 'Table'
+  const isTable = R.prop('chart', view) === 'Table'
 
-  const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', obj))
+  const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', view))
 
   const globalOutputData = R.pipe(
     R.values,
@@ -89,7 +89,7 @@ const DashboardKpi = ({ obj }) => {
         height: '50%',
       }}
     >
-      {obj.chart === chartType.OVERVIEW ? (
+      {view.chart === chartType.OVERVIEW ? (
         <Box
           sx={{
             overflow: 'auto',
@@ -111,14 +111,14 @@ const DashboardKpi = ({ obj }) => {
         >
           {renderKpisLayout({ layout, items })}
         </Box>
-      ) : obj.chart === chartType.TABLE ? (
+      ) : view.chart === chartType.TABLE ? (
         <TableChart
           data={formattedKpis}
           numberFormat={commonFormat}
           columnTypes={tableColTypes}
           labels={R.prepend('Session')(tableLabels)}
         />
-      ) : obj.chart === chartType.BAR ? (
+      ) : view.chart === chartType.BAR ? (
         <BarPlot
           data={formattedKpis}
           numberFormat={commonFormat}
@@ -128,7 +128,7 @@ const DashboardKpi = ({ obj }) => {
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
-      ) : obj.chart === chartType.LINE ? (
+      ) : view.chart === chartType.LINE ? (
         <LinePlot
           data={formattedKpis}
           numberFormat={commonFormat}
