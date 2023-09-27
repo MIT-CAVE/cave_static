@@ -13,7 +13,7 @@ import { HeaderSelectWrapper, Select } from '../../compound'
 
 import { getFreeName, includesPath } from '../../../utils'
 
-const MapToolbar = memo(({ obj, index }) => {
+const MapToolbar = memo(({ view, index }) => {
   const dispatch = useDispatch()
   const currentPage = useSelector(selectCurrentPage)
 
@@ -25,7 +25,7 @@ const MapToolbar = memo(({ obj, index }) => {
   const availableValue = R.pipe(
     R.propOr('', 'mapId'),
     R.unless(R.has(R.__, maps), R.always(''))
-  )(obj)
+  )(view)
   return (
     <>
       <HeaderSelectWrapper>
@@ -92,7 +92,7 @@ const MapToolbar = memo(({ obj, index }) => {
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
-                value: R.assoc('mapId', value, obj),
+                value: R.assoc('mapId', value, view),
               })
             )
           }}
