@@ -192,7 +192,7 @@ const MapModal = ({ mapId }) => {
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
   const feature = R.path(['data', 'feature'], mapModal)
-  const modelMap = R.pathOr('', ['data', mapId], mapModal)
+  const modelMap = R.pathOr('', ['data', 'mapId'], mapModal)
   const timeOptions = R.pipe(
     R.add(1),
     R.range(1),
