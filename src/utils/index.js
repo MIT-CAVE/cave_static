@@ -509,7 +509,7 @@ export const orderEntireDict = (object) =>
           R.reduce((acc, subKey) => {
             acc[subKey] = R.path([key, subKey], d)
             return acc
-          }, {})(ordering)
+          }, {})(R.uniq([...ordering, ...R.keys(d[key])]))
         )(R.propOr({}, 'order')(d)),
       ]),
     object
