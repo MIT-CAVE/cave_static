@@ -62,7 +62,7 @@ import {
 const styles = {
   root: {
     position: 'absolute',
-    top: '10px',
+    top: '8px',
     zIndex: 1,
     overflow: 'auto',
   },
@@ -1082,10 +1082,10 @@ const MapLegend = ({ mapId }) => {
           right: showPitchSlider ? 100 : 64,
           maxHeight: showBearingSlider
             ? 'calc(100% - 165px)'
-            : 'calc(100% - 110px)',
+            : 'calc(100% - 88px)',
           maxWidth: showPitchSlider
-            ? 'calc(100% - 104px)'
-            : 'calc(100% - 68px)',
+            ? 'calc(100% - 108px)'
+            : 'calc(100% - 72px)',
         },
       ]}
     >
