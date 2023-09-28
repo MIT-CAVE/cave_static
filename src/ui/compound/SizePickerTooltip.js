@@ -28,7 +28,7 @@ const SizePickerTooltip = ({ children, value, onSelect }) => {
 }
 
 SizePickerTooltip.propTypes = {
-  value: PropTypes.string,
+  value: PropTypes.number,
   onSelect: PropTypes.func,
   children: PropTypes.node,
 }

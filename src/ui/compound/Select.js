@@ -144,8 +144,9 @@ const Select = ({
             </span>
             {subOptions ? (
               <div style={{ marginLeft: 'auto' }}>
-                {R.map((subObj) => (
+                {(subOptions || []).map((subObj, idx) => (
                   <ListItemIcon
+                    key={idx}
                     sx={styles.subIcon}
                     onClick={() =>
                       R.prop('onClick', subObj)(value || label || item)
@@ -156,7 +157,7 @@ const Select = ({
                       size={32}
                     />
                   </ListItemIcon>
-                ))(subOptions || [])}
+                ))}
               </div>
             ) : (
               []
