@@ -128,22 +128,22 @@ export const chartType = {
 
 // TODO: Update these when we add support for more than 2 grouping levels
 export const chartMaxGrouping = {
-  Bar: 2,
-  'Box Plot': 2,
-  'Cumulative Line': 2,
-  Line: 2,
-  Area: 2,
-  'Stacked Area': 2,
-  'Stacked Bar': 2,
-  'Stacked Waterfall': 2,
-  Sunburst: 2,
-  Table: 2,
-  Treemap: 2,
-  Waterfall: 2,
-  Gauge: 1,
-  Heatmap: 2,
-  Scatter: 1,
-  Bubble: 1,
+  [chartType.BAR]: 2,
+  [chartType.BOX_PLOT]: 2,
+  [chartType.CUMULATIVE_LINE]: 2,
+  [chartType.LINE]: 2,
+  [chartType.AREA]: 2,
+  [chartType.STACKED_AREA]: 2,
+  [chartType.STACKED_BAR]: 2,
+  [chartType.STACKED_WATERFALL]: 2,
+  [chartType.SUNBURST]: 2,
+  [chartType.TABLE]: 2,
+  [chartType.TREEMAP]: 2,
+  [chartType.WATERFALL]: 2,
+  [chartType.GAUGE]: 1,
+  [chartType.HEATMAP]: 2,
+  [chartType.SCATTER]: 1,
+  [chartType.BUBBLE]: 1,
 }
 
 // Stat limits for multistat charts

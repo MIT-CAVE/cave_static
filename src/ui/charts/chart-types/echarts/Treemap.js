@@ -1,8 +1,6 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { echarts } from './BaseChart'
+import { FlexibleChart } from './BaseChart'
 
 import { findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
@@ -129,21 +127,7 @@ const Treemap = ({ data, colors }) => {
     },
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Treemap }

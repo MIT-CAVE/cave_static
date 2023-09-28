@@ -1,3 +1,5 @@
+import { chartType } from './enums'
+
 export const DEFAULT_LOCALE = 'en-US'
 
 export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/4.10.1'
@@ -145,6 +147,13 @@ export const DEFAULT_MAP_STYLES = {
     },
     fog: LIGHT_GLOBE_FOG,
   },
+  mapboxDark: {
+    name: 'Dark (Alt)',
+    icon: 'si/SiMapbox',
+    // Full spec (via Mapbox's guest token) available at:
+    // https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA#11/40.73/-74
+    spec: 'mapbox://styles/mapbox/dark-v11',
+  },
 }
 
 export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
@@ -162,3 +171,8 @@ export const CHART_PALETTE = [
 ]
 
 export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
+
+export const VIEW_DEFAULTS = {
+  chart: chartType.BAR,
+  grouping: 'Sum',
+}

@@ -4,6 +4,8 @@ import React from 'react'
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
+import { useMenu } from '../../utils/hooks'
+
 export const SimpleDropdown = ({
   value,
   onSelect,
@@ -14,15 +16,7 @@ export const SimpleDropdown = ({
   marquee,
   ...props
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState(null)
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleClose = () => {
-    setAnchorEl(null)
-  }
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   return (
     <Paper elevation={0} {...paperProps} sx={{ mx: 0.5, my: 1.5 }}>
@@ -32,7 +26,7 @@ export const SimpleDropdown = ({
         color="greyscale"
         aria-controls="simple-menu"
         aria-haspopup="true"
-        onClick={enabled ? handleClick : () => {}}
+        onClick={enabled ? handleOpenMenu : () => {}}
         {...props}
       >
         {marquee ? <OverflowText text={getLabel(value)} /> : getLabel(value)}
@@ -56,13 +50,13 @@ export const SimpleDropdown = ({
         anchorEl={anchorEl}
         keepMounted
         open={Boolean(anchorEl)}
-        onClose={handleClose}
+        onClose={handleCloseMenu}
       >
         {optionsList.map((name) => (
           <MenuItem
             key={name}
             onClick={() => {
-              handleClose()
+              handleCloseMenu()
               onSelect && onSelect(name)
             }}
           >

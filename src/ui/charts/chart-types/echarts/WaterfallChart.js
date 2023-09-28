@@ -1,7 +1,6 @@
-import * as echarts from 'echarts/core'
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
+
+import { FlexibleChart } from './BaseChart'
 
 import {
   NumberFormat,
@@ -258,21 +257,7 @@ const WaterfallChart = ({
     series,
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 const StackedWaterfallChart = ({
@@ -639,21 +624,7 @@ const StackedWaterfallChart = ({
     series,
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export { WaterfallChart, StackedWaterfallChart }

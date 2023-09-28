@@ -36,20 +36,14 @@ import {
   selectSessions,
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
+import { useMenu } from '../../../utils/hooks'
 
 import { FetchedIcon, TextInput } from '../../compound'
 
 import { forceArray, getFreeName } from '../../../utils'
 
 const ActionItems = ({ items = [], disabled }) => {
-  const [anchorEl, setAnchorEl] = useState(null)
-  const open = Boolean(anchorEl)
-  const onClickHandler = (event) => {
-    setAnchorEl(event.currentTarget)
-  }
-  const onCloseHandler = () => {
-    setAnchorEl(null)
-  }
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
   const [hiddenItems, visibleItems] = R.partition(R.propOr(true, 'hidden'))(
     items
   )
@@ -78,13 +72,7 @@ const ActionItems = ({ items = [], disabled }) => {
       )}
       {!R.isEmpty(hiddenItems) && (
         <>
-          <IconButton
-            {...{ disabled }}
-            onClick={(event) => {
-              event.stopPropagation()
-              onClickHandler(event)
-            }}
-          >
+          <IconButton {...{ disabled }} onClick={handleOpenMenu}>
             <FetchedIcon iconName="md/MdMoreVert" />
           </IconButton>
           <Menu
@@ -92,8 +80,9 @@ const ActionItems = ({ items = [], disabled }) => {
             MenuListProps={{
               'aria-labelledby': 'long-button',
             }}
-            {...{ anchorEl, open }}
-            onClose={onCloseHandler}
+            {...{ anchorEl }}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
             sx={{ zIndex: 2002 }}
             PaperProps={{
               style: {
@@ -108,7 +97,7 @@ const ActionItems = ({ items = [], disabled }) => {
                 key={label.toLocaleLowerCase()}
                 onClick={() => {
                   onClick()
-                  onCloseHandler()
+                  handleCloseMenu()
                 }}
               >
                 <FetchedIcon

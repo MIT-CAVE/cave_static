@@ -60,8 +60,8 @@ const Map = ({ mapboxToken, mapId }) => {
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   const mapExists = R.has(mapId, mapData)
 
-  const useMapbox = R.isNotNil(mapboxToken) && mapboxToken !== ''
-  const ReactMapGL = useMapbox ? ReactMapboxGL : ReactMapLibreGL
+  const isMapboxTokenProvided = R.isNotNil(mapboxToken) && mapboxToken !== ''
+  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef(false)
 
@@ -213,15 +213,18 @@ const Map = ({ mapboxToken, mapId }) => {
   useEffect(() => {
     // This needs to be done because calling setStyle with the same style
     // breaks it for some reason
-    const newStyle = R.path([mapStyle || getDefaultStyleId(), 'spec'])(
-      mapStyleOptions
-    )
+    const newStyle = R.path([
+      mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+      'spec',
+    ])(mapStyleOptions)
     if (!R.equals(newStyle, mapStyleSpec)) {
       setMapStyleSpec(
-        R.path([mapStyle || getDefaultStyleId(), 'spec'])(mapStyleOptions)
+        R.path([mapStyle || getDefaultStyleId(isMapboxTokenProvided), 'spec'])(
+          mapStyleOptions
+        )
       )
     }
-  }, [mapStyle, mapStyleOptions, mapStyleSpec])
+  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions, mapStyleSpec])
 
   useEffect(() => {
     document.addEventListener('clearHighlight', onMouseOver, false)
@@ -240,7 +243,7 @@ const Map = ({ mapboxToken, mapId }) => {
         flex: '1 1 auto',
       }}
     >
-      <MapControls allowProjections={useMapbox} mapId={mapId} />
+      <MapControls allowProjections={isMapboxTokenProvided} mapId={mapId} />
       <ReactMapGL
         {...viewport}
         onMove={(e) => {
@@ -250,13 +253,11 @@ const Map = ({ mapboxToken, mapId }) => {
         }}
         hash="map"
         container="map"
-        // width={`calc(100vw - ${APP_BAR_WIDTH})`}
-        // height="100vh"
         mapStyle={mapStyleSpec}
-        mapboxAccessToken={useMapbox && mapboxToken}
+        mapboxAccessToken={isMapboxTokenProvided && mapboxToken}
         projection={mapProjection}
         fog={R.pathOr(getDefaultFog(), [
-          mapStyle || getDefaultStyleId(),
+          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
           'fog',
         ])(mapStyleOptions)}
         onClick={onClick}
@@ -279,7 +280,10 @@ const Map = ({ mapboxToken, mapId }) => {
     </Box>
   )
 }
-Map.propTypes = { mapboxToken: PropTypes.string }
+Map.propTypes = {
+  mapboxToken: PropTypes.string,
+  mapId: PropTypes.string,
+}
 
 const styles = {
   root: {

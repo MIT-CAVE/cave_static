@@ -34,63 +34,63 @@ import {
   getGroupLabelFn,
 } from '../../../utils'
 
-const DashboardChart = ({ obj }) => {
+const DashboardChart = ({ view }) => {
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectStatGroupings)
 
-  const formattedData = memoizedChartFunc(obj)
+  const formattedData = memoizedChartFunc(view)
 
-  const subGrouped = R.hasPath(['level', 1])(obj)
+  const subGrouped = R.hasPath(['level', 1])(view)
 
   //TODO: Generalize this for n-level grouping
   const colors = subGrouped
-    ? obj.chart === chartType.SUNBURST
+    ? view.chart === chartType.SUNBURST
       ? R.mergeLeft(
           getColoringFn(
             categories,
-            R.path(['category', 1], obj),
+            R.path(['category', 1], view),
             R.path(['level', 1]),
-            obj
+            view
           ),
           getColoringFn(
             categories,
-            R.path(['category', 0], obj),
+            R.path(['category', 0], view),
             R.path(['level', 0]),
-            obj
+            view
           )
         )
       : getColoringFn(
           categories,
-          R.path(['category', 1], obj),
+          R.path(['category', 1], view),
           R.path(['level', 1]),
-          obj
+          view
         )
     : getColoringFn(
         categories,
-        R.path(['category', 0], obj),
+        R.path(['category', 0], view),
         R.path(['level', 0]),
-        obj
+        view
       )
 
-  const xAxisTitle = obj.category
-    ? `${getLabelFn(categories)(R.path(['category', 0], obj))}${
-        obj.level && R.path(['level', 0], obj)
+  const xAxisTitle = view.category
+    ? `${getLabelFn(categories)(R.path(['category', 0], view))}${
+        view.level && R.path(['level', 0], view)
           ? ` \u279D ${getSubLabelFn(
               categories,
-              R.path(['category', 0], obj),
-              R.path(['level', 0], obj),
-              obj
+              R.path(['category', 0], view),
+              R.path(['level', 0], view),
+              view
             )}`
           : ''
       }`
     : ''
 
-  const stat = R.pathOr({}, obj.statistic)(statisticTypes)
+  const stat = R.pathOr({}, view.statistic)(statisticTypes)
   const unit = stat.unit || numberFormatDefault.unit
 
-  const yAxisTitle = `${getGroupLabelFn(statisticTypes)(obj.statistic)}${
+  const yAxisTitle = `${getGroupLabelFn(statisticTypes)(view.statistic)}${
     unit ? ` [${unit}]` : ''
   }`
 
@@ -100,27 +100,27 @@ const DashboardChart = ({ obj }) => {
     const stat = R.propOr({}, item)(statisticTypes)
     const unit = stat.unit || numberFormatDefault.unit
     return `${getGroupLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
-  })(obj.statistic)
+  })(view.statistic)
   const tableLabels = R.prepend(
-    obj.category
-      ? `${getLabelFn(categories)(R.path(['category', 0], obj))}${
-          R.path(['level', 0], obj)
+    view.category
+      ? `${getLabelFn(categories)(R.path(['category', 0], view))}${
+          R.path(['level', 0], view)
             ? ` \u279D ${getSubLabelFn(
                 categories,
-                R.path(['category', 0], obj),
-                R.path(['level', 0], obj)
+                R.path(['category', 0], view),
+                R.path(['level', 0], view)
               )}`
             : ''
         }`
       : '',
     subGrouped
       ? R.prepend(
-          `${getLabelFn(categories)(R.path(['category', 1], obj))}${
-            R.path(['level', 1], obj)
+          `${getLabelFn(categories)(R.path(['category', 1], view))}${
+            R.path(['level', 1], view)
               ? ` \u279D ${getSubLabelFn(
                   categories,
-                  R.path(['category', 1], obj),
-                  R.path(['level', 1], obj)
+                  R.path(['category', 1], view),
+                  R.path(['level', 1], view)
                 )}`
               : ''
           }`,
@@ -131,8 +131,8 @@ const DashboardChart = ({ obj }) => {
 
   const tableColTypes = R.pipe(
     R.concat(R.repeat('number')(R.length(tableStatLabels))),
-    R.when(R.always(R.has('level')(obj)), R.prepend('string')),
-    R.when(R.always(R.has('level2')(obj)), R.prepend('string'))
+    R.when(R.always(R.has('level')(view)), R.prepend('string')),
+    R.when(R.always(R.has('level2')(view)), R.prepend('string'))
   )([])
   // For simplicity, `numberFormatDefault` is used to apply number
   // formatting to all values in a chart, as some statistics may
@@ -149,28 +149,28 @@ const DashboardChart = ({ obj }) => {
         flex: '1 1 auto',
       }}
     >
-      {obj.chart === chartType.TABLE && obj.category && obj.category[0] ? (
+      {view.chart === chartType.TABLE && view.category && view.category[0] ? (
         <TableChart
           data={formattedData}
           numberFormat={commonFormat}
           labels={tableLabels}
           columnTypes={tableColTypes}
         />
-      ) : obj.chart === chartType.BOX_PLOT ? (
+      ) : view.chart === chartType.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.BAR ? (
+      ) : view.chart === chartType.BAR ? (
         <BarPlot
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.STACKED_BAR ? (
+      ) : view.chart === chartType.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
@@ -178,56 +178,56 @@ const DashboardChart = ({ obj }) => {
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.STACKED_WATERFALL ? (
+      ) : view.chart === chartType.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.LINE ? (
+      ) : view.chart === chartType.LINE ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.WATERFALL ? (
+      ) : view.chart === chartType.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.CUMULATIVE_LINE ? (
+      ) : view.chart === chartType.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.SUNBURST ? (
+      ) : view.chart === chartType.SUNBURST ? (
         <Sunburst
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
         />
-      ) : obj.chart === chartType.TREEMAP ? (
+      ) : view.chart === chartType.TREEMAP ? (
         <Treemap
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
         />
-      ) : obj.chart === chartType.GAUGE ? (
+      ) : view.chart === chartType.GAUGE ? (
         <GaugeChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.HEATMAP ? (
+      ) : view.chart === chartType.HEATMAP ? (
         <Heatmap data={formattedData} numberFormat={commonFormat} {...labels} />
-      ) : obj.chart === chartType.AREA ? (
+      ) : view.chart === chartType.AREA ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
@@ -235,7 +235,7 @@ const DashboardChart = ({ obj }) => {
           colors={colors}
           {...labels}
         />
-      ) : obj.chart === chartType.STACKED_AREA ? (
+      ) : view.chart === chartType.STACKED_AREA ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
@@ -244,14 +244,14 @@ const DashboardChart = ({ obj }) => {
           stack="x"
           {...labels}
         />
-      ) : obj.chart === chartType.SCATTER ? (
+      ) : view.chart === chartType.SCATTER ? (
         <ScatterPlot
           data={formattedData}
           numberFormat={commonFormat}
           labels={tableLabels}
           colors={colors}
         />
-      ) : obj.chart === chartType.BUBBLE ? (
+      ) : view.chart === chartType.BUBBLE ? (
         <BubblePlot
           data={formattedData}
           numberFormat={commonFormat}

@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import {
   LineChart,
   BarChart,
@@ -58,9 +57,9 @@ import {
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
-import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
+
+import FlexibleContainer from './FlexibleContainer'
 
 import {
   NumberFormat,
@@ -94,18 +93,17 @@ echarts.use([
   ScatterChart,
 ])
 
-const FlexibleWrapper = ({ children, ...props }) => (
-  <div style={{ flex: '1 1 auto' }}>
-    <AutoSizer>
-      {({ height, width }) => (
-        <div css={{ '>': { height, width } }} {...props}>
-          {children}
-        </div>
-      )}
-    </AutoSizer>
-  </div>
+const FlexibleChart = ({ options, ...props }) => (
+  <FlexibleContainer>
+    <ReactEChartsCore
+      echarts={echarts}
+      option={options}
+      notMerge
+      // lazyUpdate
+      {...props}
+    />
+  </FlexibleContainer>
 )
-FlexibleWrapper.propTypes = { children: PropTypes.node }
 
 const EchartsPlot = ({
   data,
@@ -290,23 +288,8 @@ const EchartsPlot = ({
     ...lineMap,
   }
 
-  // TODO: Prefer FlexibleWrapper here
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export default EchartsPlot
-export { FlexibleWrapper, echarts }
+export { FlexibleChart }

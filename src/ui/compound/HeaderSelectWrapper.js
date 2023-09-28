@@ -7,7 +7,7 @@ import { forceArray } from '../../utils'
 const styles = {
   root: {
     mx: 0.5,
-    minWidth: '65px',
+    minWidth: '60px',
   },
   button: {
     top: 0,

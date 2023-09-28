@@ -7,7 +7,6 @@ import {
 } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useEffect, useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -197,9 +196,6 @@ const App = () => {
       </ThemeProvider>
     </StyledEngineProvider>
   )
-}
-App.propTypes = {
-  mapboxToken: PropTypes.string,
 }
 
 export default App

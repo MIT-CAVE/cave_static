@@ -1,16 +1,14 @@
-import { Box, Button, IconButton } from '@mui/material'
+import { IconButton } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
+import { MdSwapHoriz } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
-  selectAssociatedData,
   selectSync,
   selectCurrentPage,
   selectAllowedStats,
-  selectMapData,
   selectGroupedOutputNames,
   selectStatGroupings,
   selectGroupedOutputsData,
@@ -18,7 +16,6 @@ import {
 import { chartMaxGrouping, chartStatUses } from '../../../utils/enums'
 
 import {
-  FetchedIcon,
   HeaderSelectWrapper,
   Select,
   SelectAccordion,
@@ -29,21 +26,19 @@ import {
 import {
   withIndex,
   getCategoryItems,
-  getFreeName,
   getLabelFn,
   getGroupLabelFn,
   getSubLabelFn,
   includesPath,
-  renameKeys,
 } from '../../../utils'
 
-const SwapButton = ({ onClick }) => (
-  <IconButton sx={{ mx: 'auto' }} color="primary" {...{ onClick }}>
-    <FetchedIcon iconName="md/MdSwapHoriz" size={22} />
+const SwapButton = (props) => (
+  <IconButton sx={{ mx: 'auto' }} {...props}>
+    <MdSwapHoriz fontSize="22px" />
   </IconButton>
 )
 
-const StatisticsHeader = memo(({ obj, index }) => {
+const GroupedOutputsToolbar = ({ view, index }) => {
   const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
@@ -53,10 +48,10 @@ const StatisticsHeader = memo(({ obj, index }) => {
   const dispatch = useDispatch()
 
   const groupByOptions =
-    R.has('statistic')(obj) &&
-    R.pathSatisfies(R.is(String), ['statistic', 0], obj)
+    R.has('statistic')(view) &&
+    R.pathSatisfies(R.is(String), ['statistic', 0], view)
       ? R.pipe(
-          R.path([R.prop('statistic', obj)[0], 'groupLists']),
+          R.path([R.prop('statistic', view)[0], 'groupLists']),
           R.keys
         )(groupedOutputs)
       : R.keys(categories)
@@ -89,7 +84,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
       : obj
 
   const path = ['pages', 'data', currentPage, 'pageLayout', index]
-  const onSelectGroupFn =
+  const handleSelectGroupFn =
     (n = 0) =>
     (item, subItem) => {
       dispatch(
@@ -97,24 +92,48 @@ const StatisticsHeader = memo(({ obj, index }) => {
           path,
           sync: !includesPath(R.values(sync), path),
           value: R.pipe(
-            R.assocPath([`category`, n], item),
-            R.assocPath([`level`, n], subItem)
-          )(obj),
+            R.assocPath(['category', n], item),
+            R.assocPath(['level', n], subItem)
+          )(view),
         })
       )
     }
   const getGroupValues = (n = 0) =>
     R.pipe(
-      R.props([`category`, `level`]),
+      R.props(['category', 'level']),
       R.pluck(n),
       R.when(R.any(R.isNil), R.always(''))
-    )(obj)
+    )(view)
+
+  const handleSelectChart = (value) => {
+    dispatch(
+      mutateLocal({
+        sync: !includesPath(R.values(sync), path),
+        path,
+        value: R.pipe(
+          R.assoc('chart', value),
+          R.dissoc('statistic'),
+          removeExtraLevels
+        )(view),
+      })
+    )
+  }
+
+  const handleSelectGrouping = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('grouping', value, view),
+      })
+    )
+  }
 
   return (
     <>
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr('', 'chart', obj)}
+          value={R.propOr('', 'chart', view)}
           optionsList={[
             {
               label: 'Bar',
@@ -198,25 +217,13 @@ const StatisticsHeader = memo(({ obj, index }) => {
             },
           ]}
           displayIcon
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                sync: !includesPath(R.values(sync), path),
-                path,
-                value: R.pipe(
-                  R.assoc('chart', value),
-                  R.dissoc('statistic'),
-                  removeExtraLevels
-                )(obj),
-              })
-            )
-          }}
+          onSelect={handleSelectChart}
         />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
         <Select
-          disabled={obj.chart === 'Box Plot'}
-          value={R.propOr('', 'grouping', obj)}
+          disabled={view.chart === 'Box Plot'}
+          value={R.propOr('', 'grouping', view)}
           displayIcon
           optionsList={[
             {
@@ -240,33 +247,25 @@ const StatisticsHeader = memo(({ obj, index }) => {
               iconName: 'md/MdVerticalAlignTop',
             },
           ]}
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.assoc('grouping', value, obj),
-              })
-            )
-          }}
+          onSelect={handleSelectGrouping}
         />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
-        {R.has(R.prop('chart', obj), chartStatUses) ? (
-          R.length(chartStatUses[obj.chart]) !== 0 ? (
+        {R.has(R.prop('chart', view), chartStatUses) ? (
+          R.length(chartStatUses[view.chart]) !== 0 ? (
             <SelectMultiAccordion
               itemGroups={{
                 undefined: R.addIndex(R.map)((_, idx) => ({
                   id: idx,
                   layoutDirection: 'vertical',
                   subItems: R.values(statNames),
-                }))(chartStatUses[obj.chart]),
+                }))(chartStatUses[view.chart]),
               }}
-              values={R.propOr([], 'statistic', obj)}
+              values={R.propOr([], 'statistic', view)}
               header="Select Statistics"
               getLabel={(idx) => {
-                const use = chartStatUses[obj.chart][idx]
-                const currentStats = R.propOr([], 'statistic', obj)
+                const use = chartStatUses[view.chart][idx]
+                const currentStats = R.propOr([], 'statistic', view)
                 return R.is(Array, currentStats) && R.has(idx, currentStats)
                   ? `${use}: ${getGroupLabelFn(
                       statisticTypes,
@@ -277,7 +276,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
               getSubLabel={(_, stat) => getGroupLabelFn(statisticTypes, stat)}
               onSelect={(index, value) => {
                 const newVal = R.equals(
-                  R.path(['statistic', index], obj),
+                  R.path(['statistic', index], view),
                   value
                 )
                   ? undefined
@@ -286,7 +285,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assocPath(['statistic', index], newVal, obj),
+                    value: R.assocPath(['statistic', index], newVal, view),
                   })
                 )
               }}
@@ -294,7 +293,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
           ) : (
             <SelectMulti
               getLabel={getGroupLabelFn(statisticTypes)}
-              value={R.propOr([], 'statistic', obj)}
+              value={R.propOr([], 'statistic', view)}
               header="Select Statistics"
               optionsList={R.values(statNames)}
               onSelect={(value) => {
@@ -302,7 +301,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('statistic', value, obj),
+                    value: R.assoc('statistic', value, view),
                   })
                 )
               }}
@@ -311,7 +310,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
         ) : (
           <Select
             getLabel={getGroupLabelFn(statisticTypes)}
-            value={R.propOr('', 'statistic', obj)}
+            value={R.propOr('', 'statistic', view)}
             placeholder="Statistic"
             optionsList={R.values(statNames)}
             onSelect={(value) => {
@@ -323,7 +322,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                     R.assoc('statistic', value),
                     R.dissoc('level'),
                     R.dissoc('category')
-                  )(obj),
+                  )(view),
                 })
               )
             }}
@@ -337,18 +336,18 @@ const StatisticsHeader = memo(({ obj, index }) => {
           placeholder="Group By"
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
-          onSelect={onSelectGroupFn()}
+          onSelect={handleSelectGroupFn()}
         />
       </HeaderSelectWrapper>
 
-      {chartMaxGrouping[obj.chart] === 2 ? (
+      {chartMaxGrouping[view.chart] === 2 ? (
         <>
           <HeaderSelectWrapper
             sx={{
               minWidth: '35px',
               height: '40%',
               my: 'auto',
-              borderRadius: '20%',
+              borderRadius: '40%',
             }}
             elevation={6}
           >
@@ -365,14 +364,14 @@ const StatisticsHeader = memo(({ obj, index }) => {
                       R.assocPath(['level', 0], level2),
                       R.assocPath(['category', 1], category),
                       R.assocPath(['level', 1], level)
-                    )(obj),
+                    )(view),
                   })
                 )
               }}
             />
           </HeaderSelectWrapper>
           <HeaderSelectWrapper
-            clearable={R.hasPath(['level', 1], obj)}
+            clearable={R.hasPath(['level', 1], view)}
             onClear={() => {
               dispatch(
                 mutateLocal({
@@ -381,7 +380,7 @@ const StatisticsHeader = memo(({ obj, index }) => {
                   value: R.pipe(
                     R.dissocPath(['category', 1]),
                     R.dissocPath(['level', 1])
-                  )(obj),
+                  )(view),
                 })
               )
             }}
@@ -392,142 +391,8 @@ const StatisticsHeader = memo(({ obj, index }) => {
               placeholder="Sub Group"
               getLabel={getLabelFn(categories)}
               getSubLabel={getSubLabelFn(categories)}
-              onSelect={onSelectGroupFn(1)}
+              onSelect={handleSelectGroupFn(1)}
             />
-          </HeaderSelectWrapper>{' '}
-        </>
-      ) : (
-        []
-      )}
-    </>
-  )
-})
-
-const KpiHeader = memo(({ obj, index }) => {
-  const dispatch = useDispatch()
-
-  const globalOutputs = useSelector(selectAssociatedData)
-  const currentPage = useSelector(selectCurrentPage)
-  const sync = useSelector(selectSync)
-
-  const path = ['pages', 'data', currentPage, 'pageLayout', index]
-
-  return (
-    <>
-      <HeaderSelectWrapper>
-        <Select
-          value={R.propOr('Bar', 'chart', obj)}
-          optionsList={[
-            {
-              label: 'Bar',
-              value: 'Bar',
-              iconName: 'md/MdBarChart',
-            },
-            {
-              label: 'Line',
-              value: 'Line',
-              iconName: 'md/MdShowChart',
-            },
-            // {
-            //   label: 'Box Plot',
-            //   value: 'Box Plot',
-            //   iconName: 'md/MdGraphicEq',
-            // },
-            {
-              label: 'Table',
-              value: 'Table',
-              iconName: 'md/MdTableChart',
-            },
-            {
-              label: 'Overview',
-              value: 'Overview',
-              iconName: 'md/MdViewQuilt',
-            },
-          ]}
-          displayIcon
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.assoc('chart', value)(obj),
-              })
-            )
-          }}
-        />
-      </HeaderSelectWrapper>
-      {obj.chart !== 'Overview' ? (
-        <>
-          <HeaderSelectWrapper>
-            <SelectMulti
-              value={R.propOr([], 'sessions', obj)}
-              header="Select Sessions"
-              optionsList={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
-              onSelect={(value) => {
-                dispatch(
-                  mutateLocal({
-                    path,
-                    sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('sessions', value, obj),
-                  })
-                )
-              }}
-            />
-          </HeaderSelectWrapper>
-          <HeaderSelectWrapper>
-            <SelectMulti
-              value={R.propOr([], 'globalOutput', obj)}
-              header="Select Global Outputs"
-              optionsList={R.pipe(
-                R.values,
-                R.head,
-                R.path(['data', 'globalOutputs', 'data']),
-                withIndex,
-                R.filter(R.has('value')),
-                R.project(['id', 'name', 'icon']),
-                R.map(
-                  renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
-                )
-              )(globalOutputs)}
-              onSelect={(value) => {
-                dispatch(
-                  mutateLocal({
-                    path,
-                    sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('globalOutput', value, obj),
-                  })
-                )
-              }}
-            />
-          </HeaderSelectWrapper>
-          <HeaderSelectWrapper>
-            <Button
-              sx={{ minWidth: 0 }}
-              variant="outlined"
-              color="greyscale"
-              onClick={() => {
-                dispatch(
-                  sendCommand({
-                    command: 'get_associated_session_data',
-                    data: {
-                      data_names: ['globalOutputs'],
-                    },
-                  })
-                )
-              }}
-            >
-              <Box
-                component="span"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '40px',
-                }}
-              >
-                <FetchedIcon iconName="md/MdRefresh" size={32} />
-              </Box>
-            </Button>
           </HeaderSelectWrapper>
         </>
       ) : (
@@ -535,95 +400,6 @@ const KpiHeader = memo(({ obj, index }) => {
       )}
     </>
   )
-})
+}
 
-const MapHeader = memo(({ obj, index }) => {
-  const dispatch = useDispatch()
-  const currentPage = useSelector(selectCurrentPage)
-
-  const sync = useSelector(selectSync)
-  const maps = useSelector(selectMapData)
-
-  const path = ['pages', 'data', currentPage, 'pageLayout', index]
-
-  const availableValue = R.pipe(
-    R.propOr('', 'mapId'),
-    R.unless(R.has(R.__, maps), R.always(''))
-  )(obj)
-  return (
-    <>
-      <HeaderSelectWrapper>
-        <Select
-          value={availableValue}
-          placeholder={'Select A Map'}
-          getLabel={(mapId) => R.pathOr(mapId, [mapId, 'name'], maps)}
-          optionsList={R.pipe(
-            R.keys,
-            R.map((k) =>
-              R.assoc('value', k, {
-                subOptions: [
-                  R.pathOr(false, [k, 'duplicate'], maps)
-                    ? {
-                        iconName: 'md/MdDelete',
-                        onClick: (key) => {
-                          dispatch(
-                            mutateLocal({
-                              path: ['maps', 'data'],
-                              sync: !includesPath(R.values(sync), [
-                                'maps',
-                                'data',
-                              ]),
-                              value: R.dissoc(key, maps),
-                            })
-                          )
-                        },
-                      }
-                    : {
-                        iconName: 'md/MdCopyAll',
-                        onClick: (value) => {
-                          const key = getFreeName(value, R.keys(maps))
-                          const name = getFreeName(
-                            R.pathOr(value, [value, 'name'], maps),
-                            R.values(
-                              R.mapObjIndexed(
-                                (val, key) => R.propOr(key, 'name', val),
-                                maps
-                              )
-                            )
-                          )
-                          dispatch(
-                            mutateLocal({
-                              path: ['maps', 'data', key],
-                              sync: !includesPath(R.values(sync), [
-                                'maps',
-                                'data',
-                                key,
-                              ]),
-                              value: R.pipe(
-                                R.assoc('duplicate', true),
-                                R.assoc('name', name)
-                              )(maps[value]),
-                            })
-                          )
-                        },
-                      },
-                ],
-              })
-            )
-          )(maps)}
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.assoc('mapId', value, obj),
-              })
-            )
-          }}
-        />
-      </HeaderSelectWrapper>
-    </>
-  )
-})
-
-export { KpiHeader, StatisticsHeader, MapHeader }
+export default memo(GroupedOutputsToolbar)
