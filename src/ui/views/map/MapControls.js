@@ -1,5 +1,4 @@
-import { Box, ButtonGroup, IconButton, Slider, Tooltip } from '@mui/material'
-import PropTypes from 'prop-types'
+import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { useState, useRef, useEffect, memo } from 'react'
 import {
@@ -51,77 +50,74 @@ import {
 } from '../../../utils/constants'
 import { unitPlacements } from '../../../utils/enums'
 
-import { FetchedIcon } from '../../compound'
+import { FetchedIcon, TooltipButton } from '../../compound'
 
 import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
 
 const styles = {
   getRoot: (hover) => ({
-    'button,.MuiSlider-root': {
-      opacity: hover ? 1 : 0.8,
-    },
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'end',
+    position: 'absolute',
+    bottom: '24px',
+    right: '4px',
+    zIndex: 1,
+    maxWidth: 'calc(100% - 8px)',
     button: {
       width: '48px',
     },
+    'button,.MuiSlider-root': {
+      opacity: hover ? 1 : 0.8,
+    },
   }),
-  rootBtns: {
-    position: 'absolute',
-    right: '4px',
-    bottom: '24px',
-    zIndex: 1,
-    textAlign: 'right',
-  },
   btnGroup: {
     bgcolor: 'background.paper',
   },
   mapControls: {
+    maxHeight: (theme) => `calc(100% - ${theme.spacing(5.5)} - 28px)`,
     mb: 5.5,
+    overflowY: 'auto',
   },
   rowButtons: {
     display: 'flex',
+    width: '100%',
     columnGap: 1.5,
+    overflowX: 'auto',
+    // scrollbarGutter: 'stable',
     zIndex: 1,
   },
-  tooltip: {
-    '.MuiTooltip-tooltip': (theme) => ({
-      maxWidth: 200,
-      m: 1,
-      ...theme.typography.caption,
-    }),
-  },
-  iconButton: {
-    p: 0.5,
-    opacity: 1,
-    borderRadius: 'inherit',
-  },
   pitch: {
+    display: 'flex',
+    justifyContent: 'end',
     position: 'relative',
     height: '100px',
-    mb: 5,
-    width: 'auto',
+    width: '88px',
+    mt: 2,
+    mb: 3,
   },
   pitchSlider: {
     mr: 1,
     '.MuiSlider-thumb': {
-      height: 20,
-      width: 20,
-      border: 2,
+      height: '20px',
+      width: '20px',
+      border: '2px',
       borderColor: 'currentcolor',
       '&:focus, &:hover, &$active': {
         boxShadow: 'inherit',
       },
     },
     '.MuiSlider-track': {
-      width: 3,
+      width: '3px',
       borderRadius: 1,
     },
     '.MuiSlider-rail': {
-      width: 3,
+      width: '3px',
       borderRadius: 1,
     },
     '.MuiSlider-markLabel': {
       left: 'auto',
-      right: 36,
+      right: '36px',
     },
   },
   bearing: {
@@ -161,57 +157,11 @@ const tooltipTitles = {
   mercatorProjection: 'Projection \u279C Mercator',
 }
 
-const TooltipButton = ({
-  title,
-  ariaLabel,
-  placement = 'left',
-  onClick,
-  children,
-  ...props
-}) => (
-  <Tooltip
-    {...{ title, placement }}
-    sx={styles.tooltip}
-    aria-label={ariaLabel || title}
-  >
-    <span>
-      <IconButton
-        sx={styles.iconButton}
-        {...{ onClick, ...props }}
-        size="large"
-      >
-        {children}
-      </IconButton>
-    </span>
-  </Tooltip>
-)
-TooltipButton.propTypes = {
-  title: PropTypes.string,
-  ariaLabel: PropTypes.string,
-  placement: PropTypes.oneOf([
-    'bottom-end',
-    'bottom-start',
-    'bottom',
-    'left-end',
-    'left-start',
-    'left',
-    'right-end',
-    'right-start',
-    'right',
-    'top-end',
-    'top-start',
-    'top',
-  ]),
-  onClick: PropTypes.func,
-  children: PropTypes.node,
-}
-
 const MapNavButtons = memo(({ mapId }) => {
   const dispatch = useDispatch()
-
   return (
     <ButtonGroup
-      sx={[styles.btnGroup, styles.mapControls]}
+      sx={styles.btnGroup}
       orientation="vertical"
       variant="contained"
       size="small"
@@ -294,7 +244,7 @@ const MapControls = ({ allowProjections, mapId }) => {
     <>
       {/* Map controls */}
       <Box
-        sx={{ ...styles.rootBtns, ...styles.getRoot(hover) }}
+        sx={[styles.getRoot(hover), styles.mapControls]}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
@@ -316,7 +266,7 @@ const MapControls = ({ allowProjections, mapId }) => {
         {isStatic ? [] : <MapNavButtons mapId={mapId} />}
       </Box>
       <Box
-        sx={{ ...styles.rootBtns, ...styles.getRoot(hover) }}
+        sx={styles.getRoot(hover)}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >

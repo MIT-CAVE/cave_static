@@ -1079,13 +1079,13 @@ const MapLegend = ({ mapId }) => {
       sx={[
         styles.root,
         {
-          right: showPitchSlider ? 100 : 64,
+          right: showPitchSlider ? 98 : 72,
           maxHeight: showBearingSlider
             ? 'calc(100% - 165px)'
             : 'calc(100% - 88px)',
           maxWidth: showPitchSlider
-            ? 'calc(100% - 108px)'
-            : 'calc(100% - 72px)',
+            ? 'calc(100% - 106px)'
+            : 'calc(100% - 80px)',
         },
       ]}
     >

@@ -4,8 +4,8 @@ html {
 }
 
 ::-webkit-scrollbar {
-  height: '10px';
-  width: '12px';
+  height: 0.75em;
+  width: 0.75em;
   -webkit-appearance: none;
 }
 ::-webkit-scrollbar-thumb {
