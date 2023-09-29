@@ -102,12 +102,12 @@ const Toolbar = ({ view, viewIndex }) => {
   )
 }
 
-const ViewActions = ({ obj, viewIndex, ...topRightActionProps }) => (
+const ViewActions = ({ obj, view, viewIndex, ...topRightActionProps }) => (
   <>
     {(topRightActionProps.showAllToolbars ||
       (topRightActionProps.showToolbar &&
         !topRightActionProps.hideAllToolbars)) && (
-      <Toolbar {...{ obj, viewIndex, ...topRightActionProps }} />
+      <Toolbar {...{ obj, view, viewIndex, ...topRightActionProps }} />
     )}
     <TopRightActions sx={styles.overlay} {...topRightActionProps} />
   </>
