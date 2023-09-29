@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { ArcLayer3D } from './CustomLayers'
 
-import { openMapModal } from '../../../data/local/mapSlice'
+import { mutateLocal } from '../../../data/local'
 import {
   selectEnabledArcsFunc,
   selectArcRange,
@@ -19,13 +19,18 @@ import {
   selectLineMatchingKeysFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
-  selectCurrentPage,
   selectArcLayer3DGeoJsonFunc,
+  selectSync,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
-import { getScaledColor, getScaledArray, getScaledValue } from '../../../utils'
+import {
+  getScaledColor,
+  getScaledArray,
+  getScaledValue,
+  includesPath,
+} from '../../../utils'
 
 export const Geos = memo(({ highlightLayerId, mapId }) => {
   const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
@@ -505,21 +510,30 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
 
 export const Arcs3D = memo(({ mapId }) => {
   const dispatch = useDispatch()
-  const currentPage = useSelector(selectCurrentPage)
+  const sync = useSelector(selectSync)
   const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
   return (
     <ArcLayer3D
       features={arcLayerGeoJson}
       onClick={({ cave_name: id, cave_obj: obj }) => {
         dispatch(
-          openMapModal({
-            currentPage,
-            data: {
-              ...(obj || {}),
-              feature: 'arcs',
-              type: R.propOr(obj.type, 'name')(obj),
-              key: id,
+          mutateLocal({
+            path: ['panes', 'paneState', 'center'],
+            value: {
+              open: {
+                ...(obj || {}),
+                feature: 'arcs',
+                type: R.propOr(obj.type, 'name')(obj),
+                key: id,
+                mapId,
+              },
+              type: 'feature',
             },
+            sync: !includesPath(R.values(sync), [
+              'panes',
+              'paneState',
+              'center',
+            ]),
           })
         )
       }}

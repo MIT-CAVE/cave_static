@@ -14,11 +14,8 @@ import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 
-import {
-  viewportUpdate,
-  openMapModal,
-  viewportRotate,
-} from '../../../data/local/mapSlice'
+import { mutateLocal } from '../../../data/local'
+import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
   selectCurrentMapStyleFunc,
@@ -33,11 +30,12 @@ import {
   selectViewportsByMap,
   selectMapData,
   selectAllNodeIcons,
+  selectSync,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
-import { fetchIcon } from '../../../utils'
+import { fetchIcon, includesPath } from '../../../utils'
 
 const Map = ({ mapboxToken, mapId }) => {
   const dispatch = useDispatch()
@@ -55,6 +53,7 @@ const Map = ({ mapboxToken, mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
+  const sync = useSelector(selectSync)
   const [highlightLayerId, setHighlightLayerId] = useState()
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
@@ -198,16 +197,23 @@ const Map = ({ mapboxToken, mapId }) => {
       setHighlightLayerId()
 
       dispatch(
-        openMapModal({
-          ...(obj || {}),
-          feature: feature,
-          type: R.propOr(obj.type, 'name')(obj),
-          key: id,
-          mapId,
+        mutateLocal({
+          path: ['panes', 'paneState', 'center'],
+          value: {
+            open: {
+              ...(obj || {}),
+              feature: feature,
+              type: R.propOr(obj.type, 'name')(obj),
+              key: id,
+              mapId,
+            },
+            type: 'feature',
+          },
+          sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
         })
       )
     },
-    [mapId, dispatch, getFeatureFromEvent]
+    [getFeatureFromEvent, dispatch, mapId, sync]
   )
 
   useEffect(() => {

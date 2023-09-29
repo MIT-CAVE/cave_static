@@ -10,14 +10,16 @@ import TableRow from '@mui/material/TableRow'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { openMapModal, closeMapModal } from '../../data/local/mapSlice'
+import { mutateLocal } from '../../data/local'
 import {
   selectMergedNodes,
   selectNodeClustersAtZoomFunc,
+  selectSync,
 } from '../../data/selectors'
+
+import { includesPath } from '../../utils'
 
 const styles = {
   modal: {
@@ -46,6 +48,7 @@ const styles = {
 }
 
 const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoomFunc)
@@ -71,18 +74,11 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const createData = (node) => {
     const data = { name: R.propOr(node[0], 'name', node[1]), id: node[0] }
     for (const prop of Object.keys(node[1].props)) {
-      data[prop] = node[1].props[prop].value.toString()
+      data[prop] = node[1].values[prop].toString()
     }
     return data
   }
   const tableRows = nodeData.map((node) => createData(node))
-
-  const [openTime, setOpenTime] = useState(undefined)
-
-  // store the time the modal was opened to prevent closing instantly in touch mode
-  useEffect(() => {
-    setOpenTime(new Date().getTime())
-  }, [])
 
   const StickyHeadTable = (rows, columns) => {
     const [page, setPage] = React.useState(0)
@@ -126,14 +122,23 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
                         const node = nodeData.find((node) => node[0] === row.id)
                         // open map modal with node data
                         dispatch(
-                          openMapModal({
-                            mapId,
-                            data: {
-                              ...node[1],
-                              feature: 'nodes',
-                              type: R.propOr(node[1].type, 'name')(node[1]),
-                              key: node[0],
+                          mutateLocal({
+                            path: ['panes', 'paneState', 'center'],
+                            value: {
+                              open: {
+                                ...node[1],
+                                feature: 'nodes',
+                                type: R.propOr(node[1].type, 'name')(node[1]),
+                                key: node[0],
+                                mapId,
+                              },
+                              type: 'feature',
                             },
+                            sync: !includesPath(R.values(sync), [
+                              'panes',
+                              'paneState',
+                              'center',
+                            ]),
                           })
                         )
                       }}
@@ -177,8 +182,17 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       disableAutoFocus
       open
       onClose={() => {
-        const currentTime = new Date().getTime()
-        if (currentTime - openTime > 500) dispatch(closeMapModal(mapId))
+        dispatch(
+          mutateLocal({
+            path: ['panes', 'paneState', 'center'],
+            value: {},
+            sync: !includesPath(R.values(sync), [
+              'panes',
+              'paneState',
+              'center',
+            ]),
+          })
+        )
       }}
       {...props}
     >

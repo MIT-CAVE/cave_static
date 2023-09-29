@@ -143,7 +143,7 @@ const getAppBarItem = ({
         changePane(key)
       }}
     />
-  ) : type === 'pane' ? (
+  ) : type === 'wall' ? (
     <Tab
       sx={styles.tab}
       key={key}
@@ -187,9 +187,13 @@ const getAppBarItem = ({
       onClick={() => {
         dispatch(
           mutateLocal({
-            path: ['appBar', 'openModal'],
-            value: key,
-            sync: !includesPath(R.values(sync), ['appBar', 'openModal']),
+            path: ['panes', 'paneState', 'center'],
+            value: { open: key, type: 'pane' },
+            sync: !includesPath(R.values(sync), [
+              'panes',
+              'paneState',
+              'center',
+            ]),
           })
         )
       }}

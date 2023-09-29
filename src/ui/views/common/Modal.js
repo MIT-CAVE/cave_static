@@ -7,12 +7,18 @@ import { renderPropsLayout } from './renderLayout'
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
+  selectModal,
   selectOpenModal,
   selectOpenModalData,
   selectSync,
+  selectCurrentTime,
+  selectMergedArcs,
+  selectMergedNodes,
+  selectMergedGeos,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
+import ClusterModal from '../../compound/ClusterModal'
 
 import { addValuesToProps, includesPath } from '../../../utils'
 
@@ -52,7 +58,10 @@ const styles = {
   },
 }
 
-const GeneralModal = ({ title, children, onClose }) => {
+const GeneralModal = ({ title, children }) => {
+  const sync = useSelector(selectSync)
+  const dispatch = useDispatch()
+
   return (
     <Modal
       sx={styles.modal}
@@ -60,7 +69,19 @@ const GeneralModal = ({ title, children, onClose }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={onClose}
+      onClose={() => {
+        dispatch(
+          mutateLocal({
+            path: ['panes', 'paneState', 'center'],
+            value: {},
+            sync: !includesPath(R.values(sync), [
+              'panes',
+              'paneState',
+              'center',
+            ]),
+          })
+        )
+      }}
     >
       <Box sx={styles.paper}>
         <Box sx={styles.header}>{title}</Box>
@@ -70,12 +91,66 @@ const GeneralModal = ({ title, children, onClose }) => {
   )
 }
 
-const AppModal = () => {
+const MapFeatureModal = () => {
+  const open = useSelector(selectOpenModal)
+  const currentTime = useSelector(selectCurrentTime)
+  const arcData = useSelector(selectMergedArcs)
+  const nodeData = useSelector(selectMergedNodes)
+  const geoData = useSelector(selectMergedGeos)
+  const dispatch = useDispatch()
+  const { cluster_id, feature, type, key, layout, props, mapId } = open
+
+  const featureData =
+    feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
+  const getCurrentVal = (propId) => R.path([key, 'values', propId])(featureData)
+
+  const onChangeProp = (prop, propId) => (value) => {
+    const usesTime = R.hasPath(
+      [key, 'values', 'timeValues', currentTime, propId],
+      featureData
+    )
+    const dataPath = usesTime
+      ? ['data', key, 'values', 'timeValues', `${currentTime}`, propId]
+      : ['data', key, 'values', propId]
+    dispatch(
+      sendCommand({
+        command: 'mutate_session',
+        data: {
+          data_name: feature,
+          data_path: dataPath,
+          data_value: value,
+          mutation_type: 'mutate',
+          api_command: R.prop('apiCommand', prop),
+          api_command_keys: R.prop('apiCommandKeys', prop),
+        },
+      })
+    )
+  }
+  return R.isNotNil(cluster_id) ? (
+    <ClusterModal title={type} cluster_id={cluster_id} mapId={mapId}>
+      {renderPropsLayout({
+        layout,
+        items: props,
+        getCurrentVal,
+        onChangeProp,
+      })}
+    </ClusterModal>
+  ) : (
+    <GeneralModal title={type}>
+      {renderPropsLayout({
+        layout,
+        items: props,
+        getCurrentVal,
+        onChangeProp,
+      })}
+    </GeneralModal>
+  )
+}
+
+const PaneModal = () => {
   const open = useSelector(selectOpenModal)
   const modal = useSelector(selectOpenModalData)
-  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
-  if (R.isEmpty(open)) return null
 
   const { layout, name, props, values } = modal
   const propsWithValues = addValuesToProps(props, values)
@@ -83,21 +158,13 @@ const AppModal = () => {
     R.defaultTo({ type: layoutType.GRID }),
     R.unless(R.has('numColumns'), R.assoc('numColumns', 1))
   )(layout)
-  const onClose = () => {
-    dispatch(
-      mutateLocal({
-        path: ['appBar', 'openModal'],
-        value: '',
-        sync: !includesPath(R.values(sync), ['appBar', 'openModal']),
-      })
-    )
-  }
+
   const onChangeProp = (prop, propId) => (value) => {
     dispatch(
       sendCommand({
         command: 'mutate_session',
         data: {
-          data_name: 'modals',
+          data_name: 'panes',
           data_path: ['data', open, 'values', propId],
           data_value: value,
           mutation_type: 'mutate',
@@ -109,7 +176,7 @@ const AppModal = () => {
   }
 
   return (
-    <GeneralModal title={name} onClose={onClose}>
+    <GeneralModal title={name}>
       {renderPropsLayout({
         layout: modalLayout,
         items: propsWithValues,
@@ -117,5 +184,13 @@ const AppModal = () => {
       })}
     </GeneralModal>
   )
+}
+
+const AppModal = () => {
+  const open = useSelector(selectOpenModal)
+  const fullModal = useSelector(selectModal)
+  if (R.isEmpty(open)) return null
+  const type = R.prop('type', fullModal)
+  return type === 'pane' ? <PaneModal /> : <MapFeatureModal />
 }
 export { AppModal, GeneralModal }

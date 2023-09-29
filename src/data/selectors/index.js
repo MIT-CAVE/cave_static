@@ -457,9 +457,22 @@ export const selectDefaultViewportFunc = createSelector(
 // Merged appBar
 
 export const selectOpenModal = createSelector(
-  [selectLocalAppBar, selectAppBar],
+  [selectLocalPanes, selectPanes],
   (localData, data) =>
-    R.propOr(R.propOr({}, 'openModal', data), 'openModal', localData)
+    R.pathOr(
+      R.pathOr({}, ['paneState', 'center', 'open'], data),
+      ['paneState', 'center', 'open'],
+      localData
+    )
+)
+export const selectModal = createSelector(
+  [selectLocalPanes, selectPanes],
+  (localData, data) =>
+    R.pathOr(
+      R.pathOr({}, ['paneState', 'center'], data),
+      ['paneState', 'center'],
+      localData
+    )
 )
 const groupAppBar = R.pipe(
   R.mergeDeepRight,
@@ -547,11 +560,11 @@ export const selectRightOpenPanesData = createSelector(
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
 export const selectOpenModalData = createSelector(
-  [selectOpenModal, selectModalsData, selectLocalModalsData],
-  (openModal, modalsData, localModalsData) =>
+  [selectOpenModal, selectPanesData, selectLocalPanesData],
+  (openModal, panesData, localPanesData) =>
     R.mergeDeepRight(
-      R.propOr({}, openModal, modalsData),
-      R.propOr({}, openModal, localModalsData)
+      R.propOr({}, openModal, panesData),
+      R.propOr({}, openModal, localPanesData)
     ),
   { memoizeOptions: { resultEqualityCheck: R.equals } }
 )
