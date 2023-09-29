@@ -348,7 +348,10 @@ export const selectRightLocalAppBarData = createSelector(
 export const selectPaneState = createSelector(
   [selectLocalPanes, selectPanes],
   (localData, data) =>
-    R.propOr(R.propOr({}, 'paneState', data), 'paneState', localData)
+    R.mergeLeft(
+      R.propOr({}, 'paneState', localData),
+      R.propOr({}, 'paneState', data)
+    )
 )
 export const selectLeftOpenPane = createSelector(selectPaneState, (data) =>
   R.propOr('', 'open', R.propOr({}, 'left', data))
