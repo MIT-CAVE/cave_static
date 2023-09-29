@@ -380,14 +380,14 @@ const MapLegendSizeBySection = ({
         </Grid>
         {numberFormatProps.unit && (
           <Grid item xs={4}>
-            <Paper
-              component={Typography}
+            <Typography
+              component={Paper}
               elevation={1}
               variant="subtitle1"
               sx={styles.unit}
             >
               <OverflowText text={numberFormatProps.unit} />
-            </Paper>
+            </Typography>
           </Grid>
         )}
       </Grid>
@@ -544,14 +544,14 @@ const MapLegendColorBySection = ({
         </Grid>
         {numberFormatProps.unit && (
           <Grid item xs={4}>
-            <Paper
-              component={Typography}
+            <Typography
+              component={Paper}
               elevation={1}
               variant="subtitle1"
               sx={styles.unit}
             >
               <OverflowText text={numberFormatProps.unit} />
-            </Paper>
+            </Typography>
           </Grid>
         )}
       </Grid>
