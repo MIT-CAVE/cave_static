@@ -166,7 +166,13 @@ const Panes = ({ sessionCard, setSessionCard }) => {
             const systemPane = R.propOr(
               {},
               open,
-              side === 'left' ? leftAppBarData : rightAppBarData
+              side === 'left' && mirrorMode
+                ? rightAppBarData
+                : side === 'left'
+                ? leftAppBarData
+                : mirrorMode
+                ? leftAppBarData
+                : rightAppBarData
             )
             const isSystem =
               systemPane &&
