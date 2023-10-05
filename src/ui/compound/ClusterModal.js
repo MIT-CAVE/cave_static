@@ -59,10 +59,16 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       R.pathEq(title, ['properties', 'type']),
     ])
   )(groupedNodesAtZoom(mapId).data)
-
   // get all nodes in cluster
   const nodeData = R.toPairs(
-    R.pick(targetCluster.properties.grouped_ids, useSelector(selectMergedNodes))
+    R.pick(
+      targetCluster.properties.grouped_ids,
+      R.propOr(
+        [],
+        targetCluster.properties.type,
+        useSelector(selectMergedNodes)
+      )
+    )
   ) //.map(node => node[1])
   // generate table columns for given cluster's props
   const tableColumns = [{ id: 'name', label: 'Name', minWidth: 170 }]
@@ -129,7 +135,10 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
                                 ...node[1],
                                 feature: 'nodes',
                                 type: R.propOr(node[1].type, 'name')(node[1]),
-                                key: node[0],
+                                key: JSON.stringify([
+                                  targetCluster.properties.type,
+                                  node[0],
+                                ]),
                                 mapId,
                               },
                               type: 'feature',

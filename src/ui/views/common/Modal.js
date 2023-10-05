@@ -98,25 +98,34 @@ const MapFeatureModal = () => {
   const nodeData = useSelector(selectMergedNodes)
   const geoData = useSelector(selectMergedGeos)
   const dispatch = useDispatch()
-  const { cluster_id, feature, type, key, layout, props, mapId } = open
-
+  const { cluster_id, feature, type, layout, props, mapId } = open
+  const key = JSON.parse(R.prop('key', open))
   const featureData =
     feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
-  const getCurrentVal = (propId) => R.path([key, 'values', propId])(featureData)
-
+  const getCurrentVal = (propId) =>
+    R.path([...key, 'values', propId])(featureData)
   const onChangeProp = (prop, propId) => (value) => {
     const usesTime = R.hasPath(
-      [key, 'values', 'timeValues', currentTime, propId],
+      [...key, 'values', 'timeValues', currentTime, propId],
       featureData
     )
     const dataPath = usesTime
-      ? ['data', key, 'values', 'timeValues', `${currentTime}`, propId]
-      : ['data', key, 'values', propId]
+      ? [
+          'data',
+          key[0],
+          'data',
+          'values',
+          'timeValues',
+          `${currentTime}`,
+          propId,
+          parseInt(key[1]),
+        ]
+      : ['data', key[0], 'data', 'values', propId, parseInt(key[1])]
     dispatch(
       sendCommand({
         command: 'mutate_session',
         data: {
-          data_name: feature,
+          data_name: 'mapFeatures',
           data_path: dataPath,
           data_value: value,
           mutation_type: 'mutate',

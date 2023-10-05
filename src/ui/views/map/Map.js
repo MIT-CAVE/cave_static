@@ -151,13 +151,17 @@ const Map = ({ mapboxToken, mapId }) => {
             'arcs',
             R.hasPath(['properties', 'cave_obj'])(clickedArc)
               ? JSON.parse(clickedArc.properties.cave_obj)
-              : R.propOr({}, clickedArc.properties.cave_name, arcData),
+              : R.pathOr(
+                  {},
+                  JSON.parse(clickedArc.properties.cave_name),
+                  arcData
+                ),
           ]
         : R.isNotNil(clickedGeo)
         ? [
             clickedGeo.properties.cave_name,
             'geos',
-            R.propOr({}, clickedGeo.properties.cave_name, geosData),
+            R.pathOr({}, JSON.parse(clickedGeo.properties.cave_name), geosData),
           ]
         : null
 

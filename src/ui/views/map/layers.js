@@ -223,7 +223,10 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
 
           const id = R.prop('data_key')(geoObj)
           return R.mergeRight(filteredFeature, {
-            properties: { cave_name: id, color: color },
+            properties: {
+              cave_name: JSON.stringify([geoType, id]),
+              color: color,
+            },
           })
         }),
         R.values
@@ -251,7 +254,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           )(R.path([geoType, 'colorBy'], enabledArcs))
           return R.mergeRight(filteredFeatures, {
             properties: {
-              cave_name: id,
+              cave_name: JSON.stringify([geoType, id]),
               color: color,
               dash: dashPattern,
               size: size,
@@ -515,7 +518,8 @@ export const Arcs3D = memo(({ mapId }) => {
   return (
     <ArcLayer3D
       features={arcLayerGeoJson}
-      onClick={({ cave_name: id, cave_obj: obj }) => {
+      onClick={({ cave_name, cave_obj: obj }) => {
+        const [type, id] = JSON.parse(cave_name)
         dispatch(
           mutateLocal({
             path: ['panes', 'paneState', 'center'],
@@ -523,7 +527,7 @@ export const Arcs3D = memo(({ mapId }) => {
               open: {
                 ...(obj || {}),
                 feature: 'arcs',
-                type: R.propOr(obj.type, 'name')(obj),
+                type: R.propOr(type, 'name')(obj),
                 key: id,
                 mapId,
               },

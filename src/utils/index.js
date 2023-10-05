@@ -213,6 +213,21 @@ export const recursiveMap = R.curry(
           stepCallback(mappable)
         )
 )
+const mergeObjIntoList = (obj, baseList) =>
+  R.reduce((acc, key) => {
+    if (isNaN(key)) throw new Error('Can only merge integer keys into list')
+    else return R.update(key, obj[key], acc)
+  }, baseList)(R.keys(obj))
+
+// Merge 2 objects with obj2 overwriting obj1, or inidivual list indicies within it
+const mergeListRight = (obj1, obj2) =>
+  R.reduce(
+    (acc, key) =>
+      R.type(obj2[key]) === 'Object'
+        ? R.assoc(key, mergeObjIntoList(obj2[key], acc[key]), acc)
+        : R.assoc(key, obj2[key], acc),
+    obj1
+  )(R.keys(obj2))
 
 export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
   const cache = new Map()
@@ -478,7 +493,7 @@ export const getTimeValue = (timeIndex, object) =>
     R.identity,
     (d) =>
       R.has('timeValues', d)
-        ? R.mergeRight(d, R.pathOr({}, ['timeValues', timeIndex], d))
+        ? mergeListRight(d, R.pathOr({}, ['timeValues', timeIndex], d))
         : d,
     object
   )
