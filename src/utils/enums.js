@@ -54,6 +54,8 @@ export const propVariant = {
   TIME: 'time',
   VIDEO: 'video',
   VSTEPPER: 'vstepper',
+  ICON: 'icon',
+  ICON_ROW: 'iconRow',
 }
 
 export const propContainer = {

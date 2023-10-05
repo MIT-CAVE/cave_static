@@ -27,6 +27,9 @@ import {
   PropToggle,
   PropVideo,
   PropVStepper,
+  PropNumberIcon,
+  IconHeadColumn,
+  IconHeadRow,
 } from '../../compound'
 
 const invalidVariant = R.curry((type, variant) => {
@@ -58,6 +61,7 @@ const getNumberPropRenderFn = R.cond([
   [R.isNil, R.always(PropNumberField)],
   [R.equals(propVariant.FIELD), R.always(PropNumberField)],
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
+  [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
@@ -81,6 +85,9 @@ const getHeaderPropRenderFn = R.cond([
   [R.isNil, R.always(PropHeadColumn)],
   [R.equals(propVariant.COLUMN), R.always(PropHeadColumn)],
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
+  [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
+  [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
+
   [R.T, invalidVariant('head')],
 ])
 
@@ -109,6 +116,10 @@ const PropBase = ({ prop, children }) => {
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
     // eslint-disable-next-line ramda/cond-simplification
     type: R.cond([
+      [
+        R.pipe(R.prop('variant'), R.equals(propVariant.ICON)),
+        R.always(propContainer.NONE),
+      ],
       [R.has('container'), R.prop('container')],
       [
         R.pipe(R.prop('type'), R.equals(propId.HEAD)),
@@ -129,6 +140,7 @@ const renderProp = ({ ...props }) => {
   const PropComponent = propRendererFn(variant)
   // default enabled to true
   const enabled = R.propOr(true, 'enabled', prop)
+  console.log(props)
   return (
     <PropBase {...{ prop }} key={R.prop('id', prop)}>
       <PropComponent

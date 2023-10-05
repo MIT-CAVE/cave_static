@@ -72,8 +72,9 @@ const styles = {
 //   )
 // }
 
-const KpiBasic = ({ title, value, icon, style, sx = [], ...props }) => {
-  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(props)
+const KpiBasic = ({ prop, sx = [], ...props }) => {
+  const { title, value, icon, style } = prop
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
     <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
       <Grid container flexDirection="column" spacing={0}>

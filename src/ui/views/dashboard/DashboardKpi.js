@@ -12,11 +12,16 @@ import {
   selectMergedKpis,
 } from '../../../data/selectors'
 import { chartType } from '../../../utils/enums'
-import { renderKpisLayout } from '../common/renderLayout'
+import { renderPropsLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
-import { withIndex, forcePath, getLabelFn } from '../../../utils'
+import {
+  withIndex,
+  forcePath,
+  getLabelFn,
+  addValuesToProps,
+} from '../../../utils'
 
 const DashboardKpi = ({ view }) => {
   const dispatch = useDispatch()
@@ -25,6 +30,10 @@ const DashboardKpi = ({ view }) => {
   const globalOutputFunc = useSelector(selectMemoizedKpiFunc)
   const layout = useSelector(selectKpisLayout)
   const items = useSelector(selectMergedKpis)
+  const props = addValuesToProps(
+    R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
+    R.propOr({}, 'values', items)
+  )
 
   useEffect(() => {
     if (R.isEmpty(globalOutputs)) {
@@ -109,7 +118,11 @@ const DashboardKpi = ({ view }) => {
             },
           }}
         >
-          {renderKpisLayout({ layout, items })}
+          {renderPropsLayout({
+            layout,
+            items: props,
+            onChangeProp: () => null,
+          })}
         </Box>
       ) : view.chart === chartType.TABLE ? (
         <TableChart

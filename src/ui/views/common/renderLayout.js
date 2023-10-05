@@ -1,7 +1,6 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
 
-import renderKpi from './renderKpi'
 import renderProp from './renderProp'
 
 import { layoutType } from '../../../utils/enums'
@@ -27,27 +26,7 @@ const renderPropItem = ({
   })
 }
 
-const renderKpiItem = ({ item }) =>
-  renderKpi({
-    key: item.id,
-    title: item.name || item.id,
-    mapKpi: item.mapKpi,
-    ...R.omit(['name', 'mapKpi'])(item),
-  })
-
-const getItemRenderFn = R.cond([
-  [R.equals('prop'), R.always(renderPropItem)],
-  [R.equals('globalOutput'), R.always(renderKpiItem)],
-  [R.T, null],
-])
-
-const renderItem = ({
-  keyName,
-  layout: layoutItem,
-  items,
-  unusedItems,
-  ...other
-}) => {
+const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
   const { itemId, column, row, width, height, style } = layoutItem
   if (R.isNil(itemId)) throw Error("Missing 'itemId' property in layout item")
 
@@ -62,7 +41,7 @@ const renderItem = ({
       ...style,
     })
   )(items)
-  const itemRenderFn = getItemRenderFn(keyName)
+  const itemRenderFn = renderPropItem
   return {
     unusedItems,
     component: itemRenderFn({ layoutItem, item, ...other }),
@@ -194,10 +173,6 @@ const getLayoutComponent = ({
   return component
 }
 
-const renderPropsLayout = ({ ...props }) =>
-  getLayoutComponent({ keyName: 'prop', ...props })
+const renderPropsLayout = ({ ...props }) => getLayoutComponent({ ...props })
 
-const renderKpisLayout = ({ ...props }) =>
-  getLayoutComponent({ keyName: 'globalOutput', ...props })
-
-export { renderPropsLayout, renderKpisLayout }
+export { renderPropsLayout }

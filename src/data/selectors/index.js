@@ -194,7 +194,7 @@ export const selectKpisData = createSelector(selectKpis, (data) =>
   R.propOr({}, 'data')(data)
 )
 export const selectKpisLayout = createSelector(
-  selectKpis,
+  selectKpisData,
   R.propOr({}, 'layout')
 )
 export const selectAssociatedData = createSelector(selectAssociated, (data) =>
