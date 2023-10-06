@@ -2034,6 +2034,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
       R.identity,
       (mapId) =>
         R.pipe(
+          R.values,
+          R.unnest,
           R.map(([id, arc]) => {
             const legendObj = legendObjectsFunc(mapId)[arc.type]
 

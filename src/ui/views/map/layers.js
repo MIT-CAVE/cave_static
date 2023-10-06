@@ -519,7 +519,7 @@ export const Arcs3D = memo(({ mapId }) => {
     <ArcLayer3D
       features={arcLayerGeoJson}
       onClick={({ cave_name, cave_obj: obj }) => {
-        const [type, id] = JSON.parse(cave_name)
+        const [type] = JSON.parse(cave_name)
         dispatch(
           mutateLocal({
             path: ['panes', 'paneState', 'center'],
@@ -528,7 +528,7 @@ export const Arcs3D = memo(({ mapId }) => {
                 ...(obj || {}),
                 feature: 'arcs',
                 type: R.propOr(type, 'name')(obj),
-                key: id,
+                key: cave_name,
                 mapId,
               },
               type: 'feature',

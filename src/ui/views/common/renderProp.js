@@ -140,7 +140,6 @@ const renderProp = ({ ...props }) => {
   const PropComponent = propRendererFn(variant)
   // default enabled to true
   const enabled = R.propOr(true, 'enabled', prop)
-  console.log(props)
   return (
     <PropBase {...{ prop }} key={R.prop('id', prop)}>
       <PropComponent
