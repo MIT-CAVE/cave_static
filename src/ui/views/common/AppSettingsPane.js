@@ -21,6 +21,7 @@ import {
   selectDemoMode,
   selectMirrorMode,
   selectPaneState,
+  selectShowToolbar,
   selectSync,
   selectSyncToggles,
 } from '../../../data/selectors'
@@ -168,6 +169,33 @@ SyncSwitch.propTypes = {
   onClick: PropTypes.func,
 }
 
+const ToolbarSwitch = () => {
+  const showToolbar = useSelector(selectShowToolbar)
+  const dispatch = useDispatch()
+
+  const handleClick = () => {
+    dispatch(
+      mutateLocal({
+        path: ['settings', 'defaults', 'showToolbar'],
+        value: !showToolbar,
+        sync: false,
+      })
+    )
+  }
+  return (
+    <FormControl component="fieldset">
+      <FormGroup row>
+        <FormControlLabel
+          value="start"
+          control={<Switch checked={showToolbar} onClick={handleClick} />}
+          label="Show View Toolbar"
+          labelPlacement="start"
+        />
+      </FormGroup>
+    </FormControl>
+  )
+}
+
 const AppSettingsPane = ({ ...props }) => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
@@ -181,6 +209,9 @@ const AppSettingsPane = ({ ...props }) => {
       </FieldContainer>
       <FieldContainer title="Demo">
         <DemoSwitch />
+      </FieldContainer>
+      <FieldContainer title="Defaults">
+        <ToolbarSwitch />
       </FieldContainer>
       {R.isEmpty(syncToggles) ? (
         []
