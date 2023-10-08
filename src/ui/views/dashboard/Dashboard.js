@@ -108,7 +108,7 @@ const DashboardItem = ({ view, viewIndex, viewPath, sx }) => {
           elevation={5}
         >
           {showToolbar && <ViewToolbar {...{ view, viewIndex, viewPath }} />}
-          {!lockedLayout && (
+          {!lockedLayout && !view.lockedLayout && (
             <ViewMenu
               {...{
                 isMaximized,

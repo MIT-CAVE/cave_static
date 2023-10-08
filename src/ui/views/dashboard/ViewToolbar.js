@@ -65,7 +65,13 @@ const ViewToolbar = ({ view, viewIndex, viewPath }) => {
 
   return (
     <Grid
-      sx={[style, lockedLayout && { width: '100%', '>:last-child': { mr: 0 } }]}
+      sx={[
+        style,
+        (lockedLayout || view.lockedLayout) && {
+          width: '100%',
+          '>:last-child': { mr: 0 },
+        },
+      ]}
     >
       <HeaderSelectWrapper>
         <Select
