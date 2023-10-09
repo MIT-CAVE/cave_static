@@ -188,7 +188,7 @@ const ToolbarSwitch = () => {
         <FormControlLabel
           value="start"
           control={<Switch checked={showToolbar} onClick={handleClick} />}
-          label="Show View Toolbar"
+          label="Show Chart Toolbar"
           labelPlacement="start"
         />
       </FormGroup>

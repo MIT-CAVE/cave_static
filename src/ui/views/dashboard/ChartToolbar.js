@@ -26,16 +26,16 @@ const style = {
   '>:first-child': { ml: 0 },
 }
 
-const ViewToolbar = ({ view, viewIndex, viewPath }) => {
+const ChartToolbar = ({ chartObj, index, path }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
-  const handleSelectViewType = useCallback(
+  const handleSelectVizType = useCallback(
     (value) => {
       dispatch(
         mutateLocal({
-          path: viewPath,
+          path,
           value: R.pipe(
             R.assoc('type', value),
             // If we switch to globalOutputs and an unsupported plot
@@ -55,19 +55,19 @@ const ViewToolbar = ({ view, viewIndex, viewPath }) => {
               ),
               R.assoc('chart', 'Table')
             )
-          )(view),
-          sync: !includesPath(R.values(sync), viewPath),
+          )(chartObj),
+          sync: !includesPath(R.values(sync), path),
         })
       )
     },
-    [dispatch, sync, view, viewPath]
+    [dispatch, sync, chartObj, path]
   )
 
   return (
     <Grid
       sx={[
         style,
-        (lockedLayout || view.lockedLayout) && {
+        (lockedLayout || chartObj.lockedLayout) && {
           width: '100%',
           '>:last-child': { mr: 0 },
         },
@@ -75,7 +75,7 @@ const ViewToolbar = ({ view, viewIndex, viewPath }) => {
     >
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr('groupedOutputs', 'type')(view)}
+          value={R.propOr('groupedOutputs', 'type')(chartObj)}
           optionsList={[
             {
               label: 'Grouped Outputs',
@@ -93,19 +93,19 @@ const ViewToolbar = ({ view, viewIndex, viewPath }) => {
               iconName: 'fa/FaMapMarked',
             },
           ]}
-          onSelect={handleSelectViewType}
+          onSelect={handleSelectVizType}
         />
       </HeaderSelectWrapper>
 
-      {R.propOr('groupedOutputs', 'type', view) === 'groupedOutputs' ? (
-        <GroupedOutputsToolbar {...{ view }} index={viewIndex} />
-      ) : view.type === 'globalOutputs' ? (
-        <GlobalOutputsToolbar {...{ view }} index={viewIndex} />
+      {R.propOr('groupedOutputs', 'type', chartObj) === 'groupedOutputs' ? (
+        <GroupedOutputsToolbar {...{ chartObj, index }} />
+      ) : chartObj.type === 'globalOutputs' ? (
+        <GlobalOutputsToolbar {...{ chartObj, index }} />
       ) : (
-        <MapToolbar {...{ view }} index={viewIndex} />
+        <MapToolbar {...{ chartObj, index }} />
       )}
     </Grid>
   )
 }
 
-export default memo(ViewToolbar, R.equals)
+export default memo(ChartToolbar, R.equals)

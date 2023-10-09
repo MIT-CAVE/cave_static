@@ -4,9 +4,9 @@ import { lazy, Suspense, useCallback, useMemo } from 'react'
 import { MdAdd } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
+import ChartMenu from './ChartMenu'
+import ChartToolbar from './ChartToolbar'
 import DashboardKpi from './DashboardKpi'
-import ViewMenu from './ViewMenu'
-import ViewToolbar from './ViewToolbar'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -19,7 +19,7 @@ import {
   selectMapboxToken,
   selectShowToolbar,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH, VIEW_DEFAULTS } from '../../../utils/constants'
+import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import Map from '../map/Map'
 
 import { includesPath } from '../../../utils'
@@ -50,14 +50,14 @@ const styles = {
     mx: 'auto',
     mt: '25%',
   },
-  addView: {
+  addChart: {
     position: 'absolute',
     right: '4px',
     bottom: '4px',
   },
 }
 
-const DashboardItem = ({ view, viewIndex, viewPath, sx }) => {
+const DashboardItem = ({ chartObj, index, path, sx }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const mapboxToken = useSelector(selectMapboxToken)
   const pageLayout = useSelector(selectPageLayout)
@@ -65,70 +65,70 @@ const DashboardItem = ({ view, viewIndex, viewPath, sx }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
-  const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(view)
-  const isMaximized = R.propOr(false, 'maximized')(view)
+  const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
+  const isMaximized = R.propOr(false, 'maximized')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleShowToolbar = useCallback(() => {
     dispatch(
       mutateLocal({
-        path: viewPath,
-        value: R.assoc('showToolbar', !showToolbar)(view),
-        sync: !includesPath(R.values(sync), viewPath),
+        path,
+        value: R.assoc('showToolbar', !showToolbar)(chartObj),
+        sync: !includesPath(R.values(sync), path),
       })
     )
-  }, [dispatch, showToolbar, sync, view, viewPath])
+  }, [dispatch, showToolbar, sync, chartObj, path])
 
   const handleToggleMaximize = useCallback(() => {
     dispatch(
       mutateLocal({
-        path: viewPath,
-        value: R.assoc('maximized', !isMaximized)(view),
-        sync: !includesPath(R.values(sync), viewPath),
+        path,
+        value: R.assoc('maximized', !isMaximized)(chartObj),
+        sync: !includesPath(R.values(sync), path),
       })
     )
-  }, [dispatch, isMaximized, sync, view, viewPath])
+  }, [dispatch, isMaximized, sync, chartObj, path])
 
-  const handleRemoveView = useCallback(() => {
+  const handleRemoveChart = useCallback(() => {
     dispatch(
       mutateLocal({
-        path: R.init(viewPath),
-        value: R.remove(viewIndex, 1)(pageLayout),
-        sync: !includesPath(R.values(sync), R.init(viewPath)),
+        path: R.init(path),
+        value: R.remove(index, 1)(pageLayout),
+        sync: !includesPath(R.values(sync), R.init(path)),
       })
     )
-  }, [dispatch, pageLayout, sync, viewIndex, viewPath])
+  }, [dispatch, pageLayout, sync, index, path])
 
-  const viewType = R.propOr('stats', 'type')(view)
+  const vizType = R.propOr('stats', 'type')(chartObj)
   return (
     <Grid item container xs={isMaximized ? 12 : 6} {...{ sx }}>
-      {view != null && (
+      {chartObj != null && (
         <Paper
           sx={[styles.paper, isMaximized && !showToolbar && { p: 0 }]}
           elevation={5}
         >
-          {showToolbar && <ViewToolbar {...{ view, viewIndex, viewPath }} />}
-          {!lockedLayout && !view.lockedLayout && (
-            <ViewMenu
+          {showToolbar && <ChartToolbar {...{ chartObj, index, path }} />}
+          {!lockedLayout && !chartObj.lockedLayout && (
+            <ChartMenu
               {...{
                 isMaximized,
                 showToolbar,
               }}
-              onRemoveView={handleRemoveView}
+              onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
               onShowToolbar={handleShowToolbar}
             />
           )}
-          {viewType === 'stats' ? (
-            view.statistic && (
+          {vizType === 'stats' ? (
+            chartObj.statistic && (
               <Suspense fallback={<CircularProgress sx={styles.loader} />}>
-                <DashboardChart {...{ view }} />
+                <DashboardChart {...{ chartObj }} />
               </Suspense>
             )
-          ) : viewType === 'maps' && view.mapId ? (
-            <Map mapId={view.mapId} {...{ mapboxToken }} />
-          ) : viewType === 'globalOutputs' ? (
-            <DashboardKpi {...{ view }} />
+          ) : vizType === 'maps' && chartObj.mapId ? (
+            <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
+          ) : vizType === 'globalOutputs' ? (
+            <DashboardKpi {...{ chartObj }} />
           ) : null}
         </Paper>
       )}
@@ -145,7 +145,7 @@ const Dashboard = () => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
-  const path = useMemo(
+  const layoutPath = useMemo(
     () => ['pages', 'data', currentPage, 'pageLayout'],
     [currentPage]
   )
@@ -155,15 +155,15 @@ const Dashboard = () => {
     [pageLayout]
   )
 
-  const handleAddView = useCallback(() => {
+  const handleAddChart = useCallback(() => {
     dispatch(
       mutateLocal({
-        path,
-        value: R.append(VIEW_DEFAULTS)(pageLayout),
-        sync: !includesPath(R.values(sync), path),
+        path: layoutPath,
+        value: R.append(CHART_DEFAULTS)(pageLayout),
+        sync: !includesPath(R.values(sync), layoutPath),
       })
     )
-  }, [dispatch, pageLayout, path, sync])
+  }, [dispatch, pageLayout, layoutPath, sync])
 
   const emptyGridCells = R.pipe(
     R.length,
@@ -183,14 +183,13 @@ const Dashboard = () => {
     >
       {!R.isEmpty(pageLayout) && (
         <Grid container spacing={1}>
-          {R.concat(pageLayout)(emptyGridCells).map((view, index) => {
+          {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
             if (maximizedIndex > -1 && index !== maximizedIndex) return null
             return (
               <DashboardItem
                 key={index}
-                {...{ view }}
-                viewIndex={index}
-                viewPath={[...path, index]}
+                {...{ chartObj, index }}
+                path={[...layoutPath, index]}
                 sx={{
                   height: index === maximizedIndex ? '100%' : '50%',
                 }}
@@ -203,11 +202,11 @@ const Dashboard = () => {
         <Fab
           color="primary"
           variant="extended"
-          sx={styles.addView}
-          onClick={handleAddView}
+          sx={styles.addChart}
+          onClick={handleAddChart}
         >
           <MdAdd size={24} style={{ marginRight: '4px' }} />
-          Add View
+          Add Chart
         </Fab>
       )}
     </Container>

@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from '../../../data/local'
@@ -13,19 +13,21 @@ import { HeaderSelectWrapper, Select } from '../../compound'
 
 import { getFreeName, includesPath } from '../../../utils'
 
-const MapToolbar = memo(({ view, index }) => {
-  const dispatch = useDispatch()
-  const currentPage = useSelector(selectCurrentPage)
-
+const MapToolbar = memo(({ chartObj, index }) => {
   const sync = useSelector(selectSync)
   const maps = useSelector(selectMapData)
+  const currentPage = useSelector(selectCurrentPage)
+  const dispatch = useDispatch()
 
-  const path = ['pages', 'data', currentPage, 'pageLayout', index]
+  const path = useMemo(
+    () => ['pages', 'data', currentPage, 'pageLayout', index],
+    [currentPage, index]
+  )
 
   const availableValue = R.pipe(
     R.propOr('', 'mapId'),
     R.unless(R.has(R.__, maps), R.always(''))
-  )(view)
+  )(chartObj)
   return (
     <>
       <HeaderSelectWrapper>
@@ -92,7 +94,7 @@ const MapToolbar = memo(({ view, index }) => {
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
-                value: R.assoc('mapId', value, view),
+                value: R.assoc('mapId', value, chartObj),
               })
             )
           }}

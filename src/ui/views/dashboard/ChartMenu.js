@@ -69,10 +69,10 @@ const BaseMenuItem = ({ ReactIcon, label, onClick }) => (
   </MenuItem>
 )
 
-const ViewMenu = ({
+const ChartMenu = ({
   isMaximized,
   showToolbar,
-  onRemoveView,
+  onRemoveChart,
   onShowToolbar,
   onToggleMaximize,
 }) => {
@@ -125,9 +125,9 @@ const ViewMenu = ({
         />
         <Divider />
         <BaseMenuItem
-          label="Remove View"
+          label="Remove Chart"
           ReactIcon={MdClose}
-          onClick={handleEventAndCloseMenu(onRemoveView)}
+          onClick={handleEventAndCloseMenu(onRemoveChart)}
         />
 
         {/* <MenuItem sx={{ pl: 6 }} onClick={onShowAllToolbars}>
@@ -139,11 +139,11 @@ const ViewMenu = ({
               onClick={handleDuplicate}
             >
               <MdCopyAll fontSize={20} style={{ marginRight: '12px' }} />
-              Duplicate this View
+              Duplicate this Chart
             </MenuItem> */}
       </Menu>
     </Grid>
   )
 }
 
-export default memo(ViewMenu)
+export default memo(ChartMenu)

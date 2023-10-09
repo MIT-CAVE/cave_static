@@ -38,7 +38,7 @@ const SwapButton = (props) => (
   </IconButton>
 )
 
-const GroupedOutputsToolbar = ({ view, index }) => {
+const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
@@ -48,10 +48,10 @@ const GroupedOutputsToolbar = ({ view, index }) => {
   const dispatch = useDispatch()
 
   const groupByOptions =
-    R.has('statistic')(view) &&
-    R.pathSatisfies(R.is(String), ['statistic', 0], view)
+    R.has('statistic')(chartObj) &&
+    R.pathSatisfies(R.is(String), ['statistic', 0], chartObj)
       ? R.pipe(
-          R.path([R.prop('statistic', view)[0], 'groupLists']),
+          R.path([R.prop('statistic', chartObj)[0], 'groupLists']),
           R.keys
         )(groupedOutputs)
       : R.keys(categories)
@@ -94,7 +94,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
           value: R.pipe(
             R.assocPath(['category', n], item),
             R.assocPath(['level', n], subItem)
-          )(view),
+          )(chartObj),
         })
       )
     }
@@ -103,7 +103,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
       R.props(['category', 'level']),
       R.pluck(n),
       R.when(R.any(R.isNil), R.always(''))
-    )(view)
+    )(chartObj)
 
   const handleSelectChart = (value) => {
     dispatch(
@@ -114,7 +114,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
           R.assoc('chart', value),
           R.dissoc('statistic'),
           removeExtraLevels
-        )(view),
+        )(chartObj),
       })
     )
   }
@@ -124,7 +124,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
       mutateLocal({
         path,
         sync: !includesPath(R.values(sync), path),
-        value: R.assoc('grouping', value, view),
+        value: R.assoc('grouping', value, chartObj),
       })
     )
   }
@@ -133,7 +133,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
     <>
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr('', 'chart', view)}
+          value={R.propOr('', 'chart', chartObj)}
           optionsList={[
             {
               label: 'Bar',
@@ -222,8 +222,8 @@ const GroupedOutputsToolbar = ({ view, index }) => {
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
         <Select
-          disabled={view.chart === 'Box Plot'}
-          value={R.propOr('', 'grouping', view)}
+          disabled={chartObj.chart === 'Box Plot'}
+          value={R.propOr('', 'grouping', chartObj)}
           displayIcon
           optionsList={[
             {
@@ -251,21 +251,21 @@ const GroupedOutputsToolbar = ({ view, index }) => {
         />
       </HeaderSelectWrapper>
       <HeaderSelectWrapper>
-        {R.has(R.prop('chart', view), chartStatUses) ? (
-          R.length(chartStatUses[view.chart]) !== 0 ? (
+        {R.has(R.prop('chart', chartObj), chartStatUses) ? (
+          R.length(chartStatUses[chartObj.chart]) !== 0 ? (
             <SelectMultiAccordion
               itemGroups={{
                 undefined: R.addIndex(R.map)((_, idx) => ({
                   id: idx,
                   layoutDirection: 'vertical',
                   subItems: R.values(statNames),
-                }))(chartStatUses[view.chart]),
+                }))(chartStatUses[chartObj.chart]),
               }}
-              values={R.propOr([], 'statistic', view)}
+              values={R.propOr([], 'statistic', chartObj)}
               header="Select Statistics"
               getLabel={(idx) => {
-                const use = chartStatUses[view.chart][idx]
-                const currentStats = R.propOr([], 'statistic', view)
+                const use = chartStatUses[chartObj.chart][idx]
+                const currentStats = R.propOr([], 'statistic', chartObj)
                 return R.is(Array, currentStats) && R.has(idx, currentStats)
                   ? `${use}: ${getGroupLabelFn(
                       statisticTypes,
@@ -276,7 +276,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
               getSubLabel={(_, stat) => getGroupLabelFn(statisticTypes, stat)}
               onSelect={(index, value) => {
                 const newVal = R.equals(
-                  R.path(['statistic', index], view),
+                  R.path(['statistic', index], chartObj),
                   value
                 )
                   ? undefined
@@ -285,7 +285,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assocPath(['statistic', index], newVal, view),
+                    value: R.assocPath(['statistic', index], newVal, chartObj),
                   })
                 )
               }}
@@ -293,7 +293,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
           ) : (
             <SelectMulti
               getLabel={getGroupLabelFn(statisticTypes)}
-              value={R.propOr([], 'statistic', view)}
+              value={R.propOr([], 'statistic', chartObj)}
               header="Select Statistics"
               optionsList={R.values(statNames)}
               onSelect={(value) => {
@@ -301,7 +301,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('statistic', value, view),
+                    value: R.assoc('statistic', value, chartObj),
                   })
                 )
               }}
@@ -310,7 +310,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
         ) : (
           <Select
             getLabel={getGroupLabelFn(statisticTypes)}
-            value={R.propOr('', 'statistic', view)}
+            value={R.propOr('', 'statistic', chartObj)}
             placeholder="Statistic"
             optionsList={R.values(statNames)}
             onSelect={(value) => {
@@ -322,7 +322,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
                     R.assoc('statistic', value),
                     R.dissoc('level'),
                     R.dissoc('category')
-                  )(view),
+                  )(chartObj),
                 })
               )
             }}
@@ -340,7 +340,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
         />
       </HeaderSelectWrapper>
 
-      {chartMaxGrouping[view.chart] === 2 ? (
+      {chartMaxGrouping[chartObj.chart] === 2 ? (
         <>
           <HeaderSelectWrapper
             sx={{
@@ -364,14 +364,14 @@ const GroupedOutputsToolbar = ({ view, index }) => {
                       R.assocPath(['level', 0], level2),
                       R.assocPath(['category', 1], category),
                       R.assocPath(['level', 1], level)
-                    )(view),
+                    )(chartObj),
                   })
                 )
               }}
             />
           </HeaderSelectWrapper>
           <HeaderSelectWrapper
-            clearable={R.hasPath(['level', 1], view)}
+            clearable={R.hasPath(['level', 1], chartObj)}
             onClear={() => {
               dispatch(
                 mutateLocal({
@@ -380,7 +380,7 @@ const GroupedOutputsToolbar = ({ view, index }) => {
                   value: R.pipe(
                     R.dissocPath(['category', 1]),
                     R.dissocPath(['level', 1])
-                  )(view),
+                  )(chartObj),
                 })
               )
             }}
