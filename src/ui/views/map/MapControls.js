@@ -65,7 +65,7 @@ const styles = {
     zIndex: 1,
     maxWidth: 'calc(100% - 8px)',
     button: {
-      width: '48px',
+      width: '42px',
     },
     'button,.MuiSlider-root': {
       opacity: hover ? 1 : 0.8,

@@ -23,7 +23,7 @@ import {
   addValuesToProps,
 } from '../../../utils'
 
-const DashboardKpi = ({ view }) => {
+const DashboardKpi = ({ chartObj }) => {
   const dispatch = useDispatch()
   const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -48,11 +48,11 @@ const DashboardKpi = ({ view }) => {
     }
   }, [globalOutputs, dispatch])
 
-  const formattedKpis = globalOutputFunc(view)
+  const formattedKpis = globalOutputFunc(chartObj)
 
-  const isTable = R.prop('chart', view) === 'Table'
+  const isTable = R.prop('chart', chartObj) === 'Table'
 
-  const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', view))
+  const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', chartObj))
 
   const globalOutputData = R.pipe(
     R.values,
@@ -98,40 +98,22 @@ const DashboardKpi = ({ view }) => {
         height: '50%',
       }}
     >
-      {view.chart === chartType.OVERVIEW ? (
-        <Box
-          sx={{
-            overflow: 'auto',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            '&::-webkit-scrollbar': {
-              height: 10,
-              width: '12px',
-              WebkitAppearance: 'none',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              borderRadius: 8,
-              border: '2px solid',
-              borderColor: (theme) =>
-                theme.palette.mode === 'dark' ? '' : '#E7EBF0',
-              backgroundColor: 'rgba(0 0 0 / 0.5)',
-            },
-          }}
-        >
+      {chartObj.chart === chartType.OVERVIEW ? (
+        <Box sx={{ overflow: 'auto', mx: 'auto' }}>
           {renderPropsLayout({
             layout,
             items: props,
             onChangeProp: () => null,
           })}
         </Box>
-      ) : view.chart === chartType.TABLE ? (
+      ) : chartObj.chart === chartType.TABLE ? (
         <TableChart
           data={formattedKpis}
           numberFormat={commonFormat}
           columnTypes={tableColTypes}
           labels={R.prepend('Session')(tableLabels)}
         />
-      ) : view.chart === chartType.BAR ? (
+      ) : chartObj.chart === chartType.BAR ? (
         <BarPlot
           data={formattedKpis}
           numberFormat={commonFormat}
@@ -141,7 +123,7 @@ const DashboardKpi = ({ view }) => {
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
-      ) : view.chart === chartType.LINE ? (
+      ) : chartObj.chart === chartType.LINE ? (
         <LinePlot
           data={formattedKpis}
           numberFormat={commonFormat}

@@ -1,6 +1,6 @@
 import { Box, Button } from '@mui/material'
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -26,9 +26,7 @@ import {
   addValuesToProps,
 } from '../../../utils'
 
-const GlobalOutputsToolbar = ({ view, index }) => {
-  const dispatch = useDispatch()
-
+const GlobalOutputsToolbar = ({ chartObj, index }) => {
   const globalOutputs = useSelector(selectAssociatedData)
   const currentPage = useSelector(selectCurrentPage)
   const items = useSelector(selectMergedKpis)
@@ -37,14 +35,17 @@ const GlobalOutputsToolbar = ({ view, index }) => {
     R.propOr({}, 'values', items)
   )
   const sync = useSelector(selectSync)
+  const dispatch = useDispatch()
 
-  const path = ['pages', 'data', currentPage, 'pageLayout', index]
-
+  const path = useMemo(
+    () => ['pages', 'data', currentPage, 'pageLayout', index],
+    [currentPage, index]
+  )
   return (
     <>
       <HeaderSelectWrapper>
         <Select
-          value={R.propOr('Bar', 'chart', view)}
+          value={R.propOr('Bar', 'chart', chartObj)}
           optionsList={[
             {
               label: 'Bar',
@@ -78,17 +79,17 @@ const GlobalOutputsToolbar = ({ view, index }) => {
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
-                value: R.assoc('chart', value)(view),
+                value: R.assoc('chart', value)(chartObj),
               })
             )
           }}
         />
       </HeaderSelectWrapper>
-      {view.chart !== 'Overview' && (
+      {chartObj.chart !== 'Overview' && (
         <>
           <HeaderSelectWrapper>
             <SelectMulti
-              value={R.propOr([], 'sessions', view)}
+              value={R.propOr([], 'sessions', chartObj)}
               header="Select Sessions"
               optionsList={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
               onSelect={(value) => {
@@ -96,7 +97,7 @@ const GlobalOutputsToolbar = ({ view, index }) => {
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('sessions', value, view),
+                    value: R.assoc('sessions', value, chartObj),
                   })
                 )
               }}
@@ -104,7 +105,7 @@ const GlobalOutputsToolbar = ({ view, index }) => {
           </HeaderSelectWrapper>
           <HeaderSelectWrapper>
             <SelectMulti
-              value={R.propOr([], 'globalOutput', view)}
+              value={R.propOr([], 'globalOutput', chartObj)}
               header="Select Global Outputs"
               optionsList={R.pipe(
                 R.filter(R.prop('value')),
@@ -119,7 +120,7 @@ const GlobalOutputsToolbar = ({ view, index }) => {
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('globalOutput', value, view),
+                    value: R.assoc('globalOutput', value, chartObj),
                   })
                 )
               }}
