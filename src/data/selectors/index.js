@@ -1896,7 +1896,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                 'endGradientColor',
               ])
           const color = isCategorical
-            ? R.prop(value, colorRange)
+            ? R.propOr('', value, colorRange)
                 .replace(/[^\d,.]/g, '')
                 .split(',')
             : getScaledRgbObj(
