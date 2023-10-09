@@ -29,6 +29,7 @@ import {
   getScaledArray,
   getScaledRgbObj,
   orderEntireDict,
+  addValuesToProps,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -1208,8 +1209,12 @@ export const selectMemoizedKpiFunc = createSelector(
             name: val.name,
             children: R.pipe(
               R.path(['data', 'globalOutputs', 'data']),
+              R.converge(addValuesToProps, [
+                R.propOr({}, 'props'),
+                R.propOr({}, 'values'),
+              ]),
               R.pick(selectedKpis),
-              R.filter(R.has('value')),
+              R.reject(R.pipe(R.prop('value'), R.isNil)), // It should be filtered by now, but just in case
               withIndex,
               R.map((globalOutput) =>
                 R.assoc(
