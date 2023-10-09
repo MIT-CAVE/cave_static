@@ -107,7 +107,7 @@ const GlobalOutputsToolbar = ({ view, index }) => {
               value={R.propOr([], 'globalOutput', view)}
               header="Select Global Outputs"
               optionsList={R.pipe(
-                R.reject(R.pipe(R.prop('value'), R.isNil)),
+                R.filter(R.prop('value')),
                 withIndex,
                 R.project(['id', 'name', 'icon']),
                 R.map(

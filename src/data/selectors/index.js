@@ -1214,7 +1214,7 @@ export const selectMemoizedKpiFunc = createSelector(
                 R.propOr({}, 'values'),
               ]),
               R.pick(selectedKpis),
-              R.reject(R.pipe(R.prop('value'), R.isNil)), // It should be filtered by now, but just in case
+              R.filter(R.prop('value')), // It should be filtered by now, but just in case
               withIndex,
               R.map((globalOutput) =>
                 R.assoc(
