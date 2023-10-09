@@ -9,6 +9,7 @@ import {
   selectAssociatedData,
   selectSync,
   selectCurrentPage,
+  selectMergedKpis,
 } from '../../../data/selectors'
 
 import {
@@ -18,13 +19,23 @@ import {
   SelectMulti,
 } from '../../compound'
 
-import { withIndex, includesPath, renameKeys } from '../../../utils'
+import {
+  withIndex,
+  includesPath,
+  renameKeys,
+  addValuesToProps,
+} from '../../../utils'
 
 const GlobalOutputsToolbar = ({ view, index }) => {
   const dispatch = useDispatch()
 
   const globalOutputs = useSelector(selectAssociatedData)
   const currentPage = useSelector(selectCurrentPage)
+  const items = useSelector(selectMergedKpis)
+  const props = addValuesToProps(
+    R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
+    R.propOr({}, 'values', items)
+  )
   const sync = useSelector(selectSync)
 
   const path = ['pages', 'data', currentPage, 'pageLayout', index]
@@ -96,16 +107,13 @@ const GlobalOutputsToolbar = ({ view, index }) => {
               value={R.propOr([], 'globalOutput', view)}
               header="Select Global Outputs"
               optionsList={R.pipe(
-                R.values,
-                R.head,
-                R.path(['data', 'globalOutputs', 'data']),
+                R.filter(R.prop('value')),
                 withIndex,
-                R.filter(R.has('value')),
                 R.project(['id', 'name', 'icon']),
                 R.map(
                   renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
                 )
-              )(globalOutputs)}
+              )(props)}
               onSelect={(value) => {
                 dispatch(
                   mutateLocal({
