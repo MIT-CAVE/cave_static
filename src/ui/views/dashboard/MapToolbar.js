@@ -2,6 +2,8 @@ import * as R from 'ramda'
 import { memo, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import ChartDropdownWrapper from './ChartDropdownWrapper'
+
 import { mutateLocal } from '../../../data/local'
 import {
   selectSync,
@@ -9,7 +11,7 @@ import {
   selectMapData,
 } from '../../../data/selectors'
 
-import { HeaderSelectWrapper, Select } from '../../compound'
+import { Select } from '../../compound'
 
 import { getFreeName, includesPath } from '../../../utils'
 
@@ -30,7 +32,7 @@ const MapToolbar = memo(({ chartObj, index }) => {
   )(chartObj)
   return (
     <>
-      <HeaderSelectWrapper>
+      <ChartDropdownWrapper>
         <Select
           value={availableValue}
           placeholder={'Select A Map'}
@@ -99,7 +101,7 @@ const MapToolbar = memo(({ chartObj, index }) => {
             )
           }}
         />
-      </HeaderSelectWrapper>
+      </ChartDropdownWrapper>
     </>
   )
 })

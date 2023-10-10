@@ -4,6 +4,8 @@ import { memo } from 'react'
 import { MdSwapHoriz } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
+import ChartDropdownWrapper from './ChartDropdownWrapper'
+
 import { mutateLocal } from '../../../data/local'
 import {
   selectSync,
@@ -16,7 +18,6 @@ import {
 import { chartMaxGrouping, chartStatUses } from '../../../utils/enums'
 
 import {
-  HeaderSelectWrapper,
   Select,
   SelectAccordion,
   SelectMulti,
@@ -128,10 +129,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       })
     )
   }
-
   return (
     <>
-      <HeaderSelectWrapper>
+      <ChartDropdownWrapper>
         <Select
           value={R.propOr('', 'chart', chartObj)}
           optionsList={[
@@ -219,8 +219,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           displayIcon
           onSelect={handleSelectChart}
         />
-      </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
+      </ChartDropdownWrapper>
+      <ChartDropdownWrapper>
         <Select
           disabled={chartObj.chart === 'Box Plot'}
           value={R.propOr('', 'grouping', chartObj)}
@@ -249,8 +249,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           ]}
           onSelect={handleSelectGrouping}
         />
-      </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
+      </ChartDropdownWrapper>
+      <ChartDropdownWrapper>
         {R.has(R.prop('chart', chartObj), chartStatUses) ? (
           R.length(chartStatUses[chartObj.chart]) !== 0 ? (
             <SelectMultiAccordion
@@ -328,8 +328,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             }}
           />
         )}
-      </HeaderSelectWrapper>
-      <HeaderSelectWrapper>
+      </ChartDropdownWrapper>
+      <ChartDropdownWrapper>
         <SelectAccordion
           {...{ itemGroups }}
           values={getGroupValues()}
@@ -338,18 +338,18 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           getSubLabel={getSubLabelFn(categories)}
           onSelect={handleSelectGroupFn()}
         />
-      </HeaderSelectWrapper>
+      </ChartDropdownWrapper>
 
       {chartMaxGrouping[chartObj.chart] === 2 ? (
         <>
-          <HeaderSelectWrapper
+          <ChartDropdownWrapper
+            elevation={6}
             sx={{
               minWidth: '35px',
               height: '40%',
               my: 'auto',
               borderRadius: '40%',
             }}
-            elevation={6}
           >
             <SwapButton
               onClick={() => {
@@ -369,8 +369,12 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                 )
               }}
             />
-          </HeaderSelectWrapper>
-          <HeaderSelectWrapper
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper
+            menuProps={{
+              transformOrigin: { horizontal: 'right', vertical: 'top' },
+              anchorOrigin: { horizontal: 'right', vertical: 'bottom' },
+            }}
             clearable={R.hasPath(['level', 1], chartObj)}
             onClear={() => {
               dispatch(
@@ -393,7 +397,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               getSubLabel={getSubLabelFn(categories)}
               onSelect={handleSelectGroupFn(1)}
             />
-          </HeaderSelectWrapper>
+          </ChartDropdownWrapper>
         </>
       ) : (
         []

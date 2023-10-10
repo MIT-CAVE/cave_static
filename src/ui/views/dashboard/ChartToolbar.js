@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import { memo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import ChartDropdownWrapper from './ChartDropdownWrapper'
 import GlobalOutputsToolbar from './GlobalOutputsToolbar'
 import GroupedOutputsToolbar from './GroupedOutputsToolbar'
 import MapToolbar from './MapToolbar'
@@ -14,7 +15,7 @@ import {
 } from '../../../data/selectors'
 import { chartType } from '../../../utils/enums'
 
-import { Select, HeaderSelectWrapper } from '../../compound'
+import { Select } from '../../compound'
 
 import { includesPath } from '../../../utils'
 
@@ -73,7 +74,12 @@ const ChartToolbar = ({ chartObj, index, path }) => {
         },
       ]}
     >
-      <HeaderSelectWrapper>
+      <ChartDropdownWrapper
+        menuProps={{
+          transformOrigin: { horizontal: 'left', vertical: 'top' },
+          anchorOrigin: { horizontal: 'left', vertical: 'bottom' },
+        }}
+      >
         <Select
           value={R.propOr('groupedOutputs', 'type')(chartObj)}
           optionsList={[
@@ -95,7 +101,7 @@ const ChartToolbar = ({ chartObj, index, path }) => {
           ]}
           onSelect={handleSelectVizType}
         />
-      </HeaderSelectWrapper>
+      </ChartDropdownWrapper>
 
       {R.propOr('groupedOutputs', 'type', chartObj) === 'groupedOutputs' ? (
         <GroupedOutputsToolbar {...{ chartObj, index }} />

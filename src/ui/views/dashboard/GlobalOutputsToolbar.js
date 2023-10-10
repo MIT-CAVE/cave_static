@@ -3,6 +3,8 @@ import * as R from 'ramda'
 import { memo, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import ChartDropdownWrapper from './ChartDropdownWrapper'
+
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
@@ -12,12 +14,7 @@ import {
   selectMergedKpis,
 } from '../../../data/selectors'
 
-import {
-  FetchedIcon,
-  HeaderSelectWrapper,
-  Select,
-  SelectMulti,
-} from '../../compound'
+import { FetchedIcon, Select, SelectMulti } from '../../compound'
 
 import {
   withIndex,
@@ -43,7 +40,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
   )
   return (
     <>
-      <HeaderSelectWrapper>
+      <ChartDropdownWrapper>
         <Select
           value={R.propOr('Bar', 'chart', chartObj)}
           optionsList={[
@@ -84,10 +81,10 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
             )
           }}
         />
-      </HeaderSelectWrapper>
+      </ChartDropdownWrapper>
       {chartObj.chart !== 'Overview' && (
         <>
-          <HeaderSelectWrapper>
+          <ChartDropdownWrapper>
             <SelectMulti
               value={R.propOr([], 'sessions', chartObj)}
               header="Select Sessions"
@@ -102,8 +99,8 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                 )
               }}
             />
-          </HeaderSelectWrapper>
-          <HeaderSelectWrapper>
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper>
             <SelectMulti
               value={R.propOr([], 'globalOutput', chartObj)}
               header="Select Global Outputs"
@@ -125,8 +122,8 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                 )
               }}
             />
-          </HeaderSelectWrapper>
-          <HeaderSelectWrapper>
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper>
             <Button
               sx={{ minWidth: 0 }}
               variant="outlined"
@@ -154,7 +151,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                 <FetchedIcon iconName="md/MdRefresh" size={32} />
               </Box>
             </Button>
-          </HeaderSelectWrapper>
+          </ChartDropdownWrapper>
         </>
       )}
     </>

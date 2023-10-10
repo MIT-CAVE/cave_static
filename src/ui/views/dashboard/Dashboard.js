@@ -57,7 +57,7 @@ const styles = {
   },
 }
 
-const DashboardItem = ({ chartObj, index, path, sx }) => {
+const DashboardItem = ({ chartObj, index, path }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const mapboxToken = useSelector(selectMapboxToken)
   const pageLayout = useSelector(selectPageLayout)
@@ -87,7 +87,7 @@ const DashboardItem = ({ chartObj, index, path, sx }) => {
         sync: !includesPath(R.values(sync), path),
       })
     )
-  }, [dispatch, isMaximized, sync, chartObj, path])
+  }, [chartObj, dispatch, isMaximized, path, sync])
 
   const handleRemoveChart = useCallback(() => {
     dispatch(
@@ -101,7 +101,12 @@ const DashboardItem = ({ chartObj, index, path, sx }) => {
 
   const vizType = R.propOr('stats', 'type')(chartObj)
   return (
-    <Grid item container xs={isMaximized ? 12 : 6} {...{ sx }}>
+    <Grid
+      item
+      container
+      xs={isMaximized ? 12 : 6}
+      height={isMaximized ? '100%' : '50%'}
+    >
       {chartObj != null && (
         <Paper
           sx={[styles.paper, isMaximized && !showToolbar && { p: 0 }]}
@@ -190,9 +195,6 @@ const Dashboard = () => {
                 key={index}
                 {...{ chartObj, index }}
                 path={[...layoutPath, index]}
-                sx={{
-                  height: index === maximizedIndex ? '100%' : '50%',
-                }}
               />
             )
           })}

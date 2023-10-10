@@ -1,8 +1,12 @@
 import { Grid, IconButton, Paper } from '@mui/material'
 import PropTypes from 'prop-types'
+import { Children } from 'react'
 import { MdCancel } from 'react-icons/md'
+import { useSelector } from 'react-redux'
 
-import { forceArray } from '../../utils'
+import { selectIsMaximized } from '../../../data/selectors'
+
+import { addExtraProps, forceArray } from '../../../utils'
 
 const styles = {
   root: {
@@ -19,13 +23,15 @@ const styles = {
   },
 }
 
-const HeaderSelectWrapper = ({
+const ChartDropdownWrapper = ({
   sx = [],
   clearable = false,
   onClear = () => {},
+  menuProps,
   children,
   ...props
 }) => {
+  const isMaximized = useSelector(selectIsMaximized)
   return (
     <Paper
       component={Grid}
@@ -39,7 +45,16 @@ const HeaderSelectWrapper = ({
       elevation={3}
       {...props}
     >
-      {children}
+      {addExtraProps(Children.only(children), {
+        MenuProps: {
+          sx: {
+            '.MuiMenu-paper': {
+              maxHeight: isMaximized ? 'calc(100% - 88px)' : 'calc(50% - 88px)',
+            },
+          },
+          ...menuProps,
+        },
+      })}
       {clearable && (
         <IconButton sx={styles.button} onClick={onClear}>
           <MdCancel fontSize="medium" />
@@ -48,7 +63,7 @@ const HeaderSelectWrapper = ({
     </Paper>
   )
 }
-HeaderSelectWrapper.propTypes = {
+ChartDropdownWrapper.propTypes = {
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -61,4 +76,4 @@ HeaderSelectWrapper.propTypes = {
   children: PropTypes.node,
 }
 
-export default HeaderSelectWrapper
+export default ChartDropdownWrapper

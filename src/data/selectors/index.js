@@ -411,6 +411,10 @@ export const selectPageLayout = createSelector(
       localDashboardData
     )
 )
+export const selectIsMaximized = createSelector(
+  selectPageLayout,
+  R.pipe(R.findIndex(R.propEq(true)('maximized')), R.lte(0))
+)
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
   (dashboard) => R.propOr(false, 'lockedLayout', dashboard)

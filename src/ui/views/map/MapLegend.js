@@ -97,7 +97,7 @@ const styles = {
     borderColor: 'text.secondary',
     fontWeight: 700,
     // Match the built-in padding & font size
-    // for the left-side `Dropdown`'s `Button`
+    // of the left-side `Dropdown`'s `Button`
     p: '5px 15px',
     fontSize: '0.875rem',
   },
