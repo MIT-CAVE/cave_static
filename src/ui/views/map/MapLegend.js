@@ -92,11 +92,14 @@ const styles = {
   unit: {
     display: 'flex',
     justifyContent: 'center',
-    p: '5px 15px', // Matches the built-in padding for the left-side `Dropdown`'s `Button`
     border: 1,
     borderRadius: 1,
     borderColor: 'text.secondary',
     fontWeight: 700,
+    // Match the built-in padding & font size
+    // for the left-side `Dropdown`'s `Button`
+    p: '5px 15px',
+    fontSize: '0.875rem',
   },
 }
 
@@ -1094,7 +1097,7 @@ const MapLegend = ({ mapId }) => {
       sx={[
         styles.root,
         {
-          right: showPitchSlider ? 98 : 72,
+          right: showPitchSlider ? 98 : 64,
           maxHeight: showBearingSlider
             ? 'calc(100% - 165px)'
             : 'calc(100% - 88px)',
