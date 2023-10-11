@@ -829,8 +829,12 @@ export const selectOptionalViewportsFunc = createSelector(
 // Local -> Map -> layers
 
 const selectLegendTypesFn = createSelector(
-  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (localMapObj, mapDataObj) =>
+  [
+    selectCurrentLocalMapDataByMap,
+    selectCurrentMapDataByMap,
+    selectFeatureData,
+  ],
+  (localMapObj, mapDataObj, mapFeatures) =>
     maxSizedMemoization(
       ({ mapId, layerKey }) => `${mapId}+${layerKey}`,
       ({ mapId, layerKey }) => {
@@ -839,7 +843,12 @@ const selectLegendTypesFn = createSelector(
           R.values,
           R.pluck('data'),
           R.mergeAll,
-          R.filter(R.propEq(layerKey, 'type'))
+          (d) =>
+            R.pipe(
+              R.keys,
+              R.filter((key) => R.pathEq(layerKey, [key, 'type'], mapFeatures)),
+              R.flip(R.pick)(d)
+            )(d)
         )
         return R.when(
           R.isEmpty,
@@ -868,7 +877,7 @@ export const selectAllNodeIcons = createSelector(
         return R.pipe(
           R.pluck('icon'),
           R.values
-        )(typesFn({ mapId, layerKey: 'nodes' }))
+        )(typesFn({ mapId, layerKey: 'node' }))
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -889,7 +898,7 @@ export const selectEnabledArcsFunc = createSelector(
   (enabledTypesFunc) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => enabledTypesFunc({ mapId, layerKey: 'arcs' }),
+      (mapId) => enabledTypesFunc({ mapId, layerKey: 'arc' }),
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -898,7 +907,7 @@ export const selectEnabledNodesFunc = createSelector(
   (enabledTypesFunc) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => enabledTypesFunc({ mapId, layerKey: 'nodes' }),
+      (mapId) => enabledTypesFunc({ mapId, layerKey: 'node' }),
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -907,7 +916,7 @@ export const selectEnabledGeosFunc = createSelector(
   (enabledTypesFunc) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => enabledTypesFunc({ mapId, layerKey: 'geos' }),
+      (mapId) => enabledTypesFunc({ mapId, layerKey: 'geo' }),
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1334,7 +1343,7 @@ export const selectArcRange = createSelector(
             }
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(legendObjectsFunc({ mapId, layerKey: 'arcs' }))
+        )(legendObjectsFunc({ mapId, layerKey: 'arc' }))
     )
 )
 
@@ -1428,7 +1437,7 @@ export const selectNodeRange = createSelector(
             }
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(legendObjectsFunc({ mapId, layerKey: 'nodes' }))
+        )(legendObjectsFunc({ mapId, layerKey: 'node' }))
     )
 )
 export const selectGeoColorRange = createSelector(
@@ -1455,7 +1464,7 @@ export const selectGeoColorRange = createSelector(
             )
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(legendObjectsFunc({ mapId, layerKey: 'geos' }))
+        )(legendObjectsFunc({ mapId, layerKey: 'geo' }))
     )
 )
 

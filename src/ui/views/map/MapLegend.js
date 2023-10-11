@@ -824,6 +824,22 @@ const LegendCard = memo(
     const displayedGeometry = useSelector(selectEnabledGeometryFunc)(mapId)
     const sync = useSelector(selectSync)
 
+    const getGeometryPropName = useCallback(
+      (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
+      [typeObj]
+    )
+    const getGeometryCategoryName = useCallback(
+      (key) =>
+        R.pathOr(
+          capitalize(key),
+          ['props', colorProp, 'options', key, 'name'],
+          typeObj
+        ),
+      [typeObj, colorProp]
+    )
+    // Prevent legend from rendering before data is processed
+    if (R.isEmpty(displayedGeometry)) return []
+
     const basePath = [
       'maps',
       'data',
@@ -842,7 +858,6 @@ const LegendCard = memo(
 
     const groupCalcColorPath = R.append('groupCalcByColor', basePath)
     const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
-
     const allowGrouping = displayedGeometry[geometryType].allowGrouping || false
     const group = displayedGeometry[geometryType].group || false
     const groupCalcBySize =
@@ -861,20 +876,6 @@ const LegendCard = memo(
 
     const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
     const colorRange = geometryRange(geometryType, colorProp, false, mapId)
-
-    const getGeometryPropName = useCallback(
-      (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
-      [typeObj]
-    )
-    const getGeometryCategoryName = useCallback(
-      (key) =>
-        R.pathOr(
-          capitalize(key),
-          ['props', colorProp, 'options', key, 'name'],
-          typeObj
-        ),
-      [typeObj, colorProp]
-    )
 
     return (
       <details key={geometryType} css={nonSx.typeWrapper} open>
@@ -1043,8 +1044,8 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
         </span>
       </summary>
       {R.map((legendItem) => {
-        const { id, value, sizeBy, colorBy, type } = legendItem
-        return type === 'nodes' && R.includes(id, nodeTypes) ? (
+        const { id, value, sizeBy, colorBy } = legendItem
+        return R.includes(id, nodeTypes) ? (
           <MapLegendNodeToggle
             key={id}
             legendGroupId={legendObj.id}
@@ -1055,7 +1056,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             mapId={mapId}
             legendObj={legendItem}
           />
-        ) : type === 'arcs' && R.includes(id, arcTypes) ? (
+        ) : R.includes(id, arcTypes) ? (
           <MapLegendArcToggle
             key={id}
             legendGroupId={legendObj.id}
@@ -1066,7 +1067,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             mapId={mapId}
             legendObj={legendItem}
           />
-        ) : type === 'geos' ? (
+        ) : (
           <MapLegendGeoToggle
             key={id}
             legendGroupId={legendObj.id}
@@ -1076,8 +1077,6 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             mapId={mapId}
             legendObj={legendItem}
           />
-        ) : (
-          []
         )
       })(getSortedGroups('data'))}
     </details>
