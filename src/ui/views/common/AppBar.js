@@ -105,6 +105,7 @@ const getAppBarItem = ({
 }) => {
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
+  const variant = R.prop('variant', obj)
   const path = ['pages', 'currentPage']
 
   return type === paneId.SESSION ? (
@@ -143,24 +144,45 @@ const getAppBarItem = ({
         changePane(key)
       }}
     />
-  ) : type === 'wall' ? (
-    <Tab
-      sx={styles.tab}
-      key={key}
-      value={key}
-      disabled={loading}
-      icon={
-        <FetchedIcon
-          className={nonSx.navIcon}
-          size={25}
-          color={color}
-          iconName={icon}
-        />
-      }
-      onClick={() => {
-        changePane(key)
-      }}
-    />
+  ) : type === 'pane' ? (
+    variant === 'modal' ? (
+      <ButtonInTabs
+        {...{ key, icon, color }}
+        disabled={loading}
+        onClick={() => {
+          dispatch(
+            mutateLocal({
+              path: ['panes', 'paneState', 'center'],
+              value: { open: key, type: 'pane' },
+              sync: !includesPath(R.values(sync), [
+                'panes',
+                'paneState',
+                'center',
+              ]),
+            })
+          )
+        }}
+      />
+    ) : (
+      // default panes to wall
+      <Tab
+        sx={styles.tab}
+        key={key}
+        value={key}
+        disabled={loading}
+        icon={
+          <FetchedIcon
+            className={nonSx.navIcon}
+            size={25}
+            color={color}
+            iconName={icon}
+          />
+        }
+        onClick={() => {
+          changePane(key)
+        }}
+      />
+    )
   ) : type === 'button' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
@@ -176,24 +198,6 @@ const getAppBarItem = ({
               data_path: R.prop('dataPath')(obj),
               data_value: R.prop('dataValue')(obj),
             },
-          })
-        )
-      }}
-    />
-  ) : type === 'modal' ? (
-    <ButtonInTabs
-      {...{ key, icon, color }}
-      disabled={loading}
-      onClick={() => {
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: { open: key, type: 'pane' },
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
           })
         )
       }}
