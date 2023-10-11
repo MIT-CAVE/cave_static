@@ -8,6 +8,7 @@ import {
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
+  NUMBER_FORMAT_KEYS,
 } from '../../utils/constants'
 import { propId, statId, chartStatUses } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
@@ -225,29 +226,12 @@ export const selectDebug = createSelector(
 )
 export const selectNumberFormat = createSelector(
   selectSettingsData,
-  R.propOr({}, 'numberFormat')
+  R.pipe(R.propOr({}, 'defaults'), R.pick(NUMBER_FORMAT_KEYS))
 )
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
   R.curry((numberFormat, props) =>
-    R.mergeRight(
-      numberFormat,
-      R.pick([
-        'locale',
-        'precision',
-        'notation',
-        'notationDisplay',
-        'trailingZeros',
-        'unit',
-        'unitPlacement',
-        'fallbackValue',
-        'legendPrecision',
-        'legendNotation',
-        'legendNotationDisplay',
-        'legendMinLabel',
-        'legendMaxLabel',
-      ])(props)
-    )
+    R.mergeRight(numberFormat, R.pick(NUMBER_FORMAT_KEYS)(props))
   )
 )
 export const selectDemoSettings = createSelector(

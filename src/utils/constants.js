@@ -176,3 +176,19 @@ export const CHART_DEFAULTS = {
   chart: chartType.BAR,
   grouping: 'Sum',
 }
+
+export const NUMBER_FORMAT_KEYS = [
+  'locale',
+  'precision',
+  'notation',
+  'notationDisplay',
+  'trailingZeros',
+  'unit',
+  'unitPlacement',
+  'fallbackValue',
+  'legendPrecision',
+  'legendNotation',
+  'legendNotationDisplay',
+  'legendMinLabel',
+  'legendMaxLabel',
+]

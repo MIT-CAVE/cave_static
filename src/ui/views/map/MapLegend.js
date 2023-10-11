@@ -156,7 +156,7 @@ const getMinMaxLabel = (valRange, numberFormatRaw, group, end, labelEnd) => {
   const getNumLabel = () =>
     NumberFormat.format(R.prop(end, valRange), {
       ...numberFormat,
-      // Formatting hierarchy: `props.legend<key>` -> `settings.legend<key>` -> `props.<key>` -> `settings.<key>`
+      // Formatting hierarchy: `props.legend<key>` -> `settings.defaults.legend<key>` -> `props.<key>` -> `settings.defaults.<key>`
       ...{
         precision: numberFormat.legendPrecision || numberFormat.precision,
         notation: numberFormat.legendNotation || numberFormat.notation,
