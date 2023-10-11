@@ -99,6 +99,7 @@ const FlexibleChart = ({ options, ...props }) => (
       echarts={echarts}
       option={options}
       notMerge
+      theme="dark"
       // lazyUpdate
       {...props}
     />
