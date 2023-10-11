@@ -997,7 +997,7 @@ const getMergedAllProps = (data) =>
           R.pluck(idx)
         )(type)
         return R.pipe(
-          R.over(R.lensProp('values'), R.mergeLeft(values)),
+          R.assoc('values', values),
           R.mergeLeft(location),
           R.assoc('type', key),
           R.dissoc('data')
