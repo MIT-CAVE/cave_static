@@ -474,6 +474,8 @@ const allowedRangeKeys = [
   'nullColor',
   'nullSize',
   'timeValues',
+  'startSize',
+  'endSize',
 ]
 
 // checks that range is either min/max or list of strings

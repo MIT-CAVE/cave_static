@@ -353,8 +353,8 @@ const MapLegendSizeBySection = ({
     geometryType,
   ]
   const iconPath = R.append('icon')(typePath)
-  const startSizePath = R.append('startSize')(typePath)
-  const endSizePath = R.append('endSize')(typePath)
+  const startSizePath = [...typePath, 'sizeByOptions', sizeProp, 'startSize']
+  const endSizePath = [...typePath, 'sizeByOptions', sizeProp, 'endSize']
 
   return (
     <>
@@ -396,7 +396,7 @@ const MapLegendSizeBySection = ({
       {/* Second row: Size icons with value range */}
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         <SizePickerTooltip
-          value={parseFloat(R.prop('startSize')(legendObj))}
+          value={parseFloat(R.prop('startSize')(sizeRange))}
           onSelect={(newSize) => {
             dispatch(
               mutateLocal({
@@ -443,23 +443,23 @@ const MapLegendSizeBySection = ({
             <Grid item sx={{ pr: 0.75 }}>
               {addExtraProps(icon, {
                 css: {
-                  width: R.prop('startSize')(legendObj),
-                  height: R.prop('startSize')(legendObj),
+                  width: R.prop('startSize')(sizeRange),
+                  height: R.prop('startSize')(sizeRange),
                 },
               })}
             </Grid>
             <Grid item sx={{ pl: 0.75 }}>
               {addExtraProps(icon, {
                 css: {
-                  width: R.prop('endSize')(legendObj),
-                  height: R.prop('endSize')(legendObj),
+                  width: R.prop('endSize')(sizeRange),
+                  height: R.prop('endSize')(sizeRange),
                 },
               })}
             </Grid>
           </Grid>
         </StableTooltip>
         <SizePickerTooltip
-          value={parseFloat(R.prop('endSize')(legendObj))}
+          value={parseFloat(R.prop('endSize')(sizeRange))}
           onSelect={(newSize) => {
             dispatch(
               mutateLocal({

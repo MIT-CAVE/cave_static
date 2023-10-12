@@ -1795,8 +1795,8 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               : getScaledValue(
                   R.prop('min', sizeRange),
                   R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', legendObj)),
-                  parseFloat(R.prop('endSize', legendObj)),
+                  parseFloat(R.prop('startSize', sizeRange)),
+                  parseFloat(R.prop('endSize', sizeRange)),
                   sizePropVal
                 )
             const colorProp = legendObj.colorBy
@@ -1870,12 +1870,12 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeRange =
             nodeClustersFunc(mapId).range[group.properties.type].size
           const sizePropObj = R.path(['properties', 'sizeProp'], group)
-
+          const sizeProp = legendObj.sizeBy
           const size = getScaledValue(
             R.prop('min', sizeRange),
             R.prop('max', sizeRange),
-            parseFloat(R.prop('startSize', legendObj)),
-            parseFloat(R.prop('endSize', legendObj)),
+            parseFloat(R.prop('startSize', legendObj.sizeByOptions[sizeProp])),
+            parseFloat(R.prop('endSize', legendObj.sizeByOptions[sizeProp])),
             parseFloat(sizePropObj.value)
           )
 
@@ -1960,8 +1960,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               : getScaledValue(
                   R.prop('min', sizeRange),
                   R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', legendObj)),
-                  parseFloat(R.prop('endSize', legendObj)),
+                  parseFloat(R.prop('startSize', sizeRange)),
+                  parseFloat(R.prop('endSize', sizeRange)),
                   sizePropVal
                 )
             const colorProp = legendObj.colorBy
@@ -2058,8 +2058,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
               : getScaledValue(
                   R.prop('min', sizeRange),
                   R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', arc)),
-                  parseFloat(R.prop('endSize', arc)),
+                  parseFloat(R.prop('startSize', sizeRange)),
+                  parseFloat(R.prop('endSize', sizeRange)),
                   sizePropVal
                 )
             const colorProp = legendObj.colorBy

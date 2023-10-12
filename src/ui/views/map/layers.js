@@ -156,8 +156,8 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           : getScaledValue(
               R.prop('min', sizeRange),
               R.prop('max', sizeRange),
-              parseFloat(R.path([d.type, 'startSize'], enabledArcs)),
-              parseFloat(R.path([d.type, 'endSize'], enabledArcs)),
+              parseFloat(R.prop('startSize', sizeRange)),
+              parseFloat(R.prop('endSize', sizeRange)),
               propVal
             )
       }
