@@ -99,7 +99,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
     )
   }, [dispatch, pageLayout, sync, index, path])
 
-  const vizType = R.propOr('stats', 'type')(chartObj)
+  const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   return (
     <Grid
       item
@@ -124,15 +124,15 @@ const DashboardItem = ({ chartObj, index, path }) => {
               onShowToolbar={handleShowToolbar}
             />
           )}
-          {vizType === 'stats' ? (
-            chartObj.statistic && (
+          {vizType === 'groupedOutput' ? (
+            chartObj.statId && (
               <Suspense fallback={<CircularProgress sx={styles.loader} />}>
                 <DashboardChart {...{ chartObj }} />
               </Suspense>
             )
-          ) : vizType === 'maps' && chartObj.mapId ? (
+          ) : vizType === 'map' && chartObj.mapId ? (
             <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
-          ) : vizType === 'globalOutputs' ? (
+          ) : vizType === 'globalOutput' ? (
             <DashboardKpi {...{ chartObj }} />
           ) : null}
         </Paper>

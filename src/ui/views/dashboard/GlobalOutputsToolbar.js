@@ -42,7 +42,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     <>
       <ChartDropdownWrapper>
         <Select
-          value={R.propOr('Bar', 'chart', chartObj)}
+          value={R.propOr('Bar', 'variant', chartObj)}
           optionsList={[
             {
               label: 'Bar',
@@ -76,13 +76,13 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
               mutateLocal({
                 path,
                 sync: !includesPath(R.values(sync), path),
-                value: R.assoc('chart', value)(chartObj),
+                value: R.assoc('variant', value)(chartObj),
               })
             )
           }}
         />
       </ChartDropdownWrapper>
-      {chartObj.chart !== 'Overview' && (
+      {chartObj.variant !== 'Overview' && (
         <>
           <ChartDropdownWrapper>
             <SelectMulti

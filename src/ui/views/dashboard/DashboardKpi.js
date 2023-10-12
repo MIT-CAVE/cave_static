@@ -50,16 +50,14 @@ const DashboardKpi = ({ chartObj }) => {
 
   const formattedKpis = globalOutputFunc(chartObj)
 
-  const isTable = R.prop('chart', chartObj) === 'Table'
+  const isTable = R.prop('variant', chartObj) === 'Table'
 
   const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', chartObj))
-
   const globalOutputData = R.pipe(
     R.values,
     R.head,
-    R.pathOr({}, ['data', 'globalOutputs', 'data']),
-    R.pick(actualKpiRaw),
-    R.filter(R.has('value'))
+    R.pathOr({}, ['data', 'globalOutputs', 'data', 'props']),
+    R.pick(actualKpiRaw)
   )(globalOutputs)
 
   const actualKpi = R.pipe(withIndex, R.pluck('id'))(globalOutputData)
@@ -73,7 +71,6 @@ const DashboardKpi = ({ chartObj }) => {
     actualKpi,
     globalOutputUnits
   )
-
   // FIXME: This should receive column types set by designers in the API
   const tableColTypes = isTable
     ? R.pipe(
@@ -88,7 +85,6 @@ const DashboardKpi = ({ chartObj }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
-
   return (
     <Box
       sx={{
@@ -98,7 +94,7 @@ const DashboardKpi = ({ chartObj }) => {
         height: '50%',
       }}
     >
-      {chartObj.chart === chartType.OVERVIEW ? (
+      {chartObj.variant === chartType.OVERVIEW ? (
         <Box sx={{ overflow: 'auto', mx: 'auto' }}>
           {renderPropsLayout({
             layout,
@@ -106,14 +102,14 @@ const DashboardKpi = ({ chartObj }) => {
             onChangeProp: () => null,
           })}
         </Box>
-      ) : chartObj.chart === chartType.TABLE ? (
+      ) : chartObj.variant === chartType.TABLE ? (
         <TableChart
           data={formattedKpis}
           numberFormat={commonFormat}
           columnTypes={tableColTypes}
           labels={R.prepend('Session')(tableLabels)}
         />
-      ) : chartObj.chart === chartType.BAR ? (
+      ) : chartObj.variant === chartType.BAR ? (
         <BarPlot
           data={formattedKpis}
           numberFormat={commonFormat}
@@ -123,7 +119,7 @@ const DashboardKpi = ({ chartObj }) => {
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
-      ) : chartObj.chart === chartType.LINE ? (
+      ) : chartObj.variant === chartType.LINE ? (
         <LinePlot
           data={formattedKpis}
           numberFormat={commonFormat}

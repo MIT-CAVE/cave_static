@@ -47,16 +47,14 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
-
   const groupByOptions =
-    R.has('statistic')(chartObj) &&
-    R.pathSatisfies(R.is(String), ['statistic', 0], chartObj)
+    R.has('statId')(chartObj) &&
+    R.propSatisfies(R.is(String), 'statId', chartObj)
       ? R.pipe(
-          R.path([R.prop('statistic', chartObj)[0], 'groupLists']),
+          R.path([R.prop('groupedOutputDataId', chartObj), 'groupLists']),
           R.keys
         )(groupedOutputs)
       : R.keys(categories)
-
   const groupableCategories = R.isNil(groupByOptions)
     ? categories
     : R.pick(groupByOptions, categories)
@@ -64,26 +62,25 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const sortedLevelsByCategory =
     R.mapObjIndexed(getCategoryItems)(groupableCategories)
   const itemGroups = R.pipe(
-    R.pick(R.keys(sortedLevelsByCategory)), // Drop any category not included in `nestedStructure`
+    R.pick(R.keys(sortedLevelsByCategory)), // Drop any category not included in `levels`
     withIndex,
     R.project(['id', 'grouping', 'layoutDirection']),
     R.map((item) => R.assoc('subItems', sortedLevelsByCategory[item.id])(item)),
     R.groupBy(R.prop('grouping'))
   )(categories)
   const removeExtraLevels = (obj) =>
-    R.isNotNil(chartMaxGrouping[obj.chart])
+    R.isNotNil(chartMaxGrouping[obj.variant])
       ? R.pipe(
           R.assoc(
-            'level',
-            R.slice(0, chartMaxGrouping[obj.chart], obj.level || [])
+            'groupingLevel',
+            R.slice(0, chartMaxGrouping[obj.variant], obj.groupingLevel || [])
           ),
           R.assoc(
-            'category',
-            R.slice(0, chartMaxGrouping[obj.chart], obj.category || [])
+            'groupingId',
+            R.slice(0, chartMaxGrouping[obj.variant], obj.groupingId || [])
           )
         )(obj)
       : obj
-
   const path = ['pages', 'data', currentPage, 'pageLayout', index]
   const handleSelectGroupFn =
     (n = 0) =>
@@ -93,15 +90,15 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           path,
           sync: !includesPath(R.values(sync), path),
           value: R.pipe(
-            R.assocPath(['category', n], item),
-            R.assocPath(['level', n], subItem)
+            R.assocPath(['groupingId', n], item),
+            R.assocPath(['groupingLevel', n], subItem)
           )(chartObj),
         })
       )
     }
   const getGroupValues = (n = 0) =>
     R.pipe(
-      R.props(['category', 'level']),
+      R.props(['groupingId', 'groupingLevel']),
       R.pluck(n),
       R.when(R.any(R.isNil), R.always(''))
     )(chartObj)
@@ -112,20 +109,21 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         sync: !includesPath(R.values(sync), path),
         path,
         value: R.pipe(
-          R.assoc('chart', value),
-          R.dissoc('statistic'),
+          R.assoc('variant', value),
+          R.dissoc('statId'),
+          R.dissoc('groupedOutputDataId'),
           removeExtraLevels
         )(chartObj),
       })
     )
   }
 
-  const handleSelectGrouping = (value) => {
+  const handleSelectStatAggregation = (value) => {
     dispatch(
       mutateLocal({
         path,
         sync: !includesPath(R.values(sync), path),
-        value: R.assoc('grouping', value, chartObj),
+        value: R.assoc('statAggregation', value, chartObj),
       })
     )
   }
@@ -133,7 +131,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     <>
       <ChartDropdownWrapper>
         <Select
-          value={R.propOr('', 'chart', chartObj)}
+          value={R.propOr('', 'variant', chartObj)}
           optionsList={[
             {
               label: 'Bar',
@@ -222,8 +220,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       </ChartDropdownWrapper>
       <ChartDropdownWrapper>
         <Select
-          disabled={chartObj.chart === 'Box Plot'}
-          value={R.propOr('', 'grouping', chartObj)}
+          disabled={chartObj.variant === 'Box Plot'}
+          value={R.propOr('', 'statAggregation', chartObj)}
           displayIcon
           optionsList={[
             {
@@ -247,25 +245,31 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               iconName: 'md/MdVerticalAlignTop',
             },
           ]}
-          onSelect={handleSelectGrouping}
+          onSelect={handleSelectStatAggregation}
         />
       </ChartDropdownWrapper>
       <ChartDropdownWrapper>
-        {R.has(R.prop('chart', chartObj), chartStatUses) ? (
-          R.length(chartStatUses[chartObj.chart]) !== 0 ? (
+        {R.has(R.prop('variant', chartObj), chartStatUses) ? (
+          R.length(chartStatUses[chartObj.variant]) !== 0 ? (
             <SelectMultiAccordion
               itemGroups={{
                 undefined: R.addIndex(R.map)((_, idx) => ({
                   id: idx,
                   layoutDirection: 'vertical',
                   subItems: R.values(statNames),
-                }))(chartStatUses[chartObj.chart]),
+                }))(chartStatUses[chartObj.variant]),
               }}
-              values={R.propOr([], 'statistic', chartObj)}
+              values={R.zip(
+                R.propOr([], 'groupedOutputDataId', chartObj),
+                R.propOr([], 'statId', chartObj)
+              )}
               header="Select Statistics"
               getLabel={(idx) => {
-                const use = chartStatUses[chartObj.chart][idx]
-                const currentStats = R.propOr([], 'statistic', chartObj)
+                const use = chartStatUses[chartObj.variant][idx]
+                const currentStats = R.zip(
+                  R.propOr([], 'groupedOutputDataId', chartObj),
+                  R.propOr([], 'statId', chartObj)
+                )
                 return R.is(Array, currentStats) && R.has(idx, currentStats)
                   ? `${use}: ${getGroupLabelFn(
                       statisticTypes,
@@ -275,17 +279,22 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               }}
               getSubLabel={(_, stat) => getGroupLabelFn(statisticTypes, stat)}
               onSelect={(index, value) => {
-                const newVal = R.equals(
-                  R.path(['statistic', index], chartObj),
-                  value
-                )
-                  ? undefined
-                  : value
+                const newVal =
+                  R.equals(R.path(['statId', index], chartObj), value[1]) &&
+                  R.equals(
+                    R.path(['groupedOutputDataId', index], chartObj),
+                    value[0]
+                  )
+                    ? [undefined, undefined]
+                    : value
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assocPath(['statistic', index], newVal, chartObj),
+                    value: R.pipe(
+                      R.assocPath(['statId', index], newVal[1]),
+                      R.assocPath(['groupedOutputDataId', index], newVal[0])
+                    )(chartObj),
                   })
                 )
               }}
@@ -293,15 +302,22 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           ) : (
             <SelectMulti
               getLabel={getGroupLabelFn(statisticTypes)}
-              value={R.propOr([], 'statistic', chartObj)}
+              value={R.zip(
+                R.propOr([], 'groupedOutputDataId', chartObj),
+                R.propOr([], 'statId', chartObj)
+              )}
               header="Select Statistics"
               optionsList={R.values(statNames)}
               onSelect={(value) => {
+                console.log(value)
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('statistic', value, chartObj),
+                    value: R.pipe(
+                      R.assoc('statId', R.pluck(1, value)),
+                      R.assoc('groupedOutputDataId', R.pluck(0, value))
+                    )(chartObj),
                   })
                 )
               }}
@@ -310,7 +326,14 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         ) : (
           <Select
             getLabel={getGroupLabelFn(statisticTypes)}
-            value={R.propOr('', 'statistic', chartObj)}
+            value={
+              R.propOr(false, 'statId', chartObj)
+                ? [
+                    R.propOr('', 'groupedOutputDataId', chartObj),
+                    R.propOr('', 'statId', chartObj),
+                  ]
+                : ''
+            }
             placeholder="Statistic"
             optionsList={R.values(statNames)}
             onSelect={(value) => {
@@ -319,9 +342,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   path,
                   sync: !includesPath(R.values(sync), path),
                   value: R.pipe(
-                    R.assoc('statistic', value),
-                    R.dissoc('level'),
-                    R.dissoc('category')
+                    R.assoc('statId', value[1]),
+                    R.assoc('groupedOutputDataId', value[0]),
+                    R.dissoc('groupingLevel'),
+                    R.dissoc('groupingId')
                   )(chartObj),
                 })
               )
@@ -340,7 +364,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         />
       </ChartDropdownWrapper>
 
-      {chartMaxGrouping[chartObj.chart] === 2 ? (
+      {chartMaxGrouping[chartObj.variant] === 2 ? (
         <>
           <ChartDropdownWrapper
             elevation={6}
@@ -353,17 +377,17 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           >
             <SwapButton
               onClick={() => {
-                const [category, level] = getGroupValues()
-                const [category2, level2] = getGroupValues(1)
+                const [grouping, level] = getGroupValues()
+                const [grouping2, level2] = getGroupValues(1)
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
                     value: R.pipe(
-                      R.assocPath(['category', 0], category2),
-                      R.assocPath(['level', 0], level2),
-                      R.assocPath(['category', 1], category),
-                      R.assocPath(['level', 1], level)
+                      R.assocPath(['groupingId', 0], grouping2),
+                      R.assocPath(['groupingLevel', 0], level2),
+                      R.assocPath(['groupingId', 1], grouping),
+                      R.assocPath(['groupingLevel', 1], level)
                     )(chartObj),
                   })
                 )
@@ -375,15 +399,15 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               transformOrigin: { horizontal: 'right', vertical: 'top' },
               anchorOrigin: { horizontal: 'right', vertical: 'bottom' },
             }}
-            clearable={R.hasPath(['level', 1], chartObj)}
+            clearable={R.hasPath(['groupingLevel', 1], chartObj)}
             onClear={() => {
               dispatch(
                 mutateLocal({
                   path,
                   sync: !includesPath(R.values(sync), path),
                   value: R.pipe(
-                    R.dissocPath(['category', 1]),
-                    R.dissocPath(['level', 1])
+                    R.dissocPath(['groupingId', 1]),
+                    R.dissocPath(['groupingLevel', 1])
                   )(chartObj),
                 })
               )

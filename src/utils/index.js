@@ -84,11 +84,11 @@ export const getLabelFn = R.curry((data, item) =>
   R.pathOr(item, [item, 'name'])(data)
 )
 export const getSubLabelFn = R.curry((data, item, subItem) =>
-  R.pathOr(subItem, [item, 'nestedStructure', subItem, 'name'])(data)
+  R.pathOr(subItem, [item, 'levels', subItem, 'name'])(data)
 )
 
 export const getColoringFn = R.curry((data, item, subItem) =>
-  R.pathOr({}, [item, 'nestedStructure', subItem, 'coloring'])(data)
+  R.pathOr({}, [item, 'levels', subItem, 'coloring'])(data)
 )
 
 export const getFreeName = (name, namesList) => {
@@ -435,18 +435,15 @@ export const sortByOrderNameId = R.sortWith([
 export const withIndex = toListWithKey('id')
 
 export const getCategoryItems = R.cond([
-  [
-    R.has('nestedStructure'),
-    R.pipe(R.prop('nestedStructure'), withIndex, R.pluck('id')),
-  ],
+  [R.has('levels'), R.pipe(R.prop('levels'), withIndex, R.pluck('id'))],
   // The category value has not been loaded yet or is empty
   [R.isEmpty, R.always([])],
-  // `nestedStructure` must be specified
+  // `levels` must be specified
   [
     R.T,
     () => {
       // This should be part of a full validation mechanism for the data struct
-      throw Error('Missing the `nestedStructure` property')
+      throw Error('Missing the `levels` property')
     },
     // Optionally, we might want to retrieve the level names from the data
     // R.pipe(R.prop('data'), R.values, R.head, R.keys)

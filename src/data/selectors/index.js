@@ -1075,9 +1075,9 @@ export const selectMemoizedChartFunc = createSelector(
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const actualStat = R.is(Array, obj.statistic[0])
-          ? obj.statistic
-          : [obj.statistic]
+        const actualStat = R.is(Array, obj.statId)
+          ? R.zip(obj.groupedOutputDataId, obj.statId)
+          : [[obj.groupedOutputDataId, obj.statId]]
         const mergeFuncs = {
           Sum: R.sum,
           Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
@@ -1089,7 +1089,7 @@ export const selectMemoizedChartFunc = createSelector(
         const categoryFunc = R.curry((category, level, outputGroup) => {
           const createParentalPath = (path, currentLevel) => {
             const parent = R.path(
-              [category, 'nestedStructure', currentLevel, 'parent'],
+              [category, 'levels', currentLevel, 'parent'],
               groupings
             )
             if (R.isNil(parent)) return R.append(currentLevel, path)
@@ -1108,8 +1108,8 @@ export const selectMemoizedChartFunc = createSelector(
         })
         // List of groupBy, subGroupBy etc...
         const groupBys = R.map((idx) =>
-          categoryFunc(obj.category[idx], obj.level[idx])
-        )(R.range(0, R.length(obj.category)))
+          categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
+        )(R.range(0, R.length(obj.groupingId)))
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
           calculateStatAnyDepth(groupedOutputs[stat[0]])(
@@ -1123,9 +1123,9 @@ export const selectMemoizedChartFunc = createSelector(
         const ordering = R.pathOr(
           [],
           [
-            R.path(['category', 0], obj),
-            'nestedStructure',
-            R.path(['level', 0], obj),
+            R.path(['groupingId', 0], obj),
+            'levels',
+            R.path(['groupingLevel', 0], obj),
             'ordering',
           ]
         )(groupings)
@@ -1137,7 +1137,9 @@ export const selectMemoizedChartFunc = createSelector(
             R.is(Array),
             R.pipe(
               R.filter(R.is(Number)),
-              obj.chart !== 'Box Plot' ? mergeFuncs[obj.grouping] : R.identity
+              obj.variant !== 'Box Plot'
+                ? mergeFuncs[obj.statAggregation]
+                : R.identity
             ),
             R.identity
           ),
@@ -1149,7 +1151,7 @@ export const selectMemoizedChartFunc = createSelector(
             ? R.pipe(R.values, R.head, (item) => R.type(item) === 'Object')(val)
               ? R.values(
                   R.mapObjIndexed((value, key) => ({
-                    name: R.isNil(obj.category) ? 'All' : key,
+                    name: R.isNil(obj.groupingId) ? 'All' : key,
                     children: recursiveMapLayers(value),
                   }))(val)
                 )
@@ -1192,7 +1194,7 @@ export const selectMemoizedChartFunc = createSelector(
           R.values
         )
 
-        return R.is(Array, obj.statistic[0])
+        return R.is(Array, obj.statId)
           ? mergeMultiStatData(formattedData)
           : R.head(formattedData)
       },
@@ -1242,7 +1244,7 @@ export const selectMemoizedKpiFunc = createSelector(
             )(val),
           })),
           R.when(
-            R.always(R.has(R.prop('chart', obj), chartStatUses)),
+            R.always(R.has(R.prop('variant', obj), chartStatUses)),
             R.map((session) => ({
               name: session.name,
               value: R.unnest(R.pluck('value', session.children)),

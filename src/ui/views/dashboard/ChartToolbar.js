@@ -39,13 +39,13 @@ const ChartToolbar = ({ chartObj, index, path }) => {
           path,
           value: R.pipe(
             R.assoc('type', value),
-            // If we switch to globalOutputs and an unsupported plot
+            // If we switch to globalOutput and an unsupported plot
             // is selected, we change to a table
             R.when(
               R.both(
-                R.always(R.equals('globalOutputs')(value)),
+                R.always(R.equals('globalOutput')(value)),
                 R.pipe(
-                  R.prop('chart'),
+                  R.prop('variant'),
                   R.includes(R.__, [
                     chartType.BAR,
                     chartType.LINE,
@@ -54,7 +54,7 @@ const ChartToolbar = ({ chartObj, index, path }) => {
                   R.not
                 )
               ),
-              R.assoc('chart', 'Table')
+              R.assoc('variant', 'Table')
             )
           )(chartObj),
           sync: !includesPath(R.values(sync), path),
@@ -81,21 +81,21 @@ const ChartToolbar = ({ chartObj, index, path }) => {
         }}
       >
         <Select
-          value={R.propOr('groupedOutputs', 'type')(chartObj)}
+          value={R.propOr('groupedOutput', 'type')(chartObj)}
           optionsList={[
             {
               label: 'Grouped Outputs',
-              value: 'groupedOutputs',
+              value: 'groupedOutput',
               iconName: 'md/MdMultilineChart',
             },
             {
               label: 'Global Outputs',
-              value: 'globalOutputs',
+              value: 'globalOutput',
               iconName: 'md/MdSpeed',
             },
             {
               label: 'Maps',
-              value: 'maps',
+              value: 'map',
               iconName: 'fa/FaMapMarked',
             },
           ]}
@@ -103,9 +103,9 @@ const ChartToolbar = ({ chartObj, index, path }) => {
         />
       </ChartDropdownWrapper>
 
-      {R.propOr('groupedOutputs', 'type', chartObj) === 'groupedOutputs' ? (
+      {R.propOr('groupedOutput', 'type', chartObj) === 'groupedOutput' ? (
         <GroupedOutputsToolbar {...{ chartObj, index }} />
-      ) : chartObj.type === 'globalOutputs' ? (
+      ) : chartObj.type === 'globalOutput' ? (
         <GlobalOutputsToolbar {...{ chartObj, index }} />
       ) : (
         <MapToolbar {...{ chartObj, index }} />
