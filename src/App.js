@@ -163,6 +163,9 @@ const App = () => {
               paper: '#4a4a4a',
             },
           },
+          typography: {
+            fontFamily: 'inherit',
+          },
         })}
       >
         <Box sx={styles.root}>
