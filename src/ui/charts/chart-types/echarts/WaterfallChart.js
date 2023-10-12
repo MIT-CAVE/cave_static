@@ -188,70 +188,23 @@ const WaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: '#4a4a4a',
-    legend: {
-      type: 'scroll',
-      top: 24,
-    },
     tooltip: {
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: '#4a4a4a',
-      trigger: 'axis',
-      textStyle: {
-        color: '#ffffff',
-      },
-    },
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
     },
     xAxis: {
       name: xAxisTitle,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 40,
-      type: 'category',
-      splitLine: { show: false },
       data: xLabels,
-      axisLabel: {
-        hideOverlap: true,
-        interval: 0,
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
       scale: true,
       // Add the maximum to do the scaling
       // As well as the min value
       min: yMin,
       max: yMax,
-      axisLine: {
-        show: true,
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
-      },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 3,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
       },
     },
     series,
@@ -515,9 +468,6 @@ const StackedWaterfallChart = ({
     },
     nodes: nodesData,
     tooltip: {
-      trigger: 'item',
-      backgroundColor: '#4a4a4a',
-      textStyle: { color: '#ffffff' },
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
   })
@@ -552,76 +502,33 @@ const StackedWaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: '#4a4a4a',
-    legend: {
-      type: 'scroll',
-      data: [
-        ...subGroupLabels,
-        { name: 'Initial', icon: 'diamond' },
-        { name: 'Net Change', icon: 'circle' },
-      ],
-      top: 24,
-    },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: '#4a4a4a',
-      textStyle: { color: '#ffffff' },
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-    },
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 40,
-      type: 'category',
-      splitLine: { show: false },
       data: xLabels,
-      axisLabel: {
-        hideOverlap: true,
-        interval: 0,
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
       scale: true,
       // Add the maximum to do the scaling
       // As well as the min value
       min: yMin,
       max: yMax,
-      axisLine: {
-        show: true,
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 3,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
-      },
     },
     series,
+    legend: {
+      data: [
+        ...subGroupLabels,
+        { name: 'Initial', icon: 'diamond' },
+        { name: 'Net Change', icon: 'circle' },
+      ],
+    },
+    tooltip: {
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+    },
   }
 
   return <FlexibleChart {...{ options }} />

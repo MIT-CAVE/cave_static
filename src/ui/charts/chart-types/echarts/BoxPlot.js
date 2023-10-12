@@ -111,74 +111,22 @@ const EchartsBoxPlot = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: '#4a4a4a',
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
       nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      axisLabel: {
-        // rotate: 45,
-        hideOverlap: true,
-        interval: 0,
-      },
-      type: 'category',
       data: xLabels,
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
-      },
-      splitLine: {
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 2,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
       },
     },
     series,
     legend,
     tooltip: {
-      trigger: 'axis',
-      backgroundColor: '#4a4a4a',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      textStyle: {
-        color: '#ffffff',
-      },
     },
   }
 

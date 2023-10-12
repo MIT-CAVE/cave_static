@@ -67,7 +67,7 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
         (acc, value) => [
           acc + 1,
           {
-            value,
+            value: NumberFormat.format(value, numberFormat),
             name: xLabels[acc],
             title: {
               offsetCenter: [`${calculateOffset(acc)}%`, '90%'],
@@ -106,21 +106,8 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
   )(initialSeries)
 
   const options = {
-    backgroundColor: '#4a4a4a',
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
-      nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
       axisLine: {
         show: false,
       },
@@ -140,14 +127,6 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
       },
     },
     series,
-    tooltip: {
-      trigger: 'axis',
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: '#4a4a4a',
-      textStyle: {
-        color: '#ffffff',
-      },
-    },
   }
 
   return <FlexibleChart {...{ options }} />

@@ -82,7 +82,8 @@ const Sunburst = ({ data, colors }) => {
     //       fontSize: 20,
     //     },
     //   },
-    backgroundColor: '#4a4a4a',
+    xAxis: null,
+    yAxis: null,
     series: {
       radius: [60, '90%'],
       label: {
@@ -100,11 +101,7 @@ const Sunburst = ({ data, colors }) => {
       // data: exampleNestedData
     },
     tooltip: {
-      backgroundColor: '#4a4a4a',
       trigger: 'item',
-      textStyle: {
-        color: '#ffffff',
-      },
     },
   }
 

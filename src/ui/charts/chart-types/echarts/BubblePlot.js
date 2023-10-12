@@ -57,68 +57,38 @@ const BubblePlot = ({ data, labels, numberFormat, colors }) => {
   )(initialSeries)
 
   const options = {
-    backgroundColor: '#4a4a4a',
     grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
+      top: 100,
     },
     title: {
       text: `Size: ${labels[3]}`,
       left: '5%',
-      top: 15,
+      top: 50,
       textStyle: {
-        fontSize: 16,
+        fontSize: 20,
       },
     },
     xAxis: {
       name: labels[1],
-      nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
       // This fixes bug where points at the max/min don't render
       min: xMin - 0.01 * xRange,
       max: xMax + 0.01 * xRange,
-      axisLine: {
-        show: true,
-      },
       type: 'value',
     },
     yAxis: {
       name: labels[2],
-      type: 'value',
-      nameGap: 40,
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameLocation: 'middle',
       min: yMin - 0.01 * yRange,
       max: yMax + 0.01 * yRange,
-      axisLine: {
-        show: true,
-      },
-    },
-    legend: {
-      // We might deal better with legend overlapping in the future.
-      // Keep track of:
-      // - https://github.com/apache/echarts/pull/16825
-      // - https://github.com/apache/echarts/issues/15654
-      type: 'scroll',
-      top: 24,
+      splitLine: null,
     },
     series,
     tooltip: {
       trigger: 'item',
       formatter: '<b>{a0}</b><br/>{c}<br/>',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: '#4a4a4a',
-      textStyle: {
-        color: '#ffffff',
-      },
+    },
+    legend: {
+      top: 10,
     },
   }
 

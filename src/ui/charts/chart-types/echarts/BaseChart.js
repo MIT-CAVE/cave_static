@@ -93,18 +93,99 @@ echarts.use([
   ScatterChart,
 ])
 
-const FlexibleChart = ({ options, ...props }) => (
-  <FlexibleContainer>
-    <ReactEChartsCore
-      echarts={echarts}
-      option={options}
-      notMerge
-      theme="dark"
-      // lazyUpdate
-      {...props}
-    />
-  </FlexibleContainer>
-)
+const baseOptions = {
+  backgroundColor: '#4a4a4a',
+  grid: {
+    top: 64,
+    // right: 32,
+    // bottom: 24,
+    left: 96,
+    // show: true,
+  },
+  xAxis: {
+    type: 'category',
+    nameLocation: 'middle',
+    nameGap: 40,
+    nameTextStyle: {
+      fontSize: 18,
+    },
+    axisLine: {
+      fontSize: 17,
+      show: true,
+      lineStyle: {
+        // color: '#fff',
+        // opacity: 0.7,
+      },
+    },
+    axisLabel: {
+      // rotate: 45,
+      interval: 0,
+      hideOverlap: true,
+    },
+  },
+  yAxis: {
+    type: 'value',
+    nameLocation: 'middle',
+    nameGap: 64,
+    nameTextStyle: {
+      fontSize: 18,
+      height: 500,
+    },
+    axisLine: {
+      show: true,
+      lineStyle: {
+        // color: '#fff',
+        // opacity: 0.7,
+      },
+    },
+    splitLine: {
+      lineStyle: {
+        type: [2, 5],
+        dashOffset: 2,
+        color: '#aaa',
+        opacity: 0.7,
+      },
+    },
+  },
+  legend: {
+    // We might deal better with legend overlapping in the future.
+    // Keep track of:
+    // - https://github.com/apache/echarts/pull/16825
+    // - https://github.com/apache/echarts/issues/15654
+    type: 'scroll',
+    top: 24,
+  },
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: '#4a4a4a',
+    textStyle: {
+      color: '#ffffff',
+    },
+  },
+  textStyle: {
+    // Not setting `fontFamily` to `'inherit'` here as
+    // there seems to be a bug in echarts where a `fontSize`
+    // value is enforced on the entire chart `canvas`
+    fontFamily:
+      '"-apple-system", BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"',
+    fontSize: 14,
+  },
+}
+
+const FlexibleChart = ({ options, ...props }) => {
+  return (
+    <FlexibleContainer>
+      <ReactEChartsCore
+        echarts={echarts}
+        option={R.mergeDeepRight(baseOptions)(options)}
+        notMerge
+        theme="dark"
+        // lazyUpdate
+        {...props}
+      />
+    </FlexibleContainer>
+  )
+}
 
 const EchartsPlot = ({
   data,
@@ -210,81 +291,20 @@ const EchartsPlot = ({
     : {}
 
   const options = {
-    backgroundColor: '#4a4a4a',
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
-      nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      type: 'category',
       data: xLabels,
-      axisLabel: {
-        // rotate: 45,
-        interval: 0,
-        hideOverlap: true,
-      },
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
-      splitLine: {
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 2,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
-      },
-    },
-    legend: {
-      // We might deal better with legend overlapping in the future.
-      // Keep track of:
-      // - https://github.com/apache/echarts/pull/16825
-      // - https://github.com/apache/echarts/issues/15654
-      type: 'scroll',
-      top: 24,
     },
     series,
     tooltip: {
-      trigger: 'axis',
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: '#4a4a4a',
-      textStyle: {
-        color: '#ffffff',
-      },
     },
     ...lineMap,
   }

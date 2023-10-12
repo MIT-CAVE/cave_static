@@ -4,7 +4,7 @@ import { FlexibleChart } from './BaseChart'
 
 import { NumberFormat, findSubgroupLabels, getMinMax } from '../../../../utils'
 
-const Heatmap = ({ data, xAxisTitle, numberFormat }) => {
+const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -38,14 +38,6 @@ const Heatmap = ({ data, xAxisTitle, numberFormat }) => {
   const [yMin, yMax] = R.pipe(R.pluck(2), getMinMax)(series)
 
   const options = {
-    backgroundColor: '#4a4a4a',
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     visualMap: {
       min: yMin,
       max: yMax,
@@ -55,52 +47,20 @@ const Heatmap = ({ data, xAxisTitle, numberFormat }) => {
       top: '5',
     },
     xAxis: {
+      type: 'category',
       name: xAxisTitle,
-      nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
       splitArea: {
         show: true,
       },
-      type: 'category',
       data: xLabels,
-      axisLabel: {
-        // rotate: 45,
-        interval: 0,
-        hideOverlap: true,
-      },
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
     },
     yAxis: {
+      type: 'category',
+      name: yAxisTitle,
       splitArea: {
         show: true,
       },
-      type: 'category',
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
       data: subGroupLabels,
-      splitLine: {
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 2,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
-      },
     },
     series: {
       data: series,
@@ -117,10 +77,6 @@ const Heatmap = ({ data, xAxisTitle, numberFormat }) => {
     },
     tooltip: {
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
-      backgroundColor: '#4a4a4a',
-      textStyle: {
-        color: '#ffffff',
-      },
     },
   }
 

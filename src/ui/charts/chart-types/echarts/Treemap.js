@@ -67,7 +67,6 @@ const Treemap = ({ data, colors }) => {
     //       },
     //     }
     //   : null,
-    backgroundColor: '#4a4a4a',
     series: {
       label: {
         show: true,
@@ -119,11 +118,7 @@ const Treemap = ({ data, colors }) => {
       ],
     },
     tooltip: {
-      backgroundColor: '#4a4a4a',
       trigger: 'item',
-      textStyle: {
-        color: '#ffffff',
-      },
     },
   }
 
