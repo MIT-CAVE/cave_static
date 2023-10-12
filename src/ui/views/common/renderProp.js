@@ -114,7 +114,6 @@ const PropBase = ({ prop, children }) => {
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     tooltipTitle: R.prop('help'),
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
-    // eslint-disable-next-line ramda/cond-simplification
     type: R.cond([
       [
         R.pipe(R.prop('variant'), R.equals(propVariant.ICON)),

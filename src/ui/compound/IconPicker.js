@@ -10,44 +10,43 @@ import FetchedIcon from './FetchedIcon'
 
 import { selectSettingsIconUrl } from '../../data/selectors'
 
-const ListboxComponent = React.forwardRef(function ListboxComponent(
-  props,
-  ref
-) {
-  const { children, role, ...other } = props
-  const itemCount = Array.isArray(children) ? children.length : 0
-  const itemSize = 79
+const ListboxComponent = React.forwardRef(
+  function ListboxComponent(props, ref) {
+    const { children, role, ...other } = props
+    const itemCount = Array.isArray(children) ? children.length : 0
+    const itemSize = 79
 
-  return (
-    <div ref={ref}>
-      <div {...other}>
-        <List
-          height={250}
-          width={300}
-          rowHeight={itemSize}
-          overscanCount={5}
-          rowCount={itemCount}
-          rowRenderer={(props) => {
-            const child = children[props.index]
-            return React.cloneElement(
-              child,
-              {
-                style: props.style,
-              },
-              <>
-                <FetchedIcon size={52} iconName={child.key} />
-                <Typography sx={{ mx: 'auto' }} align="right">
-                  {child.key}
-                </Typography>
-              </>
-            )
-          }}
-          role={role}
-        />
+    return (
+      <div ref={ref}>
+        <div {...other}>
+          <List
+            height={250}
+            width={300}
+            rowHeight={itemSize}
+            overscanCount={5}
+            rowCount={itemCount}
+            rowRenderer={(props) => {
+              const child = children[props.index]
+              return React.cloneElement(
+                child,
+                {
+                  style: props.style,
+                },
+                <>
+                  <FetchedIcon size={52} iconName={child.key} />
+                  <Typography sx={{ mx: 'auto' }} align="right">
+                    {child.key}
+                  </Typography>
+                </>
+              )
+            }}
+            role={role}
+          />
+        </div>
       </div>
-    </div>
-  )
-})
+    )
+  }
+)
 
 export default function IconPicker({ onSelect }) {
   const [options, setOptions] = useState([])
