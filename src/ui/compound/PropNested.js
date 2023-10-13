@@ -32,34 +32,31 @@ const getNodes = (options, value) => {
   R.forEach(([optionKey, option]) => {
     const inValue = value.includes(optionKey)
     let parentKey = rootKey
-    R.addIndex(R.forEach)(
-      (currentName, depth) => {
-        const currentKey = R.equals(depth, R.length(option.path))
-          ? optionKey
-          : parentKey + currentName
-        if (!nodes.has(currentKey)) {
-          const currentNode = {
-            name: currentName,
-            parentKey: parentKey,
-            childrenKeys: [],
-          }
-          nodes.set(currentKey, currentNode)
-          nodes.get(parentKey).childrenKeys.push(currentKey)
-          inValue
-            ? initialChecked.set(currentKey, box.CHECKED)
-            : initialChecked.set(currentKey, box.UNCHECKED)
+    R.addIndex(R.forEach)((currentName, depth) => {
+      const currentKey = R.equals(depth, R.length(option.path))
+        ? optionKey
+        : parentKey + currentName
+      if (!nodes.has(currentKey)) {
+        const currentNode = {
+          name: currentName,
+          parentKey: parentKey,
+          childrenKeys: [],
         }
-        const parentChecked = initialChecked.get(parentKey)
-        if (
-          (!inValue && R.equals(parentChecked, box.CHECKED)) ||
-          (inValue && R.equals(parentChecked, box.UNCHECKED))
-        ) {
-          initialChecked.set(parentKey, box.PARTIAL)
-        }
-        parentKey = currentKey
-      },
-      R.append(option.name, option.path)
-    )
+        nodes.set(currentKey, currentNode)
+        nodes.get(parentKey).childrenKeys.push(currentKey)
+        inValue
+          ? initialChecked.set(currentKey, box.CHECKED)
+          : initialChecked.set(currentKey, box.UNCHECKED)
+      }
+      const parentChecked = initialChecked.get(parentKey)
+      if (
+        (!inValue && R.equals(parentChecked, box.CHECKED)) ||
+        (inValue && R.equals(parentChecked, box.UNCHECKED))
+      ) {
+        initialChecked.set(parentKey, box.PARTIAL)
+      }
+      parentKey = currentKey
+    }, R.append(option.name, option.path))
   }, R.toPairs(options))
 
   return {
