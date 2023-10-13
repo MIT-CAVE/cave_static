@@ -524,9 +524,7 @@ export const selectDemoViews = createSelector(
       R.toPairs,
       R.filter(
         (d) =>
-          (R.propEq('stats', 'type', d[1]) ||
-            R.propEq('map', 'type', d[1]) ||
-            R.propEq('globalOutput', 'type', d[1])) &&
+          R.propEq('page', 'type', d[1]) &&
           R.pathOr(true, [d[0], 'show'], demoSettings)
       ),
       R.pluck(0)
