@@ -37,6 +37,18 @@ const localSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(overrideSync, (state, action) => {
+      // first remove all previously synced paths
+      R.forEachObjIndexed((paths) => {
+        R.forEachObjIndexed((path) => {
+          action.asyncDispatch(
+            mutateLocal({
+              path: path,
+              value: undefined,
+            })
+          )
+        })(paths)
+      })(action.payload.desyncedPaths)
+      // now sync all new paths
       R.forEachObjIndexed((paths, key) => {
         R.forEachObjIndexed((path, name) => {
           action.asyncDispatch(
@@ -52,7 +64,7 @@ const localSlice = createSlice({
             })
           )
         })(paths)
-      })(action.payload.paths)
+      })(action.payload.desyncedPaths)
       return { settings: initialState }
     })
   },
