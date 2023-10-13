@@ -759,7 +759,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
   }
 )
 export const selectMapStyleOptions = createSelector(
-  [selectSettingsData, selectMapboxToken],
+  [selectMap, selectMapboxToken],
   (data, token) => ({
     ...DEFAULT_MAP_STYLES,
     ...R.pipe(
