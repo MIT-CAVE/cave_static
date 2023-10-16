@@ -74,9 +74,9 @@ const DashboardChart = ({ chartObj }) => {
         chartObj
       )
 
-  const xAxisTitle = chartObj.category
+  const xAxisTitle = chartObj.groupingId
     ? `${getLabelFn(categories)(R.path(['groupingId', 0], chartObj))}${
-        chartObj.level && R.path(['groupingLevel', 0], chartObj)
+        chartObj.groupingLevel && R.path(['groupingLevel', 0], chartObj)
           ? ` \u279D ${getSubLabelFn(
               categories,
               R.path(['groupingId', 0], chartObj),
