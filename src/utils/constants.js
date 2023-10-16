@@ -173,8 +173,8 @@ export const CHART_PALETTE = [
 export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
 
 export const CHART_DEFAULTS = {
-  chart: chartType.BAR,
-  grouping: 'Sum',
+  variant: chartType.BAR,
+  statAggregation: 'Sum',
 }
 
 export const NUMBER_FORMAT_KEYS = [
