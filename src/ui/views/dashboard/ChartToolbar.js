@@ -13,7 +13,7 @@ import {
   selectDashboardLockedLayout,
   selectSync,
 } from '../../../data/selectors'
-import { chartType } from '../../../utils/enums'
+import { chartVariant } from '../../../utils/enums'
 
 import { Select } from '../../compound'
 
@@ -47,9 +47,9 @@ const ChartToolbar = ({ chartObj, index, path }) => {
                 R.pipe(
                   R.prop('variant'),
                   R.includes(R.__, [
-                    chartType.BAR,
-                    chartType.LINE,
-                    chartType.TABLE,
+                    chartVariant.BAR,
+                    chartVariant.LINE,
+                    chartVariant.TABLE,
                   ]),
                   R.not
                 )

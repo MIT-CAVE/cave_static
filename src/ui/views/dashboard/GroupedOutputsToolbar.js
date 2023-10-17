@@ -15,7 +15,12 @@ import {
   selectStatGroupings,
   selectGroupedOutputsData,
 } from '../../../data/selectors'
-import { chartMaxGrouping, chartStatUses } from '../../../utils/enums'
+import {
+  chartAggrFunc,
+  chartMaxGrouping,
+  chartStatUses,
+  chartVariant,
+} from '../../../utils/enums'
 
 import {
   Select,
@@ -135,82 +140,82 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           optionsList={[
             {
               label: 'Bar',
-              value: 'Bar',
+              value: chartVariant.BAR,
               iconName: 'md/MdBarChart',
             },
             {
               label: 'Stacked Bar',
-              value: 'Stacked Bar',
+              value: chartVariant.STACKED_BAR,
               iconName: 'md/MdStackedBarChart',
             },
             {
               label: 'Line',
-              value: 'Line',
+              value: chartVariant.LINE,
               iconName: 'md/MdShowChart',
             },
             {
               label: 'Cumulative Line',
-              value: 'Cumulative Line',
+              value: chartVariant.CUMULATIVE_LINE,
               iconName: 'md/MdStackedLineChart',
             },
             {
               label: 'Area',
-              value: 'Area',
+              value: chartVariant.AREA,
               iconName: 'tb/TbChartAreaLineFilled',
             },
             {
               label: 'Stacked Area',
-              value: 'Stacked Area',
+              value: chartVariant.STACKED_AREA,
               iconName: 'md/MdAreaChart',
             },
             {
               label: 'Waterfall',
-              value: 'Waterfall',
+              value: chartVariant.WATERFALL,
               iconName: 'md/MdWaterfallChart',
             },
             {
               label: 'Stacked Waterfall',
-              value: 'Stacked Waterfall',
+              value: chartVariant.STACKED_WATERFALL,
               iconName: 'tb/TbStack2',
             },
             {
               label: 'Box Plot',
-              value: 'Box Plot',
+              value: chartVariant.BOX_PLOT,
               iconName: 'md/MdGraphicEq',
             },
             {
               label: 'Table',
-              value: 'Table',
+              value: chartVariant.TABLE,
               iconName: 'md/MdTableChart',
             },
             {
               label: 'Sunburst',
-              value: 'Sunburst',
+              value: chartVariant.SUNBURST,
               iconName: 'md/MdDonutLarge',
             },
             {
               label: 'Treemap',
-              value: 'Treemap',
+              value: chartVariant.TREEMAP,
               iconName: 'tb/TbChartTreemap',
             },
             {
               label: 'Gauge',
-              value: 'Gauge',
+              value: chartVariant.GAUGE,
               iconName: 'tb/TbGauge',
             },
             {
               label: 'Heatmap',
-              value: 'Heatmap',
+              value: chartVariant.HEATMAP,
               iconName: 'tb/TbLayoutDashboard',
             },
             {
               label: 'Scatter',
-              value: 'Scatter',
+              value: chartVariant.SCATTER,
               iconName: 'md/MdScatterPlot',
             },
             {
               label: 'Bubble',
-              value: 'Bubble',
+              value: chartVariant.BUBBLE,
               iconName: 'md/MdBubbleChart',
             },
           ]}
@@ -220,28 +225,28 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       </ChartDropdownWrapper>
       <ChartDropdownWrapper>
         <Select
-          disabled={chartObj.variant === 'Box Plot'}
+          disabled={chartObj.variant === chartVariant.BOX_PLOT}
           value={R.propOr('', 'statAggregation', chartObj)}
           displayIcon
           optionsList={[
             {
               label: 'Sum',
-              value: 'Sum',
+              value: chartAggrFunc.SUM,
               iconName: 'md/MdFunctions',
             },
             {
-              label: 'Average',
-              value: 'Average',
+              label: 'Mean',
+              value: chartAggrFunc.MEAN,
               iconName: 'md/MdVerticalAlignCenter',
             },
             {
               label: 'Minimum',
-              value: 'Minimum',
+              value: chartAggrFunc.MIN,
               iconName: 'md/MdVerticalAlignBottom',
             },
             {
               label: 'Maximum',
-              value: 'Maximum',
+              value: chartAggrFunc.MAX,
               iconName: 'md/MdVerticalAlignTop',
             },
           ]}

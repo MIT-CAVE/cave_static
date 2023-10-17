@@ -108,51 +108,58 @@ export const statFns = {
   [propId.TOGGLE]: new Set([statId.MODE, statId.AND, statId.OR]),
 }
 
-export const chartType = {
-  BAR: 'Bar',
-  BOX_PLOT: 'Box Plot',
-  CUMULATIVE_LINE: 'Cumulative Line',
-  LINE: 'Line',
-  AREA: 'Area',
-  STACKED_AREA: 'Stacked Area',
-  STACKED_BAR: 'Stacked Bar',
-  STACKED_WATERFALL: 'Stacked Waterfall',
-  SUNBURST: 'Sunburst',
-  TABLE: 'Table',
-  TREEMAP: 'Treemap',
-  WATERFALL: 'Waterfall',
-  GAUGE: 'Gauge',
-  HEATMAP: 'Heatmap',
-  SCATTER: 'Scatter',
-  BUBBLE: 'Bubble',
-  OVERVIEW: 'Overview',
+export const chartVariant = {
+  BAR: 'bar',
+  BOX_PLOT: 'box_plot',
+  CUMULATIVE_LINE: 'cumulative_line',
+  LINE: 'line',
+  AREA: 'area',
+  STACKED_AREA: 'stacked_area',
+  STACKED_BAR: 'stacked_bar',
+  STACKED_WATERFALL: 'stacked_waterfall',
+  SUNBURST: 'sunburst',
+  TABLE: 'table',
+  TREEMAP: 'treemap',
+  WATERFALL: 'waterfall',
+  GAUGE: 'gauge',
+  HEATMAP: 'heatmap',
+  SCATTER: 'scatter',
+  BUBBLE: 'bubble',
+  OVERVIEW: 'overview',
+}
+
+export const chartAggrFunc = {
+  SUM: 'sum',
+  MIN: 'min',
+  MAX: 'max',
+  MEAN: 'mean',
 }
 
 // TODO: Update these when we add support for more than 2 grouping levels
 export const chartMaxGrouping = {
-  [chartType.BAR]: 2,
-  [chartType.BOX_PLOT]: 2,
-  [chartType.CUMULATIVE_LINE]: 2,
-  [chartType.LINE]: 2,
-  [chartType.AREA]: 2,
-  [chartType.STACKED_AREA]: 2,
-  [chartType.STACKED_BAR]: 2,
-  [chartType.STACKED_WATERFALL]: 2,
-  [chartType.SUNBURST]: 2,
-  [chartType.TABLE]: 2,
-  [chartType.TREEMAP]: 2,
-  [chartType.WATERFALL]: 2,
-  [chartType.GAUGE]: 1,
-  [chartType.HEATMAP]: 2,
-  [chartType.SCATTER]: 1,
-  [chartType.BUBBLE]: 1,
+  [chartVariant.BAR]: 2,
+  [chartVariant.BOX_PLOT]: 2,
+  [chartVariant.CUMULATIVE_LINE]: 2,
+  [chartVariant.LINE]: 2,
+  [chartVariant.AREA]: 2,
+  [chartVariant.STACKED_AREA]: 2,
+  [chartVariant.STACKED_BAR]: 2,
+  [chartVariant.STACKED_WATERFALL]: 2,
+  [chartVariant.SUNBURST]: 2,
+  [chartVariant.TABLE]: 2,
+  [chartVariant.TREEMAP]: 2,
+  [chartVariant.WATERFALL]: 2,
+  [chartVariant.GAUGE]: 1,
+  [chartVariant.HEATMAP]: 2,
+  [chartVariant.SCATTER]: 1,
+  [chartVariant.BUBBLE]: 1,
 }
 
 // Stat limits for multistat charts
 export const chartStatUses = {
-  Table: [],
-  Scatter: ['X Axis', 'Y Axis'],
-  Bubble: ['X Axis', 'Y Axis', 'Size'],
+  [chartVariant.TABLE]: [],
+  [chartVariant.SCATTER]: ['X Axis', 'Y Axis'],
+  [chartVariant.BUBBLE]: ['X Axis', 'Y Axis', 'Size'],
 }
 
 export const unitPlacements = {

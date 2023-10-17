@@ -13,6 +13,7 @@ import {
   selectCurrentPage,
   selectMergedKpis,
 } from '../../../data/selectors'
+import { chartVariant } from '../../../utils/enums'
 
 import { FetchedIcon, Select, SelectMulti } from '../../compound'
 
@@ -42,31 +43,31 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     <>
       <ChartDropdownWrapper>
         <Select
-          value={R.propOr('Bar', 'variant', chartObj)}
+          value={R.propOr(chartVariant.BAR, 'variant', chartObj)}
           optionsList={[
             {
               label: 'Bar',
-              value: 'Bar',
+              value: chartVariant.BAR,
               iconName: 'md/MdBarChart',
             },
             {
               label: 'Line',
-              value: 'Line',
+              value: chartVariant.LINE,
               iconName: 'md/MdShowChart',
             },
             // {
             //   label: 'Box Plot',
-            //   value: 'Box Plot',
+            //   value: chartVariant.BOX_PLOT,
             //   iconName: 'md/MdGraphicEq',
             // },
             {
               label: 'Table',
-              value: 'Table',
+              value: chartVariant.TABLE,
               iconName: 'md/MdTableChart',
             },
             {
               label: 'Overview',
-              value: 'Overview',
+              value: chartVariant.OVERVIEW,
               iconName: 'md/MdViewQuilt',
             },
           ]}

@@ -11,7 +11,7 @@ import {
   selectKpisLayout,
   selectMergedKpis,
 } from '../../../data/selectors'
-import { chartType } from '../../../utils/enums'
+import { chartVariant } from '../../../utils/enums'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
@@ -94,7 +94,7 @@ const DashboardKpi = ({ chartObj }) => {
         height: '50%',
       }}
     >
-      {chartObj.variant === chartType.OVERVIEW ? (
+      {chartObj.variant === chartVariant.OVERVIEW ? (
         <Box sx={{ overflow: 'auto', mx: 'auto' }}>
           {renderPropsLayout({
             layout,
@@ -102,14 +102,14 @@ const DashboardKpi = ({ chartObj }) => {
             onChangeProp: () => null,
           })}
         </Box>
-      ) : chartObj.variant === chartType.TABLE ? (
+      ) : chartObj.variant === chartVariant.TABLE ? (
         <TableChart
           data={formattedKpis}
           numberFormat={commonFormat}
           columnTypes={tableColTypes}
           labels={R.prepend('Session')(tableLabels)}
         />
-      ) : chartObj.variant === chartType.BAR ? (
+      ) : chartObj.variant === chartVariant.BAR ? (
         <BarPlot
           data={formattedKpis}
           numberFormat={commonFormat}
@@ -119,7 +119,7 @@ const DashboardKpi = ({ chartObj }) => {
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
-      ) : chartObj.variant === chartType.LINE ? (
+      ) : chartObj.variant === chartVariant.LINE ? (
         <LinePlot
           data={formattedKpis}
           numberFormat={commonFormat}

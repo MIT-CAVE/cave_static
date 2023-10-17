@@ -10,7 +10,13 @@ import {
   MAX_MEMOIZED_CHARTS,
   NUMBER_FORMAT_KEYS,
 } from '../../utils/constants'
-import { propId, statId, chartStatUses } from '../../utils/enums'
+import {
+  propId,
+  statId,
+  chartStatUses,
+  chartVariant,
+  chartAggrFunc,
+} from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 
@@ -1077,10 +1083,12 @@ export const selectMemoizedChartFunc = createSelector(
           ? R.zip(obj.groupedOutputDataId, obj.statId)
           : [[obj.groupedOutputDataId, obj.statId]]
         const mergeFuncs = {
-          Sum: R.sum,
-          Minimum: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
-          Maximum: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
-          Average: R.mean,
+          [chartAggrFunc.SUM]: R.sum,
+          [chartAggrFunc.MIN]: (val) =>
+            R.reduce(R.min, R.head(val), R.tail(val)),
+          [chartAggrFunc.MAX]: (val) =>
+            R.reduce(R.max, R.head(val), R.tail(val)),
+          [chartAggrFunc.MEAN]: R.mean,
         }
 
         // Given an index returns a string to group all similar indicies by
@@ -1135,7 +1143,7 @@ export const selectMemoizedChartFunc = createSelector(
             R.is(Array),
             R.pipe(
               R.filter(R.is(Number)),
-              obj.variant !== 'Box Plot'
+              obj.variant !== chartVariant.BOX_PLOT
                 ? mergeFuncs[obj.statAggregation]
                 : R.identity
             ),

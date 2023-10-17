@@ -9,7 +9,7 @@ import {
   selectMemoizedChartFunc,
   selectStatGroupings,
 } from '../../../data/selectors'
-import { chartType } from '../../../utils/enums'
+import { chartVariant } from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -46,7 +46,7 @@ const DashboardChart = ({ chartObj }) => {
 
   //TODO: Generalize this for n-level grouping
   const colors = subGrouped
-    ? chartObj.variant === chartType.SUNBURST
+    ? chartObj.variant === chartVariant.SUNBURST
       ? R.mergeLeft(
           getColoringFn(
             categories,
@@ -151,7 +151,7 @@ const DashboardChart = ({ chartObj }) => {
         flex: '1 1 auto',
       }}
     >
-      {chartObj.variant === chartType.TABLE &&
+      {chartObj.variant === chartVariant.TABLE &&
       chartObj.groupingId &&
       chartObj.groupingId[0] ? (
         <TableChart
@@ -160,21 +160,21 @@ const DashboardChart = ({ chartObj }) => {
           labels={tableLabels}
           columnTypes={tableColTypes}
         />
-      ) : chartObj.variant === chartType.BOX_PLOT ? (
+      ) : chartObj.variant === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.BAR ? (
+      ) : chartObj.variant === chartVariant.BAR ? (
         <BarPlot
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.STACKED_BAR ? (
+      ) : chartObj.variant === chartVariant.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
@@ -182,56 +182,56 @@ const DashboardChart = ({ chartObj }) => {
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.STACKED_WATERFALL ? (
+      ) : chartObj.variant === chartVariant.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.LINE ? (
+      ) : chartObj.variant === chartVariant.LINE ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.WATERFALL ? (
+      ) : chartObj.variant === chartVariant.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.CUMULATIVE_LINE ? (
+      ) : chartObj.variant === chartVariant.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.SUNBURST ? (
+      ) : chartObj.variant === chartVariant.SUNBURST ? (
         <Sunburst
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
         />
-      ) : chartObj.variant === chartType.TREEMAP ? (
+      ) : chartObj.variant === chartVariant.TREEMAP ? (
         <Treemap
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
         />
-      ) : chartObj.variant === chartType.GAUGE ? (
+      ) : chartObj.variant === chartVariant.GAUGE ? (
         <GaugeChart
           data={formattedData}
           numberFormat={commonFormat}
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.HEATMAP ? (
+      ) : chartObj.variant === chartVariant.HEATMAP ? (
         <Heatmap data={formattedData} numberFormat={commonFormat} {...labels} />
-      ) : chartObj.variant === chartType.AREA ? (
+      ) : chartObj.variant === chartVariant.AREA ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
@@ -239,7 +239,7 @@ const DashboardChart = ({ chartObj }) => {
           colors={colors}
           {...labels}
         />
-      ) : chartObj.variant === chartType.STACKED_AREA ? (
+      ) : chartObj.variant === chartVariant.STACKED_AREA ? (
         <LinePlot
           data={formattedData}
           numberFormat={commonFormat}
@@ -248,14 +248,14 @@ const DashboardChart = ({ chartObj }) => {
           stack="x"
           {...labels}
         />
-      ) : chartObj.variant === chartType.SCATTER ? (
+      ) : chartObj.variant === chartVariant.SCATTER ? (
         <ScatterPlot
           data={formattedData}
           numberFormat={commonFormat}
           labels={tableLabels}
           colors={colors}
         />
-      ) : chartObj.variant === chartType.BUBBLE ? (
+      ) : chartObj.variant === chartVariant.BUBBLE ? (
         <BubblePlot
           data={formattedData}
           numberFormat={commonFormat}
