@@ -1417,7 +1417,8 @@ export const selectNodeRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              (R.has('startGradientColor', range) &&
+              ((R.has('startGradientColor', range) ||
+                R.has('startSize', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(

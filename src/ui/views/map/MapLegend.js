@@ -322,6 +322,7 @@ const GroupCalcDropdown = ({ propType, value, onSelect }) => {
 const MapLegendSizeBySection = ({
   sizeProp,
   sizeRange,
+  valueRange,
   getPropName,
   typeObj,
   syncPath,
@@ -413,7 +414,7 @@ const MapLegendSizeBySection = ({
             xs={3.5}
           >
             <OverflowText
-              text={getMinLabel(sizeRange, numberFormatProps, group)}
+              text={getMinLabel(valueRange, numberFormatProps, group)}
             />
           </Grid>
         </SizePickerTooltip>
@@ -476,7 +477,7 @@ const MapLegendSizeBySection = ({
             xs={3.5}
           >
             <OverflowText
-              text={getMaxLabel(sizeRange, numberFormatProps, group)}
+              text={getMaxLabel(valueRange, numberFormatProps, group)}
             />
           </Grid>
         </SizePickerTooltip>
@@ -943,6 +944,7 @@ const LegendCard = memo(
             <MapLegendSizeBySection
               {...{
                 sizeProp,
+                sizeRange,
                 typeObj,
                 group,
                 geometryName,
@@ -951,8 +953,8 @@ const LegendCard = memo(
                 mapId,
                 legendGroupId,
               }}
+              valueRange={group && sizeDomain ? sizeDomain : sizeRange}
               icon={<FetchedIcon iconName={icon} />}
-              sizeRange={group && sizeDomain ? sizeDomain : sizeRange}
               getPropName={getGeometryPropName}
               syncPath={R.append('sizeBy')(basePath)}
               propValue={groupCalcBySize}
