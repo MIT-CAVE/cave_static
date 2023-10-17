@@ -67,6 +67,8 @@ const Treemap = ({ data, colors }) => {
     //       },
     //     }
     //   : null,
+    xAxis: null,
+    yAxis: null,
     series: {
       label: {
         show: true,
