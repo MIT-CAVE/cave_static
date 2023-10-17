@@ -73,16 +73,19 @@ const App = () => {
       const nextViewIndex =
         (R.findIndex(R.equals(currentPage), appBarViews) + 1) %
         R.length(appBarViews)
-      demoTimeout.current = setTimeout(() => {
-        demoTimeout.current = -1
-        dispatch(
-          mutateLocal({
-            path: ['pages', 'currentPage'],
-            value: appBarViews[isNaN(nextViewIndex) ? 0 : nextViewIndex],
-            sync: !includesPath(R.values(sync), ['pages', 'currentPage']),
-          })
-        )
-      }, R.pathOr(15, [currentPage, 'displayTime'], demoSettings) * 1000)
+      demoTimeout.current = setTimeout(
+        () => {
+          demoTimeout.current = -1
+          dispatch(
+            mutateLocal({
+              path: ['pages', 'currentPage'],
+              value: appBarViews[isNaN(nextViewIndex) ? 0 : nextViewIndex],
+              sync: !includesPath(R.values(sync), ['pages', 'currentPage']),
+            })
+          )
+        },
+        R.pathOr(15, [currentPage, 'displayTime'], demoSettings) * 1000
+      )
     } else if (demoTimeout.current !== -1 && !demoMode) {
       clearTimeout(demoTimeout.current)
       demoTimeout.current = -1
