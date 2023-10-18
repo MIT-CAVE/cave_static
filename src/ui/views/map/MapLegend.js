@@ -176,7 +176,8 @@ const getMaxLabel = (valRange, numberFormat, group) =>
 const CategoricalItems = ({
   colorRange,
   getLabel = capitalize,
-  geometryName,
+  mapId,
+  legendGroupId,
   geometryType,
   propId,
 }) => {
@@ -184,12 +185,17 @@ const CategoricalItems = ({
   const sync = useSelector(selectSync)
 
   const basePath = [
-    geometryName,
-    'types',
+    'maps',
+    'data',
+    mapId,
+    'legendGroups',
+    legendGroupId,
+    'data',
     geometryType,
     'colorByOptions',
     propId,
   ]
+
   return (
     <OverflowText sx={{ width: '100%' }}>
       <Stack direction="row" spacing={3} justifyContent="center">
@@ -506,7 +512,6 @@ const MapLegendColorBySection = ({
   group,
   propValue,
   onSelectProp,
-  geometryName,
   geometryType,
   legendObj,
   mapId,
@@ -564,7 +569,7 @@ const MapLegendColorBySection = ({
           <CategoricalItems
             getLabel={getCategoryName}
             propId={colorProp}
-            {...{ colorRange, geometryName, geometryType }}
+            {...{ colorRange, geometryType, legendGroupId, mapId }}
           />
         ) : (
           <GradientBox
@@ -997,7 +1002,6 @@ const LegendCard = memo(
                 colorRange,
                 typeObj,
                 group,
-                geometryName,
                 geometryType,
                 legendObj,
                 mapId,
