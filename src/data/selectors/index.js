@@ -2033,10 +2033,12 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               },
               geometry: {
                 type: 'LineString',
-                coordinates: [
-                  [arc.startLongitude, arc.startLatitude],
-                  [arc.endLongitude, arc.endLatitude],
-                ],
+                coordinates: arc.path
+                  ? arc.path
+                  : [
+                      [arc.startLongitude, arc.startLatitude],
+                      [arc.endLongitude, arc.endLatitude],
+                    ],
               },
             }
           }),
