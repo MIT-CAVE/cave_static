@@ -11,7 +11,7 @@ import {
   selectAssociatedData,
   selectSync,
   selectCurrentPage,
-  selectMergedKpis,
+  selectMergedGlobalOutputs,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
 
@@ -27,7 +27,7 @@ import {
 const GlobalOutputsToolbar = ({ chartObj, index }) => {
   const globalOutputs = useSelector(selectAssociatedData)
   const currentPage = useSelector(selectCurrentPage)
-  const items = useSelector(selectMergedKpis)
+  const items = useSelector(selectMergedGlobalOutputs)
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
     R.propOr({}, 'values', items)

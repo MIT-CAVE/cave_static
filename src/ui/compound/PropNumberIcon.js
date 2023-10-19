@@ -52,27 +52,27 @@ const styles = {
   }),
 }
 
-// const KpiToggleIcon = ({ globalOutputId, mapKpi }) => {
+// const GlobalOutputToggleIcon = ({ globalOutputId, mapGlobalOutput }) => {
 //   const [hover, setHover] = useState(false)
 //   const dispatch = useDispatch()
 //   return (
 //     <Box
-//       sx={[styles.globalOutputToggleIcon, { opacity: mapKpi || hover ? 1 : 0.2 }]}
+//       sx={[styles.globalOutputToggleIcon, { opacity: mapGlobalOutput || hover ? 1 : 0.2 }]}
 //       onMouseEnter={() => setHover(true)}
 //       onMouseLeave={() => setHover(false)}
-//       onClick={() => dispatch(mapKpiToggle(globalOutputId))}
+//       onClick={() => dispatch(mapGlobalOutputToggle(globalOutputId))}
 //     >
 //       {R.cond([
 //         [R.and(hover), R.always(<MdBookmarkRemove />)],
 //         [R.and(!hover), R.always(<MdBookmarkAdded />)],
 //         [R.or(hover), R.always(<MdOutlineBookmarkAdd />)],
 //         [R.T, R.always(<MdBookmarkBorder />)],
-//       ])(mapKpi)}
+//       ])(mapGlobalOutput)}
 //     </Box>
 //   )
 // }
 
-const KpiBasic = ({ prop, sx = [], ...props }) => {
+const GlobalOutputBasic = ({ prop, sx = [], ...props }) => {
   const { title, value, icon, style } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
@@ -97,7 +97,7 @@ const KpiBasic = ({ prop, sx = [], ...props }) => {
     </Paper>
   )
 }
-KpiBasic.propTypes = {
+GlobalOutputBasic.propTypes = {
   title: PropTypes.string,
   value: PropTypes.number,
   icon: PropTypes.string,
@@ -111,4 +111,4 @@ KpiBasic.propTypes = {
   ]),
 }
 
-export default KpiBasic
+export default GlobalOutputBasic

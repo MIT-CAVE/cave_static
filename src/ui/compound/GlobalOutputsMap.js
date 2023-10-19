@@ -15,17 +15,17 @@ const rootStyle = {
   overflow: 'hidden',
 }
 
-const KpiMap = ({
+const GlobalOutputMap = ({
   title,
   value,
   icon,
   style,
   sx = [],
-  mapKpi = true,
+  mapGlobalOutput = true,
   ...props
 }) => {
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(props)
-  if (mapKpi) {
+  if (mapGlobalOutput) {
     return (
       <Paper elevation={10} sx={[rootStyle, style, ...forceArray(sx)]}>
         <Typography sx={{ pb: 1 }} variant="subtitle1">
@@ -47,7 +47,7 @@ const KpiMap = ({
     return null
   }
 }
-KpiMap.propTypes = {
+GlobalOutputMap.propTypes = {
   title: PropTypes.string,
   value: PropTypes.number,
   icon: PropTypes.string,
@@ -59,7 +59,7 @@ KpiMap.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
-  mapKpi: PropTypes.bool,
+  mapGlobalOutput: PropTypes.bool,
 }
 
-export default KpiMap
+export default GlobalOutputMap

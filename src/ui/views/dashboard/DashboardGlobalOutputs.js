@@ -7,9 +7,9 @@ import { sendCommand } from '../../../data/data'
 import {
   selectAssociatedData,
   selectNumberFormat,
-  selectMemoizedKpiFunc,
-  selectKpisLayout,
-  selectMergedKpis,
+  selectMemoizedGlobalOutputFunc,
+  selectGlobalOutputsLayout,
+  selectMergedGlobalOutputs,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
 import { renderPropsLayout } from '../common/renderLayout'
@@ -23,13 +23,13 @@ import {
   addValuesToProps,
 } from '../../../utils'
 
-const DashboardKpi = ({ chartObj }) => {
+const DashboardGlobalOutput = ({ chartObj }) => {
   const dispatch = useDispatch()
   const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
-  const globalOutputFunc = useSelector(selectMemoizedKpiFunc)
-  const layout = useSelector(selectKpisLayout)
-  const items = useSelector(selectMergedKpis)
+  const globalOutputFunc = useSelector(selectMemoizedGlobalOutputFunc)
+  const layout = useSelector(selectGlobalOutputsLayout)
+  const items = useSelector(selectMergedGlobalOutputs)
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
     R.propOr({}, 'values', items)
@@ -48,33 +48,35 @@ const DashboardKpi = ({ chartObj }) => {
     }
   }, [globalOutputs, dispatch])
 
-  const formattedKpis = globalOutputFunc(chartObj)
+  const formattedGlobalOutputs = globalOutputFunc(chartObj)
 
   const isTable = R.prop('variant', chartObj) === 'Table'
 
-  const actualKpiRaw = forcePath(R.propOr([], 'globalOutput', chartObj))
+  const actualGlobalOutputRaw = forcePath(
+    R.propOr([], 'globalOutput', chartObj)
+  )
   const globalOutputData = R.pipe(
     R.values,
     R.head,
     R.pathOr({}, ['data', 'globalOutputs', 'data', 'props']),
-    R.pick(actualKpiRaw)
+    R.pick(actualGlobalOutputRaw)
   )(globalOutputs)
 
-  const actualKpi = R.pipe(withIndex, R.pluck('id'))(globalOutputData)
+  const actualGlobalOutput = R.pipe(withIndex, R.pluck('id'))(globalOutputData)
   const globalOutputUnits = R.map((item) => {
     const globalOutput = R.propOr({}, item)(globalOutputData)
     return globalOutput.unit || numberFormatDefault.unit
-  })(actualKpi)
+  })(actualGlobalOutput)
 
   const tableLabels = R.zipWith(
     (a, b) => `${getLabelFn(globalOutputData)(a)}${b ? ` [${b}]` : ''} `,
-    actualKpi,
+    actualGlobalOutput,
     globalOutputUnits
   )
   // FIXME: This should receive column types set by designers in the API
   const tableColTypes = isTable
     ? R.pipe(
-        R.concat(R.repeat('number')(R.length(actualKpi))),
+        R.concat(R.repeat('number')(R.length(actualGlobalOutput))),
         R.prepend('string')
       )([])
     : []
@@ -104,14 +106,14 @@ const DashboardKpi = ({ chartObj }) => {
         </Box>
       ) : chartObj.variant === chartVariant.TABLE ? (
         <TableChart
-          data={formattedKpis}
+          data={formattedGlobalOutputs}
           numberFormat={commonFormat}
           columnTypes={tableColTypes}
           labels={R.prepend('Session')(tableLabels)}
         />
       ) : chartObj.variant === chartVariant.BAR ? (
         <BarPlot
-          data={formattedKpis}
+          data={formattedGlobalOutputs}
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
@@ -121,7 +123,7 @@ const DashboardKpi = ({ chartObj }) => {
         />
       ) : chartObj.variant === chartVariant.LINE ? (
         <LinePlot
-          data={formattedKpis}
+          data={formattedGlobalOutputs}
           numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
@@ -131,4 +133,4 @@ const DashboardKpi = ({ chartObj }) => {
   )
 }
 
-export default memo(DashboardKpi)
+export default memo(DashboardGlobalOutput)

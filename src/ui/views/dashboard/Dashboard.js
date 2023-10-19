@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import ChartMenu from './ChartMenu'
 import ChartToolbar from './ChartToolbar'
-import DashboardKpi from './DashboardKpi'
+import DashboardGlobalOutput from './DashboardGlobalOutputs'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -133,7 +133,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
           ) : vizType === 'map' && chartObj.mapId ? (
             <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
           ) : vizType === 'globalOutput' ? (
-            <DashboardKpi {...{ chartObj }} />
+            <DashboardGlobalOutput {...{ chartObj }} />
           ) : null}
         </Paper>
       )}

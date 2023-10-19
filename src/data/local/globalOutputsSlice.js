@@ -7,8 +7,8 @@ export const globalOutputsSlice = createSlice({
   name: 'globalOutputs',
   initialState: {},
   reducers: {
-    mapKpiToggle: (state, action) => {
-      const path = [action.payload, 'mapKpi']
+    mapGlobalOutputToggle: (state, action) => {
+      const path = [action.payload, 'mapGlobalOutput']
       return R.assocPath(path, !R.pathOr(false, path)(state))(state)
     },
   },
@@ -19,6 +19,6 @@ export const globalOutputsSlice = createSlice({
   },
 })
 
-export const { mapKpiToggle } = globalOutputsSlice.actions
+export const { mapGlobalOutputToggle } = globalOutputsSlice.actions
 
 export default globalOutputsSlice.reducer

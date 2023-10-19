@@ -56,17 +56,17 @@ export const overwriteData = createAsyncThunk(
     if (
       R.has('settings', data) &&
       !R.equals(
-        R.path(['settings', 'data', 'sync'], data),
-        R.path(['data', 'settings', 'data', 'sync'], getState())
+        R.path(['settings', 'sync'], data),
+        R.path(['data', 'settings', 'sync'], getState())
       )
     ) {
       const desyncedPaths = R.pipe(
-        R.pathOr({}, ['settings', 'data', 'sync']),
+        R.pathOr({}, ['settings', 'sync']),
         R.filter(R.pipe(R.prop('value'), R.not)),
         R.pluck('data')
       )(data)
       const pathsToSync = R.pipe(
-        R.pathOr({}, ['data', 'settings', 'data', 'sync']),
+        R.pathOr({}, ['data', 'settings', 'sync']),
         R.filter(R.pipe(R.prop('value'), R.not)),
         R.pluck('data')
       )(getState())

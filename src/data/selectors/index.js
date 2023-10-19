@@ -134,7 +134,7 @@ export const selectAppBar = createSelector(selectData, (data) =>
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
   orderEntireDict(R.propOr({}, 'groupedOutputs')(data))
 )
-export const selectKpis = createSelector(selectData, (data) =>
+export const selectGlobalOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'globalOutputs')(data)
 )
 export const selectPages = createSelector(selectData, (data) =>
@@ -207,31 +207,24 @@ export const selectGroupedOutputsData = createSelector(
   selectGroupedOutputs,
   (data) => R.propOr({}, 'data')(data)
 )
-export const selectKpisData = createSelector(selectKpis, (data) =>
-  R.propOr({}, 'data')(data)
-)
-export const selectKpisLayout = createSelector(
-  selectKpisData,
+export const selectGlobalOutputsLayout = createSelector(
+  selectGlobalOutputs,
   R.propOr({}, 'layout')
 )
 export const selectAssociatedData = createSelector(selectAssociated, (data) =>
   R.propOr({}, 'data')(data)
 )
-export const selectSettingsData = createSelector(selectSettings, (data) =>
-  R.propOr({}, 'data')(data)
-)
 
 // Data -> settings
-export const selectSettingsIconUrl = createSelector(
-  selectSettingsData,
-  (data) => R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
+export const selectSettingsIconUrl = createSelector(selectSettings, (data) =>
+  R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
 )
 export const selectDebug = createSelector(
-  selectSettingsData,
+  selectSettings,
   R.propOr(false, 'debug')
 )
 export const selectNumberFormat = createSelector(
-  selectSettingsData,
+  selectSettings,
   R.pipe(R.propOr({}, 'defaults'), R.pick(NUMBER_FORMAT_KEYS))
 )
 export const selectNumberFormatPropsFn = createSelector(
@@ -241,7 +234,7 @@ export const selectNumberFormatPropsFn = createSelector(
   )
 )
 export const selectDemoSettings = createSelector(
-  selectSettingsData,
+  selectSettings,
   R.propOr({}, 'demo')
 )
 export const selectDemoMode = createSelector(
@@ -249,7 +242,7 @@ export const selectDemoMode = createSelector(
   (localSettings) => R.propOr(false, 'demo', localSettings)
 )
 export const selectTimeSettings = createSelector(
-  selectSettingsData,
+  selectSettings,
   R.propOr({}, 'time')
 )
 export const selectCurrentTimeLength = createSelector(
@@ -260,7 +253,7 @@ export const selectCurrentTimeUnits = createSelector(
   selectTimeSettings,
   (data) => R.propOr('unit', 'timeUnits')(data)
 )
-export const selectSyncToggles = createSelector(selectSettingsData, (data) =>
+export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )
 // Data -> groupedOutputs
@@ -657,14 +650,14 @@ export const selectMapLegendFunc = createSelector(
   }
 )
 // Local -> globalOutputs
-const selectLocalKpis = createSelector(
+const selectLocalGlobalOutputs = createSelector(
   selectLocal,
   R.propOr({}, 'globalOutputs')
 )
-export const selectMergedKpis = createSelector(
-  [selectKpisData, selectLocalKpis],
-  (globalOutputsData, localKpis) =>
-    R.mergeDeepLeft(localKpis)(globalOutputsData)
+export const selectMergedGlobalOutputs = createSelector(
+  [selectGlobalOutputs, selectLocalGlobalOutputs],
+  (globalOutputsData, localGlobalOutputs) =>
+    R.mergeDeepLeft(localGlobalOutputs)(globalOutputsData)
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
@@ -1207,14 +1200,16 @@ export const selectMemoizedChartFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
-export const selectMemoizedKpiFunc = createSelector(
+export const selectMemoizedGlobalOutputFunc = createSelector(
   selectAssociatedData,
   (associatedData) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const selectedKpis = forcePath(R.propOr([], 'globalOutput', obj))
-        const formattedKpis = R.pipe(
+        const selectedGlobalOutputs = forcePath(
+          R.propOr([], 'globalOutput', obj)
+        )
+        const formattedGlobalOutputs = R.pipe(
           R.values,
           R.filter((val) =>
             R.includes(val.name, R.propOr([], 'sessions', obj))
@@ -1222,12 +1217,12 @@ export const selectMemoizedKpiFunc = createSelector(
           R.map((val) => ({
             name: val.name,
             children: R.pipe(
-              R.path(['data', 'globalOutputs', 'data']),
+              R.path(['data', 'globalOutputs']),
               R.converge(addValuesToProps, [
                 R.propOr({}, 'props'),
                 R.propOr({}, 'values'),
               ]),
-              R.pick(selectedKpis),
+              R.pick(selectedGlobalOutputs),
               R.filter(R.prop('value')), // It should be filtered by now, but just in case
               withIndex,
               R.map((globalOutput) =>
@@ -1257,7 +1252,7 @@ export const selectMemoizedKpiFunc = createSelector(
             }))
           )
         )(associatedData)
-        return formattedKpis
+        return formattedGlobalOutputs
       },
       MAX_MEMOIZED_CHARTS
     )

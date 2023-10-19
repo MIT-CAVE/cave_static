@@ -37,7 +37,7 @@ const styles = {
   },
 }
 
-const KpiHead = ({
+const GlobalOutputHead = ({
   prop,
   sx = [],
   rootStyle,
@@ -51,7 +51,7 @@ const KpiHead = ({
   return (
     <Grid
       sx={[rootStyle, style, ...forceArray(sx)]}
-      {...R.dissoc('mapKpi', props)}
+      {...R.dissoc('mapGlobalOutput', props)}
     >
       <Grid container item spacing={gridSpacing} flexWrap="nowrap">
         {icon && (
@@ -67,7 +67,7 @@ const KpiHead = ({
     </Grid>
   )
 }
-KpiHead.propTypes = {
+GlobalOutputHead.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   style: PropTypes.object,
@@ -82,13 +82,18 @@ KpiHead.propTypes = {
 }
 
 const IconHeadColumn = (props) => (
-  <KpiHead rootStyle={styles.column} gridSpacing={1} iconSize={24} {...props}>
+  <GlobalOutputHead
+    rootStyle={styles.column}
+    gridSpacing={1}
+    iconSize={24}
+    {...props}
+  >
     <Divider sx={{ mt: 2 }} />
-  </KpiHead>
+  </GlobalOutputHead>
 )
 
 const IconHeadRow = (props) => (
-  <KpiHead
+  <GlobalOutputHead
     gridSpacing={2}
     iconSize={48}
     rootStyle={styles.row}
