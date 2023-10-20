@@ -113,7 +113,6 @@ const EchartsBoxPlot = ({
   const options = {
     xAxis: {
       name: xAxisTitle,
-      nameGap: 40,
       data: xLabels,
     },
     yAxis: {
@@ -126,7 +125,10 @@ const EchartsBoxPlot = ({
     series,
     legend,
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      valueFormatter: (value) =>
+        R.equals([])(value) // Skip extraneous value (EChart's bug?)
+          ? null
+          : NumberFormat.format(value, numberFormat),
     },
   }
 
