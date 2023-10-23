@@ -942,33 +942,36 @@ const LegendCard = memo(
           pr={2}
           columnGap={1}
         >
-          <MapLegendSizeBySection
-            {...{
-              sizeProp,
-              sizeRange,
-              typeObj,
-              group,
-              geometryName,
-              geometryType,
-              legendObj,
-              mapId,
-              legendGroupId,
-            }}
-            valueRange={group && sizeDomain ? sizeDomain : sizeRange}
-            icon={<FetchedIcon iconName={icon} />}
-            getPropName={getGeometryPropName}
-            syncPath={R.append('sizeBy')(basePath)}
-            propValue={groupCalcBySize}
-            onSelectProp={(value) => {
-              dispatch(
-                mutateLocal({
-                  path: groupCalcSizePath,
-                  sync: syncGroupCalcSize,
-                  value,
-                })
-              )
-            }}
-          />
+          {legendObj.sizeByOptions != null && (
+            <MapLegendSizeBySection
+              {...{
+                sizeProp,
+                sizeRange,
+                typeObj,
+                group,
+                geometryName,
+                geometryType,
+                legendObj,
+                mapId,
+                legendGroupId,
+              }}
+              valueRange={group && sizeDomain ? sizeDomain : sizeRange}
+              icon={<FetchedIcon iconName={icon} />}
+              getPropName={getGeometryPropName}
+              syncPath={R.append('sizeBy')(basePath)}
+              propValue={groupCalcBySize}
+              onSelectProp={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path: groupCalcSizePath,
+                    sync: syncGroupCalcSize,
+                    value,
+                  })
+                )
+              }}
+            />
+          )}
+
           <Divider
             orientation="vertical"
             sx={{
@@ -977,32 +980,34 @@ const LegendCard = memo(
               borderStyle: 'dotted',
             }}
           />
-          <MapLegendColorBySection
-            {...{
-              colorProp,
-              colorRange,
-              typeObj,
-              group,
-              geometryType,
-              legendObj,
-              mapId,
-              legendGroupId,
-            }}
-            valueRange={group && colorDomain ? colorDomain : colorRange}
-            getPropName={getGeometryPropName}
-            getCategoryName={getGeometryCategoryName}
-            syncPath={R.append('colorBy')(basePath)}
-            propValue={groupCalcByColor}
-            onSelectProp={(value) => {
-              dispatch(
-                mutateLocal({
-                  path: groupCalcColorPath,
-                  sync: syncGroupCalcColor,
-                  value,
-                })
-              )
-            }}
-          />
+          {legendObj.colorByOptions != null && (
+            <MapLegendColorBySection
+              {...{
+                colorProp,
+                colorRange,
+                typeObj,
+                group,
+                geometryType,
+                legendObj,
+                mapId,
+                legendGroupId,
+              }}
+              valueRange={group && colorDomain ? colorDomain : colorRange}
+              getPropName={getGeometryPropName}
+              getCategoryName={getGeometryCategoryName}
+              syncPath={R.append('colorBy')(basePath)}
+              propValue={groupCalcByColor}
+              onSelectProp={(value) => {
+                dispatch(
+                  mutateLocal({
+                    path: groupCalcColorPath,
+                    sync: syncGroupCalcColor,
+                    value,
+                  })
+                )
+              }}
+            />
+          )}
         </Box>
       </details>
     )
