@@ -995,7 +995,7 @@ const getMergedAllProps = (data) =>
       R.range(0),
       R.map((idx) => {
         const values = R.pipe(
-          R.pathOr({}, ['data', 'values']),
+          R.pathOr({}, ['data', 'valueLists']),
           R.pluck(idx)
         )(type)
         const location = R.pipe(
