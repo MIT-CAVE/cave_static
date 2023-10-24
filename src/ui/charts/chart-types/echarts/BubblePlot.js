@@ -44,15 +44,14 @@ const BubblePlot = ({ data, labels, numberFormat, colors }) => {
 
   const [xMin, xMax] = findAxisRange(0)
   const [yMin, yMax] = findAxisRange(1)
-  const [sizeMin, sizeMax] = findAxisRange(2)
+  const sizeMax = findAxisRange(2)[1]
 
   const xRange = xMax - xMin
   const yRange = yMax - yMin
-  const sizeRange = sizeMax - sizeMin
 
   const series = R.map(
     R.mergeRight({
-      symbolSize: (data) => (100 * (data[2] + sizeMax)) / (2 * sizeRange),
+      symbolSize: (data) => (data[2] * 150) / sizeMax,
     })
   )(initialSeries)
 
