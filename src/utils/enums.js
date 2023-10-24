@@ -124,7 +124,6 @@ export const chartVariant = {
   GAUGE: 'gauge',
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
-  BUBBLE: 'bubble',
   OVERVIEW: 'overview',
 }
 
@@ -152,14 +151,12 @@ export const chartMaxGrouping = {
   [chartVariant.GAUGE]: 1,
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
-  [chartVariant.BUBBLE]: 1,
 }
 
 // Stat limits for multistat charts
 export const chartStatUses = {
   [chartVariant.TABLE]: [],
-  [chartVariant.SCATTER]: ['X Axis', 'Y Axis'],
-  [chartVariant.BUBBLE]: ['X Axis', 'Y Axis', 'Size'],
+  [chartVariant.SCATTER]: ['X Axis', 'Y Axis', 'Size (Optional)'],
 }
 
 export const unitPlacements = {

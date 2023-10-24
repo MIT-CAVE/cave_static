@@ -213,11 +213,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               value: chartVariant.SCATTER,
               iconName: 'md/MdScatterPlot',
             },
-            {
-              label: 'Bubble',
-              value: chartVariant.BUBBLE,
-              iconName: 'md/MdBubbleChart',
-            },
           ]}
           displayIcon
           onSelect={handleSelectChart}
@@ -314,7 +309,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               header="Select Statistics"
               optionsList={R.values(statNames)}
               onSelect={(value) => {
-                console.log(value)
                 dispatch(
                   mutateLocal({
                     path,

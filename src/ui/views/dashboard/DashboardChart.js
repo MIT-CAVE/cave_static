@@ -248,14 +248,15 @@ const DashboardChart = ({ chartObj }) => {
           stack="x"
           {...labels}
         />
-      ) : chartObj.variant === chartVariant.SCATTER ? (
+      ) : chartObj.variant === chartVariant.SCATTER &&
+        R.isNil(R.path(['statId', 2], chartObj)) ? (
         <ScatterPlot
           data={formattedData}
           numberFormat={commonFormat}
-          labels={tableLabels}
+          labels={R.dissoc(3, tableLabels)}
           colors={colors}
         />
-      ) : chartObj.variant === chartVariant.BUBBLE ? (
+      ) : chartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
           numberFormat={commonFormat}
