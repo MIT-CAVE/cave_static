@@ -343,8 +343,12 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   value: R.pipe(
                     R.assoc('statId', value[1]),
                     R.assoc('groupedOutputDataId', value[0]),
-                    R.dissoc('groupingLevel'),
-                    R.dissoc('groupingId')
+                    value[0] !== chartObj.groupedOutputDataId
+                      ? R.pipe(
+                          R.dissoc('groupingLevel'),
+                          R.dissoc('groupingId')
+                        )
+                      : R.identity
                   )(chartObj),
                 })
               )
