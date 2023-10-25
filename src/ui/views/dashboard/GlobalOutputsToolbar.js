@@ -83,7 +83,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
           }}
         />
       </ChartDropdownWrapper>
-      {chartObj.variant !== 'Overview' && (
+      {chartObj.variant !== chartVariant.OVERVIEW && (
         <>
           <ChartDropdownWrapper>
             <SelectMulti
