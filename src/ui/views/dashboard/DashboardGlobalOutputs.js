@@ -58,7 +58,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
   const globalOutputData = R.pipe(
     R.values,
     R.head,
-    R.pathOr({}, ['data', 'globalOutputs', 'data', 'props']),
+    R.pathOr({}, ['data', 'globalOutputs', 'props']),
     R.pick(actualGlobalOutputRaw)
   )(globalOutputs)
 
