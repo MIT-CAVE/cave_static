@@ -270,7 +270,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   R.propOr([], 'groupedOutputDataId', chartObj),
                   R.propOr([], 'statId', chartObj)
                 )
-                return R.is(Array, currentStats) && R.has(idx, currentStats)
+                return R.is(Array, currentStats) &&
+                  R.has(idx, currentStats) &&
+                  R.isNotNil(R.head(currentStats[idx]))
                   ? `${use}: ${getGroupLabelFn(
                       statisticTypes,
                       currentStats[idx]
