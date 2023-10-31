@@ -106,7 +106,7 @@ const MapFeatureModal = () => {
     R.path([...key, 'values', propId])(featureData)
   const onChangeProp = (prop, propId) => (value) => {
     const usesTime = R.hasPath(
-      [...key, 'values', 'timeValues', currentTime, propId],
+      [...key, 'valueLists', 'timeValues', currentTime, propId],
       featureData
     )
     const dataPath = usesTime
@@ -114,13 +114,13 @@ const MapFeatureModal = () => {
           'data',
           key[0],
           'data',
-          'values',
+          'valueLists',
           'timeValues',
           `${currentTime}`,
           propId,
           parseInt(key[1]),
         ]
-      : ['data', key[0], 'data', 'values', propId, parseInt(key[1])]
+      : ['data', key[0], 'data', 'valueLists', propId, parseInt(key[1])]
     dispatch(
       sendCommand({
         command: 'mutate_session',

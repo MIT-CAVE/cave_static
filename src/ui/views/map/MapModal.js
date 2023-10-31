@@ -102,12 +102,12 @@ const OnLayerEventModal = ({ mapId }) => {
 
   const onChangeProp = (prop, propId) => (value) => {
     const usesTime = R.hasPath(
-      [key, 'values', 'timeValues', currentTime, propId],
+      [key, 'valueLists', 'timeValues', currentTime, propId],
       featureData
     )
     const dataPath = usesTime
-      ? ['data', key, 'values', 'timeValues', `${currentTime}`, propId]
-      : ['data', key, 'values', propId]
+      ? ['data', key, 'valueLists', 'timeValues', `${currentTime}`, propId]
+      : ['data', key, 'valueLists', propId]
 
     dispatch(
       sendCommand({
