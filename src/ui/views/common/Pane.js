@@ -157,7 +157,8 @@ const renderAppPane = ({
         [R.equals(paneId.SESSION), R.always(<SessionPane width={paneWidth} />)],
         // Custom panes
         [
-          R.equals(paneId.OPTIONS),
+          // R.equals(paneId.OPTIONS),
+          R.T,
           R.always(<OptionsPane open={open} pane={openPanesData} />),
         ],
       ])(variant)}

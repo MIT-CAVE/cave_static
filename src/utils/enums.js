@@ -19,8 +19,6 @@ export const paneId = {
   SESSION: 'session',
   APP_SETTINGS: 'settings',
   OPTIONS: 'options',
-  CONTEXT: 'context',
-  FILTER: 'filter',
 }
 
 export const propId = {
