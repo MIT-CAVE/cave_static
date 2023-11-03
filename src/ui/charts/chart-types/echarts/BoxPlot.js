@@ -1,10 +1,14 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { echarts } from './BaseChart'
+import { FlexibleChart } from './BaseChart'
 
-import { getDecimalScaleFactor, getDecimalScaleLabel } from '../../../../utils'
+import {
+  NumberFormat,
+  getDecimalScaleFactor,
+  getDecimalScaleLabel,
+  findSubgroupLabels,
+  getChartItemColor,
+} from '../../../../utils'
 
 // sort array ascending
 const asc = (arr) => arr.sort((a, b) => a - b)
@@ -34,8 +38,8 @@ const EchartsBoxPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  // numberFormat,
-  theme,
+  numberFormat,
+  colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -45,12 +49,7 @@ const EchartsBoxPlot = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const chartType = 'boxplot'
 
@@ -64,6 +63,7 @@ const EchartsBoxPlot = ({
         name: R.head(d).name,
         type: chartType,
         smooth: true,
+        color: R.prop(R.head(d).name, colors),
         emphasis: {
           focus: 'series',
         },
@@ -84,6 +84,10 @@ const EchartsBoxPlot = ({
         emphasis: {
           focus: 'series',
         },
+        colorBy: 'data',
+        color: R.addIndex(R.map)((item, idx) =>
+          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        )(xLabels),
       }),
     ]
   )(yValues)
@@ -107,93 +111,28 @@ const EchartsBoxPlot = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
-      nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      axisLabel: {
-        // rotate: 45,
-        hideOverlap: true,
-        interval: 0,
-      },
-      type: 'category',
       data: xLabels,
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
-      },
-      splitLine: {
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 2,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
       },
     },
     series,
     legend,
     tooltip: {
-      trigger: 'axis',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
+      valueFormatter: (value) =>
+        R.equals([])(value) // Skip extraneous value (EChart's bug?)
+          ? null
+          : NumberFormat.format(value, numberFormat),
     },
   }
 
-  // TODO: Prefer FlexibleWrapper here
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            theme={theme}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export { EchartsBoxPlot as BoxPlot }

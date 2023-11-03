@@ -2,7 +2,7 @@ import { Autocomplete, Box, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
-import { customSort, forceArray } from '../../utils'
+import { withIndex, forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   display: 'flex',
@@ -18,7 +18,7 @@ const getStyles = (enabled) => ({
 const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, options, placeholder } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
-  const optionsListRaw = customSort(options)
+  const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>

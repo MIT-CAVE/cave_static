@@ -1,13 +1,14 @@
+import { chartAggrFunc, chartVariant } from './enums'
+
 export const DEFAULT_LOCALE = 'en-US'
 
-export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/0.0.1'
+export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/4.10.1'
 
 export const APP_BAR_WIDTH = 70
 export const PANE_WIDTH = 450
-export const PROP_MIN_WIDTH = 200
-export const KPI_MIN_WIDTH = 400
 
-export const STYLE_URL_BASE = 'mapbox://styles/mapbox/'
+export const GLOBALOUTPUT_WIDTH = 400
+export const PROP_MIN_WIDTH = 200
 
 export const MIN_ZOOM = 2.46
 export const MAX_ZOOM = 22
@@ -37,27 +38,157 @@ export const DEFAULT_VIEWPORT = {
   maxBearing: MAX_BEARING,
 }
 
-export const CHART_PALETTE = {
-  dark: [
-    '#4992ff',
-    '#7cffb2',
-    '#fddd60',
-    '#ff6e76',
-    '#58d9f9',
-    '#05c091',
-    '#ff8a45',
-    '#8d48e3',
-    '#dd79ff',
+export const DARK_GLOBE_FOG = {
+  range: [0.5, 10],
+  color: '#ffffff',
+  'high-color': '#245cdf',
+  'space-color': [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    3,
+    '#010b19',
+    6,
+    '#367ab9',
   ],
-  light: [
-    '#37A2DA',
-    '#32C5E9',
-    '#9FE6B8',
-    '#FFDB5C',
-    '#ff9f7f',
-    '#fb7293',
-    '#e7bcf3',
-    '#8378EA',
-    '#96BFFF',
+  'horizon-blend': [
+    'interpolate',
+    ['exponential', 1.2],
+    ['zoom'],
+    5,
+    0.02,
+    7,
+    0.08,
+  ],
+  'star-intensity': ['interpolate', ['linear'], ['zoom'], 5, 0.35, 6, 0],
+}
+
+export const LIGHT_GLOBE_FOG = {
+  range: [2, 20],
+  color: 'hsl(0, 0%, 100%)',
+  'high-color': 'hsl(210, 100%, 80%)',
+  'space-color': [
+    'interpolate',
+    ['exponential', 1.2],
+    ['zoom'],
+    2,
+    'hsl(210, 40%, 30%)',
+    4,
+    'hsl(210, 100%, 80%)',
+  ],
+  'horizon-blend': [
+    'interpolate',
+    ['exponential', 1.2],
+    ['zoom'],
+    5,
+    0.02,
+    7,
+    0.08,
+  ],
+  'star-intensity': [
+    'interpolate',
+    ['exponential', 1.2],
+    ['zoom'],
+    5,
+    0.1,
+    7,
+    0,
   ],
 }
+
+export const DEFAULT_MAP_STYLE_KEY = '_default'
+
+export const DEFAULT_MAP_STYLES = {
+  [DEFAULT_MAP_STYLE_KEY]: {
+    name: 'Default',
+    icon: 'md/MdMap',
+    order: -3,
+  },
+  dark_matter: {
+    name: 'Dark',
+    icon: 'md/MdDarkMode',
+    order: -2,
+    spec: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    fog: DARK_GLOBE_FOG,
+  },
+  positron: {
+    name: 'Light',
+    icon: 'md/MdLightMode',
+    order: -1,
+    spec: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    fog: LIGHT_GLOBE_FOG,
+  },
+  OSM: {
+    name: 'OSM',
+    icon: 'md/MdFreeBreakfast',
+    order: 0,
+    spec: {
+      name: 'osm',
+      version: 8,
+      glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+      sources: {
+        'osm-raster-tiles': {
+          type: 'raster',
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        },
+      },
+      layers: [
+        {
+          id: 'osm-raster-layer',
+          type: 'raster',
+          source: 'osm-raster-tiles',
+          minzoom: 0,
+          maxzoom: 22,
+        },
+      ],
+    },
+    fog: LIGHT_GLOBE_FOG,
+  },
+  mapboxDark: {
+    name: 'Dark (Alt)',
+    icon: 'si/SiMapbox',
+    // Full spec (via Mapbox's guest token) available at:
+    // https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA#11/40.73/-74
+    spec: 'mapbox://styles/mapbox/dark-v11',
+  },
+}
+
+export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
+
+export const CHART_PALETTE = [
+  '#4992ff',
+  '#7cffb2',
+  '#fddd60',
+  '#ff6e76',
+  '#58d9f9',
+  '#05c091',
+  '#ff8a45',
+  '#8d48e3',
+  '#dd79ff',
+]
+
+export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
+
+export const CHART_DEFAULTS = {
+  variant: chartVariant.BAR,
+  statAggregation: chartAggrFunc.SUM,
+}
+
+export const NUMBER_FORMAT_KEYS = [
+  'locale',
+  'precision',
+  'notation',
+  'notationDisplay',
+  'trailingZeros',
+  'unit',
+  'unitPlacement',
+  'fallbackValue',
+  'legendPrecision',
+  'legendNotation',
+  'legendNotationDisplay',
+  'legendMinLabel',
+  'legendMaxLabel',
+]

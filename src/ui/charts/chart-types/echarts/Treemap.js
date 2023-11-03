@@ -1,29 +1,23 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { echarts } from './BaseChart'
+import { FlexibleChart } from './BaseChart'
 
+import { findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
+
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({ data, theme }) => {
+const Treemap = ({ data, colors }) => {
   const xLabels = R.pluck('name', data)
 
   const yValues = R.has('children', R.head(data))
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const assignColors = () => {
-    let availableColors =
-      theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
+    let availableColors = CHART_PALETTE
 
     const assignments = R.pipe(
       R.map((val) => {
@@ -37,7 +31,7 @@ const Treemap = ({ data, theme }) => {
     return assignments
   }
 
-  const assignments = assignColors()
+  const assignments = R.mergeRight(assignColors(), colors)
 
   const normalData = R.isEmpty(subGroupLabels)
     ? R.map((obj) =>
@@ -73,14 +67,15 @@ const Treemap = ({ data, theme }) => {
     //       },
     //     }
     //   : null,
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    xAxis: null,
+    yAxis: null,
     series: {
       label: {
         show: true,
       },
       itemStyle: {
         borderRadius: 10,
-        borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+        borderColor: '#4a4a4a',
         borderWidth: 2,
         gapWidth: 2,
       },
@@ -97,7 +92,7 @@ const Treemap = ({ data, theme }) => {
       levels: [
         {
           itemStyle: {
-            borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+            borderColor: '#4a4a4a',
             borderWidth: 2,
             gapWidth: 2,
           },
@@ -125,30 +120,11 @@ const Treemap = ({ data, theme }) => {
       ],
     },
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       trigger: 'item',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
     },
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            theme={theme}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Treemap }

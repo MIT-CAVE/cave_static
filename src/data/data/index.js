@@ -54,20 +54,27 @@ export const overwriteData = createAsyncThunk(
     // Overwrite
     const data = R.prop('data')(arg)
     if (
-      R.hasPath(['settings', 'data', 'sync'], data) &&
+      R.has('settings', data) &&
       !R.equals(
-        R.path(['settings', 'data', 'sync'], data),
-        R.path(['data', 'settings', 'data', 'sync'], getState())
+        R.path(['settings', 'sync'], data),
+        R.path(['data', 'settings', 'sync'], getState())
       )
     ) {
       const desyncedPaths = R.pipe(
-        R.path(['settings', 'data', 'sync']),
+        R.pathOr({}, ['settings', 'sync']),
         R.filter(R.pipe(R.prop('value'), R.not)),
         R.pluck('data')
       )(data)
+      const pathsToSync = R.pipe(
+        R.pathOr({}, ['data', 'settings', 'sync']),
+        R.filter(R.pipe(R.prop('value'), R.not)),
+        R.pluck('data')
+      )(getState())
+
       dispatch(
         overrideSync({
-          paths: desyncedPaths,
+          pathsToSync,
+          desyncedPaths,
           dataState: R.mergeDeepRight(R.prop('data', getState()), data),
         })
       )
@@ -135,7 +142,7 @@ export const dataSlice = createSlice({
     nodes: {},
     geos: {},
     stats: {},
-    kpis: {},
+    globalOutputs: {},
     ignore: {},
     associated: {},
   },

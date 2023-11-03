@@ -1,7 +1,6 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
 
-import renderKpi from './renderKpi'
 import renderProp from './renderProp'
 
 import { layoutType } from '../../../utils/enums'
@@ -15,7 +14,6 @@ import {
 const renderPropItem = ({
   layoutItem,
   item: prop,
-  resolveTime = R.identity,
   getCurrentVal,
   onChangeProp,
 }) => {
@@ -23,41 +21,12 @@ const renderPropItem = ({
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
   return renderProp({
     prop: container ? { container, elevation, marquee, ...prop } : prop,
-    currentVal: resolveTime(currentValue),
+    currentVal: currentValue,
     onChange: onChangeProp(prop, prop.id),
   })
 }
 
-const renderKpiItem = ({ item }) =>
-  renderKpi({
-    key: item.id,
-    title: item.name || item.id,
-    mapKpi: item.mapKpi,
-    ...R.pick([
-      'id',
-      'value',
-      'icon',
-      'numberFormat',
-      'style',
-      'type',
-      'view',
-      'variant',
-    ])(item),
-  })
-
-const getItemRenderFn = R.cond([
-  [R.equals('prop'), R.always(renderPropItem)],
-  [R.equals('kpi'), R.always(renderKpiItem)],
-  [R.T, null],
-])
-
-const renderItem = ({
-  keyName,
-  layout: layoutItem,
-  items,
-  unusedItems,
-  ...other
-}) => {
+const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
   const { itemId, column, row, width, height, style } = layoutItem
   if (R.isNil(itemId)) throw Error("Missing 'itemId' property in layout item")
 
@@ -72,7 +41,7 @@ const renderItem = ({
       ...style,
     })
   )(items)
-  const itemRenderFn = getItemRenderFn(keyName)
+  const itemRenderFn = renderPropItem
   return {
     unusedItems,
     component: itemRenderFn({ layoutItem, item, ...other }),
@@ -204,10 +173,6 @@ const getLayoutComponent = ({
   return component
 }
 
-const renderPropsLayout = ({ ...props }) =>
-  getLayoutComponent({ keyName: 'prop', ...props })
+const renderPropsLayout = ({ ...props }) => getLayoutComponent({ ...props })
 
-const renderKpisLayout = ({ ...props }) =>
-  getLayoutComponent({ keyName: 'kpi', ...props })
-
-export { renderPropsLayout, renderKpisLayout }
+export { renderPropsLayout }

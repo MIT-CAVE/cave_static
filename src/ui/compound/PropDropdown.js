@@ -4,7 +4,7 @@ import * as R from 'ramda'
 
 import { SimpleDropdown } from './SimpleDropdown'
 
-import { customSort, forceArray } from '../../utils'
+import { withIndex, forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   display: 'flex',
@@ -20,7 +20,7 @@ const getStyles = (enabled) => ({
 const PropDropdown = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, options } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
-  const optionsListRaw = customSort(options)
+  const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>

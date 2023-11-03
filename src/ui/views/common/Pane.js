@@ -4,8 +4,6 @@ import * as R from 'ramda'
 import { useDispatch } from 'react-redux'
 
 import AppSettingsPane from './AppSettingsPane'
-import ContextPane from './ContextPane'
-import FilterPane from './FilterPane'
 import OptionsPane from './OptionsPane'
 import SessionPane from './SessionPane'
 
@@ -37,7 +35,7 @@ const SyncButton = ({ open, pane }) => {
   const dispatch = useDispatch()
   return (
     <FloatButton
-      iconName="MdSync"
+      iconName="md/MdSync"
       onClick={() => {
         if (!pane) return null
         dispatch(
@@ -73,15 +71,15 @@ const RefreshButton = () => {
           })
         )
       }
-      iconName="MdRefresh"
+      iconName="md/MdRefresh"
     />
   )
 }
 
 const SessionCardButton = ({ sessionCard, toggleSessionCard }) => {
   const iconName = sessionCard
-    ? 'MdOutlineCloseFullscreen'
-    : 'MdOutlineOpenInNew'
+    ? 'md/MdOutlineCloseFullscreen'
+    : 'md/MdOutlineOpenInNew'
   return (
     <FloatButton
       onClick={() => toggleSessionCard(!sessionCard)}
@@ -103,7 +101,7 @@ const PaneWrapper = ({
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
-    iconName={R.propOr('BiError', 'icon', pane)}
+    iconName={R.propOr('bi/BiError', 'icon', pane)}
     side={side}
     style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
@@ -131,7 +129,6 @@ PaneWrapper.propTypes = {
 const renderAppPane = ({
   open,
   openPanesData,
-  secondaryOpen,
   pane,
   pin,
   onPin,
@@ -142,9 +139,7 @@ const renderAppPane = ({
   let { width, variant, ...paneProps } = pane
   // Make `PANE_WIDTH` the default width for the Session pane
   const paneWidth =
-    (variant === paneId.SESSION || variant === paneId.CONTEXT) && width == null
-      ? PANE_WIDTH
-      : width
+    variant === paneId.SESSION && width == null ? PANE_WIDTH : width
   return (
     <PaneWrapper
       {...{ open, variant, pin, onPin }}
@@ -157,26 +152,12 @@ const renderAppPane = ({
       {R.cond([
         // Built-in panes
         [R.equals(paneId.APP_SETTINGS), R.always(<AppSettingsPane />)],
-        [
-          R.equals(paneId.FILTER),
-          R.always(<FilterPane secondaryOpen={secondaryOpen} side={side} />),
-        ],
         [R.equals(paneId.SESSION), R.always(<SessionPane width={paneWidth} />)],
         // Custom panes
         [
-          R.equals(paneId.OPTIONS),
+          // R.equals(paneId.OPTIONS),
+          R.T,
           R.always(<OptionsPane open={open} pane={openPanesData} />),
-        ],
-        [
-          R.equals(paneId.CONTEXT),
-          R.always(
-            <ContextPane
-              open={open}
-              pane={openPanesData}
-              secondaryOpen={secondaryOpen}
-              side={side}
-            />
-          ),
         ],
       ])(variant)}
     </PaneWrapper>

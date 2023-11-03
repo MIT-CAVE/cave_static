@@ -1,688 +1,59 @@
-import { PathStyleExtension } from '@deck.gl/extensions'
-import { PathLayer, GeoJsonLayer, IconLayer, ArcLayer } from '@deck.gl/layers'
 import * as R from 'ramda'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { MdDownloading } from 'react-icons/md'
-import { useSelector, useDispatch } from 'react-redux'
+import { useMemo, useEffect, useState, memo, useCallback } from 'react'
+import { Layer, Source } from 'react-map-gl'
+import { useDispatch, useSelector } from 'react-redux'
 
-import { openMapModal } from '../../../data/local/mapSlice'
+import { ArcLayer3D } from './CustomLayers'
+
+import { mutateLocal } from '../../../data/local'
 import {
-  selectNodesByType,
-  selectLayerById,
-  selectTheme,
-  selectEnabledGeos,
-  selectGeoColorRange,
-  selectSettingsIconUrl,
-  selectResolveTime,
-  selectTimeProp,
+  selectEnabledArcsFunc,
   selectArcRange,
-  selectNodeRange,
+  selectEnabledGeosFunc,
+  selectGeoColorRange,
+  selectMatchingKeysFunc,
+  selectMatchingKeysByTypeFunc,
   selectGeoTypes,
-  selectTimePath,
-  selectMatchingKeys,
-  selectMatchingKeysByType,
-  selectAppBarId,
-  selectEnabledArcs,
-  selectEnabledNodes,
-  selectArcData,
-  selectTouchMode,
-  selectNodeClustersAtZoom,
-  selectLineData,
-  selectMapNodes,
+  selectArcTypes,
+  selectLineMatchingKeysByTypeFunc,
+  selectLineMatchingKeysFunc,
+  selectNodeLayerGeoJsonFunc,
+  selectArcLayerGeoJsonFunc,
+  selectArcLayer3DGeoJsonFunc,
+  selectSync,
 } from '../../../data/selectors'
+import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
-import { store } from '../../../utils/store'
 
 import {
-  fetchIcon,
-  getScaledArray,
   getScaledColor,
+  getScaledArray,
   getScaledValue,
-  rgbStrToArray,
+  includesPath,
 } from '../../../utils'
 
-const getLayerProps = (props) =>
-  R.mergeLeft(props, selectLayerById(store.getState(), props.id))
-
-const lineTypes = { solid: [0, 0], dashed: [7, 3], dotted: [2, 2] }
-
-const Get3dArcLayer = () => {
-  const arcRange = useSelector(selectArcRange)
-  const themeType = useSelector(selectTheme)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
-  const arcData = useSelector(selectArcData)
-  const legendObjects = useSelector(selectEnabledArcs)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findSize = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1])
-        return `${d[0]}${propVal}`
-      },
-      (d) => {
-        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const sizeRange = arcRange(d[1].type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
-        return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              timeProp('min', sizeRange),
-              timeProp('max', sizeRange),
-              parseFloat(timeProp('startSize', d[1])),
-              parseFloat(timeProp('endSize', d[1])),
-              propVal
-            )
-      }
-    ),
-    [legendObjects, arcRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findColor = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1])
-        return `${d[0]}${propVal}`
-      },
-      (d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const colorRange = arcRange(d[1].type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        const propVal = R.pipe(
-          timePath(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(d[1])
-
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
-
-        return R.equals('', propVal)
-          ? rgbStrToArray(nullColor)
-          : isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', propVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            )
-          : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(
-                resolveTime(R.path(['props', colorProp, 'value'], d[1]))
-              )
-            )
-      }
-    ),
-    [legendObjects, themeType, arcRange]
-  )
-
-  return new ArcLayer(
-    getLayerProps({
-      id: layerId.ARC_LAYER_3D,
-      data: arcData,
-      visible: true,
-      opacity: 0.4,
-      autoHighlight: true,
-      wrapLongitude: true,
-      getTilt: (d) => R.propOr(0, 'tilt', d[1]),
-      greatCircle: false,
-      getHeight: (d) => resolveTime(R.propOr(1, 'height', d[1])),
-      getSourcePosition: (d) => [
-        resolveTime(d[1].startLongitude),
-        resolveTime(d[1].startLatitude),
-        resolveTime(d[1].startAltitude),
-      ],
-      getTargetPosition: (d) => [
-        resolveTime(d[1].endLongitude),
-        resolveTime(d[1].endLatitude),
-        resolveTime(d[1].endAltitude),
-      ],
-      getSourceColor: (d) => findColor(d),
-      getTargetColor: (d) => findColor(d),
-      widthUnits: 'pixels',
-      getWidth: (d) => findSize(d),
-      positionFormat: `XY`,
-      dashJustified: true,
-      pickable: true,
-    })
-  )
-}
-
-const GetArcLayer = () => {
-  const arcRange = useSelector(selectArcRange)
-  const themeType = useSelector(selectTheme)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
-  const arcData = useSelector(selectLineData)
-  const legendObjects = useSelector(selectEnabledArcs)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findSize = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1])
-        return `${d[0]}${propVal}`
-      },
-      (d) => {
-        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const sizeRange = arcRange(d[1].type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
-        return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              timeProp('min', sizeRange),
-              timeProp('max', sizeRange),
-              parseFloat(timeProp('startSize', d[1])),
-              parseFloat(timeProp('endSize', d[1])),
-              propVal
-            )
-      }
-    ),
-    [legendObjects, arcRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findColor = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1])
-        return `${d[0]}${propVal}`
-      },
-      (d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const colorRange = arcRange(d[1].type, colorProp, false)
-        const isCategorical = !R.has('min', colorRange)
-        const propVal = R.pipe(
-          timePath(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(d[1])
-
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', colorRange),
-          ['nullColor', themeType],
-          colorRange
-        )
-
-        return R.equals('', propVal)
-          ? rgbStrToArray(nullColor)
-          : isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0)', propVal, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            )
-          : getScaledArray(
-              timeProp('min', colorRange),
-              timeProp('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('startGradientColor', colorRange),
-                  ['startGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  R.prop('endGradientColor', colorRange),
-                  ['endGradientColor', themeType],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(
-                resolveTime(R.path(['props', colorProp, 'value'], d[1]))
-              )
-            )
-      }
-    ),
-    [legendObjects, themeType, arcRange]
-  )
-  return new PathLayer(
-    getLayerProps({
-      id: layerId.ARC_LAYER,
-      data: arcData,
-      visible: true,
-      opacity: 0.4,
-      autoHighlight: true,
-      wrapLongitude: true,
-      getPath: (d) =>
-        R.propOr(
-          [
-            [
-              resolveTime(d[1].startLongitude),
-              resolveTime(d[1].startLatitude),
-              resolveTime(d[1].startAltitude),
-            ],
-            [
-              resolveTime(d[1].endLongitude),
-              resolveTime(d[1].endLatitude),
-              resolveTime(d[1].endAltitude),
-            ],
-          ],
-          'path',
-          d[1]
-        ),
-      getColor: (d) => findColor(d),
-      widthUnits: 'pixels',
-      getWidth: (d) => findSize(d),
-      getDashArray: (d) => {
-        const lineType = R.propOr('solid', 'lineBy')(d[1])
-        return lineTypes[lineType]
-      },
-      dashJustified: true,
-      dashGapPickable: false,
-      extensions: [new PathStyleExtension({ dash: true })],
-      pickable: true,
-    })
-  )
-}
-
-const GetNodeIconLayer = () => {
-  const nodeData = useSelector(selectMapNodes)
-  const nodeClusters = useSelector(selectNodeClustersAtZoom)
-  const nodesByType = useSelector(selectNodesByType)
-  const nodeRange = useSelector(selectNodeRange)
-  const themeType = useSelector(selectTheme)
-  const iconUrl = useSelector(selectSettingsIconUrl)
-  const resolveTime = useSelector(selectResolveTime)
-  const timeProp = useSelector(selectTimeProp)
-  const timePath = useSelector(selectTimePath)
-  const legendObjects = useSelector(selectEnabledNodes)
-
-  const [iconObj, setIconObj] = useState([
-    btoa(renderToStaticMarkup(<MdDownloading />)),
-  ])
-  const [previousIcons, setPreviousIcons] = useState(new Set())
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findColor = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const propVal = timePath(['props', colorProp, 'value'], d[1])
-        return `${d[0]}${propVal}`
-      },
-      (d) => {
-        const colorProp = R.path([d[1].type, 'colorBy'], legendObjects)
-        const value = timePath(['props', colorProp, 'value'])(d[1])
-        const statRange = nodeRange(d[1].type, colorProp, false)
-        const isCategorical = !R.has('min', statRange)
-        const colorRange = isCategorical
-          ? statRange
-          : R.map((prop) =>
-              R.pathOr(statRange[prop], [prop, themeType])(statRange)
-            )(['startGradientColor', 'endGradientColor'])
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-          ['nullColor', themeType],
-          statRange
-        )
-        return R.isNil(value)
-          ? rgbStrToArray(nullColor)
-          : isCategorical
-          ? rgbStrToArray(
-              R.when(
-                R.has(themeType),
-                R.prop(themeType)
-              )(timeProp(value, colorRange))
-            )
-          : getScaledColor(
-              [timeProp('min', statRange), timeProp('max', statRange)],
-              colorRange,
-              value
-            )
-      }
-    ),
-    [legendObjects, themeType, nodeRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findSize = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const propVal = timePath(['props', sizeProp, 'value'], d[1])
-        return `${d[0]}${propVal}`
-      },
-      (d) => {
-        const sizeProp = R.path([d[1].type, 'sizeBy'], legendObjects)
-        const sizeRange = nodeRange(d[1].type, sizeProp, true)
-        const propVal = parseFloat(timePath(['props', sizeProp, 'value'], d[1]))
-        return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              timeProp('min', sizeRange),
-              timeProp('max', sizeRange),
-              parseFloat(timeProp('startSize', d[1])),
-              parseFloat(timeProp('endSize', d[1])),
-              propVal
-            )
-      }
-    ),
-    [legendObjects, nodeRange]
-  )
-
-  const getSvgResolution = R.pipe(
-    (elem) => elem.getAttribute('viewBox'),
-    R.split(' '),
-    R.reduce(R.max, 0)
-  )
-
-  const createGroup = (position, resolution, scale, parser) => {
-    return parser.parseFromString(
-      `<g xmlns="http://www.w3.org/2000/svg" transform="translate(${
-        // translate horizontally to prevent overlap
-        position * resolution
-      }) scale(${scale},${scale})"></g>`,
-      'image/svg+xml'
-    ).firstChild
-  }
-
-  const cloneAttributes = (target, source) => {
-    const attributesNotCloned = new Set(['width, height, viewbox'])
-    const sourceAttributes = [...source.attributes]
-    sourceAttributes.forEach((attr) => {
-      if (!attributesNotCloned.has(attr.nodeName))
-        target.setAttribute(attr.nodeName, attr.nodeValue)
-    })
-  }
-
-  useEffect(() => {
-    const setIcons = async () => {
-      // Set desired render resolution
-      const iconResolution = 144
-      // Offset prevents Icon collisions
-      const groupOffset = iconResolution + 15
-      const icons = new Set()
-      R.forEach(
-        (d) => icons.add(R.propOr('MdDownloading', 'icon', d)),
-        R.unnest(R.values(nodesByType))
-      )
-      if ([...icons].every((x) => previousIcons.has(x))) return
-      const newIcons = {}
-      for (let icon of icons) {
-        newIcons[icon] = await fetchIcon(icon, iconUrl)
-      }
-      const constructed = R.mapObjIndexed(
-        (func) => renderToStaticMarkup(func()),
-        newIcons
-      )
-      const parser = new DOMParser()
-      const serializer = new XMLSerializer()
-      const iconMapping = {}
-      // Pack all icons into one svg image for iconAtlas
-      const packed = R.reduce(
-        (acc, [iconName, svgStr]) => {
-          // first icon - use svg wrapper
-          if (R.isEmpty(acc)) {
-            const svgElem = parser.parseFromString(
-              svgStr,
-              'image/svg+xml'
-            ).firstChild
-            // scale group to correct render resolution
-            const scale = iconResolution / getSvgResolution(svgElem)
-            const group = createGroup(0, groupOffset, scale, parser)
-            // move svg data to group
-            group.innerHTML = svgElem.innerHTML
-            cloneAttributes(group, svgElem)
-            svgElem.innerHTML = ''
-            // add group to image
-            svgElem.appendChild(group)
-            // add mapping
-            iconMapping[iconName] = {
-              x: 0,
-              y: 0,
-              width: iconResolution,
-              height: iconResolution,
-              mask: true,
-            }
-            return [1, svgElem]
-          }
-          // all subsequent icons - add to existing image
-          const iconElem = parser.parseFromString(
-            svgStr,
-            'image/svg+xml'
-          ).firstChild
-          const scale = iconResolution / getSvgResolution(iconElem)
-          const group = createGroup(acc[0], groupOffset, scale, parser)
-          // take svg data from icon - put in group
-          group.innerHTML = iconElem.innerHTML
-          cloneAttributes(group, iconElem)
-          // add group to existing image
-          acc[1].appendChild(group)
-          // update image size
-          acc[1].setAttribute(
-            'viewBox',
-            `0 0 ${acc[0] * iconResolution + iconResolution} ${iconResolution}`
-          )
-          // add new image to mapping
-          iconMapping[iconName] = {
-            x: acc[0] * groupOffset,
-            y: 0,
-            width: iconResolution,
-            height: iconResolution,
-            mask: true,
-          }
-          // acc becomes [numIcons, packedImage]
-          return [acc[0] + 1, acc[1]]
-        },
-        [],
-        R.toPairs(constructed)
-      )
-      // Check if icons present to prevent log errors
-      if (!R.isEmpty(packed)) {
-        // Set dimensions of iconAtlas image
-        packed[1].setAttribute(
-          'viewBox',
-          `0 0 ${packed[0] * groupOffset + groupOffset} ${iconResolution}`
-        )
-        packed[1].setAttribute(
-          'width',
-          `${groupOffset * packed[0] + groupOffset}`
-        )
-        packed[1].setAttribute('height', iconResolution)
-        setPreviousIcons(icons)
-        setIconObj([btoa(serializer.serializeToString(packed[1])), iconMapping])
-      }
-    }
-    setIcons()
-  }, [nodesByType, iconUrl, previousIcons, getSvgResolution])
-
-  return [
-    new IconLayer({
-      id: layerId.NODE_ICON_LAYER,
-      visible: true,
-      data: nodeData,
-      iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
-      iconMapping: iconObj[1],
-      autoHighlight: true,
-      sizeScale: 1,
-      pickable: true,
-      getIcon: (d) => d[1].icon,
-      getColor: (d) => {
-        return findColor(d)
-      },
-      getSize: (d) => {
-        return findSize(d)
-      },
-      getPosition: (d) => [
-        resolveTime(d[1].longitude),
-        resolveTime(d[1].latitude),
-        resolveTime(d[1].altitude + 1),
-      ],
-    }),
-    new IconLayer({
-      id: layerId.NODE_ICON_CLUSTER_LAYER,
-      visible: true,
-      data: nodeClusters.data,
-      iconAtlas: `data:image/svg+xml;base64,${iconObj[0]}`,
-      iconMapping: iconObj[1],
-      autoHighlight: true,
-      sizeScale: 1,
-      pickable: true,
-      getIcon: (d) => d.properties.icon,
-      getColor: (d) => {
-        const nodeType = d.properties.type
-        const colorObj = d.properties.colorProp
-        const colorDomain = nodeClusters.range[nodeType].color
-        const isCategorical = !R.has('min')(colorDomain)
-        const value = timeProp('value', colorObj)
-        const colorRange = isCategorical
-          ? colorObj
-          : R.map((prop) =>
-              R.pathOr(colorObj[prop], [prop, themeType])(colorObj)
-            )(['startGradientColor', 'endGradientColor'])
-
-        return isCategorical
-          ? rgbStrToArray(
-              R.when(
-                R.has(themeType),
-                R.prop(themeType)
-              )(timeProp(value, colorRange))
-            )
-          : getScaledColor(
-              [timeProp('min', colorDomain), timeProp('max', colorDomain)],
-              colorRange,
-              value
-            )
-      },
-      getSize: (d) => {
-        const nodeType = d.properties.type
-        const sizeObj = d.properties.sizeProp
-        const sizeDomain = nodeClusters.range[nodeType].size
-        return getScaledValue(
-          timeProp('min', sizeDomain),
-          timeProp('max', sizeDomain),
-          parseFloat(timeProp('startSize', sizeObj)),
-          parseFloat(timeProp('endSize', sizeObj)),
-          timeProp('value', sizeObj)
-        )
-      },
-      getPosition: (d) => R.path(['geometry', 'coordinates'], d),
-    }),
-  ]
-}
-
-const GetGeographyLayer = (openGeo) => {
-  const enabledGeos = useSelector(selectEnabledGeos)
-  const timePath = useSelector(selectTimePath)
+export const Geos = memo(({ highlightLayerId, mapId }) => {
+  const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const geoColorRange = useSelector(selectGeoColorRange)
-  const matchingKeys = useSelector(selectMatchingKeys)
-  const matchingKeysByType = useSelector(selectMatchingKeysByType)
+  const matchingKeys = useSelector(selectMatchingKeysFunc)(mapId)
+  const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
   const geoTypes = useSelector(selectGeoTypes)
-  const themeType = useSelector(selectTheme)
-  const timeProp = useSelector(selectTimeProp)
-  const appBarId = useSelector(selectAppBarId)
-  const touchMode = useSelector(selectTouchMode)
-
-  const currentTimeout = useRef()
-
-  const dispatch = useDispatch()
-
-  const [selectedGeos, setSelectedGeos] = useState([])
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findColor = useCallback(
-    R.memoizeWith(
-      (geoObj) => {
-        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const value = timePath(['props', colorProp, 'value'], geoObj)
-        return `${geoObj.geoJsonValue}${value}`
-      },
-      (geoObj) => {
-        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geoColorRange(geoObj.type, colorProp)
-        const colorRange = R.map((prop) =>
-          R.pathOr(0, [prop, themeType])(statRange)
-        )(['startGradientColor', 'endGradientColor'])
-        const value = R.pipe(
-          timePath(['props', colorProp, 'value']),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(geoObj)
-        const isCategorical = !R.has('min', statRange)
-        const nullColor = R.pathOr(
-          R.propOr('rgb(0,0,0)', 'nullColor', statRange),
-          ['nullColor', themeType],
-          statRange
-        )
-        return R.equals('', value)
-          ? rgbStrToArray(nullColor)
-          : isCategorical
-          ? R.map((val) => parseFloat(val))(
-              R.propOr('rgb(0,0,0,5)', value, statRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            )
-          : getScaledColor(
-              [timeProp('min', statRange), timeProp('max', statRange)],
-              colorRange,
-              value
-            )
-      }
-    ),
-    [enabledGeos, themeType, geoColorRange]
+  const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
+  const arcTypes = useSelector(selectArcTypes)
+  const lineMatchingKeys = useSelector(selectLineMatchingKeysFunc)(mapId)
+  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByTypeFunc)(
+    mapId
   )
+  const arcRange = useSelector(selectArcRange)
 
-  const onClick = useCallback(
-    (d) => {
-      if (!openGeo(d)) return false
-      else if (R.pipe(R.prop('object'), R.isNil)(d)) return true
-      const caveType = R.path(['object', 'caveType'], d)
-      const geoProp = R.path([caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
-      const geoObj = R.prop(R.path(['object', 'properties', geoProp], d))(
-        matchingKeys
-      )
-      dispatch(
-        openMapModal({
-          appBarId,
-          data: {
-            ...geoObj,
-            feature: 'geos',
-            type: R.propOr('Area', 'name', geoObj),
-            key: R.propOr('Area', 'data_key', geoObj),
-          },
-        })
-      )
-    },
-    [appBarId, dispatch, geoTypes, matchingKeys, openGeo]
-  )
+  const [selectedGeos, setSelectedGeos] = useState({})
+  const [selectedArcs, setSelectedArcs] = useState({})
+
+  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
+
     const fetchCache = async () => {
       const cache = await caches.open('geos')
       const geos = {}
@@ -705,69 +76,471 @@ const GetGeographyLayer = (openGeo) => {
     fetchCache()
   }, [geoTypes, enabledGeos, matchingKeysByType])
 
-  return new GeoJsonLayer({
-    id: layerId.GEOGRAPHY_LAYER,
-    data: selectedGeos,
-    dataTransform: (data) => {
-      return R.pipe(
-        R.mapObjIndexed((val, key) => {
-          const keysOfType = R.pipe(
-            R.flip(R.prop)(matchingKeysByType),
-            R.keys
-          )(key)
-          return R.pipe(
-            R.prop('features'),
-            R.filter((feature) =>
-              R.includes(
-                R.path(
-                  [
-                    'properties',
-                    R.path([key, 'geoJson', 'geoJsonProp'])(geoTypes),
-                  ],
-                  feature
-                ),
-                keysOfType
-              )
-            ),
-            R.map((d) => R.assoc('caveType', key, d))
-          )(val)
+  useEffect(() => {
+    const arcNames = R.keys(R.filter(R.identity, enabledArcs))
+
+    const fetchCache = async () => {
+      const cache = await caches.open('arcs')
+      const arcs = {}
+      for (let arcName of arcNames) {
+        const url = R.pathOr('', [arcName, 'geoJson', 'geoJsonLayer'], arcTypes)
+        // Special catch for empty urls on initial call
+        if (url === '') {
+          break
+        }
+        let response = await cache.match(url)
+        // add to cache if not found
+        if (R.isNil(response)) {
+          await cache.add(url)
+          response = await cache.match(url)
+        }
+        arcs[arcName] = await response.json()
+      }
+      setSelectedArcs(arcs)
+    }
+    fetchCache()
+  }, [arcTypes, enabledArcs, lineMatchingKeysByType])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findColor = useCallback(
+    R.memoizeWith(
+      (geoObj) => {
+        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
+        const value = R.path(['values', colorProp], geoObj)
+        return `${geoObj.geoJsonValue}${value}`
+      },
+      (geoObj) => {
+        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
+        const statRange = geoColorRange(geoObj.type, colorProp, mapId)
+        const colorRange = R.map((prop) => R.pathOr(0, [prop])(statRange))([
+          'startGradientColor',
+          'endGradientColor',
+        ])
+        const value = R.pipe(
+          R.path(['values', colorProp]),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(geoObj)
+        const isCategorical = !R.has('min', statRange)
+
+        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
+
+        return R.equals('', value)
+          ? nullColor
+          : isCategorical
+          ? R.propOr('rgba(0,0,0,5)', value, statRange)
+          : `rgba(${getScaledColor(
+              [R.prop('min', statRange), R.prop('max', statRange)],
+              colorRange,
+              value
+            ).join(',')})`
+      }
+    ),
+    [enabledGeos, geoColorRange]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findLineSize = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
+        const propVal = R.path(['values', sizeProp], d)
+        return `${R.prop('data_key', d)}${propVal}`
+      },
+      (d) => {
+        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
+        const sizeRange = arcRange(d.type, sizeProp, true, mapId)
+        const propVal = parseFloat(R.path(['values', sizeProp], d))
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startSize', sizeRange)),
+              parseFloat(R.prop('endSize', sizeRange)),
+              propVal
+            )
+      }
+    ),
+    [enabledArcs, arcRange]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findLineColor = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+        const propVal = R.path(['values', colorProp], d[1])
+        return `${R.prop('data_key', d)}${propVal}`
+      },
+      (d) => {
+        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
+        const colorRange = arcRange(d.type, colorProp, false, mapId)
+        const isCategorical = !R.has('min', colorRange)
+        const propVal = R.pipe(
+          R.path(['values', colorProp]),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(d)
+
+        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
+
+        return R.equals('', propVal)
+          ? nullColor
+          : isCategorical
+          ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
+          : `rgba(${getScaledArray(
+              R.prop('min', colorRange),
+              R.prop('max', colorRange),
+              R.map((val) => parseFloat(val))(
+                R.prop('startGradientColor', colorRange)
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              R.map((val) => parseFloat(val))(
+                R.prop('endGradientColor', colorRange)
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              ),
+              parseFloat(R.path(['values', colorProp], d))
+            ).join(',')})`
+      }
+    ),
+    [enabledArcs, arcRange]
+  )
+
+  const geoJsonObject = useMemo(
+    () =>
+      R.pipe(
+        R.mapObjIndexed((geoObj, geoJsonValue) => {
+          const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+          const geoType = R.prop('type')(geoObj)
+          const filteredFeature = R.find(
+            (feature) =>
+              R.path(['properties', geoJsonProp])(feature) === geoJsonValue
+          )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
+          const color = findColor(geoObj)
+
+          const id = R.prop('data_key')(geoObj)
+          return R.mergeRight(filteredFeature, {
+            properties: {
+              cave_name: JSON.stringify([geoType, id]),
+              color: color,
+            },
+          })
+        }),
+        R.values
+      )(matchingKeys),
+    [findColor, matchingKeys, selectedGeos]
+  )
+
+  const lineGeoJsonObject = useMemo(
+    () =>
+      R.pipe(
+        R.mapObjIndexed((geoObj, geoJsonValue) => {
+          const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+          const geoType = R.prop('type')(geoObj)
+          const filteredFeatures = R.find(
+            (feature) =>
+              R.path(['properties', geoJsonProp])(feature) === geoJsonValue
+          )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+
+          const color = findLineColor(geoObj)
+          const size = findLineSize(geoObj)
+          const id = R.prop('data_key')(geoObj)
+          const dashPattern = R.propOr(
+            'solid',
+            'lineBy'
+          )(R.path([geoType, 'colorBy'], enabledArcs))
+          return R.mergeRight(filteredFeatures, {
+            properties: {
+              cave_name: JSON.stringify([geoType, id]),
+              color: color,
+              dash: dashPattern,
+              size: size,
+            },
+          })
         }),
         R.values,
-        R.reduce(R.concat, [])
-      )(data)
-    },
-    visible: true,
-    positionFormat: `XY`,
-    opacity: 0.05,
-    autoHighlight: true,
-    getFillColor: (d) => {
-      const geoProp = R.path([d.caveType, 'geoJson', 'geoJsonProp'])(geoTypes)
-      const geoObj = R.prop(R.path(['properties', geoProp], d))(matchingKeys)
-      return findColor(geoObj)
-    },
-    pickable: true,
-    onClick: onClick,
-    onDragStart: () => {
-      // Cancel opening modal if dragging map
-      currentTimeout.current
-        ? clearTimeout(currentTimeout.current)
-        : R.identity()
-    },
-    onHover: (d) => {
-      currentTimeout.current = touchMode
-        ? setTimeout(() => onClick(d), 100)
-        : R.F
-    },
-    updateTriggers: {
-      onHover: [touchMode],
-      getFillColor: [timePath],
-    },
-  })
-}
+        R.groupBy(R.path(['properties', 'dash']))
+      )(lineMatchingKeys),
+    [enabledArcs, findLineColor, findLineSize, lineMatchingKeys, selectedArcs]
+  )
 
-export const getLayers = (openGeo) => [
-  GetGeographyLayer(openGeo),
-  GetArcLayer(),
-  Get3dArcLayer(),
-  GetNodeIconLayer(),
-]
+  return [
+    <Source
+      type="geojson"
+      key={layerId.GEOGRAPHY_LAYER}
+      id={layerId.GEOGRAPHY_LAYER}
+      data={{
+        type: 'FeatureCollection',
+        features: geoJsonObject,
+      }}
+    >
+      <Layer
+        id={layerId.GEOGRAPHY_LAYER}
+        key={layerId.GEOGRAPHY_LAYER}
+        type="fill"
+        paint={{
+          'fill-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'fill-opacity': 0.4,
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.MULTI_ARC_LAYER_SOLID}
+      key={layerId.MULTI_ARC_LAYER_SOLID}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'solid', lineGeoJsonObject),
+      }}
+    >
+      <Layer
+        id={layerId.MULTI_ARC_LAYER_SOLID}
+        key={layerId.MULTI_ARC_LAYER_SOLID}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.MULTI_ARC_LAYER_DASH}
+      key={layerId.MULTI_ARC_LAYER_DASH}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dashed', lineGeoJsonObject),
+      }}
+    >
+      <Layer
+        id={layerId.MULTI_ARC_LAYER_DASH}
+        key={layerId.MULTI_ARC_LAYER_DASH}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dashed'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.MULTI_ARC_LAYER_DOT}
+      key={layerId.MULTI_ARC_LAYER_DOT}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dotted', lineGeoJsonObject),
+      }}
+    >
+      <Layer
+        id={layerId.MULTI_ARC_LAYER_DOT}
+        key={layerId.MULTI_ARC_LAYER_DOT}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dotted'],
+        }}
+      />
+    </Source>,
+  ]
+})
+
+export const Nodes = memo(({ highlightLayerId, mapId }) => {
+  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
+
+  return (
+    <Source
+      id={layerId.NODE_ICON_LAYER}
+      key={layerId.NODE_ICON_LAYER}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: nodeGeoJson,
+      }}
+    >
+      <Layer
+        id={layerId.NODE_ICON_LAYER}
+        key={layerId.NODE_ICON_LAYER}
+        type="symbol"
+        layout={{
+          'icon-image': ['get', 'icon'],
+          'icon-size': ['get', 'size'],
+          'icon-allow-overlap': true,
+        }}
+        paint={{
+          'icon-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+        }}
+      />
+    </Source>
+  )
+})
+export const Arcs = memo(({ highlightLayerId, mapId }) => {
+  const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
+  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
+  return [
+    <Source
+      id={layerId.ARC_LAYER_SOLID}
+      key={layerId.ARC_LAYER_SOLID}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'solid', arcLayerGeoJson),
+      }}
+    >
+      <Layer
+        id={layerId.ARC_LAYER_SOLID}
+        key={layerId.ARC_LAYER_SOLID}
+        type="line"
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.ARC_LAYER_DASH}
+      key={layerId.ARC_LAYER_DASH}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dashed', arcLayerGeoJson),
+      }}
+    >
+      <Layer
+        id={layerId.ARC_LAYER_DASH}
+        key={layerId.ARC_LAYER_DASH}
+        type="line"
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dashed'],
+        }}
+      />
+    </Source>,
+    <Source
+      id={layerId.ARC_LAYER_DOT}
+      key={layerId.ARC_LAYER_DOT}
+      type="geojson"
+      data={{
+        type: 'FeatureCollection',
+        features: R.propOr([], 'dotted', arcLayerGeoJson),
+      }}
+    >
+      <Layer
+        id={layerId.ARC_LAYER_DOT}
+        key={layerId.ARC_LAYER_DOT}
+        type="line"
+        paint={{
+          'line-color': [
+            'match',
+            ['get', 'cave_name'],
+            highlight,
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+          'line-dasharray': LINE_TYPES['dotted'],
+        }}
+      />
+    </Source>,
+  ]
+})
+
+export const Arcs3D = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
+  const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
+  return (
+    <ArcLayer3D
+      features={arcLayerGeoJson}
+      onClick={({ cave_name, cave_obj: obj }) => {
+        const [type] = JSON.parse(cave_name)
+        dispatch(
+          mutateLocal({
+            path: ['panes', 'paneState', 'center'],
+            value: {
+              open: {
+                ...(obj || {}),
+                feature: 'arcs',
+                type: R.propOr(type, 'name')(obj),
+                key: cave_name,
+                mapId,
+              },
+              type: 'feature',
+            },
+            sync: !includesPath(R.values(sync), [
+              'panes',
+              'paneState',
+              'center',
+            ]),
+          })
+        )
+      }}
+    />
+  )
+})

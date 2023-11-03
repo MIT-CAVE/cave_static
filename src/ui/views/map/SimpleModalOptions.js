@@ -2,14 +2,13 @@ import { Box, Modal, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { MdClose } from 'react-icons/md'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import { closeMapModal } from '../../../data/local/mapSlice'
-import { selectAppBarId } from '../../../data/selectors'
 
 import { Select } from '../../compound'
 
-import { customSort } from '../../../utils'
+import { withIndex } from '../../../utils'
 
 const styles = {
   modal: {
@@ -42,9 +41,14 @@ const styles = {
   },
 }
 
-const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
+const SimpleModalOptions = ({
+  title,
+  options,
+  placeholder,
+  onSelect,
+  mapId,
+}) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
 
   return (
     <Modal
@@ -53,7 +57,7 @@ const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => dispatch(closeMapModal(appBarId))}
+      onClose={() => dispatch(closeMapModal(mapId))}
     >
       <Box sx={styles.paper}>
         <Box sx={styles.flexSpaceBetween}>
@@ -62,7 +66,7 @@ const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
           </Typography>
           <MdClose
             cursor="pointer"
-            onClick={() => dispatch(closeMapModal(appBarId))}
+            onClick={() => dispatch(closeMapModal(mapId))}
           />
         </Box>
 
@@ -72,7 +76,7 @@ const SimpleModalOptions = ({ title, options, placeholder, onSelect }) => {
             label: name,
             value: id,
             iconName: icon,
-          }))(customSort(options))}
+          }))(withIndex(options))}
           {...{ placeholder, onSelect }}
         />
       </Box>
@@ -84,6 +88,7 @@ SimpleModalOptions.propTypes = {
   placeholder: PropTypes.string,
   options: PropTypes.object,
   onSelect: PropTypes.func,
+  mapId: PropTypes.string,
 }
 
 export default SimpleModalOptions

@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux'
 
 import NumberInput from './NumberInput'
 
-import { selectNumberFormat } from '../../data/selectors'
+import { selectNumberFormatPropsFn } from '../../data/selectors'
 
 import { forceArray } from '../../utils'
 
@@ -17,17 +17,15 @@ const getStyles = (enabled) => ({
 })
 
 const PropNumberField = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const numberFormatDefault = useSelector(selectNumberFormat)
-
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const max = R.propOr(Infinity, 'maxValue', prop)
   const min = R.propOr(-Infinity, 'minValue', prop)
   const enabled = prop.enabled || false
-  const numberFormatRaw = prop.numberFormat || {}
-  const numberFormat = R.mergeRight(numberFormatDefault)(numberFormatRaw)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <NumberInput
-        {...{ enabled, max, min, numberFormat }}
+        {...{ enabled, max, min }}
+        numberFormat={numberFormatProps}
         value={R.clamp(
           min,
           max,

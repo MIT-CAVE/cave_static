@@ -7,36 +7,24 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { CHART_PALETTE, DEFAULT_ICON_URL, DEFAULT_LOCALE } from './constants'
+import { CHART_PALETTE, DEFAULT_ICON_URL } from './constants'
+
+export { default as NumberFormat } from './NumberFormat'
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
   return R.map((pct) => quantileSorted(values, pct))(percentiles)
 })
 
-const iconPrefix = {
-  ANT_DESIGN_ICONS: 'Ai',
-  BOX_ICONS: 'Bi',
-  BOOTSTRAP_ICONS: 'Bs',
-  DEV_ICONS: 'Di',
-  FEATHER: 'Fi',
-  FLAT_COLOR_ICONS: 'Fc',
-  FONT_AWESOME: 'Fa',
-  GAME_ICONS: 'Gi',
-  GITHUB_OCTICONS_ICONS: 'Go',
-  GROMMET_ICONS: 'Gr',
-  HERO_ICONS: 'Hi',
-  ICOMOON_FREE: 'Im',
-  IONICONS_FOUR: 'IoIos',
-  IONICONS_FIVE: 'Io',
-  MATERIAL_DESIGN_ICONS: 'Md',
-  REMIX_ICON: 'Ri',
-  SIMPLE_ICON: 'Si',
-  TYPICONS: 'Ti',
-  VS_CODE_ICONS: 'Vsc',
-  WEATHER_ICONS: 'Wi',
-  CSS_DOT_GG: 'Cg',
-}
+// Given a list of chart children find all subgroup labels in given order
+// Note: If all labels aren't present in at least one parent order is estimated
+export const findSubgroupLabels = R.pipe(
+  R.map(R.pluck('name')),
+  R.map(R.filter(R.isNotNil)),
+  R.sortBy(R.pipe(R.length, R.negate)),
+  R.unnest,
+  R.uniq
+)
 
 // checks if paths contains the given path, or a path to one of its parents
 export const includesPath = (paths, path) => {
@@ -48,7 +36,7 @@ export const combineReducers = (reducers) => {
   const reducerKeys = R.keys(reducers)
   return (state = {}, action) => {
     let hasChanged = false
-    const nextState = R.clone(state)
+    const nextState = structuredClone(state)
     for (let i = 0; i < reducerKeys.length; i++) {
       const key = reducerKeys[i]
       const reducer = reducers[key]
@@ -89,12 +77,18 @@ export const passLog = (val) => {
   console.log(val)
   return val
 }
-
+export const getGroupLabelFn = R.curry((data, item) =>
+  R.pathOr(R.last(item), [...item, 'name'])(data)
+)
 export const getLabelFn = R.curry((data, item) =>
   R.pathOr(item, [item, 'name'])(data)
 )
 export const getSubLabelFn = R.curry((data, item, subItem) =>
-  R.pathOr(subItem, [item, 'nestedStructure', subItem, 'name'])(data)
+  R.pathOr(subItem, [item, 'levels', subItem, 'name'])(data)
+)
+
+export const getColoringFn = R.curry((data, item, subItem) =>
+  R.pathOr({}, [item, 'levels', subItem, 'coloring'])(data)
 )
 
 export const getFreeName = (name, namesList) => {
@@ -141,48 +135,6 @@ export const parseArray = (input) => {
   return R.map(R.trim)(items)
 }
 
-export const calculateStatSingleGroup = (statistics) => {
-  const parser = new Parser()
-  return (groupBy, calculation) =>
-    R.pipe(
-      R.flip(R.groupBy)(statistics),
-      R.map((group) => {
-        // define groupSum for each group
-        const preSummed = {}
-        parser.functions.groupSum = (statName) => {
-          // groupSum only works for non-derived stats
-          // dont recalculate sum for each stat
-          if (R.isNil(R.prop(statName, preSummed))) {
-            preSummed[statName] = R.sum(
-              R.map(R.path(['values', statName]), group)
-            )
-          }
-          return R.prop(statName, preSummed)
-        }
-        const calculated = group.map((obj) => {
-          try {
-            return parser.parse(calculation).evaluate(
-              // evaluate each list item
-              R.prop('values', obj)
-            )
-          } catch {
-            // if calculation is malformed return simplified array
-            return parseArray(
-              parser
-                .parse(calculation)
-                .simplify(
-                  // evaluate each list item
-                  R.prop('values', obj)
-                )
-                .toString()
-            )
-          }
-        })
-        return calculated
-      })
-    )(groupBy)
-}
-
 export const calculateStatAnyDepth = (statistics) => {
   const parser = new Parser()
   const calculate = (group, calculation) => {
@@ -192,15 +144,21 @@ export const calculateStatAnyDepth = (statistics) => {
       // groupSum only works for non-derived stats
       // dont recalculate sum for each stat
       if (R.isNil(R.prop(statName, preSummed))) {
-        preSummed[statName] = R.sum(R.map(R.path(['values', statName]), group))
+        preSummed[statName] = R.sum(
+          R.map(
+            (idx) => R.path(['valueLists', statName, idx], statistics),
+            group
+          )
+        )
       }
       return R.prop(statName, preSummed)
     }
-    return group.map((obj) => {
+    return group.map((idx) => {
+      const values = R.pipe(R.prop('valueLists'), R.pluck(idx))(statistics)
       try {
         return parser.parse(calculation).evaluate(
           // evaluate each list item
-          R.prop('values', obj)
+          values
         )
       } catch {
         // if calculation is malformed return simplified array
@@ -209,7 +167,7 @@ export const calculateStatAnyDepth = (statistics) => {
             .parse(calculation)
             .simplify(
               // evaluate each list item
-              R.prop('values', obj)
+              values
             )
             .toString()
         )
@@ -217,16 +175,31 @@ export const calculateStatAnyDepth = (statistics) => {
     })
   }
 
-  const group = (groupBys, calculation, statistics) =>
+  const group = (groupBys, calculation, indicies) =>
     R.pipe(
-      R.groupBy(R.head(groupBys)),
+      R.collectBy(R.pipe(R.head(groupBys), R.join(''))),
+      R.reduce((acc, value) => {
+        const key = R.pipe(R.head, R.head(groupBys), R.head)(value)
+        const finalName = R.has(key, acc)
+          ? R.pipe(R.head, R.head(groupBys), R.join(', '))(value)
+          : key
+        return R.assoc(finalName, value, acc)
+      }, {}),
       R.length(groupBys) === 1
         ? R.map((group) => calculate(group, calculation))
         : R.map((stats) => group(R.tail(groupBys), calculation, stats))
-    )(statistics)
+    )(indicies)
+
+  const indicies = R.pipe(
+    R.prop('valueLists'),
+    R.values,
+    R.head,
+    R.length,
+    R.range(0)
+  )(statistics)
 
   const groupHelper = (groupBys, calculation) =>
-    group(groupBys, calculation, statistics)
+    group(groupBys, calculation, indicies)
 
   return groupHelper
 }
@@ -240,6 +213,21 @@ export const recursiveMap = R.curry(
           stepCallback(mappable)
         )
 )
+const mergeObjIntoList = (obj, baseList) =>
+  R.reduce((acc, key) => {
+    if (isNaN(key)) throw new Error('Can only merge integer keys into list')
+    else return R.update(key, obj[key], acc)
+  }, baseList)(R.keys(obj))
+
+// Merge 2 objects with obj2 overwriting obj1, or inidivual list indicies within it
+const mergeListRight = (obj1, obj2) =>
+  R.reduce(
+    (acc, key) =>
+      R.type(obj2[key]) === 'Object'
+        ? R.assoc(key, mergeObjIntoList(obj2[key], acc[key]), acc)
+        : R.assoc(key, obj2[key], acc),
+    obj1
+  )(R.keys(obj2))
 
 export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
   const cache = new Map()
@@ -257,125 +245,6 @@ export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
   return checkCache
 }
 
-export const calculateStatSubGroup = (statistics) => {
-  const parser = new Parser()
-
-  return (groupBy, secondaryGroupBy, calculation) =>
-    R.pipe(
-      R.flip(R.groupBy)(statistics),
-      R.map((group) => R.groupBy(secondaryGroupBy, group)),
-      R.map((group) =>
-        R.map((subGroup) => {
-          // define groupSum for each subGroup
-          const preSummed = {}
-          parser.functions.groupSum = (statName) => {
-            // groupSum only works for non-derived stats
-            // dont recalculate sum for each stat
-            if (R.isNil(R.prop(statName, preSummed))) {
-              preSummed[statName] = R.sum(
-                R.map(R.path(['values', statName]), subGroup)
-              )
-            }
-            return R.prop(statName, preSummed)
-          }
-          return subGroup.map((obj) => {
-            try {
-              return parser.parse(calculation).evaluate(
-                // evaluate each list item
-                R.prop('values', obj)
-              )
-            } catch {
-              // if calculation is malformed return simpliefied array
-              return parseArray(
-                parser
-                  .parse(calculation)
-                  .simplify(
-                    // evaluate each list item
-                    R.prop('values', obj)
-                  )
-                  .toString()
-              )
-            }
-          })
-        })(group)
-      )
-    )(groupBy)
-}
-
-// Units will be handled outside the ECMAScript 2020 spec,
-// as custom units are not supported by this specification.
-// See: https://tc39.es/proposal-unified-intl-numberformat/section6/locales-currencies-tz_proposed_out.html#sec-measurement-unit-identifiers
-export const formatNumber = (
-  value,
-  {
-    precision = 2,
-    unit,
-    unitSpace,
-    currency = false,
-    trailingZeros = true,
-    nilValue = 'N/A',
-    locale = DEFAULT_LOCALE,
-  }
-) => {
-  if (value == null) return nilValue
-
-  const valueText = value.toLocaleString(locale, {
-    minimumFractionDigits: trailingZeros ? precision : 0,
-    maximumFractionDigits: precision,
-  })
-  // Unless explicitly specified, there should be
-  // no space between a currency unit and its value.
-  const gap = unitSpace ? ' ' : currency ? '' : unitSpace == null ? ' ' : ''
-  return unit
-    ? currency
-      ? `${unit}${gap}${valueText}`
-      : `${valueText}${gap}${unit}`
-    : valueText
-}
-
-// Adapted from Mike Bostock's:
-// https://observablehq.com/@mbostock/localized-number-parsing
-export const getLocaleNumberParts = R.memoizeWith(
-  String,
-  (locale = DEFAULT_LOCALE) => {
-    const parts = new Intl.NumberFormat(locale).formatToParts(12345.6)
-    return {
-      group: parts.find((d) => d.type === 'group').value,
-      decimal: parts.find((d) => d.type === 'decimal').value,
-    }
-  }
-)
-const getLocaleNumberPartsRegEx = R.memoizeWith(String, (locale) => {
-  const { group, decimal } = getLocaleNumberParts(locale)
-  const numerals = [
-    ...new Intl.NumberFormat(locale, { useGrouping: false }).format(9876543210),
-  ].reverse()
-
-  return {
-    group: new RegExp(`[${group}]`, 'g'),
-    decimal: new RegExp(`[${decimal}]`),
-    numeral: new RegExp(`[${numerals.join('')}]`, 'g'),
-    index: new Map(numerals.map((d, i) => [d, i])),
-  }
-})
-export const parseNumber = (numberString, locale = DEFAULT_LOCALE) => {
-  const { decimal: decimalRaw } = getLocaleNumberParts(locale)
-  const { group, decimal, numeral, index } = getLocaleNumberPartsRegEx(locale)
-  const num = numberString
-    .trim()
-    .replace(group, '')
-    .replace(decimal, decimalRaw)
-    .replace(numeral, (d) => index.get(d))
-
-  return num ? Number(num) : NaN
-}
-
-export const isNumericInputValid = (valueStr, locale = DEFAULT_LOCALE) => {
-  const { decimal } = getLocaleNumberParts(locale)
-  const pattern = new RegExp(`^(-|\\+)?(0|[1-9]\\d*)?(\\${decimal})?(\\d+)?$`)
-  return R.test(pattern)(valueStr)
-}
-
 export const getOptimalGridSize = (numRows, numColumns, numItems) => {
   const gridSize = numRows * numColumns
   if (numItems <= gridSize) return [numRows, numColumns]
@@ -383,10 +252,10 @@ export const getOptimalGridSize = (numRows, numColumns, numItems) => {
   const closestSquare = Math.sqrt(numItems)
   const maxDimension = Math.max(numColumns, numRows)
   if (closestSquare < maxDimension) {
-    const extraNumDimension = Math.ceil((numItems - gridSize) / maxDimension)
+    const newDimension = Math.ceil((numItems - gridSize) / maxDimension)
     return numRows === maxDimension
-      ? [numRows, numColumns + extraNumDimension]
-      : [numRows + extraNumDimension, numColumns]
+      ? [numRows, numColumns + newDimension]
+      : [numRows + newDimension, numColumns]
   }
 
   return numRows === maxDimension
@@ -412,8 +281,8 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
-export const getChartItemColor = (theme, colorIndex) =>
-  CHART_PALETTE[theme][colorIndex % CHART_PALETTE[theme].length]
+export const getChartItemColor = (colorIndex) =>
+  CHART_PALETTE[colorIndex % CHART_PALETTE.length]
 
 /**
  * Converts a d3-color RGB object into a conventional RGBA array.
@@ -422,26 +291,23 @@ export const getChartItemColor = (theme, colorIndex) =>
  * @returns {Array} A RGBA equivalent array of the given color.
  * @private
  */
-const rgbObjToRgbaArray = (rgbObj) =>
-  R.append(
-    R.prop('opacity')(rgbObj) * 255, // Alpha
-    R.props(['r', 'g', 'b'])(rgbObj) // RGB array
-  )
+const rgbObjToRgbaArray = (rgbObj) => {
+  const opacity = R.prop('opacity', rgbObj) * 255
+  return R.pipe(R.props(['r', 'g', 'b']), R.append(opacity))(rgbObj)
+} // RGBA array
 
-export const rgbStrToArray = (rgbStr) => rgbObjToRgbaArray(color(rgbStr))
+export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
+export const getScaledColor = R.curry((colorDomain, colorRange, value) =>
+  getScaledRgbObj(colorDomain, colorRange, value)
+)
 
-export const getScaledColor = R.curry((colorDomain, colorRange, value) => {
+export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   const getColor = scaleLinear()
     .domain(colorDomain)
     .range(colorRange)
     .clamp(true)
   return rgbObjToRgbaArray(color(getColor(value)))
 })
-
-export const getContrastYIQ = (rgbArray) => {
-  const yiq = (rgbArray[0] * 299 + rgbArray[1] * 587 + rgbArray[2] * 114) / 1000
-  return yiq >= 128 ? [0, 0, 0] : [255, 255, 255]
-}
 
 export const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
@@ -453,15 +319,8 @@ export const removeExtraProps = (Component, extraProps) => {
 }
 
 export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {
-  const prefixLength = R.cond([
-    [R.pipe(R.take(5), R.equals(iconPrefix.IONICONS_FOUR)), R.always(5)],
-    [R.pipe(R.take(3), R.equals(iconPrefix.VS_CODE_ICONS)), R.always(3)],
-    [R.T, R.always(2)],
-  ])(iconName)
-  const lib = R.toLower(R.take(prefixLength, iconName))
-
   const cache = await caches.open('icons')
-  const url = `${iconUrl}/${lib}/${iconName}.js`
+  const url = `${iconUrl}/${iconName}.js`
   const response = await cache.match(url)
   // If not in cache, fetch from cdn
   if (R.isNil(response)) {
@@ -526,6 +385,17 @@ export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.2) =>
       ]
 
 /**
+ * @param {Object} props Props dictionary
+ * @param {Object} values Values dictionary with value for each prop
+ * @returns {Object} props with values added
+ */
+export const addValuesToProps = (props, values) =>
+  R.mapObjIndexed((prop, propId) => {
+    const value = R.prop(propId, values)
+    return R.assoc('value', value, prop)
+  }, props)
+
+/**
  * Creates a list of all values that a given internal
  * key can take within a given object.
  */
@@ -562,55 +432,23 @@ export const sortByOrderNameId = R.sortWith([
   R.ascend(R.prop('id')),
 ])
 
-/**
- * list - a list of items with 'order' props to specify their position in the
- * list.
- * @returns {Array} An ascending list that contains the items sorted first
- * followed by the rest of the items without an `order` prop in alphabetical
- * `order`.
- * @private
- */
-export const customSort = R.pipe(toListWithKey('id'), sortByOrderNameId)
+export const withIndex = toListWithKey('id')
 
 export const getCategoryItems = R.cond([
-  [
-    R.has('nestedStructure'),
-    R.pipe(R.prop('nestedStructure'), customSort, R.pluck('id')),
-  ],
+  [R.has('levels'), R.pipe(R.prop('levels'), withIndex, R.pluck('id'))],
   // The category value has not been loaded yet or is empty
   [R.isEmpty, R.always([])],
-  // `nestedStructure` must be specified
+  // `levels` must be specified
   [
     R.T,
     () => {
       // This should be part of a full validation mechanism for the data struct
-      throw Error('Missing the `nestedStructure` property')
+      throw Error('Missing the `levels` property')
     },
     // Optionally, we might want to retrieve the level names from the data
     // R.pipe(R.prop('data'), R.values, R.head, R.keys)
   ],
 ])
-
-export const filterItems = (items, acceptableFilterCategories) =>
-  R.filter((item) =>
-    R.all((object) =>
-      R.any(
-        (item) => acceptableFilterCategories[object[0]].has(item),
-        object[1]
-      )
-    )(R.toPairs(R.prop('category', item)))
-  )(items)
-
-// sorts sub objects in obj by order prop - ascending
-export const sortProps = (obj) => {
-  const sortBy = (a, b) =>
-    R.pathOr(0, [a, 'order'], obj) - R.pathOr(0, [b, 'order'], obj)
-  return R.pipe(
-    R.keys,
-    R.sort(sortBy),
-    R.reduce((res, key) => R.assoc(key, obj[key], res), {})
-  )(obj)
-}
 
 export const getSliderMarks = R.curry(
   (min, max, numMarks, getLabelFormat, extraValues = []) =>
@@ -632,6 +470,9 @@ const allowedRangeKeys = [
   'endGradientColor',
   'nullColor',
   'nullSize',
+  'timeValues',
+  'startSize',
+  'endSize',
 ]
 
 // checks that range is either min/max or list of strings
@@ -645,10 +486,47 @@ export const checkValidRange = R.pipe(
   R.all(R.identity)
 )
 
-export const getTimeValue = (timeIndex) =>
-  R.when(
-    R.prop('timeObject'), // check that this is time object
-    R.path(['value', timeIndex])
+export const getTimeValue = (timeIndex, object) =>
+  recursiveMap(
+    (d) => R.type(d) !== 'Object',
+    R.identity,
+    (d) =>
+      R.has('timeValues', d)
+        ? mergeListRight(d, R.pathOr({}, ['timeValues', timeIndex], d))
+        : d,
+    object
+  )
+
+export const orderEntireDict = (object) =>
+  recursiveMap(
+    (d) => R.type(d) !== 'Object',
+    R.identity,
+    (d) =>
+      R.mergeAll([
+        d,
+        // sort subkeys alphabetically
+        R.pipe(
+          R.omit([
+            'order',
+            ...R.keys(R.propOr({}, 'order')(d)),
+            ...R.filter((key) => R.type(d[key]) !== 'Object')(R.keys(d)),
+          ]),
+          R.mapObjIndexed((subObj, key) =>
+            R.reduce((acc, subKey) => {
+              acc[subKey] = R.path([key, subKey], d)
+              return acc
+            }, {})(R.keys(subObj).sort())
+          )
+        )(d),
+        // sort subkeys by order
+        R.mapObjIndexed((ordering, key) =>
+          R.reduce((acc, subKey) => {
+            acc[subKey] = R.path([key, subKey], d)
+            return acc
+          }, {})(R.uniq([...ordering, ...R.keys(d[key])]))
+        )(R.propOr({}, 'order')(d)),
+      ]),
+    object
   )
 
 export const serializeNumLabel = (numLabel, precision) =>

@@ -27,6 +27,9 @@ import {
   PropToggle,
   PropVideo,
   PropVStepper,
+  PropNumberIcon,
+  IconHeadColumn,
+  IconHeadRow,
 } from '../../compound'
 
 const invalidVariant = R.curry((type, variant) => {
@@ -58,6 +61,7 @@ const getNumberPropRenderFn = R.cond([
   [R.isNil, R.always(PropNumberField)],
   [R.equals(propVariant.FIELD), R.always(PropNumberField)],
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
+  [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
@@ -81,6 +85,9 @@ const getHeaderPropRenderFn = R.cond([
   [R.isNil, R.always(PropHeadColumn)],
   [R.equals(propVariant.COLUMN), R.always(PropHeadColumn)],
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
+  [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
+  [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
+
   [R.T, invalidVariant('head')],
 ])
 
@@ -106,13 +113,12 @@ const PropBase = ({ prop, children }) => {
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     tooltipTitle: R.prop('help'),
-    unit: R.pipe(
-      R.propOr({}, 'numberFormat'),
-      R.mergeRight(numberFormatDefault),
-      R.prop('unit')
-    ),
-    // eslint-disable-next-line ramda/cond-simplification
+    unit: R.propOr(numberFormatDefault.unit, 'unit'),
     type: R.cond([
+      [
+        R.pipe(R.prop('variant'), R.equals(propVariant.ICON)),
+        R.always(propContainer.NONE),
+      ],
       [R.has('container'), R.prop('container')],
       [
         R.pipe(R.prop('type'), R.equals(propId.HEAD)),
@@ -131,9 +137,14 @@ const renderProp = ({ ...props }) => {
   const { type, variant } = prop
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
+  // default enabled to true
+  const enabled = R.propOr(true, 'enabled', prop)
   return (
-    <PropBase {...{ prop }} key={prop.id}>
-      <PropComponent sx={{ boxSizing: 'border-box' }} {...props} />
+    <PropBase {...{ prop }} key={R.prop('id', prop)}>
+      <PropComponent
+        sx={{ boxSizing: 'border-box' }}
+        {...R.assocPath(['prop', 'enabled'], enabled, props)}
+      />
     </PropBase>
   )
 }

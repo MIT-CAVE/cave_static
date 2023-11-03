@@ -1,213 +1,328 @@
-import { MapView } from '@deck.gl/core'
-import { DeckGL } from '@deck.gl/react'
+import { Container, Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { Fragment, useCallback, useRef } from 'react'
-import ReactMapGL, { ScaleControl } from 'react-map-gl'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { MdDownloading } from 'react-icons/md'
+import ReactMapboxGL from 'react-map-gl'
+import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { getDefaultStyleId } from '.'
-import ErrorPad from './ErrorPad'
-import KeyPad from './KeyPad'
-import { getLayers } from './layers'
+import { getDefaultFog, getDefaultStyleId } from '.'
+import { Geos, Arcs, Nodes, Arcs3D } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 
-import { viewportUpdate, openMapModal } from '../../../data/local/mapSlice'
+import { mutateLocal } from '../../../data/local'
+import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
 import {
-  selectMapStyle,
-  selectTheme,
-  selectViewport,
-  selectMapModal,
-  selectStaticMap,
-  selectAppBarId,
-  selectTouchMode,
+  selectSettingsIconUrl,
+  selectCurrentMapStyleFunc,
+  selectMapStyleOptions,
+  selectGroupedEnabledArcsFunc,
+  selectMergedGeos,
+  selectCurrentMapProjectionFunc,
+  selectDemoMode,
+  selectDemoSettings,
   selectLeftAppBarDisplay,
+  selectRightAppBarDisplay,
+  selectViewportsByMap,
+  selectMapData,
+  selectAllNodeIcons,
+  selectSync,
 } from '../../../data/selectors'
-import { STYLE_URL_BASE, APP_BAR_WIDTH } from '../../../utils/constants'
+import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
-const viewportKeys = [
-  'longitude',
-  'latitude',
-  'zoom',
-  'pitch',
-  'bearing',
-  'altitude',
-  'maxZoom',
-  'minZoom',
-]
+import { fetchIcon, includesPath } from '../../../utils'
 
-const Map = ({ mapboxToken }) => {
+const Map = ({ mapboxToken, mapId }) => {
   const dispatch = useDispatch()
-  const viewport = useSelector(selectViewport)
-  const theme = useSelector(selectTheme)
-  const mapStyle = useSelector(selectMapStyle)
-  const mapModal = useSelector(selectMapModal)
-  const isStatic = useSelector(selectStaticMap)
-  const appBarId = useSelector(selectAppBarId)
-  const touchMode = useSelector(selectTouchMode)
-  const leftBar = useSelector(selectLeftAppBarDisplay)
+  const viewport = useSelector(selectViewportsByMap)[mapId]
+  const mapStyle = useSelector(selectCurrentMapStyleFunc)(mapId)
+  const mapProjection = useSelector(selectCurrentMapProjectionFunc)(mapId)
+  const mapStyleOptions = useSelector(selectMapStyleOptions)
+  const arcData = R.propOr(
+    {},
+    'geoJson'
+  )(useSelector(selectGroupedEnabledArcsFunc)(mapId))
+  const geosData = useSelector(selectMergedGeos)
+  const iconUrl = useSelector(selectSettingsIconUrl)
+  const demoMode = useSelector(selectDemoMode)
+  const demoSettings = useSelector(selectDemoSettings)
+  const mapData = useSelector(selectMapData)
+  const nodeIcons = useSelector(selectAllNodeIcons)
+  const sync = useSelector(selectSync)
+  const [highlightLayerId, setHighlightLayerId] = useState()
+  const [iconData, setIconData] = useState({})
+  const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
+  const mapExists = R.has(mapId, mapData)
 
-  const deckRef = useRef({})
+  const isMapboxTokenProvided = R.isNotNil(mapboxToken) && mapboxToken !== ''
+  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
-  const onViewStateChange = useCallback(
-    (nextViewport) => {
-      const updatedViewport = R.pipe(
-        R.propOr({}, 'viewState'),
-        R.pick(viewportKeys)
-      )(nextViewport)
-      const oldViewport = R.pipe(
-        R.propOr({}, 'oldViewState'),
-        R.pick(viewportKeys)
-      )(nextViewport)
-      if (
-        !mapModal.isOpen &&
-        !R.equals(updatedViewport, oldViewport) &&
-        !isStatic
-      ) {
-        dispatch(viewportUpdate({ appBarId, viewport: updatedViewport }))
+  const mapRef = useRef(false)
+
+  const demoInterval = useRef(-1)
+  useEffect(() => {
+    const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
+    if (demoMode && demoInterval.current === -1) {
+      dispatch(viewportRotate({ mapId, rate }))
+      demoInterval.current = setInterval(
+        () => dispatch(viewportRotate({ mapId, rate })),
+        13
+      )
+    } else if (demoMode) {
+      demoInterval.current = setInterval(
+        () => dispatch(viewportRotate({ mapId, rate })),
+        13
+      )
+    } else if (demoInterval.current !== -1) {
+      clearInterval(demoInterval.current)
+      demoInterval.current = -1
+    }
+    return () => {
+      if (demoInterval.current !== -1) {
+        clearInterval(demoInterval.current)
+        demoInterval.current = -1
+      }
+    }
+  }, [mapId, demoMode, demoSettings, dispatch])
+  useEffect(() => {
+    const iconsToLoad = [
+      ...new Set(R.without(R.keys(iconData))(nodeIcons(mapId))),
+    ]
+    R.forEach(async (iconName) => {
+      const iconComponent =
+        iconName === 'MdDownloading' ? (
+          <MdDownloading />
+        ) : (
+          (await fetchIcon(iconName, iconUrl))()
+        )
+      const svgString = renderToStaticMarkup(iconComponent)
+      const iconImage = new Image(250, 250)
+      iconImage.onload = () => {
+        setIconData((iconStrings) => R.assoc(iconName, iconImage)(iconStrings))
+      }
+      iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgString)}`
+    })(iconsToLoad)
+  }, [iconUrl, iconData, nodeIcons, mapId])
+
+  const loadIconsToStyle = useCallback(() => {
+    R.forEachObjIndexed((iconImage, iconName) => {
+      if (mapRef.current && !mapRef.current.hasImage(iconName)) {
+        mapRef.current.addImage(iconName, iconImage, { sdf: true })
+      }
+    })(iconData)
+  }, [iconData])
+
+  useEffect(() => {
+    loadIconsToStyle()
+  }, [iconData, loadIconsToStyle])
+
+  const getFeatureFromEvent = useCallback(
+    (e) => {
+      const clickedNode = R.find((feature) =>
+        R.equals(feature.layer.type, 'symbol')
+      )(e.features)
+      const isCluster =
+        R.isNotNil(clickedNode) &&
+        R.pathOr(false, ['properties', 'cave_isCluster'], clickedNode)
+      const clickedArc = R.find((feature) =>
+        R.equals(feature.layer.type, 'line')
+      )(e.features)
+      const clickedGeo = R.find((feature) =>
+        R.equals(feature.layer.type, 'fill')
+      )(e.features)
+      const topFeature = R.isNotNil(clickedNode)
+        ? [
+            clickedNode.properties.cave_name,
+            'nodes',
+            isCluster
+              ? R.prop('properties')(
+                  JSON.parse(clickedNode.properties.cave_obj)
+                )
+              : JSON.parse(clickedNode.properties.cave_obj),
+          ]
+        : R.isNotNil(clickedArc)
+        ? [
+            clickedArc.properties.cave_name,
+            'arcs',
+            R.hasPath(['properties', 'cave_obj'])(clickedArc)
+              ? JSON.parse(clickedArc.properties.cave_obj)
+              : R.pathOr(
+                  {},
+                  JSON.parse(clickedArc.properties.cave_name),
+                  arcData
+                ),
+          ]
+        : R.isNotNil(clickedGeo)
+        ? [
+            clickedGeo.properties.cave_name,
+            'geos',
+            R.pathOr({}, JSON.parse(clickedGeo.properties.cave_name), geosData),
+          ]
+        : null
+
+      return topFeature
+      // return [id, feature, obj]
+    },
+    [arcData, geosData]
+  )
+
+  const onMouseMove = useCallback(
+    (e) => {
+      if (mapRef.current) {
+        const canvas = mapRef.current.getCanvas()
+        const featureObj = getFeatureFromEvent(e)
+        if (!featureObj) {
+          if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
+          if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
+        } else {
+          const [id] = featureObj
+          setHighlightLayerId(id)
+          if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
+        }
       }
     },
-    [mapModal.isOpen, isStatic, dispatch, appBarId]
+    [getFeatureFromEvent, highlightLayerId]
   )
 
-  const openGeo = useCallback(
-    (e) =>
-      R.pipe(
-        (d) =>
-          deckRef.current.pickMultipleObjects({
-            y: R.prop('y', d),
-            x: R.prop('x', d),
-            radius: 20,
-          }),
-        R.filter(
-          R.pipe(R.pathEq(layerId.GEOGRAPHY_LAYER, ['layer', 'id']), R.not)
-        ),
-        R.isEmpty
-      )(e),
-    []
-  )
+  const onMouseOver = useCallback(() => {
+    if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
+  }, [highlightLayerId])
 
   const onClick = useCallback(
     (e) => {
-      const pickedItems = deckRef.current.pickMultipleObjects({
-        y: R.prop('y', e),
-        x: R.prop('x', e),
-        radius: 20,
-      })
-      const pickedCluster = R.find(
-        R.pathEq(layerId.NODE_ICON_CLUSTER_LAYER, ['layer', 'id'])
-      )(pickedItems)
-      const pickedNode = R.find(
-        R.pathEq(layerId.NODE_ICON_LAYER, ['layer', 'id'])
-      )(pickedItems)
-      const pickedArc = R.find(
-        (d) =>
-          R.pathEq(layerId.ARC_LAYER, ['layer', 'id'], d) ||
-          R.pathEq(layerId.ARC_LAYER_3D, ['layer', 'id'], d)
-      )(pickedItems)
+      const featureObj = getFeatureFromEvent(e)
+      if (!featureObj) return
+      const [id, feature, obj] = featureObj
+      setHighlightLayerId()
 
-      R.isNotNil(pickedCluster)
-        ? dispatch(
-            openMapModal({
-              appBarId,
-              data: {
-                ...R.pathOr({}, ['object', 'properties'])(pickedCluster),
-                feature: 'nodes',
-                type: R.propOr(
-                  pickedCluster.object.properties.type,
-                  'name'
-                )(pickedCluster.object.properties),
-                key: pickedCluster.object.id
-                  ? `node${pickedCluster.object.id}`
-                  : pickedCluster.object.properties.id,
-              },
-            })
-          )
-        : R.isNotNil(pickedNode)
-        ? dispatch(
-            openMapModal({
-              appBarId,
-              data: {
-                ...R.pathOr({}, ['object', 1])(pickedNode),
-                feature: 'nodes',
-                type: R.propOr(
-                  pickedNode.object[1].type,
-                  'name'
-                )(pickedNode.object[1]),
-                key: pickedNode.object[0],
-              },
-            })
-          )
-        : R.isNotNil(pickedArc)
-        ? dispatch(
-            openMapModal({
-              appBarId,
-              data: {
-                ...R.pathOr({}, ['object', 1])(pickedArc),
-                feature: 'arcs',
-                type: R.propOr(
-                  pickedArc.object[1].type,
-                  'name'
-                )(pickedArc.object[1]),
-                key: pickedArc.object[0],
-              },
-            })
-          )
-        : R.identity()
+      dispatch(
+        mutateLocal({
+          path: ['panes', 'paneState', 'center'],
+          value: {
+            open: {
+              ...(obj || {}),
+              feature: feature,
+              type: R.propOr(obj.type, 'name')(obj),
+              key: id,
+              mapId,
+            },
+            type: 'feature',
+          },
+          sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+        })
+      )
     },
-    [appBarId, dispatch]
+    [getFeatureFromEvent, dispatch, mapId, sync]
   )
-  return (
-    <Fragment>
-      <MapControls />
+
+  useEffect(() => {
+    // This needs to be done because calling setStyle with the same style
+    // breaks it for some reason
+    const newStyle = R.path([
+      mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+      'spec',
+    ])(mapStyleOptions)
+    if (!R.equals(newStyle, mapStyleSpec)) {
+      setMapStyleSpec(
+        R.path([mapStyle || getDefaultStyleId(isMapboxTokenProvided), 'spec'])(
+          mapStyleOptions
+        )
+      )
+    }
+  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions, mapStyleSpec])
+
+  useEffect(() => {
+    document.addEventListener('clearHighlight', onMouseOver, false)
+    return () =>
+      document.removeEventListener('clearHighlight', onMouseOver, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightLayerId])
+
+  return !mapExists ? (
+    []
+  ) : (
+    <Box
+      sx={{
+        display: 'flex',
+        position: 'relative',
+        flex: '1 1 auto',
+      }}
+    >
+      <MapControls allowProjections={isMapboxTokenProvided} mapId={mapId} />
       <ReactMapGL
         {...viewport}
-        style={{
-          position: 'fixed',
-          left: leftBar ? APP_BAR_WIDTH : 0,
+        onMove={(e) => {
+          // Prevents setting incorrect viewport on load
+          if (e.viewState.zoom !== 0)
+            dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
         }}
-        projection="mercator"
-        width={`calc(100vw - ${APP_BAR_WIDTH})`}
-        height="100vh"
-        mapStyle={mapStyle || `${STYLE_URL_BASE}${getDefaultStyleId(theme)}`}
-        mapboxAccessToken={mapboxToken}
+        hash="map"
+        container="map"
+        mapStyle={mapStyleSpec}
+        mapboxAccessToken={isMapboxTokenProvided && mapboxToken}
+        projection={mapProjection}
+        fog={R.pathOr(getDefaultFog(), [
+          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+          'fog',
+        ])(mapStyleOptions)}
+        onClick={onClick}
+        onMouseMove={onMouseMove}
+        onStyleData={loadIconsToStyle}
+        ref={mapRef}
+        onMouseOver={onMouseOver}
+        interactiveLayerIds={R.values(layerId)}
+        onRender={() => {
+          mapRef.current && mapRef.current.resize()
+        }}
       >
-        <ScaleControl />
-        <DeckGL
-          style={{
-            position: 'fixed',
-            left: leftBar ? APP_BAR_WIDTH : 0,
-          }}
-          onClick={onClick}
-          onHover={touchMode ? onClick : R.identity}
-          ref={deckRef}
-          views={new MapView({ repeat: true })}
-          getCursor={({ isDragging, isHovering }) =>
-            isDragging
-              ? 'grabbing'
-              : isHovering
-              ? 'pointer'
-              : !isStatic
-              ? 'grab'
-              : 'auto'
-          }
-          pickingRadius={5}
-          viewState={viewport}
-          onViewStateChange={onViewStateChange}
-          controller={true}
-          layers={getLayers(openGeo)}
-        />
+        <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Arcs highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Nodes highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Arcs3D mapId={mapId} />
       </ReactMapGL>
-      <ErrorPad />
-      <KeyPad />
-      <MapModal />
-      <MapLegend />
-    </Fragment>
+      <MapModal mapId={mapId} />
+      <MapLegend mapId={mapId} />
+    </Box>
   )
 }
-Map.propTypes = { mapboxToken: PropTypes.string }
+Map.propTypes = {
+  mapboxToken: PropTypes.string,
+  mapId: PropTypes.string,
+}
 
+const styles = {
+  root: {
+    display: 'flex',
+    height: '100%',
+    p: 1,
+    color: 'text.primary',
+    bgcolor: 'background.paper',
+  },
+}
+
+export const MapPage = (props) => {
+  const leftBar = useSelector(selectLeftAppBarDisplay)
+  const rightBar = useSelector(selectRightAppBarDisplay)
+
+  return (
+    <Container
+      maxWidth={false}
+      sx={[
+        styles.root,
+        leftBar && rightBar
+          ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
+          : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
+        rightBar && { mr: APP_BAR_WIDTH },
+      ]}
+      disableGutters
+    >
+      <Map {...props} />
+    </Container>
+  )
+}
 export default Map

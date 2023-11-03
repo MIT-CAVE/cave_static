@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import { overrideSync } from './actions'
-import kpisReducer from './kpisSlice'
+import globalOutputsReducer from './globalOutputsSlice'
 import mapReducer from './mapSlice'
 import settingsReducer, { initialState } from './settingsSlice'
 
@@ -37,6 +37,18 @@ const localSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(overrideSync, (state, action) => {
+      // first remove all previously synced paths
+      R.forEachObjIndexed((paths) => {
+        R.forEachObjIndexed((path) => {
+          action.asyncDispatch(
+            mutateLocal({
+              path: path,
+              value: undefined,
+            })
+          )
+        })(paths)
+      })(action.payload.desyncedPaths)
+      // now sync all new paths
       R.forEachObjIndexed((paths, key) => {
         R.forEachObjIndexed((path, name) => {
           action.asyncDispatch(
@@ -52,7 +64,7 @@ const localSlice = createSlice({
             })
           )
         })(paths)
-      })(action.payload.paths)
+      })(action.payload.desyncedPaths)
       return { settings: initialState }
     })
   },
@@ -61,7 +73,10 @@ const localSlice = createSlice({
 const finalReducer = (state, action) => {
   const partialState = R.mergeLeft(
     {
-      kpis: kpisReducer(R.prop('kpis', state), action),
+      globalOutputs: globalOutputsReducer(
+        R.prop('globalOutputs', state),
+        action
+      ),
       maps: mapReducer(R.prop('maps', state), action),
       settings: settingsReducer(R.prop('settings', state), action),
     },

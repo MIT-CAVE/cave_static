@@ -9,8 +9,8 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import { memo, useState } from 'react'
+import { MdExpandMore } from 'react-icons/md'
 
-import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
 const styles = {
@@ -29,11 +29,6 @@ const styles = {
   accordionGroup: {
     bgcolor: (theme) =>
       theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300',
-  },
-  accordionSummary: {
-    '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-      transform: 'rotate(90deg)',
-    },
   },
   getOrientation: (orientation) => ({
     display: 'flex',
@@ -106,9 +101,7 @@ const SelectAccordion = ({
               event.stopPropagation()
             }}
           >
-            <AccordionSummary
-              expandIcon={<FetchedIcon iconName="MdExpandMore" />}
-            >
+            <AccordionSummary expandIcon={<MdExpandMore />}>
               <Typography sx={styles.heading}>{getLabel(item)}</Typography>
             </AccordionSummary>
             <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
@@ -180,10 +173,7 @@ const SelectAccordion = ({
                 event.stopPropagation()
               }}
             >
-              <AccordionSummary
-                sx={styles.accordionSummary}
-                expandIcon={<FetchedIcon iconName="MdOutlineChevronRight" />}
-              >
+              <AccordionSummary expandIcon={<MdExpandMore />}>
                 <Typography sx={styles.heading}>
                   {`${grouping} `}
                   <Box component="span" sx={{ color: 'text.secondary' }}>

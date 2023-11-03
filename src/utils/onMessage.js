@@ -8,13 +8,13 @@ import { updateSessions } from '../data/utilities/sessionsSlice'
 const onMessage = (dispatch) => (payload) => {
   if (R.prop('event', payload) === 'message') {
     console.log('message: ', payload)
-    dispatch(addMessage(payload.data))
+    dispatch(addMessage(payload))
   } else if (R.prop('event', payload) === 'updateSessions') {
     // console.log('localMutation: ', R.prop('data', payload))
-    dispatch(updateSessions(payload.data))
+    dispatch(updateSessions(payload))
   } else if (R.prop('event', payload) === 'updateLoading') {
     // console.log('localMutation: ', R.prop('data', payload))
-    dispatch(updateLoading(payload.data))
+    dispatch(updateLoading(payload))
   } else if (R.prop('event', payload) === 'mutation') {
     // console.log('mutation: ', payload)
     dispatch(mutateData(payload))

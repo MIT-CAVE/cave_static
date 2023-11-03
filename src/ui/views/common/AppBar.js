@@ -6,8 +6,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
-  selectTheme,
-  selectAppBarId,
+  selectCurrentPage,
   selectSync,
   selectPanesData,
   selectSessionLoading,
@@ -15,11 +14,11 @@ import {
   selectDataLoading,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-import { themeId, paneId } from '../../../utils/enums'
+import { paneId } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
-import { sortProps, includesPath } from '../../../utils'
+import { includesPath } from '../../../utils'
 
 const styles = {
   root: {
@@ -29,7 +28,6 @@ const styles = {
     width: `${APP_BAR_WIDTH}px`,
     borderColor: 'text.secondary',
     bgcolor: 'background.paper',
-    zIndex: 2001,
   },
   rightRoot: {
     position: 'absolute',
@@ -77,8 +75,7 @@ const styles = {
   navBtnActive: {
     border: 3,
     borderColor: 'text.primary',
-    bgcolor: (theme) =>
-      theme.palette.mode === themeId.DARK ? 'grey.600' : 'grey.400',
+    bgcolor: 'grey.600',
   },
 }
 
@@ -100,7 +97,7 @@ const getAppBarItem = ({
   color,
   key,
   pin,
-  appBarId,
+  currentPage,
   changePane,
   sync,
   loading,
@@ -108,9 +105,10 @@ const getAppBarItem = ({
 }) => {
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
-  const path = ['appBar', 'data', 'appBarId']
+  const variant = R.prop('variant', obj)
+  const path = ['pages', 'currentPage']
 
-  return type === 'pane' ? (
+  return type === paneId.SESSION ? (
     <Tab
       sx={styles.tab}
       key={key}
@@ -128,6 +126,63 @@ const getAppBarItem = ({
         changePane(key)
       }}
     />
+  ) : type === paneId.APP_SETTINGS ? (
+    <Tab
+      sx={styles.tab}
+      key={key}
+      value={key}
+      disabled={loading}
+      icon={
+        <FetchedIcon
+          className={nonSx.navIcon}
+          size={25}
+          color={color}
+          iconName={icon}
+        />
+      }
+      onClick={() => {
+        changePane(key)
+      }}
+    />
+  ) : type === 'pane' ? (
+    variant === 'modal' ? (
+      <ButtonInTabs
+        {...{ key, icon, color }}
+        disabled={loading}
+        onClick={() => {
+          dispatch(
+            mutateLocal({
+              path: ['panes', 'paneState', 'center'],
+              value: { open: key, type: 'pane' },
+              sync: !includesPath(R.values(sync), [
+                'panes',
+                'paneState',
+                'center',
+              ]),
+            })
+          )
+        }}
+      />
+    ) : (
+      // default panes to wall
+      <Tab
+        sx={styles.tab}
+        key={key}
+        value={key}
+        disabled={loading}
+        icon={
+          <FetchedIcon
+            className={nonSx.navIcon}
+            size={25}
+            color={color}
+            iconName={icon}
+          />
+        }
+        onClick={() => {
+          changePane(key)
+        }}
+      />
+    )
   ) : type === 'button' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
@@ -147,25 +202,14 @@ const getAppBarItem = ({
         )
       }}
     />
-  ) : type === 'modal' ? (
+  ) : type === 'page' ? (
     <ButtonInTabs
       {...{ key, icon, color }}
       disabled={loading}
-      onClick={() => {
-        dispatch(
-          mutateLocal({
-            path: ['appBar', 'openModal'],
-            value: key,
-            sync: !includesPath(R.values(sync), ['appBar', 'openModal']),
-          })
-        )
-      }}
-    />
-  ) : type === 'map' || type === 'stats' || type === 'kpi' ? (
-    <ButtonInTabs
-      {...{ key, icon, color }}
-      disabled={loading}
-      sx={[styles.navBtn, R.equals(appBarId, key) ? styles.navBtnActive : {}]}
+      sx={[
+        styles.navBtn,
+        R.equals(currentPage, key) ? styles.navBtnActive : {},
+      ]}
       onClick={() => {
         dispatch(
           mutateLocal({
@@ -175,8 +219,8 @@ const getAppBarItem = ({
           })
         )
         // Automatically close an unpinned pane when switching
-        // to a different Map, Dashboard, or KPI view
-        if (!pin && key !== appBarId) changePane()
+        // to a different page
+        if (!pin && key !== currentPage) changePane()
       }}
     />
   ) : (
@@ -186,8 +230,7 @@ const getAppBarItem = ({
 
 const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
-  const currentThemeId = useSelector(selectTheme)
-  const appBarId = useSelector(selectAppBarId)
+  const currentPage = useSelector(selectCurrentPage)
   const panesData = useSelector(selectPanesData)
   const sessionLoading = useSelector(selectSessionLoading)
   const dataLoading = useSelector(selectDataLoading)
@@ -235,12 +278,12 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     (pane) => {
       dispatch(
         mutateLocal({
-          path: ['appBar', 'paneState', side],
+          path: ['panes', 'paneState', side],
           value: {
             pin, // Preserves state of a pinned pane
             ...(open === pane ? {} : { open: pane }),
           },
-          sync: !includesPath(R.values(sync), ['appBar', 'paneState', side]),
+          sync: !includesPath(R.values(sync), ['panes', 'paneState', side]),
         })
       )
     },
@@ -248,12 +291,8 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   )
 
   const mapAppBarItems = R.pipe(
-    sortProps,
     R.mapObjIndexed((obj, key) => {
-      const color = R.propOr(
-        R.prop('color', obj),
-        currentThemeId
-      )(R.prop('color', obj))
+      const color = R.prop('color', obj)
       const variant = R.pathOr(false, [key, 'variant'], panesData)
       const disabled = R.equals(variant, paneId.SESSION) ? false : loading
       return getAppBarItem({
@@ -261,7 +300,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         key,
         pin,
         obj,
-        appBarId,
+        currentPage,
         changePane,
         sync,
         loading: disabled,
@@ -270,10 +309,9 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     }),
     R.values
   )
-
   const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
-  const lowerKey = `lower${R.has('lower', appBar) ? '' : capitalizedSide}`
-  const upperKey = `upper${R.has('upper', appBar) ? '' : capitalizedSide}`
+  const lowerKey = `lower${capitalizedSide}`
+  const upperKey = `upper${capitalizedSide}`
   return (
     <Box
       sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}

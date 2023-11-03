@@ -15,30 +15,29 @@ import { useSelector, useDispatch } from 'react-redux'
 import SimpleModalOptions from './SimpleModalOptions'
 
 import { sendCommand } from '../../../data/data'
-import {
-  closeMapModal,
-  mapStyleSelection,
-  viewportUpdate,
-} from '../../../data/local/mapSlice'
+import { mutateLocal } from '../../../data/local'
+import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
-  selectOptionalViewports,
+  selectOptionalViewportsFunc,
   selectMapModal,
-  selectTimeUnits,
-  selectTimeLength,
-  selectTime,
-  selectResolveTime,
-  selectData,
-  selectAppBarId,
+  selectCurrentTimeUnits,
+  selectCurrentTimeLength,
+  selectCurrentTime,
+  selectMergedArcs,
+  selectMergedNodes,
+  selectMergedGeos,
+  selectMapStyleOptions,
+  selectSync,
 } from '../../../data/selectors'
-import { styleId } from '../../../utils/enums'
+import { DEFAULT_MAP_STYLE_KEY } from '../../../utils/constants'
 import ClusterModal from '../../compound/ClusterModal'
-import SimpleModal from '../../compound/SimpleModal'
+import { GeneralModal } from '../common/Modal'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { FetchedIcon } from '../../compound'
 
-import { customSort } from '../../../utils'
+import { withIndex, includesPath } from '../../../utils'
 
 const styles = {
   modal: {
@@ -46,6 +45,7 @@ const styles = {
     p: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   paper: {
     border: 1,
@@ -79,12 +79,13 @@ const styles = {
   },
 }
 
-const OnLayerEventModal = () => {
+const OnLayerEventModal = ({ mapId }) => {
   const dispatch = useDispatch()
   const mapModal = useSelector(selectMapModal)
-  const resolveTime = useSelector(selectResolveTime)
-  const currentTime = useSelector(selectTime)
-  const data = useSelector(selectData)
+  const currentTime = useSelector(selectCurrentTime)
+  const arcData = useSelector(selectMergedArcs)
+  const nodeData = useSelector(selectMergedNodes)
+  const geoData = useSelector(selectMergedGeos)
 
   const {
     cluster_id,
@@ -95,18 +96,18 @@ const OnLayerEventModal = () => {
     layout,
     props: items,
   } = R.propOr({}, 'data')(mapModal)
-
-  const getCurrentVal = (propId) =>
-    R.path([feature, 'data', key, 'props', propId, 'value'])(data)
+  const featureData =
+    feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
+  const getCurrentVal = (propId) => R.path([key, 'values', propId])(featureData)
 
   const onChangeProp = (prop, propId) => (value) => {
-    const dataPath = ['data', key, 'props', propId, 'value']
-    const currentValue = getCurrentVal(propId)
-    const sentValue = R.prop('timeObject')(currentValue)
-      ? R.has('value')(currentValue)
-        ? R.assocPath(['value', currentTime], value, currentValue)
-        : currentValue
-      : value
+    const usesTime = R.hasPath(
+      [key, 'valueLists', 'timeValues', currentTime, propId],
+      featureData
+    )
+    const dataPath = usesTime
+      ? ['data', key, 'valueLists', 'timeValues', `${currentTime}`, propId]
+      : ['data', key, 'valueLists', propId]
 
     dispatch(
       sendCommand({
@@ -114,7 +115,7 @@ const OnLayerEventModal = () => {
         data: {
           data_name: feature,
           data_path: dataPath,
-          data_value: sentValue,
+          data_value: value,
           mutation_type: 'mutate',
           api_command: R.prop('apiCommand', prop),
           api_command_keys: R.prop('apiCommandKeys', prop),
@@ -123,32 +124,31 @@ const OnLayerEventModal = () => {
     )
   }
 
+  const onClose = () => dispatch(closeMapModal())
+
   return R.isNotNil(cluster_id) ? (
-    <ClusterModal title={type} cluster_id={cluster_id}>
+    <ClusterModal title={type} cluster_id={cluster_id} mapId={mapId}>
       {renderPropsLayout({
         layout,
         items,
-        resolveTime,
         getCurrentVal,
         onChangeProp,
       })}
     </ClusterModal>
   ) : (
-    <SimpleModal title={name || type}>
+    <GeneralModal title={name || type} onClose={onClose}>
       {renderPropsLayout({
         layout,
         items,
-        resolveTime,
         getCurrentVal,
         onChangeProp,
       })}
-    </SimpleModal>
+    </GeneralModal>
   )
 }
 
-const ListModal = ({ title, options, onSelect }) => {
+const ListModal = ({ title, options, onSelect, mapId }) => {
   const dispatch = useDispatch()
-  const appBarId = useSelector(selectAppBarId)
 
   return (
     <Modal
@@ -157,7 +157,7 @@ const ListModal = ({ title, options, onSelect }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => dispatch(closeMapModal(appBarId))}
+      onClose={() => dispatch(closeMapModal(mapId))}
     >
       <Box sx={styles.listPaper}>
         <Box sx={styles.flexSpaceBetween}>
@@ -166,7 +166,7 @@ const ListModal = ({ title, options, onSelect }) => {
           </Typography>
         </Box>
         <List>
-          {customSort(options).map(({ id, name, icon }) => (
+          {withIndex(options).map(({ id, name, icon }) => (
             <ListItemButton key={id} onClick={() => onSelect(id)}>
               <ListItemAvatar>
                 <Avatar>
@@ -182,46 +182,32 @@ const ListModal = ({ title, options, onSelect }) => {
   )
 }
 
-// QUESTION: Do we move this to somewhere in the API?
-const mapStyleOptions = {
-  streets: {
-    name: 'Streets',
-    icon: 'MdStreetview',
-    order: 2,
-    styleId: styleId.STREETS,
-  },
-  satelliteStreets: {
-    name: 'Satellite Streets',
-    icon: 'MdSatellite',
-    order: 3,
-    styleId: styleId.SATELLITE_STREETS,
-  },
-  default: {
-    name: 'Default',
-    icon: 'MdMap',
-    order: 1,
-    styleId: null, // `dark` or `light` is determined by the choosen theme
-  },
-}
-
-const MapModal = () => {
+const MapModal = ({ mapId }) => {
   const mapModal = useSelector(selectMapModal)
-  const optionalViewports = useSelector(selectOptionalViewports)
-  const timeUnits = useSelector(selectTimeUnits)
-  const timeLength = useSelector(selectTimeLength)
-  const appBarId = useSelector(selectAppBarId)
+  const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
+  const timeUnits = useSelector(selectCurrentTimeUnits)
+  const timeLength = useSelector(selectCurrentTimeLength)
+  const mapStyleOptions = useSelector(selectMapStyleOptions)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
   if (!mapModal.isOpen) return null
   const feature = R.path(['data', 'feature'], mapModal)
+  const modelMap = R.pathOr('', ['data', 'mapId'], mapModal)
   const timeOptions = R.pipe(
     R.add(1),
     R.range(1),
     R.reduce((acc, value) => R.assoc(value, value, acc), {}),
-    R.map((value) => ({ name: value, icon: 'MdAvTimer', order: value }))
+    R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
   )(timeLength)
+  const syncStyles = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    mapId,
+    'currentStyle',
+  ])
   return R.cond([
     [
-      R.equals('viewports'),
+      (d) => R.equals('viewports', d) && R.equals(mapId, modelMap),
       R.always(
         <ListModal
           title="Map Viewports"
@@ -230,32 +216,43 @@ const MapModal = () => {
             const viewport = R.pipe(
               R.prop(value),
               // `id` is not necessary here, since that is only
-              // added by `customSort` as a helper property
+              // added by `withIndex` as a helper property
               R.omit(['name', 'icon'])
             )(optionalViewports)
-            dispatch(viewportUpdate({ viewport, appBarId }))
-            dispatch(closeMapModal(appBarId))
+            dispatch(viewportUpdate({ viewport, mapId }))
+            dispatch(closeMapModal(mapId))
           }}
+          mapId={mapId}
         />
       ),
     ],
     [
-      R.equals('mapStyles'),
+      (d) => R.equals('mapStyles', d) && R.equals(mapId, modelMap),
       R.always(
         <ListModal
           title="Map Styles"
           placeholder="Choose a map style..."
           options={mapStyleOptions}
-          onSelect={(value) => {
-            const styleId = R.path([value, 'styleId'])(mapStyleOptions)
-            dispatch(mapStyleSelection({ appBarId, mapStyle: styleId }))
-            dispatch(closeMapModal(appBarId))
+          onSelect={(mapStyle) => {
+            dispatch(
+              mutateLocal({
+                sync: syncStyles,
+                path: ['maps', 'data', mapId, 'currentStyle'],
+                value: R.ifElse(
+                  R.equals(DEFAULT_MAP_STYLE_KEY),
+                  R.always(undefined),
+                  R.always(mapStyle)
+                )(mapStyle),
+              })
+            )
+            dispatch(closeMapModal(mapId))
           }}
+          mapId={mapId}
         />
       ),
     ],
     [
-      R.equals('setTime'),
+      (d) => R.equals('setTime', d) && R.equals(mapId, modelMap),
       R.always(
         <SimpleModalOptions
           title={`Set ${timeUnits}`}
@@ -263,12 +260,13 @@ const MapModal = () => {
           options={timeOptions}
           onSelect={(value) => {
             dispatch(timeSelection(value - 1))
-            dispatch(closeMapModal(appBarId))
+            dispatch(closeMapModal(mapId))
           }}
+          mapId={mapId}
         />
       ),
     ],
-    [R.T, R.always(<OnLayerEventModal />)], // 'arcs', 'nodes' or 'geos'
+    [R.T, R.always(<OnLayerEventModal mapId={mapId} />)], // 'arcs', 'nodes' or 'geos'
   ])(feature)
 }
 

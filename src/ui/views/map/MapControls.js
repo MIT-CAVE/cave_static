@@ -1,5 +1,4 @@
-import { Box, ButtonGroup, IconButton, Slider, Tooltip } from '@mui/material'
-import PropTypes from 'prop-types'
+import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { useState, useRef, useEffect, memo } from 'react'
 import {
@@ -18,6 +17,7 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { mutateLocal } from '../../../data/local'
 import {
   bearingSliderToggle,
   bearingUpdate,
@@ -30,99 +30,94 @@ import {
 } from '../../../data/local/mapSlice'
 import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
-  selectDefaultViewport,
-  selectOptionalViewports,
-  selectBearingSliderToggle,
-  selectPitchSliderToggle,
-  selectBearing,
-  selectPitch,
-  selectTime,
-  selectTimeUnits,
-  selectTimeLength,
+  selectDefaultViewportFunc,
+  selectOptionalViewportsFunc,
+  selectBearingSliderToggleFunc,
+  selectPitchSliderToggleFunc,
+  selectBearingFunc,
+  selectPitchFunc,
+  selectCurrentTime,
+  selectCurrentTimeUnits,
+  selectCurrentTimeLength,
   selectStaticMap,
-  selectAppBarId,
-  selectRightAppBarDisplay,
+  selectSync,
 } from '../../../data/selectors'
 import {
-  APP_BAR_WIDTH,
   MAX_BEARING,
   MAX_PITCH,
   MIN_BEARING,
   MIN_PITCH,
 } from '../../../utils/constants'
+import { unitPlacements } from '../../../utils/enums'
 
-import { getSliderMarks, formatNumber } from '../../../utils'
+import { FetchedIcon, TooltipButton } from '../../compound'
+
+import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
 
 const styles = {
-  getRoot: (hover, rightBar) => ({
+  getRoot: (hover) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'end',
     position: 'absolute',
-    bottom: 0,
-    right: rightBar ? APP_BAR_WIDTH : 0,
+    bottom: '24px',
+    right: '4px',
+    zIndex: 1,
+    maxWidth: 'calc(100% - 8px)',
+    button: {
+      width: '42px',
+    },
     'button,.MuiSlider-root': {
       opacity: hover ? 1 : 0.8,
     },
-    button: {
-      width: '48px',
-    },
   }),
-  rootBtns: {
-    position: 'absolute',
-    right: '6px',
-    bottom: '24px',
-    zIndex: 1,
-    textAlign: 'right',
-  },
   btnGroup: {
     bgcolor: 'background.paper',
   },
   mapControls: {
-    mb: 1.5,
+    maxHeight: (theme) => `calc(100% - ${theme.spacing(5.5)} - 28px)`,
+    mb: 5.5,
+    overflowY: 'auto',
   },
   rowButtons: {
     display: 'flex',
+    width: '100%',
     columnGap: 1.5,
+    overflowX: 'auto',
+    // scrollbarGutter: 'stable',
     zIndex: 1,
   },
-  tooltip: {
-    '.MuiTooltip-tooltip': (theme) => ({
-      maxWidth: 200,
-      m: 1,
-      ...theme.typography.caption,
-    }),
-  },
-  iconButton: {
-    p: 0.5,
-    opacity: 1,
-    borderRadius: 'inherit',
-  },
   pitch: {
+    display: 'flex',
+    justifyContent: 'end',
     position: 'relative',
     height: '100px',
-    mb: 5,
-    width: 'auto',
+    width: '88px',
+    mt: 2,
+    mb: 3,
   },
   pitchSlider: {
     mr: 1,
     '.MuiSlider-thumb': {
-      height: 20,
-      width: 20,
-      border: 2,
+      height: '20px',
+      width: '20px',
+      border: '2px',
       borderColor: 'currentcolor',
       '&:focus, &:hover, &$active': {
         boxShadow: 'inherit',
       },
     },
     '.MuiSlider-track': {
-      width: 3,
+      width: '3px',
       borderRadius: 1,
     },
     '.MuiSlider-rail': {
-      width: 3,
+      width: '3px',
       borderRadius: 1,
     },
     '.MuiSlider-markLabel': {
       left: 'auto',
-      right: 36,
+      right: '36px',
     },
   },
   bearing: {
@@ -157,75 +152,79 @@ const tooltipTitles = {
   defaultViewport: 'Map Viewport \u279C Go to default viewport',
   customViewports: 'Map Viewport \u279C See all viewports...',
   mapLegend: 'Map Legend \u279C Arcs, nodes & geo areas',
-  mapStyles: "Map Style \u279C Choose from the map's Mapbox styles",
+  mapStyles: "Map Style \u279C Choose from the map's styles",
+  globeProjection: 'Projection \u279C Globe',
+  mercatorProjection: 'Projection \u279C Mercator',
 }
 
-const TooltipButton = ({
-  title,
-  ariaLabel,
-  placement = 'left',
-  onClick,
-  children,
-  ...props
-}) => (
-  <Tooltip
-    {...{ title, placement }}
-    sx={styles.tooltip}
-    aria-label={ariaLabel || title}
-  >
-    <span>
-      <IconButton
-        sx={styles.iconButton}
-        {...{ onClick, ...props }}
-        size="large"
+const MapNavButtons = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  return (
+    <ButtonGroup
+      sx={styles.btnGroup}
+      orientation="vertical"
+      variant="contained"
+      size="small"
+    >
+      <TooltipButton
+        title={tooltipTitles.pitch}
+        onClick={() => dispatch(pitchSliderToggle(mapId))}
       >
-        {children}
-      </IconButton>
-    </span>
-  </Tooltip>
-)
-TooltipButton.propTypes = {
-  title: PropTypes.string,
-  ariaLabel: PropTypes.string,
-  placement: PropTypes.oneOf([
-    'bottom-end',
-    'bottom-start',
-    'bottom',
-    'left-end',
-    'left-start',
-    'left',
-    'right-end',
-    'right-start',
-    'right',
-    'top-end',
-    'top-start',
-    'top',
-  ]),
-  onClick: PropTypes.func,
-  children: PropTypes.node,
-}
+        <MdHeight />
+      </TooltipButton>
+      <TooltipButton
+        title={tooltipTitles.zoomIn}
+        onClick={() => dispatch(changeZoom({ mapId, value: 0.5 }))}
+      >
+        <MdAdd />
+      </TooltipButton>
+      <TooltipButton
+        title={tooltipTitles.zoomOut}
+        onClick={() => dispatch(changeZoom({ mapId, value: -0.5 }))}
+      >
+        <MdRemove />
+      </TooltipButton>
+      <TooltipButton
+        title={tooltipTitles.bearing}
+        onClick={() => dispatch(bearingSliderToggle(mapId))}
+      >
+        <Md360 />
+      </TooltipButton>
+    </ButtonGroup>
+  )
+})
 
-const MapControls = () => {
+const MapControls = ({ allowProjections, mapId }) => {
   const [hover, setHover] = useState(false)
   const [animation, setAnimation] = useState(false)
   const activeAnimation = useRef()
 
-  const bearing = useSelector(selectBearing)
-  const pitch = useSelector(selectPitch)
-  const defaultViewport = useSelector(selectDefaultViewport)
-  const optionalViewports = useSelector(selectOptionalViewports)
-  const showBearingSlider = useSelector(selectBearingSliderToggle)
-  const showPitchSlider = useSelector(selectPitchSliderToggle)
-  const currentTime = useSelector(selectTime)
-  const timeUnits = useSelector(selectTimeUnits)
-  const timeLength = useSelector(selectTimeLength)
+  const bearing = useSelector(selectBearingFunc)(mapId)
+  const pitch = useSelector(selectPitchFunc)(mapId)
+  const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)
+  const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
+  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
+  const currentTime = useSelector(selectCurrentTime)
+  const timeUnits = useSelector(selectCurrentTimeUnits)
+  const timeLength = useSelector(selectCurrentTimeLength)
   const isStatic = useSelector(selectStaticMap)
-  const appBarId = useSelector(selectAppBarId)
-  const rightBar = useSelector(selectRightAppBarDisplay)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
+  const syncProjection = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    mapId,
+    'currentProjection',
+  ])
+
   const getDegreeFormat = (value) =>
-    formatNumber(value, { unit: 'º', precision: 0, unitSpace: false })
+    NumberFormat.format(value, {
+      unit: 'º',
+      precision: 0,
+      unitPlacement: unitPlacements.AFTER,
+    })
 
   // Ensures that animation stops if component is unmounted
   useEffect(() => {
@@ -242,12 +241,13 @@ const MapControls = () => {
   }
 
   return (
-    <Box
-      sx={styles.getRoot(hover, rightBar)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <Box sx={styles.rootBtns}>
+    <>
+      {/* Map controls */}
+      <Box
+        sx={[styles.getRoot(hover), styles.mapControls]}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
         {showPitchSlider && (
           <Box sx={styles.pitch}>
             <Slider
@@ -259,50 +259,17 @@ const MapControls = () => {
               valueLabelDisplay="auto"
               valueLabelFormat={getDegreeFormat}
               marks={getSliderMarks(MIN_PITCH, MAX_PITCH, 2, getDegreeFormat)}
-              onChange={(event, value) =>
-                dispatch(pitchUpdate({ appBarId, value }))
-              }
+              onChange={(_, value) => dispatch(pitchUpdate({ mapId, value }))}
             />
           </Box>
         )}
-
-        {/* Map controls */}
-        {isStatic ? (
-          []
-        ) : (
-          <ButtonGroup
-            sx={[styles.btnGroup, styles.mapControls]}
-            orientation="vertical"
-            variant="contained"
-            size="small"
-          >
-            <TooltipButton
-              title={tooltipTitles.pitch}
-              onClick={() => dispatch(pitchSliderToggle(appBarId))}
-            >
-              <MdHeight />
-            </TooltipButton>
-            <TooltipButton
-              title={tooltipTitles.zoomIn}
-              onClick={() => dispatch(changeZoom({ appBarId, value: 0.5 }))}
-            >
-              <MdAdd />
-            </TooltipButton>
-            <TooltipButton
-              title={tooltipTitles.zoomOut}
-              onClick={() => dispatch(changeZoom({ appBarId, value: -0.5 }))}
-            >
-              <MdRemove />
-            </TooltipButton>
-            <TooltipButton
-              title={tooltipTitles.bearing}
-              onClick={() => dispatch(bearingSliderToggle(appBarId))}
-            >
-              <Md360 />
-            </TooltipButton>
-          </ButtonGroup>
-        )}
-
+        {isStatic ? [] : <MapNavButtons mapId={mapId} />}
+      </Box>
+      <Box
+        sx={styles.getRoot(hover)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
           <ButtonGroup
@@ -350,9 +317,7 @@ const MapControls = () => {
               title={`Set current ${timeUnits}`}
               placement="top"
               onClick={() =>
-                dispatch(
-                  openMapModal({ data: { feature: 'setTime' }, appBarId })
-                )
+                dispatch(openMapModal({ feature: 'setTime', mapId }))
               }
             >
               {currentTime + 1}
@@ -375,7 +340,7 @@ const MapControls = () => {
             <TooltipButton
               title={tooltipTitles.mapLegend}
               placement="top"
-              onClick={() => dispatch(toggleMapLegend(appBarId))}
+              onClick={() => dispatch(toggleMapLegend(mapId))}
             >
               <MdApps />
             </TooltipButton>
@@ -391,14 +356,48 @@ const MapControls = () => {
               title={tooltipTitles.mapStyles}
               placement="top"
               onClick={() =>
-                dispatch(
-                  openMapModal({ data: { feature: 'mapStyles' }, appBarId })
-                )
+                dispatch(openMapModal({ feature: 'mapStyles', mapId }))
               }
             >
               <MdMap />
             </TooltipButton>
           </ButtonGroup>
+
+          {/* Projection */}
+          {allowProjections && (
+            <ButtonGroup sx={styles.btnGroup} variant="contained">
+              <TooltipButton
+                title={tooltipTitles.globeProjection}
+                placement="top"
+                onClick={() =>
+                  dispatch(
+                    mutateLocal({
+                      path: ['maps', 'data', mapId, 'currentProjection'],
+                      value: 'globe',
+                      sync: syncProjection,
+                    })
+                  )
+                }
+              >
+                <FetchedIcon iconName="bs/BsGlobe2" />
+              </TooltipButton>
+              <TooltipButton
+                title={tooltipTitles.mercatorProjection}
+                placement="top"
+                onClick={() => {
+                  dispatch(
+                    mutateLocal({
+                      path: ['maps', 'data', mapId, 'currentProjection'],
+                      value: 'mercator',
+                      sync: syncProjection,
+                    })
+                  )
+                }}
+              >
+                <FetchedIcon iconName="bs/BsMap" />
+              </TooltipButton>
+            </ButtonGroup>
+          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
@@ -407,9 +406,7 @@ const MapControls = () => {
                 title={tooltipTitles.customViewports}
                 placement="top"
                 onClick={() =>
-                  dispatch(
-                    openMapModal({ data: { feature: 'viewports' }, appBarId })
-                  )
+                  dispatch(openMapModal({ feature: 'viewports', mapId }))
                 }
               >
                 <MdGpsFixed />
@@ -419,9 +416,7 @@ const MapControls = () => {
               title={tooltipTitles.defaultViewport}
               placement="bottom-start"
               onClick={() => {
-                dispatch(
-                  viewportUpdate({ viewport: defaultViewport, appBarId })
-                )
+                dispatch(viewportUpdate({ viewport: defaultViewport, mapId }))
               }}
             >
               <MdHome />
@@ -441,13 +436,11 @@ const MapControls = () => {
             valueLabelDisplay="auto"
             valueLabelFormat={getDegreeFormat}
             marks={getSliderMarks(MIN_BEARING, MAX_BEARING, 5, getDegreeFormat)}
-            onChange={(event, value) =>
-              dispatch(bearingUpdate({ appBarId, value }))
-            }
+            onChange={(_, value) => dispatch(bearingUpdate({ mapId, value }))}
           />
         </Box>
       )}
-    </Box>
+    </>
   )
 }
 

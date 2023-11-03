@@ -36,20 +36,14 @@ import {
   selectSessions,
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
+import { useMenu } from '../../../utils/hooks'
 
 import { FetchedIcon, TextInput } from '../../compound'
 
 import { forceArray, getFreeName } from '../../../utils'
 
 const ActionItems = ({ items = [], disabled }) => {
-  const [anchorEl, setAnchorEl] = useState(null)
-  const open = Boolean(anchorEl)
-  const onClickHandler = (event) => {
-    setAnchorEl(event.currentTarget)
-  }
-  const onCloseHandler = () => {
-    setAnchorEl(null)
-  }
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
   const [hiddenItems, visibleItems] = R.partition(R.propOr(true, 'hidden'))(
     items
   )
@@ -78,22 +72,17 @@ const ActionItems = ({ items = [], disabled }) => {
       )}
       {!R.isEmpty(hiddenItems) && (
         <>
-          <IconButton
-            {...{ disabled }}
-            onClick={(event) => {
-              event.stopPropagation()
-              onClickHandler(event)
-            }}
-          >
-            <FetchedIcon iconName="MdMoreVert" />
+          <IconButton {...{ disabled }} onClick={handleOpenMenu}>
+            <FetchedIcon iconName="md/MdMoreVert" />
           </IconButton>
           <Menu
             id="long-menu"
             MenuListProps={{
               'aria-labelledby': 'long-button',
             }}
-            {...{ anchorEl, open }}
-            onClose={onCloseHandler}
+            {...{ anchorEl }}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
             sx={{ zIndex: 2002 }}
             PaperProps={{
               style: {
@@ -108,7 +97,7 @@ const ActionItems = ({ items = [], disabled }) => {
                 key={label.toLocaleLowerCase()}
                 onClick={() => {
                   onClick()
-                  onCloseHandler()
+                  handleCloseMenu()
                 }}
               >
                 <FetchedIcon
@@ -291,7 +280,7 @@ const ListItemSessionCardInput = ({
             }}
             // color="success"
             variant="contained"
-            endIcon={<FetchedIcon iconName="MdCheck" size={24} />}
+            endIcon={<FetchedIcon iconName="md/MdCheck" size={24} />}
           >
             Confirm
           </Button>
@@ -300,7 +289,7 @@ const ListItemSessionCardInput = ({
             onClick={onClickCancel}
             color="error"
             variant="contained"
-            startIcon={<FetchedIcon iconName="MdOutlineCancel" />}
+            startIcon={<FetchedIcon iconName="md/MdOutlineCancel" />}
           >
             Cancel
           </Button>
@@ -339,7 +328,7 @@ const ListItemSessionCard = ({
     editable != null
       ? {
           label: 'Edit session',
-          iconName: 'MdEdit',
+          iconName: 'md/MdEdit',
           hidden: hideEdit,
           onClick: onClickEdit,
           disabled: !editable,
@@ -348,7 +337,7 @@ const ListItemSessionCard = ({
     duplicable != null
       ? {
           label: 'Duplicate session',
-          iconName: 'MdCopyAll',
+          iconName: 'md/MdCopyAll',
           hidden: hideDuplicate,
           onClick: onClickDuplicate,
           disabled: !duplicable,
@@ -357,7 +346,7 @@ const ListItemSessionCard = ({
     removable != null
       ? {
           label: 'Delete session',
-          iconName: 'IoMdCloseCircleOutline',
+          iconName: 'io/IoMdCloseCircleOutline',
           hidden: hideRemove,
           onClick: onClickRemove,
           disabled: selected || !removable,
@@ -408,7 +397,7 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
         {/* A `span` wrapper to acommodate disabled actions */}
         <span>
           <IconButton {...{ onClick }}>
-            <FetchedIcon {...{ iconName: 'MdOutlineAddBox' }} />
+            <FetchedIcon {...{ iconName: 'md/MdOutlineAddBox' }} />
           </IconButton>
         </span>
       </Tooltip>

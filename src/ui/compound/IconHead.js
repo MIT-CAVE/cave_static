@@ -5,7 +5,7 @@ import * as R from 'ramda'
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
-import { KPI_MIN_WIDTH } from '../../utils/constants'
+import { GLOBALOUTPUT_WIDTH } from '../../utils/constants'
 
 import { forceArray } from '../../utils'
 
@@ -14,7 +14,7 @@ const styles = {
     display: 'flex',
     position: 'relative',
     flexDirection: 'column',
-    minWidth: KPI_MIN_WIDTH,
+    minWidth: GLOBALOUTPUT_WIDTH,
     px: 1,
     justifyContent: 'center',
     textAlign: 'center',
@@ -23,7 +23,7 @@ const styles = {
     display: 'flex',
     position: 'relative',
     flexDirection: 'column',
-    minWidth: KPI_MIN_WIDTH,
+    minWidth: GLOBALOUTPUT_WIDTH,
     px: 2,
     placeContent: 'center',
     // textAlign: 'start',
@@ -37,10 +37,8 @@ const styles = {
   },
 }
 
-const KpiHead = ({
-  title,
-  icon,
-  style,
+const GlobalOutputHead = ({
+  prop,
   sx = [],
   rootStyle,
   gridSpacing,
@@ -48,25 +46,28 @@ const KpiHead = ({
   iconSize,
   children,
   ...props
-}) => (
-  <Grid
-    sx={[rootStyle, style, ...forceArray(sx)]}
-    {...R.dissoc('mapKpi', props)}
-  >
-    <Grid container item spacing={gridSpacing} flexWrap="nowrap">
-      {icon && (
-        <Grid item alignSelf="center">
-          <FetchedIcon iconName={icon} size={iconSize} />
+}) => {
+  const { name: title, icon, style } = prop
+  return (
+    <Grid
+      sx={[rootStyle, style, ...forceArray(sx)]}
+      {...R.dissoc('mapGlobalOutput', props)}
+    >
+      <Grid container item spacing={gridSpacing} flexWrap="nowrap">
+        {icon && (
+          <Grid item alignSelf="center">
+            <FetchedIcon iconName={icon} size={iconSize} />
+          </Grid>
+        )}
+        <Grid item xs={11} sx={gridTitleStyle}>
+          <OverflowText text={title} sx={styles.title} />
         </Grid>
-      )}
-      <Grid item xs={11} sx={gridTitleStyle}>
-        <OverflowText text={title} sx={styles.title} />
       </Grid>
+      {children}
     </Grid>
-    {children}
-  </Grid>
-)
-KpiHead.propTypes = {
+  )
+}
+GlobalOutputHead.propTypes = {
   title: PropTypes.string,
   icon: PropTypes.string,
   style: PropTypes.object,
@@ -80,14 +81,19 @@ KpiHead.propTypes = {
   children: PropTypes.node,
 }
 
-const KpiHeadColumn = (props) => (
-  <KpiHead rootStyle={styles.column} gridSpacing={1} iconSize={24} {...props}>
+const IconHeadColumn = (props) => (
+  <GlobalOutputHead
+    rootStyle={styles.column}
+    gridSpacing={1}
+    iconSize={24}
+    {...props}
+  >
     <Divider sx={{ mt: 2 }} />
-  </KpiHead>
+  </GlobalOutputHead>
 )
 
-const KpiHeadRow = (props) => (
-  <KpiHead
+const IconHeadRow = (props) => (
+  <GlobalOutputHead
     gridSpacing={2}
     iconSize={48}
     rootStyle={styles.row}
@@ -99,4 +105,4 @@ const KpiHeadRow = (props) => (
   />
 )
 
-export { KpiHeadColumn, KpiHeadRow }
+export { IconHeadColumn, IconHeadRow }

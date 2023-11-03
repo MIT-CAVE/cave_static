@@ -9,27 +9,29 @@ import * as R from 'ramda'
 
 import { forceArray } from '../../utils'
 
-const PropDateBase = ({ component, prop, currentVal, sx = [], onChange }) => {
+const PropDateBase = ({
+  component,
+  prop,
+  currentVal,
+  parseFormat,
+  sx = [],
+  onChange,
+}) => {
   const value = R.defaultTo(prop.value, currentVal)
   const { enabled = false, readOnly, views } = prop
   const Component = component
   return (
     <Component
-      {...{ readOnly, views }}
-      value={dayjs(value)}
       sx={[{ p: 1 }, ...forceArray(sx)]}
+      value={dayjs(value, parseFormat)}
       disabled={!enabled}
       slotProps={{
         textField: {
           fullWidth: true,
         },
       }}
-      onChange={(newValue) => {
-        onChange(newValue)
-      }}
-      onAccept={(newValue) => {
-        onChange(newValue)
-      }}
+      {...{ readOnly, views, onChange }}
+      onAccept={onChange}
     />
   )
 }
@@ -49,7 +51,9 @@ PropDateBase.propTypes = {
 
 const PropDate = (props) => <PropDateBase component={DatePicker} {...props} />
 
-const PropTime = (props) => <PropDateBase component={TimePicker} {...props} />
+const PropTime = (props) => (
+  <PropDateBase component={TimePicker} parseFormat="HH:mm:ss" {...props} />
+)
 
 const PropDateTime = (props) => (
   <PropDateBase component={DateTimePicker} {...props} />

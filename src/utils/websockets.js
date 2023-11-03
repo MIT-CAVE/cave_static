@@ -26,12 +26,12 @@ class socket {
 
       this.ws.onclose = (e) => {
         console.log(
-          'App Socket disconnected. Attempting to reconnect in 3 seconds...'
+          'App Socket disconnected. Attempting to reconnect in 1 second...'
         )
         console.log(e)
         setTimeout(() => {
           this.connect(token, onMessage)
-        }, 3000)
+        }, 1000)
       }
 
       this.ws.onerror = (err) => {

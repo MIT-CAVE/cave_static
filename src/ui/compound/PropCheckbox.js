@@ -2,7 +2,7 @@ import { Checkbox, FormGroup, FormControlLabel, Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
-import { customSort, forceArray } from '../../utils'
+import { withIndex, forceArray } from '../../utils'
 
 const getStyles = (enabled) => ({
   display: 'flex',
@@ -39,7 +39,7 @@ const PropCheckbox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
               />
             }
           />
-        ))(customSort(options))}
+        ))(withIndex(options))}
       </FormGroup>
     </Box>
   )

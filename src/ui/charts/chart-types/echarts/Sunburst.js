@@ -1,29 +1,23 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
 
-import { echarts } from './BaseChart'
+import { FlexibleChart } from './BaseChart'
 
+import { findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
+
 // import { exampleNestedData } from './testData'
 
-const Sunburst = ({ data, theme }) => {
+const Sunburst = ({ data, colors }) => {
   const xLabels = R.pluck('name', data)
 
   const yValues = R.has('children', R.head(data))
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const assignColors = () => {
-    let availableColors =
-      theme === 'dark' ? CHART_PALETTE.dark : CHART_PALETTE.light
+    let availableColors = CHART_PALETTE
 
     const assignments = R.pipe(
       R.map((val) => {
@@ -37,7 +31,7 @@ const Sunburst = ({ data, theme }) => {
     return assignments
   }
 
-  const assignments = assignColors()
+  const assignments = R.mergeLeft(colors, assignColors())
 
   const normalData = R.isEmpty(subGroupLabels)
     ? R.map((obj) =>
@@ -88,7 +82,8 @@ const Sunburst = ({ data, theme }) => {
     //       fontSize: 20,
     //     },
     //   },
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+    xAxis: null,
+    yAxis: null,
     series: {
       radius: [60, '90%'],
       label: {
@@ -106,30 +101,11 @@ const Sunburst = ({ data, theme }) => {
       // data: exampleNestedData
     },
     tooltip: {
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
       trigger: 'item',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
     },
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            theme={theme}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Sunburst }

@@ -7,10 +7,10 @@ export const messagesSlice = createSlice({
   reducers: {
     addMessage: (state, action) => {
       // Only add the message to the redux state if snackbarShow is true
-      if (R.prop('snackbarShow', action.payload)) {
+      if (R.prop('snackbarShow', action.payload.data)) {
         const messageId =
           Number(R.reduce(R.max, 0, R.map(parseInt, R.keys(state)))) + 1
-        return R.assoc(messageId, action.payload, state)
+        return R.assoc(messageId, action.payload.data, state)
       } else {
         return state
       }

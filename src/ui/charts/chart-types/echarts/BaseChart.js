@@ -1,15 +1,14 @@
-/** @jsxImportSource @emotion/react */
 import {
   LineChart,
   BarChart,
   // PieChart,
-  // ScatterChart,
+  ScatterChart,
   // RadarChart,
   // MapChart,
   // TreeChart,
   TreemapChart,
   GraphChart,
-  // GaugeChart,
+  GaugeChart,
   // FunnelChart,
   // ParallelChart,
   // SankeyChart,
@@ -17,7 +16,7 @@ import {
   // CandlestickChart,
   // EffectScatterChart,
   // LinesChart,
-  // HeatmapChart,
+  HeatmapChart,
   // PictorialBarChart,
   // ThemeRiverChart,
   SunburstChart,
@@ -49,7 +48,7 @@ import {
   // DataZoomInsideComponent,
   // DataZoomSliderComponent,
   // VisualMapComponent,
-  // VisualMapContinuousComponent,
+  VisualMapContinuousComponent,
   VisualMapPiecewiseComponent,
   AriaComponent,
   TransformComponent,
@@ -58,14 +57,16 @@ import {
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
-import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
+
+import FlexibleContainer from './FlexibleContainer'
 
 import {
-  formatNumber,
+  NumberFormat,
+  findSubgroupLabels,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
+  getChartItemColor,
 } from '../../../../utils'
 
 // Register the required components
@@ -86,20 +87,105 @@ echarts.use([
   SunburstChart,
   TreemapChart,
   VisualMapPiecewiseComponent,
+  VisualMapContinuousComponent,
+  GaugeChart,
+  HeatmapChart,
+  ScatterChart,
 ])
 
-const FlexibleWrapper = ({ children, ...props }) => (
-  <div style={{ flex: '1 1 auto' }}>
-    <AutoSizer>
-      {({ height, width }) => (
-        <div css={{ '>': { height, width } }} {...props}>
-          {children}
-        </div>
-      )}
-    </AutoSizer>
-  </div>
-)
-FlexibleWrapper.propTypes = { children: PropTypes.node }
+const baseOptions = {
+  backgroundColor: '#4a4a4a',
+  grid: {
+    top: 64,
+    // right: 32,
+    // bottom: 24,
+    left: 96,
+    // show: true,
+  },
+  xAxis: {
+    type: 'category',
+    nameLocation: 'middle',
+    nameGap: 40,
+    nameTextStyle: {
+      fontSize: 18,
+    },
+    axisLine: {
+      fontSize: 17,
+      show: true,
+      lineStyle: {
+        // color: '#fff',
+        // opacity: 0.7,
+      },
+    },
+    axisLabel: {
+      // rotate: 45,
+      interval: 0,
+      hideOverlap: true,
+    },
+  },
+  yAxis: {
+    type: 'value',
+    nameLocation: 'middle',
+    nameGap: 64,
+    nameTextStyle: {
+      fontSize: 18,
+      height: 500,
+    },
+    axisLine: {
+      show: true,
+      lineStyle: {
+        // color: '#fff',
+        // opacity: 0.7,
+      },
+    },
+    splitLine: {
+      lineStyle: {
+        type: [2, 5],
+        dashOffset: 2,
+        color: '#aaa',
+        opacity: 0.7,
+      },
+    },
+  },
+  legend: {
+    // We might deal better with legend overlapping in the future.
+    // Keep track of:
+    // - https://github.com/apache/echarts/pull/16825
+    // - https://github.com/apache/echarts/issues/15654
+    type: 'scroll',
+    top: 24,
+  },
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: '#4a4a4a',
+    textStyle: {
+      color: '#ffffff',
+    },
+  },
+  textStyle: {
+    // Not setting `fontFamily` to `'inherit'` here as
+    // there seems to be a bug in echarts where a `fontSize`
+    // value is enforced on the entire chart `canvas`
+    fontFamily:
+      '"-apple-system", BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"',
+    fontSize: 14,
+  },
+}
+
+const FlexibleChart = ({ options, ...props }) => {
+  return (
+    <FlexibleContainer>
+      <ReactEChartsCore
+        echarts={echarts}
+        option={R.mergeDeepRight(baseOptions)(options)}
+        notMerge
+        theme="dark"
+        // lazyUpdate
+        {...props}
+      />
+    </FlexibleContainer>
+  )
+}
 
 const EchartsPlot = ({
   data,
@@ -107,8 +193,9 @@ const EchartsPlot = ({
   yAxisTitle,
   numberFormat,
   chartType,
-  theme,
   stack = false,
+  seriesObj = {},
+  colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -118,12 +205,27 @@ const EchartsPlot = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
+
+  const baseObject = R.mergeRight(
+    {
+      type: chartType,
+      smooth: true,
+      emphasis: {
+        focus: 'series',
+      },
+      ...(stack && { stack }),
+    },
+    seriesObj
+  )
+
+  // Only true if using a line chart with 1 level of grouping
+  const visualMap =
+    chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
+
+  const color = R.addIndex(R.map)((item, idx) =>
+    R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+  )(xLabels)
 
   const series = R.ifElse(
     (val) => R.type(R.head(R.head(val))) === 'Object',
@@ -131,32 +233,35 @@ const EchartsPlot = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) => ({
-        name: R.head(d).name,
-        type: chartType,
-        smooth: true,
-        ...(stack && { stack }),
-        emphasis: {
-          focus: 'series',
-        },
-        data: R.map(
-          R.pipe(
-            (idx) => R.find(R.propEq(idx, 'index'), d),
-            R.when(R.isNotNil, R.path(['value', 0]))
-          )
-        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-      })),
+      R.map((d) =>
+        R.mergeRight(baseObject, {
+          name: R.head(d).name,
+          color: R.prop(R.head(d).name, colors),
+          data: R.map(
+            R.pipe(
+              (idx) => R.find(R.propEq(idx, 'index'), d),
+              R.when(R.isNotNil, R.path(['value', 0]))
+            )
+          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+        })
+      ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
     (d) => [
-      R.assoc('data', R.unnest(d), {
-        type: chartType,
-        smooth: true,
-        ...(stack && { stack }),
-        emphasis: {
-          focus: 'series',
-        },
-      }),
+      R.mergeDeepLeft(
+        R.assoc(
+          'data',
+          R.pipe(
+            R.unnest,
+            visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
+          )(d),
+          baseObject
+        ),
+        {
+          colorBy: 'data',
+          color,
+        }
+      ),
     ]
   )(yValues)
 
@@ -170,103 +275,42 @@ const EchartsPlot = ({
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
 
+  const lineMap = visualMap
+    ? {
+        visualMap: {
+          type: 'piecewise',
+          show: false,
+          pieces: R.map((idx) => ({
+            max: idx,
+            min: idx - 1,
+            color: color[idx],
+          }))(R.range(0, R.length(xLabels))),
+          dimension: 0,
+        },
+      }
+    : {}
+
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
-      nameGap: 40,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      type: 'category',
       data: xLabels,
-      axisLabel: {
-        // rotate: 45,
-        interval: 0,
-        hideOverlap: true,
-      },
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
-      axisLine: {
-        show: true,
-        lineStyle: {
-          // color: '#fff',
-          // opacity: 0.7,
-        },
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
-      splitLine: {
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 2,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
-      },
-    },
-    legend: {
-      // We might deal better with legend overlapping in the future.
-      // Keep track of:
-      // - https://github.com/apache/echarts/pull/16825
-      // - https://github.com/apache/echarts/issues/15654
-      type: 'scroll',
-      top: 24,
     },
     series,
     tooltip: {
-      trigger: 'axis',
-      valueFormatter: (value) => formatNumber(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#ffffff',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
+    ...lineMap,
   }
 
-  // TODO: Prefer FlexibleWrapper here
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            theme={theme}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export default EchartsPlot
-export { FlexibleWrapper, echarts }
+export { FlexibleChart }

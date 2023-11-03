@@ -5,10 +5,8 @@ import React, { useLayoutEffect, useState } from 'react'
 import { MdOutlineClose } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
-import { selectSessions, selectTheme } from '../../../data/selectors'
+import { selectSessions } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-
-import { getTheme } from '../../../theme'
 
 const styles = {
   root: {
@@ -29,10 +27,7 @@ const styles = {
 }
 
 const SessionCard = ({ enabled, setEnabled, position, setPosition }) => {
-  const themeId = useSelector(selectTheme)
   const sessions = useSelector(selectSessions)
-
-  const theme = getTheme(themeId)
 
   const [windowHeight, setWindowHeight] = useState(window.innerHeight)
 
@@ -79,8 +74,7 @@ const SessionCard = ({ enabled, setEnabled, position, setPosition }) => {
           onDragStart={handleSessionCardDragStart}
           style={R.mergeAll([
             {
-              backgroundColor:
-                theme.palette.mode === 'dark' ? '#132a73' : '#c2eaff',
+              backgroundColor: '#132a73',
             },
             styles.root,
             position,

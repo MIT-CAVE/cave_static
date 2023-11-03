@@ -1,29 +1,12 @@
 export const layerId = {
-  ARC_LAYER: 'arcLayer',
-  ARC_LAYER_3D: 'arcLayer3D',
-  GEOGRAPHY_LAYER: 'geography',
+  ARC_LAYER_SOLID: 'arcLayerSolid',
+  ARC_LAYER_DASH: 'arcLayerDash',
+  ARC_LAYER_DOT: 'arcLayerDot',
+  MULTI_ARC_LAYER_SOLID: 'multiArcLayerSolid',
+  MULTI_ARC_LAYER_DASH: 'multiArcLayerDash',
+  MULTI_ARC_LAYER_DOT: 'multiArcLayerDot',
+  GEOGRAPHY_LAYER: 'geographyLayer',
   NODE_ICON_LAYER: 'nodeIconLayer',
-  NODE_ICON_CLUSTER_LAYER: 'nodeIconClusterLayer',
-}
-
-export const themeId = {
-  DARK: 'dark',
-  LIGHT: 'light',
-}
-
-export const viewId = {
-  DASHBOARD: 'stats',
-  MAP: 'map',
-  KPI: 'kpi',
-}
-
-export const styleId = {
-  STREETS: 'streets-v12',
-  OUTDOORS: 'outdoors-v12',
-  DARK: 'dark-v11',
-  LIGHT: 'light-v11',
-  SATELLITE: 'satellite-v9',
-  SATELLITE_STREETS: 'satellite-streets-v12',
 }
 
 export const asyncStatus = {
@@ -34,10 +17,8 @@ export const asyncStatus = {
 
 export const paneId = {
   SESSION: 'session',
-  APP_SETTINGS: 'appSettings',
+  APP_SETTINGS: 'settings',
   OPTIONS: 'options',
-  CONTEXT: 'context',
-  FILTER: 'filter',
 }
 
 export const propId = {
@@ -71,6 +52,8 @@ export const propVariant = {
   TIME: 'time',
   VIDEO: 'video',
   VSTEPPER: 'vstepper',
+  ICON: 'icon',
+  ICON_ROW: 'iconRow',
 }
 
 export const propContainer = {
@@ -81,13 +64,13 @@ export const propContainer = {
   VERTICAL: 'vertical',
 }
 
-export const kpiId = {
+export const globalOutputId = {
   NUMBER: 'num',
   TEXT: 'text',
   HEAD: 'head',
 }
 
-export const kpiVariant = {
+export const globalOutputVariant = {
   ROW: 'row',
   COLUMN: 'column',
 }
@@ -123,15 +106,81 @@ export const statFns = {
   [propId.TOGGLE]: new Set([statId.MODE, statId.AND, statId.OR]),
 }
 
-export const chartType = {
-  BAR: 'Bar',
-  BOX_PLOT: 'Box Plot',
-  CUMULATIVE_LINE: 'Cumulative Line',
-  LINE: 'Line',
-  STACKED_BAR: 'Stacked Bar',
-  STACKED_WATERFALL: 'Stacked Waterfall',
-  SUNBURST: 'Sunburst',
-  TABLE: 'Table',
-  TREEMAP: 'Treemap',
-  WATERFALL: 'Waterfall',
+export const chartVariant = {
+  BAR: 'bar',
+  BOX_PLOT: 'box_plot',
+  CUMULATIVE_LINE: 'cumulative_line',
+  LINE: 'line',
+  AREA: 'area',
+  STACKED_AREA: 'stacked_area',
+  STACKED_BAR: 'stacked_bar',
+  STACKED_WATERFALL: 'stacked_waterfall',
+  SUNBURST: 'sunburst',
+  TABLE: 'table',
+  TREEMAP: 'treemap',
+  WATERFALL: 'waterfall',
+  GAUGE: 'gauge',
+  HEATMAP: 'heatmap',
+  SCATTER: 'scatter',
+  OVERVIEW: 'overview',
+}
+
+export const chartAggrFunc = {
+  SUM: 'sum',
+  MIN: 'min',
+  MAX: 'max',
+  MEAN: 'mean',
+}
+
+// TODO: Update these when we add support for more than 2 grouping levels
+export const chartMaxGrouping = {
+  [chartVariant.BAR]: 2,
+  [chartVariant.BOX_PLOT]: 2,
+  [chartVariant.CUMULATIVE_LINE]: 2,
+  [chartVariant.LINE]: 2,
+  [chartVariant.AREA]: 2,
+  [chartVariant.STACKED_AREA]: 2,
+  [chartVariant.STACKED_BAR]: 2,
+  [chartVariant.STACKED_WATERFALL]: 2,
+  [chartVariant.SUNBURST]: 2,
+  [chartVariant.TABLE]: 2,
+  [chartVariant.TREEMAP]: 2,
+  [chartVariant.WATERFALL]: 2,
+  [chartVariant.GAUGE]: 1,
+  [chartVariant.HEATMAP]: 2,
+  [chartVariant.SCATTER]: 1,
+}
+
+// Stat limits for multistat charts
+export const chartStatUses = {
+  [chartVariant.TABLE]: [],
+  [chartVariant.SCATTER]: ['X Axis', 'Y Axis', 'Size (Optional)'],
+}
+
+export const unitPlacements = {
+  AFTER: 'after',
+  AFTER_WITH_SPACE: 'afterWithSpace',
+  BEFORE: 'before',
+  BEFORE_WITH_SPACE: 'beforeWithSpace',
+}
+
+export const notationOptions = {
+  COMPACT: 'compact',
+  ENGINEERING: 'engineering',
+  SCIENTIFIC: 'scientific',
+  STANDARD: 'standard',
+  // Emulates `Number.prototype.toPrecision`. This is
+  // not part of the notations supported by ECMAScript.
+  PRECISION: 'precision',
+}
+
+export const displayOptions = {
+  SHORT: 'short',
+  LONG: 'long',
+  E: 'E',
+  E_PLUS: 'E+',
+  E_LOWER: 'e',
+  E_LOWER_PLUS: 'e+',
+  X10: 'x10^',
+  X10_PLUS: 'x10^+',
 }

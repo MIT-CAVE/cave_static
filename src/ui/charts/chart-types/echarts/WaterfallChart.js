@@ -1,15 +1,15 @@
-import * as echarts from 'echarts/core'
-import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import AutoSizer from 'react-virtualized-auto-sizer'
+
+import { FlexibleChart } from './BaseChart'
 
 import {
+  NumberFormat,
   adjustMinMax,
-  formatNumber,
   getChartItemColor,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getMinMax,
+  findSubgroupLabels,
 } from '../../../../utils'
 
 /**
@@ -55,7 +55,7 @@ const WaterfallChart = ({
   xAxisTitle,
   yAxisTitle,
   numberFormat,
-  theme,
+  colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -65,12 +65,7 @@ const WaterfallChart = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const renderItem = (params, api) => {
     const previousVal = R.pipe(
@@ -150,6 +145,7 @@ const WaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
+          color: R.prop(R.head(d).name, colors),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -161,7 +157,14 @@ const WaterfallChart = ({
       ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
-    (d) => [R.assoc('data', R.unnest(d), baseData)]
+    (d) => [
+      R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
+        colorBy: 'data',
+        color: R.addIndex(R.map)((item, idx) =>
+          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        )(xLabels),
+      }),
+    ]
   )(yValues)
 
   const [yMin, yMax] = R.pipe(
@@ -185,91 +188,29 @@ const WaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-    legend: {
-      type: 'scroll',
-      top: 24,
-    },
     tooltip: {
-      valueFormatter: (value) => formatNumber(value, numberFormat),
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-      trigger: 'axis',
-      textStyle: {
-        color: theme === 'dark' ? '#ffffff' : '#4a4a4a',
-      },
-    },
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
     xAxis: {
       name: xAxisTitle,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 40,
-      type: 'category',
-      splitLine: { show: false },
       data: xLabels,
-      axisLabel: {
-        hideOverlap: true,
-        interval: 0,
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
       scale: true,
       // Add the maximum to do the scaling
       // As well as the min value
       min: yMin,
       max: yMax,
-      axisLine: {
-        show: true,
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
-      },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 3,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
       },
     },
     series,
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            theme={theme}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 const StackedWaterfallChart = ({
@@ -277,7 +218,7 @@ const StackedWaterfallChart = ({
   xAxisTitle,
   yAxisTitle,
   numberFormat,
-  theme,
+  colors,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -287,12 +228,7 @@ const StackedWaterfallChart = ({
     ? R.pluck('children', data)
     : R.pluck('value', data)
 
-  const subGroupLabels = R.pipe(
-    R.map(R.pluck('name')),
-    R.map(R.filter(R.isNotNil)),
-    R.reduce(R.concat, []),
-    R.uniq
-  )(yValues)
+  const subGroupLabels = findSubgroupLabels(yValues)
 
   const categoryBounds = R.ifElse(
     (val) => R.type(R.head(R.head(val))) === 'Object',
@@ -402,7 +338,7 @@ const StackedWaterfallChart = ({
         },
         type: 'line',
         style: api.style({
-          stroke: theme === 'light' ? '#4a4a4a' : '#ffffff',
+          stroke: '#ffffff',
           lineWidth: 2,
           lineDash: [8, 6],
           symbolSize: 120,
@@ -438,6 +374,7 @@ const StackedWaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
+          color: R.prop(R.head(d).name, colors),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -449,7 +386,14 @@ const StackedWaterfallChart = ({
       ),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
-    (d) => [R.assoc('data', R.unnest(d), baseData)]
+    (d) => [
+      R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
+        colorBy: 'data',
+        color: R.addIndex(R.map)((item, idx) =>
+          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        )(xLabels),
+      }),
+    ]
   )(yValues)
 
   const [yMin, yMax] = R.pipe(
@@ -500,34 +444,31 @@ const StackedWaterfallChart = ({
         name: 'Initial',
         symbol: 'diamond',
         itemStyle: {
-          color: getChartItemColor(theme, subGroupLabels.length),
+          color: getChartItemColor(subGroupLabels.length),
         },
       },
       {
         name: 'Net Change',
         symbol: 'circle',
         itemStyle: {
-          color: getChartItemColor(theme, subGroupLabels.length + 1),
+          color: getChartItemColor(subGroupLabels.length + 1),
         },
       },
     ],
     lineStyle: {
       type: 'dashed',
       width: 2,
-      color: theme === 'light' ? '#4a4a4a' : '#ffffff',
+      color: '#ffffff',
     },
     emphasis: { focus: 'series' },
     symbolSize: 16,
     itemStyle: {
       borderWidth: 2,
-      borderColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
+      borderColor: '#4a4a4a',
     },
     nodes: nodesData,
     tooltip: {
-      trigger: 'item',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
-      valueFormatter: (value) => formatNumber(value, numberFormat),
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
   })
 
@@ -561,94 +502,36 @@ const StackedWaterfallChart = ({
   const scaleLabel = getDecimalScaleLabel(yMax)
 
   const options = {
-    backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-    legend: {
-      type: 'scroll',
-      data: [
-        ...subGroupLabels,
-        { name: 'Initial', icon: 'diamond' },
-        { name: 'Net Change', icon: 'circle' },
-      ],
-      top: 24,
-    },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: theme === 'dark' ? '#4a4a4a' : '#f5f5f5',
-      textStyle: { color: theme === 'dark' ? '#ffffff' : '#4a4a4a' },
-      valueFormatter: (value) => formatNumber(value, numberFormat),
-    },
-    grid: {
-      top: 64,
-      // right: 8,
-      // bottom: 24,
-      // left: 36,
-      // show: true,
-    },
     xAxis: {
       name: xAxisTitle,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 40,
-      type: 'category',
-      splitLine: { show: false },
       data: xLabels,
-      axisLabel: {
-        hideOverlap: true,
-        interval: 0,
-      },
     },
     yAxis: {
       name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
-      nameLocation: 'middle',
-      nameTextStyle: {
-        fontSize: 16,
-      },
-      nameGap: 64,
-      type: 'value',
       scale: true,
       // Add the maximum to do the scaling
       // As well as the min value
       min: yMin,
       max: yMax,
-      axisLine: {
-        show: true,
-      },
       axisLabel: {
         formatter: (value) =>
           scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
       },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          type: [2, 5],
-          dashOffset: 3,
-          // Dark and light colors will be used in turns
-          color: ['#aaa', '#ddd'],
-          opacity: 0.7,
-        },
-      },
     },
     series,
+    legend: {
+      data: [
+        ...subGroupLabels,
+        { name: 'Initial', icon: 'diamond' },
+        { name: 'Net Change', icon: 'circle' },
+      ],
+    },
+    tooltip: {
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+    },
   }
 
-  return (
-    <div style={{ flex: '1 1 auto' }}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <ReactEChartsCore
-            echarts={echarts}
-            option={options}
-            style={{ height, width }}
-            theme={theme}
-            notMerge
-            // lazyUpdate
-          />
-        )}
-      </AutoSizer>
-    </div>
-  )
+  return <FlexibleChart {...{ options }} />
 }
 
 export { WaterfallChart, StackedWaterfallChart }

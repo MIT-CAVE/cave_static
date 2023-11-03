@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import AppBar from './AppBar'
 import renderAppPane from './Pane'
-import SecondaryPane from './SecondaryPane'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -16,7 +15,6 @@ import {
   selectLeftOpenPane,
   selectLeftOpenPanesData,
   selectLeftPinPane,
-  selectLeftSecondaryOpenPane,
   selectMirrorMode,
   selectRightAppBarData,
   selectRightAppBarDisplay,
@@ -24,10 +22,10 @@ import {
   selectRightOpenPane,
   selectRightOpenPanesData,
   selectRightPinPane,
-  selectRightSecondaryOpenPane,
   selectSync,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
+import { paneId } from '../../../utils/enums'
 
 import { includesPath } from '../../../utils'
 
@@ -90,13 +88,11 @@ const Panes = ({ sessionCard, setSessionCard }) => {
   const leftOpen = useSelector(selectLeftOpenPane)
   const leftOpenPanesData = useSelector(selectLeftOpenPanesData)
   const leftPin = useSelector(selectLeftPinPane)
-  const leftSecondaryOpen = useSelector(selectLeftSecondaryOpenPane)
   const rightAppBarData = useSelector(selectRightAppBarData)
   const rightBar = useSelector(selectRightAppBarDisplay)
   const rightOpen = useSelector(selectRightOpenPane)
   const rightOpenPanesData = useSelector(selectRightOpenPanesData)
   const rightPin = useSelector(selectRightPinPane)
-  const rightSecondaryOpen = useSelector(selectRightSecondaryOpenPane)
   const mirrorMode = useSelector(selectMirrorMode)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -122,10 +118,10 @@ const Panes = ({ sessionCard, setSessionCard }) => {
           if (!pin && R.isNotNil(open) && open !== '' && pageClick) {
             dispatch(
               mutateLocal({
-                path: ['appBar', 'paneState', side],
+                path: ['panes', 'paneState', side],
                 value: {},
                 sync: !includesPath(R.values(sync), [
-                  'appBar',
+                  'panes',
                   'paneState',
                   side,
                 ]),
@@ -148,10 +144,10 @@ const Panes = ({ sessionCard, setSessionCard }) => {
       onPin: () => {
         dispatch(
           mutateLocal({
-            path: ['appBar', 'paneState', side, 'pin'],
+            path: ['panes', 'paneState', side, 'pin'],
             value: side === 'right' ? !rightPin : !leftPin,
             sync: !includesPath(R.values(sync), [
-              'appBar',
+              'panes',
               'paneState',
               side,
               'pin',
@@ -161,46 +157,57 @@ const Panes = ({ sessionCard, setSessionCard }) => {
       },
     }
   }
+
   return (
     <ClickAwayListener onClickAway={handlePaneClickAway}>
       <Box>
         {R.map(
-          ([side, open, pane, openPanesData, secondaryOpen]) => {
-            return (
-              open && (
-                <Box key={side} sx={styles.pane}>
-                  {renderAppPane({
-                    side: side,
-                    open: open,
-                    pane: pane,
-                    openPanesData: openPanesData,
-                    secondaryOpen: secondaryOpen,
-                    sessionCard: sessionCard,
-                    toggleSessionCard: (enabled) => setSessionCard(enabled),
-                    ...(secondaryOpen === '' && getPinObj(side)),
-                  })}
-                  {secondaryOpen && (
-                    <SecondaryPane
-                      side={side}
-                      open={secondaryOpen}
-                      pane={openPanesData}
-                      primaryPane={open}
-                      {...getPinObj(side)}
-                    />
-                  )}
-                </Box>
-              )
+          ([side, open, pane, openPanesData]) => {
+            const systemPane = R.propOr(
+              {},
+              open,
+              side === 'left' && mirrorMode
+                ? rightAppBarData
+                : side === 'left'
+                ? leftAppBarData
+                : mirrorMode
+                ? leftAppBarData
+                : rightAppBarData
+            )
+            const isSystem =
+              systemPane &&
+              (systemPane.type === paneId.SESSION ||
+                systemPane.type === paneId.APP_SETTINGS)
+            return open ? (
+              <Box key={side} sx={styles.pane}>
+                {renderAppPane({
+                  side: side,
+                  open: open,
+                  pane: isSystem
+                    ? R.mergeLeft(
+                        {
+                          variant: systemPane.type,
+                          name:
+                            systemPane.type === paneId.SESSION
+                              ? 'Sessions'
+                              : 'Settings',
+                        },
+                        systemPane
+                      )
+                    : pane,
+                  openPanesData: openPanesData,
+                  sessionCard: sessionCard,
+                  toggleSessionCard: (enabled) => setSessionCard(enabled),
+                  ...getPinObj(side),
+                })}
+              </Box>
+            ) : (
+              []
             )
           },
           [
-            ['left', leftOpen, leftPane, leftOpenPanesData, leftSecondaryOpen],
-            [
-              'right',
-              rightOpen,
-              rightPane,
-              rightOpenPanesData,
-              rightSecondaryOpen,
-            ],
+            ['left', leftOpen, leftPane, leftOpenPanesData],
+            ['right', rightOpen, rightPane, rightOpenPanesData],
           ]
         )}
       </Box>

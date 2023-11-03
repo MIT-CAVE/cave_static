@@ -15,21 +15,16 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
-import {
-  themeSelection,
-  toggleTouch,
-  toggleMirror,
-} from '../../../data/local/settingsSlice'
+import { toggleMirror } from '../../../data/local/settingsSlice'
 import {
   selectData,
+  selectDemoMode,
   selectMirrorMode,
   selectPaneState,
+  selectShowToolbar,
   selectSync,
   selectSyncToggles,
-  selectTheme,
-  selectTouchMode,
 } from '../../../data/selectors'
-import { themeId } from '../../../utils/enums'
 
 import { InfoButton, OverflowText } from '../../compound'
 
@@ -90,47 +85,6 @@ FieldContainer.propTypes = {
   children: PropTypes.node,
 }
 
-const ThemeSwitch = ({ onClick, ...props }) => {
-  const selectedTheme = useSelector(selectTheme)
-  const isDark = selectedTheme === themeId.DARK
-  return (
-    <FormControl component="fieldset">
-      <FormGroup aria-label="position" row>
-        <FormControlLabel
-          value="start"
-          control={<Switch checked={isDark} {...{ onClick, ...props }} />}
-          label={`${isDark ? 'Dark' : 'Light'} mode`}
-          labelPlacement="start"
-        />
-      </FormGroup>
-    </FormControl>
-  )
-}
-ThemeSwitch.propTypes = { onClick: PropTypes.func }
-
-const TouchSwitch = ({ ...props }) => {
-  const touchMode = useSelector(selectTouchMode)
-  const dispatch = useDispatch()
-  return (
-    <FormControl component="fieldset">
-      <FormGroup aria-label="position" row>
-        <FormControlLabel
-          value="start"
-          control={
-            <Switch
-              checked={touchMode}
-              onClick={() => dispatch(toggleTouch())}
-              {...props}
-            />
-          }
-          label={`Touch mode`}
-          labelPlacement="start"
-        />
-      </FormGroup>
-    </FormControl>
-  )
-}
-
 const MirrorSwitch = ({ ...props }) => {
   const mirrorMode = useSelector(selectMirrorMode)
   const paneState = useSelector(selectPaneState)
@@ -148,15 +102,12 @@ const MirrorSwitch = ({ ...props }) => {
                 dispatch(toggleMirror())
                 dispatch(
                   mutateLocal({
-                    path: ['appBar', 'paneState'],
+                    path: ['panes', 'paneState'],
                     value: {
                       left: R.propOr({}, 'right', paneState),
                       right: R.propOr({}, 'left', paneState),
                     },
-                    sync: !includesPath(R.values(sync), [
-                      'appBar',
-                      'paneState',
-                    ]),
+                    sync: !includesPath(R.values(sync), ['panes', 'paneState']),
                   })
                 )
               }}
@@ -164,6 +115,37 @@ const MirrorSwitch = ({ ...props }) => {
             />
           }
           label={`Mirror mode`}
+          labelPlacement="start"
+        />
+      </FormGroup>
+    </FormControl>
+  )
+}
+
+const DemoSwitch = ({ ...props }) => {
+  const demoMode = useSelector(selectDemoMode)
+  const dispatch = useDispatch()
+  return (
+    <FormControl component="fieldset">
+      <FormGroup aria-label="position" row>
+        <FormControlLabel
+          value="start"
+          control={
+            <Switch
+              checked={demoMode}
+              onClick={() => {
+                dispatch(
+                  mutateLocal({
+                    path: ['settings', 'demo'],
+                    value: !demoMode,
+                    sync: false,
+                  })
+                )
+              }}
+              {...props}
+            />
+          }
+          label={`Demo mode`}
           labelPlacement="start"
         />
       </FormGroup>
@@ -187,6 +169,33 @@ SyncSwitch.propTypes = {
   onClick: PropTypes.func,
 }
 
+const ToolbarSwitch = () => {
+  const showToolbar = useSelector(selectShowToolbar)
+  const dispatch = useDispatch()
+
+  const handleClick = () => {
+    dispatch(
+      mutateLocal({
+        path: ['settings', 'defaults', 'showToolbar'],
+        value: !showToolbar,
+        sync: false,
+      })
+    )
+  }
+  return (
+    <FormControl component="fieldset">
+      <FormGroup row>
+        <FormControlLabel
+          value="start"
+          control={<Switch checked={showToolbar} onClick={handleClick} />}
+          label="Show Chart Toolbar"
+          labelPlacement="start"
+        />
+      </FormGroup>
+    </FormControl>
+  )
+}
+
 const AppSettingsPane = ({ ...props }) => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
@@ -195,14 +204,14 @@ const AppSettingsPane = ({ ...props }) => {
 
   return (
     <>
-      <FieldContainer title="Theme">
-        <ThemeSwitch onClick={() => dispatch(themeSelection())} />
-      </FieldContainer>
-      <FieldContainer title="Touch">
-        <TouchSwitch />
-      </FieldContainer>
       <FieldContainer title="Mirror">
         <MirrorSwitch />
+      </FieldContainer>
+      <FieldContainer title="Demo">
+        <DemoSwitch />
+      </FieldContainer>
+      <FieldContainer title="Defaults">
+        <ToolbarSwitch />
       </FieldContainer>
       {R.isEmpty(syncToggles) ? (
         []
