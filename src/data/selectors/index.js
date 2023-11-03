@@ -1061,14 +1061,20 @@ export const selectStatGroupings = createSelector(
   R.propOr({}, ['groupings'])
 )
 
+export const selectStatGroupingIndicies = createSelector(
+  selectStatGroupings,
+  R.pipe(R.map(R.over(R.lensPath(['data', 'id']), R.invertObj)))
+)
+
 export const selectMemoizedChartFunc = createSelector(
   [
     selectGroupedOutputsData,
     selectDebug,
     selectGroupedOutputTypes,
     selectStatGroupings,
+    selectStatGroupingIndicies,
   ],
-  (groupedOutputs, debug, statisticTypes, groupings) =>
+  (groupedOutputs, debug, statisticTypes, groupings, groupingIndicies) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
@@ -1098,11 +1104,19 @@ export const selectMemoizedChartFunc = createSelector(
           const groupList = R.path([outputGroup, 'groupLists', category])(
             groupedOutputs
           )
-
           return (index) => {
             const groupName = R.propOr('undefined', index, groupList)
-            const groupingVal = R.path([category, 'data', groupName])(groupings)
-            return R.props(parentalPath)(groupingVal)
+            const groupingIndex = R.pathOr(
+              -1,
+              [category, 'data', 'id', groupName],
+              groupingIndicies
+            )
+            const groupingVal = R.pipe(
+              R.path([category, 'data']),
+              R.pick(parentalPath),
+              R.values
+            )(groupings)
+            return R.pluck(groupingIndex)(groupingVal)
           }
         })
         // List of groupBy, subGroupBy etc...
