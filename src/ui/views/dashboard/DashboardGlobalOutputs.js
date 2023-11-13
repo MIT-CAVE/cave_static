@@ -30,7 +30,8 @@ const styles = {
     flex: '1 1 auto',
     height: '50%',
   },
-  center: {
+  overview: {
+    overflow: 'auto',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -104,11 +105,17 @@ const DashboardGlobalOutput = ({ chartObj }) => {
     <Box
       sx={[
         styles.root,
-        chartObj.variant === chartVariant.OVERVIEW && styles.center,
+        chartObj.variant === chartVariant.OVERVIEW && styles.overview,
       ]}
     >
       {chartObj.variant === chartVariant.OVERVIEW ? (
-        <Box sx={{ overflow: 'auto', mx: 'auto' }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
+            maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
+          }}
+        >
           {renderPropsLayout({
             layout,
             items: props,
