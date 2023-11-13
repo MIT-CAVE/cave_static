@@ -99,15 +99,29 @@ const MirrorSwitch = ({ ...props }) => {
             <Switch
               checked={mirrorMode}
               onClick={() => {
+                const previous_left = R.propOr({}, 'left', paneState)
+                const previous_right = R.propOr({}, 'right', paneState)
                 dispatch(toggleMirror())
                 dispatch(
                   mutateLocal({
-                    path: ['panes', 'paneState'],
-                    value: {
-                      left: R.propOr({}, 'right', paneState),
-                      right: R.propOr({}, 'left', paneState),
-                    },
-                    sync: !includesPath(R.values(sync), ['panes', 'paneState']),
+                    path: ['panes', 'paneState', 'right'],
+                    value: previous_left,
+                    sync: !includesPath(R.values(sync), [
+                      'panes',
+                      'paneState',
+                      'right',
+                    ]),
+                  })
+                )
+                dispatch(
+                  mutateLocal({
+                    path: ['panes', 'paneState', 'left'],
+                    value: previous_right,
+                    sync: !includesPath(R.values(sync), [
+                      'panes',
+                      'paneState',
+                      'left',
+                    ]),
                   })
                 )
               }}
