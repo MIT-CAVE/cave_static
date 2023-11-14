@@ -55,7 +55,7 @@ const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
   }, [text, checkOverflow, isOverflowing])
 
   return (
-    <Box sx={[styles.root, ...forceArray(sx)]} {...props} useRef={parent}>
+    <Box sx={[styles.root, ...forceArray(sx)]} {...props} ref={parent}>
       <Marquee
         direction="left"
         delay={0.5}
