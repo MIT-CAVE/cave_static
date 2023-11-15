@@ -147,7 +147,7 @@ const OnLayerEventModal = ({ mapId }) => {
   )
 }
 
-const ListModal = ({ title, options, onSelect, mapId }) => {
+const ListModal = ({ title, options, mapId, defaultIcon, onSelect }) => {
   const dispatch = useDispatch()
 
   return (
@@ -170,7 +170,7 @@ const ListModal = ({ title, options, onSelect, mapId }) => {
             <ListItemButton key={id} onClick={() => onSelect(id)}>
               <ListItemAvatar>
                 <Avatar>
-                  <FetchedIcon iconName={icon} />
+                  <FetchedIcon iconName={icon || defaultIcon} />
                 </Avatar>
               </ListItemAvatar>
               <ListItemText primary={name} />
@@ -212,6 +212,7 @@ const MapModal = ({ mapId }) => {
         <ListModal
           title="Map Viewports"
           options={optionalViewports}
+          defaultIcon="md/MdGpsFixed"
           onSelect={(value) => {
             const viewport = R.pipe(
               R.prop(value),
@@ -232,6 +233,7 @@ const MapModal = ({ mapId }) => {
         <ListModal
           title="Map Styles"
           placeholder="Choose a map style..."
+          defaultIcon="md/MdMap"
           options={mapStyleOptions}
           onSelect={(mapStyle) => {
             dispatch(
