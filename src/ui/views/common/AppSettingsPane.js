@@ -99,31 +99,46 @@ const MirrorSwitch = ({ ...props }) => {
             <Switch
               checked={mirrorMode}
               onClick={() => {
-                const previous_left = R.propOr({}, 'left', paneState)
-                const previous_right = R.propOr({}, 'right', paneState)
+                const previousLeft = R.propOr({}, 'left', paneState)
+                const previousRight = R.propOr({}, 'right', paneState)
+                const syncLeft = !includesPath(R.values(sync), [
+                  'panes',
+                  'paneState',
+                  'left',
+                ])
+                const syncRight = !includesPath(R.values(sync), [
+                  'panes',
+                  'paneState',
+                  'right',
+                ])
+                const syncedObject = R.pipe(
+                  syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
+                  syncRight ? R.assoc('right', previousLeft) : R.dissoc('right')
+                )(paneState)
+
+                const desyncedObject = R.pipe(
+                  !syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
+                  !syncRight
+                    ? R.assoc('right', previousLeft)
+                    : R.dissoc('right')
+                )(paneState)
                 dispatch(toggleMirror())
-                dispatch(
-                  mutateLocal({
-                    path: ['panes', 'paneState', 'right'],
-                    value: previous_left,
-                    sync: !includesPath(R.values(sync), [
-                      'panes',
-                      'paneState',
-                      'right',
-                    ]),
-                  })
-                )
-                dispatch(
-                  mutateLocal({
-                    path: ['panes', 'paneState', 'left'],
-                    value: previous_right,
-                    sync: !includesPath(R.values(sync), [
-                      'panes',
-                      'paneState',
-                      'left',
-                    ]),
-                  })
-                )
+                if (syncLeft || syncRight)
+                  dispatch(
+                    mutateLocal({
+                      path: ['panes', 'paneState'],
+                      value: syncedObject,
+                      sync: true,
+                    })
+                  )
+                if (!syncLeft || !syncRight)
+                  dispatch(
+                    mutateLocal({
+                      path: ['panes', 'paneState'],
+                      value: desyncedObject,
+                      sync: false,
+                    })
+                  )
               }}
               {...props}
             />
