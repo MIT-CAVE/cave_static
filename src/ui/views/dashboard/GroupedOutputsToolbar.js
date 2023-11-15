@@ -1,4 +1,4 @@
-import { IconButton } from '@mui/material'
+import { IconButton, Paper, Grid } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { MdSwapHoriz } from 'react-icons/md'
@@ -371,13 +371,17 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
       {chartMaxGrouping[chartObj.variant] === 2 ? (
         <>
-          <ChartDropdownWrapper
+          <Paper
+            component={Grid}
+            display="flex"
+            item
             elevation={6}
             sx={{
               minWidth: '35px',
               height: '40%',
               my: 'auto',
               borderRadius: '40%',
+              mx: 0.5,
             }}
           >
             <SwapButton
@@ -398,7 +402,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                 )
               }}
             />
-          </ChartDropdownWrapper>
+          </Paper>
           <ChartDropdownWrapper
             menuProps={{
               transformOrigin: { horizontal: 'right', vertical: 'top' },
