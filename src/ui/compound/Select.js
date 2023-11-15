@@ -108,6 +108,10 @@ const Select = ({
           <OverflowText text={placeholder} />
         </MenuItem>
       )}
+      {/* HACK: Drop warning for non-existing value */}
+
+      <MenuItem value={selectedValue} sx={{ display: 'none' }} />
+
       {items.map((item, index) => {
         const { label, value, iconName, subOptions } = item
         return (
