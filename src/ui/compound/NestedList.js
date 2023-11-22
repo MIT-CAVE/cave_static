@@ -34,8 +34,8 @@ export const findValue = (object, selectedList) => {
     return R.all(R.equals('true'), mapped)
       ? 'true'
       : R.any((val) => R.equals('true', val) || R.equals('mix', val), mapped)
-      ? 'mix'
-      : 'false'
+        ? 'mix'
+        : 'false'
   }
 }
 

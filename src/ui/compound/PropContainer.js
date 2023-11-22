@@ -159,16 +159,16 @@ const PropContainer = ({
     type === propContainer.VERTICAL
       ? VerticalContainer
       : type === propContainer.HORIZONTAL
-      ? HorizontalContainer
-      : type === propContainer.TITLED
-      ? TitledContainer
-      : type === propContainer.UNTITLED
-      ? UntitledContainer
-      : type === propContainer.NONE
-      ? null
-      : () => {
-          throw Error(`Invalid type '${type}' for prop container`)
-        }
+        ? HorizontalContainer
+        : type === propContainer.TITLED
+          ? TitledContainer
+          : type === propContainer.UNTITLED
+            ? UntitledContainer
+            : type === propContainer.NONE
+              ? null
+              : () => {
+                  throw Error(`Invalid type '${type}' for prop container`)
+                }
   if (LayoutContainer == null) return children
 
   return (

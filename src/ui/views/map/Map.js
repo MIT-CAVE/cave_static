@@ -146,24 +146,28 @@ const Map = ({ mapboxToken, mapId }) => {
               : JSON.parse(clickedNode.properties.cave_obj),
           ]
         : R.isNotNil(clickedArc)
-        ? [
-            clickedArc.properties.cave_name,
-            'arcs',
-            R.hasPath(['properties', 'cave_obj'])(clickedArc)
-              ? JSON.parse(clickedArc.properties.cave_obj)
-              : R.pathOr(
+          ? [
+              clickedArc.properties.cave_name,
+              'arcs',
+              R.hasPath(['properties', 'cave_obj'])(clickedArc)
+                ? JSON.parse(clickedArc.properties.cave_obj)
+                : R.pathOr(
+                    {},
+                    JSON.parse(clickedArc.properties.cave_name),
+                    arcData
+                  ),
+            ]
+          : R.isNotNil(clickedGeo)
+            ? [
+                clickedGeo.properties.cave_name,
+                'geos',
+                R.pathOr(
                   {},
-                  JSON.parse(clickedArc.properties.cave_name),
-                  arcData
+                  JSON.parse(clickedGeo.properties.cave_name),
+                  geosData
                 ),
-          ]
-        : R.isNotNil(clickedGeo)
-        ? [
-            clickedGeo.properties.cave_name,
-            'geos',
-            R.pathOr({}, JSON.parse(clickedGeo.properties.cave_name), geosData),
-          ]
-        : null
+              ]
+            : null
 
       return topFeature
       // return [id, feature, obj]

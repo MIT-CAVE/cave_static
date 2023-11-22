@@ -184,15 +184,15 @@ class NumberFormat {
       !Object.values(displayOptions).includes(notationDisplay)
         ? notationDisplay
         : notation === notationOptions.COMPACT ||
-          notation === notationOptions.STANDARD
-        ? notationDisplay === displayOptions.SHORT ||
-          notationDisplay === displayOptions.LONG
-          ? notationDisplay
-          : undefined
-        : notationDisplay === displayOptions.SHORT ||
-          notationDisplay === displayOptions.LONG
-        ? undefined
-        : notationDisplay
+            notation === notationOptions.STANDARD
+          ? notationDisplay === displayOptions.SHORT ||
+            notationDisplay === displayOptions.LONG
+            ? notationDisplay
+            : undefined
+          : notationDisplay === displayOptions.SHORT ||
+              notationDisplay === displayOptions.LONG
+            ? undefined
+            : notationDisplay
 
     const opts = {
       notation,
@@ -207,11 +207,11 @@ class NumberFormat {
       notation === notationOptions.COMPACT
         ? this.commonFormat(value, opts)
         : notation === notationOptions.SCIENTIFIC ||
-          notation === notationOptions.ENGINEERING
-        ? this.exponentialFormat(value, opts)
-        : notation === notationOptions.PRECISION
-        ? this.precisionFormat(value, opts)
-        : null
+            notation === notationOptions.ENGINEERING
+          ? this.exponentialFormat(value, opts)
+          : notation === notationOptions.PRECISION
+            ? this.precisionFormat(value, opts)
+            : null
     if (valueText == null)
       throw new Error(`Invalid notation "${notation}" for number formatting`)
 

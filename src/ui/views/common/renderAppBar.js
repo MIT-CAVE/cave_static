@@ -169,10 +169,10 @@ const Panes = ({ sessionCard, setSessionCard }) => {
               side === 'left' && mirrorMode
                 ? rightAppBarData
                 : side === 'left'
-                ? leftAppBarData
-                : mirrorMode
-                ? leftAppBarData
-                : rightAppBarData
+                  ? leftAppBarData
+                  : mirrorMode
+                    ? leftAppBarData
+                    : rightAppBarData
             )
             const isSystem =
               systemPane &&

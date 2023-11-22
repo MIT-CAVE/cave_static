@@ -405,8 +405,8 @@ export const getAllValuesForKey = R.curry((prop, obj, acc = []) =>
       R.is(Object)(value)
         ? getAllValuesForKey(prop, value, acc)
         : prop === key
-        ? R.append(value)(acc)
-        : acc
+          ? R.append(value)(acc)
+          : acc
     ),
     R.values,
     R.unnest
