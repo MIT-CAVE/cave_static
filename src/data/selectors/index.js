@@ -1175,8 +1175,8 @@ export const selectMemoizedChartFunc = createSelector(
                   }))(val)
                 )
             : R.is(Array, val)
-            ? val
-            : [val]
+              ? val
+              : [val]
         // Formats and sorts merged stats
         const getFormattedData = R.map(
           R.pipe(
@@ -1198,9 +1198,9 @@ export const selectMemoizedChartFunc = createSelector(
           key === 'name'
             ? a
             : key === 'value'
-            ? R.concat(a, b)
-            : // key === 'children'
-              mergeMultiStatData([a, b])
+              ? R.concat(a, b)
+              : // key === 'children'
+                mergeMultiStatData([a, b])
 
         const mergeMultiStatData = R.pipe(
           R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),

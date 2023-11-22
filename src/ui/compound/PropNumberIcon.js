@@ -73,13 +73,13 @@ const styles = {
 // }
 
 const GlobalOutputBasic = ({ prop, sx = [], ...props }) => {
-  const { title, value, icon, style } = prop
+  const { name, value, icon, style } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
     <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
       <Grid container flexDirection="column" spacing={0}>
         <Grid item sx={styles.title}>
-          <OverflowText text={title} />
+          <OverflowText text={name} />
         </Grid>
         <Grid container item spacing={1} wrap="nowrap">
           {icon && (
@@ -98,7 +98,7 @@ const GlobalOutputBasic = ({ prop, sx = [], ...props }) => {
   )
 }
 GlobalOutputBasic.propTypes = {
-  title: PropTypes.string,
+  name: PropTypes.string,
   value: PropTypes.number,
   icon: PropTypes.string,
   style: PropTypes.object,

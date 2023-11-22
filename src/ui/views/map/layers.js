@@ -128,12 +128,12 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         return R.equals('', value)
           ? nullColor
           : isCategorical
-          ? R.propOr('rgba(0,0,0,5)', value, statRange)
-          : `rgba(${getScaledColor(
-              [R.prop('min', statRange), R.prop('max', statRange)],
-              colorRange,
-              value
-            ).join(',')})`
+            ? R.propOr('rgba(0,0,0,5)', value, statRange)
+            : `rgba(${getScaledColor(
+                [R.prop('min', statRange), R.prop('max', statRange)],
+                colorRange,
+                value
+              ).join(',')})`
       }
     ),
     [enabledGeos, geoColorRange]
@@ -188,22 +188,22 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         return R.equals('', propVal)
           ? nullColor
           : isCategorical
-          ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
-          : `rgba(${getScaledArray(
-              R.prop('min', colorRange),
-              R.prop('max', colorRange),
-              R.map((val) => parseFloat(val))(
-                R.prop('startGradientColor', colorRange)
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              R.map((val) => parseFloat(val))(
-                R.prop('endGradientColor', colorRange)
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              ),
-              parseFloat(R.path(['values', colorProp], d))
-            ).join(',')})`
+            ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
+            : `rgba(${getScaledArray(
+                R.prop('min', colorRange),
+                R.prop('max', colorRange),
+                R.map((val) => parseFloat(val))(
+                  R.prop('startGradientColor', colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                ),
+                R.map((val) => parseFloat(val))(
+                  R.prop('endGradientColor', colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                ),
+                parseFloat(R.path(['values', colorProp], d))
+              ).join(',')})`
       }
     ),
     [enabledArcs, arcRange]

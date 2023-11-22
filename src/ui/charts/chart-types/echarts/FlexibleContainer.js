@@ -6,7 +6,7 @@ import { addExtraProps } from '../../../../utils'
 
 const FlexibleContainer = ({ children }) => (
   <div style={{ flex: '1 1 auto' }}>
-    <AutoSizer>
+    <AutoSizer defaultHeight={1} defaultWidth={1}>
       {({ height, width }) =>
         addExtraProps(Children.only(children), { style: { height, width } })
       }

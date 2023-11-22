@@ -73,7 +73,8 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   // generate table columns for given cluster's props
   const tableColumns = [{ id: 'name', label: 'Name', minWidth: 170 }]
   for (const prop of Object.keys(nodeData[0][1].props)) {
-    tableColumns.push({ id: prop, label: prop, minWidth: 170, align: 'right' })
+    const name = R.propOr(prop, 'name', nodeData[0][1].props[prop])
+    tableColumns.push({ id: prop, label: name, minWidth: 170, align: 'right' })
   }
 
   // generate table rows for given cluster's node data

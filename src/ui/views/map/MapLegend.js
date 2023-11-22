@@ -307,8 +307,8 @@ const GroupCalcDropdown = ({ propType, value, onSelect }) => {
             propType === propId.TOGGLE
               ? 'tb/TbLogicAnd'
               : propType === propId.NUMBER
-              ? 'tb/TbMathFunction'
-              : 'tb/TbMathFunction' // TODO: Different icon for a `selector`?
+                ? 'tb/TbMathFunction'
+                : 'tb/TbMathFunction' // TODO: Different icon for a `selector`?
           }
           size={24}
         />
@@ -788,10 +788,10 @@ const MapLegendArcToggle = ({
     legendObj.lineBy === 'dotted'
       ? 'ai/AiOutlineEllipsis'
       : legendObj.lineBy === 'dashed'
-      ? 'ai/AiOutlineDash'
-      : legendObj.lineBy === '3d'
-      ? 'vsc/VscLoading'
-      : 'ai/AiOutlineLine'
+        ? 'ai/AiOutlineDash'
+        : legendObj.lineBy === '3d'
+          ? 'vsc/VscLoading'
+          : 'ai/AiOutlineLine'
   return (
     <LegendCard
       geometryType={arcType}

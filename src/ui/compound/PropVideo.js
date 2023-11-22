@@ -26,7 +26,6 @@ const PropVideo = ({ prop, sx = [], ...props }) => (
       style={styles.video}
       frameBorder="0"
       allow="autoplay; fullscreen; picture-in-picture"
-      allowFullScreen
     ></iframe>
   </Box>
 )

@@ -23,6 +23,20 @@ import {
   addValuesToProps,
 } from '../../../utils'
 
+const styles = {
+  root: {
+    display: 'flex',
+    position: 'relative',
+    flex: '1 1 auto',
+    height: '50%',
+  },
+  overview: {
+    overflow: 'auto',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+}
+
 const DashboardGlobalOutput = ({ chartObj }) => {
   const dispatch = useDispatch()
   const globalOutputs = useSelector(selectAssociatedData)
@@ -89,15 +103,19 @@ const DashboardGlobalOutput = ({ chartObj }) => {
   const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
   return (
     <Box
-      sx={{
-        display: 'flex',
-        position: 'relative',
-        flex: '1 1 auto',
-        height: '50%',
-      }}
+      sx={[
+        styles.root,
+        chartObj.variant === chartVariant.OVERVIEW && styles.overview,
+      ]}
     >
       {chartObj.variant === chartVariant.OVERVIEW ? (
-        <Box sx={{ overflow: 'auto', mx: 'auto' }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
+            maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
+          }}
+        >
           {renderPropsLayout({
             layout,
             items: props,

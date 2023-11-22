@@ -170,7 +170,7 @@ const PropNestedHelper = ({
           />
         )
         return (
-          <>
+          <React.Fragment key={key}>
             <FormControlLabel
               {...{ key, label }}
               disabled={!enabled}
@@ -184,7 +184,7 @@ const PropNestedHelper = ({
               }
             />
             {childrenNodes}
-          </>
+          </React.Fragment>
         )
       }, nodes.get(rootKey).childrenKeys)}
     </FormGroup>
