@@ -172,7 +172,10 @@ export const selectGeoTypes = createSelector(
   (data, time) => getTimeValue(time, R.filter(R.propEq('geo', 'type'), data))
 )
 // Data -> data
-export const selectPanesData = createSelector(selectPanes, R.propOr({}, 'data'))
+export const selectPanesData = createSelector(
+  [selectPanes, selectCurrentTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+)
 export const selectModalsData = createSelector(
   selectModals,
   R.propOr({}, 'data')
@@ -302,8 +305,9 @@ export const selectShowLoading = createSelector(
 export const selectLocalPanes = createSelector(selectLocal, (data) =>
   R.prop('panes')(data)
 )
-export const selectLocalPanesData = createSelector(selectLocalPanes, (data) =>
-  R.prop('data', data)
+export const selectLocalPanesData = createSelector(
+  [selectLocalPanes, selectCurrentTime],
+  (data, time) => getTimeValue(time, R.prop('data', data))
 )
 //Local -> modals
 export const selectLocalModals = createSelector(selectLocal, (data) =>
