@@ -6,19 +6,20 @@ import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
-import { GLOBALOUTPUT_WIDTH } from '../../utils/constants'
+import { PROP_MIN_WIDTH } from '../../utils/constants'
 
 import { NumberFormat, forceArray } from '../../utils'
 
 const styles = {
   root: {
     position: 'relative',
-    minWidth: GLOBALOUTPUT_WIDTH,
+    minWidth: PROP_MIN_WIDTH,
     p: 2,
   },
   title: {
     mx: 1,
-    pr: 5,
+    // pr: 5,
+    textAlign: 'start',
     fontSize: '24px',
     whiteSpace: 'nowrap',
     color: 'text.secondary',
@@ -72,12 +73,16 @@ const styles = {
 //   )
 // }
 
-const GlobalOutputBasic = ({ prop, sx = [], ...props }) => {
+const PropNumberIcon = ({ prop, sx = [], ...props }) => {
   const { name, value, icon, style } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
-    <Paper elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
-      <Grid container flexDirection="column" spacing={0}>
+    <Paper
+      elevation={2}
+      sx={[styles.root, style, ...forceArray(sx)]}
+      // {...props}
+    >
+      <Grid container flexDirection="column" spacing={3}>
         <Grid item sx={styles.title}>
           <OverflowText text={name} />
         </Grid>
@@ -97,7 +102,7 @@ const GlobalOutputBasic = ({ prop, sx = [], ...props }) => {
     </Paper>
   )
 }
-GlobalOutputBasic.propTypes = {
+PropNumberIcon.propTypes = {
   name: PropTypes.string,
   value: PropTypes.number,
   icon: PropTypes.string,
@@ -111,4 +116,4 @@ GlobalOutputBasic.propTypes = {
   ]),
 }
 
-export default GlobalOutputBasic
+export default PropNumberIcon
