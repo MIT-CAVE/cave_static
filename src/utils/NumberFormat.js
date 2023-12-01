@@ -1,6 +1,8 @@
 /* eslint-disable no-fallthrough */
 // Adapted from Mike Bostock's:
 // https://observablehq.com/@mbostock/localized-number-parsing
+import * as R from 'ramda'
+
 import { DEFAULT_LOCALE } from './constants'
 import { displayOptions, notationOptions, unitPlacements } from './enums'
 
@@ -111,7 +113,6 @@ class NumberFormat {
         return unicodeSymbols[match]
       })
     }
-
     return `${significand}${exponentSep}${exponent}`
   }
 
@@ -125,7 +126,8 @@ class NumberFormat {
       notationDisplay = displayOptions.E_LOWER_PLUS,
     }
   ) {
-    const numString = num.toLocaleString(this._locale, {
+    const confirmedNum = R.is(Number, num) ? num : parseFloat(num)
+    const numString = confirmedNum.toLocaleString(this._locale, {
       minimumFractionDigits: trailingZeros ? precision : 0,
       maximumFractionDigits: precision,
       notation,
