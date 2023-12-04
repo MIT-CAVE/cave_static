@@ -1,7 +1,7 @@
 import { InputAdornment, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { NumberFormat, getStatusIcon } from '../../utils'
 
@@ -19,10 +19,21 @@ const NumberInput = ({
   numberFormat: { unit, unitPlacement, ...numberFormat },
   onClickAway,
 }) => {
+  const focused = useRef(false)
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
     defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
   )
+
+  useEffect(() => {
+    if (focused.current) return
+    setValue(defaultValue)
+    setValueText(
+      defaultValue == null
+        ? ''
+        : NumberFormat.format(defaultValue, numberFormat)
+    )
+  }, [defaultValue, numberFormat, setValue, setValueText])
 
   // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
   const { validNaNs, zerosMatch } = useMemo(
@@ -70,11 +81,13 @@ const NumberInput = ({
       value={valueText}
       onChange={handleChange}
       onFocus={() => {
+        focused.current = true
         setValueText(value)
       }}
       onBlur={() => {
         if (!enabled) return
 
+        focused.current = false
         const clampedVal = R.clamp(min, max, value)
         setValue(clampedVal)
         setValueText(NumberFormat.format(clampedVal, numberFormat))

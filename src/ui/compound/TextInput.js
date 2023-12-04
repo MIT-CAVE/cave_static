@@ -1,6 +1,6 @@
 import { InputAdornment, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import { getStatusIcon } from '../../utils'
 
@@ -20,7 +20,14 @@ const TextInput = ({
   onClickAway = () => {},
   ...props
 }) => {
+  const focused = useRef(false)
   const [value, setValue] = useState(valueParent)
+
+  useEffect(() => {
+    if (focused.current) return
+    setValue(valueParent)
+  }, [valueParent, setValue])
+
   return (
     <TextField
       {...{ label, placeholder, sx, ...props }}
@@ -33,8 +40,15 @@ const TextInput = ({
       onChange={(event) => {
         controlled ? onChange(event.target.value) : setValue(event.target.value)
       }}
+      onFocus={() => {
+        if (!enabled) return
+
+        focused.current = true
+      }}
       onBlur={() => {
         if (!enabled) return
+
+        focused.current = false
         onClickAway(value)
       }}
       helperText={help}

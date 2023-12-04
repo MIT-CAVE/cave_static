@@ -13,6 +13,7 @@ const PropDateBase = ({
   component,
   prop,
   currentVal,
+  format,
   parseFormat,
   sx = [],
   onChange,
@@ -30,7 +31,7 @@ const PropDateBase = ({
           fullWidth: true,
         },
       }}
-      {...{ readOnly, views, onChange }}
+      {...{ readOnly, views, format, onChange }}
       onAccept={onChange}
     />
   )
@@ -49,14 +50,20 @@ PropDateBase.propTypes = {
   onChange: PropTypes.func,
 }
 
-const PropDate = (props) => <PropDateBase component={DatePicker} {...props} />
+const PropDate = (props) => (
+  <PropDateBase component={DatePicker} format="MM-DD-YYYY" {...props} />
+)
 
 const PropTime = (props) => (
   <PropDateBase component={TimePicker} parseFormat="HH:mm:ss" {...props} />
 )
 
 const PropDateTime = (props) => (
-  <PropDateBase component={DateTimePicker} {...props} />
+  <PropDateBase
+    component={DateTimePicker}
+    format="MM-DD-YYYY hh:mm:ss A"
+    {...props}
+  />
 )
 
 export { PropDate, PropDateTime, PropTime }
