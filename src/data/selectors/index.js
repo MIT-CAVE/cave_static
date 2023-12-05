@@ -9,6 +9,7 @@ import {
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
   NUMBER_FORMAT_KEYS,
+  ICON_RESOLUTION,
 } from '../../utils/constants'
 import {
   propId,
@@ -1866,7 +1867,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
                 cave_obj: node,
                 cave_name: JSON.stringify([node.type, id]),
                 color: colorString,
-                size: size / 250,
+                size: size / ICON_RESOLUTION,
                 icon: legendObj.icon,
               },
               geometry: {
@@ -1937,7 +1938,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               cave_isCluster: true,
               cave_name: JSON.stringify([nodeType, id]),
               color: colorString,
-              size: size / 250,
+              size: size / ICON_RESOLUTION,
               icon: legendObj.icon,
             },
             geometry: {

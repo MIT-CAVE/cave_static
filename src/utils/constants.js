@@ -19,6 +19,8 @@ export const MAX_PITCH = 60
 export const MIN_BEARING = -180
 export const MAX_BEARING = 180
 
+export const ICON_RESOLUTION = 50
+
 // Number of chart configurations stored in memory
 // Higher values can increase dashboard switching performance
 // At the cost of system memory (RAM)
