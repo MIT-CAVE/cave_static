@@ -8,7 +8,7 @@ import {
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import * as R from 'ramda'
-import React, { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from './data/local'
@@ -21,15 +21,14 @@ import {
   selectDemoSettings,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
+import Draggables from './ui/views/common/Draggables'
 import Loader from './ui/views/common/Loader'
 import { AppModal } from './ui/views/common/Modal'
 import renderAppPane from './ui/views/common/Pane'
 import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
-import SessionCard from './ui/views/common/SessionCard'
 import SnackBar from './ui/views/common/SnackBar'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
-import { APP_BAR_WIDTH } from './utils/constants'
 // import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
 
 const styles = {
@@ -44,10 +43,6 @@ const styles = {
     label: 'workspace',
     position: 'relative',
     flex: '1 1 auto',
-  },
-  sessionCardPosition: {
-    left: 0,
-    top: 0,
   },
   pane: {
     display: 'flex',
@@ -106,30 +101,7 @@ const App = () => {
     sync,
   ])
 
-  const [sessionCard, setSessionCard] = useState(false)
-  const [sessionCardPosition, setSessionCardPosition] = useState(
-    styles.sessionCardPosition
-  )
-
-  const handleSessionCardDrop = (event) => {
-    const eventDataTransfer = event.dataTransfer
-      .getData('text/plain')
-      .split(',')
-    const [xOffset, yOffset, cardWidth, cardHeight] = R.map(
-      parseInt,
-      eventDataTransfer
-    )
-    const xMax = window.innerWidth - (2 * APP_BAR_WIDTH + cardWidth)
-    const yMax = window.innerHeight - (0.5 * APP_BAR_WIDTH + cardHeight)
-    const xPosition = xOffset + event.clientX
-    const yPosition = yOffset + event.clientY
-    setSessionCardPosition({
-      left: R.clamp(0, xMax, xPosition),
-      top: R.clamp(0, yMax, yPosition),
-    })
-    event.preventDefault()
-  }
-
+  // TODO: Handle when Session pane is not defined
   const SessionPane = (
     <Box sx={styles.pane}>
       {renderAppPane({
@@ -140,8 +112,6 @@ const App = () => {
           name: 'Sessions Pane',
           variant: 'session',
         },
-        sessionCard: sessionCard,
-        toggleSessionCard: (enabled) => setSessionCard(enabled),
       })}
     </Box>
   )
@@ -170,29 +140,17 @@ const App = () => {
         <Box sx={styles.root}>
           <SnackBar />
           <LeftAppBar />
-          <Box
-            sx={styles.page}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleSessionCardDrop}
-          >
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Box sx={styles.page}>
               <Loader />
               <ErrorBoundary fallback={SessionPane}>
                 <Dashboard />
-                <Panes
-                  sessionCard={sessionCard}
-                  setSessionCard={setSessionCard}
-                />
-                <SessionCard
-                  enabled={sessionCard}
-                  setEnabled={setSessionCard}
-                  position={sessionCardPosition}
-                  setPosition={setSessionCardPosition}
-                />
+                <Panes />
                 <AppModal />
               </ErrorBoundary>
-            </LocalizationProvider>
-          </Box>
+            </Box>
+            <Draggables />
+          </LocalizationProvider>
           <RightAppBar />
         </Box>
       </ThemeProvider>

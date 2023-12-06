@@ -309,12 +309,21 @@ export const selectLocalPanesData = createSelector(
   [selectLocalPanes, selectCurrentTime],
   (data, time) => getTimeValue(time, R.prop('data', data))
 )
-//Local -> modals
+// Local -> modals
 export const selectLocalModals = createSelector(selectLocal, (data) =>
   R.prop('modals')(data)
 )
 export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
   R.prop('data', data)
+)
+// Local -> draggables
+export const selectLocalDraggables = createSelector(
+  selectLocal,
+  R.propOr({}, 'draggables')
+)
+export const selectSessionDraggable = createSelector(
+  selectLocalDraggables,
+  R.propOr({}, 'session')
 )
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>

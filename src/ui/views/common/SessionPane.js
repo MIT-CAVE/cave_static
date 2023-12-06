@@ -24,7 +24,7 @@ import {
   GridToolbarFilterButton,
 } from '@mui/x-data-grid'
 import * as R from 'ramda'
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState, Fragment, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -34,6 +34,7 @@ import {
   selectSessionsByTeam,
   selectSortedTeams,
   selectSessions,
+  selectSessionDraggable,
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { useMenu } from '../../../utils/hooks'
@@ -504,12 +505,14 @@ const CustomDataGridRow = ({ ...props }) => {
 }
 
 const SessionPane = ({ width }) => {
-  const dispatch = useDispatch()
+  const [currentAction, setCurrentAction] = useState({})
+  const [openDialogDelete, setOpenDialogDelete] = useState(false)
+
+  const sessionDraggable = useSelector(selectSessionDraggable)
   const teams = useSelector(selectSortedTeams)
   const sessions = useSelector(selectSessions)
   const sessionsByTeam = useSelector(selectSessionsByTeam)
-  const [currentAction, setCurrentAction] = useState({})
-  const [openDialogDelete, setOpenDialogDelete] = useState(false)
+  const dispatch = useDispatch()
 
   // Request session info if we have none
   useEffect(() => {
@@ -646,6 +649,16 @@ const SessionPane = ({ width }) => {
     setCurrentAction({})
   }
 
+  const handleToggleDraggable = useCallback(() => {
+    dispatch(
+      mutateLocal({
+        path: ['draggables', 'session', 'open'],
+        value: !sessionDraggable.open,
+        sync: false,
+      })
+    )
+  }, [dispatch, sessionDraggable.open])
+
   const sessionIdCurrent = `${sessions.session_id}` // Intentional conversion to String
   const teamAllSessions = R.pipe(
     R.prop('data'),
@@ -675,6 +688,17 @@ const SessionPane = ({ width }) => {
       <UnstyledHeader
         title="Current Session:"
         titleTypographyProps={{ variant: 'h5' }}
+        actionItems={[
+          {
+            label: 'Drag Session Name',
+            iconName: sessionDraggable.open
+              ? 'md/MdOutlineCloseFullscreen'
+              : 'md/MdOutlineOpenInNew',
+            hidden: false,
+            onClick: handleToggleDraggable,
+            disabled: false,
+          },
+        ]}
       />
       {/* You are in the session: */}
       {currentAction.sessionId === sessionIdCurrent &&

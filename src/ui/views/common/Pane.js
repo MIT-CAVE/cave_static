@@ -76,28 +76,7 @@ const RefreshButton = () => {
   )
 }
 
-const SessionCardButton = ({ sessionCard, toggleSessionCard }) => {
-  const iconName = sessionCard
-    ? 'md/MdOutlineCloseFullscreen'
-    : 'md/MdOutlineOpenInNew'
-  return (
-    <FloatButton
-      onClick={() => toggleSessionCard(!sessionCard)}
-      iconName={iconName}
-    />
-  )
-}
-
-const PaneWrapper = ({
-  open,
-  pane,
-  side,
-  sessionCard,
-  toggleSessionCard,
-  width,
-  variant,
-  ...props
-}) => (
+const PaneWrapper = ({ open, pane, side, width, variant, ...props }) => (
   <Pane
     open={!!open}
     name={R.propOr(open, 'name')(pane)}
@@ -106,13 +85,7 @@ const PaneWrapper = ({
     style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
       R.equals(variant, paneId.SESSION) ? (
-        <>
-          <SessionCardButton
-            sessionCard={sessionCard}
-            toggleSessionCard={toggleSessionCard}
-          />
-          <RefreshButton />
-        </>
+        <RefreshButton />
       ) : (
         pane.teamSync && <SyncButton {...{ open, pane }} />
       )
@@ -123,31 +96,19 @@ const PaneWrapper = ({
 PaneWrapper.propTypes = {
   open: PropTypes.string,
   pane: PropTypes.object,
-  side: PropTypes.string,
+  side: PropTypes.oneOf(['left', 'right']),
 }
 
-const renderAppPane = ({
-  open,
-  openPanesData,
-  pane,
-  pin,
-  onPin,
-  side,
-  sessionCard,
-  toggleSessionCard,
-}) => {
+const renderAppPane = ({ open, openPanesData, pane, side, pin, onPin }) => {
   let { width, variant, ...paneProps } = pane
   // Make `PANE_WIDTH` the default width for the Session pane
   const paneWidth =
     variant === paneId.SESSION && width == null ? PANE_WIDTH : width
   return (
     <PaneWrapper
-      {...{ open, variant, pin, onPin }}
+      {...{ open, variant, side, pin, onPin }}
       width={paneWidth}
       pane={paneProps}
-      side={side}
-      sessionCard={sessionCard}
-      toggleSessionCard={toggleSessionCard}
     >
       {R.cond([
         // Built-in panes
