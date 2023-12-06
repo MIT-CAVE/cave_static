@@ -32,7 +32,7 @@ import {
   selectAllNodeIcons,
   selectSync,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH } from '../../../utils/constants'
+import { APP_BAR_WIDTH, ICON_RESOLUTION } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 import { fetchIcon, includesPath } from '../../../utils'
@@ -101,7 +101,7 @@ const Map = ({ mapboxToken, mapId }) => {
           (await fetchIcon(iconName, iconUrl))()
         )
       const svgString = renderToStaticMarkup(iconComponent)
-      const iconImage = new Image(250, 250)
+      const iconImage = new Image(ICON_RESOLUTION, ICON_RESOLUTION)
       iconImage.onload = () => {
         setIconData((iconStrings) => R.assoc(iconName, iconImage)(iconStrings))
       }
