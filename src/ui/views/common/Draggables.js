@@ -1,29 +1,22 @@
-import { Card, CardContent, IconButton } from '@mui/material'
+import { Card, CardContent } from '@mui/material'
 import * as R from 'ramda'
 import { useCallback } from 'react'
-import Draggable from 'react-draggable'
-import { MdOutlineClose } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from '../../../data/local'
 import { selectLocalDraggables, selectSessions } from '../../../data/selectors'
+import Draggable from '../../compound/Draggable'
+import GlobalOutputsPad from '../../compound/GlobalOutputsPad'
 
 const styles = {
-  root: {
+  session: {
     display: 'flex',
-    width: 300,
+    width: 'fit-content',
+    maxWidth: '300px',
+    pr: 3,
     bgcolor: '#132a73',
-    cursor: 'move',
-    zIndex: 5000,
-  },
-  content: {
     overflow: 'hidden',
     overflowWrap: 'break-word',
-  },
-  position: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
   },
 }
 
@@ -58,24 +51,30 @@ const Draggables = () => {
   )
 
   return (
+    // Either we specify a z-index for each Pad or
+    // we sort them from lowest to highest priority
     <>
-      {R.path(['session', 'open'])(draggables) && (
-        <Draggable bounds="parent">
-          <Card sx={[styles.root, styles.position]}>
-            <CardContent style={styles.content}>
-              {`Current Session: ${sessionName}`}
-            </CardContent>
-            <IconButton onClick={handleToggleDraggable('session')}>
-              <MdOutlineClose />
-            </IconButton>
-          </Card>
+      {R.path(['globalOutputs', 'open'])(draggables) && (
+        <Draggable
+          sx={styles.globalOutputs}
+          onClose={handleToggleDraggable('globalOutputs')}
+        >
+          <GlobalOutputsPad />
         </Draggable>
       )}
-      {R.path(['globalOutputs', 'open'])(draggables) && (
-        <Draggable bounds="parent">{/* TODO */}</Draggable>
-      )}
       {R.path(['timeControl', 'open'])(draggables) && (
-        <Draggable bounds="parent">{/* TODO */}</Draggable>
+        <Draggable>{/* TODO */}</Draggable>
+      )}
+      {R.path(['session', 'open'])(draggables) && (
+        <Draggable
+          component={Card}
+          sx={styles.session}
+          onClose={handleToggleDraggable('session')}
+        >
+          <CardContent style={styles.content}>
+            {`Current Session: ${sessionName}`}
+          </CardContent>
+        </Draggable>
       )}
     </>
   )

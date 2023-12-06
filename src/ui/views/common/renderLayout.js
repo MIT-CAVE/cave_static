@@ -150,7 +150,7 @@ const renderLayout = ({ layout, ...other }) => {
   return layoutRenderFn({ layout, ...other })
 }
 
-const getLayoutComponent = ({
+export const renderPropsLayout = ({
   layout = {
     type: layoutType.GRID,
     numColumns: 'auto',
@@ -172,7 +172,3 @@ const getLayoutComponent = ({
   })
   return component
 }
-
-const renderPropsLayout = ({ ...props }) => getLayoutComponent({ ...props })
-
-export { renderPropsLayout }
