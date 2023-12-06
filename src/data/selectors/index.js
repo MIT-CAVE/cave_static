@@ -468,11 +468,13 @@ export const selectDefaultViewportFunc = createSelector(
 export const selectOpenModal = createSelector(
   [selectLocalPanes, selectPanes],
   (localData, data) =>
-    R.pathOr(
-      R.pathOr({}, ['paneState', 'center', 'open'], data),
-      ['paneState', 'center', 'open'],
-      localData
-    )
+    R.pipe(
+      R.pathOr(R.pathOr({}, ['paneState', 'center'], data), [
+        'paneState',
+        'center',
+      ]),
+      R.propOr('', 'open')
+    )(localData)
 )
 export const selectModal = createSelector(
   [selectLocalPanes, selectPanes],
