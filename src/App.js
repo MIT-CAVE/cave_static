@@ -29,6 +29,7 @@ import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
 import SnackBar from './ui/views/common/SnackBar'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
+import { paneId } from './utils/enums'
 // import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
 
 const styles = {
@@ -106,11 +107,11 @@ const App = () => {
     <Box sx={styles.pane}>
       {renderAppPane({
         side: 'left',
-        open: 'session',
+        open: paneId.SESSION,
         pane: {
           icon: 'md/MdApi',
           name: 'Sessions Pane',
-          variant: 'session',
+          variant: paneId.SESSION,
         },
       })}
     </Box>

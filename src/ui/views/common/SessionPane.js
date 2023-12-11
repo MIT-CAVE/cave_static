@@ -37,6 +37,7 @@ import {
   selectSessionDraggable,
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
+import { draggableId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 
 import { FetchedIcon, TextInput } from '../../compound'
@@ -652,7 +653,7 @@ const SessionPane = ({ width }) => {
   const handleToggleDraggable = useCallback(() => {
     dispatch(
       mutateLocal({
-        path: ['draggables', 'session', 'open'],
+        path: ['draggables', draggableId.SESSION, 'open'],
         value: !sessionDraggable.open,
         sync: false,
       })

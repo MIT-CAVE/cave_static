@@ -1,10 +1,12 @@
 import { Card, CardContent } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import { selectLocalDraggables, selectSessions } from '../../../data/selectors'
+import { draggableId } from '../../../utils/enums'
 import Draggable from '../../compound/Draggable'
 import GlobalOutputsPad from '../../compound/GlobalOutputsPad'
 
@@ -37,6 +39,19 @@ const Draggables = () => {
     teamAllSessions
   )
 
+  // Request session info if we have none
+  useEffect(() => {
+    if (!R.path([draggableId.SESSION, 'open'])(draggables)) return
+    dispatch(
+      sendCommand({
+        command: 'session_management',
+        data: {
+          session_command: 'refresh',
+        },
+      })
+    )
+  }, [dispatch, draggables])
+
   const handleToggleDraggable = useCallback(
     (id) => () => {
       dispatch(
@@ -54,22 +69,24 @@ const Draggables = () => {
     // Either we specify a z-index for each Pad or
     // we sort them from lowest to highest priority
     <>
-      {R.path(['globalOutputs', 'open'])(draggables) && (
+      {R.path([draggableId.GLOBAL_OUTPUTS, 'open'])(draggables) && (
         <Draggable
           sx={styles.globalOutputs}
-          onClose={handleToggleDraggable('globalOutputs')}
+          onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
         >
           <GlobalOutputsPad />
         </Draggable>
       )}
-      {R.path(['timeControl', 'open'])(draggables) && (
-        <Draggable>{/* TODO */}</Draggable>
+      {R.path([draggableId.TIME_CONTROL, 'open'])(draggables) && (
+        <Draggable onClose={handleToggleDraggable(draggableId.TIME_CONTROL)}>
+          {/* TODO */}
+        </Draggable>
       )}
-      {R.path(['session', 'open'])(draggables) && (
+      {R.path([draggableId.SESSION, 'open'])(draggables) && (
         <Draggable
           component={Card}
           sx={styles.session}
-          onClose={handleToggleDraggable('session')}
+          onClose={handleToggleDraggable(draggableId.SESSION)}
         >
           <CardContent style={styles.content}>
             {`Current Session: ${sessionName}`}

@@ -1,5 +1,6 @@
 import { Box, IconButton, Paper } from '@mui/material'
 import PropTypes from 'prop-types'
+import { useRef } from 'react'
 import ReactDraggable from 'react-draggable'
 import { MdOutlineClose } from 'react-icons/md'
 
@@ -27,11 +28,13 @@ const Draggable = ({
   children,
   ...props
 }) => {
+  const nodeRef = useRef(null)
   return (
-    <ReactDraggable bounds="parent" {...props}>
+    <ReactDraggable bounds="parent" {...{ nodeRef, ...props }}>
       <Box
+        ref={nodeRef}
         {...{ component }}
-        elevation={7}
+        elevation={7} // Only if `component` is `Paper`
         sx={[styles.root, ...forceArray(sx)]}
       >
         {children}
@@ -43,7 +46,7 @@ const Draggable = ({
   )
 }
 Draggable.propTypes = {
-  component: PropTypes.node,
+  component: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

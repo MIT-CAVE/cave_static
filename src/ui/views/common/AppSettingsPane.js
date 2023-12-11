@@ -6,7 +6,6 @@ import {
   Paper,
   Switch,
   Typography,
-  Grid,
   Box,
 } from '@mui/material'
 import PropTypes from 'prop-types'
@@ -19,12 +18,14 @@ import { toggleMirror } from '../../../data/local/settingsSlice'
 import {
   selectData,
   selectDemoMode,
+  selectLocalDraggables,
   selectMirrorMode,
   selectPaneState,
   selectShowToolbar,
   selectSync,
   selectSyncToggles,
 } from '../../../data/selectors'
+import { draggableId } from '../../../utils/enums'
 
 import { InfoButton, OverflowText } from '../../compound'
 
@@ -85,7 +86,7 @@ FieldContainer.propTypes = {
   children: PropTypes.node,
 }
 
-const MirrorSwitch = ({ ...props }) => {
+const MirrorSwitch = () => {
   const mirrorMode = useSelector(selectMirrorMode)
   const paneState = useSelector(selectPaneState)
   const sync = useSelector(selectSync)
@@ -98,7 +99,7 @@ const MirrorSwitch = ({ ...props }) => {
           control={
             <Switch
               checked={mirrorMode}
-              onClick={() => {
+              onChange={() => {
                 const previousLeft = R.propOr({}, 'left', paneState)
                 const previousRight = R.propOr({}, 'right', paneState)
                 const syncLeft = !includesPath(R.values(sync), [
@@ -140,7 +141,6 @@ const MirrorSwitch = ({ ...props }) => {
                     })
                   )
               }}
-              {...props}
             />
           }
           label={`Mirror mode`}
@@ -151,7 +151,7 @@ const MirrorSwitch = ({ ...props }) => {
   )
 }
 
-const DemoSwitch = ({ ...props }) => {
+const DemoSwitch = () => {
   const demoMode = useSelector(selectDemoMode)
   const dispatch = useDispatch()
   return (
@@ -162,7 +162,7 @@ const DemoSwitch = ({ ...props }) => {
           control={
             <Switch
               checked={demoMode}
-              onClick={() => {
+              onChange={() => {
                 dispatch(
                   mutateLocal({
                     path: ['settings', 'demo'],
@@ -171,7 +171,6 @@ const DemoSwitch = ({ ...props }) => {
                   })
                 )
               }}
-              {...props}
             />
           }
           label={`Demo mode`}
@@ -182,27 +181,24 @@ const DemoSwitch = ({ ...props }) => {
   )
 }
 
-const SyncSwitch = ({ checked, label, onClick, ...props }) => (
-  <Grid container spacing={0} alignItems="center" {...props}>
-    <Grid item xs={2}>
-      <Switch {...{ checked, onClick, ...props }} />
-    </Grid>
-    <Grid item>
-      <OverflowText sx={styles.overflowAlignLeft} text={label} />
-    </Grid>
-  </Grid>
+const ColumnSwitch = ({ name, checked, onChange }) => (
+  <FormControlLabel
+    sx={{ pl: 2 }}
+    control={<Switch {...{ checked, onChange }} />}
+    label={<OverflowText sx={styles.overflowAlignLeft} text={name} />}
+  />
 )
-SyncSwitch.propTypes = {
+ColumnSwitch.propTypes = {
+  name: PropTypes.string,
   checked: PropTypes.bool,
-  label: PropTypes.string,
-  onClick: PropTypes.func,
+  onChange: PropTypes.func,
 }
 
 const ToolbarSwitch = () => {
   const showToolbar = useSelector(selectShowToolbar)
   const dispatch = useDispatch()
 
-  const handleClick = () => {
+  const handleChange = () => {
     dispatch(
       mutateLocal({
         path: ['settings', 'defaults', 'showToolbar'],
@@ -216,7 +212,7 @@ const ToolbarSwitch = () => {
       <FormGroup row>
         <FormControlLabel
           value="start"
-          control={<Switch checked={showToolbar} onClick={handleClick} />}
+          control={<Switch checked={showToolbar} onChange={handleChange} />}
           label="Show Chart Toolbar"
           labelPlacement="start"
         />
@@ -225,7 +221,29 @@ const ToolbarSwitch = () => {
   )
 }
 
-const AppSettingsPane = ({ ...props }) => {
+const DraggableSwitch = ({ id, name }) => {
+  const draggables = useSelector(selectLocalDraggables)
+  const dispatch = useDispatch()
+
+  const open = R.pathOr(false, [id, 'open'])(draggables)
+  return (
+    <ColumnSwitch
+      {...{ name }}
+      checked={open}
+      onChange={() => {
+        dispatch(
+          mutateLocal({
+            path: ['draggables', id, 'open'],
+            value: !open,
+            sync: false,
+          })
+        )
+      }}
+    />
+  )
+}
+
+const AppSettingsPane = () => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
   const syncToggles = useSelector(selectSyncToggles)
@@ -242,6 +260,21 @@ const AppSettingsPane = ({ ...props }) => {
       <FieldContainer title="Defaults">
         <ToolbarSwitch />
       </FieldContainer>
+      <FieldContainer title="Draggables">
+        <FormControl component="fieldset">
+          <FormGroup>
+            <DraggableSwitch id={draggableId.SESSION} name="Current Session" />
+            <DraggableSwitch
+              id={draggableId.GLOBAL_OUTPUTS}
+              name="Global Outputs"
+            />
+            <DraggableSwitch
+              id={draggableId.TIME_CONTROL}
+              name="Time Control"
+            />
+          </FormGroup>
+        </FormControl>
+      </FieldContainer>
       {R.isEmpty(syncToggles) ? (
         []
       ) : (
@@ -251,14 +284,14 @@ const AppSettingsPane = ({ ...props }) => {
               const paths = R.prop('data')(object)
               return R.propOr(false, 'showToggle', object) ? (
                 <div key={key}>
-                  <SyncSwitch
+                  <ColumnSwitch
+                    name={R.propOr(key, 'name', object)}
                     checked={
                       !R.all((path) => R.includes(path, R.values(sync)))(
                         R.values(paths)
                       )
                     }
-                    label={R.propOr(key, 'name', object)}
-                    onClick={(event) => {
+                    onChange={(event) => {
                       R.forEachObjIndexed((path, name) =>
                         !event.target.checked
                           ? dispatch(

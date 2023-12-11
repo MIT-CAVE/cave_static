@@ -17,6 +17,7 @@ import {
   chartStatUses,
   chartVariant,
   chartAggrFunc,
+  draggableId,
 } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
@@ -324,7 +325,7 @@ export const selectLocalDraggables = createSelector(
 )
 export const selectSessionDraggable = createSelector(
   selectLocalDraggables,
-  R.propOr({}, 'session')
+  R.propOr({}, draggableId.SESSION)
 )
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>
