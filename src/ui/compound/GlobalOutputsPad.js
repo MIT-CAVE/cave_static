@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import { useSelector } from 'react-redux'
 
 import { selectMergedGlobalOutputs } from '../../data/selectors'
-import { layoutType } from '../../utils/enums'
+import { layoutType, propVariant } from '../../utils/enums'
 import { renderPropsLayout } from '../views/common/renderLayout'
 
 import { addValuesToProps } from '../../utils'
@@ -11,12 +11,7 @@ import { addValuesToProps } from '../../utils'
 const style = {
   p: 1.5,
   bgcolor: 'background.paper',
-  color: 'text.primary',
-  borderBottom: 1,
-  borderColor: 'text.secondary',
   borderRadius: 1,
-  maxWidth: '300px', // FIXME
-  overflow: 'auto',
 }
 
 const GlobalOutputsPad = () => {
@@ -25,7 +20,6 @@ const GlobalOutputsPad = () => {
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
     R.propOr({}, 'values', items)
   )
-
   const layout = {
     type: layoutType.GRID,
     numRows: Math.ceil(props.length / 3),
@@ -35,7 +29,7 @@ const GlobalOutputsPad = () => {
     <Box sx={style}>
       {renderPropsLayout({
         layout,
-        items: props,
+        items: R.map(R.assoc('variant', propVariant.ICON_COMPACT))(props),
         onChangeProp: () => null,
       })}
     </Box>

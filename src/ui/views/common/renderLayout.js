@@ -41,10 +41,9 @@ const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
       ...style,
     })
   )(items)
-  const itemRenderFn = renderPropItem
   return {
     unusedItems,
-    component: itemRenderFn({ layoutItem, item, ...other }),
+    component: renderPropItem({ layoutItem, item, ...other }),
   }
 }
 

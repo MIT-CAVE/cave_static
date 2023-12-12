@@ -11,16 +11,17 @@ import { NumberFormat, forceArray } from '../../utils'
 
 const rootStyle = {
   p: 2,
-  maxWidth: '8vw',
+  maxWidth: '10vw',
   overflow: 'hidden',
 }
 
-const GlobalOutput = ({ title, value, icon, style, sx = [], ...props }) => {
-  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(props)
+const PropNumberIconCompact = ({ prop, sx = [] }) => {
+  const { name, value, icon, style } = prop
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
     <Paper elevation={10} sx={[rootStyle, style, ...forceArray(sx)]}>
       <Typography sx={{ pb: 1 }} variant="subtitle1">
-        <OverflowText text={title} />
+        <OverflowText text={name} />
       </Typography>
       <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
         <Grid item xs>
@@ -33,7 +34,7 @@ const GlobalOutput = ({ title, value, icon, style, sx = [], ...props }) => {
     </Paper>
   )
 }
-GlobalOutput.propTypes = {
+PropNumberIconCompact.propTypes = {
   title: PropTypes.string,
   value: PropTypes.number,
   icon: PropTypes.string,
@@ -47,4 +48,4 @@ GlobalOutput.propTypes = {
   ]),
 }
 
-export default GlobalOutput
+export default PropNumberIconCompact

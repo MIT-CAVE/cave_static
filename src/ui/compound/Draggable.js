@@ -2,7 +2,7 @@ import { Box, IconButton, Paper } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useRef } from 'react'
 import ReactDraggable from 'react-draggable'
-import { MdOutlineClose } from 'react-icons/md'
+import { MdCancel } from 'react-icons/md'
 
 import { forceArray } from '../../utils'
 
@@ -38,8 +38,8 @@ const Draggable = ({
         sx={[styles.root, ...forceArray(sx)]}
       >
         {children}
-        <IconButton sx={styles.closeBtn} onClick={onClose}>
-          <MdOutlineClose />
+        <IconButton size="small" sx={styles.closeBtn} onClick={onClose}>
+          <MdCancel fontSize="medium" />
         </IconButton>
       </Box>
     </ReactDraggable>

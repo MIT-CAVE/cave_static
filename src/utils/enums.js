@@ -60,6 +60,7 @@ export const propVariant = {
   VSTEPPER: 'vstepper',
   ICON: 'icon',
   ICON_ROW: 'iconRow',
+  ICON_COMPACT: 'iconCompact',
 }
 
 export const propContainer = {
