@@ -9,18 +9,27 @@ import { selectNumberFormatPropsFn } from '../../data/selectors'
 
 import { NumberFormat, forceArray } from '../../utils'
 
-const rootStyle = {
-  p: 2,
-  maxWidth: '10vw',
-  overflow: 'hidden',
+const styles = {
+  root: {
+    p: 2,
+    maxWidth: '10vw',
+    overflow: 'hidden',
+  },
+  name: {
+    pb: 1,
+    color: 'text.secondary',
+  },
+  value: {
+    fontWeight: (theme) => theme.typography.fontWeightBold,
+  },
 }
 
 const PropNumberIconCompact = ({ prop, sx = [] }) => {
   const { name, value, icon, style } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
-    <Paper elevation={10} sx={[rootStyle, style, ...forceArray(sx)]}>
-      <Typography sx={{ pb: 1 }} variant="subtitle1">
+    <Paper elevation={10} sx={[styles.root, style, ...forceArray(sx)]}>
+      <Typography sx={styles.name} variant="subtitle1">
         <OverflowText text={name} />
       </Typography>
       <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
@@ -28,7 +37,10 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
           <FetchedIcon iconName={icon} />
         </Grid>
         <Grid item xs={10}>
-          <OverflowText text={NumberFormat.format(value, numberFormatProps)} />
+          <OverflowText
+            sx={styles.value}
+            text={NumberFormat.format(value, numberFormatProps)}
+          />
         </Grid>
       </Grid>
     </Paper>
