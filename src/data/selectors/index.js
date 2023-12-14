@@ -327,6 +327,10 @@ export const selectSessionDraggable = createSelector(
   selectLocalDraggables,
   R.propOr({}, draggableId.SESSION)
 )
+export const selectGlobalOutputsDraggable = createSelector(
+  selectLocalDraggables,
+  R.propOr({}, draggableId.GLOBAL_OUTPUTS)
+)
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>
   R.propOr({}, 'pages')(data)
@@ -675,6 +679,17 @@ export const selectMergedGlobalOutputs = createSelector(
   [selectGlobalOutputs, selectLocalGlobalOutputs],
   (globalOutputsData, localGlobalOutputs) =>
     R.mergeDeepLeft(localGlobalOutputs)(globalOutputsData)
+)
+export const selectGlobalOutputProps = createSelector(
+  selectMergedGlobalOutputs,
+  R.pipe(
+    R.converge(addValuesToProps, [
+      R.propOr({}, 'props'),
+      R.propOr({}, 'values'),
+    ]),
+    R.filter(R.prop('value')),
+    R.map(R.assoc('enabled', false))
+  )
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(

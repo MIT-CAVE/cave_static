@@ -7,7 +7,7 @@ import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 import WrappedText from './WrappedText'
 
-import { forcePath } from '../../utils'
+import { forceArray, forcePath } from '../../utils'
 
 const styles = {
   icon: {
@@ -45,6 +45,7 @@ const SelectMulti = ({
   value: selectedValue,
   header,
   disabled,
+  sx = [],
   getLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
@@ -55,7 +56,7 @@ const SelectMulti = ({
   return (
     <Select
       {...{ disabled, open, ...props }}
-      sx={styles.select}
+      sx={[styles.select, ...forceArray(sx)]}
       multiple
       value={selected.length > 0 ? selected : [header]}
       onOpen={() => setOpen(true)}
@@ -100,6 +101,13 @@ SelectMulti.propTypes = {
   header: PropTypes.string,
   displayIcon: PropTypes.bool,
   disabled: PropTypes.bool,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
   getLabel: PropTypes.func,
   onClick: PropTypes.func,
   onClickAway: PropTypes.func,

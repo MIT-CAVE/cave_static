@@ -2,11 +2,9 @@ import { Box } from '@mui/material'
 import * as R from 'ramda'
 import { useSelector } from 'react-redux'
 
-import { selectMergedGlobalOutputs } from '../../data/selectors'
+import { selectGlobalOutputProps } from '../../data/selectors'
 import { layoutType, propVariant } from '../../utils/enums'
 import { renderPropsLayout } from '../views/common/renderLayout'
-
-import { addValuesToProps } from '../../utils'
 
 const style = {
   p: 1.5,
@@ -15,21 +13,22 @@ const style = {
 }
 
 const GlobalOutputsPad = () => {
-  const items = useSelector(selectMergedGlobalOutputs)
-  const props = addValuesToProps(
-    R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
-    R.propOr({}, 'values', items)
-  )
+  const props = useSelector(selectGlobalOutputProps)
+
+  const globalOutputs = R.pipe(
+    R.map(R.assoc('variant', propVariant.ICON_COMPACT)),
+    R.filter(R.prop('draggable'))
+  )(props)
   const layout = {
     type: layoutType.GRID,
-    numRows: Math.ceil(props.length / 3),
+    numRows: Math.ceil(R.keys(globalOutputs).length / 3),
     minColumnWidth: 'min-content',
   }
   return (
     <Box sx={style}>
       {renderPropsLayout({
         layout,
-        items: R.map(R.assoc('variant', propVariant.ICON_COMPACT))(props),
+        items: globalOutputs,
         onChangeProp: () => null,
       })}
     </Box>

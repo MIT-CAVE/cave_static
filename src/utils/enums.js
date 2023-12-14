@@ -22,9 +22,9 @@ export const paneId = {
 }
 
 export const draggableId = {
-  TIME_CONTROL: 'time_control',
+  TIME: 'time',
   SESSION: 'session',
-  GLOBAL_OUTPUTS: 'global_outputs',
+  GLOBAL_OUTPUTS: 'globalOutputs',
 }
 
 export const propId = {

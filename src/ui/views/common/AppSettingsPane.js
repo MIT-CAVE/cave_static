@@ -10,7 +10,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
@@ -18,6 +18,8 @@ import { toggleMirror } from '../../../data/local/settingsSlice'
 import {
   selectData,
   selectDemoMode,
+  selectGlobalOutputProps,
+  selectGlobalOutputsDraggable,
   selectLocalDraggables,
   selectMirrorMode,
   selectPaneState,
@@ -27,9 +29,9 @@ import {
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
 
-import { InfoButton, OverflowText } from '../../compound'
+import { InfoButton, OverflowText, SelectMulti } from '../../compound'
 
-import { includesPath } from '../../../utils'
+import { includesPath, renameKeys, withIndex } from '../../../utils'
 
 const styles = {
   paperRoot: {
@@ -243,6 +245,50 @@ const DraggableSwitch = ({ id, name }) => {
   )
 }
 
+const GlobalOutputsSwitch = () => {
+  const draggable = useSelector(selectGlobalOutputsDraggable)
+  const props = useSelector(selectGlobalOutputProps)
+  const dispatch = useDispatch()
+
+  const onSelect = useCallback(
+    (value) => {
+      dispatch(
+        mutateLocal({
+          path: ['globalOutputs', 'props'],
+          value: R.mapObjIndexed((prop, key) =>
+            R.ifElse(
+              R.always(R.includes(key)(value)),
+              R.assoc('draggable', true),
+              R.dissoc('draggable')
+            )(prop)
+          )(props),
+          sync: false,
+        })
+      )
+    },
+    [dispatch, props]
+  )
+  return (
+    <>
+      <DraggableSwitch id={draggableId.GLOBAL_OUTPUTS} name="Global Outputs" />
+      {draggable.open && (
+        <SelectMulti
+          sx={{ ml: 2, my: 1 }}
+          value={R.keys(R.filter(R.prop('draggable'))(props))}
+          header="Select Global Outputs"
+          optionsList={R.pipe(
+            withIndex,
+            R.project(['id', 'name', 'icon']),
+            R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
+          )(props)}
+          size="small"
+          {...{ onSelect }}
+        />
+      )}
+    </>
+  )
+}
+
 const AppSettingsPane = () => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
@@ -264,14 +310,11 @@ const AppSettingsPane = () => {
         <FormControl component="fieldset">
           <FormGroup>
             <DraggableSwitch id={draggableId.SESSION} name="Current Session" />
-            <DraggableSwitch
+            <GlobalOutputsSwitch
               id={draggableId.GLOBAL_OUTPUTS}
               name="Global Outputs"
             />
-            <DraggableSwitch
-              id={draggableId.TIME_CONTROL}
-              name="Time Control"
-            />
+            <DraggableSwitch id={draggableId.TIME} name="Time Control" />
           </FormGroup>
         </FormControl>
       </FieldContainer>

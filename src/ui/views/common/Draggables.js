@@ -1,11 +1,15 @@
 import { Card, CardContent } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
-import { selectLocalDraggables, selectSessions } from '../../../data/selectors'
+import {
+  selectGlobalOutputProps,
+  selectLocalDraggables,
+  selectSessions,
+} from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
 import Draggable from '../../compound/Draggable'
 import GlobalOutputsPad from '../../compound/GlobalOutputsPad'
@@ -25,7 +29,13 @@ const styles = {
 const Draggables = () => {
   const sessions = useSelector(selectSessions)
   const draggables = useSelector(selectLocalDraggables)
+  const props = useSelector(selectGlobalOutputProps)
   const dispatch = useDispatch()
+
+  const anyDraggableGlobalOutput = useMemo(
+    () => R.pipe(R.values, R.any(R.prop('draggable')))(props),
+    [props]
+  )
 
   const sessionIdCurrent = `${sessions.session_id}`
   const teamAllSessions = R.pipe(
@@ -69,16 +79,17 @@ const Draggables = () => {
     // Either we specify a z-index for each Pad or
     // we sort them from lowest to highest priority
     <>
-      {R.path([draggableId.GLOBAL_OUTPUTS, 'open'])(draggables) && (
-        <Draggable
-          sx={styles.globalOutputs}
-          onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
-        >
-          <GlobalOutputsPad />
-        </Draggable>
-      )}
-      {R.path([draggableId.TIME_CONTROL, 'open'])(draggables) && (
-        <Draggable onClose={handleToggleDraggable(draggableId.TIME_CONTROL)}>
+      {anyDraggableGlobalOutput &&
+        R.path([draggableId.GLOBAL_OUTPUTS, 'open'])(draggables) && (
+          <Draggable
+            sx={styles.globalOutputs}
+            onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
+          >
+            <GlobalOutputsPad />
+          </Draggable>
+        )}
+      {R.path([draggableId.TIME, 'open'])(draggables) && (
+        <Draggable onClose={handleToggleDraggable(draggableId.TIME)}>
           {/* TODO */}
         </Draggable>
       )}
