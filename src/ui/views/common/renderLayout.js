@@ -86,9 +86,11 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     R.pipe(R.values, R.pluck(prop), R.reduce(R.max, 1))(data)
 
   const [numRowsOptimal, numColumnsOptimal] = getOptimalGridSize(
-    numRows === 'auto' ? getMaxDimension('row') : numRows,
-    numColumns === 'auto' ? getMaxDimension('column') : numColumns,
-    numItems
+    numRows,
+    numColumns,
+    numItems,
+    getMaxDimension('row'),
+    getMaxDimension('column')
   )
 
   const numFillers = R.isNil(data)
