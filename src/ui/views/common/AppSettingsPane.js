@@ -29,7 +29,7 @@ import {
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
 
-import { InfoButton, OverflowText, SelectMulti } from '../../compound'
+import { InfoButton, List, OverflowText } from '../../compound'
 
 import { includesPath, renameKeys, withIndex } from '../../../utils'
 
@@ -268,10 +268,10 @@ const GlobalOutputsSwitch = () => {
     <>
       <DraggableSwitch id={draggableId.GLOBAL_OUTPUTS} name="Global Outputs" />
       {draggable.open && (
-        <SelectMulti
+        <List
           sx={{ ml: 2, my: 1 }}
-          value={R.keys(R.filter(R.prop('draggable'))(props))}
           header="Select Global Outputs"
+          value={R.keys(R.filter(R.prop('draggable'))(props))}
           optionsList={R.pipe(
             withIndex,
             R.project(['id', 'name', 'icon']),
