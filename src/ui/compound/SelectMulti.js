@@ -1,7 +1,7 @@
 import { Checkbox, ListItemIcon, MenuItem, Select } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
@@ -12,11 +12,9 @@ import { forceArray, forcePath } from '../../utils'
 const styles = {
   icon: {
     ml: 1,
-    '& .MuiListItemIcon-root': {
-      color: 'text.primary',
-      minWidth: 0,
-      mr: 1,
-    },
+    color: 'text.primary',
+    minWidth: 0,
+    mr: 1,
   },
   select: {
     width: '100%',
@@ -59,7 +57,9 @@ const SelectMulti = ({
       sx={[styles.select, ...forceArray(sx)]}
       multiple
       value={selected.length > 0 ? selected : [header]}
-      onOpen={() => setOpen(true)}
+      onOpen={() => {
+        setOpen(true)
+      }}
       onClose={(event) => {
         onClickAway(event)
         setOpen(false)
@@ -99,7 +99,6 @@ SelectMulti.propTypes = {
   optionsList: PropTypes.array,
   value: PropTypes.any,
   header: PropTypes.string,
-  displayIcon: PropTypes.bool,
   disabled: PropTypes.bool,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
@@ -109,7 +108,6 @@ SelectMulti.propTypes = {
     PropTypes.object,
   ]),
   getLabel: PropTypes.func,
-  onClick: PropTypes.func,
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
   children: PropTypes.node,
