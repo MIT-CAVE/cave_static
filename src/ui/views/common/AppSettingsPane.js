@@ -256,11 +256,7 @@ const GlobalOutputsSwitch = () => {
         mutateLocal({
           path: ['globalOutputs', 'props'],
           value: R.mapObjIndexed((prop, key) =>
-            R.ifElse(
-              R.always(R.includes(key)(value)),
-              R.assoc('draggable', true),
-              R.dissoc('draggable')
-            )(prop)
+            R.assoc('draggable', R.includes(key)(value))(prop)
           )(props),
           sync: false,
         })
