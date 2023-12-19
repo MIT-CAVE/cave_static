@@ -27,7 +27,10 @@ const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
     field: `${index}`,
     minWidth: 150,
     flex: 1,
-    valueFormatter: ({ value }) => NumberFormat.format(value, numberFormat),
+    valueFormatter: ({ value }) =>
+      typeof value === 'number'
+        ? NumberFormat.format(value, numberFormat)
+        : null,
     ...(columnTypes[index] === 'number' && {
       headerAlign: 'center',
       align: 'center',
