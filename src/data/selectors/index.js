@@ -1136,19 +1136,20 @@ export const selectMemoizedChartFunc = createSelector(
           const groupList = R.path([outputGroup, 'groupLists', category])(
             groupedOutputs
           )
+          const groupingVal = R.pipe(
+            R.path([category, 'data']),
+            R.pick(parentalPath),
+            R.values
+          )(groupings)
           return (index) => {
-            const groupName = R.propOr('undefined', index, groupList)
-            const groupingIndex = R.pathOr(
-              -1,
-              [category, 'data', 'id', groupName],
-              groupingIndicies
-            )
-            const groupingVal = R.pipe(
-              R.path([category, 'data']),
-              R.pick(parentalPath),
-              R.values
-            )(groupings)
-            return R.pluck(groupingIndex)(groupingVal)
+            const groupName = groupList[index]
+            const groupingIndex =
+              groupingIndicies[category]['data']['id'][groupName]
+            const pluckedValues = Array(groupingVal.length)
+            for (let i = 0; i < groupingVal.length; i++) {
+              pluckedValues[i] = groupingVal[i][groupingIndex]
+            }
+            return pluckedValues
           }
         })
         // List of groupBy, subGroupBy etc...

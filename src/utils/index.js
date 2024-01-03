@@ -138,6 +138,11 @@ export const parseArray = (input) => {
 export const calculateStatAnyDepth = (statistics) => {
   const parser = new Parser()
   const calculate = (group, calculation) => {
+    const valueLists = statistics['valueLists']
+    // if there are no calculations just return values at the group indicies
+    if (R.has(calculation, valueLists)) {
+      return R.pipe(R.prop(calculation), R.pick(group), R.values)(valueLists)
+    }
     // define groupSum for each base level group
     const preSummed = {}
     parser.functions.groupSum = (statName) => {
@@ -145,29 +150,30 @@ export const calculateStatAnyDepth = (statistics) => {
       // dont recalculate sum for each stat
       if (R.isNil(R.prop(statName, preSummed))) {
         preSummed[statName] = R.sum(
-          R.map(
-            (idx) => R.path(['valueLists', statName, idx], statistics),
-            group
-          )
+          R.map((idx) => statistics['valueLists'][statName][idx], group)
         )
       }
-      return R.prop(statName, preSummed)
+      return preSummed[statName]
     }
     return group.map((idx) => {
-      const values = R.pipe(R.prop('valueLists'), R.pluck(idx))(statistics)
+      const pluckedValues = {}
+      for (let key in valueLists) {
+        pluckedValues[key] = valueLists[key][idx]
+      }
       try {
         return parser.parse(calculation).evaluate(
           // evaluate each list item
-          values
+          pluckedValues
         )
       } catch {
+        console.warn(`Malformed calculation: ${calculation}`)
         // if calculation is malformed return simplified array
         return parseArray(
           parser
             .parse(calculation)
             .simplify(
               // evaluate each list item
-              values
+              pluckedValues
             )
             .toString()
         )
@@ -175,21 +181,27 @@ export const calculateStatAnyDepth = (statistics) => {
     })
   }
 
-  const group = (groupBys, calculation, indicies) =>
-    R.pipe(
-      R.collectBy(R.pipe(R.head(groupBys), R.join(''))),
-      R.reduce((acc, value) => {
-        const key = R.pipe(R.head, R.head(groupBys), R.head)(value)
-        const finalName = R.has(key, acc)
-          ? R.pipe(R.head, R.head(groupBys), R.join(', '))(value)
-          : key
-        return R.assoc(finalName, value, acc)
-      }, {}),
+  const group = (groupBys, calculation, indicies) => {
+    const currentGroupBy = groupBys[0]
+    const keyFn = R.pipe(currentGroupBy, R.join(''))
+    return R.pipe(
+      (idxs) => {
+        const acc = {}
+        for (let i = 0; i < idxs.length; i++) {
+          const idx = idxs[i]
+          const key = keyFn(idx)
+          if (acc[key] === undefined) {
+            acc[key] = []
+          }
+          acc[key].push(idx)
+        }
+        return acc
+      },
       R.length(groupBys) === 1
         ? R.map((group) => calculate(group, calculation))
         : R.map((stats) => group(R.tail(groupBys), calculation, stats))
     )(indicies)
-
+  }
   const indicies = R.pipe(
     R.prop('valueLists'),
     R.values,
