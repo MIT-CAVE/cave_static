@@ -141,14 +141,14 @@ export const calculateStatAnyDepth = (statistics) => {
     const valueLists = statistics['valueLists']
     // if there are no calculations just return values at the group indicies
     if (R.has(calculation, valueLists)) {
-      return R.pipe(R.prop(calculation), R.pick(group), R.values)(valueLists)
+      return R.pipe((d) => d[calculation], R.pick(group), R.values)(valueLists)
     }
     // define groupSum for each base level group
     const preSummed = {}
     parser.functions.groupSum = (statName) => {
       // groupSum only works for non-derived stats
       // dont recalculate sum for each stat
-      if (R.isNil(R.prop(statName, preSummed))) {
+      if (R.isNil(preSummed[statName])) {
         preSummed[statName] = R.sum(
           R.map((idx) => statistics['valueLists'][statName][idx], group)
         )
@@ -156,14 +156,15 @@ export const calculateStatAnyDepth = (statistics) => {
       return preSummed[statName]
     }
     return group.map((idx) => {
-      const pluckedValues = {}
-      for (let key in valueLists) {
-        pluckedValues[key] = valueLists[key][idx]
-      }
+      const proxy = new Proxy(valueLists, {
+        get(target, name, receiver) {
+          return Reflect.get(target, name, receiver)[idx]
+        },
+      })
       try {
         return parser.parse(calculation).evaluate(
           // evaluate each list item
-          pluckedValues
+          proxy
         )
       } catch {
         console.warn(`Malformed calculation: ${calculation}`)
@@ -173,7 +174,7 @@ export const calculateStatAnyDepth = (statistics) => {
             .parse(calculation)
             .simplify(
               // evaluate each list item
-              pluckedValues
+              proxy
             )
             .toString()
         )
@@ -190,7 +191,7 @@ export const calculateStatAnyDepth = (statistics) => {
         for (let i = 0; i < idxs.length; i++) {
           const idx = idxs[i]
           const key = keyFn(idx)
-          if (acc[key] === undefined) {
+          if (!(key in acc)) {
             acc[key] = []
           }
           acc[key].push(idx)
@@ -199,7 +200,7 @@ export const calculateStatAnyDepth = (statistics) => {
       },
       R.length(groupBys) === 1
         ? R.map((group) => calculate(group, calculation))
-        : R.map((stats) => group(R.tail(groupBys), calculation, stats))
+        : R.map((stats) => group(groupBys.slice(1), calculation, stats))
     )(indicies)
   }
   const indicies = R.pipe(
