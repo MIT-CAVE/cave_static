@@ -23,7 +23,7 @@ const styles = {
   },
   root: {
     width: '100%',
-    height: '250px',
+    maxHeight: '400px',
     overflow: 'auto',
     bgcolor: 'background.paper',
   },
