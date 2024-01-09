@@ -52,12 +52,33 @@ const styles = {
   },
 }
 
+const SubItem = ({
+  item,
+  subItem,
+  onClose,
+  onSelect,
+  getSubLabel,
+  values,
+  ...props
+}) => (
+  <MenuItem
+    component="div"
+    onClick={() => {
+      onClose && onClose()
+      onSelect && onSelect(item, subItem)
+    }}
+    selected={R.equals(R.propOr(false, item, values), subItem)}
+    {...props}
+  >
+    {getSubLabel(item, subItem)}
+  </MenuItem>
+)
+
 const CategoryItem = ({
   id: item,
   layoutDirection,
   subItems,
   getLabel,
-  SubItem,
   onSelect,
   getSubLabel,
   values,
@@ -94,28 +115,6 @@ const CategoryItem = ({
     </MenuItem>
   )
 }
-
-const SubItem = ({
-  item,
-  subItem,
-  onClose,
-  onSelect,
-  getSubLabel,
-  values,
-  ...props
-}) => (
-  <MenuItem
-    component="div"
-    onClick={() => {
-      onClose && onClose()
-      onSelect && onSelect(item, subItem)
-    }}
-    selected={R.equals(R.propOr(false, item, values), subItem)}
-    {...props}
-  >
-    {getSubLabel(item, subItem)}
-  </MenuItem>
-)
 
 /**
  * A hybrid of the Select and Accordion components.
@@ -203,7 +202,7 @@ const SelectMultiAccordion = ({
                   <CategoryItem
                     {...item}
                     key={item.id}
-                    {...{ getLabel, SubItem, getSubLabel, onSelect, values }}
+                    {...{ getLabel, getSubLabel, onSelect, values }}
                   />
                 ))}
               </AccordionDetails>
@@ -215,7 +214,7 @@ const SelectMultiAccordion = ({
               <CategoryItem
                 {...item}
                 key={item.id}
-                {...{ getLabel, SubItem, getSubLabel, onSelect, values }}
+                {...{ getLabel, getSubLabel, onSelect, values }}
               />
             ))}
           </Box>
