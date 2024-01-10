@@ -166,6 +166,7 @@ export const renderPropsLayout = ({
     items,
     unusedItems: R.pipe(
       R.omit(usedItemsInLayout),
+      R.filter(R.propOr(true, 'display')),
       sortedListById,
       R.pluck('id')
     )(items),
