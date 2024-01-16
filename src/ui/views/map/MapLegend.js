@@ -38,6 +38,7 @@ import {
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { getStatLabel } from '../../../utils/stats'
+import FilterModal from '../common/FilterModal'
 
 import {
   FetchedIcon,
@@ -58,6 +59,14 @@ import {
 } from '../../../utils'
 
 const styles = {
+  modal: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ml: 'auto',
+    mr: 'auto',
+    p: 1,
+  },
   root: {
     position: 'absolute',
     top: '8px',
@@ -249,6 +258,11 @@ const MapLegendGroupRowToggleLayer = ({
   legendName,
   toggleGroup,
   toggleGroupLabel,
+  filterOpen,
+  setFilterOpen,
+  currentFilters = [],
+  filterableProps,
+  updateFilters,
   ...props
 }) => {
   return (
@@ -261,13 +275,13 @@ const MapLegendGroupRowToggleLayer = ({
       </Grid>
       {toggleGroup ? (
         <>
-          <Grid item xs={5} className="my-auto ml-0">
+          <Grid item xs={4.5} className="my-auto ml-0">
             <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
           </Grid>
-          <Grid item xs={1.5} className="my-auto">
+          <Grid item xs={1} className="my-auto">
             {toggleGroup}
           </Grid>
-          <Grid item xs={2.5} className="my-auto ml-0">
+          <Grid item xs={2} className="my-auto ml-0">
             <OverflowText
               sx={styles.overflowAlignLeft}
               text={toggleGroupLabel}
@@ -275,8 +289,37 @@ const MapLegendGroupRowToggleLayer = ({
           </Grid>
         </>
       ) : (
-        <Grid item xs={9} className="my-auto">
+        <Grid item xs={7.5} className="my-auto">
           <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
+        </Grid>
+      )}
+      {(R.isNil(toggleGroupLabel) || toggleGroupLabel === 'Ungrouped') && (
+        <Grid item xs={1.5} className="my-auto">
+          <FilterModal
+            {...{
+              updateFilters,
+              filterableProps,
+              currentFilters,
+              filterOpen,
+              setFilterOpen,
+            }}
+          />
+          <ToggleButton
+            sx={{ p: 0.5 }}
+            color="primary"
+            value="filter"
+            // Selected is an indicator that there are active filters
+            selected={!R.isEmpty(currentFilters)}
+            onChange={() => {
+              setFilterOpen(!filterOpen)
+            }}
+          >
+            <FetchedIcon
+              iconName="fa6/FaFilter"
+              size={26}
+              color="text.primary"
+            />
+          </ToggleButton>
         </Grid>
       )}
     </Grid>
@@ -618,10 +661,17 @@ const MapLegendGeoToggle = ({
 
   const typeObj = R.prop(geoType, useSelector(selectLocalizedGeoTypes))
 
+  const [filterOpen, setFilterOpen] = useState(false)
+
   const prop = typeObj.props[colorProp]
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const colorRange = geoColorRange(geoType, colorProp, mapId)
   const isCategorical = !R.has('min', colorRange)
+
+  const filterableProps = R.pipe(
+    R.prop('props'),
+    R.filter(R.propOr(true, 'filterable'))
+  )(typeObj)
 
   const path = [
     'maps',
@@ -660,6 +710,37 @@ const MapLegendGeoToggle = ({
       ),
     [typeObj, colorProp]
   )
+
+  const currentFilters = R.propOr([], 'filters', legendObj)
+  const syncFilters = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    mapId,
+    'legendGroups',
+    legendGroupId,
+    'data',
+    geoType,
+    'filters',
+  ])
+  const updateFilters = (newFilters) => {
+    dispatch(
+      mutateLocal({
+        path: [
+          'maps',
+          'data',
+          mapId,
+          'legendGroups',
+          legendGroupId,
+          'data',
+          geoType,
+          'filters',
+        ],
+        value: newFilters,
+        sync: syncFilters,
+      })
+    )
+  }
+
   return (
     <details key={geoType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -680,6 +761,13 @@ const MapLegendGeoToggle = ({
               }}
             />
           }
+          {...{
+            filterOpen,
+            setFilterOpen,
+            filterableProps,
+            currentFilters,
+            updateFilters,
+          }}
         />
       </summary>
       <hr />
@@ -830,6 +918,8 @@ const LegendCard = memo(
     const displayedGeometry = useSelector(selectEnabledGeometryFunc)(mapId)
     const sync = useSelector(selectSync)
 
+    const [filterOpen, setFilterOpen] = useState(false)
+
     const getGeometryPropName = useCallback(
       (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
       [typeObj]
@@ -855,7 +945,6 @@ const LegendCard = memo(
       'data',
       geometryType,
     ]
-
     const path = R.append('value', basePath)
     const syncToggle = !includesPath(R.values(sync), path)
 
@@ -874,6 +963,11 @@ const LegendCard = memo(
     const groupCalcByColor =
       displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
+    const filterableProps = R.pipe(
+      R.prop('props'),
+      R.filter(R.propOr(true, 'filterable'))
+    )(typeObj)
+
     const { color: colorDomain, size: sizeDomain } = R.propOr(
       {},
       geometryType,
@@ -882,6 +976,27 @@ const LegendCard = memo(
 
     const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
     const colorRange = geometryRange(geometryType, colorProp, false, mapId)
+
+    const currentFilters = R.propOr([], 'filters', legendObj)
+    const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
+    const updateFilters = (newFilters) => {
+      dispatch(
+        mutateLocal({
+          path: [
+            'maps',
+            'data',
+            mapId,
+            'legendGroups',
+            legendGroupId,
+            'data',
+            geometryType,
+            'filters',
+          ],
+          value: newFilters,
+          sync: syncFilters,
+        })
+      )
+    }
 
     return (
       <details key={geometryType} css={nonSx.typeWrapper} open>
@@ -903,6 +1018,13 @@ const LegendCard = memo(
                 }}
               />
             }
+            {...{
+              filterOpen,
+              setFilterOpen,
+              filterableProps,
+              currentFilters,
+              updateFilters,
+            }}
             {...(allowGrouping && {
               toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
               toggleGroup: (

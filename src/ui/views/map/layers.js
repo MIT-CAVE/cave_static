@@ -215,6 +215,46 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         R.mapObjIndexed((geoObj, geoJsonValue) => {
           const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
           const geoType = R.prop('type')(geoObj)
+
+          const filters = R.pathOr([], [geoObj.type, 'filters'], enabledGeos)
+          for (const filterObj of filters) {
+            const prop = R.prop('prop', filterObj)
+            const filterValue = R.prop('value', filterObj)
+            const type = R.path(['props', prop, 'type'], geoObj)
+            const value = R.path(['values', prop], geoObj)
+            if (type === 'selector') {
+              if (R.has('option', filterObj)) {
+                if (R.any(R.flip(R.includes)(value), filterValue)) {
+                  return false
+                }
+              } else {
+                if (
+                  R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
+                ) {
+                  return false
+                }
+              }
+            } else if (type === 'num' && filterObj['option'] !== 'eq') {
+              const result = !R.has('option', filterObj)
+                ? true
+                : R.prop('option', filterObj) === 'gt'
+                  ? R.gt(value, filterValue)
+                  : R.gte(value, filterValue)
+              const result1 = !R.has('option1', filterObj)
+                ? true
+                : R.prop('option1', filterObj) === 'lt'
+                  ? R.lt(value, R.prop('value1', filterObj))
+                  : R.lte(value, R.prop('value1', filterObj))
+              if (!result || !result1) {
+                return false
+              }
+            } else {
+              if (filterValue !== value) {
+                return false
+              }
+            }
+          }
+
           const filteredFeature = R.find(
             (feature) =>
               R.path(['properties', geoJsonProp])(feature) === geoJsonValue
@@ -229,9 +269,10 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             },
           })
         }),
-        R.values
+        R.values,
+        R.filter(R.identity)
       )(matchingKeys),
-    [findColor, matchingKeys, selectedGeos]
+    [enabledGeos, findColor, matchingKeys, selectedGeos]
   )
 
   const lineGeoJsonObject = useMemo(
@@ -244,6 +285,45 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             (feature) =>
               R.path(['properties', geoJsonProp])(feature) === geoJsonValue
           )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+
+          const filters = R.pathOr([], [geoObj.type, 'filters'], enabledArcs)
+          for (const filterObj of filters) {
+            const prop = R.prop('prop', filterObj)
+            const filterValue = R.prop('value', filterObj)
+            const type = R.path(['props', prop, 'type'], geoObj)
+            const value = R.path(['values', prop], geoObj)
+            if (type === 'selector') {
+              if (R.has('option', filterObj)) {
+                if (R.any(R.flip(R.includes)(value), filterValue)) {
+                  return false
+                }
+              } else {
+                if (
+                  R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
+                ) {
+                  return false
+                }
+              }
+            } else if (type === 'num' && filterObj['option'] !== 'eq') {
+              const result = !R.has('option', filterObj)
+                ? true
+                : R.prop('option', filterObj) === 'gt'
+                  ? R.gt(value, filterValue)
+                  : R.gte(value, filterValue)
+              const result1 = !R.has('option1', filterObj)
+                ? true
+                : R.prop('option1', filterObj) === 'lt'
+                  ? R.lt(value, R.prop('value1', filterObj))
+                  : R.lte(value, R.prop('value1', filterObj))
+              if (!result || !result1) {
+                return false
+              }
+            } else {
+              if (filterValue !== value) {
+                return false
+              }
+            }
+          }
 
           const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
@@ -262,6 +342,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           })
         }),
         R.values,
+        R.filter(R.identity),
         R.groupBy(R.path(['properties', 'dash']))
       )(lineMatchingKeys),
     [enabledArcs, findLineColor, findLineSize, lineMatchingKeys, selectedArcs]

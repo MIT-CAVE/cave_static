@@ -1838,6 +1838,45 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
           R.mapObjIndexed((obj) => {
             const [id, node] = obj
             const legendObj = legendObjectsFunc(mapId)[node.type]
+            const filters = R.propOr([], 'filters', legendObj)
+            for (const filterObj of filters) {
+              const prop = R.prop('prop', filterObj)
+              const filterValue = R.prop('value', filterObj)
+              const type = R.path(['props', prop, 'type'], node)
+              const value = R.path(['values', prop], node)
+              if (type === 'selector') {
+                if (R.has('option', filterObj)) {
+                  if (R.any(R.flip(R.includes)(value), filterValue)) {
+                    return false
+                  }
+                } else {
+                  if (
+                    R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
+                  ) {
+                    return false
+                  }
+                }
+              } else if (type === 'num' && filterObj['option'] !== 'eq') {
+                const result = !R.has('option', filterObj)
+                  ? true
+                  : R.prop('option', filterObj) === 'gt'
+                    ? R.gt(value, filterValue)
+                    : R.gte(value, filterValue)
+                const result1 = !R.has('option1', filterObj)
+                  ? true
+                  : R.prop('option1', filterObj) === 'lt'
+                    ? R.lt(value, R.prop('value1', filterObj))
+                    : R.lte(value, R.prop('value1', filterObj))
+                if (!result || !result1) {
+                  return false
+                }
+              } else {
+                if (filterValue !== value) {
+                  return false
+                }
+              }
+            }
+
             const sizeProp = legendObj.sizeBy
             const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(R.path(['values', sizeProp], node))
@@ -2004,6 +2043,45 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               legendObjectsFunc(mapId)
             )
             const legendObj = legendObjectsFunc(mapId)[arc.type]
+            const filters = R.propOr([], 'filters', legendObj)
+            for (const filterObj of filters) {
+              const prop = R.prop('prop', filterObj)
+              const filterValue = R.prop('value', filterObj)
+              const type = R.path(['props', prop, 'type'], arc)
+              const value = R.path(['values', prop], arc)
+              if (type === 'selector') {
+                if (R.has('option', filterObj)) {
+                  if (R.any(R.flip(R.includes)(value), filterValue)) {
+                    return false
+                  }
+                } else {
+                  if (
+                    R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
+                  ) {
+                    return false
+                  }
+                }
+              } else if (type === 'num' && filterObj['option'] !== 'eq') {
+                const result = !R.has('option', filterObj)
+                  ? true
+                  : R.prop('option', filterObj) === 'gt'
+                    ? R.gt(value, filterValue)
+                    : R.gte(value, filterValue)
+                const result1 = !R.has('option1', filterObj)
+                  ? true
+                  : R.prop('option1', filterObj) === 'lt'
+                    ? R.lt(value, R.prop('value1', filterObj))
+                    : R.lte(value, R.prop('value1', filterObj))
+                if (!result || !result1) {
+                  return false
+                }
+              } else {
+                if (filterValue !== value) {
+                  return false
+                }
+              }
+            }
+
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
             const size = isNaN(sizePropVal)
@@ -2102,6 +2180,44 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
           R.unnest,
           R.map(([id, arc]) => {
             const legendObj = legendObjectsFunc(mapId)[arc.type]
+            const filters = R.propOr([], 'filters', legendObj)
+            for (const filterObj of filters) {
+              const prop = R.prop('prop', filterObj)
+              const filterValue = R.prop('value', filterObj)
+              const type = R.path(['props', prop, 'type'], arc)
+              const value = R.path(['values', prop], arc)
+              if (type === 'selector') {
+                if (R.has('option', filterObj)) {
+                  if (R.any(R.flip(R.includes)(value), filterValue)) {
+                    return false
+                  }
+                } else {
+                  if (
+                    R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
+                  ) {
+                    return false
+                  }
+                }
+              } else if (type === 'num' && filterObj['option'] !== 'eq') {
+                const result = !R.has('option', filterObj)
+                  ? true
+                  : R.prop('option', filterObj) === 'gt'
+                    ? R.gt(value, filterValue)
+                    : R.gte(value, filterValue)
+                const result1 = !R.has('option1', filterObj)
+                  ? true
+                  : R.prop('option1', filterObj) === 'lt'
+                    ? R.lt(value, R.prop('value1', filterObj))
+                    : R.lte(value, R.prop('value1', filterObj))
+                if (!result || !result1) {
+                  return false
+                }
+              } else {
+                if (filterValue !== value) {
+                  return false
+                }
+              }
+            }
 
             const sizeProp = legendObj.sizeBy
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
