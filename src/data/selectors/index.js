@@ -1091,7 +1091,7 @@ export const selectMatchingKeysByTypeFunc = createSelector(
 // outputs derived
 export const selectStatGroupings = createSelector(
   selectGroupedOutputs,
-  R.propOr({}, ['groupings'])
+  R.propOr({}, 'groupings')
 )
 
 export const selectStatGroupingIndicies = createSelector(
@@ -1145,12 +1145,18 @@ export const selectMemoizedChartFunc = createSelector(
           const groupList = R.path([outputGroup, 'groupLists', category])(
             groupedOutputs
           )
+
           const groupingVal = R.pipe(
             R.path([category, 'data']),
             R.pick(parentalPath),
             R.values
           )(groupings)
+
           return (index) => {
+            // BUG: Doesn't work well when multiple stats
+            // are selected and at least one of them is not
+            // available for the chosen group + level
+            if (groupList == null) return []
             const groupName = groupList[index]
             const groupingIndex =
               groupingIndicies[category]['data']['id'][groupName]
@@ -1163,8 +1169,11 @@ export const selectMemoizedChartFunc = createSelector(
         })
         // List of groupBy, subGroupBy etc...
         const groupBys = R.map((idx) =>
-          categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
+          obj.groupingId[idx] != null
+            ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
+            : R.always(R.always(['All']))
         )(R.range(0, R.length(obj.groupingId)))
+
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
           calculateStatAnyDepth(
@@ -1179,6 +1188,7 @@ export const selectMemoizedChartFunc = createSelector(
             R.pathOr('0', [...stat, 'calculation'])(statisticTypes)
           )
         )(actualStat)
+
         // Ordering for the X's in the chart
         const ordering = R.pathOr(
           [],
@@ -1205,6 +1215,7 @@ export const selectMemoizedChartFunc = createSelector(
           ),
           calculatedStats
         )
+
         // Helper function to map merged stats to chart input object
         const recursiveMapLayers = (val) =>
           R.type(val) === 'Object'

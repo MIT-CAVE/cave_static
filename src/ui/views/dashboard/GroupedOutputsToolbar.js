@@ -59,7 +59,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     R.pipe(R.path([groupedOutputDataId, 'groupLists']), R.keys)(groupedOutputs)
 
   // Determine which groups can be selected based on the chosen stat(s)
-  // When no stat is selected, all available groups for each stat are shown
   const groupByOptions = R.ifElse(
     R.propSatisfies(
       R.either(R.is(String), R.both(R.is(Array), R.pipe(R.isEmpty, R.not))),
@@ -71,6 +70,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       R.chain(getGroupsById),
       R.uniq
     ),
+    // R.always([])
+    // When no stat is selected, all available groups for each stat are shown
     R.always(R.keys(categories))
   )(chartObj)
 
@@ -179,6 +180,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       })
     )
   }
+
   return (
     <>
       <ChartDropdownWrapper>
