@@ -474,7 +474,7 @@ const FilterModal = ({
                 ? 'num'
                 : !R.isEmpty(chartObj)
                   ? 'selector'
-                  : R.pathOr('', [filterToAdd['prop'], 'type'])(filterableProps)
+                  : R.pathOr('', [prop, 'type'])(filterableProps)
             return (
               <Card
                 key={prop}
