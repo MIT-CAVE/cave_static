@@ -134,7 +134,44 @@ export const parseArray = (input) => {
   var items = s.split(',')
   return R.map(R.trim)(items)
 }
-
+export const filterMapFeature = (filters, featureObj) => {
+  for (const filterObj of filters) {
+    const prop = R.prop('prop', filterObj)
+    const filterValue = R.prop('value', filterObj)
+    const type = R.path(['props', prop, 'type'], featureObj)
+    const value = R.path(['values', prop], featureObj)
+    if (type === 'selector') {
+      if (R.has('option', filterObj)) {
+        if (R.any(R.flip(R.includes)(value), filterValue)) {
+          return false
+        }
+      } else {
+        if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
+          return false
+        }
+      }
+    } else if (type === 'num' && filterObj['option'] !== 'eq') {
+      const result = !R.has('option', filterObj)
+        ? true
+        : R.prop('option', filterObj) === 'gt'
+          ? R.gt(value, filterValue)
+          : R.gte(value, filterValue)
+      const result1 = !R.has('option1', filterObj)
+        ? true
+        : R.prop('option1', filterObj) === 'lt'
+          ? R.lt(value, R.prop('value1', filterObj))
+          : R.lte(value, R.prop('value1', filterObj))
+      if (!result || !result1) {
+        return false
+      }
+    } else {
+      if (filterValue !== value) {
+        return false
+      }
+    }
+  }
+  return true
+}
 export const calculateStatAnyDepth = (
   statistics,
   filters,
@@ -163,7 +200,7 @@ export const calculateStatAnyDepth = (
               return false
             }
           } else {
-            if (R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
+            if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
               return false
             }
           }
