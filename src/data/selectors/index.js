@@ -215,7 +215,7 @@ export const selectGroupedOutputsData = createSelector(
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
-  R.propOr({}, 'layout')
+  R.prop('layout')
 )
 export const selectAssociatedData = createSelector(selectAssociated, (data) =>
   R.propOr({}, 'data')(data)
