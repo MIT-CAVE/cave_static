@@ -135,13 +135,67 @@ export const parseArray = (input) => {
   return R.map(R.trim)(items)
 }
 
-export const calculateStatAnyDepth = (statistics) => {
+export const calculateStatAnyDepth = (
+  statistics,
+  filters,
+  groupingIndicies,
+  statNames
+) => {
   const parser = new Parser()
   const calculate = (group, calculation) => {
     const valueLists = statistics['valueLists']
+    const filteredGroup = group.filter((idx) => {
+      for (const filterObj of filters) {
+        const format = R.propOr('stat', 'format', filterObj)
+        const prop = R.prop('prop', filterObj)
+        const filterValue = R.prop('value', filterObj)
+        const value =
+          format === 'stat'
+            ? R.path([statNames[prop][1], idx], valueLists)
+            : groupingIndicies[format]['data'][prop][
+                groupingIndicies[format]['data']['id'][
+                  R.path(['groupLists', format, idx], statistics)
+                ]
+              ]
+        if (format !== 'stat') {
+          if (R.has('option', filterObj)) {
+            if (R.any(R.flip(R.includes)(value), filterValue)) {
+              return false
+            }
+          } else {
+            if (R.any(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
+              return false
+            }
+          }
+        } else if (filterObj['option'] !== 'eq') {
+          const result = !R.has('option', filterObj)
+            ? true
+            : R.prop('option', filterObj) === 'gt'
+              ? R.gt(value, filterValue)
+              : R.gte(value, filterValue)
+          const result1 = !R.has('option1', filterObj)
+            ? true
+            : R.prop('option1', filterObj) === 'lt'
+              ? R.lt(value, R.prop('value1', filterObj))
+              : R.lte(value, R.prop('value1', filterObj))
+          if (!result || !result1) {
+            return false
+          }
+        } else {
+          if (filterValue !== value) {
+            return false
+          }
+        }
+      }
+      return true
+    })
     // if there are no calculations just return values at the group indicies
     if (R.has(calculation, valueLists)) {
-      return R.pipe((d) => d[calculation], R.pick(group), R.values)(valueLists)
+      return R.pipe(
+        (d) => d[calculation],
+        R.pick(filteredGroup),
+        R.values
+      )(valueLists)
     }
     // define groupSum for each base level group
     const preSummed = {}
@@ -150,12 +204,12 @@ export const calculateStatAnyDepth = (statistics) => {
       // dont recalculate sum for each stat
       if (R.isNil(preSummed[statName])) {
         preSummed[statName] = R.sum(
-          R.map((idx) => statistics['valueLists'][statName][idx], group)
+          R.map((idx) => statistics['valueLists'][statName][idx], filteredGroup)
         )
       }
       return preSummed[statName]
     }
-    return group.map((idx) => {
+    return filteredGroup.map((idx) => {
       const proxy = new Proxy(valueLists, {
         get(target, name, receiver) {
           return Reflect.get(target, name, receiver)[idx]
@@ -224,6 +278,24 @@ export const recursiveMap = R.curry(
       : R.map(
           (val) => recursiveMap(endPredicate, endCallback, stepCallback, val),
           stepCallback(mappable)
+        )
+)
+export const recursiveBubbleMap = R.curry(
+  (endPredicate, endCallback, stepCallback, bubbleCallback, mappable) =>
+    endPredicate(mappable)
+      ? endCallback(mappable)
+      : bubbleCallback(
+          R.map(
+            (val) =>
+              recursiveBubbleMap(
+                endPredicate,
+                endCallback,
+                stepCallback,
+                bubbleCallback,
+                val
+              ),
+            stepCallback(mappable)
+          )
         )
 )
 const mergeObjIntoList = (obj, baseList) =>

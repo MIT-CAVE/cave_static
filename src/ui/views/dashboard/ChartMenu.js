@@ -9,6 +9,7 @@ import {
   Switch,
 } from '@mui/material'
 import { memo } from 'react'
+import { FaFilter } from 'react-icons/fa'
 import {
   MdClose,
   MdFullscreen,
@@ -75,6 +76,8 @@ const ChartMenu = ({
   onRemoveChart,
   onShowToolbar,
   onToggleMaximize,
+  chartType,
+  setFilterOpen,
 }) => {
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
@@ -124,6 +127,14 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
+        {chartType === 'groupedOutput' && (
+          <BaseMenuItem
+            label="Filter"
+            ReactIcon={FaFilter}
+            onClick={handleEventAndCloseMenu(() => setFilterOpen(true))}
+          />
+        )}
+        {chartType === 'groupedOutput' && <Divider />}
         <BaseMenuItem
           label="Remove Chart"
           ReactIcon={MdClose}

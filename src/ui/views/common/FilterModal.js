@@ -17,7 +17,10 @@ import * as R from 'ramda'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
 
-import { selectNumberFormatPropsFn } from '../../../data/selectors'
+import {
+  selectNumberFormatPropsFn,
+  selectNumberFormat,
+} from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 
 import { FetchedIcon, NumberInput } from '../../compound'
@@ -64,10 +67,18 @@ const FilterModal = ({
   filterableProps,
   currentFilters,
   updateFilters,
+  chartObj = {},
 }) => {
   const [filterToAdd, setFilterToAdd] = useState({})
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
-  const type = R.pathOr('', [filterToAdd['prop'], 'type'])(filterableProps)
+  const numberFormat = useSelector(selectNumberFormat)
+  const format = R.propOr('stat', 'format', filterToAdd)
+  const type =
+    format === 'stat' && !R.isEmpty(chartObj)
+      ? 'num'
+      : !R.isEmpty(chartObj)
+        ? 'selector'
+        : R.pathOr('', [filterToAdd['prop'], 'type'])(filterableProps)
   return (
     <Modal
       open={filterOpen}
@@ -78,9 +89,33 @@ const FilterModal = ({
     >
       <Box sx={styles.paper}>
         <Box sx={styles.header}>{'Filter'}</Box>
-
         <Paper sx={{ textAlign: 'center', pb: 1 }}>
           <Card elevation={10}>
+            {!R.isEmpty(chartObj) && (
+              <Autocomplete
+                sx={{ m: 2 }}
+                autoSelect
+                disablePortal
+                value={format}
+                options={[
+                  'stat',
+                  ...R.keys(R.prop('categories')(filterableProps)),
+                ]}
+                renderInput={(params) => (
+                  <TextField label={'Filter Type'} {...params} />
+                )}
+                onChange={(_, value) => {
+                  setFilterToAdd(R.assoc('format', value, filterToAdd))
+                }}
+                getOptionLabel={(option) =>
+                  option === 'stat'
+                    ? 'Statistic'
+                    : R.pathOr(option, [option, 'name'])(
+                        R.prop('categories', filterableProps)
+                      )
+                }
+              />
+            )}
             <Grid container spacing={2} alignItems={'center'}>
               <Grid item xs={5}>
                 <Autocomplete
@@ -88,15 +123,45 @@ const FilterModal = ({
                   autoSelect
                   disablePortal
                   value={R.propOr('', 'prop', filterToAdd)}
-                  options={R.keys(filterableProps)}
+                  options={
+                    R.isEmpty(chartObj)
+                      ? R.keys(filterableProps)
+                      : format === 'stat'
+                        ? R.keys(filterableProps['statNames'])
+                        : R.keys(
+                            filterableProps['categories'][format]['levels']
+                          )
+                  }
                   renderInput={(params) => (
-                    <TextField label={'Prop'} {...params} />
+                    <TextField
+                      label={
+                        R.isEmpty(chartObj)
+                          ? 'Prop'
+                          : format === 'stat'
+                            ? 'Statistic'
+                            : R.pathOr(format, ['categories', format, 'name'])(
+                                filterableProps
+                              )
+                      }
+                      {...params}
+                    />
                   )}
                   onChange={(_, value) => {
-                    setFilterToAdd({ prop: value })
+                    setFilterToAdd({
+                      prop: value,
+                      format: filterToAdd['format'],
+                    })
                   }}
                   getOptionLabel={(option) =>
-                    R.pathOr(option, [option, 'name'])(filterableProps)
+                    R.isEmpty(chartObj) || format === 'stat'
+                      ? R.pathOr(option, [option, 'name'])(filterableProps)
+                      : R.pathOr(option, [
+                          'categories',
+                          format,
+                          'levels',
+                          option,
+                          'name',
+                        ])(filterableProps)
                   }
                 />
               </Grid>
@@ -158,9 +223,13 @@ const FilterModal = ({
                     <Box sx={{ m: 2 }}>
                       <NumberInput
                         enabled={type !== 'num' || R.has('option', filterToAdd)}
-                        numberFormat={getNumberFormat(
-                          filterableProps[filterToAdd['prop']]
-                        )}
+                        numberFormat={
+                          R.isEmpty(chartObj)
+                            ? getNumberFormat(
+                                filterableProps[filterToAdd['prop']]
+                              )
+                            : numberFormat
+                        }
                         value={
                           R.has('option', filterToAdd)
                             ? filterToAdd['value']
@@ -175,7 +244,7 @@ const FilterModal = ({
                 </>
               ) : type ===
                 // TODO: replace this with the multiautocomplete that is in progress
-                // This will require changes in data display and filtering logic as well
+                // This will require changes in data display as well
                 'selector' ? (
                 <>
                   <Grid item xs={2}>
@@ -240,9 +309,28 @@ const FilterModal = ({
                           }
                         />
                       ))(
-                        R.pathOr({}, [filterToAdd['prop'], 'options'])(
-                          filterableProps
-                        )
+                        R.isEmpty(chartObj)
+                          ? R.pathOr({}, [filterToAdd['prop'], 'options'])(
+                              filterableProps
+                            )
+                          : R.pipe(
+                              R.pathOr(
+                                [],
+                                [
+                                  'categories',
+                                  format,
+                                  'data',
+                                  filterToAdd['prop'],
+                                ]
+                              ),
+                              (d) => {
+                                const acc = {}
+                                for (const value of d) {
+                                  acc[value] = { name: value }
+                                }
+                                return acc
+                              }
+                            )(filterableProps)
                       )
                     )}
                   </Grid>
@@ -325,9 +413,13 @@ const FilterModal = ({
                         R.has('option1', filterToAdd) &&
                         !R.propEq('eq', 'option', filterToAdd)
                       }
-                      numberFormat={getNumberFormat(
-                        filterableProps[filterToAdd['prop']]
-                      )}
+                      numberFormat={
+                        R.isEmpty(chartObj)
+                          ? getNumberFormat(
+                              filterableProps[filterToAdd['prop']]
+                            )
+                          : numberFormat
+                      }
                       value={
                         R.has('option1', filterToAdd) &&
                         !R.propEq('eq', 'option', filterToAdd)
@@ -376,16 +468,35 @@ const FilterModal = ({
           </Card>
           {R.map((filterObj) => {
             const { prop, value, option, option1, value1 } = filterObj
-            const type = R.pathOr('', [prop, 'type'])(filterableProps)
+            const format = R.propOr('stat', 'format', filterObj)
+            const type =
+              format === 'stat' && !R.isEmpty(chartObj)
+                ? 'num'
+                : !R.isEmpty(chartObj)
+                  ? 'selector'
+                  : R.pathOr('', [filterToAdd['prop'], 'type'])(filterableProps)
             return (
               <Card
                 key={prop}
                 elevation={10}
-                sx={{ m: 2, p: 2, display: 'flex', justifyContent: 'center' }}
+                sx={{
+                  m: 2,
+                  p: 2,
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
               >
                 <Grid container spacing={2} alignItems={'center'}>
                   <Grid item xs={4}>
-                    {R.pathOr(prop, [prop, 'name'])(filterableProps)}
+                    {R.isEmpty(chartObj) || format === 'stat'
+                      ? R.pathOr(prop, [prop, 'name'])(filterableProps)
+                      : R.pathOr(prop, [
+                          'categories',
+                          format,
+                          'levels',
+                          prop,
+                          'name',
+                        ])(filterableProps)}
                   </Grid>
                   {(type !== 'num' || R.isNotNil(option)) && (
                     <Grid item xs={type === 'num' ? 1 : 2}>
@@ -414,7 +525,11 @@ const FilterModal = ({
                       {type === 'num' && R.isNotNil(option) ? (
                         <NumberInput
                           enabled={false}
-                          numberFormat={getNumberFormat(filterableProps[prop])}
+                          numberFormat={
+                            R.isEmpty(chartObj)
+                              ? getNumberFormat(filterableProps[prop])
+                              : numberFormat
+                          }
                           value={value}
                         />
                       ) : type === 'selector' ? (
@@ -429,7 +544,23 @@ const FilterModal = ({
                                 />
                               }
                             />
-                          ))(R.pathOr({}, [prop, 'options'])(filterableProps))
+                          ))(
+                            R.isEmpty(chartObj)
+                              ? R.pathOr({}, [prop, 'options'])(filterableProps)
+                              : R.pipe(
+                                  R.pathOr(
+                                    [],
+                                    ['categories', format, 'data', prop]
+                                  ),
+                                  (d) => {
+                                    const acc = {}
+                                    for (const value of d) {
+                                      acc[value] = { name: value }
+                                    }
+                                    return acc
+                                  }
+                                )(filterableProps)
+                          )
                         )
                       ) : (
                         value.toString().charAt(0).toUpperCase() +
@@ -451,7 +582,11 @@ const FilterModal = ({
                       <Grid item xs>
                         <NumberInput
                           enabled={false}
-                          numberFormat={getNumberFormat(filterableProps[prop])}
+                          numberFormat={
+                            R.isEmpty(chartObj)
+                              ? getNumberFormat(filterableProps[prop])
+                              : numberFormat
+                          }
                           value={value1}
                         />
                       </Grid>

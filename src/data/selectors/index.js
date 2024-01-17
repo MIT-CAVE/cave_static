@@ -39,6 +39,7 @@ import {
   getScaledRgbObj,
   orderEntireDict,
   addValuesToProps,
+  recursiveBubbleMap,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -1105,8 +1106,16 @@ export const selectMemoizedChartFunc = createSelector(
     selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
+    selectGroupedOutputNames,
   ],
-  (groupedOutputs, debug, statisticTypes, groupings, groupingIndicies) =>
+  (
+    groupedOutputs,
+    debug,
+    statisticTypes,
+    groupings,
+    groupingIndicies,
+    statNames
+  ) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
@@ -1158,7 +1167,12 @@ export const selectMemoizedChartFunc = createSelector(
         )(R.range(0, R.length(obj.groupingId)))
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
-          calculateStatAnyDepth(groupedOutputs[stat[0]])(
+          calculateStatAnyDepth(
+            groupedOutputs[stat[0]],
+            R.propOr([], 'filters', obj),
+            groupingIndicies,
+            statNames
+          )(
             R.isEmpty(groupBys)
               ? [R.always(['All'])]
               : R.map(R.applyTo(stat[0]), groupBys),
@@ -1175,19 +1189,19 @@ export const selectMemoizedChartFunc = createSelector(
             'ordering',
           ]
         )(groupings)
-
         // merge the calculated stats - unless boxplot
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
         const statValues = R.map(
-          recursiveMap(
+          recursiveBubbleMap(
             R.is(Array),
             R.pipe(
               R.filter(R.is(Number)),
               obj.variant !== chartVariant.BOX_PLOT
-                ? mergeFuncs[obj.statAggregation]
+                ? R.unless(R.isEmpty, mergeFuncs[obj.statAggregation])
                 : R.identity
             ),
-            R.identity
+            R.identity,
+            R.filter(R.pipe(R.isEmpty, R.not))
           ),
           calculatedStats
         )
@@ -1226,7 +1240,6 @@ export const selectMemoizedChartFunc = createSelector(
         )
 
         const formattedData = getFormattedData(statValues)
-
         const conditionalMerge = (key, a, b) =>
           key === 'name'
             ? a
