@@ -245,20 +245,38 @@ export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
   return checkCache
 }
 
-export const getOptimalGridSize = (numRows, numColumns, numItems) => {
-  const gridSize = numRows * numColumns
-  if (numItems <= gridSize) return [numRows, numColumns]
-
+export const getOptimalGridSize = (
+  numRows,
+  numColumns,
+  numItems,
+  maxDimRow,
+  maxDimColumn
+) => {
   const closestSquare = Math.sqrt(numItems)
-  const maxDimension = Math.max(numColumns, numRows)
+  const [rows, columns] =
+    numColumns === 'auto' && numRows === 'auto'
+      ? [
+          Math.max(Math.floor(closestSquare), maxDimRow),
+          Math.max(Math.ceil(numItems / closestSquare), maxDimColumn),
+        ]
+      : numColumns === 'auto'
+        ? [numRows, Math.max(Math.ceil(numItems / numRows), maxDimColumn)]
+        : numRows === 'auto'
+          ? [Math.max(Math.ceil(numItems / numColumns), maxDimRow), numColumns]
+          : [numRows, numColumns]
+
+  const gridSize = rows * columns
+  if (numItems <= gridSize) return [rows, columns]
+
+  const maxDimension = Math.max(columns, rows)
   if (closestSquare < maxDimension) {
     const newDimension = Math.ceil((numItems - gridSize) / maxDimension)
-    return numRows === maxDimension
-      ? [numRows, numColumns + newDimension]
-      : [numRows + newDimension, numColumns]
+    return rows === maxDimension
+      ? [rows, columns + newDimension]
+      : [rows + newDimension, columns]
   }
 
-  return numRows === maxDimension
+  return rows === maxDimension
     ? [Math.ceil(closestSquare), Math.floor(closestSquare)]
     : [Math.floor(closestSquare), Math.ceil(closestSquare)]
 }
