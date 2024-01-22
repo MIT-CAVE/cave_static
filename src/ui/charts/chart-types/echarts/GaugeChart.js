@@ -58,8 +58,13 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
   }
 
   const dataLength = R.length(yValues)
-
-  const calculateOffset = (idx) => (idx - (dataLength - 1) / 2) * 45
+  const labelSpacings = R.pipe(
+    R.map(R.length),
+    R.reduce(R.max, 0),
+    R.multiply(4),
+    R.clamp(35, 115)
+  )(xLabels)
+  const calculateOffset = (idx) => (idx - (dataLength - 1) / 2) * labelSpacings
   const createSeriesData = (values) =>
     R.pipe(
       R.unnest,
@@ -91,15 +96,11 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
     }),
   ]
   const [yMin, yMax] = R.pipe(
-    R.head,
-    R.prop('data'),
-    R.pluck('value'),
     R.flatten,
     R.filter(R.isNotNil),
     getMinMax,
     R.apply(adjustMinMax)
-  )(initialSeries)
-
+  )(yValues)
   const series = R.pipe(
     R.assocPath([0, 'min'], yMin > 0 ? 0 : yMin),
     R.assocPath([0, 'max'], yMax)
