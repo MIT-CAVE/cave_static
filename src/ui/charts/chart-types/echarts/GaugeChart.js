@@ -62,7 +62,7 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
     R.map(R.length),
     R.reduce(R.max, 0),
     R.multiply(4),
-    R.clamp(35, 115)
+    R.clamp(40, 115)
   )(xLabels)
   const calculateOffset = (idx) => (idx - (dataLength - 1) / 2) * labelSpacings
   const createSeriesData = (values) =>
@@ -72,13 +72,16 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
         (acc, value) => [
           acc + 1,
           {
-            value: NumberFormat.format(value, numberFormat),
+            value,
             name: xLabels[acc],
             title: {
               offsetCenter: [`${calculateOffset(acc)}%`, '90%'],
             },
             detail: {
               offsetCenter: [`${calculateOffset(acc)}%`, '103%'],
+              formatter: () => {
+                return `${NumberFormat.format(value, numberFormat)}`
+              },
             },
           },
         ],
