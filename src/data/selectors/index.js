@@ -1191,15 +1191,16 @@ export const selectMemoizedChartFunc = createSelector(
         )(actualStat)
 
         // Ordering for the X's in the chart
-        const ordering = R.pathOr(
-          [],
-          [
-            R.path(['groupingId', 0], obj),
-            'levels',
-            R.path(['groupingLevel', 0], obj),
-            'ordering',
-          ]
-        )(groupings)
+        const getOrderingAtIndex = (idx) =>
+          R.pathOr(
+            [],
+            [
+              R.path(['groupingId', idx], obj),
+              'levels',
+              R.path(['groupingLevel', idx], obj),
+              'ordering',
+            ]
+          )(groupings)
         // merge the calculated stats - unless boxplot
         // NOTE: Boxplot needs subgrouping - handle this in chart adapter
         const statValues = R.map(
@@ -1236,6 +1237,21 @@ export const selectMemoizedChartFunc = createSelector(
             : R.is(Array, val)
               ? val
               : [val]
+
+        const nLevelOrder = R.curry((depth, chartItem) => {
+          return R.has('children', chartItem)
+            ? R.assoc(
+                'children',
+                R.map(nLevelOrder(depth + 1))(
+                  customSortByX(
+                    getOrderingAtIndex(depth),
+                    R.prop('children', chartItem)
+                  )
+                ),
+                chartItem
+              )
+            : chartItem
+        })
         // Formats and sorts merged stats
         const getFormattedData = R.map(
           R.pipe(
@@ -1247,10 +1263,11 @@ export const selectMemoizedChartFunc = createSelector(
                   R.dissoc(undefined)
                 ),
             recursiveMapLayers,
-            customSortByX(ordering)
+            customSortByX(getOrderingAtIndex(0)),
+            // The 0th layer is sorted above due to not being a child, so we start at 1
+            R.map(nLevelOrder(1))
           )
         )
-
         const formattedData = getFormattedData(statValues)
         const conditionalMerge = (key, a, b) =>
           key === 'name'
