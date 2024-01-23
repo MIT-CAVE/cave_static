@@ -705,15 +705,23 @@ export const capitalize = R.when(
 export const customSortByX = R.curry((ordering, data) => {
   // Sort by the predefined `ordering` list
   const sortByPredef = R.sortBy(
-    R.pipe(R.prop('name'), R.indexOf(R.__, ordering))
+    R.pipe(
+      R.prop('name'),
+      R.split(' \u279D '),
+      R.find(R.includes(R.__, ordering)),
+      R.indexOf(R.__, ordering)
+    )
   )
   // Sort by alphabetical order (ascending)
   const sortByAlpha = R.sortBy(R.prop('name'))
   // Separate the items that appear in `ordering` from the rest
   const sublists = R.partition(
-    R.pipe(R.prop('name'), R.includes(R.__, ordering))
+    R.pipe(
+      R.prop('name'),
+      R.split(' \u279D '),
+      R.any(R.includes(R.__, ordering))
+    )
   )(data)
-
   return R.converge(R.concat, [
     R.pipe(R.head, sortByPredef),
     R.pipe(R.last, sortByAlpha),
