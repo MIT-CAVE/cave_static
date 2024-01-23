@@ -275,7 +275,7 @@ export const calculateStatAnyDepth = (
 
   const group = (groupBys, calculation, indicies) => {
     const currentGroupBy = groupBys[0]
-    const keyFn = R.pipe(currentGroupBy, R.join(''))
+    const keyFn = R.pipe(currentGroupBy, R.join(' \u279D '))
     return R.pipe(
       (idxs) => {
         const acc = {}
