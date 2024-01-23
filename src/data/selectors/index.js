@@ -97,6 +97,15 @@ export const selectMapboxToken = createSelector(selectTokens, (data) =>
 export const selectMessages = createSelector(selectUtilities, (data) =>
   R.prop('messages')(data)
 )
+
+// Time (Utilities)
+export const selectTime = createSelector(selectUtilities, (data) =>
+  R.prop('time')(data)
+)
+export const selectAnimationInterval = createSelector(
+  selectTime,
+  R.prop('animationInterval')
+)
 // Local
 export const selectLocal = (state) => R.propOr({}, 'local')(state)
 // Local -> settings

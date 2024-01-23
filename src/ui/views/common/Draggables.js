@@ -1,7 +1,9 @@
-import { Card, CardContent } from '@mui/material'
+import { Box, ButtonGroup, CardContent } from '@mui/material'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import TimeButtons from './TimeButtons'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
@@ -23,6 +25,15 @@ const styles = {
     bgcolor: '#132a73',
     overflow: 'hidden',
     overflowWrap: 'break-word',
+  },
+  time: {
+    width: '160px',
+    pr: 3,
+    bgcolor: 'background.paper',
+    button: {
+      width: '42px',
+    },
+    height: '42px',
   },
 }
 
@@ -89,13 +100,17 @@ const Draggables = () => {
           </Draggable>
         )}
       {R.path([draggableId.TIME, 'open'])(draggables) && (
-        <Draggable onClose={handleToggleDraggable(draggableId.TIME)}>
-          {/* TODO */}
+        <Draggable
+          onClose={handleToggleDraggable(draggableId.TIME)}
+          sx={styles.time}
+          component={Box}
+        >
+          <TimeButtons />
         </Draggable>
       )}
       {R.path([draggableId.SESSION, 'open'])(draggables) && (
         <Draggable
-          component={Card}
+          component={ButtonGroup}
           sx={styles.session}
           onClose={handleToggleDraggable(draggableId.SESSION)}
         >

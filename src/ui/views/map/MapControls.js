@@ -1,19 +1,13 @@
 import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
-import { useState, useRef, useEffect, memo } from 'react'
+import { useState, memo } from 'react'
 import {
   MdAdd,
   MdGpsFixed,
   MdHeight,
-  MdMap,
   MdRemove,
   Md360,
-  MdApps,
   MdHome,
-  MdNavigateNext,
-  MdNavigateBefore,
-  MdPlayArrow,
-  MdPause,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -25,10 +19,8 @@ import {
   pitchUpdate,
   viewportUpdate,
   changeZoom,
-  toggleMapLegend,
   openMapModal,
 } from '../../../data/local/mapSlice'
-import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
   selectDefaultViewportFunc,
   selectOptionalViewportsFunc,
@@ -36,9 +28,6 @@ import {
   selectPitchSliderToggleFunc,
   selectBearingFunc,
   selectPitchFunc,
-  selectCurrentTime,
-  selectCurrentTimeUnits,
-  selectCurrentTimeLength,
   selectStaticMap,
   selectSync,
 } from '../../../data/selectors'
@@ -49,6 +38,7 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 import { unitPlacements } from '../../../utils/enums'
+import TimeButtons from '../common/TimeButtons'
 
 import { FetchedIcon, TooltipButton } from '../../compound'
 
@@ -196,18 +186,12 @@ const MapNavButtons = memo(({ mapId }) => {
 
 const MapControls = ({ allowProjections, mapId }) => {
   const [hover, setHover] = useState(false)
-  const [animation, setAnimation] = useState(false)
-  const activeAnimation = useRef()
-
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
   const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
-  const currentTime = useSelector(selectCurrentTime)
-  const timeUnits = useSelector(selectCurrentTimeUnits)
-  const timeLength = useSelector(selectCurrentTimeLength)
   const isStatic = useSelector(selectStaticMap)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -225,20 +209,6 @@ const MapControls = ({ allowProjections, mapId }) => {
       precision: 0,
       unitPlacement: unitPlacements.AFTER,
     })
-
-  // Ensures that animation stops if component is unmounted
-  useEffect(() => {
-    activeAnimation.current = animation
-  }, [animation])
-  useEffect(() => {
-    return () => {
-      clearInterval(activeAnimation.current)
-    }
-  }, [])
-
-  const advanceAnimation = () => {
-    dispatch(timeAdvance(timeLength))
-  }
 
   return (
     <>
@@ -272,97 +242,7 @@ const MapControls = ({ allowProjections, mapId }) => {
       >
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
-          <ButtonGroup
-            sx={[styles.btnGroup, { display: timeLength === 0 ? 'none' : '' }]}
-            aria-label="contained button group"
-            variant="contained"
-          >
-            <TooltipButton
-              title={`Reduce time by one ${timeUnits}`}
-              placement="left-end"
-              disabled={currentTime === 0}
-              onClick={() => {
-                const newTime = currentTime - 1
-                if (newTime >= 0) {
-                  dispatch(timeSelection(newTime))
-                }
-              }}
-            >
-              <MdNavigateBefore />
-            </TooltipButton>
-            {animation ? (
-              <TooltipButton
-                title="Pause animation"
-                placement="top"
-                onClick={() => {
-                  clearInterval(animation)
-                  setAnimation(false)
-                }}
-              >
-                <MdPause />
-              </TooltipButton>
-            ) : (
-              <TooltipButton
-                title="Play animation"
-                placement="top"
-                onClick={() => {
-                  const animationInterval = setInterval(advanceAnimation, 1000)
-                  setAnimation(animationInterval)
-                }}
-              >
-                <MdPlayArrow />
-              </TooltipButton>
-            )}
-            <TooltipButton
-              title={`Set current ${timeUnits}`}
-              placement="top"
-              onClick={() =>
-                dispatch(openMapModal({ feature: 'setTime', mapId }))
-              }
-            >
-              {currentTime + 1}
-            </TooltipButton>
-            <TooltipButton
-              title={`Advance time by one ${timeUnits}`}
-              placement="top"
-              disabled={currentTime === timeLength - 1}
-              onClick={advanceAnimation}
-            >
-              <MdNavigateNext />
-            </TooltipButton>
-          </ButtonGroup>
-          {/* Map legend */}
-          <ButtonGroup
-            sx={styles.btnGroup}
-            aria-label="contained button group"
-            variant="contained"
-          >
-            <TooltipButton
-              title={tooltipTitles.mapLegend}
-              placement="top"
-              onClick={() => dispatch(toggleMapLegend(mapId))}
-            >
-              <MdApps />
-            </TooltipButton>
-          </ButtonGroup>
-
-          {/* Map styles */}
-          <ButtonGroup
-            sx={styles.btnGroup}
-            aria-label="contained button group"
-            variant="contained"
-          >
-            <TooltipButton
-              title={tooltipTitles.mapStyles}
-              placement="top"
-              onClick={() =>
-                dispatch(openMapModal({ feature: 'mapStyles', mapId }))
-              }
-            >
-              <MdMap />
-            </TooltipButton>
-          </ButtonGroup>
-
+          <TimeButtons />
           {/* Projection */}
           {allowProjections && (
             <ButtonGroup sx={styles.btnGroup} variant="contained">
