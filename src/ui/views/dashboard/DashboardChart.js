@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -40,7 +40,15 @@ const DashboardChart = ({ chartObj }) => {
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectStatGroupings)
 
-  const formattedData = memoizedChartFunc(chartObj)
+  const [formattedData, setFormattedData] = useState([])
+
+  useEffect(() => {
+    const runWorkers = async () => {
+      const formattedData = await memoizedChartFunc(chartObj)
+      setFormattedData(formattedData)
+    }
+    runWorkers()
+  }, [chartObj, memoizedChartFunc])
 
   const subGrouped = R.hasPath(['groupingLevel', 1])(chartObj)
 

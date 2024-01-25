@@ -31,7 +31,6 @@ import {
   forcePath,
   customSortByX,
   withIndex,
-  calculateStatAnyDepth,
   recursiveMap,
   maxSizedMemoization,
   getScaledValue,
@@ -41,6 +40,8 @@ import {
   addValuesToProps,
   recursiveBubbleMap,
   filterMapFeature,
+  filterGroupedOutputs,
+  calculateStatAnyDepth,
 } from '../../utils'
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
@@ -1109,6 +1110,24 @@ export const selectStatGroupingIndicies = createSelector(
   R.pipe(R.map(R.over(R.lensPath(['data', 'id']), R.invertObj)))
 )
 
+export const selectGroupedOutputValueBuffers = createSelector(
+  selectGroupedOutputsData,
+  (groupedOutputs) =>
+    R.map(
+      R.pipe(
+        R.prop('valueLists'),
+        R.map((arr) => {
+          const buffer = new SharedArrayBuffer(arr.length * 8)
+          const view = new Float64Array(buffer)
+          for (let i = 0; i < arr.length; i++) {
+            view[i] = arr[i]
+          }
+          return view.buffer
+        })
+      )
+    )(groupedOutputs)
+)
+
 export const selectMemoizedChartFunc = createSelector(
   [
     selectGroupedOutputsData,
@@ -1117,6 +1136,7 @@ export const selectMemoizedChartFunc = createSelector(
     selectStatGroupings,
     selectStatGroupingIndicies,
     selectGroupedOutputNames,
+    selectGroupedOutputValueBuffers,
   ],
   (
     groupedOutputs,
@@ -1124,11 +1144,12 @@ export const selectMemoizedChartFunc = createSelector(
     statisticTypes,
     groupings,
     groupingIndicies,
-    statNames
+    statNames,
+    valueBuffers
   ) =>
     maxSizedMemoization(
-      (obj) => JSON.stringify(obj),
-      (obj) => {
+      (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
+      async (obj) => {
         const actualStat = R.is(Array, obj.statId)
           ? R.zip(obj.groupedOutputDataId, obj.statId)
           : [[obj.groupedOutputDataId, obj.statId]]
@@ -1184,116 +1205,133 @@ export const selectMemoizedChartFunc = createSelector(
             : R.always(R.always(['All']))
         )(R.range(0, R.length(obj.groupingId)))
 
+        const filteredStatsToCalc = R.reduce(
+          (acc, stat) =>
+            R.assoc(
+              stat[0],
+              filterGroupedOutputs(
+                groupedOutputs[stat[0]],
+                R.propOr([], 'filters', obj),
+                statNames,
+                groupingIndicies
+              ),
+              acc
+            ),
+          {},
+          actualStat
+        )
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
-          calculateStatAnyDepth(
-            groupedOutputs[stat[0]],
-            R.propOr([], 'filters', obj),
-            groupingIndicies,
-            statNames
-          )(
+          calculateStatAnyDepth(valueBuffers[stat[0]])(
             R.isEmpty(groupBys)
               ? [R.always(['All'])]
               : R.map(R.applyTo(stat[0]), groupBys),
-            R.pathOr('0', [...stat, 'calculation'])(statisticTypes)
+            R.pathOr('0', [...stat, 'calculation'])(statisticTypes),
+            filteredStatsToCalc[stat[0]]
           )
         )(actualStat)
 
-        // Ordering for the X's in the chart
-        const getOrderingAtIndex = (idx) =>
-          R.pathOr(
-            [],
-            [
-              R.path(['groupingId', idx], obj),
-              'levels',
-              R.path(['groupingLevel', idx], obj),
-              'ordering',
-            ]
-          )(groupings)
-        // merge the calculated stats - unless boxplot
-        // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-        const statValues = R.map(
-          recursiveBubbleMap(
-            R.is(Array),
-            R.pipe(
-              R.filter(R.is(Number)),
-              obj.variant !== chartVariant.BOX_PLOT
-                ? R.unless(R.isEmpty, mergeFuncs[obj.statAggregation])
-                : R.identity
+        return Promise.all(calculatedStats).then((resolvedStats) => {
+          // Ordering for the X's in the chart
+          const getOrderingAtIndex = (idx) =>
+            R.pathOr(
+              [],
+              [
+                R.path(['groupingId', idx], obj),
+                'levels',
+                R.path(['groupingLevel', idx], obj),
+                'ordering',
+              ]
+            )(groupings)
+          // merge the calculated stats - unless boxplot
+          // NOTE: Boxplot needs subgrouping - handle this in chart adapter
+          const statValues = R.map(
+            recursiveBubbleMap(
+              R.is(Array),
+              R.pipe(
+                R.filter(R.is(Number)),
+                obj.variant !== chartVariant.BOX_PLOT
+                  ? R.unless(R.isEmpty, mergeFuncs[obj.statAggregation])
+                  : R.identity
+              ),
+              R.identity,
+              R.filter(R.pipe(R.isEmpty, R.not))
             ),
-            R.identity,
-            R.filter(R.pipe(R.isEmpty, R.not))
-          ),
-          calculatedStats
-        )
-
-        // Helper function to map merged stats to chart input object
-        const recursiveMapLayers = (val) =>
-          R.type(val) === 'Object'
-            ? R.pipe(R.values, R.head, (item) => R.type(item) === 'Object')(val)
-              ? R.values(
-                  R.mapObjIndexed((value, key) => ({
-                    name: R.isNil(obj.groupingId) ? 'All' : key,
-                    children: recursiveMapLayers(value),
-                  }))(val)
-                )
-              : R.values(
-                  R.mapObjIndexed((value, key) => ({
-                    name: key,
-                    value: recursiveMapLayers(value),
-                  }))(val)
-                )
-            : R.is(Array, val)
-              ? val
-              : [val]
-
-        const nLevelOrder = R.curry((depth, chartItem) => {
-          return R.has('children', chartItem)
-            ? R.assoc(
-                'children',
-                R.map(nLevelOrder(depth + 1))(
-                  customSortByX(
-                    getOrderingAtIndex(depth),
-                    R.prop('children', chartItem)
-                  )
-                ),
-                chartItem
-              )
-            : chartItem
-        })
-        // Formats and sorts merged stats
-        const getFormattedData = R.map(
-          R.pipe(
-            debug
-              ? R.identity
-              : recursiveMap(
-                  (val) => R.type(val) !== 'Object',
-                  R.identity,
-                  R.dissoc(undefined)
-                ),
-            recursiveMapLayers,
-            customSortByX(getOrderingAtIndex(0)),
-            // The 0th layer is sorted above due to not being a child, so we start at 1
-            R.map(nLevelOrder(1))
+            resolvedStats
           )
-        )
-        const formattedData = getFormattedData(statValues)
-        const conditionalMerge = (key, a, b) =>
-          key === 'name'
-            ? a
-            : key === 'value'
-              ? R.concat(a, b)
-              : // key === 'children'
-                mergeMultiStatData([a, b])
 
-        const mergeMultiStatData = R.pipe(
-          R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
-          R.values
-        )
+          // Helper function to map merged stats to chart input object
+          const recursiveMapLayers = (val) =>
+            R.type(val) === 'Object'
+              ? R.pipe(
+                  R.values,
+                  R.head,
+                  (item) => R.type(item) === 'Object'
+                )(val)
+                ? R.values(
+                    R.mapObjIndexed((value, key) => ({
+                      name: R.isNil(obj.groupingId) ? 'All' : key,
+                      children: recursiveMapLayers(value),
+                    }))(val)
+                  )
+                : R.values(
+                    R.mapObjIndexed((value, key) => ({
+                      name: key,
+                      value: recursiveMapLayers(value),
+                    }))(val)
+                  )
+              : R.is(Array, val)
+                ? val
+                : [val]
 
-        return R.is(Array, obj.statId)
-          ? mergeMultiStatData(formattedData)
-          : R.head(formattedData)
+          const nLevelOrder = R.curry((depth, chartItem) => {
+            return R.has('children', chartItem)
+              ? R.assoc(
+                  'children',
+                  R.map(nLevelOrder(depth + 1))(
+                    customSortByX(
+                      getOrderingAtIndex(depth),
+                      R.prop('children', chartItem)
+                    )
+                  ),
+                  chartItem
+                )
+              : chartItem
+          })
+          // Formats and sorts merged stats
+          const getFormattedData = R.map(
+            R.pipe(
+              debug
+                ? R.identity
+                : recursiveMap(
+                    (val) => R.type(val) !== 'Object',
+                    R.identity,
+                    R.dissoc(undefined)
+                  ),
+              recursiveMapLayers,
+              customSortByX(getOrderingAtIndex(0)),
+              // The 0th layer is sorted above due to not being a child, so we start at 1
+              R.map(nLevelOrder(1))
+            )
+          )
+          const formattedData = getFormattedData(statValues)
+          const conditionalMerge = (key, a, b) =>
+            key === 'name'
+              ? a
+              : key === 'value'
+                ? R.concat(a, b)
+                : // key === 'children'
+                  mergeMultiStatData([a, b])
+
+          const mergeMultiStatData = R.pipe(
+            R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
+            R.values
+          )
+
+          return R.is(Array, obj.statId)
+            ? mergeMultiStatData(formattedData)
+            : R.head(formattedData)
+        })
       },
       MAX_MEMOIZED_CHARTS
     )
