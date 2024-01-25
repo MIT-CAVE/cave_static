@@ -1,4 +1,4 @@
-import { Box } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
@@ -151,6 +151,15 @@ const DashboardChart = ({ chartObj }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
+  if (R.isEmpty(formattedData))
+    return (
+      <CircularProgress
+        sx={{
+          mx: 'auto',
+          mt: '25%',
+        }}
+      />
+    )
   return (
     <Box
       sx={{
