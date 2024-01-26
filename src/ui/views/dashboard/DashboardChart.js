@@ -47,6 +47,7 @@ const DashboardChart = ({ chartObj }) => {
       const formattedData = await memoizedChartFunc(chartObj)
       setFormattedData(formattedData)
     }
+    setFormattedData([])
     runWorkers()
   }, [chartObj, memoizedChartFunc])
 
