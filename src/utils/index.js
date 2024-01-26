@@ -238,7 +238,7 @@ export const filterGroupedOutputs = (
 const promiseAllObject = (obj) =>
   Promise.all(R.values(obj)).then(R.zipObj(R.keys(obj)))
 
-export const calculateStatAnyDepth = (valueBuffers) => {
+export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
   const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
   const parser = new Parser()
   const calculate = (group, calculation) => {
@@ -306,22 +306,10 @@ export const calculateStatAnyDepth = (valueBuffers) => {
               R.map((group) => {
                 if (group.length < 1000) return calculate(group, calculation)
                 else
-                  return new Promise((resolve, reject) => {
-                    const worker = new Worker(
-                      new URL('./computationWorker.js', import.meta.url)
-                    )
-                    worker.postMessage({
-                      indicies: group,
-                      calculation,
-                      valueBuffers,
-                    })
-                    worker.onmessage = (e) => {
-                      worker.terminate()
-                      resolve(e.data)
-                    }
-                    worker.onerror = (e) => {
-                      reject(e)
-                    }
+                  return workerManager.doWork({
+                    indicies: group,
+                    calculation,
+                    valueBuffers,
                   })
               })(d)
             )

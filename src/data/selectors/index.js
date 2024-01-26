@@ -21,6 +21,7 @@ import {
 } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
+import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
 
 import {
   checkValidRange,
@@ -1220,9 +1221,10 @@ export const selectMemoizedChartFunc = createSelector(
           {},
           actualStat
         )
+        const workerManager = new ThreadMaxWorkers()
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
-          calculateStatAnyDepth(valueBuffers[stat[0]])(
+          calculateStatAnyDepth(valueBuffers[stat[0]], workerManager)(
             R.isEmpty(groupBys)
               ? [R.always(['All'])]
               : R.map(R.applyTo(stat[0]), groupBys),
