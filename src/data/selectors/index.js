@@ -45,6 +45,8 @@ import {
   calculateStatAnyDepth,
 } from '../../utils'
 
+const workerManager = new ThreadMaxWorkers()
+
 export const selectUtilities = (state) => R.prop('utilities')(state)
 
 // Loading
@@ -1221,7 +1223,6 @@ export const selectMemoizedChartFunc = createSelector(
           {},
           actualStat
         )
-        const workerManager = new ThreadMaxWorkers()
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
           calculateStatAnyDepth(valueBuffers[stat[0]], workerManager)(
