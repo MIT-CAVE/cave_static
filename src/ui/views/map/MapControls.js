@@ -8,6 +8,8 @@ import {
   MdRemove,
   Md360,
   MdHome,
+  MdApps,
+  MdMap,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -20,6 +22,7 @@ import {
   viewportUpdate,
   changeZoom,
   openMapModal,
+  toggleMapLegend,
 } from '../../../data/local/mapSlice'
 import {
   selectDefaultViewportFunc,
@@ -243,6 +246,37 @@ const MapControls = ({ allowProjections, mapId }) => {
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
           <TimeButtons />
+          {/* Map legend */}
+          <ButtonGroup
+            sx={styles.btnGroup}
+            aria-label="contained button group"
+            variant="contained"
+          >
+            <TooltipButton
+              title={tooltipTitles.mapLegend}
+              placement="top"
+              onClick={() => dispatch(toggleMapLegend(mapId))}
+            >
+              <MdApps />
+            </TooltipButton>
+          </ButtonGroup>
+
+          {/* Map styles */}
+          <ButtonGroup
+            sx={styles.btnGroup}
+            aria-label="contained button group"
+            variant="contained"
+          >
+            <TooltipButton
+              title={tooltipTitles.mapStyles}
+              placement="top"
+              onClick={() =>
+                dispatch(openMapModal({ feature: 'mapStyles', mapId }))
+              }
+            >
+              <MdMap />
+            </TooltipButton>
+          </ButtonGroup>
           {/* Projection */}
           {allowProjections && (
             <ButtonGroup sx={styles.btnGroup} variant="contained">
