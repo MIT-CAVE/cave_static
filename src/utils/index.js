@@ -304,7 +304,9 @@ export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
         ? async (d) =>
             await promiseAllObject(
               R.map((group) => {
-                if (group.length < 1000) return calculate(group, calculation)
+                // if group is small enough or if sharedArrayBuffer is not available calculate in main thread
+                if (group.length < 1000 || !window.crossOriginIsolated)
+                  return calculate(group, calculation)
                 else
                   return workerManager.doWork({
                     indicies: group,

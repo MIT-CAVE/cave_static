@@ -1120,7 +1120,9 @@ export const selectGroupedOutputValueBuffers = createSelector(
       R.pipe(
         R.prop('valueLists'),
         R.map((arr) => {
-          const buffer = new SharedArrayBuffer(arr.length * 8)
+          const buffer = window.crossOriginIsolated
+            ? new SharedArrayBuffer(arr.length * 8)
+            : new ArrayBuffer(arr.length * 8)
           const view = new Float64Array(buffer)
           for (let i = 0; i < arr.length; i++) {
             view[i] = arr[i]
