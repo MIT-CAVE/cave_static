@@ -17,6 +17,11 @@ import websocket from './utils/websockets'
 // https://beta.reactjs.org/learn/synchronizing-with-effects#not-an-effect-initializing-the-application
 if (typeof window !== 'undefined') {
   const { dispatch } = store
+  if (!window.crossOriginIsolated) {
+    console.warn(
+      'SharedArrayBuffer is not enabled. Update your application to improve performance.'
+    )
+  }
   const onMessageHandler = async (e) => {
     // check that the data is sent from api
     if (e.origin === window.location.ancestorOrigins[0]) {

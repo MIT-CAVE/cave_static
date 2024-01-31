@@ -172,67 +172,79 @@ export const filterMapFeature = (filters, featureObj) => {
   }
   return true
 }
-export const calculateStatAnyDepth = (
+
+export const filterGroupedOutputs = (
   statistics,
   filters,
-  groupingIndicies,
-  statNames
+  statNames,
+  groupingIndicies
 ) => {
-  const parser = new Parser()
-  const calculate = (group, calculation) => {
-    const valueLists = statistics['valueLists']
-    const filteredGroup = group.filter((idx) => {
-      for (const filterObj of filters) {
-        const format = R.propOr('stat', 'format', filterObj)
-        const prop = R.prop('prop', filterObj)
-        const filterValue = R.prop('value', filterObj)
-        const value =
-          format === 'stat'
-            ? R.path([statNames[prop][1], idx], valueLists)
-            : groupingIndicies[format]['data'][prop][
-                groupingIndicies[format]['data']['id'][
-                  R.path(['groupLists', format, idx], statistics)
-                ]
+  const valueLists = statistics['valueLists']
+  const indicies = R.pipe(
+    R.prop('valueLists'),
+    R.values,
+    R.head,
+    R.length,
+    R.range(0)
+  )(statistics)
+  const filteredIndicies = indicies.filter((idx) => {
+    for (const filterObj of filters) {
+      const format = R.propOr('stat', 'format', filterObj)
+      const prop = R.prop('prop', filterObj)
+      const filterValue = R.prop('value', filterObj)
+      const value =
+        format === 'stat'
+          ? R.path([statNames[prop][1], idx], valueLists)
+          : groupingIndicies[format]['data'][prop][
+              groupingIndicies[format]['data']['id'][
+                R.path(['groupLists', format, idx], statistics)
               ]
-        if (format !== 'stat') {
-          if (R.has('option', filterObj)) {
-            if (R.any(R.flip(R.includes)(value), filterValue)) {
-              return false
-            }
-          } else {
-            if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
-              return false
-            }
-          }
-        } else if (filterObj['option'] !== 'eq') {
-          const result = !R.has('option', filterObj)
-            ? true
-            : R.prop('option', filterObj) === 'gt'
-              ? R.gt(value, filterValue)
-              : R.gte(value, filterValue)
-          const result1 = !R.has('option1', filterObj)
-            ? true
-            : R.prop('option1', filterObj) === 'lt'
-              ? R.lt(value, R.prop('value1', filterObj))
-              : R.lte(value, R.prop('value1', filterObj))
-          if (!result || !result1) {
+            ]
+      if (format !== 'stat') {
+        if (R.has('option', filterObj)) {
+          if (R.any(R.flip(R.includes)(value), filterValue)) {
             return false
           }
         } else {
-          if (filterValue !== value) {
+          if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
             return false
           }
         }
+      } else if (filterObj['option'] !== 'eq') {
+        const result = !R.has('option', filterObj)
+          ? true
+          : R.prop('option', filterObj) === 'gt'
+            ? R.gt(value, filterValue)
+            : R.gte(value, filterValue)
+        const result1 = !R.has('option1', filterObj)
+          ? true
+          : R.prop('option1', filterObj) === 'lt'
+            ? R.lt(value, R.prop('value1', filterObj))
+            : R.lte(value, R.prop('value1', filterObj))
+        if (!result || !result1) {
+          return false
+        }
+      } else {
+        if (filterValue !== value) {
+          return false
+        }
       }
-      return true
-    })
+    }
+    return true
+  })
+  return filteredIndicies
+}
+
+const promiseAllObject = (obj) =>
+  Promise.all(R.values(obj)).then(R.zipObj(R.keys(obj)))
+
+export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
+  const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
+  const parser = new Parser()
+  const calculate = (group, calculation) => {
     // if there are no calculations just return values at the group indicies
     if (R.has(calculation, valueLists)) {
-      return R.pipe(
-        (d) => d[calculation],
-        R.pick(filteredGroup),
-        R.values
-      )(valueLists)
+      return R.pipe((d) => d[calculation], R.pick(group), R.values)(valueLists)
     }
     // define groupSum for each base level group
     const preSummed = {}
@@ -241,12 +253,12 @@ export const calculateStatAnyDepth = (
       // dont recalculate sum for each stat
       if (R.isNil(preSummed[statName])) {
         preSummed[statName] = R.sum(
-          R.map((idx) => statistics['valueLists'][statName][idx], filteredGroup)
+          R.map((idx) => valueLists[statName][idx], group)
         )
       }
       return preSummed[statName]
     }
-    return filteredGroup.map((idx) => {
+    return group.map((idx) => {
       const proxy = new Proxy(valueLists, {
         get(target, name, receiver) {
           return Reflect.get(target, name, receiver)[idx]
@@ -272,11 +284,10 @@ export const calculateStatAnyDepth = (
       }
     })
   }
-
-  const group = (groupBys, calculation, indicies) => {
+  const group = async (groupBys, calculation, indicies) => {
     const currentGroupBy = groupBys[0]
     const keyFn = R.pipe(currentGroupBy, R.join(' \u279D '))
-    return R.pipe(
+    return await R.pipe(
       (idxs) => {
         const acc = {}
         for (let i = 0; i < idxs.length; i++) {
@@ -290,22 +301,31 @@ export const calculateStatAnyDepth = (
         return acc
       },
       R.length(groupBys) === 1
-        ? R.map((group) => calculate(group, calculation))
-        : R.map((stats) => group(groupBys.slice(1), calculation, stats))
+        ? async (d) =>
+            await promiseAllObject(
+              R.map((group) => {
+                // if group is small enough or if sharedArrayBuffer is not available calculate in main thread
+                if (group.length < 1000 || !window.crossOriginIsolated)
+                  return calculate(group, calculation)
+                else
+                  return workerManager.doWork({
+                    indicies: group,
+                    calculation,
+                    valueBuffers,
+                  })
+              })(d)
+            )
+        : async (d) =>
+            await promiseAllObject(
+              R.map(
+                async (stats) =>
+                  await group(groupBys.slice(1), calculation, stats)
+              )(d)
+            )
     )(indicies)
   }
-  const indicies = R.pipe(
-    R.prop('valueLists'),
-    R.values,
-    R.head,
-    R.length,
-    R.range(0)
-  )(statistics)
 
-  const groupHelper = (groupBys, calculation) =>
-    group(groupBys, calculation, indicies)
-
-  return groupHelper
+  return group
 }
 
 export const recursiveMap = R.curry(

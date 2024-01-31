@@ -1,6 +1,6 @@
-import { Box } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -40,7 +40,16 @@ const DashboardChart = ({ chartObj }) => {
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectStatGroupings)
 
-  const formattedData = memoizedChartFunc(chartObj)
+  const [formattedData, setFormattedData] = useState([])
+
+  useEffect(() => {
+    const runWorkers = async () => {
+      const formattedData = await memoizedChartFunc(chartObj)
+      setFormattedData(formattedData)
+    }
+    setFormattedData([])
+    runWorkers()
+  }, [chartObj, memoizedChartFunc])
 
   const subGrouped = R.hasPath(['groupingLevel', 1])(chartObj)
 
@@ -143,6 +152,15 @@ const DashboardChart = ({ chartObj }) => {
   // excluded as they will be represented in the header or as part
   // of the axis labels.
   const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
+  if (R.isEmpty(formattedData))
+    return (
+      <CircularProgress
+        sx={{
+          mx: 'auto',
+          mt: '25%',
+        }}
+      />
+    )
   return (
     <Box
       sx={{
