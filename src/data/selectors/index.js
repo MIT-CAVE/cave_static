@@ -146,10 +146,10 @@ export const selectMapFeatures = createSelector(selectData, (data) =>
   R.propOr({}, 'mapFeatures')(data)
 )
 export const selectAppBar = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'appBar')(data))
+  R.propOr({}, 'appBar')(data)
 )
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'groupedOutputs')(data))
+  R.propOr({}, 'groupedOutputs')(data)
 )
 export const selectGlobalOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'globalOutputs')(data)
@@ -170,7 +170,7 @@ export const selectModals = createSelector(selectData, (data) =>
   R.propOr({}, 'modals')(data)
 )
 export const selectMap = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'maps', data))
+  R.propOr({}, 'maps', data)
 )
 // Data -> Types
 export const selectFeatureData = createSelector(selectMapFeatures, (data) =>
@@ -199,11 +199,12 @@ export const selectModalsData = createSelector(
 )
 export const selectMapData = createSelector(
   [selectMap, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+  (data, time) =>
+    getTimeValue(time, orderEntireDict(R.propOr({}, 'data', data)))
 )
 
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
-  R.propOr({}, 'data')(data)
+  orderEntireDict(R.propOr({}, 'data')(data))
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
@@ -225,7 +226,7 @@ export const selectRightAppBarData = createSelector(
 )
 export const selectGroupedOutputsData = createSelector(
   selectGroupedOutputs,
-  (data) => R.propOr({}, 'data')(data)
+  (data) => orderEntireDict(R.propOr({}, 'data')(data))
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
@@ -807,6 +808,7 @@ export const selectMapStyleOptions = createSelector(
   (data, token) => ({
     ...DEFAULT_MAP_STYLES,
     ...R.pipe(
+      orderEntireDict,
       R.propOr([], 'additionalMapStyles'),
       R.filter(
         (style) =>
@@ -1105,7 +1107,7 @@ export const selectMatchingKeysByTypeFunc = createSelector(
 // outputs derived
 export const selectStatGroupings = createSelector(
   selectGroupedOutputs,
-  R.propOr({}, 'groupings')
+  (data) => orderEntireDict(R.propOr({}, 'groupings', data))
 )
 
 export const selectStatGroupingIndicies = createSelector(
