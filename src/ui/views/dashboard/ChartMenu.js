@@ -142,7 +142,7 @@ const ChartMenu = ({
             label="Filter Data"
             ReactIcon={FaFilter}
             badgeProps={{
-              color: 'primary',
+              color: 'warning',
               badgeContent: activeFilters.length,
               invisible: activeFilters.length < 1,
             }}
