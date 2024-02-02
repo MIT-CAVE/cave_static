@@ -20,12 +20,14 @@ const styles = {
 
 const PropVideo = ({ prop, sx = [], ...props }) => (
   <Box sx={[styles.box, ...forceArray(sx)]} {...R.dissoc('currentVal', props)}>
+    {console.log(prop, props)}
     <iframe
+      credentialless="true"
       title="Embedded Video"
       src={prop.value}
       style={styles.video}
       frameBorder="0"
-      allow="autoplay; fullscreen; picture-in-picture"
+      allow="autoplay; fullscreen; picture-in-picture; cross-origin-isolated"
     ></iframe>
   </Box>
 )
