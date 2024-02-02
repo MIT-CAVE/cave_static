@@ -20,7 +20,6 @@ const styles = {
 
 const PropVideo = ({ prop, sx = [], ...props }) => (
   <Box sx={[styles.box, ...forceArray(sx)]} {...R.dissoc('currentVal', props)}>
-    {console.log(prop, props)}
     <iframe
       credentialless="true"
       title="Embedded Video"
