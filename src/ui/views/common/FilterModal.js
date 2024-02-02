@@ -81,6 +81,7 @@ const FilterModal = ({
   const [rows, setRows] = useState([])
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
+  const [canSaveRow, setCanSaveRow] = useState({})
 
   // const getNumberFormat = useSelector(selectNumberFormatPropsFn)
   const numberFormat = useSelector(selectNumberFormat)
@@ -96,7 +97,7 @@ const FilterModal = ({
       R.pipe(
         R.flip(R.assoc('id')),
         // Drop falsy `active` values
-        R.when(R.propEq(false)('active'), R.dissoc('active')),
+        R.when(R.propEq(false, 'active'), R.dissoc('active')),
         renameKeys({ option: 'relation', prop: 'source' })
       )
     )(filterCriteria)
@@ -145,7 +146,7 @@ const FilterModal = ({
   }, [apiRef, idCount, rows.length])
 
   const deleteRow = useCallback((id) => {
-    setRows(R.reject(R.propEq(id)('id')))
+    setRows(R.reject(R.propEq(id, 'id')))
   }, [])
   const handleDeleteRow = useCallback(
     (id) => () => {
@@ -173,13 +174,14 @@ const FilterModal = ({
   const handleClickSave = useCallback(
     (id) => () => {
       setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
+      setCanSaveRow(R.dissoc(id))
     },
     []
   )
 
   const processRowUpdate = (newRow) => {
     const updatedRow = R.dissoc('isNew')(newRow)
-    setRows(R.map(R.when(R.propEq(newRow.id)('id'), R.always(updatedRow))))
+    setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
     return updatedRow
   }
 
@@ -188,26 +190,6 @@ const FilterModal = ({
       event.defaultMuiPrevented = true
     }
   }
-
-  const disableDiscardAndSaveAll = useMemo(() => {
-    const unsavedChanges = !R.equals(rows)(initialRows)
-    const isEditing = R.pipe(
-      R.values,
-      R.any(R.propEq(GridRowModes.Edit)('mode'))
-    )(rowModesModel)
-    return filterTab === 'groups' || isEditing || !unsavedChanges
-  }, [filterTab, initialRows, rowModesModel, rows])
-
-  const isRowSaveDisabled = useCallback(
-    (id) =>
-      // TODO: Move this to pre-processing
-      R.pipe(
-        R.props(['logic', 'source', 'relation', 'value']), // Pick validation fields
-        R.any(R.isEmpty),
-        R.F // FIXME
-      )(apiRef.current.getRow(id)),
-    [apiRef]
-  )
 
   const updateActiveStateForSelectedRow = useCallback(
     (row) => {
@@ -221,6 +203,15 @@ const FilterModal = ({
     [apiRef]
   )
 
+  const canDiscardOrSaveAll = useMemo(() => {
+    const unsavedChanges = !R.equals(rows)(initialRows)
+    const isEditing = R.pipe(
+      R.values,
+      R.any(R.propEq(GridRowModes.Edit, 'mode'))
+    )(rowModesModel)
+    return filterTab === 'stats' && !isEditing && unsavedChanges
+  }, [filterTab, initialRows, rowModesModel, rows])
+
   const handleClickSaveAll = useCallback(() => {
     const newFilters = R.map(
       R.pipe(
@@ -233,21 +224,34 @@ const FilterModal = ({
     onSave(newFilters)
   }, [onSave, rows, updateActiveStateForSelectedRow])
 
-  const handleClickDiscardAll = useCallback(() => {
-    restoreFilters()
-  }, [restoreFilters])
-
   const handleRowSelectionCheckboxChange = useCallback(() => {
     setRows(R.map(updateActiveStateForSelectedRow))
   }, [updateActiveStateForSelectedRow])
 
-  const handleEditRowsModelChange = useCallback(() => {
-    // console.log('debug')
-  }, [])
-
   const handleCellDoubleClick = (_, event) => {
     event.defaultMuiPrevented = true
   }
+
+  const preProcessEditCellProps = useCallback(
+    ({ id, props, hasChanged, otherFieldsProps }) => {
+      const isValueValid = R.propSatisfies(
+        R.either(R.isNil, R.isEmpty),
+        'value'
+      )
+      const newCellProps = R.pipe(
+        R.ifElse(isValueValid, R.assoc('error', true), R.dissoc('error'))
+      )(props)
+
+      if (hasChanged) {
+        const hasError =
+          newCellProps.error ||
+          R.pipe(R.values, R.any(isValueValid))(otherFieldsProps)
+        setCanSaveRow(R.assoc(id, !hasError))
+      }
+      return newCellProps
+    },
+    []
+  )
 
   const columns = useMemo(
     () => [
@@ -261,6 +265,7 @@ const FilterModal = ({
         valueOptions: ['and'], // FIXME: ['or', 'and'],
         getOptionLabel: (option) => option.toUpperCase(),
         cellClassName: ({ id }) => (id > rows[0].id ? '' : 'hidden'),
+        preProcessEditCellProps,
       },
       GRID_CHECKBOX_SELECTION_COL_DEF,
       {
@@ -271,10 +276,7 @@ const FilterModal = ({
         editable: true,
         sortable: false,
         valueOptions: R.keys(statNames),
-        // preProcessEditCellProps: ({ props }) => {
-        //   console.log({ props })
-        //   return { ...props, error: props.value === '' }
-        // },
+        preProcessEditCellProps,
       },
       {
         field: 'relation',
@@ -305,6 +307,7 @@ const FilterModal = ({
             label: '>=',
           },
         ],
+        preProcessEditCellProps,
       },
       {
         field: 'value',
@@ -319,6 +322,7 @@ const FilterModal = ({
           typeof value === 'number'
             ? NumberFormat.format(value, numberFormat)
             : null,
+        preProcessEditCellProps,
       },
       {
         field: 'actions',
@@ -329,7 +333,7 @@ const FilterModal = ({
           R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
             ? [
                 <GridActionsCellItem
-                  disabled={isRowSaveDisabled(id)}
+                  disabled={!canSaveRow[id]}
                   icon={<MdSave size="20px" />}
                   label="Save"
                   onClick={handleClickSave(id)}
@@ -352,20 +356,24 @@ const FilterModal = ({
                   onClick={handleDeleteRow(id)}
                 />,
               ],
+        preProcessEditCellProps,
       },
     ],
     [
-      statNames,
-      rows,
-      numberFormat,
-      rowModesModel,
-      isRowSaveDisabled,
-      handleClickSave,
       handleClickDiscard,
       handleClickEdit,
+      handleClickSave,
       handleDeleteRow,
+      canSaveRow,
+      numberFormat,
+      preProcessEditCellProps,
+      rowModesModel,
+      rows,
+      statNames,
     ]
   )
+
+  console.log({ canSaveRow }, apiRef.current)
 
   return (
     // Keep the component mounted to avoid losing `apiRef`
@@ -400,7 +408,6 @@ const FilterModal = ({
             disableRowSelectionOnClick
             onRowEditStop={handleRowEditStop}
             onCellDoubleClick={handleCellDoubleClick}
-            onEditRowsModelChange={handleEditRowsModelChange}
             onRowSelectionModelChange={handleRowSelectionCheckboxChange}
           />
           {filterTab === 'stats' && (
@@ -417,16 +424,16 @@ const FilterModal = ({
         </Paper>
         <Stack mt={1} spacing={1} direction="row" justifyContent="end">
           <Button
-            disabled={disableDiscardAndSaveAll}
+            disabled={!canDiscardOrSaveAll}
             color="error"
             variant="contained"
             startIcon={<MdRestore />}
-            onClick={handleClickDiscardAll}
+            onClick={restoreFilters}
           >
             Discard All Changes
           </Button>
           <Button
-            disabled={disableDiscardAndSaveAll}
+            disabled={!canDiscardOrSaveAll}
             color="primary"
             variant="contained"
             startIcon={<MdCheck />}
