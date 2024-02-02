@@ -1216,7 +1216,10 @@ export const selectMemoizedChartFunc = createSelector(
               stat[0],
               filterGroupedOutputs(
                 groupedOutputs[stat[0]],
-                R.propOr([], 'filters', obj),
+                R.pipe(
+                  R.propOr([], 'filters'),
+                  R.filter(R.prop('active'))
+                )(obj),
                 statNames,
                 groupingIndicies
               ),

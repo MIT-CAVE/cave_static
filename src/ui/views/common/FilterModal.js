@@ -1,613 +1,440 @@
+import { Modal, Paper, Stack, Button, Box, Tabs, Tab } from '@mui/material'
 import {
-  Modal,
-  Paper,
-  Card,
-  Autocomplete,
-  TextField,
-  CardActions,
-  Stack,
-  Button,
-  Box,
-  Grid,
-  ButtonGroup,
-  FormControlLabel,
-  Checkbox,
-} from '@mui/material'
+  DataGrid,
+  GridActionsCellItem,
+  GridRowModes,
+  GRID_CHECKBOX_SELECTION_COL_DEF,
+  useGridApiRef,
+  GridRowEditStopReasons,
+} from '@mui/x-data-grid'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  MdAddCircleOutline,
+  MdCheck,
+  MdDelete,
+  MdEdit,
+  MdRestore,
+  MdSave,
+} from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
 import {
-  selectNumberFormatPropsFn,
+  // selectNumberFormatPropsFn,
   selectNumberFormat,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH } from '../../../utils/constants'
 
-import { FetchedIcon, NumberInput } from '../../compound'
+import { NumberFormat, mapIndexed, renameKeys } from '../../../utils'
 
 const styles = {
   modal: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    ml: 'auto',
-    mr: 'auto',
+    mx: 'auto',
     p: 1,
   },
   paper: {
+    display: 'flex',
+    flexDirection: 'column',
     position: 'absolute',
+    maxWidth: '80%',
+    minWidth: '33%',
+    height: '50%',
+    p: 2,
+    mx: 'auto',
+    color: 'text.primary',
+    bgcolor: 'background.paper',
     border: 1,
     borderColor: 'text.secondary',
     borderRadius: 1,
-    bgcolor: 'background.paper',
     boxShadow: 5,
-    p: (theme) => theme.spacing(2, 4, 3),
-    color: 'text.primary',
-    width: '30vw',
-    maxHeight: `calc(100vh - ${2 * APP_BAR_WIDTH + 1}px)`,
-    overflow: 'auto',
-    ml: 'auto',
-    mr: 'auto',
-    pb: 4,
+    overflow: 'hidden',
   },
   header: {
     display: 'flex',
     justifyContent: 'center',
     mb: 1,
-    p: 2.5,
+    p: 2,
     fontSize: '25px',
     borderColor: 'text.secondary',
     borderBottom: '2px',
   },
+  addBtn: {
+    justifyContent: 'start',
+    pl: 2,
+    py: 2,
+  },
 }
 
 const FilterModal = ({
-  filterOpen,
-  setFilterOpen,
-  filterableProps,
-  currentFilters,
-  updateFilters,
-  chartObj = {},
+  open,
+  statNames,
+  // TODO: statGroupings,
+  defaultFilters,
+  onSave,
+  onClose,
 }) => {
-  const [filterToAdd, setFilterToAdd] = useState({})
-  const getNumberFormat = useSelector(selectNumberFormatPropsFn)
-  const numberFormat = useSelector(selectNumberFormat)
-  const format = R.propOr('stat', 'format', filterToAdd)
-  const type =
-    format === 'stat' && !R.isEmpty(chartObj)
-      ? 'num'
-      : !R.isEmpty(chartObj)
-        ? 'selector'
-        : R.pathOr('', [filterToAdd['prop'], 'type'])(filterableProps)
-  return (
-    <Modal
-      open={filterOpen}
-      onClose={() => {
-        setFilterOpen(false)
-      }}
-      sx={styles.modal}
-    >
-      <Box sx={styles.paper}>
-        <Box sx={styles.header}>{'Filter'}</Box>
-        <Paper sx={{ textAlign: 'center', pb: 1 }}>
-          <Card elevation={10}>
-            {!R.isEmpty(chartObj) && (
-              <Autocomplete
-                sx={{ m: 2 }}
-                autoSelect
-                disablePortal
-                value={format}
-                options={[
-                  'stat',
-                  ...R.keys(R.prop('categories')(filterableProps)),
-                ]}
-                renderInput={(params) => (
-                  <TextField label={'Filter Type'} {...params} />
-                )}
-                onChange={(_, value) => {
-                  setFilterToAdd(R.assoc('format', value, filterToAdd))
-                }}
-                getOptionLabel={(option) =>
-                  option === 'stat'
-                    ? 'Statistic'
-                    : R.pathOr(option, [option, 'name'])(
-                        R.prop('categories', filterableProps)
-                      )
-                }
-              />
-            )}
-            <Grid container spacing={2} alignItems={'center'}>
-              <Grid item xs={5}>
-                <Autocomplete
-                  sx={{ m: 2 }}
-                  autoSelect
-                  disablePortal
-                  value={R.propOr('', 'prop', filterToAdd)}
-                  options={
-                    R.isEmpty(chartObj)
-                      ? R.keys(filterableProps)
-                      : format === 'stat'
-                        ? R.keys(filterableProps['statNames'])
-                        : R.keys(
-                            filterableProps['categories'][format]['levels']
-                          )
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      label={
-                        R.isEmpty(chartObj)
-                          ? 'Prop'
-                          : format === 'stat'
-                            ? 'Statistic'
-                            : R.pathOr(format, ['categories', format, 'name'])(
-                                filterableProps
-                              )
-                      }
-                      {...params}
-                    />
-                  )}
-                  onChange={(_, value) => {
-                    setFilterToAdd({
-                      prop: value,
-                      format: filterToAdd['format'],
-                    })
-                  }}
-                  getOptionLabel={(option) =>
-                    R.isEmpty(chartObj) || format === 'stat'
-                      ? R.pathOr(option, [option, 'name'])(filterableProps)
-                      : R.pathOr(option, [
-                          'categories',
-                          format,
-                          'levels',
-                          option,
-                          'name',
-                        ])(filterableProps)
-                  }
-                />
-              </Grid>
-              {R.has('prop', filterToAdd) && type === 'num' ? (
-                <>
-                  <Grid item xs={2}>
-                    <ButtonGroup aria-label="button group">
-                      <Button
-                        variant={
-                          R.propEq('eq', 'option', filterToAdd)
-                            ? 'contained'
-                            : 'outlined'
-                        }
-                        onClick={() => {
-                          filterToAdd['option'] === 'eq'
-                            ? setFilterToAdd(R.dissoc('option', filterToAdd))
-                            : setFilterToAdd(
-                                R.assoc('option', 'eq', filterToAdd)
-                              )
-                        }}
-                      >
-                        =
-                      </Button>
-                      <Button
-                        variant={
-                          R.propEq('gte', 'option', filterToAdd)
-                            ? 'contained'
-                            : 'outlined'
-                        }
-                        onClick={() => {
-                          filterToAdd['option'] === 'gte'
-                            ? setFilterToAdd(R.dissoc('option', filterToAdd))
-                            : setFilterToAdd(
-                                R.assoc('option', 'gte', filterToAdd)
-                              )
-                        }}
-                      >
-                        &ge;
-                      </Button>
-                      <Button
-                        variant={
-                          R.propEq('gt', 'option', filterToAdd)
-                            ? 'contained'
-                            : 'outlined'
-                        }
-                        onClick={() => {
-                          filterToAdd['option'] === 'gt'
-                            ? setFilterToAdd(R.dissoc('option', filterToAdd))
-                            : setFilterToAdd(
-                                R.assoc('option', 'gt', filterToAdd)
-                              )
-                        }}
-                      >
-                        &gt;
-                      </Button>
-                    </ButtonGroup>
-                  </Grid>
-                  <Grid item xs={5}>
-                    <Box sx={{ m: 2 }}>
-                      <NumberInput
-                        enabled={type !== 'num' || R.has('option', filterToAdd)}
-                        numberFormat={
-                          R.isEmpty(chartObj)
-                            ? getNumberFormat(
-                                filterableProps[filterToAdd['prop']]
-                              )
-                            : numberFormat
-                        }
-                        value={
-                          R.has('option', filterToAdd)
-                            ? filterToAdd['value']
-                            : ''
-                        }
-                        onClickAway={(value) => {
-                          setFilterToAdd(R.assoc('value', value, filterToAdd))
-                        }}
-                      />
-                    </Box>
-                  </Grid>
-                </>
-              ) : type ===
-                // TODO: replace this with the multiautocomplete that is in progress
-                // This will require changes in data display as well
-                'selector' ? (
-                <>
-                  <Grid item xs={2}>
-                    <ButtonGroup aria-label="button group">
-                      <Button
-                        variant={
-                          R.propEq('exc', 'option', filterToAdd)
-                            ? 'outlined'
-                            : 'contained'
-                        }
-                        onClick={() => {
-                          setFilterToAdd(R.dissoc('option', filterToAdd))
-                        }}
-                      >
-                        Inc
-                      </Button>
-                      <Button
-                        variant={
-                          R.propEq('exc', 'option', filterToAdd)
-                            ? 'contained'
-                            : 'outlined'
-                        }
-                        onClick={() => {
-                          setFilterToAdd(R.assoc('option', 'exc', filterToAdd))
-                        }}
-                      >
-                        Exc
-                      </Button>
-                    </ButtonGroup>
-                  </Grid>
-                  <Grid item xs={5}>
-                    {R.values(
-                      R.mapObjIndexed(({ name: label }, key) => (
-                        <FormControlLabel
-                          {...{ key, label }}
-                          sx={{ pl: 1 }}
-                          control={
-                            <Checkbox
-                              checked={R.includes(key)(
-                                R.propOr([], 'value', filterToAdd)
-                              )}
-                              onClick={() => {
-                                const checked = R.includes(
-                                  key,
-                                  R.propOr([], 'value', filterToAdd)
-                                )
-                                setFilterToAdd(
-                                  checked
-                                    ? R.assoc(
-                                        'value',
-                                        R.without([key], filterToAdd['value']),
-                                        filterToAdd
-                                      )
-                                    : R.assoc(
-                                        'value',
-                                        R.append(key, filterToAdd['value']),
-                                        filterToAdd
-                                      )
-                                )
-                              }}
-                            />
-                          }
-                        />
-                      ))(
-                        R.isEmpty(chartObj)
-                          ? R.pathOr({}, [filterToAdd['prop'], 'options'])(
-                              filterableProps
-                            )
-                          : R.pipe(
-                              R.pathOr(
-                                [],
-                                [
-                                  'categories',
-                                  format,
-                                  'data',
-                                  filterToAdd['prop'],
-                                ]
-                              ),
-                              (d) => {
-                                const acc = {}
-                                for (const value of d) {
-                                  acc[value] = { name: value }
-                                }
-                                return acc
-                              }
-                            )(filterableProps)
-                      )
-                    )}
-                  </Grid>
-                </>
-              ) : type === 'toggle' ? (
-                <>
-                  <Grid item xs={2}>
-                    =
-                  </Grid>
-                  <Grid item xs={5}>
-                    <Autocomplete
-                      sx={{ m: 2 }}
-                      autoSelect
-                      disablePortal
-                      value={R.propOr('', 'value', filterToAdd)}
-                      options={[true, false]}
-                      renderInput={(params) => (
-                        <TextField label={'Value'} {...params} />
-                      )}
-                      onChange={(_, value) => {
-                        setFilterToAdd(R.assoc('value', value, filterToAdd))
-                      }}
-                      getOptionLabel={(option) =>
-                        option.toString().charAt(0).toUpperCase() +
-                        option.toString().slice(1)
-                      }
-                    />
-                  </Grid>
-                </>
-              ) : (
-                []
-              )}
-            </Grid>
-            {R.has('prop', filterToAdd) && type === 'num' && (
-              <Grid container>
-                <Grid item xs={5}></Grid>
-                <Grid item xs={2} sx={{ mt: 3 }}>
-                  <ButtonGroup
-                    aria-label="button group"
-                    disabled={R.propEq('eq', 'option', filterToAdd)}
-                  >
-                    <Button
-                      variant={
-                        R.propEq('lte', 'option1', filterToAdd)
-                          ? 'contained'
-                          : 'outlined'
-                      }
-                      onClick={() => {
-                        filterToAdd['option1'] === 'lte'
-                          ? setFilterToAdd(R.dissoc('option1', filterToAdd))
-                          : setFilterToAdd(
-                              R.assoc('option1', 'lte', filterToAdd)
-                            )
-                      }}
-                    >
-                      &le;
-                    </Button>
-                    <Button
-                      variant={
-                        R.propEq('lt', 'option1', filterToAdd)
-                          ? 'contained'
-                          : 'outlined'
-                      }
-                      onClick={() => {
-                        filterToAdd['option1'] === 'lt'
-                          ? setFilterToAdd(R.dissoc('option1', filterToAdd))
-                          : setFilterToAdd(
-                              R.assoc('option1', 'lt', filterToAdd)
-                            )
-                      }}
-                    >
-                      &lt;
-                    </Button>
-                  </ButtonGroup>
-                </Grid>
-                <Grid item xs={5}>
-                  <Box sx={{ m: 2 }}>
-                    <NumberInput
-                      enabled={
-                        R.has('option1', filterToAdd) &&
-                        !R.propEq('eq', 'option', filterToAdd)
-                      }
-                      numberFormat={
-                        R.isEmpty(chartObj)
-                          ? getNumberFormat(
-                              filterableProps[filterToAdd['prop']]
-                            )
-                          : numberFormat
-                      }
-                      value={
-                        R.has('option1', filterToAdd) &&
-                        !R.propEq('eq', 'option', filterToAdd)
-                          ? filterToAdd['value1']
-                          : ''
-                      }
-                      onClickAway={(value) => {
-                        setFilterToAdd(R.assoc('value1', value, filterToAdd))
-                      }}
-                    />
-                  </Box>
-                </Grid>
-              </Grid>
-            )}
-            <CardActions
-              disableSpacing
-              sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0 }}
-            >
-              <Stack direction="row" spacing={1} paddingBottom={0.75}>
-                <Button
-                  disabled={
-                    type === 'num'
-                      ? !(
-                          (R.has('option', filterToAdd) &&
-                            R.has('value', filterToAdd)) ||
-                          (R.has('option1', filterToAdd) &&
-                            R.has('value1', filterToAdd))
-                        )
-                      : !R.allPass([
-                          R.has('prop'),
-                          R.has('value'),
-                          R.pipe(R.prop('value'), R.isEmpty, R.not),
-                        ])(filterToAdd)
-                  }
-                  aria-label="confirm changes"
-                  onClick={() => {
-                    updateFilters(R.append(filterToAdd, currentFilters))
-                    setFilterToAdd({})
-                  }}
-                  variant="contained"
-                >
-                  <FetchedIcon iconName="md/MdCheck" size={24} />
-                </Button>
-              </Stack>
-            </CardActions>
-          </Card>
-          {R.map((filterObj) => {
-            const { prop, value, option, option1, value1 } = filterObj
-            const format = R.propOr('stat', 'format', filterObj)
-            const type =
-              format === 'stat' && !R.isEmpty(chartObj)
-                ? 'num'
-                : !R.isEmpty(chartObj)
-                  ? 'selector'
-                  : R.pathOr('', [prop, 'type'])(filterableProps)
-            return (
-              <Card
-                key={prop}
-                elevation={10}
-                sx={{
-                  m: 2,
-                  p: 2,
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}
-              >
-                <Grid container spacing={2} alignItems={'center'}>
-                  <Grid item xs={4}>
-                    {R.isEmpty(chartObj) || format === 'stat'
-                      ? R.pathOr(prop, [prop, 'name'])(filterableProps)
-                      : R.pathOr(prop, [
-                          'categories',
-                          format,
-                          'levels',
-                          prop,
-                          'name',
-                        ])(filterableProps)}
-                  </Grid>
-                  {(type !== 'num' || R.isNotNil(option)) && (
-                    <Grid item xs={type === 'num' ? 1 : 2}>
-                      {type === 'num' ? (
-                        option === 'gte' ? (
-                          <>&ge;</>
-                        ) : option === 'gt' ? (
-                          <>&gt;</>
-                        ) : (
-                          '='
-                        )
-                      ) : type === 'selector' ? (
-                        option === 'exc' ? (
-                          'Excludes'
-                        ) : (
-                          'Includes'
-                        )
-                      ) : (
-                        '='
-                      )}
-                    </Grid>
-                  )}
+  const [filters, setFilters] = useState(defaultFilters)
+  const [filterTab, setFilterTab] = useState('stats')
+  const [idCount, setIdCount] = useState(0)
+  const [rows, setRows] = useState([])
+  const [initialRows, setInitialRows] = useState([])
+  const [rowModesModel, setRowModesModel] = useState({})
 
-                  {(type !== 'num' || R.isNotNil(option)) && (
-                    <Grid item xs>
-                      {type === 'num' && R.isNotNil(option) ? (
-                        <NumberInput
-                          enabled={false}
-                          numberFormat={
-                            R.isEmpty(chartObj)
-                              ? getNumberFormat(filterableProps[prop])
-                              : numberFormat
-                          }
-                          value={value}
-                        />
-                      ) : type === 'selector' ? (
-                        R.values(
-                          R.mapObjIndexed(({ name: label }, key) => (
-                            <FormControlLabel
-                              {...{ key, label }}
-                              control={
-                                <Checkbox
-                                  checked={R.includes(key)(value)}
-                                  disabled
-                                />
-                              }
-                            />
-                          ))(
-                            R.isEmpty(chartObj)
-                              ? R.pathOr({}, [prop, 'options'])(filterableProps)
-                              : R.pipe(
-                                  R.pathOr(
-                                    [],
-                                    ['categories', format, 'data', prop]
-                                  ),
-                                  (d) => {
-                                    const acc = {}
-                                    for (const value of d) {
-                                      acc[value] = { name: value }
-                                    }
-                                    return acc
-                                  }
-                                )(filterableProps)
-                          )
-                        )
-                      ) : (
-                        value.toString().charAt(0).toUpperCase() +
-                        value.toString().slice(1)
-                      )}
-                    </Grid>
-                  )}
-                  {type === 'num' && option1 && option !== 'eq' && (
-                    <>
-                      <Grid item xs={1}>
-                        {option1 === 'lte' ? (
-                          <> &le;</>
-                        ) : option1 === 'lt' ? (
-                          <> &lt;</>
-                        ) : (
-                          ''
-                        )}
-                      </Grid>
-                      <Grid item xs>
-                        <NumberInput
-                          enabled={false}
-                          numberFormat={
-                            R.isEmpty(chartObj)
-                              ? getNumberFormat(filterableProps[prop])
-                              : numberFormat
-                          }
-                          value={value1}
-                        />
-                      </Grid>
-                    </>
-                  )}
-                  <Grid item xs={2}>
-                    <Button
-                      aria-label="delete filter"
-                      onClick={() => {
-                        updateFilters(R.without([filterObj], currentFilters))
-                      }}
-                      variant="contained"
-                    >
-                      <FetchedIcon iconName="md/MdDelete" size={24} />
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Card>
-            )
-          })(currentFilters)}
+  // const getNumberFormat = useSelector(selectNumberFormatPropsFn)
+  const numberFormat = useSelector(selectNumberFormat)
+  const apiRef = useGridApiRef()
+
+  const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
+
+  const restoreFilters = useCallback(() => {
+    const filterCriteria = R.filter(
+      R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
+    )(filters)
+    const initialRows = mapIndexed(
+      R.pipe(
+        R.flip(R.assoc('id')),
+        // Drop falsy `active` values
+        R.when(R.propEq(false)('active'), R.dissoc('active')),
+        renameKeys({ option: 'relation', prop: 'source' })
+      )
+    )(filterCriteria)
+
+    setInitialRows(initialRows)
+    setRows(initialRows)
+    setIdCount(initialRows.length)
+  }, [filters])
+
+  useEffect(() => {
+    restoreFilters()
+  }, [restoreFilters])
+
+  useEffect(() => {
+    if (!isApiRefValid) return
+
+    const newSelectedRowIds = R.pipe(
+      R.filter(R.prop('active')),
+      R.pluck('id')
+    )(initialRows)
+    apiRef.current.setRowSelectionModel(newSelectedRowIds)
+  }, [apiRef, initialRows, isApiRefValid])
+
+  const handleChangeTab = useCallback(() => {
+    setFilterTab(filterTab === 'stats' ? 'groups' : 'stats')
+  }, [filterTab])
+
+  const handleAddRow = useCallback(() => {
+    setRows(
+      R.append({
+        isNew: true,
+        id: idCount,
+        source: '',
+        relation: '',
+        logic: 'and',
+      })
+    )
+    setRowModesModel(
+      R.assoc(idCount, {
+        mode: GridRowModes.Edit,
+        fieldToFocus: rows.length < 1 ? 'source' : 'logic',
+      })
+    )
+    apiRef.current.selectRow(idCount)
+    setIdCount(idCount + 1)
+  }, [apiRef, idCount, rows.length])
+
+  const deleteRow = useCallback((id) => {
+    setRows(R.reject(R.propEq(id)('id')))
+  }, [])
+  const handleDeleteRow = useCallback(
+    (id) => () => {
+      deleteRow(id)
+    },
+    [deleteRow]
+  )
+
+  const handleClickDiscard = useCallback(
+    (id) => () => {
+      const row = apiRef.current.getRow(id)
+      setRowModesModel(
+        R.assoc(id, { mode: GridRowModes.View, ignoreModifications: true })
+      )
+      if (row.isNew) deleteRow(id)
+    },
+    [apiRef, deleteRow]
+  )
+  const handleClickEdit = useCallback(
+    (id) => () => {
+      setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
+    },
+    []
+  )
+  const handleClickSave = useCallback(
+    (id) => () => {
+      setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
+    },
+    []
+  )
+
+  const processRowUpdate = (newRow) => {
+    const updatedRow = R.dissoc('isNew')(newRow)
+    setRows(R.map(R.when(R.propEq(newRow.id)('id'), R.always(updatedRow))))
+    return updatedRow
+  }
+
+  const handleRowEditStop = ({ reason }, event) => {
+    if (reason === GridRowEditStopReasons.rowFocusOut) {
+      event.defaultMuiPrevented = true
+    }
+  }
+
+  const disableDiscardAndSaveAll = useMemo(() => {
+    const unsavedChanges = !R.equals(rows)(initialRows)
+    const isEditing = R.pipe(
+      R.values,
+      R.any(R.propEq(GridRowModes.Edit)('mode'))
+    )(rowModesModel)
+    return filterTab === 'groups' || isEditing || !unsavedChanges
+  }, [filterTab, initialRows, rowModesModel, rows])
+
+  const isRowSaveDisabled = useCallback(
+    (id) =>
+      // TODO: Move this to pre-processing
+      R.pipe(
+        R.props(['logic', 'source', 'relation', 'value']), // Pick validation fields
+        R.any(R.isEmpty),
+        R.F // FIXME
+      )(apiRef.current.getRow(id)),
+    [apiRef]
+  )
+
+  const updateActiveStateForSelectedRow = useCallback(
+    (row) => {
+      const selectedRowIdsSet = new Set(apiRef.current.getSelectedRows().keys())
+      return R.ifElse(
+        (row) => selectedRowIdsSet.has(row.id),
+        R.assoc('active', true),
+        R.dissoc('active')
+      )(row)
+    },
+    [apiRef]
+  )
+
+  const handleClickSaveAll = useCallback(() => {
+    const newFilters = R.map(
+      R.pipe(
+        updateActiveStateForSelectedRow,
+        R.dissoc('id'),
+        renameKeys({ relation: 'option', source: 'prop' })
+      )
+    )(rows)
+    setFilters(newFilters)
+    onSave(newFilters)
+  }, [onSave, rows, updateActiveStateForSelectedRow])
+
+  const handleClickDiscardAll = useCallback(() => {
+    restoreFilters()
+  }, [restoreFilters])
+
+  const handleRowSelectionCheckboxChange = useCallback(() => {
+    setRows(R.map(updateActiveStateForSelectedRow))
+  }, [updateActiveStateForSelectedRow])
+
+  const handleEditRowsModelChange = useCallback(() => {
+    // console.log('debug')
+  }, [])
+
+  const handleCellDoubleClick = (_, event) => {
+    event.defaultMuiPrevented = true
+  }
+
+  const columns = useMemo(
+    () => [
+      {
+        field: 'logic',
+        headerName: 'Logic',
+        align: 'center',
+        editable: true,
+        sortable: false,
+        type: 'singleSelect',
+        valueOptions: ['and'], // FIXME: ['or', 'and'],
+        getOptionLabel: (option) => option.toUpperCase(),
+        cellClassName: ({ id }) => (id > rows[0].id ? '' : 'hidden'),
+      },
+      GRID_CHECKBOX_SELECTION_COL_DEF,
+      {
+        field: 'source',
+        headerName: 'Statistic',
+        width: 250,
+        type: 'singleSelect',
+        editable: true,
+        sortable: false,
+        valueOptions: R.keys(statNames),
+        // preProcessEditCellProps: ({ props }) => {
+        //   console.log({ props })
+        //   return { ...props, error: props.value === '' }
+        // },
+      },
+      {
+        field: 'relation',
+        headerName: 'Relation',
+        width: 100,
+        type: 'singleSelect',
+        editable: true,
+        sortable: false,
+        valueOptions: [
+          {
+            value: 'lt',
+            label: '<',
+          },
+          {
+            value: 'lte',
+            label: '<=',
+          },
+          {
+            value: 'eq',
+            label: '=',
+          },
+          {
+            value: 'gt',
+            label: '>',
+          },
+          {
+            value: 'gte',
+            label: '>=',
+          },
+        ],
+      },
+      {
+        field: 'value',
+        headerName: 'Value',
+        headerAlign: 'right',
+        align: 'right',
+        type: 'number',
+        width: 110,
+        editable: true,
+        sortable: false,
+        valueFormatter: ({ value }) =>
+          typeof value === 'number'
+            ? NumberFormat.format(value, numberFormat)
+            : null,
+      },
+      {
+        field: 'actions',
+        type: 'actions',
+        width: 80,
+        sortable: false,
+        getActions: ({ id }) =>
+          R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
+            ? [
+                <GridActionsCellItem
+                  disabled={isRowSaveDisabled(id)}
+                  icon={<MdSave size="20px" />}
+                  label="Save"
+                  onClick={handleClickSave(id)}
+                />,
+                <GridActionsCellItem
+                  icon={<MdRestore size="20px" />}
+                  label="Discard"
+                  onClick={handleClickDiscard(id)}
+                />,
+              ]
+            : [
+                <GridActionsCellItem
+                  icon={<MdEdit size="20px" />}
+                  label="Edit"
+                  onClick={handleClickEdit(id)}
+                />,
+                <GridActionsCellItem
+                  icon={<MdDelete size="20px" />}
+                  label="Delete"
+                  onClick={handleDeleteRow(id)}
+                />,
+              ],
+      },
+    ],
+    [
+      statNames,
+      rows,
+      numberFormat,
+      rowModesModel,
+      isRowSaveDisabled,
+      handleClickSave,
+      handleClickDiscard,
+      handleClickEdit,
+      handleDeleteRow,
+    ]
+  )
+
+  return (
+    // Keep the component mounted to avoid losing `apiRef`
+    <Modal sx={styles.modal} keepMounted {...{ open, onClose }}>
+      <Box sx={styles.paper}>
+        <Box sx={styles.header}>Data Filter</Box>
+        <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
+          <Tab value="stats" label="Statistics" />
+          <Tab value="groups" label="Groups" />
+        </Tabs>
+        <Paper
+          sx={{
+            textAlign: 'center',
+            px: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'auto',
+            height: '100%',
+          }}
+        >
+          <DataGrid
+            sx={{
+              // Prefer `visibility` over conditional rendering to avoid losing `apiRef`
+              visibility: open && filterTab === 'stats' ? 'visible' : 'hidden',
+              my: 2,
+            }}
+            {...{ apiRef, columns, rows, rowModesModel, processRowUpdate }}
+            editMode="row"
+            hideFooter
+            checkboxSelection
+            disableColumnMenu
+            disableRowSelectionOnClick
+            onRowEditStop={handleRowEditStop}
+            onCellDoubleClick={handleCellDoubleClick}
+            onEditRowsModelChange={handleEditRowsModelChange}
+            onRowSelectionModelChange={handleRowSelectionCheckboxChange}
+          />
+          {filterTab === 'stats' && (
+            <Button
+              fullWidth
+              size="medium"
+              sx={styles.addBtn}
+              startIcon={<MdAddCircleOutline />}
+              onClick={handleAddRow}
+            >
+              Add a Constraint
+            </Button>
+          )}
         </Paper>
+        <Stack mt={1} spacing={1} direction="row" justifyContent="end">
+          <Button
+            disabled={disableDiscardAndSaveAll}
+            color="error"
+            variant="contained"
+            startIcon={<MdRestore />}
+            onClick={handleClickDiscardAll}
+          >
+            Discard All Changes
+          </Button>
+          <Button
+            disabled={disableDiscardAndSaveAll}
+            color="primary"
+            variant="contained"
+            startIcon={<MdCheck />}
+            onClick={handleClickSaveAll}
+          >
+            Save Changes
+          </Button>
+        </Stack>
       </Box>
     </Modal>
   )

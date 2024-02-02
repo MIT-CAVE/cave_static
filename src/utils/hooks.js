@@ -14,3 +14,17 @@ export const useMenu = () => {
 
   return { anchorEl, handleOpenMenu, handleCloseMenu }
 }
+
+export const useFilter = () => {
+  const [filterOpen, setFilterOpen] = useState(false)
+
+  const handleOpenFilter = () => {
+    setFilterOpen(true)
+  }
+
+  const handleCloseFilter = () => {
+    setFilterOpen(false)
+  }
+
+  return { filterOpen, handleOpenFilter, handleCloseFilter }
+}

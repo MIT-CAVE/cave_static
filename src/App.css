@@ -35,6 +35,10 @@ body {
   display: none;
 } */
 
+.hidden {
+  visibility: hidden;
+}
+
 .mapboxgl-ctrl-bottom-left {
   z-index: 101;
 }

@@ -1,4 +1,5 @@
 import {
+  Badge,
   ButtonGroup,
   Divider,
   FormControlLabel,
@@ -63,21 +64,24 @@ const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
   </MenuItem>
 )
 
-const BaseMenuItem = ({ ReactIcon, label, onClick }) => (
+const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
   <MenuItem {...{ onClick }}>
-    <ReactIcon size={20} style={{ marginRight: '18px' }} />
+    <Badge {...badgeProps} sx={{ mr: 2 }}>
+      <ReactIcon size={20} />
+    </Badge>
     {label}
   </MenuItem>
 )
 
 const ChartMenu = ({
+  activeFilters,
   isMaximized,
   showToolbar,
-  onRemoveChart,
+  showFilter,
+  onOpenFilter,
   onShowToolbar,
+  onRemoveChart,
   onToggleMaximize,
-  chartType,
-  setFilterOpen,
 }) => {
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
@@ -104,7 +108,13 @@ const ChartMenu = ({
           placement="bottom-start"
           onClick={handleOpenMenu}
         >
-          <MdMoreVert />
+          <Badge
+            color="warning"
+            variant="dot"
+            invisible={!showFilter || activeFilters.length < 1}
+          >
+            <MdMoreVert />
+          </Badge>
         </TooltipButton>
       </ButtonGroup>
       <Menu
@@ -127,24 +137,27 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        {chartType === 'groupedOutput' && (
+        {showFilter && (
           <BaseMenuItem
-            label="Filter"
+            label="Filter Data"
             ReactIcon={FaFilter}
-            onClick={handleEventAndCloseMenu(() => setFilterOpen(true))}
+            badgeProps={{
+              color: 'primary',
+              badgeContent: activeFilters.length,
+              invisible: activeFilters.length < 1,
+            }}
+            onClick={handleEventAndCloseMenu(onOpenFilter)}
           />
         )}
-        {chartType === 'groupedOutput' && <Divider />}
+        {showFilter && <Divider />}
         <BaseMenuItem
           label="Remove Chart"
           ReactIcon={MdClose}
           onClick={handleEventAndCloseMenu(onRemoveChart)}
         />
-
         {/* <MenuItem sx={{ pl: 6 }} onClick={onShowAllToolbars}>
               Some action with no icon
             </MenuItem> */}
-
         {/* <MenuItem
               disabled={pageLayout.length > 3}
               onClick={handleDuplicate}

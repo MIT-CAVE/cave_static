@@ -1,6 +1,6 @@
 import { Container, Grid, Paper, Fab, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo } from 'react'
 import { MdAdd } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -22,6 +22,7 @@ import {
   selectStatGroupings,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
+import { useFilter } from '../../../utils/hooks'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
@@ -66,16 +67,17 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
   const statNames = useSelector(selectGroupedOutputNames)
-  const categories = useSelector(selectStatGroupings)
-
+  const statGroupings = useSelector(selectStatGroupings)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
+  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+
   const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
+  const defaultFilters = R.propOr([], 'filters')(chartObj)
+  const vizType = R.propOr('groupedOutput', 'type')(chartObj)
 
-  const itemType = R.propOr('groupedOutput', 'type')(chartObj)
-  const [filterOpen, setFilterOpen] = useState(false)
   // Allow session_mutate to perform non-object value update
   const handleShowToolbar = useCallback(() => {
     dispatch(
@@ -106,8 +108,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
       })
     )
   }, [dispatch, pageLayout, sync, index, path])
-  const handleUpdateFilters = useCallback(
+  const handleSaveFilters = useCallback(
     (filters) => {
+      console.log(filters)
       dispatch(
         mutateLocal({
           path,
@@ -118,7 +121,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
     },
     [chartObj, dispatch, path, sync]
   )
-  const vizType = R.propOr('groupedOutput', 'type')(chartObj)
+
   return (
     <Grid
       item
@@ -132,25 +135,21 @@ const DashboardItem = ({ chartObj, index, path }) => {
           elevation={5}
         >
           <FilterModal
-            filterOpen={filterOpen}
-            setFilterOpen={setFilterOpen}
-            currentFilters={R.propOr([], 'filters', chartObj)}
-            filterableProps={{ categories, statNames }}
-            chartObj={chartObj}
-            updateFilters={handleUpdateFilters}
+            {...{ statNames, statGroupings, defaultFilters }}
+            open={filterOpen}
+            onSave={handleSaveFilters}
+            onClose={handleCloseFilter}
           />
           {showToolbar && <ChartToolbar {...{ chartObj, index, path }} />}
           {!lockedLayout && !chartObj.lockedLayout && (
             <ChartMenu
-              {...{
-                isMaximized,
-                showToolbar,
-              }}
+              {...{ isMaximized, showToolbar }}
+              activeFilters={R.filter(R.prop('active'))(defaultFilters)}
+              showFilter={vizType === 'groupedOutput'}
               onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
               onShowToolbar={handleShowToolbar}
-              chartType={itemType}
-              setFilterOpen={setFilterOpen}
+              onOpenFilter={handleOpenFilter}
             />
           )}
           {vizType === 'groupedOutput' ? (
