@@ -96,6 +96,8 @@ const FilterModal = ({
     const initialRows = mapIndexed(
       R.pipe(
         R.flip(R.assoc('id')),
+        // Set up `logic` for first row in case it is `undefined`
+        R.when(R.propEq(0, 'id'), R.assoc('logic', 'and')),
         // Drop falsy `active` values
         R.when(R.propEq(false, 'active'), R.dissoc('active')),
         renameKeys({ option: 'relation', prop: 'source' })
@@ -234,23 +236,29 @@ const FilterModal = ({
 
   const preProcessEditCellProps = useCallback(
     ({ id, props, hasChanged, otherFieldsProps }) => {
-      const isValueValid = R.propSatisfies(
+      const isValueInvalid = R.propSatisfies(
         R.either(R.isNil, R.isEmpty),
         'value'
       )
       const newCellProps = R.pipe(
-        R.ifElse(isValueValid, R.assoc('error', true), R.dissoc('error'))
+        R.ifElse(isValueInvalid, R.assoc('error', true), R.dissoc('error'))
       )(props)
 
       if (hasChanged) {
         const hasError =
           newCellProps.error ||
-          R.pipe(R.values, R.any(isValueValid))(otherFieldsProps)
+          R.pipe(
+            // We ignore the `logic` field in the first row
+            R.when(R.always(id === rows[0].id), R.dissoc('logic')),
+            R.values,
+            R.any(isValueInvalid)
+          )(otherFieldsProps)
+
         setCanSaveRow(R.assoc(id, !hasError))
       }
       return newCellProps
     },
-    []
+    [rows]
   )
 
   const columns = useMemo(
