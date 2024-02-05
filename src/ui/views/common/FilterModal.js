@@ -1,4 +1,14 @@
-import { Modal, Paper, Stack, Button, Box, Tabs, Tab } from '@mui/material'
+import {
+  Modal,
+  Paper,
+  Stack,
+  Button,
+  Box,
+  Tabs,
+  Tab,
+  TextField,
+  Typography,
+} from '@mui/material'
 import {
   DataGrid,
   GridActionsCellItem,
@@ -23,6 +33,7 @@ import {
   // selectNumberFormatPropsFn,
   selectNumberFormat,
 } from '../../../data/selectors'
+import OverflowText from '../../compound/OverflowText'
 
 import { NumberFormat, mapIndexed, renameKeys } from '../../../utils'
 
@@ -38,11 +49,9 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     position: 'absolute',
-    maxWidth: '80%',
-    minWidth: '33%',
+    width: '50%',
     height: '50%',
     p: 2,
-    mx: 'auto',
     color: 'text.primary',
     bgcolor: 'background.paper',
     border: 1,
@@ -55,37 +64,42 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     mb: 1,
-    p: 2,
-    fontSize: '25px',
-    borderColor: 'text.secondary',
-    borderBottom: '2px',
+    py: 2,
   },
   addBtn: {
     justifyContent: 'start',
     pl: 2,
     py: 2,
   },
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    my: 2,
+    px: 2,
+    textAlign: 'center',
+    overflow: 'auto',
+  },
+  emptyContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    bgcolor: 'rgba(18, 18, 18, 0.38)',
+    height: '100%',
+  },
 }
 
-const FilterModal = ({
-  open,
-  statNames,
-  // TODO: statGroupings,
-  defaultFilters,
-  onSave,
-  onClose,
-}) => {
+const StatisticTabs = ({ defaultFilters, statNames, onSave }) => {
   const [filters, setFilters] = useState(defaultFilters)
-  const [filterTab, setFilterTab] = useState('stats')
   const [idCount, setIdCount] = useState(0)
   const [rows, setRows] = useState([])
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
   const [canSaveRow, setCanSaveRow] = useState({})
 
-  // const getNumberFormat = useSelector(selectNumberFormatPropsFn)
-  const numberFormat = useSelector(selectNumberFormat)
   const apiRef = useGridApiRef()
+  const numberFormat = useSelector(selectNumberFormat)
 
   const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
 
@@ -93,7 +107,7 @@ const FilterModal = ({
     const filterCriteria = R.filter(
       R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
     )(filters)
-    const initialRows = mapIndexed(
+    const initRows = mapIndexed(
       R.pipe(
         R.flip(R.assoc('id')),
         // Set up `logic` for first row in case it is `undefined`
@@ -104,9 +118,9 @@ const FilterModal = ({
       )
     )(filterCriteria)
 
-    setInitialRows(initialRows)
-    setRows(initialRows)
-    setIdCount(initialRows.length)
+    setInitialRows(initRows)
+    setRows(initRows)
+    setIdCount(initRows.length)
   }, [filters])
 
   useEffect(() => {
@@ -122,10 +136,6 @@ const FilterModal = ({
     )(initialRows)
     apiRef.current.setRowSelectionModel(newSelectedRowIds)
   }, [apiRef, initialRows, isApiRefValid])
-
-  const handleChangeTab = useCallback(() => {
-    setFilterTab(filterTab === 'stats' ? 'groups' : 'stats')
-  }, [filterTab])
 
   const handleAddRow = useCallback(() => {
     setRows(
@@ -211,8 +221,8 @@ const FilterModal = ({
       R.values,
       R.any(R.propEq(GridRowModes.Edit, 'mode'))
     )(rowModesModel)
-    return filterTab === 'stats' && !isEditing && unsavedChanges
-  }, [filterTab, initialRows, rowModesModel, rows])
+    return !isEditing && unsavedChanges
+  }, [initialRows, rowModesModel, rows])
 
   const handleClickSaveAll = useCallback(() => {
     const newFilters = R.map(
@@ -279,17 +289,18 @@ const FilterModal = ({
       {
         field: 'source',
         headerName: 'Statistic',
-        width: 250,
         type: 'singleSelect',
         editable: true,
         sortable: false,
         valueOptions: R.keys(statNames),
         preProcessEditCellProps,
+        renderCell: ({ value }) => <OverflowText text={value} />,
       },
       {
         field: 'relation',
         headerName: 'Relation',
-        width: 100,
+        headerAlign: 'center',
+        align: 'center',
         type: 'singleSelect',
         editable: true,
         sortable: false,
@@ -320,10 +331,7 @@ const FilterModal = ({
       {
         field: 'value',
         headerName: 'Value',
-        headerAlign: 'right',
-        align: 'right',
         type: 'number',
-        width: 110,
         editable: true,
         sortable: false,
         valueFormatter: ({ value }) =>
@@ -331,11 +339,14 @@ const FilterModal = ({
             ? NumberFormat.format(value, numberFormat)
             : null,
         preProcessEditCellProps,
+        renderCell: ({ value }) => <OverflowText text={value} />,
       },
       {
         field: 'actions',
+        headerName: 'Actions',
+        headerAlign: 'right',
+        align: 'right',
         type: 'actions',
-        width: 80,
         sortable: false,
         getActions: ({ id }) =>
           R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
@@ -381,75 +392,143 @@ const FilterModal = ({
     ]
   )
 
-  console.log({ canSaveRow }, apiRef.current)
+  return (
+    <>
+      <Paper sx={styles.content}>
+        <DataGrid
+          {...{ apiRef, columns, rows, rowModesModel, processRowUpdate }}
+          slots={{
+            noRowsOverlay: () => (
+              <Box sx={styles.emptyContent}>No constraints added</Box>
+            ),
+          }}
+          editMode="row"
+          hideFooter
+          checkboxSelection
+          disableColumnMenu
+          disableRowSelectionOnClick
+          onRowEditStop={handleRowEditStop}
+          onCellDoubleClick={handleCellDoubleClick}
+          onRowSelectionModelChange={handleRowSelectionCheckboxChange}
+        />
+        <Button
+          fullWidth
+          size="medium"
+          sx={styles.addBtn}
+          startIcon={<MdAddCircleOutline />}
+          onClick={handleAddRow}
+        >
+          Add a Constraint
+        </Button>
+      </Paper>
+
+      <Stack mt={1} spacing={1} direction="row" justifyContent="end">
+        <Button
+          disabled={!canDiscardOrSaveAll}
+          color="error"
+          variant="contained"
+          startIcon={<MdRestore />}
+          onClick={restoreFilters}
+        >
+          Discard Changes
+        </Button>
+        <Button
+          disabled={!canDiscardOrSaveAll}
+          color="primary"
+          variant="contained"
+          startIcon={<MdCheck />}
+          onClick={handleClickSaveAll}
+        >
+          Save Constraints
+        </Button>
+      </Stack>
+    </>
+  )
+}
+
+// eslint-disable-next-line no-unused-vars
+const GroupsTab = ({ defaultFilters, statGroupings, onSave }) => {
+  // const [checked, setChecked] = useState([true, false])
+  // const [filters, setFilters] = useState(defaultFilters)
+  // const [expanded, setExpanded] = useState([])
+
+  // const getNumberFormat = useSelector(selectNumberFormatPropsFn)
+
+  const canDiscardOrSaveAll = useMemo(() => {
+    return R.T()
+  }, [])
+
+  const restoreGroups = useCallback(() => {}, [])
+  const handleClickSaveAll = useCallback(() => {}, [])
+
+  return (
+    <>
+      <Paper sx={styles.content}>
+        <TextField fullWidth sx={{ my: 2 }} label="Search Group" />
+        {/* TODO: Use `PropNested` combined with MUI's `TreeView` */}
+      </Paper>
+
+      <Stack mt={1} spacing={1} direction="row" justifyContent="end">
+        <Button
+          disabled={!canDiscardOrSaveAll}
+          color="error"
+          variant="contained"
+          startIcon={<MdRestore />}
+          onClick={restoreGroups}
+        >
+          Discard Changes
+        </Button>
+        <Button
+          disabled={!canDiscardOrSaveAll}
+          color="primary"
+          variant="contained"
+          startIcon={<MdCheck />}
+          onClick={handleClickSaveAll}
+        >
+          Save Groups
+        </Button>
+      </Stack>
+    </>
+  )
+}
+
+const FilterModal = ({
+  open,
+  statNames,
+  statGroupings,
+  defaultFilters,
+  onSave,
+  onClose,
+}) => {
+  const [filterTab, setFilterTab] = useState('stats')
+  const handleChangeTab = useCallback(() => {
+    setFilterTab(filterTab === 'stats' ? 'groups' : 'stats')
+  }, [filterTab])
 
   return (
     // Keep the component mounted to avoid losing `apiRef`
     <Modal sx={styles.modal} keepMounted {...{ open, onClose }}>
-      <Box sx={styles.paper}>
-        <Box sx={styles.header}>Data Filter</Box>
+      <Box
+        sx={[
+          styles.paper,
+          {
+            // Prefer `visibility` over conditional rendering to avoid losing `apiRef`
+            visibility: open ? 'visible' : 'hidden',
+          },
+        ]}
+      >
+        <Typography sx={styles.header} variant="h5">
+          Data Filter
+        </Typography>
         <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
           <Tab value="stats" label="Statistics" />
           <Tab value="groups" label="Groups" />
         </Tabs>
-        <Paper
-          sx={{
-            textAlign: 'center',
-            px: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'auto',
-            height: '100%',
-          }}
-        >
-          <DataGrid
-            sx={{
-              // Prefer `visibility` over conditional rendering to avoid losing `apiRef`
-              visibility: open && filterTab === 'stats' ? 'visible' : 'hidden',
-              my: 2,
-            }}
-            {...{ apiRef, columns, rows, rowModesModel, processRowUpdate }}
-            editMode="row"
-            hideFooter
-            checkboxSelection
-            disableColumnMenu
-            disableRowSelectionOnClick
-            onRowEditStop={handleRowEditStop}
-            onCellDoubleClick={handleCellDoubleClick}
-            onRowSelectionModelChange={handleRowSelectionCheckboxChange}
-          />
-          {filterTab === 'stats' && (
-            <Button
-              fullWidth
-              size="medium"
-              sx={styles.addBtn}
-              startIcon={<MdAddCircleOutline />}
-              onClick={handleAddRow}
-            >
-              Add a Constraint
-            </Button>
-          )}
-        </Paper>
-        <Stack mt={1} spacing={1} direction="row" justifyContent="end">
-          <Button
-            disabled={!canDiscardOrSaveAll}
-            color="error"
-            variant="contained"
-            startIcon={<MdRestore />}
-            onClick={restoreFilters}
-          >
-            Discard All Changes
-          </Button>
-          <Button
-            disabled={!canDiscardOrSaveAll}
-            color="primary"
-            variant="contained"
-            startIcon={<MdCheck />}
-            onClick={handleClickSaveAll}
-          >
-            Save Changes
-          </Button>
-        </Stack>
+        {filterTab === 'stats' ? (
+          <StatisticTabs {...{ defaultFilters, statNames, onSave }} />
+        ) : filterTab === 'groups' ? (
+          <GroupsTab {...{ defaultFilters, statGroupings, onSave }} />
+        ) : null}
       </Box>
     </Modal>
   )
