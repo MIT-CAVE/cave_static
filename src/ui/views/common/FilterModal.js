@@ -147,7 +147,12 @@ const styles = {
   },
 }
 
-const StatsFilter = ({ defaultFilters, statNames, onSave }) => {
+const StatsFilter = ({
+  defaultFilters,
+  groupingFilters,
+  statNames,
+  onSave,
+}) => {
   const [filters, setFilters] = useState(defaultFilters)
   const [idCount, setIdCount] = useState(0)
   const [rows, setRows] = useState([])
@@ -290,8 +295,8 @@ const StatsFilter = ({ defaultFilters, statNames, onSave }) => {
       )
     )(rows)
     setFilters(newFilters)
-    onSave(newFilters)
-  }, [onSave, rows, updateActiveStateForSelectedRow])
+    onSave(R.concat(groupingFilters)(newFilters))
+  }, [groupingFilters, onSave, rows, updateActiveStateForSelectedRow])
 
   const handleRowSelectionCheckboxChange = useCallback(() => {
     setRows(R.map(updateActiveStateForSelectedRow))
@@ -505,7 +510,12 @@ const StatsFilter = ({ defaultFilters, statNames, onSave }) => {
 
 // NOTE: This is an unefficient quicker solution
 // TODO: Work on an `PropNested`-improved solution
-const GroupsFilter = ({ defaultFilters, statGroupings, onSave }) => {
+const GroupsFilter = ({
+  defaultFilters,
+  statFilters,
+  statGroupings,
+  onSave,
+}) => {
   // const [expanded, setExpanded] = useState()
   // const [checked, setChecked] = useState([true, false])
   const [filters, setFilters] = useState(defaultFilters)
@@ -703,8 +713,8 @@ const GroupsFilter = ({ defaultFilters, statGroupings, onSave }) => {
   }, [defaultFilters])
 
   const handleClickSave = useCallback(() => {
-    onSave(filters)
-  }, [filters, onSave])
+    onSave(R.concat(statFilters)(filters))
+  }, [filters, onSave, statFilters])
 
   const handleChangeCheckLogic = (event) => {
     setCheckLogic(event.target.value)
@@ -717,7 +727,7 @@ const GroupsFilter = ({ defaultFilters, statGroupings, onSave }) => {
           {/* TODO: Implement search feature */}
           <TextField
             sx={{ flexGrow: 1 }}
-            placeholder="Search grouping, level or value..."
+            placeholder="Search group, level or value"
             label="Search"
           />
           <ButtonGroup>
@@ -858,6 +868,8 @@ const FilterModal = ({
   statNames,
   statGroupings,
   defaultFilters,
+  numActiveStatFilters,
+  numGroupingFilters,
   onSave,
   onClose,
 }) => {
@@ -866,7 +878,7 @@ const FilterModal = ({
     setFilterTab(filterTab === 'stats' ? 'groups' : 'stats')
   }, [filterTab])
 
-  const [statsFilter, groupsFilter] = useMemo(
+  const [statFilters, groupingFilters] = useMemo(
     () =>
       R.partition(
         R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
@@ -894,18 +906,24 @@ const FilterModal = ({
           </Typography>
         )}
         <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
-          <Tab value="stats" label="Statistics" />
-          <Tab value="groups" label="Groups" />
+          <Tab
+            value="stats"
+            label={`Statistics${numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''}`}
+          />
+          <Tab
+            value="groups"
+            label={`Groups${numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''}`}
+          />
         </Tabs>
         {filterTab === 'stats' ? (
           <StatsFilter
-            defaultFilters={statsFilter}
-            {...{ statNames, onSave }}
+            defaultFilters={statFilters}
+            {...{ groupingFilters, statNames, onSave }}
           />
         ) : filterTab === 'groups' ? (
           <GroupsFilter
-            defaultFilters={groupsFilter}
-            {...{ statGroupings, onSave }}
+            defaultFilters={groupingFilters}
+            {...{ statFilters, statGroupings, onSave }}
           />
         ) : null}
       </Box>

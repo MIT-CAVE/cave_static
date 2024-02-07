@@ -74,10 +74,10 @@ const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
 )
 
 const ChartMenu = ({
-  activeFilters,
   isMaximized,
   showToolbar,
   showFilter,
+  numFilters,
   onOpenFilter,
   onShowToolbar,
   onRemoveChart,
@@ -111,7 +111,7 @@ const ChartMenu = ({
           <Badge
             color="info"
             variant="dot"
-            invisible={!showFilter || activeFilters.length < 1}
+            invisible={!showFilter || numFilters < 1}
           >
             <MdMoreVert />
           </Badge>
@@ -143,8 +143,8 @@ const ChartMenu = ({
             ReactIcon={FaFilter}
             badgeProps={{
               color: 'info',
-              badgeContent: activeFilters.length,
-              invisible: activeFilters.length < 1,
+              badgeContent: numFilters,
+              invisible: numFilters < 1,
             }}
             onClick={handleEventAndCloseMenu(onOpenFilter)}
           />

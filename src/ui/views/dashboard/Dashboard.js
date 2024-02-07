@@ -108,9 +108,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
       })
     )
   }, [dispatch, pageLayout, sync, index, path])
+
   const handleSaveFilters = useCallback(
     (filters) => {
-      console.log(filters)
       dispatch(
         mutateLocal({
           path,
@@ -120,6 +120,21 @@ const DashboardItem = ({ chartObj, index, path }) => {
       )
     },
     [chartObj, dispatch, path, sync]
+  )
+
+  const numActiveStatFilters = useMemo(
+    () => R.pipe(R.filter(R.prop('active')), R.length)(defaultFilters),
+    [defaultFilters]
+  )
+
+  const numGroupingFilters = useMemo(
+    () =>
+      R.pipe(
+        R.filter(R.propEq('exc', 'option')),
+        R.chain(R.pipe(R.prop('value'), R.length)),
+        R.sum
+      )(defaultFilters),
+    [defaultFilters]
   )
 
   return (
@@ -135,7 +150,13 @@ const DashboardItem = ({ chartObj, index, path }) => {
           elevation={5}
         >
           <FilterModal
-            {...{ statNames, statGroupings, defaultFilters }}
+            {...{
+              statNames,
+              statGroupings,
+              defaultFilters,
+              numActiveStatFilters,
+              numGroupingFilters,
+            }}
             label="Data Filter"
             labelExtra={
               isMaximized
@@ -155,7 +176,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
           {!lockedLayout && !chartObj.lockedLayout && (
             <ChartMenu
               {...{ isMaximized, showToolbar }}
-              activeFilters={R.filter(R.prop('active'))(defaultFilters)}
+              numFilters={numActiveStatFilters + numGroupingFilters}
               showFilter={vizType === 'groupedOutput'}
               onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
