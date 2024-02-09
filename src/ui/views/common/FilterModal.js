@@ -270,8 +270,8 @@ const StatsFilter = ({
       const selectedRowIdsSet = new Set(apiRef.current.getSelectedRows().keys())
       return R.ifElse(
         (row) => selectedRowIdsSet.has(row.id),
-        R.assoc('active', true),
-        R.dissoc('active')
+        R.dissoc('active'),
+        R.assoc('active', false)
       )(row)
     },
     [apiRef]
