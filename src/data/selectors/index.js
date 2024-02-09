@@ -785,12 +785,16 @@ export const selectCurrentMapStyleFunc = createSelector(
     },
   }
 )
+
 export const selectCurrentMapProjectionFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
+  [selectCurrentMapDataByMap, selectMapboxToken],
+  (dataObj, token) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.pathOr('mercator', ['currentProjection', mapId])(dataObj),
+      (mapId) =>
+        token !== ''
+          ? R.pathOr('mercator', ['currentProjection', mapId])(dataObj)
+          : 'mercator',
       MAX_MEMOIZED_CHARTS
     ),
   {
