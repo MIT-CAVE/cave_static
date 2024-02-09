@@ -770,13 +770,33 @@ const GroupsFilter = ({
     setFilters(getAllGroupingsChanges(filters, !isCheckLogicExc))
   }, [filters, getAllGroupingsChanges, isCheckLogicExc])
 
-  const restoreGroupings = useCallback(() => {
+  const restoreFilters = useCallback(() => {
     setFilters(defaultFilters)
   }, [defaultFilters])
 
+  const defaultFiltersByLevel = useMemo(
+    () => R.indexBy(R.prop('prop'))(defaultFilters),
+    [defaultFilters]
+  )
+
   const canDiscardOrSave = useMemo(() => {
-    return R.T() // FIXME
-  }, [])
+    if (filters.length !== defaultFilters.length) return true
+    return R.any((filter) => {
+      const defaultFilter = defaultFiltersByLevel[filter.prop]
+      // Verify level and option matches and value discrepancies
+      return (
+        defaultFilter != null &&
+        filter.option === 'exc' &&
+        defaultFilter.option === 'exc' &&
+        defaultFilter.format === filter.format &&
+        R.pipe(
+          R.symmetricDifference(defaultFilter.value),
+          R.isEmpty,
+          R.not
+        )(filter.value)
+      )
+    })(filters)
+  }, [defaultFilters.length, defaultFiltersByLevel, filters])
 
   const handleClickSave = useCallback(() => {
     onSave(R.concat(statFilters)(filters))
@@ -919,7 +939,7 @@ const GroupsFilter = ({
           color="error"
           variant="contained"
           startIcon={<MdRestore />}
-          onClick={restoreGroupings}
+          onClick={restoreFilters}
         >
           Discard Changes
         </Button>
