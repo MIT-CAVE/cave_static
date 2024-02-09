@@ -644,69 +644,7 @@ const GroupsFilter = ({
     [filters, visibleGroupings]
   )
 
-  const canDiscardOrSave = useMemo(() => {
-    return R.T() // FIXME
-  }, [])
-
-  const getExcGroupingFilterEntries = useCallback(
-    (grouping) =>
-      R.pipe(
-        R.mapObjIndexed((values, level) => ({
-          format: grouping,
-          option: 'exc',
-          prop: level,
-          value: R.uniq(values),
-        })),
-        R.values
-      )(visibleGroupings[grouping].data),
-    [visibleGroupings]
-  )
-
-  const handleSelectAll = useCallback(() => {
-    setFilters(
-      isCheckLogicExc
-        ? R.pipe(R.keys, R.chain(getExcGroupingFilterEntries))(visibleGroupings)
-        : []
-    )
-  }, [getExcGroupingFilterEntries, isCheckLogicExc, visibleGroupings])
-
-  const handleDeselectAll = useCallback(() => {
-    setFilters(
-      isCheckLogicExc
-        ? []
-        : R.pipe(R.keys, R.chain(getExcGroupingFilterEntries))(visibleGroupings)
-    )
-  }, [getExcGroupingFilterEntries, isCheckLogicExc, visibleGroupings])
-
-  const handleChangeValue = useCallback(
-    (grouping, level) => (event) => {
-      const mustExcludeValue = event.target.checked === isCheckLogicExc
-      const value = event.target.value
-      const index = R.findIndex(
-        R.allPass([
-          R.propEq('exc', 'option'),
-          R.propEq(grouping, 'format'),
-          R.propEq(level, 'prop'),
-        ])
-      )(filters)
-      setFilters(
-        index < 0
-          ? R.append({
-              format: grouping,
-              prop: level,
-              value: [value],
-              option: 'exc',
-            })
-          : R.over(
-              R.lensPath([index, 'value']),
-              mustExcludeValue ? R.append(value) : R.without([value])
-            )
-      )
-    },
-    [filters, isCheckLogicExc]
-  )
-
-  const changeFilterLevel = useCallback(
+  const getFilterLevelChange = useCallback(
     (currentFilters, grouping, level, mustExclude) => {
       const values = R.uniq(visibleGroupings[grouping].data[level])
       const index = R.findIndex(
@@ -747,37 +685,98 @@ const GroupsFilter = ({
     [visibleGroupings]
   )
 
-  const handleChangeLevel = useCallback(
-    (grouping) => (event) => {
-      const mustExclude = event.target.checked === isCheckLogicExc
-      const level = event.target.value
-      setFilters(changeFilterLevel(filters, grouping, level, mustExclude))
-    },
-    [changeFilterLevel, filters, isCheckLogicExc]
-  )
-
-  const handleChangeGrouping = useCallback(
-    (event) => {
-      const grouping = event.target.value
-      const mustExclude = event.target.checked === isCheckLogicExc
+  const getFilterGroupingChange = useCallback(
+    (currentFilters, grouping, mustExclude) => {
       const visibleLevelKeys = R.keys(visibleGroupings[grouping].data)
-      let currentFilters = filters
       R.forEach((level) => {
-        currentFilters = changeFilterLevel(
+        currentFilters = getFilterLevelChange(
           currentFilters,
           grouping,
           level,
           mustExclude
         )
       })(visibleLevelKeys)
-      setFilters(currentFilters)
+      return currentFilters
     },
-    [changeFilterLevel, filters, isCheckLogicExc, visibleGroupings]
+    [getFilterLevelChange, visibleGroupings]
   )
+
+  const getAllGroupingsChanges = useCallback(
+    (currentFilters, mustExclude) => {
+      const groupingKeys = R.keys(visibleGroupings)
+      R.forEach((grouping) => {
+        currentFilters = getFilterGroupingChange(
+          currentFilters,
+          grouping,
+          mustExclude
+        )
+      })(groupingKeys)
+      return currentFilters
+    },
+    [getFilterGroupingChange, visibleGroupings]
+  )
+
+  const handleChangeValue = useCallback(
+    (grouping, level) => (event) => {
+      const mustExcludeValue = event.target.checked === isCheckLogicExc
+      const value = event.target.value
+      const index = R.findIndex(
+        R.allPass([
+          R.propEq('exc', 'option'),
+          R.propEq(grouping, 'format'),
+          R.propEq(level, 'prop'),
+        ])
+      )(filters)
+      setFilters(
+        index < 0
+          ? R.append({
+              format: grouping,
+              prop: level,
+              value: [value],
+              option: 'exc',
+            })
+          : R.over(
+              R.lensPath([index, 'value']),
+              mustExcludeValue ? R.append(value) : R.without([value])
+            )
+      )
+    },
+    [filters, isCheckLogicExc]
+  )
+
+  const handleChangeLevel = useCallback(
+    (grouping) => (event) => {
+      const level = event.target.value
+      const mustExclude = event.target.checked === isCheckLogicExc
+      setFilters(getFilterLevelChange(filters, grouping, level, mustExclude))
+    },
+    [getFilterLevelChange, filters, isCheckLogicExc]
+  )
+
+  const handleChangeGrouping = useCallback(
+    (event) => {
+      const grouping = event.target.value
+      const mustExclude = event.target.checked === isCheckLogicExc
+      setFilters(getFilterGroupingChange(filters, grouping, mustExclude))
+    },
+    [getFilterGroupingChange, filters, isCheckLogicExc]
+  )
+
+  const handleSelectAll = useCallback(() => {
+    setFilters(getAllGroupingsChanges(filters, isCheckLogicExc))
+  }, [getAllGroupingsChanges, filters, isCheckLogicExc])
+
+  const handleDeselectAll = useCallback(() => {
+    setFilters(getAllGroupingsChanges(filters, !isCheckLogicExc))
+  }, [filters, getAllGroupingsChanges, isCheckLogicExc])
 
   const restoreGroupings = useCallback(() => {
     setFilters(defaultFilters)
   }, [defaultFilters])
+
+  const canDiscardOrSave = useMemo(() => {
+    return R.T() // FIXME
+  }, [])
 
   const handleClickSave = useCallback(() => {
     onSave(R.concat(statFilters)(filters))
