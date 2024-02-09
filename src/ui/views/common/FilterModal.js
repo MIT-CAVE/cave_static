@@ -516,10 +516,10 @@ const GroupsFilter = ({
   statGroupings,
   onSave,
 }) => {
-  // const [expanded, setExpanded] = useState()
-  // const [checked, setChecked] = useState([true, false])
+  const [expanded, setExpanded] = useState({})
   const [filters, setFilters] = useState(defaultFilters)
   const [checkLogic, setCheckLogic] = useState('inc')
+  const [searchText, setSearchText] = useState('')
 
   const isCheckLogicExc = checkLogic === 'exc'
 
@@ -528,6 +528,47 @@ const GroupsFilter = ({
       R.when(R.both(R.isNotNil, R.always(isCheckLogicExc)), R.not)(checked),
     [isCheckLogicExc]
   )
+
+  const visibleGroupings = useMemo(() => {
+    const containsSearchText = R.pipe(
+      R.toLower,
+      R.includes(searchText.toLowerCase())
+    )
+
+    const resultGroupings = {}
+    R.forEachObjIndexed((groupingProps, grouping) => {
+      const groupingLabel = getLabelFn(statGroupings)(grouping)
+      if (containsSearchText(groupingLabel)) {
+        resultGroupings[grouping] = R.dissocPath(['data', 'id'])(groupingProps)
+        return
+      }
+
+      resultGroupings[grouping] = { data: {} }
+      const levels = R.dissoc('id')(groupingProps.data)
+      const getLevelLabel = getSubLabelFn(statGroupings, grouping)
+      R.forEachObjIndexed((levelValues, level) => {
+        const levelLabel = getLevelLabel(level)
+        if (containsSearchText(levelLabel)) {
+          resultGroupings[grouping].data[level] = groupingProps.data[level]
+          return
+        }
+        const visibleValues = R.filter(containsSearchText)(levelValues)
+        if (!R.isEmpty(visibleValues)) {
+          resultGroupings[grouping].data[level] = visibleValues
+        }
+      })(levels)
+
+      if (R.isEmpty(resultGroupings[grouping].data)) {
+        delete resultGroupings[grouping].data
+      }
+      if (R.isEmpty(resultGroupings[grouping])) {
+        delete resultGroupings[grouping]
+      }
+
+      setExpanded(R.assoc(grouping, R.has(grouping)(resultGroupings)))
+    })(statGroupings)
+    return resultGroupings
+  }, [searchText, statGroupings])
 
   const getValueChecked = useCallback(
     (grouping, level, value) =>
@@ -543,56 +584,65 @@ const GroupsFilter = ({
   )
 
   const getLevelChecked = useCallback(
-    (grouping, level, values) => {
-      const excludedLevel = R.find(
+    (grouping, level) => {
+      const visibleValues = visibleGroupings[grouping].data[level]
+      const visibleExcludedLevel = R.find(
         R.allPass([
           R.propEq('exc', 'option'),
           R.propEq(grouping, 'format'),
           R.propEq(level, 'prop'),
-          R.propSatisfies(R.pipe(R.isEmpty, R.not), 'value'),
+          R.propSatisfies(
+            R.pipe(R.intersection(visibleValues), R.isEmpty, R.not),
+            'value'
+          ),
         ])
       )(filters)
-      return excludedLevel == null
+
+      return visibleExcludedLevel == null
         ? true // No value excluded
-        : excludedLevel.value.length === values.length
+        : R.pipe(
+              R.difference(visibleValues),
+              R.isEmpty
+            )(visibleExcludedLevel.value)
           ? false // All values excluded
           : null // Some values excluded
     },
-    [filters]
+    [filters, visibleGroupings]
   )
 
   const getGroupingChecked = useCallback(
-    (grouping, levelsData) => {
-      const excludedLevels = R.filter(
+    (grouping) => {
+      const levels = visibleGroupings[grouping].data
+      const visibleLevelKeys = R.keys(levels)
+      const visibleExcludedLevels = R.filter(
         R.allPass([
           R.propEq('exc', 'option'),
           R.propEq(grouping, 'format'),
-          R.propSatisfies(R.pipe(R.isEmpty, R.not), 'value'),
+          R.propSatisfies(R.flip(R.includes)(visibleLevelKeys), 'prop'),
+          R.converge(
+            // Check if there are any visible
+            // values excluded in the filter
+            R.pipe(R.intersection, R.isEmpty, R.not),
+            [
+              R.pipe(R.prop('prop'), R.flip(R.prop)(levels)), // Visible values
+              R.prop('value'),
+            ]
+          ),
         ])
       )(filters)
-      return R.isEmpty(excludedLevels)
+
+      return R.isEmpty(visibleExcludedLevels)
         ? true // No level excluded
-        : excludedLevels.length === R.keys(levelsData).length &&
-            R.all(
-              R.converge(R.equals, [
-                R.pipe(R.prop('value'), R.length),
-                R.pipe(
-                  R.prop('prop'),
-                  R.flip(R.prop)(levelsData),
-                  R.uniq,
-                  R.length
-                ),
-              ])
-            )(excludedLevels)
+        : visibleLevelKeys.length === visibleExcludedLevels.length &&
+            R.pipe(
+              R.chain(({ prop, value }) => R.difference(levels[prop])(value)),
+              R.isEmpty
+            )(visibleExcludedLevels)
           ? false // All levels with their values are excluded
           : null // Some levels or values excluded
     },
-    [filters]
+    [filters, visibleGroupings]
   )
-
-  // const handleChange = (panel) => (event, newExpanded) => {
-  //   setExpanded(newExpanded ? panel : false)
-  // }
 
   const canDiscardOrSave = useMemo(() => {
     return R.T() // FIXME
@@ -601,7 +651,6 @@ const GroupsFilter = ({
   const getExcGroupingFilterEntries = useCallback(
     (grouping) =>
       R.pipe(
-        R.dissoc('id'),
         R.mapObjIndexed((values, level) => ({
           format: grouping,
           option: 'exc',
@@ -609,76 +658,25 @@ const GroupsFilter = ({
           value: R.uniq(values),
         })),
         R.values
-      )(statGroupings[grouping].data),
-    [statGroupings]
+      )(visibleGroupings[grouping].data),
+    [visibleGroupings]
   )
 
   const handleSelectAll = useCallback(() => {
     setFilters(
       isCheckLogicExc
-        ? R.pipe(R.keys, R.chain(getExcGroupingFilterEntries))(statGroupings)
+        ? R.pipe(R.keys, R.chain(getExcGroupingFilterEntries))(visibleGroupings)
         : []
     )
-  }, [getExcGroupingFilterEntries, isCheckLogicExc, statGroupings])
+  }, [getExcGroupingFilterEntries, isCheckLogicExc, visibleGroupings])
 
   const handleDeselectAll = useCallback(() => {
     setFilters(
       isCheckLogicExc
         ? []
-        : R.pipe(R.keys, R.chain(getExcGroupingFilterEntries))(statGroupings)
+        : R.pipe(R.keys, R.chain(getExcGroupingFilterEntries))(visibleGroupings)
     )
-  }, [getExcGroupingFilterEntries, isCheckLogicExc, statGroupings])
-
-  const handleChangeGrouping = useCallback(
-    (event) => {
-      const grouping = event.target.value
-      const mustExcludeGrouping = event.target.checked === isCheckLogicExc
-      setFilters(
-        R.pipe(
-          // Drop all existing entries for the (un)checked grouping
-          R.reject(
-            R.both(R.propEq('exc', 'option'), R.propEq(grouping, 'format'))
-          ),
-          R.when(
-            R.always(mustExcludeGrouping),
-            // Exclude all values within this grouping
-            R.concat(getExcGroupingFilterEntries(grouping))
-          )
-        )
-      )
-    },
-    [getExcGroupingFilterEntries, isCheckLogicExc]
-  )
-
-  const handleChangeLevel = useCallback(
-    (grouping, values) => (event) => {
-      const level = event.target.value
-      const mustExcludeLevel = event.target.checked === isCheckLogicExc
-      setFilters(
-        R.pipe(
-          // Drop all existing entries (or unique entry for a well-defined filter) for the (un)checked level
-          R.reject(
-            R.allPass([
-              R.propEq('exc', 'option'),
-              R.propEq(grouping, 'format'),
-              R.propEq(level, 'prop'),
-            ])
-          ),
-          R.when(
-            R.always(mustExcludeLevel),
-            // Exclude all values within this grouping
-            R.append({
-              format: grouping,
-              prop: level,
-              value: values,
-              option: 'exc',
-            })
-          )
-        )
-      )
-    },
-    [isCheckLogicExc]
-  )
+  }, [getExcGroupingFilterEntries, isCheckLogicExc, visibleGroupings])
 
   const handleChangeValue = useCallback(
     (grouping, level) => (event) => {
@@ -708,6 +706,75 @@ const GroupsFilter = ({
     [filters, isCheckLogicExc]
   )
 
+  const changeFilterLevel = useCallback(
+    (currentFilters, grouping, level, mustExclude) => {
+      const values = R.uniq(visibleGroupings[grouping].data[level])
+      const index = R.findIndex(
+        R.allPass([
+          R.propEq('exc', 'option'),
+          R.propEq(grouping, 'format'),
+          R.propEq(level, 'prop'),
+        ])
+      )(currentFilters)
+
+      return R.cond([
+        [
+          R.always(index >= 0),
+          R.pipe(
+            R.over(
+              R.lensPath([index, 'value']),
+              mustExclude
+                ? // Exclude all values within this level
+                  R.converge(R.concat, [R.identity, R.difference(values)])
+                : R.without(values)
+            ),
+            // Remove filter entry if all values were cleared
+            R.when(R.pipe(R.path([index, 'value']), R.isEmpty), R.dissoc(index))
+          ),
+        ],
+        [
+          R.always(mustExclude), // index < 0 => new filter entry
+          R.append({
+            format: grouping,
+            prop: level,
+            value: values,
+            option: 'exc',
+          }),
+        ],
+        [R.T, R.identity],
+      ])(currentFilters)
+    },
+    [visibleGroupings]
+  )
+
+  const handleChangeLevel = useCallback(
+    (grouping) => (event) => {
+      const mustExclude = event.target.checked === isCheckLogicExc
+      const level = event.target.value
+      setFilters(changeFilterLevel(filters, grouping, level, mustExclude))
+    },
+    [changeFilterLevel, filters, isCheckLogicExc]
+  )
+
+  const handleChangeGrouping = useCallback(
+    (event) => {
+      const grouping = event.target.value
+      const mustExclude = event.target.checked === isCheckLogicExc
+      const visibleLevelKeys = R.keys(visibleGroupings[grouping].data)
+      let currentFilters = filters
+      R.forEach((level) => {
+        currentFilters = changeFilterLevel(
+          currentFilters,
+          grouping,
+          level,
+          mustExclude
+        )
+      })(visibleLevelKeys)
+      setFilters(currentFilters)
+    },
+    [changeFilterLevel, filters, isCheckLogicExc, visibleGroupings]
+  )
+
   const restoreGroupings = useCallback(() => {
     setFilters(defaultFilters)
   }, [defaultFilters])
@@ -720,16 +787,26 @@ const GroupsFilter = ({
     setCheckLogic(event.target.value)
   }
 
+  const handleChangeSearchText = (event) => {
+    setSearchText(event.target.value)
+  }
+
+  const handleChangeExpanded = (panel) => (event, newExpanded) => {
+    setExpanded(newExpanded ? R.assoc(panel, true) : R.dissoc(panel))
+  }
+
   return (
     <>
       <Paper sx={[styles.content, { py: 2 }]}>
         <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-          {/* TODO: Implement search feature */}
           <TextField
             sx={{ flexGrow: 1 }}
             placeholder="Search group, level or value"
             label="Search"
+            value={searchText}
+            onChange={handleChangeSearchText}
           />
+
           <ButtonGroup>
             <Button onClick={handleSelectAll}>Select All</Button>
             <Button onClick={handleDeselectAll}>Deselect All</Button>
@@ -747,9 +824,9 @@ const GroupsFilter = ({
         <Box overflow="auto">
           {R.pipe(
             R.mapObjIndexed((groupingProps, grouping) => {
-              const levelsData = R.dissoc('id')(groupingProps.data)
+              const levels = R.dissoc('id')(groupingProps.data)
               const checked = negateIfExcLogic(
-                getGroupingChecked(grouping, levelsData)
+                getGroupingChecked(grouping, levels)
               )
               return (
                 <Accordion
@@ -757,12 +834,12 @@ const GroupsFilter = ({
                   disableGutters
                   sx={styles.accordRoot}
                   slotProps={{ transition: { unmountOnExit: true } }}
-                  // expanded={expanded === grouping}
-                  // onChange={handleChange(grouping)}
+                  expanded={expanded[grouping]}
+                  onChange={handleChangeExpanded(grouping)}
                 >
                   <AccordionSummary
                     expandIcon={<MdArrowForwardIos size={16} />}
-                    sx={styles.accordSummary}
+                    sx={[styles.accordSummary, { mr: 1 }]}
                   >
                     <FormControlLabel
                       label={getLabelFn(statGroupings)(grouping)}
@@ -782,7 +859,7 @@ const GroupsFilter = ({
                       R.mapObjIndexed((levelValues, level) => {
                         const values = R.uniq(levelValues)
                         const checked = negateIfExcLogic(
-                          getLevelChecked(grouping, level, values)
+                          getLevelChecked(grouping, level)
                         )
                         return (
                           <Fragment key={level}>
@@ -797,7 +874,7 @@ const GroupsFilter = ({
                                   indeterminate={checked == null}
                                   value={level}
                                   color="primary"
-                                  onChange={handleChangeLevel(grouping, values)}
+                                  onChange={handleChangeLevel(grouping)}
                                 />
                               }
                             />
@@ -827,13 +904,13 @@ const GroupsFilter = ({
                         )
                       }),
                       R.values
-                    )(levelsData)}
+                    )(levels)}
                   </AccordionDetails>
                 </Accordion>
               )
             }),
             R.values
-          )(statGroupings)}
+          )(visibleGroupings)}
         </Box>
       </Paper>
 
