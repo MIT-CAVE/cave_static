@@ -661,10 +661,10 @@ const MapLegendGeoToggle = ({
   const colorRange = geoColorRange(geoType, colorProp, mapId)
   const isCategorical = !R.has('min', colorRange)
 
-  const filterableProps = R.pipe(
-    R.prop('props'),
-    R.filter(R.propOr(true, 'filterable'))
-  )(typeObj)
+  // const filterableProps = R.pipe(
+  //   R.prop('props'),
+  //   R.filter(R.propOr(true, 'filterable'))
+  // )(typeObj)
 
   const path = [
     'maps',
@@ -704,35 +704,35 @@ const MapLegendGeoToggle = ({
     [typeObj, colorProp]
   )
 
-  const currentFilters = R.propOr([], 'filters', legendObj)
-  const syncFilters = !includesPath(R.values(sync), [
-    'maps',
-    'data',
-    mapId,
-    'legendGroups',
-    legendGroupId,
-    'data',
-    geoType,
-    'filters',
-  ])
-  const handleSaveFilters = (newFilters) => {
-    dispatch(
-      mutateLocal({
-        path: [
-          'maps',
-          'data',
-          mapId,
-          'legendGroups',
-          legendGroupId,
-          'data',
-          geoType,
-          'filters',
-        ],
-        value: newFilters,
-        sync: syncFilters,
-      })
-    )
-  }
+  // const currentFilters = R.propOr([], 'filters', legendObj)
+  // const syncFilters = !includesPath(R.values(sync), [
+  //   'maps',
+  //   'data',
+  //   mapId,
+  //   'legendGroups',
+  //   legendGroupId,
+  //   'data',
+  //   geoType,
+  //   'filters',
+  // ])
+  // const handleSaveFilters = (newFilters) => {
+  //   dispatch(
+  //     mutateLocal({
+  //       path: [
+  //         'maps',
+  //         'data',
+  //         mapId,
+  //         'legendGroups',
+  //         legendGroupId,
+  //         'data',
+  //         geoType,
+  //         'filters',
+  //       ],
+  //       value: newFilters,
+  //       sync: syncFilters,
+  //     })
+  //   )
+  // }
 
   return (
     <details key={geoType} css={nonSx.typeWrapper} open>
@@ -754,8 +754,8 @@ const MapLegendGeoToggle = ({
               }}
             />
           }
-          {...{ filterableProps, currentFilters }}
-          onSaveFilters={handleSaveFilters}
+          // {...{ filterableProps, currentFilters }}
+          // onSaveFilters={handleSaveFilters}
         />
       </summary>
       <hr />
@@ -949,10 +949,10 @@ const LegendCard = memo(
     const groupCalcByColor =
       displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
-    const filterableProps = R.pipe(
-      R.prop('props'),
-      R.filter(R.propOr(true, 'filterable'))
-    )(typeObj)
+    // const filterableProps = R.pipe(
+    //   R.prop('props'),
+    //   R.filter(R.propOr(true, 'filterable'))
+    // )(typeObj)
 
     const { color: colorDomain, size: sizeDomain } = R.propOr(
       {},
@@ -963,26 +963,26 @@ const LegendCard = memo(
     const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
     const colorRange = geometryRange(geometryType, colorProp, false, mapId)
 
-    const currentFilters = R.propOr([], 'filters', legendObj)
-    const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
-    const handleSaveFilters = (newFilters) => {
-      dispatch(
-        mutateLocal({
-          path: [
-            'maps',
-            'data',
-            mapId,
-            'legendGroups',
-            legendGroupId,
-            'data',
-            geometryType,
-            'filters',
-          ],
-          value: newFilters,
-          sync: syncFilters,
-        })
-      )
-    }
+    // const currentFilters = R.propOr([], 'filters', legendObj)
+    // const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
+    // const handleSaveFilters = (newFilters) => {
+    //   dispatch(
+    //     mutateLocal({
+    //       path: [
+    //         'maps',
+    //         'data',
+    //         mapId,
+    //         'legendGroups',
+    //         legendGroupId,
+    //         'data',
+    //         geometryType,
+    //         'filters',
+    //       ],
+    //       value: newFilters,
+    //       sync: syncFilters,
+    //     })
+    //   )
+    // }
 
     return (
       <details key={geometryType} css={nonSx.typeWrapper} open>
@@ -1004,8 +1004,8 @@ const LegendCard = memo(
                 }}
               />
             }
-            {...{ filterableProps, currentFilters }}
-            onSaveFilters={handleSaveFilters}
+            // {...{ filterableProps, currentFilters }}
+            // onSaveFilters={handleSaveFilters}
             {...(allowGrouping && {
               toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
               toggleGroup: (
