@@ -174,8 +174,8 @@ const StatsFilter = ({
         R.flip(R.assoc('id')),
         // Set up `logic` for first row in case it is `undefined`
         R.when(R.propEq(0, 'id'), R.assoc('logic', 'and')),
-        // Drop falsy `active` values
-        R.when(R.propEq(false, 'active'), R.dissoc('active')),
+        // Drop truthy `active` values
+        R.when(R.propEq(true, 'active'), R.dissoc('active')),
         renameKeys({ option: 'relation', prop: 'source' })
       )
     )(filterCriteria)
@@ -193,7 +193,7 @@ const StatsFilter = ({
     if (!isApiRefValid) return
 
     const newSelectedRowIds = R.pipe(
-      R.filter(R.prop('active')),
+      R.filter(R.propOr(true, 'active')),
       R.pluck('id')
     )(initialRows)
     apiRef.current.setRowSelectionModel(newSelectedRowIds)
