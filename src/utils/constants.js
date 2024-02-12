@@ -98,32 +98,54 @@ export const LIGHT_GLOBE_FOG = {
   ],
 }
 
-export const DEFAULT_MAP_STYLE_KEY = '_default'
-
 export const DEFAULT_MAP_STYLES = {
-  [DEFAULT_MAP_STYLE_KEY]: {
-    name: 'Default',
-    icon: 'md/MdMap',
-    order: -3,
+  mapboxDark: {
+    name: 'Mapbox Dark',
+    icon: 'si/SiMapbox',
+    // Full spec (via Mapbox's guest token) available at:
+    // https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA#11/40.73/-74
+    spec: 'mapbox://styles/mapbox/dark-v11',
   },
-  dark_matter: {
-    name: 'Dark',
+  mapboxLight: {
+    name: 'Mapbox Light',
+    icon: 'si/SiMapbox',
+    spec: 'mapbox://styles/mapbox/light-v11',
+  },
+  mapboxStreets: {
+    name: 'Mapbox Streets',
+    icon: 'si/SiMapbox',
+    spec: 'mapbox://styles/mapbox/streets-v12',
+  },
+  mapboxSatellite: {
+    name: 'Mapbox Satellite',
+    icon: 'si/SiMapbox',
+    spec: 'mapbox://styles/mapbox/satellite-streets-v12',
+  },
+  mapboxNavDay: {
+    name: 'Mapbox Navigation Day',
+    icon: 'si/SiMapbox',
+    spec: 'mapbox://styles/mapbox/navigation-day-v1',
+  },
+  mapboxNavNight: {
+    name: 'Mapbox Navigation Night',
+    icon: 'si/SiMapbox',
+    spec: 'mapbox://styles/mapbox/navigation-night-v1',
+  },
+  cartoDarkMatter: {
+    name: 'Carto Dark',
     icon: 'md/MdDarkMode',
-    order: -2,
     spec: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
     fog: DARK_GLOBE_FOG,
   },
-  positron: {
-    name: 'Light',
+  cartoPositron: {
+    name: 'Carto Light',
     icon: 'md/MdLightMode',
-    order: -1,
     spec: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     fog: LIGHT_GLOBE_FOG,
   },
-  OSM: {
-    name: 'OSM',
-    icon: 'md/MdFreeBreakfast',
-    order: 0,
+  openStreetMap: {
+    name: 'Open Street Maps',
+    icon: 'md/MdMap',
     spec: {
       name: 'osm',
       version: 8,
@@ -148,13 +170,6 @@ export const DEFAULT_MAP_STYLES = {
       ],
     },
     fog: LIGHT_GLOBE_FOG,
-  },
-  mapboxDark: {
-    name: 'Dark (Alt)',
-    icon: 'si/SiMapbox',
-    // Full spec (via Mapbox's guest token) available at:
-    // https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA#11/40.73/-74
-    spec: 'mapbox://styles/mapbox/dark-v11',
   },
 }
 

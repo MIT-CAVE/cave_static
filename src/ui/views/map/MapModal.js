@@ -30,7 +30,6 @@ import {
   selectMapStyleOptions,
   selectSync,
 } from '../../../data/selectors'
-import { DEFAULT_MAP_STYLE_KEY } from '../../../utils/constants'
 import ClusterModal from '../../compound/ClusterModal'
 import { GeneralModal } from '../common/Modal'
 import { renderPropsLayout } from '../common/renderLayout'
@@ -64,13 +63,13 @@ const styles = {
     position: 'absolute',
     right: '64px',
     bottom: '72px',
-    maxWidth: 250,
+    width: '280px',
     border: 1,
     borderColor: 'text.secondary',
     borderRadius: 1,
     bgcolor: 'background.paper',
     boxShadow: 5,
-    p: (theme) => theme.spacing(2, 4, 1),
+    p: (theme) => theme.spacing(2, 2, 1),
     color: 'text.primary',
   },
   flexSpaceBetween: {
@@ -240,11 +239,7 @@ const MapModal = ({ mapId }) => {
               mutateLocal({
                 sync: syncStyles,
                 path: ['maps', 'data', mapId, 'currentStyle'],
-                value: R.ifElse(
-                  R.equals(DEFAULT_MAP_STYLE_KEY),
-                  R.always(undefined),
-                  R.always(mapStyle)
-                )(mapStyle),
+                value: mapStyle,
               })
             )
             dispatch(closeMapModal(mapId))
