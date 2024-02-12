@@ -38,7 +38,11 @@ import {
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../../data/selectors'
+import {
+  selectGroupedOutputNames,
+  selectNumberFormat,
+  selectStatGroupings,
+} from '../../../data/selectors'
 import OverflowText from '../../compound/OverflowText'
 
 import {
@@ -147,12 +151,7 @@ const styles = {
   },
 }
 
-const StatsFilter = ({
-  defaultFilters,
-  groupingFilters,
-  statNames,
-  onSave,
-}) => {
+const StatsFilter = ({ defaultFilters, onSave }) => {
   const [filters, setFilters] = useState(defaultFilters)
   const [idCount, setIdCount] = useState(0)
   const [rows, setRows] = useState([])
@@ -162,6 +161,7 @@ const StatsFilter = ({
 
   const apiRef = useGridApiRef()
   const numberFormat = useSelector(selectNumberFormat)
+  const statNames = useSelector(selectGroupedOutputNames)
 
   const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
 
@@ -295,8 +295,8 @@ const StatsFilter = ({
       )
     )(rows)
     setFilters(newFilters)
-    onSave(R.concat(groupingFilters)(newFilters))
-  }, [groupingFilters, onSave, rows, updateActiveStateForSelectedRow])
+    onSave(newFilters)
+  }, [onSave, rows, updateActiveStateForSelectedRow])
 
   const handleRowSelectionCheckboxChange = useCallback(() => {
     setRows(R.map(updateActiveStateForSelectedRow))
@@ -510,16 +510,13 @@ const StatsFilter = ({
 
 // NOTE: This is an unefficient quicker solution
 // TODO: Work on an `PropNested`-improved solution
-const GroupsFilter = ({
-  defaultFilters,
-  statFilters,
-  statGroupings,
-  onSave,
-}) => {
+const GroupsFilter = ({ defaultFilters, onSave }) => {
   const [expanded, setExpanded] = useState({})
   const [filters, setFilters] = useState(defaultFilters)
   const [checkLogic, setCheckLogic] = useState('inc')
   const [searchText, setSearchText] = useState('')
+
+  const statGroupings = useSelector(selectStatGroupings)
 
   const isCheckLogicExc = checkLogic === 'exc'
 
@@ -799,8 +796,8 @@ const GroupsFilter = ({
   }, [defaultFilters.length, defaultFiltersByLevel, filters])
 
   const handleClickSave = useCallback(() => {
-    onSave(R.concat(statFilters)(filters))
-  }, [filters, onSave, statFilters])
+    onSave(filters)
+  }, [filters, onSave])
 
   const handleChangeCheckLogic = (event) => {
     setCheckLogic(event.target.value)
@@ -961,9 +958,8 @@ const FilterModal = ({
   open,
   label,
   labelExtra,
-  statNames,
-  statGroupings,
-  defaultFilters,
+  statFilters,
+  groupingFilters,
   numActiveStatFilters,
   numGroupingFilters,
   onSave,
@@ -974,13 +970,10 @@ const FilterModal = ({
     setFilterTab(filterTab === 'stats' ? 'groups' : 'stats')
   }, [filterTab])
 
-  const [statFilters, groupingFilters] = useMemo(
-    () =>
-      R.partition(
-        R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
-      )(defaultFilters),
-    [defaultFilters]
-  )
+  const handleSaveFilters = R.curry((otherFilters, filters) => {
+    onSave(R.concat(filters)(otherFilters))
+  })
+
   return (
     // Keep the component mounted to avoid losing `apiRef`
     <Modal sx={styles.modal} keepMounted {...{ open, onClose }}>
@@ -1014,12 +1007,12 @@ const FilterModal = ({
         {filterTab === 'stats' ? (
           <StatsFilter
             defaultFilters={statFilters}
-            {...{ groupingFilters, statNames, onSave }}
+            onSave={handleSaveFilters(groupingFilters)}
           />
         ) : filterTab === 'groups' ? (
           <GroupsFilter
             defaultFilters={groupingFilters}
-            {...{ statFilters, statGroupings, onSave }}
+            onSave={handleSaveFilters(statFilters)}
           />
         ) : null}
       </Box>

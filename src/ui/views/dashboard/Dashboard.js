@@ -18,8 +18,6 @@ import {
   selectRightAppBarDisplay,
   selectMapboxToken,
   selectShowToolbar,
-  selectGroupedOutputNames,
-  selectStatGroupings,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import { useFilter } from '../../../utils/hooks'
@@ -66,8 +64,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
-  const statNames = useSelector(selectGroupedOutputNames)
-  const statGroupings = useSelector(selectStatGroupings)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
@@ -122,9 +118,17 @@ const DashboardItem = ({ chartObj, index, path }) => {
     [chartObj, dispatch, path, sync]
   )
 
-  const numActiveStatFilters = useMemo(
-    () => R.pipe(R.filter(R.prop('active')), R.length)(defaultFilters),
+  const [statFilters, groupingFilters] = useMemo(
+    () =>
+      R.partition(
+        R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
+      )(defaultFilters),
     [defaultFilters]
+  )
+
+  const numActiveStatFilters = useMemo(
+    () => R.pipe(R.filter(R.propOr(true, 'active')), R.length)(statFilters),
+    [statFilters]
   )
 
   const numGroupingFilters = useMemo(
@@ -133,8 +137,8 @@ const DashboardItem = ({ chartObj, index, path }) => {
         R.filter(R.propEq('exc', 'option')),
         R.chain(R.pipe(R.prop('value'), R.length)),
         R.sum
-      )(defaultFilters),
-    [defaultFilters]
+      )(groupingFilters),
+    [groupingFilters]
   )
 
   return (
@@ -151,9 +155,8 @@ const DashboardItem = ({ chartObj, index, path }) => {
         >
           <FilterModal
             {...{
-              statNames,
-              statGroupings,
-              defaultFilters,
+              statFilters,
+              groupingFilters,
               numActiveStatFilters,
               numGroupingFilters,
             }}
