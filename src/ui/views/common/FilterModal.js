@@ -732,9 +732,16 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
               value: [value],
               option: 'exc',
             })
-          : R.over(
-              R.lensPath([index, 'value']),
-              mustExcludeValue ? R.append(value) : R.without([value])
+          : R.pipe(
+              R.over(
+                R.lensPath([index, 'value']),
+                mustExcludeValue ? R.append(value) : R.without([value])
+              ),
+              // Remove filter entry when `value` is left empty
+              R.when(
+                R.pipe(R.path([index, 'value']), R.isEmpty),
+                R.dissoc(index)
+              )
             )
       )
     },
