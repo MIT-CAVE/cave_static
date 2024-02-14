@@ -1,12 +1,10 @@
 import {
-  Modal,
   Paper,
   Stack,
   Button,
   Box,
   Tabs,
   Tab,
-  Typography,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -38,6 +36,8 @@ import {
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
+import { DataGridModal } from './BaseModal'
+
 import {
   selectGroupedOutputNames,
   selectNumberFormat,
@@ -54,43 +54,6 @@ import {
 } from '../../../utils'
 
 const styles = {
-  modal: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    mx: 'auto',
-    p: 1,
-  },
-  paper: {
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'absolute',
-    width: '700px',
-    maxWidth: '60%',
-    height: '800px',
-    maxHeight: '60%',
-    p: 2,
-    color: 'text.primary',
-    bgcolor: 'background.paper',
-    border: 1,
-    borderColor: 'text.secondary',
-    borderRadius: 1,
-    boxShadow: 5,
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'center',
-    mb: 1,
-    pt: 2,
-  },
-  headerExtra: {
-    display: 'flex',
-    justifyContent: 'center',
-    fontWeight: 600,
-    mb: 1,
-    pb: 2,
-  },
   addBtn: {
     justifyContent: 'start',
     pl: 2,
@@ -570,12 +533,12 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
   const getValueChecked = useCallback(
     (grouping, level, value) =>
       R.none(
-        R.allPass([
-          R.propEq('exc', 'option'),
-          R.propEq(grouping, 'format'),
-          R.propEq(level, 'prop'),
-          R.propSatisfies(R.includes(value), 'value'),
-        ])
+        R.where({
+          option: R.equals('exc'),
+          format: R.equals(grouping),
+          prop: R.equals(level),
+          value: R.includes(value),
+        })
       )(filters),
     [filters]
   )
@@ -584,15 +547,12 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
     (grouping, level) => {
       const visibleValues = visibleGroupings[grouping].data[level]
       const visibleExcludedLevel = R.find(
-        R.allPass([
-          R.propEq('exc', 'option'),
-          R.propEq(grouping, 'format'),
-          R.propEq(level, 'prop'),
-          R.propSatisfies(
-            R.pipe(R.intersection(visibleValues), R.isEmpty, R.not),
-            'value'
-          ),
-        ])
+        R.where({
+          option: R.equals('exc'),
+          format: R.equals(grouping),
+          prop: R.equals(level),
+          value: R.pipe(R.intersection(visibleValues), R.isEmpty, R.not),
+        })
       )(filters)
 
       return visibleExcludedLevel == null
@@ -645,11 +605,11 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
     (currentFilters, grouping, level, mustExclude) => {
       const values = R.uniq(visibleGroupings[grouping].data[level])
       const index = R.findIndex(
-        R.allPass([
-          R.propEq('exc', 'option'),
-          R.propEq(grouping, 'format'),
-          R.propEq(level, 'prop'),
-        ])
+        R.where({
+          option: R.equals('exc'),
+          format: R.equals(grouping),
+          prop: R.equals(level),
+        })
       )(currentFilters)
 
       return R.cond([
@@ -718,11 +678,11 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
       const mustExcludeValue = event.target.checked === isCheckLogicExc
       const value = event.target.value
       const index = R.findIndex(
-        R.allPass([
-          R.propEq('exc', 'option'),
-          R.propEq(grouping, 'format'),
-          R.propEq(level, 'prop'),
-        ])
+        R.where({
+          option: R.equals('exc'),
+          format: R.equals(grouping),
+          prop: R.equals(level),
+        })
       )(filters)
       setFilters(
         index < 0
@@ -982,48 +942,29 @@ const FilterModal = ({
   })
 
   return (
-    // Keep the component mounted to avoid losing `apiRef`
-    <Modal sx={styles.modal} keepMounted {...{ open, onClose }}>
-      <Box
-        sx={[
-          styles.paper,
-          {
-            // Prefer `visibility` over conditional rendering to avoid losing `apiRef`
-            visibility: open ? 'visible' : 'hidden',
-          },
-        ]}
-      >
-        <Typography sx={styles.header} component="span" variant="h5">
-          {label}
-        </Typography>
-        {labelExtra && (
-          <Typography sx={styles.headerExtra} component="span" color="primary">
-            {labelExtra}
-          </Typography>
-        )}
-        <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
-          <Tab
-            value="stats"
-            label={`Statistics${numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''}`}
-          />
-          <Tab
-            value="groups"
-            label={`Groups${numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''}`}
-          />
-        </Tabs>
-        {filterTab === 'stats' ? (
-          <StatsFilter
-            defaultFilters={statFilters}
-            onSave={handleSaveFilters(groupingFilters)}
-          />
-        ) : filterTab === 'groups' ? (
-          <GroupsFilter
-            defaultFilters={groupingFilters}
-            onSave={handleSaveFilters(statFilters)}
-          />
-        ) : null}
-      </Box>
-    </Modal>
+    <DataGridModal {...{ label, labelExtra, open, onClose }}>
+      <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
+        <Tab
+          value="stats"
+          label={`Statistics${numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''}`}
+        />
+        <Tab
+          value="groups"
+          label={`Groups${numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''}`}
+        />
+      </Tabs>
+      {filterTab === 'stats' ? (
+        <StatsFilter
+          defaultFilters={statFilters}
+          onSave={handleSaveFilters(groupingFilters)}
+        />
+      ) : filterTab === 'groups' ? (
+        <GroupsFilter
+          defaultFilters={groupingFilters}
+          onSave={handleSaveFilters(statFilters)}
+        />
+      ) : null}
+    </DataGridModal>
   )
 }
 
