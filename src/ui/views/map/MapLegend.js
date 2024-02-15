@@ -1,8 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import {
+  Badge,
   Box,
   Divider,
   Grid,
+  IconButton,
   Paper,
   Stack,
   Switch,
@@ -10,8 +12,9 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useState, useEffect } from 'react'
+import { memo, useCallback, useState, useEffect, useMemo } from 'react'
 import { BlockPicker } from 'react-color'
+import { FaFilter } from 'react-icons/fa'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -37,9 +40,10 @@ import {
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
-// import { useFilter } from '../../../utils/hooks'
+import { useFilter } from '../../../utils/hooks'
 import { getStatLabel } from '../../../utils/stats'
-// import FilterModal from '../common/FilterModal'
+import { DataGridModal } from '../common/BaseModal'
+import GridFilter from '../common/GridFilter'
 
 import {
   FetchedIcon,
@@ -156,6 +160,24 @@ const nonSx = {
   },
 }
 
+const getGridFilterCellType = R.curry((type, variant) =>
+  R.cond([
+    [R.equals('toggle'), R.always('boolean')],
+    [R.equals('text'), R.always('string')],
+    [R.equals('num'), R.always('number')],
+    [
+      R.equals('selector'),
+      R.always(
+        R.includes(variant)(['dropdown', 'checkbox', 'nested'])
+          ? 'multiSelect'
+          : 'singleSelect'
+      ),
+    ],
+    [R.equals('date'), R.always('date')],
+    [R.T, R.always('number')],
+  ])(type)
+)
+
 const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
   return <ComponentType {...Component.props} {...extraProps} />
@@ -259,12 +281,37 @@ const MapLegendGroupRowToggleLayer = ({
   legendName,
   toggleGroup,
   toggleGroupLabel,
-  // currentFilters = [],
-  // filterableProps,
-  // onSaveFilters,
+  filters = [],
+  filterableProps,
+  onSaveFilters,
   ...props
 }) => {
-  // const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+
+  const numActiveFilters = useMemo(
+    () => R.pipe(R.filter(R.propOr(true, 'active')), R.length)(filters),
+    [filters]
+  )
+
+  const sourceValueOpts = useMemo(
+    () =>
+      R.pipe(
+        R.mapObjIndexed((v, k) => ({ label: v.name, value: k })),
+        R.values
+      )(filterableProps),
+    [filterableProps]
+  )
+  const sourceValueTypes = useMemo(
+    () =>
+      R.pipe(
+        R.map(
+          R.converge(getGridFilterCellType, [R.prop('type'), R.prop('variant')])
+        ),
+        R.values
+      )(filterableProps),
+    [filterableProps]
+  )
+
   return (
     <Grid container spacing={0} alignItems="center" {...props}>
       <Grid item xs={1} className="my-auto text-center">
@@ -293,30 +340,32 @@ const MapLegendGroupRowToggleLayer = ({
           <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
         </Grid>
       )}
-      {/* {(R.isNil(toggleGroupLabel) || toggleGroupLabel === 'Ungrouped') && (
-        <Grid item xs={1.5} className="my-auto">
-          <FilterModal
-            {...{ filterableProps, currentFilters }}
-            open={filterOpen}
-            onClose={handleCloseFilter}
-            onChange={onSaveFilters}
-          />
-          <ToggleButton
-            sx={{ p: 0.5 }}
-            color="primary"
-            value="filter"
-            // Selected is an indicator that there are active filters
-            selected={!R.isEmpty(currentFilters)}
-            onChange={filterOpen ? handleCloseFilter : handleOpenFilter}
-          >
-            <FetchedIcon
-              iconName="fa6/FaFilter"
-              size={26}
-              color="text.primary"
-            />
-          </ToggleButton>
-        </Grid>
-      )} */}
+      {sourceValueOpts.length > 0 &&
+        (toggleGroupLabel == null || toggleGroupLabel === 'Ungrouped') && (
+          <Grid item xs={1.5} className="my-auto">
+            <DataGridModal
+              open={filterOpen}
+              label="Data Filter"
+              labelExtra="" // FIXME
+              onClose={handleCloseFilter}
+            >
+              <GridFilter
+                defaultFilters={filters}
+                {...{ sourceValueOpts, sourceValueTypes }}
+                onSave={onSaveFilters}
+              />
+            </DataGridModal>
+            <IconButton
+              sx={{ p: 0.5 }}
+              value="filter"
+              onClick={handleOpenFilter}
+            >
+              <Badge color="info" badgeContent={numActiveFilters}>
+                <FaFilter size={20} />
+              </Badge>
+            </IconButton>
+          </Grid>
+        )}
     </Grid>
   )
 }
@@ -661,10 +710,10 @@ const MapLegendGeoToggle = ({
   const colorRange = geoColorRange(geoType, colorProp, mapId)
   const isCategorical = !R.has('min', colorRange)
 
-  // const filterableProps = R.pipe(
-  //   R.prop('props'),
-  //   R.filter(R.propOr(true, 'filterable'))
-  // )(typeObj)
+  const filterableProps = R.pipe(
+    R.prop('props'),
+    R.filter(R.propOr(true, 'filterable'))
+  )(typeObj)
 
   const path = [
     'maps',
@@ -704,35 +753,34 @@ const MapLegendGeoToggle = ({
     [typeObj, colorProp]
   )
 
-  // const currentFilters = R.propOr([], 'filters', legendObj)
-  // const syncFilters = !includesPath(R.values(sync), [
-  //   'maps',
-  //   'data',
-  //   mapId,
-  //   'legendGroups',
-  //   legendGroupId,
-  //   'data',
-  //   geoType,
-  //   'filters',
-  // ])
-  // const handleSaveFilters = (newFilters) => {
-  //   dispatch(
-  //     mutateLocal({
-  //       path: [
-  //         'maps',
-  //         'data',
-  //         mapId,
-  //         'legendGroups',
-  //         legendGroupId,
-  //         'data',
-  //         geoType,
-  //         'filters',
-  //       ],
-  //       value: newFilters,
-  //       sync: syncFilters,
-  //     })
-  //   )
-  // }
+  const syncFilters = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    mapId,
+    'legendGroups',
+    legendGroupId,
+    'data',
+    geoType,
+    'filters',
+  ])
+  const handleSaveFilters = (newFilters) => {
+    dispatch(
+      mutateLocal({
+        path: [
+          'maps',
+          'data',
+          mapId,
+          'legendGroups',
+          legendGroupId,
+          'data',
+          geoType,
+          'filters',
+        ],
+        value: newFilters,
+        sync: syncFilters,
+      })
+    )
+  }
 
   return (
     <details key={geoType} css={nonSx.typeWrapper} open>
@@ -754,8 +802,9 @@ const MapLegendGeoToggle = ({
               }}
             />
           }
-          // {...{ filterableProps, currentFilters }}
-          // onSaveFilters={handleSaveFilters}
+          {...{ filterableProps }}
+          filters={legendObj.filters}
+          onSaveFilters={handleSaveFilters}
         />
       </summary>
       <hr />
@@ -949,10 +998,10 @@ const LegendCard = memo(
     const groupCalcByColor =
       displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
-    // const filterableProps = R.pipe(
-    //   R.prop('props'),
-    //   R.filter(R.propOr(true, 'filterable'))
-    // )(typeObj)
+    const filterableProps = R.pipe(
+      R.prop('props'),
+      R.filter(R.propOr(true, 'filterable'))
+    )(typeObj)
 
     const { color: colorDomain, size: sizeDomain } = R.propOr(
       {},
@@ -963,26 +1012,25 @@ const LegendCard = memo(
     const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
     const colorRange = geometryRange(geometryType, colorProp, false, mapId)
 
-    // const currentFilters = R.propOr([], 'filters', legendObj)
-    // const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
-    // const handleSaveFilters = (newFilters) => {
-    //   dispatch(
-    //     mutateLocal({
-    //       path: [
-    //         'maps',
-    //         'data',
-    //         mapId,
-    //         'legendGroups',
-    //         legendGroupId,
-    //         'data',
-    //         geometryType,
-    //         'filters',
-    //       ],
-    //       value: newFilters,
-    //       sync: syncFilters,
-    //     })
-    //   )
-    // }
+    const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
+    const handleSaveFilters = (newFilters) => {
+      dispatch(
+        mutateLocal({
+          path: [
+            'maps',
+            'data',
+            mapId,
+            'legendGroups',
+            legendGroupId,
+            'data',
+            geometryType,
+            'filters',
+          ],
+          value: newFilters,
+          sync: syncFilters,
+        })
+      )
+    }
 
     return (
       <details key={geometryType} css={nonSx.typeWrapper} open>
@@ -1004,8 +1052,9 @@ const LegendCard = memo(
                 }}
               />
             }
-            // {...{ filterableProps, currentFilters }}
-            // onSaveFilters={handleSaveFilters}
+            {...{ filterableProps }}
+            filters={legendObj.filters}
+            onSaveFilters={handleSaveFilters}
             {...(allowGrouping && {
               toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
               toggleGroup: (

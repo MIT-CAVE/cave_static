@@ -1226,7 +1226,6 @@ export const selectMemoizedChartFunc = createSelector(
                   R.propOr([], 'filters'),
                   R.reject(R.propEq(false, 'active'))
                 )(obj),
-                statNames,
                 groupingIndicies
               ),
               acc
@@ -1941,7 +1940,10 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
           R.mapObjIndexed((obj) => {
             const [id, node] = obj
             const legendObj = legendObjectsFunc(mapId)[node.type]
-            const filters = R.propOr([], 'filters', legendObj)
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
             if (!filterMapFeature(filters, node)) return false
             const sizeProp = legendObj.sizeBy
             const sizeRange = nodeRange(node.type, sizeProp, true, mapId)

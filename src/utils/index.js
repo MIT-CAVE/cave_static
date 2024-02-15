@@ -173,12 +173,7 @@ export const filterMapFeature = (filters, featureObj) => {
   return true
 }
 
-export const filterGroupedOutputs = (
-  statistics,
-  filters,
-  statNames,
-  groupingIndicies
-) => {
+export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
   const valueLists = statistics['valueLists']
   const indicies = R.pipe(
     R.prop('valueLists'),
@@ -194,7 +189,7 @@ export const filterGroupedOutputs = (
       const filterValue = R.prop('value', filterObj)
       const value =
         format === 'stat'
-          ? R.path([statNames[prop][1], idx], valueLists)
+          ? R.path([prop, idx], valueLists)
           : groupingIndicies[format]['data'][prop][
               groupingIndicies[format]['data']['id'][
                 R.path(['groupLists', format, idx], statistics)

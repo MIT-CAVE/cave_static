@@ -1,6 +1,6 @@
-import { Box, ButtonGroup, Slider } from '@mui/material'
+import { Badge, Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
-import { useState, memo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import {
   MdAdd,
   MdGpsFixed,
@@ -33,6 +33,7 @@ import {
   selectPitchFunc,
   selectStaticMap,
   selectSync,
+  selectLegendDataFunc,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -199,6 +200,18 @@ const MapControls = ({ allowProjections, mapId }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
+  const legendData = useSelector(selectLegendDataFunc)(mapId)
+  const anyActiveFilter = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.chain(R.pipe(R.prop('data'), R.values, R.pluck('filters'))),
+        R.unnest,
+        R.any(R.both(R.isNotNil, R.propOr(true, 'active')))
+      )(legendData),
+    [legendData]
+  )
+
   const syncProjection = !includesPath(R.values(sync), [
     'maps',
     'data',
@@ -246,6 +259,7 @@ const MapControls = ({ allowProjections, mapId }) => {
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
           <TimeButtons />
+
           {/* Map legend */}
           <ButtonGroup
             sx={styles.btnGroup}
@@ -257,7 +271,9 @@ const MapControls = ({ allowProjections, mapId }) => {
               placement="top"
               onClick={() => dispatch(toggleMapLegend(mapId))}
             >
-              <MdApps />
+              <Badge color="info" variant="dot" invisible={!anyActiveFilter}>
+                <MdApps />
+              </Badge>
             </TooltipButton>
           </ButtonGroup>
 
