@@ -379,6 +379,10 @@ const GridFilter = ({
         type: 'number',
         editable: true,
         sortable: false,
+        valueParser: (value, params) => {
+          const valueType = sourceTypesByValue[params.row.source]
+          return valueType === 'boolean' ? Boolean(value) : Number(value)
+        },
         valueFormatter: ({ value }) =>
           typeof value === 'number'
             ? NumberFormat.format(value, numberFormat)

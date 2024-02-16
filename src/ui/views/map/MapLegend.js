@@ -289,7 +289,7 @@ const MapLegendGroupRowToggleLayer = ({
   const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
 
   const numActiveFilters = useMemo(
-    () => R.pipe(R.filter(R.propOr(true, 'active')), R.length)(filters),
+    () => R.count(R.propOr(true, 'active'))(filters),
     [filters]
   )
 
@@ -346,7 +346,7 @@ const MapLegendGroupRowToggleLayer = ({
             <DataGridModal
               open={filterOpen}
               label="Data Filter"
-              labelExtra="" // FIXME
+              labelExtra={`(${legendName})`}
               onClose={handleCloseFilter}
             >
               <GridFilter

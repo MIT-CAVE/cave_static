@@ -127,7 +127,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const numActiveStatFilters = useMemo(
-    () => R.pipe(R.filter(R.propOr(true, 'active')), R.length)(statFilters),
+    () => R.count(R.propOr(true, 'active'))(statFilters),
     [statFilters]
   )
 
