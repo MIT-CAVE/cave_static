@@ -160,24 +160,6 @@ const nonSx = {
   },
 }
 
-const getGridFilterCellType = R.curry((type, variant) =>
-  R.cond([
-    [R.equals('toggle'), R.always('boolean')],
-    [R.equals('text'), R.always('string')],
-    [R.equals('num'), R.always('number')],
-    [
-      R.equals('selector'),
-      R.always(
-        R.includes(variant)(['dropdown', 'checkbox', 'nested'])
-          ? 'multiSelect'
-          : 'singleSelect'
-      ),
-    ],
-    [R.equals('date'), R.always('date')],
-    [R.T, R.always('number')],
-  ])(type)
-)
-
 const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
   return <ComponentType {...Component.props} {...extraProps} />
@@ -282,7 +264,7 @@ const MapLegendGroupRowToggleLayer = ({
   toggleGroup,
   toggleGroupLabel,
   filters = [],
-  filterableProps,
+  filterableProps: filterables,
   onSaveFilters,
   ...props
 }) => {
@@ -291,25 +273,6 @@ const MapLegendGroupRowToggleLayer = ({
   const numActiveFilters = useMemo(
     () => R.count(R.propOr(true, 'active'))(filters),
     [filters]
-  )
-
-  const sourceValueOpts = useMemo(
-    () =>
-      R.pipe(
-        R.mapObjIndexed((v, k) => ({ label: v.name, value: k })),
-        R.values
-      )(filterableProps),
-    [filterableProps]
-  )
-  const sourceValueTypes = useMemo(
-    () =>
-      R.pipe(
-        R.map(
-          R.converge(getGridFilterCellType, [R.prop('type'), R.prop('variant')])
-        ),
-        R.values
-      )(filterableProps),
-    [filterableProps]
   )
 
   return (
@@ -340,7 +303,7 @@ const MapLegendGroupRowToggleLayer = ({
           <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
         </Grid>
       )}
-      {sourceValueOpts.length > 0 &&
+      {!R.isEmpty(filterables) &&
         (toggleGroupLabel == null || toggleGroupLabel === 'Ungrouped') && (
           <Grid item xs={1.5} className="my-auto">
             <DataGridModal
@@ -351,7 +314,8 @@ const MapLegendGroupRowToggleLayer = ({
             >
               <GridFilter
                 defaultFilters={filters}
-                {...{ sourceValueOpts, sourceValueTypes }}
+                {...{ filterables }}
+                // {...{ sourceValueOpts, sourceValueTypes }}
                 onSave={onSaveFilters}
               />
             </DataGridModal>

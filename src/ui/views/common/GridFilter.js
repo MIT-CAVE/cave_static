@@ -26,7 +26,7 @@ import { useSelector } from 'react-redux'
 
 import GridEditMultiSelectCell from './GridEditMultiSelectCell'
 
-import { selectNumberFormat } from '../../../data/selectors'
+import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
 import { OverflowText } from '../../compound'
 
@@ -129,11 +129,28 @@ const getCellComponentByType = R.cond([
   [R.T, R.always(GridEditInputCell)],
 ])
 
+const getGridFilterCellType = R.curry((type, variant) =>
+  R.cond([
+    [R.equals('toggle'), R.always('boolean')],
+    [R.equals('text'), R.always('string')],
+    [R.equals('num'), R.always('number')],
+    [
+      R.equals('selector'),
+      R.always(
+        R.includes(variant)(['dropdown', 'checkbox', 'nested'])
+          ? 'multiSelect'
+          : 'singleSelect'
+      ),
+    ],
+    [R.equals('date'), R.always('date')],
+    [R.T, R.always('number')],
+  ])(type)
+)
+
 const GridFilter = ({
   defaultFilters,
   sourceHeaderName = 'Source',
-  sourceValueOpts,
-  sourceValueTypes,
+  filterables,
   onSave,
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
@@ -144,15 +161,28 @@ const GridFilter = ({
   const [canSaveRow, setCanSaveRow] = useState({})
 
   const apiRef = useGridApiRef()
-  const numberFormat = useSelector(selectNumberFormat)
+  const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
-  const sourceTypesByValue = useMemo(
+  const sourceValueOpts = useMemo(
     () =>
       R.pipe(
-        R.pluck('value'),
-        R.flip(R.zipObj)(sourceValueTypes)
-      )(sourceValueOpts),
-    [sourceValueOpts, sourceValueTypes]
+        R.mapObjIndexed((val, key) => ({ label: val.name, value: key })),
+        R.values
+      )(filterables),
+    [filterables]
+  )
+  const sourceValueTypes = useMemo(
+    () =>
+      R.pipe(
+        R.map(
+          R.converge(getGridFilterCellType, [R.prop('type'), R.prop('variant')])
+        )
+      )(filterables),
+    [filterables]
+  )
+  const numberFormatProps = useMemo(
+    () => R.map(getNumberFormat)(filterables),
+    [filterables, getNumberFormat]
   )
 
   const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
@@ -364,10 +394,11 @@ const GridFilter = ({
         editable: true,
         sortable: false,
         valueOptions: ({ row, id }) => {
-          const valueAlt = R.path([id, 'source'])(rows)
+          const rowAlt = apiRef.current.getRow(id)
+          const valueAlt = rowAlt.source
           const value = R.propOr(valueAlt, 'source')(row)
           const valueType =
-            value && value !== '' ? sourceTypesByValue[value] : 'number'
+            value && value !== '' ? sourceValueTypes[value] : 'number'
           return getRelationValueOptsByType(valueType)
         },
         preProcessEditCellProps,
@@ -380,23 +411,25 @@ const GridFilter = ({
         editable: true,
         sortable: false,
         valueParser: (value, params) => {
-          const valueType = sourceTypesByValue[params.row.source]
-          return valueType === 'boolean' ? Boolean(value) : Number(value)
+          const valueType = sourceValueTypes[params.row.source]
+          return valueType === 'boolean' ? Boolean(value) : value
         },
-        valueFormatter: ({ value }) =>
-          typeof value === 'number'
-            ? NumberFormat.format(value, numberFormat)
-            : null,
         renderCell: (params) => {
-          const valueType = sourceTypesByValue[params.row.source]
+          const { value, row } = params
+          const valueType = sourceValueTypes[row.source]
+          const formattedValue =
+            // TODO: Add support for `multiSelect` values
+            valueType === 'number'
+              ? NumberFormat.format(value, numberFormatProps[row.source])
+              : value
           return valueType === 'boolean' ? (
             <GridBooleanCell {...params} />
           ) : (
-            <OverflowText text={`${params.value}`} />
+            <OverflowText text={`${formattedValue}`} />
           )
         },
         renderEditCell: (params) => {
-          const valueType = sourceTypesByValue[params.row.source]
+          const valueType = sourceValueTypes[params.row.source]
           const Component = getCellComponentByType(valueType)
           return <Component {...params} />
         },
@@ -441,18 +474,19 @@ const GridFilter = ({
       },
     ],
     [
+      apiRef,
       canSaveRow,
       handleClickDiscard,
       handleClickEdit,
       handleClickSave,
       handleDeleteRow,
-      numberFormat,
+      numberFormatProps,
       preProcessEditCellProps,
       rowModesModel,
       rows,
       sourceHeaderName,
       sourceValueOpts,
-      sourceTypesByValue,
+      sourceValueTypes,
     ]
   )
 

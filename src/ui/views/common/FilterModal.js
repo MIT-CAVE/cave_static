@@ -24,7 +24,7 @@ import { DataGridModal } from './BaseModal'
 import GridFilter from './GridFilter'
 
 import {
-  selectGroupedOutputNames,
+  selectGroupedOutputTypes,
   selectStatGroupings,
 } from '../../../data/selectors'
 
@@ -545,19 +545,17 @@ const FilterModal = ({
 }) => {
   const [filterTab, setFilterTab] = useState('stats')
 
-  const statNames = useSelector(selectGroupedOutputNames)
+  const statsByGroup = useSelector(selectGroupedOutputTypes)
 
-  const sourceValueOpts = useMemo(
+  const filterables = useMemo(
     () =>
       R.pipe(
-        R.mapObjIndexed((v, k) => ({ label: k, value: v[1] })),
-        R.values
-      )(statNames),
-    [statNames]
-  )
-  const sourceValueTypes = useMemo(
-    () => R.repeat('number')(sourceValueOpts.length),
-    [sourceValueOpts.length]
+        R.values,
+        R.unnest,
+        R.mergeAll,
+        R.map(R.assoc('type', 'num'))
+      )(statsByGroup),
+    [statsByGroup]
   )
 
   const handleChangeTab = useCallback(() => {
@@ -584,7 +582,7 @@ const FilterModal = ({
         <GridFilter
           sourceHeaderName="Statistic"
           defaultFilters={statFilters}
-          {...{ sourceValueOpts, sourceValueTypes }}
+          {...{ filterables }}
           onSave={handleSaveFilters(groupingFilters)}
         />
       ) : filterTab === 'groups' ? (
