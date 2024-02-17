@@ -160,7 +160,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
               numActiveStatFilters,
               numGroupingFilters,
             }}
-            label="Data Filter"
+            label="Chart Data Filter"
             labelExtra={
               isMaximized
                 ? null

@@ -131,28 +131,21 @@ const getCellComponentByType = R.cond([
   [R.T, R.always(GridEditInputCell)],
 ])
 
-const getGridFilterCellType = R.curry((type, variant) =>
-  R.cond([
-    [R.equals('toggle'), R.always('boolean')],
-    [R.equals('text'), R.always('string')],
-    [R.equals('num'), R.always('number')],
-    [
-      R.equals('selector'),
-      R.always(
-        R.includes(variant)(['dropdown', 'checkbox', 'nested'])
-          ? 'multiSelect'
-          : 'singleSelect'
-      ),
-    ],
-    [R.equals('date'), R.always('date')],
-    [R.T, R.always('number')],
-  ])(type)
-)
+// TODO: This should depend on the Relation chosen
+const getValueCellType = R.cond([
+  [R.equals('toggle'), R.always('boolean')],
+  [R.equals('text'), R.always('string')],
+  [R.equals('num'), R.always('number')],
+  [R.equals('selector'), R.always('multiSelect')],
+  [R.equals('date'), R.always('date')],
+  [R.T, R.always('number')],
+])
 
 const GridFilter = ({
   defaultFilters,
   sourceHeaderName = 'Source',
   filterables,
+  filterableExtraProps,
   onSave,
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
@@ -174,12 +167,7 @@ const GridFilter = ({
     [filterables]
   )
   const sourceValueTypes = useMemo(
-    () =>
-      R.pipe(
-        R.map(
-          R.converge(getGridFilterCellType, [R.prop('type'), R.prop('variant')])
-        )
-      )(filterables),
+    () => R.map(R.pipe(R.prop('type'), getValueCellType))(filterables),
     [filterables]
   )
   const numberFormatProps = useMemo(
@@ -437,6 +425,9 @@ const GridFilter = ({
               R.always(
                 <GridMultiSelectCell
                   options={R.path([row.source, 'options'])(filterables)}
+                  colorByOptions={R.path([row.source, 'colorByOptions'])(
+                    filterableExtraProps
+                  )}
                   {...params}
                 />
               ),
@@ -450,11 +441,13 @@ const GridFilter = ({
           return (
             <Component
               {...params}
-              options={
-                valueType === 'multiSelect'
-                  ? filterables[params.row.source].options
-                  : null
-              }
+              {...(valueType === 'multiSelect'
+                ? {
+                    options: filterables[params.row.source].options,
+                    colorByOptions:
+                      filterableExtraProps[params.row.source].colorByOptions,
+                  }
+                : null)}
             />
           )
         },
@@ -501,6 +494,7 @@ const GridFilter = ({
     [
       apiRef,
       canSaveRow,
+      filterableExtraProps,
       filterables,
       handleClickDiscard,
       handleClickEdit,

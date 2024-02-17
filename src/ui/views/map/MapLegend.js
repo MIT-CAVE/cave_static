@@ -267,6 +267,7 @@ const MapLegendGroupRowToggleLayer = ({
   toggleGroupLabel,
   filters = [],
   filterableProps: filterables,
+  filterableExtraProps,
   onSaveFilters,
   mapId,
   ...props
@@ -333,12 +334,12 @@ const MapLegendGroupRowToggleLayer = ({
       <Grid item xs={1.5} className="my-auto">
         <DataGridModal
           open={filterOpen}
-          label="Data Filter"
+          label="Chart Data Filter"
           labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${legendName})`}
           onClose={handleCloseFilter}
         >
           <GridFilter
-            {...{ filterables }}
+            {...{ filterables, filterableExtraProps }}
             defaultFilters={filters}
             onSave={onSaveFilters}
           />
@@ -706,6 +707,19 @@ const MapLegendGeoToggle = ({
     R.filter(R.propOr(true, 'filterable'))
   )(typeObj)
 
+  const filterableExtraProps = R.mapObjIndexed((value, key) =>
+    // eslint-disable-next-line ramda/cond-simplification
+    R.cond([
+      [
+        R.propEq('selector', 'type'),
+        R.always({
+          colorByOptions: R.path(['colorByOptions', key])(legendObj),
+        }),
+      ],
+      // Others if needed
+    ])(value)
+  )(filterableProps)
+
   const path = [
     'maps',
     'data',
@@ -793,7 +807,7 @@ const MapLegendGeoToggle = ({
               }}
             />
           }
-          {...{ filterableProps, mapId }}
+          {...{ filterableProps, filterableExtraProps, mapId }}
           filters={legendObj.filters}
           onSaveFilters={handleSaveFilters}
         />
@@ -994,6 +1008,19 @@ const LegendCard = memo(
       R.filter(R.propOr(true, 'filterable'))
     )(typeObj)
 
+    const filterableExtraProps = R.mapObjIndexed((value, key) =>
+      // eslint-disable-next-line ramda/cond-simplification
+      R.cond([
+        [
+          R.propEq('selector', 'type'),
+          R.always({
+            colorByOptions: R.path(['colorByOptions', key])(legendObj),
+          }),
+        ],
+        // Others if needed
+      ])(value)
+    )(filterableProps)
+
     const { color: colorDomain, size: sizeDomain } = R.propOr(
       {},
       geometryType,
@@ -1043,7 +1070,7 @@ const LegendCard = memo(
                 }}
               />
             }
-            {...{ filterableProps, mapId }}
+            {...{ filterableProps, filterableExtraProps, mapId }}
             filters={legendObj.filters}
             onSaveFilters={handleSaveFilters}
             {...(allowGrouping && {
