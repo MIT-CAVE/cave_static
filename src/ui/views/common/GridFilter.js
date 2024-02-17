@@ -24,7 +24,9 @@ import {
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
-import GridEditMultiSelectCell from './GridEditMultiSelectCell'
+import GridEditMultiSelectCell, {
+  GridMultiSelectCell,
+} from './GridEditMultiSelectCell'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
@@ -360,6 +362,7 @@ const GridFilter = ({
       {
         field: 'logic',
         headerName: 'Logic',
+        headerAlign: 'center',
         align: 'center',
         width: 90,
         editable: true,
@@ -406,32 +409,54 @@ const GridFilter = ({
       {
         field: 'value',
         headerName: 'Value',
+        headerAlign: 'right',
+        align: 'right',
         width: 140,
         type: 'number',
         editable: true,
         sortable: false,
         valueParser: (value, params) => {
           const valueType = sourceValueTypes[params.row.source]
-          return valueType === 'boolean' ? Boolean(value) : value
+          return R.cond([
+            [R.equals('boolean'), R.always(Boolean(value))],
+            [R.equals('number'), R.always(+value)],
+            [R.T, R.always(value)],
+          ])(valueType)
         },
         renderCell: (params) => {
           const { value, row } = params
           const valueType = sourceValueTypes[row.source]
           const formattedValue =
-            // TODO: Add support for `multiSelect` values
             valueType === 'number'
-              ? NumberFormat.format(value, numberFormatProps[row.source])
+              ? NumberFormat.format(+value, numberFormatProps[row.source])
               : value
-          return valueType === 'boolean' ? (
-            <GridBooleanCell {...params} />
-          ) : (
-            <OverflowText text={`${formattedValue}`} />
-          )
+          return R.cond([
+            [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
+            [
+              R.equals('multiSelect'),
+              R.always(
+                <GridMultiSelectCell
+                  options={R.path([row.source, 'options'])(filterables)}
+                  {...params}
+                />
+              ),
+            ],
+            [R.T, R.always(<OverflowText text={`${formattedValue}`} />)],
+          ])(valueType)
         },
         renderEditCell: (params) => {
           const valueType = sourceValueTypes[params.row.source]
           const Component = getCellComponentByType(valueType)
-          return <Component {...params} />
+          return (
+            <Component
+              {...params}
+              options={
+                valueType === 'multiSelect'
+                  ? filterables[params.row.source].options
+                  : null
+              }
+            />
+          )
         },
         preProcessEditCellProps,
       },
@@ -476,6 +501,7 @@ const GridFilter = ({
     [
       apiRef,
       canSaveRow,
+      filterables,
       handleClickDiscard,
       handleClickEdit,
       handleClickSave,
@@ -501,6 +527,7 @@ const GridFilter = ({
             ),
           }}
           editMode="row"
+          getRowHeight={R.always('auto')}
           hideFooter
           checkboxSelection
           disableColumnMenu

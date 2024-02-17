@@ -274,6 +274,10 @@ const MapLegendGroupRowToggleLayer = ({
     () => R.count(R.propOr(true, 'active'))(filters),
     [filters]
   )
+  const isFilterDisabled = useMemo(
+    () => R.isEmpty(filterables) || toggleGroupLabel === 'Grouped',
+    [filterables, toggleGroupLabel]
+  )
 
   return (
     <Grid container spacing={0} alignItems="center" {...props}>
@@ -303,33 +307,33 @@ const MapLegendGroupRowToggleLayer = ({
           <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
         </Grid>
       )}
-      {!R.isEmpty(filterables) &&
-        (toggleGroupLabel == null || toggleGroupLabel === 'Ungrouped') && (
-          <Grid item xs={1.5} className="my-auto">
-            <DataGridModal
-              open={filterOpen}
-              label="Data Filter"
-              labelExtra={`(${legendName})`}
-              onClose={handleCloseFilter}
-            >
-              <GridFilter
-                defaultFilters={filters}
-                {...{ filterables }}
-                // {...{ sourceValueOpts, sourceValueTypes }}
-                onSave={onSaveFilters}
-              />
-            </DataGridModal>
-            <IconButton
-              sx={{ p: 0.5 }}
-              value="filter"
-              onClick={handleOpenFilter}
-            >
-              <Badge color="info" badgeContent={numActiveFilters}>
-                <FaFilter size={20} />
-              </Badge>
-            </IconButton>
-          </Grid>
-        )}
+      <Grid item xs={1.5} className="my-auto">
+        <DataGridModal
+          open={filterOpen}
+          label="Data Filter"
+          labelExtra={`(${legendName})`}
+          onClose={handleCloseFilter}
+        >
+          <GridFilter
+            {...{ filterables }}
+            defaultFilters={filters}
+            onSave={onSaveFilters}
+          />
+        </DataGridModal>
+        <IconButton
+          disabled={isFilterDisabled}
+          sx={{ p: 0.5 }}
+          value="filter"
+          onClick={handleOpenFilter}
+        >
+          <Badge
+            color={isFilterDisabled ? 'default' : 'info'}
+            badgeContent={numActiveFilters}
+          >
+            <FaFilter size={20} />
+          </Badge>
+        </IconButton>
+      </Grid>
     </Grid>
   )
 }
