@@ -101,8 +101,8 @@ const RELATION_COL_SINGLE_SELECT_VALUE_OPTS = [
 ]
 const RELATION_COL_MULTI_SELECT_VALUE_OPTS = [
   {
-    value: 'any',
-    label: 'is any of',
+    value: 'exc',
+    label: 'excludes',
   },
 ]
 const RELATION_COL_DATE_VALUE_OPTS = [

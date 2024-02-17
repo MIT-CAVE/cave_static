@@ -2111,7 +2111,10 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               legendObjectsFunc(mapId)
             )
             const legendObj = legendObjectsFunc(mapId)[arc.type]
-            const filters = R.propOr([], 'filters', legendObj)
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
             if (!filterMapFeature(filters, arc)) return false
 
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
@@ -2212,8 +2215,10 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
           R.unnest,
           R.map(([id, arc]) => {
             const legendObj = legendObjectsFunc(mapId)[arc.type]
-            const filters = R.propOr([], 'filters', legendObj)
-
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
             if (!filterMapFeature(filters, arc)) return false
 
             const sizeProp = legendObj.sizeBy
