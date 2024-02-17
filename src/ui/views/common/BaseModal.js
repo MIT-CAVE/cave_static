@@ -54,7 +54,7 @@ const BaseModal = ({
     paper: { sx: sxPaper, ...paperProps },
   } = slotProps
   return (
-    <Modal sx={[styles.root, sxRoot]} {...{ open, onClose }} {...rootProps}>
+    <Modal sx={[styles.root, sxRoot]} {...{ open, onClose, ...rootProps }}>
       <Box sx={[styles.paper, sxPaper]} {...paperProps}>
         <Typography sx={styles.header} component="span" variant="h5">
           {label}
@@ -70,16 +70,18 @@ const BaseModal = ({
   )
 }
 
-const DataGridModal = ({ open, ...props }) => (
+const DataGridModal = ({ open, slotProps = {}, ...props }) => (
   <BaseModal
     slotProps={{
       root: {
         // Keep the component mounted to avoid losing `apiRef`
         keepMounted: true,
+        ...slotProps.root,
       },
       paper: {
         // Preserve `apiRef` using `visibility`
         visibility: open ? 'visible' : 'hidden',
+        ...slotProps.paper,
       },
     }}
     {...{ open, ...props }}
