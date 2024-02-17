@@ -54,7 +54,7 @@ const GridEditMultiSelectCell = ({
 }
 
 const GridMultiSelectCell = (props) => (
-  <GridEditMultiSelectCell readOnly placeholder="" {...props} />
+  <GridEditMultiSelectCell readOnly placeholder="Selected" {...props} />
 )
 
 export { GridMultiSelectCell }
