@@ -38,6 +38,8 @@ import {
   selectArcTypeKeys,
   selectNodeTypeKeys,
   selectNumberFormatPropsFn,
+  selectPageLayout,
+  selectMapData,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { useFilter } from '../../../utils/hooks'
@@ -266,9 +268,12 @@ const MapLegendGroupRowToggleLayer = ({
   filters = [],
   filterableProps: filterables,
   onSaveFilters,
+  mapId,
   ...props
 }) => {
   const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const pageLayout = useSelector(selectPageLayout)
+  const mapData = useSelector(selectMapData)
 
   const numActiveFilters = useMemo(
     () => R.count(R.propOr(true, 'active'))(filters),
@@ -278,6 +283,24 @@ const MapLegendGroupRowToggleLayer = ({
     () => R.isEmpty(filterables) || toggleGroupLabel === 'Grouped',
     [filterables, toggleGroupLabel]
   )
+  const labelStart = useMemo(() => {
+    const isMaximized = R.any(R.propEq(true, 'maximized'))(pageLayout)
+    if (isMaximized) return null
+
+    const mapIndices = R.addIndex(R.reduce)(
+      (acc, value, index) =>
+        R.when(R.always(R.propEq(mapId, 'mapId')(value)), R.append(index))(acc),
+      []
+    )(pageLayout)
+    return mapIndices.length > 1
+      ? R.pathOr(mapId, [mapId, 'name'])(mapData)
+      : `${R.cond([
+          [R.equals(0), R.always('Top-Left')],
+          [R.equals(1), R.always('Top-Right')],
+          [R.equals(2), R.always('Bottom-Left')],
+          [R.equals(3), R.always('Bottom-Right')],
+        ])(mapIndices[0])} Chart`
+  }, [mapData, mapId, pageLayout])
 
   return (
     <Grid container spacing={0} alignItems="center" {...props}>
@@ -311,7 +334,7 @@ const MapLegendGroupRowToggleLayer = ({
         <DataGridModal
           open={filterOpen}
           label="Data Filter"
-          labelExtra={`(${legendName})`}
+          labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${legendName})`}
           onClose={handleCloseFilter}
         >
           <GridFilter
@@ -770,7 +793,7 @@ const MapLegendGeoToggle = ({
               }}
             />
           }
-          {...{ filterableProps }}
+          {...{ filterableProps, mapId }}
           filters={legendObj.filters}
           onSaveFilters={handleSaveFilters}
         />
@@ -1020,7 +1043,7 @@ const LegendCard = memo(
                 }}
               />
             }
-            {...{ filterableProps }}
+            {...{ filterableProps, mapId }}
             filters={legendObj.filters}
             onSaveFilters={handleSaveFilters}
             {...(allowGrouping && {
