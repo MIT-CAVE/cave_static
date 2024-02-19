@@ -68,7 +68,7 @@ const RELATION_COL_BOOL_VALUE_OPTS = [
 const RELATION_COL_STR_VALUE_OPTS = [
   {
     value: 'eq',
-    label: '=',
+    label: 'is',
   },
 ]
 const RELATION_COL_NUM_VALUE_OPTS = [
@@ -128,18 +128,26 @@ const getCellComponentByType = R.cond([
   [R.equals('singleSelect'), R.always(GridEditSingleSelectCell)],
   [R.equals('multiSelect'), R.always(GridEditMultiSelectCell)],
   [R.equals('date'), R.always(GridEditDateCell)],
+  [R.equals('dateTime'), R.always(GridEditDateCell)],
   [R.T, R.always(GridEditInputCell)],
 ])
 
 // TODO: This should depend on the Relation chosen
-const getValueCellType = R.cond([
-  [R.equals('toggle'), R.always('boolean')],
-  [R.equals('text'), R.always('string')],
-  [R.equals('num'), R.always('number')],
-  [R.equals('selector'), R.always('multiSelect')],
-  [R.equals('date'), R.always('date')],
-  [R.T, R.always('number')],
-])
+const getValueCellType = R.curry((type, variant) =>
+  R.cond([
+    [R.equals('toggle'), R.always('boolean')],
+    [R.equals('text'), R.always('string')],
+    [R.equals('num'), R.always('number')],
+    [R.equals('selector'), R.always('multiSelect')],
+    [
+      R.equals('date'),
+      R.always(
+        variant === 'datetime' || variant === 'time' ? 'dateTime' : 'date'
+      ),
+    ],
+    [R.T, R.always('string')],
+  ])(type)
+)
 
 const GridFilter = ({
   defaultFilters,
@@ -167,7 +175,10 @@ const GridFilter = ({
     [filterables]
   )
   const sourceValueTypes = useMemo(
-    () => R.map(R.pipe(R.prop('type'), getValueCellType))(filterables),
+    () =>
+      R.map(R.pipe(R.props(['type', 'variant']), R.apply(getValueCellType)))(
+        filterables
+      ),
     [filterables]
   )
   const numberFormatProps = useMemo(
@@ -400,7 +411,6 @@ const GridFilter = ({
         headerAlign: 'right',
         align: 'right',
         width: 140,
-        type: 'number',
         editable: true,
         sortable: false,
         valueParser: (value, params) => {
@@ -438,18 +448,19 @@ const GridFilter = ({
         renderEditCell: (params) => {
           const valueType = sourceValueTypes[params.row.source]
           const Component = getCellComponentByType(valueType)
-          return (
-            <Component
-              {...params}
-              {...(valueType === 'multiSelect'
-                ? {
-                    options: filterables[params.row.source].options,
-                    colorByOptions:
-                      filterableExtraProps[params.row.source].colorByOptions,
-                  }
-                : null)}
-            />
-          )
+          const props =
+            valueType === 'multiSelect'
+              ? // Custom component required props
+                {
+                  options: filterables[params.row.source].options,
+                  colorByOptions:
+                    filterableExtraProps[params.row.source].colorByOptions,
+                }
+              : {
+                  // Ensures the expected type by MUI's component
+                  colDef: { type: valueType },
+                }
+          return <Component {...params} {...props} />
         },
         preProcessEditCellProps,
       },
