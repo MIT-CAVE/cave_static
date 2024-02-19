@@ -12,6 +12,7 @@ import {
   GridRowModes,
   useGridApiRef,
 } from '@mui/x-data-grid'
+import dayjs from 'dayjs'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -27,6 +28,7 @@ import { useSelector } from 'react-redux'
 import GridEditMultiSelectCell, {
   GridMultiSelectCell,
 } from './GridEditMultiSelectCell'
+import GridEditTimeCell from './GridEditTimeCell'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
@@ -118,21 +120,23 @@ const getRelationValueOptsByType = R.cond([
   [R.equals('boolean'), R.always(RELATION_COL_BOOL_VALUE_OPTS)],
   [R.equals('singleSelect'), R.always(RELATION_COL_SINGLE_SELECT_VALUE_OPTS)],
   [R.equals('multiSelect'), R.always(RELATION_COL_MULTI_SELECT_VALUE_OPTS)],
-  [R.equals('date'), R.always(RELATION_COL_DATE_VALUE_OPTS)],
+  [
+    R.flip(R.includes)(['date', 'time', 'dateTime']),
+    R.always(RELATION_COL_DATE_VALUE_OPTS),
+  ],
 ])
 
 const getCellComponentByType = R.cond([
-  [R.equals('string'), R.always(GridEditInputCell)],
-  [R.equals('number'), R.always(GridEditInputCell)],
   [R.equals('boolean'), R.always(GridEditBooleanCell)],
   [R.equals('singleSelect'), R.always(GridEditSingleSelectCell)],
   [R.equals('multiSelect'), R.always(GridEditMultiSelectCell)],
-  [R.equals('date'), R.always(GridEditDateCell)],
-  [R.equals('dateTime'), R.always(GridEditDateCell)],
+  [R.equals('time'), R.always(GridEditTimeCell)],
+  [R.flip(R.includes)(['date', 'dateTime']), R.always(GridEditDateCell)],
+  [R.flip(R.includes)(['string', 'number']), R.always(GridEditInputCell)],
   [R.T, R.always(GridEditInputCell)],
 ])
 
-// TODO: This should depend on the Relation chosen
+// TODO: This should also depend on the Relation chosen
 const getValueCellType = R.curry((type, variant) =>
   R.cond([
     [R.equals('toggle'), R.always('boolean')],
@@ -142,12 +146,18 @@ const getValueCellType = R.curry((type, variant) =>
     [
       R.equals('date'),
       R.always(
-        variant === 'datetime' || variant === 'time' ? 'dateTime' : 'date'
+        variant === 'datetime' ? 'dateTime' : variant // 'date'|'time'
       ),
     ],
     [R.T, R.always('string')],
   ])(type)
 )
+
+const getDateFormat = R.cond([
+  [R.equals('date'), R.always('MM-DD-YYYY')],
+  [R.equals('time'), R.always('hh:mm:ss A')],
+  [R.equals('dateTime'), R.always('MM-DD-YYYY hh:mm:ss A')],
+])
 
 const GridFilter = ({
   defaultFilters,
@@ -418,16 +428,40 @@ const GridFilter = ({
           return R.cond([
             [R.equals('boolean'), R.always(Boolean(value))],
             [R.equals('number'), R.always(+value)],
+            [
+              R.flip(R.includes)(['date', 'time', 'dateTime']),
+              R.always(
+                dayjs(
+                  value,
+                  valueType === 'time' ? 'HH:mm:ss' : undefined
+                ).format(getDateFormat(valueType))
+              ),
+            ],
             [R.T, R.always(value)],
           ])(valueType)
         },
         renderCell: (params) => {
           const { value, row } = params
           const valueType = sourceValueTypes[row.source]
-          const formattedValue =
-            valueType === 'number'
-              ? NumberFormat.format(+value, numberFormatProps[row.source])
-              : value
+          const formattedValue = R.cond([
+            [
+              R.equals('number'),
+              R.always(
+                NumberFormat.format(+value, numberFormatProps[row.source])
+              ),
+            ],
+            [
+              R.flip(R.includes)(['date', 'time', 'dateTime']),
+              R.always(
+                dayjs(
+                  value,
+                  valueType === 'time' ? 'HH:mm:ss' : undefined
+                ).format(getDateFormat(valueType))
+              ),
+            ],
+            [R.T, R.always(value)],
+          ])(valueType)
+
           return R.cond([
             [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
             [
@@ -456,9 +490,12 @@ const GridFilter = ({
                   colorByOptions:
                     filterableExtraProps[params.row.source].colorByOptions,
                 }
-              : {
-                  // Ensures the expected type by MUI's component
-                  colDef: { type: valueType },
+              : // MUI props for built-in EditCell components
+                {
+                  colDef: { type: valueType }, // Ensures the expected type by MUI
+                  ...((valueType === 'date' || valueType === 'dateTime') && {
+                    inputProps: { style: { colorScheme: 'dark' } },
+                  }),
                 }
           return <Component {...params} {...props} />
         },

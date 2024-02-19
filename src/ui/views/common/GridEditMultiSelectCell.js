@@ -32,8 +32,8 @@ const GridEditMultiSelectCell = ({
 
   const handleChange = useCallback(
     async (event, newValue) => {
-      api.setEditCellValue({ id, field, value: newValue })
       setValue(newValue)
+      api.setEditCellValue({ id, field, value: newValue }, event)
     },
     [api, field, id]
   )
