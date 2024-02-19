@@ -443,24 +443,17 @@ const GridFilter = ({
         renderCell: (params) => {
           const { value, row } = params
           const valueType = sourceValueTypes[row.source]
-          const formattedValue = R.cond([
-            [
-              R.equals('number'),
-              R.always(
-                NumberFormat.format(+value, numberFormatProps[row.source])
-              ),
-            ],
-            [
-              R.flip(R.includes)(['date', 'time', 'dateTime']),
-              R.always(
-                dayjs(
-                  value,
-                  valueType === 'time' ? 'HH:mm:ss' : undefined
-                ).format(getDateFormat(valueType))
-              ),
-            ],
-            [R.T, R.always(value)],
-          ])(valueType)
+          const formattedValue =
+            valueType === 'number'
+              ? NumberFormat.format(+value, numberFormatProps[row.source])
+              : valueType === 'date' ||
+                  valueType === 'time' ||
+                  valueType === 'dateTime'
+                ? dayjs(
+                    value,
+                    valueType === 'time' ? 'HH:mm:ss' : undefined
+                  ).format(getDateFormat(valueType))
+                : value
 
           return R.cond([
             [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
