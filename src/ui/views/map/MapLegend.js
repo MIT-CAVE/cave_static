@@ -704,7 +704,12 @@ const MapLegendGeoToggle = ({
 
   const filterableProps = R.pipe(
     R.prop('props'),
-    R.filter(R.propOr(true, 'filterable'))
+    R.reject(
+      R.whereAny({
+        type: R.equals('head'), // Leave out layout props
+        filterable: R.equals('false'),
+      })
+    )
   )(typeObj)
 
   const filterableExtraProps = R.mapObjIndexed((value, key) =>
@@ -1005,7 +1010,12 @@ const LegendCard = memo(
 
     const filterableProps = R.pipe(
       R.prop('props'),
-      R.filter(R.propOr(true, 'filterable'))
+      R.reject(
+        R.whereAny({
+          type: R.equals('head'), // Leave out layout props
+          filterable: R.equals('false'),
+        })
+      )
     )(typeObj)
 
     const filterableExtraProps = R.mapObjIndexed((value, key) =>
