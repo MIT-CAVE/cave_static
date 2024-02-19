@@ -10,18 +10,14 @@ import {
   selectMemoizedGlobalOutputFunc,
   selectGlobalOutputsLayout,
   selectMergedGlobalOutputs,
+  selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
 
-import {
-  withIndex,
-  forcePath,
-  getLabelFn,
-  addValuesToProps,
-} from '../../../utils'
+import { forcePath, getLabelFn, addValuesToProps } from '../../../utils'
 
 const styles = {
   root: {
@@ -44,6 +40,8 @@ const DashboardGlobalOutput = ({ chartObj }) => {
   const globalOutputFunc = useSelector(selectMemoizedGlobalOutputFunc)
   const layout = useSelector(selectGlobalOutputsLayout)
   const items = useSelector(selectMergedGlobalOutputs)
+  const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
+
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
     R.propOr({}, 'values', items)
@@ -64,7 +62,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
 
   const formattedGlobalOutputs = globalOutputFunc(chartObj)
 
-  const isTable = R.prop('variant', chartObj) === 'Table'
+  const isTable = R.prop('variant', chartObj) === chartVariant.TABLE
 
   const actualGlobalOutputRaw = forcePath(
     R.propOr([], 'globalOutput', chartObj)
@@ -76,31 +74,44 @@ const DashboardGlobalOutput = ({ chartObj }) => {
     R.pick(actualGlobalOutputRaw)
   )(globalOutputs)
 
-  const actualGlobalOutput = R.pipe(withIndex, R.pluck('id'))(globalOutputData)
+  const selectedGlobalOutputKeys = R.keys(globalOutputData)
+
   const globalOutputUnits = R.map((item) => {
     const globalOutput = R.propOr({}, item)(globalOutputData)
     return globalOutput.unit || numberFormatDefault.unit
-  })(actualGlobalOutput)
+  })(selectedGlobalOutputKeys)
 
-  const tableLabels = R.zipWith(
-    (a, b) => `${getLabelFn(globalOutputData)(a)}${b ? ` [${b}]` : ''} `,
-    actualGlobalOutput,
-    globalOutputUnits
-  )
-  // FIXME: This should receive column types set by designers in the API
-  const tableColTypes = isTable
+  const columnProps = isTable
     ? R.pipe(
-        R.concat(R.repeat('number')(R.length(actualGlobalOutput))),
-        R.prepend('string')
-      )([])
+        R.zipWith(
+          (globalOutputKey, unit) => ({
+            field: globalOutputKey,
+            type: 'number',
+            label: `${getLabelFn(globalOutputData)(globalOutputKey)}${unit ? ` [${unit}]` : ''} `,
+          }),
+          selectedGlobalOutputKeys
+        ),
+        R.prepend({
+          type: 'string',
+          field: 'session',
+          label: 'Session',
+        })
+      )(globalOutputUnits)
     : []
-  // For simplicity, `numberFormatDefault` is used to apply number
-  // formatting to all values in a chart, as some statistics may
-  // be the result of combining different number formats. Although
-  // unlikely in a general `numberFormat` definition, `unit`s are
-  // excluded as they will be represented in the header or as part
-  // of the axis labels.
-  const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
+
+  const getNumberFormat = R.pipe(
+    numberFormatPropsFn,
+    // `unit`s are excluded as they will be represented
+    // as part of the axis labels or column headers.
+    R.omit(['unit', 'unitPlacement'])
+  )
+
+  const numberFormat = isTable
+    ? R.map(getNumberFormat)(globalOutputData)
+    : // FIXME: Update other charts to support dynamic number
+      // formatting for multiple stats / global outputs
+      getNumberFormat(numberFormatDefault)
+
   return (
     <Box
       sx={[
@@ -125,16 +136,14 @@ const DashboardGlobalOutput = ({ chartObj }) => {
       ) : chartObj.variant === chartVariant.TABLE ? (
         <TableChart
           data={formattedGlobalOutputs}
-          numberFormat={commonFormat}
-          columnTypes={tableColTypes}
-          labels={R.prepend('Session')(tableLabels)}
+          {...{ columnProps, numberFormat }}
         />
       ) : chartObj.variant === chartVariant.BAR ? (
         <BarPlot
           data={formattedGlobalOutputs}
-          numberFormat={commonFormat}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
+          {...{ numberFormat }}
           // The data structure of the globalOutput chart is the same
           // as that of a statistics chart with subgrouped data
           subGrouped
@@ -142,7 +151,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
       ) : chartObj.variant === chartVariant.LINE ? (
         <LinePlot
           data={formattedGlobalOutputs}
-          numberFormat={commonFormat}
+          {...{ numberFormat }}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
         />

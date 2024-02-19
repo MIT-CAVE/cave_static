@@ -4,7 +4,7 @@ import * as R from 'ramda'
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
 
-const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
+const TableChart = ({ data, columnProps, numberFormat }) => {
   // Convert chart object to nested arrays of values
   const convertToList = (data, currentRow) =>
     R.map((d) =>
@@ -16,26 +16,28 @@ const TableChart = ({ data, labels, columnTypes, numberFormat }) => {
         : R.concat(R.append(R.prop('name', d), currentRow), R.prop('value', d))
     )(data)
 
+  const rawList = convertToList(data, [])
+  const fields = R.pluck('field')(columnProps)
   const rows = R.pipe(
     R.flatten,
-    R.splitEvery(R.length(labels)),
-    R.addIndex(R.map)(R.pipe(R.flip(R.assoc('id'))))
-  )(convertToList(data, []))
+    R.splitEvery(R.length(columnProps)),
+    R.addIndex(R.map)((row, index) =>
+      R.pipe(R.zipObj(fields), R.assoc('id', index))(row)
+    )
+  )(rawList)
 
-  const columns = labels.map((label, index) => ({
+  const columns = columnProps.map(({ label, field, type }) => ({
     headerName: label,
-    field: `${index}`,
+    type,
+    field,
     minWidth: 150,
     flex: 1,
-    valueFormatter: ({ value }) =>
-      typeof value === 'number'
-        ? NumberFormat.format(value, numberFormat)
-        : null,
-    ...(columnTypes[index] === 'number' && {
+    ...(type === 'number' && {
       headerAlign: 'center',
       align: 'center',
+      valueFormatter: ({ value, field }) =>
+        NumberFormat.format(value, numberFormat[field]),
     }),
-    type: columnTypes[index],
   }))
 
   return (

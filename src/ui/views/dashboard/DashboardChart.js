@@ -8,6 +8,7 @@ import {
   selectNumberFormat,
   selectMemoizedChartFunc,
   selectStatGroupings,
+  selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
 
@@ -39,6 +40,7 @@ const DashboardChart = ({ chartObj }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectStatGroupings)
+  const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
   const [formattedData, setFormattedData] = useState([])
 
@@ -108,50 +110,79 @@ const DashboardChart = ({ chartObj }) => {
 
   const labels = { xAxisTitle, yAxisTitle }
 
-  const tableStatLabels = R.map((item) => {
-    const stat = R.propOr({}, item)(statisticTypes)
+  const statPaths = R.zip(chartObj.groupedOutputDataId)(chartObj.statId)
+
+  const tableStatColumnProps = R.map((item) => {
+    const stat = R.pathOr({}, item)(statisticTypes)
     const unit = stat.unit || numberFormatDefault.unit
-    return `${getGroupLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`
-  })(R.zip(chartObj.groupedOutputDataId, chartObj.statId))
-  const tableLabels = R.prepend(
-    chartObj.groupingId
-      ? `${getLabelFn(categories)(R.path(['groupingId', 0], chartObj))}${
-          R.path(['groupingLevel', 0], chartObj)
-            ? ` \u279D ${getSubLabelFn(
-                categories,
-                R.path(['groupingId', 0], chartObj),
-                R.path(['groupingLevel', 0], chartObj)
-              )}`
-            : ''
-        }`
-      : '',
-    subGrouped
-      ? R.prepend(
-          `${getLabelFn(categories)(R.path(['groupingId', 1], chartObj))}${
-            R.path(['groupingLevel', 1], chartObj)
-              ? ` \u279D ${getSubLabelFn(
-                  categories,
-                  R.path(['groupingId', 1], chartObj),
-                  R.path(['groupingLevel', 1], chartObj)
-                )}`
-              : ''
-          }`,
-          tableStatLabels
-        )
-      : tableStatLabels
+    return {
+      type: 'number',
+      field: item[1],
+      label: `${getGroupLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`,
+    }
+  })(statPaths)
+
+  const getGroupingLabel = (n) =>
+    `${getLabelFn(categories)(R.path(['groupingId', n], chartObj))}${
+      R.path(['groupingLevel', n], chartObj)
+        ? ` \u279D ${getSubLabelFn(
+            categories,
+            R.path(['groupingId', n], chartObj),
+            R.path(['groupingLevel', n], chartObj)
+          )}`
+        : ''
+    }`
+
+  const columnProps = R.pipe(
+    R.when(
+      R.always(subGrouped),
+      R.prepend({
+        type: 'string',
+        field: 'level',
+        label: getGroupingLabel(1),
+      })
+    ),
+    R.when(
+      R.always(chartObj.groupingId != null),
+      R.prepend({
+        type: 'string',
+        field: 'grouping',
+        label: getGroupingLabel(0),
+      })
+    )
+  )(tableStatColumnProps)
+
+  const getNumberFormat = R.curry((currentStat, currentStatId) =>
+    R.pipe(
+      R.ifElse(
+        R.propEq(currentStatId, 'calculation'),
+        // If the stat matches `calculation`, apply the stat's number formatting.
+        numberFormatPropsFn,
+        // Otherwise, use `numberFormatDefault` to apply number formatting for
+        // a stat that is the result of combining different number formats.
+        R.always(numberFormatDefault)
+      ),
+      // `unit`s are excluded as they will be represented
+      // as part of the axis labels or column headers.
+      R.omit(['unit', 'unitPlacement'])
+    )(currentStat)
   )
 
-  const tableColTypes = R.pipe(
-    R.concat(R.repeat('number')(R.length(tableStatLabels))),
-    R.when(R.always(R.has('groupingLevel')(chartObj)), R.prepend('string'))
-  )([])
-  // For simplicity, `numberFormatDefault` is used to apply number
-  // formatting to all values in a chart, as some statistics may
-  // be the result of combining different number formats. Although
-  // unlikely in a general `numberFormat` definition, `unit`s are
-  // excluded as they will be represented in the header or as part
-  // of the axis labels.
-  const commonFormat = R.omit(['unit', 'unitPlacement'])(numberFormatDefault)
+  const numberFormat =
+    chartObj.variant === chartVariant.TABLE
+      ? R.reduce(
+          (acc, [groupedOutputDataId, statId]) =>
+            R.assoc(
+              statId,
+              getNumberFormat(
+                statisticTypes[groupedOutputDataId][statId], // current stat
+                statId
+              )
+            )(acc),
+          {}
+        )(statPaths)
+      : getNumberFormat(stat, chartObj.statId)
+
   if (R.isEmpty(formattedData))
     return (
       <CircularProgress
@@ -172,114 +203,79 @@ const DashboardChart = ({ chartObj }) => {
       {chartObj.variant === chartVariant.TABLE &&
       chartObj.groupingId &&
       chartObj.groupingId[0] ? (
-        <TableChart
-          data={formattedData}
-          numberFormat={commonFormat}
-          labels={tableLabels}
-          columnTypes={tableColTypes}
-        />
+        <TableChart data={formattedData} {...{ columnProps, numberFormat }} />
       ) : chartObj.variant === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.BAR ? (
         <BarPlot
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.LINE ? (
         <LinePlot
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.SUNBURST ? (
-        <Sunburst
-          data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-        />
+        <Sunburst data={formattedData} {...{ colors, numberFormat }} />
       ) : chartObj.variant === chartVariant.TREEMAP ? (
-        <Treemap
-          data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-        />
+        <Treemap data={formattedData} {...{ colors, numberFormat }} />
       ) : chartObj.variant === chartVariant.GAUGE ? (
         <GaugeChart
           data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.HEATMAP ? (
-        <Heatmap data={formattedData} numberFormat={commonFormat} {...labels} />
+        <Heatmap data={formattedData} {...{ numberFormat, ...labels }} />
       ) : chartObj.variant === chartVariant.AREA ? (
         <LinePlot
+          area
           data={formattedData}
-          numberFormat={commonFormat}
-          area={true}
-          colors={colors}
-          {...labels}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.STACKED_AREA ? (
         <LinePlot
-          data={formattedData}
-          numberFormat={commonFormat}
-          colors={colors}
-          area={true}
+          area
           stack="x"
-          {...labels}
+          data={formattedData}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : chartObj.variant === chartVariant.SCATTER &&
         R.isNil(R.path(['statId', 2], chartObj)) ? (
         <ScatterPlot
           data={formattedData}
-          numberFormat={commonFormat}
-          labels={R.dissoc(3, tableLabels)}
-          colors={colors}
+          labels={R.pipe(R.pluck('label'), R.dissoc(3))(columnProps)}
+          {...{ colors, numberFormat }}
         />
       ) : chartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
-          numberFormat={commonFormat}
-          labels={tableLabels}
-          colors={colors}
+          labels={R.pluck('label')(columnProps)}
+          {...{ colors, numberFormat }}
         />
       ) : (
         <></>
