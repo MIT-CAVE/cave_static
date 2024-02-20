@@ -28,6 +28,7 @@ import {
   PropVideo,
   PropVStepper,
   PropNumberIcon,
+  PropNumberIconCompact,
   IconHeadColumn,
   IconHeadRow,
 } from '../../compound'
@@ -62,6 +63,7 @@ const getNumberPropRenderFn = R.cond([
   [R.equals(propVariant.FIELD), R.always(PropNumberField)],
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
   [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
+  [R.equals(propVariant.ICON_COMPACT), R.always(PropNumberIconCompact)],
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
@@ -116,7 +118,10 @@ const PropBase = ({ prop, children }) => {
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
     type: R.cond([
       [
-        R.pipe(R.prop('variant'), R.equals(propVariant.ICON)),
+        R.pipe(
+          R.prop('variant'),
+          R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
+        ),
         R.always(propContainer.NONE),
       ],
       [R.has('container'), R.prop('container')],

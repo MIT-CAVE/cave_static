@@ -1,8 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import {
+  Badge,
   Box,
   Divider,
   Grid,
+  IconButton,
   Paper,
   Stack,
   Switch,
@@ -10,8 +12,9 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useState, useEffect } from 'react'
+import { memo, useCallback, useState, useEffect, useMemo } from 'react'
 import { BlockPicker } from 'react-color'
+import { FaFilter } from 'react-icons/fa'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -35,9 +38,14 @@ import {
   selectArcTypeKeys,
   selectNodeTypeKeys,
   selectNumberFormatPropsFn,
+  selectPageLayout,
+  selectMapData,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
+import { useFilter } from '../../../utils/hooks'
 import { getStatLabel } from '../../../utils/stats'
+import { DataGridModal } from '../common/BaseModal'
+import GridFilter from '../common/GridFilter'
 
 import {
   FetchedIcon,
@@ -58,6 +66,14 @@ import {
 } from '../../../utils'
 
 const styles = {
+  modal: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ml: 'auto',
+    mr: 'auto',
+    p: 1,
+  },
   root: {
     position: 'absolute',
     top: '8px',
@@ -249,8 +265,44 @@ const MapLegendGroupRowToggleLayer = ({
   legendName,
   toggleGroup,
   toggleGroupLabel,
+  filters = [],
+  filterableProps: filterables,
+  filterableExtraProps,
+  onSaveFilters,
+  mapId,
   ...props
 }) => {
+  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const pageLayout = useSelector(selectPageLayout)
+  const mapData = useSelector(selectMapData)
+
+  const numActiveFilters = useMemo(
+    () => R.count(R.propOr(true, 'active'))(filters),
+    [filters]
+  )
+  const isFilterDisabled = useMemo(
+    () => R.isEmpty(filterables) || toggleGroupLabel === 'Grouped',
+    [filterables, toggleGroupLabel]
+  )
+  const labelStart = useMemo(() => {
+    const isMaximized = R.any(R.propEq(true, 'maximized'))(pageLayout)
+    if (isMaximized) return null
+
+    const mapIndices = R.addIndex(R.reduce)(
+      (acc, value, index) =>
+        R.when(R.always(R.propEq(mapId, 'mapId')(value)), R.append(index))(acc),
+      []
+    )(pageLayout)
+    return mapIndices.length > 1
+      ? R.pathOr(mapId, [mapId, 'name'])(mapData)
+      : `${R.cond([
+          [R.equals(0), R.always('Top-Left')],
+          [R.equals(1), R.always('Top-Right')],
+          [R.equals(2), R.always('Bottom-Left')],
+          [R.equals(3), R.always('Bottom-Right')],
+        ])(mapIndices[0])} Chart`
+  }, [mapData, mapId, pageLayout])
+
   return (
     <Grid container spacing={0} alignItems="center" {...props}>
       <Grid item xs={1} className="my-auto text-center">
@@ -261,13 +313,13 @@ const MapLegendGroupRowToggleLayer = ({
       </Grid>
       {toggleGroup ? (
         <>
-          <Grid item xs={5} className="my-auto ml-0">
+          <Grid item xs={4.5} className="my-auto ml-0">
             <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
           </Grid>
-          <Grid item xs={1.5} className="my-auto">
+          <Grid item xs={1} className="my-auto">
             {toggleGroup}
           </Grid>
-          <Grid item xs={2.5} className="my-auto ml-0">
+          <Grid item xs={2} className="my-auto ml-0">
             <OverflowText
               sx={styles.overflowAlignLeft}
               text={toggleGroupLabel}
@@ -275,10 +327,37 @@ const MapLegendGroupRowToggleLayer = ({
           </Grid>
         </>
       ) : (
-        <Grid item xs={9} className="my-auto">
+        <Grid item xs={7.5} className="my-auto">
           <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
         </Grid>
       )}
+      <Grid item xs={1.5} className="my-auto">
+        <DataGridModal
+          open={filterOpen}
+          label="Chart Data Filter"
+          labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${legendName})`}
+          onClose={handleCloseFilter}
+        >
+          <GridFilter
+            {...{ filterables, filterableExtraProps }}
+            defaultFilters={filters}
+            onSave={onSaveFilters}
+          />
+        </DataGridModal>
+        <IconButton
+          disabled={isFilterDisabled}
+          sx={{ p: 0.5 }}
+          value="filter"
+          onClick={handleOpenFilter}
+        >
+          <Badge
+            color={isFilterDisabled ? 'default' : 'info'}
+            badgeContent={numActiveFilters}
+          >
+            <FaFilter size={20} />
+          </Badge>
+        </IconButton>
+      </Grid>
     </Grid>
   )
 }
@@ -623,6 +702,29 @@ const MapLegendGeoToggle = ({
   const colorRange = geoColorRange(geoType, colorProp, mapId)
   const isCategorical = !R.has('min', colorRange)
 
+  const filterableProps = R.pipe(
+    R.prop('props'),
+    R.reject(
+      R.whereAny({
+        type: R.equals('head'), // Leave out layout props
+        filterable: R.equals('false'),
+      })
+    )
+  )(typeObj)
+
+  const filterableExtraProps = R.mapObjIndexed((value, key) =>
+    // eslint-disable-next-line ramda/cond-simplification
+    R.cond([
+      [
+        R.propEq('selector', 'type'),
+        R.always({
+          colorByOptions: R.path(['colorByOptions', key])(legendObj),
+        }),
+      ],
+      // Others if needed
+    ])(value)
+  )(filterableProps)
+
   const path = [
     'maps',
     'data',
@@ -660,6 +762,36 @@ const MapLegendGeoToggle = ({
       ),
     [typeObj, colorProp]
   )
+
+  const syncFilters = !includesPath(R.values(sync), [
+    'maps',
+    'data',
+    mapId,
+    'legendGroups',
+    legendGroupId,
+    'data',
+    geoType,
+    'filters',
+  ])
+  const handleSaveFilters = (newFilters) => {
+    dispatch(
+      mutateLocal({
+        path: [
+          'maps',
+          'data',
+          mapId,
+          'legendGroups',
+          legendGroupId,
+          'data',
+          geoType,
+          'filters',
+        ],
+        value: newFilters,
+        sync: syncFilters,
+      })
+    )
+  }
+
   return (
     <details key={geoType} css={nonSx.typeWrapper} open>
       <summary css={nonSx.itemSummary}>
@@ -680,6 +812,9 @@ const MapLegendGeoToggle = ({
               }}
             />
           }
+          {...{ filterableProps, filterableExtraProps, mapId }}
+          filters={legendObj.filters}
+          onSaveFilters={handleSaveFilters}
         />
       </summary>
       <hr />
@@ -855,7 +990,6 @@ const LegendCard = memo(
       'data',
       geometryType,
     ]
-
     const path = R.append('value', basePath)
     const syncToggle = !includesPath(R.values(sync), path)
 
@@ -874,6 +1008,29 @@ const LegendCard = memo(
     const groupCalcByColor =
       displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
 
+    const filterableProps = R.pipe(
+      R.prop('props'),
+      R.reject(
+        R.whereAny({
+          type: R.equals('head'), // Leave out layout props
+          filterable: R.equals('false'),
+        })
+      )
+    )(typeObj)
+
+    const filterableExtraProps = R.mapObjIndexed((value, key) =>
+      // eslint-disable-next-line ramda/cond-simplification
+      R.cond([
+        [
+          R.propEq('selector', 'type'),
+          R.always({
+            colorByOptions: R.path(['colorByOptions', key])(legendObj),
+          }),
+        ],
+        // Others if needed
+      ])(value)
+    )(filterableProps)
+
     const { color: colorDomain, size: sizeDomain } = R.propOr(
       {},
       geometryType,
@@ -882,6 +1039,26 @@ const LegendCard = memo(
 
     const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
     const colorRange = geometryRange(geometryType, colorProp, false, mapId)
+
+    const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
+    const handleSaveFilters = (newFilters) => {
+      dispatch(
+        mutateLocal({
+          path: [
+            'maps',
+            'data',
+            mapId,
+            'legendGroups',
+            legendGroupId,
+            'data',
+            geometryType,
+            'filters',
+          ],
+          value: newFilters,
+          sync: syncFilters,
+        })
+      )
+    }
 
     return (
       <details key={geometryType} css={nonSx.typeWrapper} open>
@@ -903,6 +1080,9 @@ const LegendCard = memo(
                 }}
               />
             }
+            {...{ filterableProps, filterableExtraProps, mapId }}
+            filters={legendObj.filters}
+            onSaveFilters={handleSaveFilters}
             {...(allowGrouping && {
               toggleGroupLabel: group ? 'Grouped' : 'Ungrouped',
               toggleGroup: (

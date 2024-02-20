@@ -21,6 +21,12 @@ export const paneId = {
   OPTIONS: 'options',
 }
 
+export const draggableId = {
+  TIME: 'time',
+  SESSION: 'session',
+  GLOBAL_OUTPUTS: 'globalOutputs',
+}
+
 export const propId = {
   MEDIA: 'media',
   BUTTON: 'button',
@@ -54,6 +60,7 @@ export const propVariant = {
   VSTEPPER: 'vstepper',
   ICON: 'icon',
   ICON_ROW: 'iconRow',
+  ICON_COMPACT: 'iconCompact',
 }
 
 export const propContainer = {

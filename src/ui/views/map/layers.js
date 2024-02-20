@@ -30,6 +30,7 @@ import {
   getScaledArray,
   getScaledValue,
   includesPath,
+  filterMapFeature,
 } from '../../../utils'
 
 export const Geos = memo(({ highlightLayerId, mapId }) => {
@@ -215,6 +216,13 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         R.mapObjIndexed((geoObj, geoJsonValue) => {
           const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
           const geoType = R.prop('type')(geoObj)
+
+          const filters = R.pipe(
+            R.pathOr([], [geoObj.type, 'filters']),
+            R.reject(R.propEq(false, 'active'))
+          )(enabledGeos)
+          if (!filterMapFeature(filters, geoObj)) return false
+
           const filteredFeature = R.find(
             (feature) =>
               R.path(['properties', geoJsonProp])(feature) === geoJsonValue
@@ -229,9 +237,10 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             },
           })
         }),
-        R.values
+        R.values,
+        R.filter(R.identity)
       )(matchingKeys),
-    [findColor, matchingKeys, selectedGeos]
+    [enabledGeos, findColor, matchingKeys, selectedGeos]
   )
 
   const lineGeoJsonObject = useMemo(
@@ -244,6 +253,12 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             (feature) =>
               R.path(['properties', geoJsonProp])(feature) === geoJsonValue
           )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+
+          const filters = R.pipe(
+            R.pathOr([], [geoObj.type, 'filters']),
+            R.reject(R.propEq(false, 'active'))
+          )(enabledArcs)
+          if (!filterMapFeature(filters, geoObj)) return false
 
           const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
@@ -262,6 +277,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
           })
         }),
         R.values,
+        R.filter(R.identity),
         R.groupBy(R.path(['properties', 'dash']))
       )(lineMatchingKeys),
     [enabledArcs, findLineColor, findLineSize, lineMatchingKeys, selectedArcs]

@@ -18,7 +18,7 @@ import { paneId } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
-import { includesPath } from '../../../utils'
+import { forceArray, includesPath } from '../../../utils'
 
 const styles = {
   root: {
@@ -64,11 +64,11 @@ const styles = {
       },
     }),
   },
+  tabBtn: {
+    mx: 'auto',
+  },
   navBtn: {
-    mt: 0.5,
-    mb: 0.5,
-    ml: 'auto',
-    mr: 'auto',
+    my: 0.5,
     height: '2em',
     width: '2em',
   },
@@ -87,7 +87,11 @@ const nonSx = {
 
 //Wrappers stop Tabs from passing props that cannot be read and cause errors
 const ButtonInTabs = ({ icon, color, disabled, onClick, sx = [] }) => (
-  <IconButton size="large" {...{ sx, onClick, disabled }}>
+  <IconButton
+    size="large"
+    sx={[styles.tabBtn, ...forceArray(sx)]}
+    {...{ onClick, disabled }}
+  >
     <FetchedIcon size={35} color={color} iconName={icon} />
   </IconButton>
 )

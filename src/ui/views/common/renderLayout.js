@@ -41,10 +41,9 @@ const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
       ...style,
     })
   )(items)
-  const itemRenderFn = renderPropItem
   return {
     unusedItems,
-    component: itemRenderFn({ layoutItem, item, ...other }),
+    component: renderPropItem({ layoutItem, item, ...other }),
   }
 }
 
@@ -152,7 +151,7 @@ const renderLayout = ({ layout, ...other }) => {
   return layoutRenderFn({ layout, ...other })
 }
 
-const getLayoutComponent = ({
+export const renderPropsLayout = ({
   layout = {
     type: layoutType.GRID,
     numColumns: 'auto',
@@ -167,6 +166,7 @@ const getLayoutComponent = ({
     items,
     unusedItems: R.pipe(
       R.omit(usedItemsInLayout),
+      R.filter(R.propOr(true, 'display')),
       sortedListById,
       R.pluck('id')
     )(items),
@@ -174,7 +174,3 @@ const getLayoutComponent = ({
   })
   return component
 }
-
-const renderPropsLayout = ({ ...props }) => getLayoutComponent({ ...props })
-
-export { renderPropsLayout }

@@ -20,6 +20,8 @@ import {
   selectShowToolbar,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
+import { useFilter } from '../../../utils/hooks'
+import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
 import { includesPath } from '../../../utils'
@@ -65,8 +67,12 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
+  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+
   const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
+  const defaultFilters = R.propOr([], 'filters')(chartObj)
+  const vizType = R.propOr('groupedOutput', 'type')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleShowToolbar = useCallback(() => {
@@ -99,7 +105,42 @@ const DashboardItem = ({ chartObj, index, path }) => {
     )
   }, [dispatch, pageLayout, sync, index, path])
 
-  const vizType = R.propOr('groupedOutput', 'type')(chartObj)
+  const handleSaveFilters = useCallback(
+    (filters) => {
+      dispatch(
+        mutateLocal({
+          path,
+          value: R.assoc('filters', filters)(chartObj),
+          sync: !includesPath(R.values(sync), path),
+        })
+      )
+    },
+    [chartObj, dispatch, path, sync]
+  )
+
+  const [statFilters, groupingFilters] = useMemo(
+    () =>
+      R.partition(
+        R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
+      )(defaultFilters),
+    [defaultFilters]
+  )
+
+  const numActiveStatFilters = useMemo(
+    () => R.count(R.propOr(true, 'active'))(statFilters),
+    [statFilters]
+  )
+
+  const numGroupingFilters = useMemo(
+    () =>
+      R.pipe(
+        R.filter(R.propEq('exc', 'option')),
+        R.chain(R.pipe(R.prop('value'), R.length)),
+        R.sum
+      )(groupingFilters),
+    [groupingFilters]
+  )
+
   return (
     <Grid
       item
@@ -112,16 +153,38 @@ const DashboardItem = ({ chartObj, index, path }) => {
           sx={[styles.paper, isMaximized && !showToolbar && { p: 0 }]}
           elevation={5}
         >
+          <FilterModal
+            {...{
+              statFilters,
+              groupingFilters,
+              numActiveStatFilters,
+              numGroupingFilters,
+            }}
+            label="Chart Data Filter"
+            labelExtra={
+              isMaximized
+                ? null
+                : `(${R.cond([
+                    [R.equals(0), R.always('Top-Left')],
+                    [R.equals(1), R.always('Top-Right')],
+                    [R.equals(2), R.always('Bottom-Left')],
+                    [R.equals(3), R.always('Bottom-Right')],
+                  ])(index)} Chart)`
+            }
+            open={filterOpen}
+            onSave={handleSaveFilters}
+            onClose={handleCloseFilter}
+          />
           {showToolbar && <ChartToolbar {...{ chartObj, index, path }} />}
           {!lockedLayout && !chartObj.lockedLayout && (
             <ChartMenu
-              {...{
-                isMaximized,
-                showToolbar,
-              }}
+              {...{ isMaximized, showToolbar }}
+              numFilters={numActiveStatFilters + numGroupingFilters}
+              showFilter={vizType === 'groupedOutput'}
               onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
               onShowToolbar={handleShowToolbar}
+              onOpenFilter={handleOpenFilter}
             />
           )}
           {vizType === 'groupedOutput' ? (

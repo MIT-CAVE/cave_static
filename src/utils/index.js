@@ -1,5 +1,5 @@
 import { quantileSorted } from 'd3-array'
-import { color } from 'd3-color'
+import { color, hsl } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
 import { Parser } from 'expr-eval'
 import PropTypes from 'prop-types'
@@ -134,62 +134,47 @@ export const parseArray = (input) => {
   var items = s.split(',')
   return R.map(R.trim)(items)
 }
-
-export const calculateStatAnyDepth = (statistics) => {
-  const parser = new Parser()
-  const calculate = (group, calculation) => {
-    // define groupSum for each base level group
-    const preSummed = {}
-    parser.functions.groupSum = (statName) => {
-      // groupSum only works for non-derived stats
-      // dont recalculate sum for each stat
-      if (R.isNil(R.prop(statName, preSummed))) {
-        preSummed[statName] = R.sum(
-          R.map(
-            (idx) => R.path(['valueLists', statName, idx], statistics),
-            group
-          )
-        )
+export const filterMapFeature = (filters, featureObj) => {
+  for (const filterObj of filters) {
+    const prop = R.prop('prop', filterObj)
+    const filterValue = R.prop('value', filterObj)
+    const type = R.path(['props', prop, 'type'], featureObj)
+    const value = R.path(['values', prop], featureObj)
+    if (type === 'selector') {
+      if (R.has('option', filterObj)) {
+        if (R.any(R.flip(R.includes)(value), filterValue)) {
+          return false
+        }
+      } else {
+        if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
+          return false
+        }
       }
-      return R.prop(statName, preSummed)
+    } else if (type === 'num' && filterObj['option'] !== 'eq') {
+      const result = !R.has('option', filterObj)
+        ? true
+        : R.prop('option', filterObj) === 'gt'
+          ? R.gt(value, filterValue)
+          : R.gte(value, filterValue)
+      const result1 = !R.has('option1', filterObj)
+        ? true
+        : R.prop('option1', filterObj) === 'lt'
+          ? R.lt(value, R.prop('value1', filterObj))
+          : R.lte(value, R.prop('value1', filterObj))
+      if (!result || !result1) {
+        return false
+      }
+    } else {
+      if (filterValue !== value) {
+        return false
+      }
     }
-    return group.map((idx) => {
-      const values = R.pipe(R.prop('valueLists'), R.pluck(idx))(statistics)
-      try {
-        return parser.parse(calculation).evaluate(
-          // evaluate each list item
-          values
-        )
-      } catch {
-        // if calculation is malformed return simplified array
-        return parseArray(
-          parser
-            .parse(calculation)
-            .simplify(
-              // evaluate each list item
-              values
-            )
-            .toString()
-        )
-      }
-    })
   }
+  return true
+}
 
-  const group = (groupBys, calculation, indicies) =>
-    R.pipe(
-      R.collectBy(R.pipe(R.head(groupBys), R.join(''))),
-      R.reduce((acc, value) => {
-        const key = R.pipe(R.head, R.head(groupBys), R.head)(value)
-        const finalName = R.has(key, acc)
-          ? R.pipe(R.head, R.head(groupBys), R.join(', '))(value)
-          : key
-        return R.assoc(finalName, value, acc)
-      }, {}),
-      R.length(groupBys) === 1
-        ? R.map((group) => calculate(group, calculation))
-        : R.map((stats) => group(R.tail(groupBys), calculation, stats))
-    )(indicies)
-
+export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
+  const valueLists = statistics['valueLists']
   const indicies = R.pipe(
     R.prop('valueLists'),
     R.values,
@@ -197,11 +182,145 @@ export const calculateStatAnyDepth = (statistics) => {
     R.length,
     R.range(0)
   )(statistics)
+  const filteredIndicies = indicies.filter((idx) => {
+    for (const filterObj of filters) {
+      const format = R.propOr('stat', 'format', filterObj)
+      const prop = R.prop('prop', filterObj)
+      const filterValue = R.prop('value', filterObj)
+      const value =
+        format === 'stat'
+          ? R.path([prop, idx], valueLists)
+          : groupingIndicies[format]['data'][prop][
+              groupingIndicies[format]['data']['id'][
+                R.path(['groupLists', format, idx], statistics)
+              ]
+            ]
+      if (format !== 'stat') {
+        if (R.has('option', filterObj)) {
+          if (R.any(R.flip(R.includes)(value), filterValue)) {
+            return false
+          }
+        } else {
+          if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
+            return false
+          }
+        }
+      } else if (filterObj['option'] !== 'eq') {
+        const result = !R.has('option', filterObj)
+          ? true
+          : R.prop('option', filterObj) === 'gt'
+            ? R.gt(value, filterValue)
+            : R.gte(value, filterValue)
+        const result1 = !R.has('option1', filterObj)
+          ? true
+          : R.prop('option1', filterObj) === 'lt'
+            ? R.lt(value, R.prop('value1', filterObj))
+            : R.lte(value, R.prop('value1', filterObj))
+        if (!result || !result1) {
+          return false
+        }
+      } else {
+        if (filterValue !== value) {
+          return false
+        }
+      }
+    }
+    return true
+  })
+  return filteredIndicies
+}
 
-  const groupHelper = (groupBys, calculation) =>
-    group(groupBys, calculation, indicies)
+const promiseAllObject = (obj) =>
+  Promise.all(R.values(obj)).then(R.zipObj(R.keys(obj)))
 
-  return groupHelper
+export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
+  const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
+  const parser = new Parser()
+  const calculate = (group, calculation) => {
+    // if there are no calculations just return values at the group indicies
+    if (R.has(calculation, valueLists)) {
+      return R.pipe((d) => d[calculation], R.pick(group), R.values)(valueLists)
+    }
+    // define groupSum for each base level group
+    const preSummed = {}
+    parser.functions.groupSum = (statName) => {
+      // groupSum only works for non-derived stats
+      // dont recalculate sum for each stat
+      if (R.isNil(preSummed[statName])) {
+        preSummed[statName] = R.sum(
+          R.map((idx) => valueLists[statName][idx], group)
+        )
+      }
+      return preSummed[statName]
+    }
+    return group.map((idx) => {
+      const proxy = new Proxy(valueLists, {
+        get(target, name, receiver) {
+          return Reflect.get(target, name, receiver)[idx]
+        },
+      })
+      try {
+        return parser.parse(calculation).evaluate(
+          // evaluate each list item
+          proxy
+        )
+      } catch {
+        console.warn(`Malformed calculation: ${calculation}`)
+        // if calculation is malformed return simplified array
+        return parseArray(
+          parser
+            .parse(calculation)
+            .simplify(
+              // evaluate each list item
+              proxy
+            )
+            .toString()
+        )
+      }
+    })
+  }
+  const group = async (groupBys, calculation, indicies) => {
+    const currentGroupBy = groupBys[0]
+    const keyFn = R.pipe(currentGroupBy, R.join(' \u279D '))
+    return await R.pipe(
+      (idxs) => {
+        const acc = {}
+        for (let i = 0; i < idxs.length; i++) {
+          const idx = idxs[i]
+          const key = keyFn(idx)
+          if (!(key in acc)) {
+            acc[key] = []
+          }
+          acc[key].push(idx)
+        }
+        return acc
+      },
+      R.length(groupBys) === 1
+        ? async (d) =>
+            await promiseAllObject(
+              R.map((group) => {
+                // if group is small enough or if sharedArrayBuffer is not available calculate in main thread
+                if (group.length < 1000 || !window.crossOriginIsolated)
+                  return calculate(group, calculation)
+                else
+                  return workerManager.doWork({
+                    indicies: group,
+                    calculation,
+                    valueBuffers,
+                  })
+              })(d)
+            )
+        : async (d) =>
+            await promiseAllObject(
+              R.map(
+                async (stats) =>
+                  await group(groupBys.slice(1), calculation, stats)
+              )(d)
+            )
+    )(indicies)
+  }
+
+  return group
 }
 
 export const recursiveMap = R.curry(
@@ -211,6 +330,24 @@ export const recursiveMap = R.curry(
       : R.map(
           (val) => recursiveMap(endPredicate, endCallback, stepCallback, val),
           stepCallback(mappable)
+        )
+)
+export const recursiveBubbleMap = R.curry(
+  (endPredicate, endCallback, stepCallback, bubbleCallback, mappable) =>
+    endPredicate(mappable)
+      ? endCallback(mappable)
+      : bubbleCallback(
+          R.map(
+            (val) =>
+              recursiveBubbleMap(
+                endPredicate,
+                endCallback,
+                stepCallback,
+                bubbleCallback,
+                val
+              ),
+            stepCallback(mappable)
+          )
         )
 )
 const mergeObjIntoList = (obj, baseList) =>
@@ -326,6 +463,16 @@ export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
     .clamp(true)
   return rgbObjToRgbaArray(color(getColor(value)))
 })
+
+/**
+ * This function calculates basic contrast.
+ * For better accessibility compliance, there's an APCA algorithm-based solution in
+ * https://github.com/Myndex/max-contrast. However, its GPLv3 license may not be
+ * compatible with `cave_static`'s Apache License v2.0.
+ * See: https://ruitina.com/apca-accessible-colour-contrast/
+ */
+export const getContrastText = (bgColor) =>
+  hsl(color(bgColor)).l > 0.5 ? 'black' : 'white'
 
 export const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
@@ -583,15 +730,23 @@ export const capitalize = R.when(
 export const customSortByX = R.curry((ordering, data) => {
   // Sort by the predefined `ordering` list
   const sortByPredef = R.sortBy(
-    R.pipe(R.prop('name'), R.indexOf(R.__, ordering))
+    R.pipe(
+      R.prop('name'),
+      R.split(' \u279D '),
+      R.find(R.includes(R.__, ordering)),
+      R.indexOf(R.__, ordering)
+    )
   )
   // Sort by alphabetical order (ascending)
   const sortByAlpha = R.sortBy(R.prop('name'))
   // Separate the items that appear in `ordering` from the rest
   const sublists = R.partition(
-    R.pipe(R.prop('name'), R.includes(R.__, ordering))
+    R.pipe(
+      R.prop('name'),
+      R.split(' \u279D '),
+      R.any(R.includes(R.__, ordering))
+    )
   )(data)
-
   return R.converge(R.concat, [
     R.pipe(R.head, sortByPredef),
     R.pipe(R.last, sortByAlpha),

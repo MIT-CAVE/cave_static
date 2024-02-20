@@ -17,9 +17,11 @@ import {
   chartStatUses,
   chartVariant,
   chartAggrFunc,
+  draggableId,
 } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
+import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
 
 import {
   checkValidRange,
@@ -30,7 +32,6 @@ import {
   forcePath,
   customSortByX,
   withIndex,
-  calculateStatAnyDepth,
   recursiveMap,
   maxSizedMemoization,
   getScaledValue,
@@ -38,7 +39,13 @@ import {
   getScaledRgbObj,
   orderEntireDict,
   addValuesToProps,
+  recursiveBubbleMap,
+  filterMapFeature,
+  filterGroupedOutputs,
+  calculateStatAnyDepth,
 } from '../../utils'
+
+const workerManager = new ThreadMaxWorkers()
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
 
@@ -94,6 +101,15 @@ export const selectMapboxToken = createSelector(selectTokens, (data) =>
 export const selectMessages = createSelector(selectUtilities, (data) =>
   R.prop('messages')(data)
 )
+
+// Time (Utilities)
+export const selectTime = createSelector(selectUtilities, (data) =>
+  R.prop('time')(data)
+)
+export const selectAnimationInterval = createSelector(
+  selectTime,
+  R.prop('animationInterval')
+)
 // Local
 export const selectLocal = (state) => R.propOr({}, 'local')(state)
 // Local -> settings
@@ -130,10 +146,10 @@ export const selectMapFeatures = createSelector(selectData, (data) =>
   R.propOr({}, 'mapFeatures')(data)
 )
 export const selectAppBar = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'appBar')(data))
+  R.propOr({}, 'appBar')(data)
 )
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'groupedOutputs')(data))
+  R.propOr({}, 'groupedOutputs')(data)
 )
 export const selectGlobalOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'globalOutputs')(data)
@@ -154,7 +170,7 @@ export const selectModals = createSelector(selectData, (data) =>
   R.propOr({}, 'modals')(data)
 )
 export const selectMap = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'maps', data))
+  R.propOr({}, 'maps', data)
 )
 // Data -> Types
 export const selectFeatureData = createSelector(selectMapFeatures, (data) =>
@@ -183,11 +199,12 @@ export const selectModalsData = createSelector(
 )
 export const selectMapData = createSelector(
   [selectMap, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+  (data, time) =>
+    getTimeValue(time, orderEntireDict(R.propOr({}, 'data', data)))
 )
 
 export const selectAppBarData = createSelector(selectAppBar, (data) =>
-  R.propOr({}, 'data')(data)
+  orderEntireDict(R.propOr({}, 'data')(data))
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
@@ -209,11 +226,11 @@ export const selectRightAppBarData = createSelector(
 )
 export const selectGroupedOutputsData = createSelector(
   selectGroupedOutputs,
-  (data) => R.propOr({}, 'data')(data)
+  (data) => orderEntireDict(R.propOr({}, 'data')(data))
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
-  R.propOr({}, 'layout')
+  R.prop('layout')
 )
 export const selectAssociatedData = createSelector(selectAssociated, (data) =>
   R.propOr({}, 'data')(data)
@@ -310,12 +327,25 @@ export const selectLocalPanesData = createSelector(
   [selectLocalPanes, selectCurrentTime],
   (data, time) => getTimeValue(time, R.prop('data', data))
 )
-//Local -> modals
+// Local -> modals
 export const selectLocalModals = createSelector(selectLocal, (data) =>
   R.prop('modals')(data)
 )
 export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
   R.prop('data', data)
+)
+// Local -> draggables
+export const selectLocalDraggables = createSelector(
+  selectLocal,
+  R.propOr({}, 'draggables')
+)
+export const selectSessionDraggable = createSelector(
+  selectLocalDraggables,
+  R.propOr({}, draggableId.SESSION)
+)
+export const selectGlobalOutputsDraggable = createSelector(
+  selectLocalDraggables,
+  R.propOr({}, draggableId.GLOBAL_OUTPUTS)
 )
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>
@@ -460,11 +490,13 @@ export const selectDefaultViewportFunc = createSelector(
 export const selectOpenModal = createSelector(
   [selectLocalPanes, selectPanes],
   (localData, data) =>
-    R.pathOr(
-      R.pathOr({}, ['paneState', 'center', 'open'], data),
-      ['paneState', 'center', 'open'],
-      localData
-    )
+    R.pipe(
+      R.pathOr(R.pathOr({}, ['paneState', 'center'], data), [
+        'paneState',
+        'center',
+      ]),
+      R.propOr('', 'open')
+    )(localData)
 )
 export const selectModal = createSelector(
   [selectLocalPanes, selectPanes],
@@ -664,6 +696,17 @@ export const selectMergedGlobalOutputs = createSelector(
   (globalOutputsData, localGlobalOutputs) =>
     R.mergeDeepLeft(localGlobalOutputs)(globalOutputsData)
 )
+export const selectGlobalOutputProps = createSelector(
+  selectMergedGlobalOutputs,
+  R.pipe(
+    R.converge(addValuesToProps, [
+      R.propOr({}, 'props'),
+      R.propOr({}, 'values'),
+    ]),
+    R.filter(R.prop('value')),
+    R.map(R.assoc('enabled', false))
+  )
+)
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
   [selectMapControlsByMap, selectDefaultViewportFunc, selectMapData],
@@ -742,12 +785,16 @@ export const selectCurrentMapStyleFunc = createSelector(
     },
   }
 )
+
 export const selectCurrentMapProjectionFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
+  [selectCurrentMapDataByMap, selectMapboxToken],
+  (dataObj, token) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.pathOr('mercator', ['currentProjection', mapId])(dataObj),
+      (mapId) =>
+        token !== ''
+          ? R.pathOr('mercator', ['currentProjection', mapId])(dataObj)
+          : 'mercator',
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -765,6 +812,7 @@ export const selectMapStyleOptions = createSelector(
   (data, token) => ({
     ...DEFAULT_MAP_STYLES,
     ...R.pipe(
+      orderEntireDict,
       R.propOr([], 'additionalMapStyles'),
       R.filter(
         (style) =>
@@ -1063,12 +1111,32 @@ export const selectMatchingKeysByTypeFunc = createSelector(
 // outputs derived
 export const selectStatGroupings = createSelector(
   selectGroupedOutputs,
-  R.propOr({}, ['groupings'])
+  (data) => orderEntireDict(R.propOr({}, 'groupings', data))
 )
 
 export const selectStatGroupingIndicies = createSelector(
   selectStatGroupings,
   R.pipe(R.map(R.over(R.lensPath(['data', 'id']), R.invertObj)))
+)
+
+export const selectGroupedOutputValueBuffers = createSelector(
+  selectGroupedOutputsData,
+  (groupedOutputs) =>
+    R.map(
+      R.pipe(
+        R.prop('valueLists'),
+        R.map((arr) => {
+          const buffer = window.crossOriginIsolated
+            ? new SharedArrayBuffer(arr.length * 8)
+            : new ArrayBuffer(arr.length * 8)
+          const view = new Float64Array(buffer)
+          for (let i = 0; i < arr.length; i++) {
+            view[i] = arr[i]
+          }
+          return view.buffer
+        })
+      )
+    )(groupedOutputs)
 )
 
 export const selectMemoizedChartFunc = createSelector(
@@ -1078,11 +1146,21 @@ export const selectMemoizedChartFunc = createSelector(
     selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
+    selectGroupedOutputNames,
+    selectGroupedOutputValueBuffers,
   ],
-  (groupedOutputs, debug, statisticTypes, groupings, groupingIndicies) =>
+  (
+    groupedOutputs,
+    debug,
+    statisticTypes,
+    groupings,
+    groupingIndicies,
+    statNames,
+    valueBuffers
+  ) =>
     maxSizedMemoization(
-      (obj) => JSON.stringify(obj),
-      (obj) => {
+      (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
+      async (obj) => {
         const actualStat = R.is(Array, obj.statId)
           ? R.zip(obj.groupedOutputDataId, obj.statId)
           : [[obj.groupedOutputDataId, obj.statId]]
@@ -1109,112 +1187,164 @@ export const selectMemoizedChartFunc = createSelector(
           const groupList = R.path([outputGroup, 'groupLists', category])(
             groupedOutputs
           )
+
+          const groupingVal = R.pipe(
+            R.path([category, 'data']),
+            R.pick(parentalPath),
+            R.values
+          )(groupings)
+
           return (index) => {
-            const groupName = R.propOr('undefined', index, groupList)
-            const groupingIndex = R.pathOr(
-              -1,
-              [category, 'data', 'id', groupName],
-              groupingIndicies
-            )
-            const groupingVal = R.pipe(
-              R.path([category, 'data']),
-              R.pick(parentalPath),
-              R.values
-            )(groupings)
-            return R.pluck(groupingIndex)(groupingVal)
+            // BUG: Doesn't work well when multiple stats
+            // are selected and at least one of them is not
+            // available for the chosen group + level
+            if (groupList == null) return []
+            const groupName = groupList[index]
+            const groupingIndex =
+              groupingIndicies[category]['data']['id'][groupName]
+            const pluckedValues = Array(groupingVal.length)
+            for (let i = 0; i < groupingVal.length; i++) {
+              pluckedValues[i] = groupingVal[i][groupingIndex]
+            }
+            return pluckedValues
           }
         })
         // List of groupBy, subGroupBy etc...
         const groupBys = R.map((idx) =>
-          categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
+          obj.groupingId[idx] != null
+            ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
+            : R.always(R.always(['All']))
         )(R.range(0, R.length(obj.groupingId)))
+
+        const filteredStatsToCalc = R.reduce(
+          (acc, stat) =>
+            R.assoc(
+              stat[0],
+              filterGroupedOutputs(
+                groupedOutputs[stat[0]],
+                R.pipe(
+                  R.propOr([], 'filters'),
+                  R.reject(R.propEq(false, 'active'))
+                )(obj),
+                groupingIndicies
+              ),
+              acc
+            ),
+          {},
+          actualStat
+        )
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) =>
-          calculateStatAnyDepth(groupedOutputs[stat[0]])(
+          calculateStatAnyDepth(valueBuffers[stat[0]], workerManager)(
             R.isEmpty(groupBys)
               ? [R.always(['All'])]
               : R.map(R.applyTo(stat[0]), groupBys),
-            R.pathOr('0', [...stat, 'calculation'])(statisticTypes)
+            R.pathOr('0', [...stat, 'calculation'])(statisticTypes),
+            filteredStatsToCalc[stat[0]]
           )
         )(actualStat)
-        // Ordering for the X's in the chart
-        const ordering = R.pathOr(
-          [],
-          [
-            R.path(['groupingId', 0], obj),
-            'levels',
-            R.path(['groupingLevel', 0], obj),
-            'ordering',
-          ]
-        )(groupings)
 
-        // merge the calculated stats - unless boxplot
-        // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-        const statValues = R.map(
-          recursiveMap(
-            R.is(Array),
-            R.pipe(
-              R.filter(R.is(Number)),
-              obj.variant !== chartVariant.BOX_PLOT
-                ? mergeFuncs[obj.statAggregation]
-                : R.identity
+        return Promise.all(calculatedStats).then((resolvedStats) => {
+          // Ordering for the X's in the chart
+          const getOrderingAtIndex = (idx) =>
+            R.pathOr(
+              [],
+              [
+                R.path(['groupingId', idx], obj),
+                'levels',
+                R.path(['groupingLevel', idx], obj),
+                'ordering',
+              ]
+            )(groupings)
+          // merge the calculated stats - unless boxplot
+          // NOTE: Boxplot needs subgrouping - handle this in chart adapter
+          const statValues = R.map(
+            recursiveBubbleMap(
+              R.is(Array),
+              R.pipe(
+                R.filter(R.is(Number)),
+                obj.variant !== chartVariant.BOX_PLOT
+                  ? R.unless(R.isEmpty, mergeFuncs[obj.statAggregation])
+                  : R.identity
+              ),
+              R.identity,
+              R.filter(R.pipe(R.isEmpty, R.not))
             ),
-            R.identity
-          ),
-          calculatedStats
-        )
-        // Helper function to map merged stats to chart input object
-        const recursiveMapLayers = (val) =>
-          R.type(val) === 'Object'
-            ? R.pipe(R.values, R.head, (item) => R.type(item) === 'Object')(val)
-              ? R.values(
-                  R.mapObjIndexed((value, key) => ({
-                    name: R.isNil(obj.groupingId) ? 'All' : key,
-                    children: recursiveMapLayers(value),
-                  }))(val)
-                )
-              : R.values(
-                  R.mapObjIndexed((value, key) => ({
-                    name: key,
-                    value: recursiveMapLayers(value),
-                  }))(val)
-                )
-            : R.is(Array, val)
-              ? val
-              : [val]
-        // Formats and sorts merged stats
-        const getFormattedData = R.map(
-          R.pipe(
-            debug
-              ? R.identity
-              : recursiveMap(
-                  (val) => R.type(val) !== 'Object',
-                  R.identity,
-                  R.dissoc(undefined)
-                ),
-            recursiveMapLayers,
-            customSortByX(ordering)
+            resolvedStats
           )
-        )
 
-        const formattedData = getFormattedData(statValues)
+          // Helper function to map merged stats to chart input object
+          const recursiveMapLayers = (val) =>
+            R.type(val) === 'Object'
+              ? R.pipe(
+                  R.values,
+                  R.head,
+                  (item) => R.type(item) === 'Object'
+                )(val)
+                ? R.values(
+                    R.mapObjIndexed((value, key) => ({
+                      name: R.isNil(obj.groupingId) ? 'All' : key,
+                      children: recursiveMapLayers(value),
+                    }))(val)
+                  )
+                : R.values(
+                    R.mapObjIndexed((value, key) => ({
+                      name: key,
+                      value: recursiveMapLayers(value),
+                    }))(val)
+                  )
+              : R.is(Array, val)
+                ? val
+                : [val]
 
-        const conditionalMerge = (key, a, b) =>
-          key === 'name'
-            ? a
-            : key === 'value'
-              ? R.concat(a, b)
-              : // key === 'children'
-                mergeMultiStatData([a, b])
+          const nLevelOrder = R.curry((depth, chartItem) => {
+            return R.has('children', chartItem)
+              ? R.assoc(
+                  'children',
+                  R.map(nLevelOrder(depth + 1))(
+                    customSortByX(
+                      getOrderingAtIndex(depth),
+                      R.prop('children', chartItem)
+                    )
+                  ),
+                  chartItem
+                )
+              : chartItem
+          })
+          // Formats and sorts merged stats
+          const getFormattedData = R.map(
+            R.pipe(
+              debug
+                ? R.identity
+                : recursiveMap(
+                    (val) => R.type(val) !== 'Object',
+                    R.identity,
+                    R.dissoc(undefined)
+                  ),
+              recursiveMapLayers,
+              customSortByX(getOrderingAtIndex(0)),
+              // The 0th layer is sorted above due to not being a child, so we start at 1
+              R.map(nLevelOrder(1))
+            )
+          )
+          const formattedData = getFormattedData(statValues)
+          const conditionalMerge = (key, a, b) =>
+            key === 'name'
+              ? a
+              : key === 'value'
+                ? R.concat(a, b)
+                : // key === 'children'
+                  mergeMultiStatData([a, b])
 
-        const mergeMultiStatData = R.pipe(
-          R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
-          R.values
-        )
+          const mergeMultiStatData = R.pipe(
+            R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
+            R.values
+          )
 
-        return R.is(Array, obj.statId)
-          ? mergeMultiStatData(formattedData)
-          : R.head(formattedData)
+          return R.is(Array, obj.statId)
+            ? mergeMultiStatData(formattedData)
+            : R.head(formattedData)
+        })
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1810,6 +1940,11 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
           R.mapObjIndexed((obj) => {
             const [id, node] = obj
             const legendObj = legendObjectsFunc(mapId)[node.type]
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
+            if (!filterMapFeature(filters, node)) return false
             const sizeProp = legendObj.sizeBy
             const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(R.path(['values', sizeProp], node))
@@ -1976,6 +2111,12 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               legendObjectsFunc(mapId)
             )
             const legendObj = legendObjectsFunc(mapId)[arc.type]
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
+            if (!filterMapFeature(filters, arc)) return false
+
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
             const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
             const size = isNaN(sizePropVal)
@@ -2074,6 +2215,11 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
           R.unnest,
           R.map(([id, arc]) => {
             const legendObj = legendObjectsFunc(mapId)[arc.type]
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
+            if (!filterMapFeature(filters, arc)) return false
 
             const sizeProp = legendObj.sizeBy
             const sizeRange = arcRange(arc.type, sizeProp, true, mapId)

@@ -54,7 +54,7 @@ const ChartToolbar = ({ chartObj, index, path }) => {
                   R.not
                 )
               ),
-              R.assoc('variant', 'Table')
+              R.assoc('variant', chartVariant.TABLE)
             )
           )(chartObj),
           sync: !includesPath(R.values(sync), path),

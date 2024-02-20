@@ -82,7 +82,7 @@ const RightAppBar = () => {
   )
 }
 
-const Panes = ({ sessionCard, setSessionCard }) => {
+const Panes = () => {
   const leftAppBarData = useSelector(selectLeftAppBarData)
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const leftOpen = useSelector(selectLeftOpenPane)
@@ -196,8 +196,6 @@ const Panes = ({ sessionCard, setSessionCard }) => {
                       )
                     : pane,
                   openPanesData: openPanesData,
-                  sessionCard: sessionCard,
-                  toggleSessionCard: (enabled) => setSessionCard(enabled),
                   ...getPinObj(side),
                 })}
               </Box>
