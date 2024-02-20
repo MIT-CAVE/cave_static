@@ -16,6 +16,8 @@ import {
   PropHStepper,
   PropHeadColumn,
   PropHeadRow,
+  PropListCheckbox,
+  PropListToggle,
   PropNested,
   PropNumberField,
   PropNumberSlider,
@@ -72,6 +74,8 @@ const getSelectorPropRenderFn = R.cond([
   [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
   [R.equals(propVariant.HRADIO), R.always(PropHRadio)],
   [R.equals(propVariant.HSTEPPER), R.always(PropHStepper)],
+  [R.equals(propVariant.LIST_CHECKBOX), R.always(PropListCheckbox)],
+  [R.equals(propVariant.LIST_TOGGLE), R.always(PropListToggle)],
   [R.equals(propVariant.NESTED), R.always(PropNested)],
   [R.equals(propVariant.RADIO), R.always(PropRadio)],
   [R.equals(propVariant.VSTEPPER), R.always(PropVStepper)],
@@ -89,7 +93,6 @@ const getHeaderPropRenderFn = R.cond([
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
   [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
   [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
-
   [R.T, invalidVariant('head')],
 ])
 
