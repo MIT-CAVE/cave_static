@@ -28,8 +28,9 @@ const GridEditMultiSelectCell = ({
   readOnly,
   api,
 }) => {
-  const [value, setValue] = useState(defaultValue)
-
+  const [value, setValue] = useState(
+    Array.isArray(defaultValue) ? defaultValue : [] // TODO: Solve the lifecycle issue with onValueChange and get rid of this workaround
+  )
   const handleChange = useCallback(
     async (event, newValue) => {
       setValue(newValue)
