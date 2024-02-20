@@ -25,6 +25,7 @@ import {
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
+import EnhancedEditSingleSelect from './EnhancedEditSingleSelect'
 import GridEditMultiSelectCell, {
   GridMultiSelectCell,
 } from './GridEditMultiSelectCell'
@@ -394,6 +395,12 @@ const GridFilter = ({
         renderCell: ({ formattedValue }) => (
           <OverflowText text={formattedValue} />
         ),
+        renderEditCell: (params) => (
+          <EnhancedEditSingleSelect
+            fieldsToClear={['value', 'relation']}
+            {...params}
+          />
+        ),
         preProcessEditCellProps,
       },
       {
@@ -425,20 +432,29 @@ const GridFilter = ({
         sortable: false,
         valueParser: (value, params) => {
           const valueType = sourceValueTypes[params.row.source]
-          return R.cond([
-            [R.equals('boolean'), R.always(Boolean(value))],
-            [R.equals('number'), R.always(+value)],
-            [
-              R.flip(R.includes)(['date', 'time', 'dateTime']),
-              R.always(
-                dayjs(
-                  value,
-                  valueType === 'time' ? 'HH:mm:ss' : undefined
-                ).format(getDateFormat(valueType))
-              ),
-            ],
-            [R.T, R.always(value)],
-          ])(valueType)
+          const getParsedDate = (rawValue, parseFormat) => {
+            const newValue = dayjs(rawValue, parseFormat)
+            return newValue.isValid()
+              ? newValue.format(getDateFormat(valueType))
+              : ''
+          }
+          return valueType === 'boolean'
+            ? Boolean(value)
+            : valueType === 'number'
+              ? value !== ''
+                ? +value
+                : ''
+              : valueType === 'multiSelect'
+                ? Array.isArray(value)
+                  ? value
+                  : ''
+                : valueType === 'date' || valueType === 'dateTime'
+                  ? getParsedDate(value)
+                  : valueType === 'time'
+                    ? getParsedDate(value, getDateFormat(valueType))
+                    : isNaN(value)
+                      ? ''
+                      : value
         },
         renderCell: (params) => {
           const { value, row } = params
