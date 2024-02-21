@@ -8,6 +8,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { Fragment } from 'react'
 
 import { withIndex, forceArray } from '../../utils'
 
@@ -34,7 +35,7 @@ const PropListCheckbox = ({
   )(withIndex(options))
 
   const getField = ([field, fieldOptions]) => (
-    <>
+    <Fragment key={field}>
       <Typography>{field}</Typography>
       <FormGroup>
         {R.map(
@@ -63,7 +64,7 @@ const PropListCheckbox = ({
           fieldOptions
         )}
       </FormGroup>
-    </>
+    </Fragment>
   )
 
   return (
