@@ -36,7 +36,9 @@ const PropListCheckbox = ({
 
   const getField = ([field, fieldOptions]) => (
     <Fragment key={field}>
-      <Typography>{field}</Typography>
+      <Typography my={1} fontWeight={700} color="text.secondary">
+        {field}
+      </Typography>
       <FormGroup>
         {R.map(
           ({ id: key, name: label }) => (
