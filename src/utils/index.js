@@ -392,10 +392,15 @@ export const getOptimalGridSize = (
   const closestSquare = Math.sqrt(numItems)
   const [rows, columns] =
     numColumns === 'auto' && numRows === 'auto'
-      ? [
-          Math.max(Math.floor(closestSquare), maxDimRow),
-          Math.max(Math.ceil(numItems / closestSquare), maxDimColumn),
-        ]
+      ? maxDimRow > 0 && maxDimColumn > 0
+        ? // Some `column`s/`row`s are specified in the layout
+          [maxDimRow, maxDimColumn]
+        : maxDimRow < 1 && maxDimRow < 1
+          ? // No `column` or `row` spec was found in the layout
+            [Math.ceil(closestSquare), Math.floor(closestSquare)]
+          : maxDimRow < 1
+            ? [Math.ceil(numItems / numColumns), maxDimColumn]
+            : [maxDimRow, Math.ceil(numItems / numRows)] // if maxDimColumn < 1
       : numColumns === 'auto'
         ? [numRows, Math.max(Math.ceil(numItems / numRows), maxDimColumn)]
         : numRows === 'auto'
