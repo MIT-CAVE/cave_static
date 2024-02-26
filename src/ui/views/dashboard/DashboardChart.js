@@ -260,13 +260,19 @@ const DashboardChart = ({ chartObj }) => {
         R.isNil(R.path(['statId', 2], chartObj)) ? (
         <ScatterPlot
           data={formattedData}
-          labels={R.pipe(R.pluck('label'), R.dissoc(3))(columnProps)}
+          // TODO: Simplify this Ramda fn
+          labels={R.converge(R.zipObj, [
+            R.pipe(R.pluck('field'), R.dissoc(3)),
+            R.pipe(R.pluck('label'), R.dissoc(3)),
+          ])(columnProps)}
           {...{ colors, numberFormat }}
         />
       ) : chartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
-          labels={R.pluck('label')(columnProps)}
+          labels={R.converge(R.zipObj, [R.pluck('field'), R.pluck('label')])(
+            columnProps
+          )}
           {...{ colors, numberFormat }}
         />
       ) : (
