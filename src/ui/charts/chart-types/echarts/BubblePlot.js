@@ -5,7 +5,7 @@ import { FlexibleChart } from './BaseChart'
 import { NumberFormat, getMinMax } from '../../../../utils'
 
 const BubblePlot = ({ data, labels: labelsRaw, numberFormat, colors }) => {
-  const labelValues = R.pipe(R.values)(labelsRaw)
+  const labelValues = R.values(labelsRaw)
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
