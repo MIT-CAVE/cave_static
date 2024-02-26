@@ -431,30 +431,30 @@ const GridFilter = ({
         editable: true,
         sortable: false,
         valueParser: (value, params) => {
-          const valueType = sourceValueTypes[params.row.source]
-          const getParsedDate = (rawValue, parseFormat) => {
-            const newValue = dayjs(rawValue, parseFormat)
+          const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
+          const valueType = sourceValueTypes[editRow.source]
+
+          const getParsedDate = (dateTimeStr, parseFormat) => {
+            const newValue = dayjs(dateTimeStr, parseFormat)
             return newValue.isValid()
               ? newValue.format(getDateFormat(valueType))
               : ''
           }
-          return valueType === 'boolean'
-            ? Boolean(value)
-            : valueType === 'number'
-              ? value !== ''
-                ? +value
-                : ''
-              : valueType === 'multiSelect'
-                ? Array.isArray(value)
-                  ? value
-                  : ''
-                : valueType === 'date' || valueType === 'dateTime'
-                  ? getParsedDate(value)
-                  : valueType === 'time'
-                    ? getParsedDate(value, getDateFormat(valueType))
-                    : isNaN(value)
-                      ? ''
-                      : value
+
+          return R.cond([
+            [R.equals('boolean'), R.always(Boolean(value))],
+            [R.equals('number'), R.always(value === '' ? '' : +value)],
+            [R.equals('time'), R.always(getParsedDate(value, 'HH:mm:ss'))],
+            [
+              R.flip(R.includes)(['date', 'dateTime']),
+              R.always(getParsedDate(value)),
+            ],
+            [
+              R.equals('multiSelect'),
+              R.always(Array.isArray(value) ? value : ''),
+            ],
+            [R.T, R.always(value)],
+          ])(valueType)
         },
         renderCell: (params) => {
           const { value, row } = params

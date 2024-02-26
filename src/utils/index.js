@@ -151,19 +151,15 @@ export const filterMapFeature = (filters, featureObj) => {
         }
       }
     } else if (type === 'num' && filterObj['option'] !== 'eq') {
-      const result = !R.has('option', filterObj)
+      return !R.has('option', filterObj)
         ? true
         : R.prop('option', filterObj) === 'gt'
           ? R.gt(value, filterValue)
-          : R.gte(value, filterValue)
-      const result1 = !R.has('option1', filterObj)
-        ? true
-        : R.prop('option1', filterObj) === 'lt'
-          ? R.lt(value, R.prop('value1', filterObj))
-          : R.lte(value, R.prop('value1', filterObj))
-      if (!result || !result1) {
-        return false
-      }
+          : R.prop('option', filterObj) === 'gte'
+            ? R.gte(value, filterValue)
+            : R.prop('option', filterObj) === 'lt'
+              ? R.lt(value, filterValue)
+              : R.lte(value, filterValue)
     } else {
       if (filterValue !== value) {
         return false
@@ -206,19 +202,15 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
           }
         }
       } else if (filterObj['option'] !== 'eq') {
-        const result = !R.has('option', filterObj)
+        return !R.has('option', filterObj)
           ? true
           : R.prop('option', filterObj) === 'gt'
             ? R.gt(value, filterValue)
-            : R.gte(value, filterValue)
-        const result1 = !R.has('option1', filterObj)
-          ? true
-          : R.prop('option1', filterObj) === 'lt'
-            ? R.lt(value, R.prop('value1', filterObj))
-            : R.lte(value, R.prop('value1', filterObj))
-        if (!result || !result1) {
-          return false
-        }
+            : R.prop('option', filterObj) === 'gte'
+              ? R.gte(value, filterValue)
+              : R.prop('option', filterObj) === 'lt'
+                ? R.lt(value, filterValue)
+                : R.lte(value, filterValue)
       } else {
         if (filterValue !== value) {
           return false
@@ -392,10 +384,15 @@ export const getOptimalGridSize = (
   const closestSquare = Math.sqrt(numItems)
   const [rows, columns] =
     numColumns === 'auto' && numRows === 'auto'
-      ? [
-          Math.max(Math.floor(closestSquare), maxDimRow),
-          Math.max(Math.ceil(numItems / closestSquare), maxDimColumn),
-        ]
+      ? maxDimRow > 0 && maxDimColumn > 0
+        ? // Some `column`s/`row`s are specified in the layout
+          [maxDimRow, maxDimColumn]
+        : maxDimRow < 1 && maxDimRow < 1
+          ? // No `column` or `row` spec was found in the layout
+            [Math.ceil(closestSquare), Math.floor(closestSquare)]
+          : maxDimRow < 1
+            ? [Math.ceil(numItems / numColumns), maxDimColumn]
+            : [maxDimRow, Math.ceil(numItems / numRows)] // if maxDimColumn < 1
       : numColumns === 'auto'
         ? [numRows, Math.max(Math.ceil(numItems / numRows), maxDimColumn)]
         : numRows === 'auto'

@@ -1,4 +1,5 @@
 import { Autocomplete, Chip, TextField } from '@mui/material'
+import { useGridApiContext } from '@mui/x-data-grid'
 import * as R from 'ramda'
 import { useCallback, useState } from 'react'
 
@@ -26,17 +27,15 @@ const GridEditMultiSelectCell = ({
   options: optionsRaw,
   colorByOptions = {},
   readOnly,
-  api,
 }) => {
-  const [value, setValue] = useState(
-    Array.isArray(defaultValue) ? defaultValue : [] // TODO: Solve the lifecycle issue with onValueChange and get rid of this workaround
-  )
+  const apiRef = useGridApiContext()
+  const [value, setValue] = useState(defaultValue === '' ? [] : defaultValue)
   const handleChange = useCallback(
     async (event, newValue) => {
       setValue(newValue)
-      api.setEditCellValue({ id, field, value: newValue }, event)
+      apiRef.current.setEditCellValue({ id, field, value: newValue }, event)
     },
-    [api, field, id]
+    [apiRef, field, id]
   )
   const getOptionLabel = useCallback(
     (option) => R.unless(R.isNil, R.prop('name'))(optionsRaw[option]),

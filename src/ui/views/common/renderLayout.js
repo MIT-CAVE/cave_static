@@ -82,7 +82,16 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
   const numItems = R.pipe(R.defaultTo(unusedItems), R.values, R.length)(data)
 
   const getMaxDimension = (prop) =>
-    R.pipe(R.values, R.pluck(prop), R.reduce(R.max, 1))(data)
+    R.pipe(
+      R.values,
+      R.pluck(prop),
+      R.reject(R.isNil),
+      R.ifElse(
+        R.isEmpty,
+        R.always(0), // Flag for when no `column`/`row` spec was found in the layout
+        R.reduce(R.max, 1) // Obtains the max `column`/`row` value in the layout
+      )
+    )(data)
 
   const [numRowsOptimal, numColumnsOptimal] = getOptimalGridSize(
     numRows,
@@ -95,10 +104,9 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
   const numFillers = R.isNil(data)
     ? R.min(numColumnsOptimal * numRowsOptimal, numItems)
     : 0
-  const keyType = R.dropLast(2)('itemId')
   const fillerItems = R.pipe(
     R.take(numFillers),
-    R.map(R.pipe(R.objOf('itemId'), R.assoc('type', keyType))),
+    R.map(R.pipe(R.objOf('itemId'), R.assoc('type', 'item'))),
     R.indexBy(R.prop('itemId')),
     sortedListById
   )(unusedItems)
