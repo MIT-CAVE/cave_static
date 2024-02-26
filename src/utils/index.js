@@ -151,19 +151,15 @@ export const filterMapFeature = (filters, featureObj) => {
         }
       }
     } else if (type === 'num' && filterObj['option'] !== 'eq') {
-      const result = !R.has('option', filterObj)
+      return !R.has('option', filterObj)
         ? true
         : R.prop('option', filterObj) === 'gt'
           ? R.gt(value, filterValue)
-          : R.gte(value, filterValue)
-      const result1 = !R.has('option1', filterObj)
-        ? true
-        : R.prop('option1', filterObj) === 'lt'
-          ? R.lt(value, R.prop('value1', filterObj))
-          : R.lte(value, R.prop('value1', filterObj))
-      if (!result || !result1) {
-        return false
-      }
+          : R.prop('option', filterObj) === 'gte'
+            ? R.gte(value, filterValue)
+            : R.prop('option', filterObj) === 'lt'
+              ? R.lt(value, filterValue)
+              : R.lte(value, filterValue)
     } else {
       if (filterValue !== value) {
         return false
@@ -206,19 +202,15 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
           }
         }
       } else if (filterObj['option'] !== 'eq') {
-        const result = !R.has('option', filterObj)
+        return !R.has('option', filterObj)
           ? true
           : R.prop('option', filterObj) === 'gt'
             ? R.gt(value, filterValue)
-            : R.gte(value, filterValue)
-        const result1 = !R.has('option1', filterObj)
-          ? true
-          : R.prop('option1', filterObj) === 'lt'
-            ? R.lt(value, R.prop('value1', filterObj))
-            : R.lte(value, R.prop('value1', filterObj))
-        if (!result || !result1) {
-          return false
-        }
+            : R.prop('option', filterObj) === 'gte'
+              ? R.gte(value, filterValue)
+              : R.prop('option', filterObj) === 'lt'
+                ? R.lt(value, filterValue)
+                : R.lte(value, filterValue)
       } else {
         if (filterValue !== value) {
           return false
