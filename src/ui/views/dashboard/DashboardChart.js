@@ -153,38 +153,27 @@ const DashboardChart = ({ chartObj }) => {
   )(tableStatColumnProps)
 
   // eslint-disable-next-line no-unused-vars
-  const getNumberFormat = R.curry((currentStat, currentStatId) =>
-    R.pipe(
-      // TODO: Consider removing this unused code commented below
-      // R.ifElse(
-      //   R.propEq(currentStatId, 'calculation'),
-      //   // If the stat matches `calculation`, apply the stat's number formatting.
-      //   numberFormatPropsFn,
-      //   // Otherwise, use `numberFormatDefault` to apply number formatting for
-      //   // a stat that is the result of combining different number formats.
-      //   R.always(numberFormatDefault)
-      // ),
-      numberFormatPropsFn,
-      // `unit`s are excluded as they will be represented
-      // as part of the axis labels or column headers.
-      R.omit(['unit', 'unitPlacement'])
-    )(currentStat)
+  const getNumberFormat = R.pipe(
+    numberFormatPropsFn,
+    // `unit`s are excluded as they will be represented
+    // as part of the axis labels or column headers.
+    R.omit(['unit', 'unitPlacement'])
   )
 
-  const numberFormat =
-    chartObj.variant === chartVariant.TABLE
-      ? R.reduce(
-          (acc, [groupedOutputDataId, statId]) =>
-            R.assoc(
-              statId,
-              getNumberFormat(
-                statisticTypes[groupedOutputDataId][statId], // current stat
-                statId
-              )
-            )(acc),
-          {}
-        )(statPaths)
-      : getNumberFormat(stat, chartObj.statId)
+  const numberFormat = R.is(Array)(chartObj.statId)
+    ? // Multi-stat charts
+      R.reduce(
+        (acc, [groupedOutputDataId, statId]) =>
+          R.assoc(
+            statId,
+            getNumberFormat(
+              statisticTypes[groupedOutputDataId][statId], // current stat
+              statId
+            )
+          )(acc),
+        {}
+      )(statPaths)
+    : getNumberFormat(stat)
 
   if (R.isEmpty(formattedData))
     return (

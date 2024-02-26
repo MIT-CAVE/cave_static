@@ -62,8 +62,6 @@ const DashboardGlobalOutput = ({ chartObj }) => {
 
   const formattedGlobalOutputs = globalOutputFunc(chartObj)
 
-  const isTable = R.prop('variant', chartObj) === chartVariant.TABLE
-
   const actualGlobalOutputRaw = forcePath(
     R.propOr([], 'globalOutput', chartObj)
   )
@@ -81,23 +79,24 @@ const DashboardGlobalOutput = ({ chartObj }) => {
     return globalOutput.unit || numberFormatDefault.unit
   })(selectedGlobalOutputKeys)
 
-  const columnProps = isTable
-    ? R.pipe(
-        R.zipWith(
-          (globalOutputKey, unit) => ({
-            field: globalOutputKey,
-            type: 'number',
-            label: `${getLabelFn(globalOutputData)(globalOutputKey)}${unit ? ` [${unit}]` : ''} `,
-          }),
-          selectedGlobalOutputKeys
-        ),
-        R.prepend({
-          type: 'string',
-          field: 'session',
-          label: 'Session',
-        })
-      )(globalOutputUnits)
-    : []
+  const columnProps =
+    chartObj.variant === chartVariant.TABLE
+      ? R.pipe(
+          R.zipWith(
+            (globalOutputKey, unit) => ({
+              field: globalOutputKey,
+              type: 'number',
+              label: `${getLabelFn(globalOutputData)(globalOutputKey)}${unit ? ` [${unit}]` : ''} `,
+            }),
+            selectedGlobalOutputKeys
+          ),
+          R.prepend({
+            type: 'string',
+            field: 'session',
+            label: 'Session',
+          })
+        )(globalOutputUnits)
+      : []
 
   const getNumberFormat = R.pipe(
     numberFormatPropsFn,
@@ -105,12 +104,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
     // as part of the axis labels or column headers.
     R.omit(['unit', 'unitPlacement'])
   )
-
-  const numberFormat = isTable
-    ? R.map(getNumberFormat)(globalOutputData)
-    : // FIXME: Update other charts to support dynamic number
-      // formatting for multiple stats / global outputs
-      getNumberFormat(numberFormatDefault)
+  const numberFormat = R.map(getNumberFormat)(globalOutputData)
 
   return (
     <Box
