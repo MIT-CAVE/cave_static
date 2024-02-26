@@ -48,6 +48,10 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
   const xRange = xMax - xMin
   const yRange = yMax - yMin
 
+  const labelsExcludingUnits = labels.map((label) =>
+    label.replace(/\s*\[.*?\]/g, '')
+  )
+
   const options = {
     xAxis: {
       type: 'value',
@@ -64,7 +68,22 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
     series,
     tooltip: {
       trigger: 'item',
-      formatter: '<b>{a0}</b><br/>{c}<br/>',
+      formatter: function (params) {
+        return `<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
+                <div style="display: flex">
+                  <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: center; margin-right: 30px">
+                    <div>${labelsExcludingUnits[1]}</div>
+                    <div>${labelsExcludingUnits[2]}</div>
+                    <div>${labelsExcludingUnits[3]}</div>
+                  </div>
+                  <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: flex-end; font-weight:bold">
+                    <div>${params.value[0]}</div>
+                    <div>${params.value[1]}</div>
+                    <div>${params.value[2]}</div>
+                  </div>
+                </div>
+              `
+      },
       valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
   }

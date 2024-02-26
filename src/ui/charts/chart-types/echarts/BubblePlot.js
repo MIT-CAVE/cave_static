@@ -55,6 +55,10 @@ const BubblePlot = ({ data, labels, numberFormat, colors }) => {
     })
   )(initialSeries)
 
+  const labelsExcludingUnits = labels.map((label) =>
+    label.replace(/\s*\[.*?\]/g, '')
+  )
+
   const options = {
     grid: {
       top: 100,
@@ -84,12 +88,12 @@ const BubblePlot = ({ data, labels, numberFormat, colors }) => {
     tooltip: {
       trigger: 'item',
       formatter: function (params) {
-        return `<div><b>${params.seriesName}</b></div>
+        return `<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
                 <div style="display: flex">
                   <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: center; margin-right: 30px">
-                    <div>${labels[1]}</div>
-                    <div>${labels[2]}</div>
-                    <div>${labels[3]}</div>
+                    <div>${labelsExcludingUnits[1]}</div>
+                    <div>${labelsExcludingUnits[2]}</div>
+                    <div>${labelsExcludingUnits[3]}</div>
                   </div>
                   <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: flex-end; font-weight:bold">
                     <div>${params.value[0]}</div>
