@@ -4,7 +4,7 @@ import * as R from 'ramda'
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
 
-const TableChart = ({ data, columnProps, numberFormat }) => {
+const TableChart = ({ data, labelProps, numberFormat }) => {
   // Convert chart object to nested arrays of values
   const convertToList = (data, currentRow) =>
     R.map((d) =>
@@ -17,16 +17,16 @@ const TableChart = ({ data, columnProps, numberFormat }) => {
     )(data)
 
   const rawList = convertToList(data, [])
-  const fields = R.pluck('field')(columnProps)
+  const fields = R.pluck('field')(labelProps)
   const rows = R.pipe(
     R.flatten,
-    R.splitEvery(R.length(columnProps)),
+    R.splitEvery(R.length(labelProps)),
     R.addIndex(R.map)((row, index) =>
       R.pipe(R.zipObj(fields), R.assoc('id', index))(row)
     )
   )(rawList)
 
-  const columns = columnProps.map(({ label, field, type }) => ({
+  const columns = labelProps.map(({ label, field, type }) => ({
     headerName: label,
     type,
     field,

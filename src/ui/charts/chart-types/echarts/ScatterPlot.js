@@ -4,8 +4,8 @@ import { FlexibleChart } from './BaseChart'
 
 import { NumberFormat, getMinMax } from '../../../../utils'
 
-const ScatterPlot = ({ data, labels: labelsRaw, numberFormat, colors }) => {
-  const labels = R.values(labelsRaw)
+const ScatterPlot = ({ data, labelProps, numberFormat, colors }) => {
+  const labels = R.pluck('label')(labelProps)
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
@@ -14,7 +14,7 @@ const ScatterPlot = ({ data, labels: labelsRaw, numberFormat, colors }) => {
   )
     return []
 
-  const labelKeys = R.keys(labelsRaw)
+  const labelKeys = R.pluck('field')(labelProps)
   const labelsExcludingUnits = R.map(R.replace(/\s*\[.*?\]/g, ''))(labels) // Excluding units
 
   const baseObject = {

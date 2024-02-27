@@ -133,7 +133,7 @@ const DashboardChart = ({ chartObj }) => {
         : ''
     }`
 
-  const columnProps = R.pipe(
+  const labelProps = R.pipe(
     R.when(
       R.always(subGrouped),
       R.prepend({
@@ -195,7 +195,7 @@ const DashboardChart = ({ chartObj }) => {
       {chartObj.variant === chartVariant.TABLE &&
       chartObj.groupingId &&
       chartObj.groupingId[0] ? (
-        <TableChart data={formattedData} {...{ columnProps, numberFormat }} />
+        <TableChart data={formattedData} {...{ labelProps, numberFormat }} />
       ) : chartObj.variant === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
@@ -260,21 +260,13 @@ const DashboardChart = ({ chartObj }) => {
         R.isNil(R.path(['statId', 2], chartObj)) ? (
         <ScatterPlot
           data={formattedData}
-          labels={R.pipe(
-            R.dissoc(3),
-            R.map(R.props(['field', 'label'])),
-            R.fromPairs
-          )(columnProps)}
+          labels={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
         />
       ) : chartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
-          labels={R.pipe(
-            R.map(R.props(['field', 'label'])),
-            R.fromPairs
-          )(columnProps)}
-          {...{ colors, numberFormat }}
+          {...{ labelProps, colors, numberFormat }}
         />
       ) : (
         <></>
