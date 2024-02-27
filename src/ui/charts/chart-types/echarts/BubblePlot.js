@@ -5,17 +5,17 @@ import { FlexibleChart } from './BaseChart'
 import { NumberFormat, getMinMax } from '../../../../utils'
 
 const BubblePlot = ({ data, labels: labelsRaw, numberFormat, colors }) => {
-  const labelValues = R.values(labelsRaw)
+  const labels = R.values(labelsRaw)
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
     !R.hasPath([0, 'value', 2], data) ||
-    R.any(R.equals('undefined'), labelValues)
+    R.any(R.equals('undefined'), labels)
   )
     return []
 
   const labelKeys = R.keys(labelsRaw)
-  const labels = R.map(R.replace(/\s*\[.*?\]/g, ''))(labelValues) // Excluding units
+  const labelsExcludingUnits = R.map(R.replace(/\s*\[.*?\]/g, ''))(labels) // Excluding units
 
   const baseObject = {
     type: 'scatter',
@@ -94,9 +94,9 @@ const BubblePlot = ({ data, labels: labelsRaw, numberFormat, colors }) => {
         return `<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
                 <div style="display: flex">
                   <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: center; margin-right: 30px">
-                    <div>${labels[1]}</div>
-                    <div>${labels[2]}</div>
-                    <div>${labels[3]}</div>
+                    <div>${labelsExcludingUnits[1]}</div>
+                    <div>${labelsExcludingUnits[2]}</div>
+                    <div>${labelsExcludingUnits[3]}</div>
                   </div>
                   <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: flex-end; font-weight:bold">
                     <div>${getNumberFormat(labelKeys[1], params.value[0])}</div>
