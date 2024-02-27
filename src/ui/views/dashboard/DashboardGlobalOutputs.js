@@ -79,20 +79,20 @@ const DashboardGlobalOutput = ({ chartObj }) => {
     return globalOutput.unit || numberFormatDefault.unit
   })(selectedGlobalOutputKeys)
 
-  const columnProps =
+  const labelProps =
     chartObj.variant === chartVariant.TABLE
       ? R.pipe(
           R.zipWith(
             (globalOutputKey, unit) => ({
-              field: globalOutputKey,
               type: 'number',
+              key: globalOutputKey,
               label: `${getLabelFn(globalOutputData)(globalOutputKey)}${unit ? ` [${unit}]` : ''} `,
             }),
             selectedGlobalOutputKeys
           ),
           R.prepend({
             type: 'string',
-            field: 'session',
+            key: 'session',
             label: 'Session',
           })
         )(globalOutputUnits)
@@ -130,7 +130,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
       ) : chartObj.variant === chartVariant.TABLE ? (
         <TableChart
           data={formattedGlobalOutputs}
-          {...{ columnProps, numberFormat }}
+          {...{ labelProps, numberFormat }}
         />
       ) : chartObj.variant === chartVariant.BAR ? (
         <BarPlot
