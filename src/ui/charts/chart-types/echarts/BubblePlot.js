@@ -14,8 +14,8 @@ const BubblePlot = ({ data, labelProps, numberFormat, colors }) => {
   )
     return []
 
-  const labelKeys = R.pluck('field')(labelProps)
-  const labelsExcludingUnits = R.map(R.replace(/\s*\[.*?\]/g, ''))(labels) // Excluding units
+  const labelKeys = R.pluck('key')(labelProps)
+  const labelsExcludingUnits = R.map(R.replace(/\s*\[.*?\]/g, ''))(labels)
 
   const baseObject = {
     type: 'scatter',

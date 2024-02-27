@@ -17,7 +17,7 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
     )(data)
 
   const rawList = convertToList(data, [])
-  const fields = R.pluck('field')(labelProps)
+  const fields = R.pluck('key')(labelProps)
   const rows = R.pipe(
     R.flatten,
     R.splitEvery(R.length(labelProps)),
@@ -26,7 +26,7 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
     )
   )(rawList)
 
-  const columns = labelProps.map(({ label, field, type }) => ({
+  const columns = labelProps.map(({ label, key: field, type }) => ({
     headerName: label,
     type,
     field,

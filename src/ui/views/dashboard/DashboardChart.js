@@ -112,12 +112,12 @@ const DashboardChart = ({ chartObj }) => {
 
   const statPaths = R.zip(chartObj.groupedOutputDataId)(chartObj.statId)
 
-  const tableStatColumnProps = R.map((item) => {
+  const multiStatLabelProps = R.map((item) => {
     const stat = R.pathOr({}, item)(statisticTypes)
     const unit = stat.unit || numberFormatDefault.unit
     return {
       type: 'number',
-      field: item[1],
+      key: item[1],
       label: `${getGroupLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`,
     }
   })(statPaths)
@@ -138,7 +138,7 @@ const DashboardChart = ({ chartObj }) => {
       R.always(subGrouped),
       R.prepend({
         type: 'string',
-        field: 'level',
+        key: 'level',
         label: getGroupingLabel(1),
       })
     ),
@@ -146,11 +146,11 @@ const DashboardChart = ({ chartObj }) => {
       R.always(chartObj.groupingId != null),
       R.prepend({
         type: 'string',
-        field: 'grouping',
+        key: 'grouping',
         label: getGroupingLabel(0),
       })
     )
-  )(tableStatColumnProps)
+  )(multiStatLabelProps)
 
   // eslint-disable-next-line no-unused-vars
   const getNumberFormat = R.pipe(
@@ -260,7 +260,7 @@ const DashboardChart = ({ chartObj }) => {
         R.isNil(R.path(['statId', 2], chartObj)) ? (
         <ScatterPlot
           data={formattedData}
-          labels={R.dissoc(3)(labelProps)}
+          labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
         />
       ) : chartObj.variant === chartVariant.SCATTER ? (
