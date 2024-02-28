@@ -43,6 +43,7 @@ import {
   filterMapFeature,
   filterGroupedOutputs,
   calculateStatAnyDepth,
+  adjustArcPath,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -2177,6 +2178,13 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               : `rgba(${color.join(',')})`
 
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
+            // If the arc crosses the antimeridian, adjust the coordinates to be continuous
+            const finalEndLong =
+              arc.endLongitude - arc.startLongitude >= 180
+                ? (arc.endLongitude -= 360)
+                : arc.endLongitude - arc.startLongitude <= -180
+                  ? (arc.endLongitude += 360)
+                  : arc.endLongitude
 
             return {
               type: 'Feature',
@@ -2190,10 +2198,10 @@ export const selectArcLayerGeoJsonFunc = createSelector(
               geometry: {
                 type: 'LineString',
                 coordinates: arc.path
-                  ? arc.path
+                  ? adjustArcPath(arc.path)
                   : [
                       [arc.startLongitude, arc.startLatitude],
-                      [arc.endLongitude, arc.endLatitude],
+                      [finalEndLong, arc.endLatitude],
                     ],
               },
             }
@@ -2282,6 +2290,13 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
               : `rgba(${color.join(',')})`
 
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
+            // If the arc crosses the antimeridian, adjust the coordinates to be continuous
+            const finalEndLong =
+              arc.endLongitude - arc.startLongitude >= 180
+                ? (arc.endLongitude -= 360)
+                : arc.endLongitude - arc.startLongitude <= -180
+                  ? (arc.endLongitude += 360)
+                  : arc.endLongitude
 
             return {
               type: 'Feature',
@@ -2296,7 +2311,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
                 type: 'LineString',
                 coordinates: [
                   [arc.startLongitude, arc.startLatitude],
-                  [arc.endLongitude, arc.endLatitude],
+                  [finalEndLong, arc.endLatitude],
                 ],
               },
             }
