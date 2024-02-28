@@ -1,8 +1,6 @@
 /* eslint-disable no-fallthrough */
 // Adapted from Mike Bostock's:
 // https://observablehq.com/@mbostock/localized-number-parsing
-import * as R from 'ramda'
-
 import { DEFAULT_LOCALE } from './constants'
 import { displayOptions, notationOptions, unitPlacements } from './enums'
 
@@ -126,8 +124,7 @@ class NumberFormat {
       notationDisplay = displayOptions.E_LOWER_PLUS,
     }
   ) {
-    const confirmedNum = R.is(Number, num) ? num : parseFloat(num)
-    const numString = confirmedNum.toLocaleString(this._locale, {
+    const numString = num.toLocaleString(this._locale, {
       minimumFractionDigits: trailingZeros ? precision : 0,
       maximumFractionDigits: precision,
       notation,
@@ -178,7 +175,17 @@ class NumberFormat {
     }
   ) {
     if (value == null) return fallbackValue
-    if (value === Infinity || value === -Infinity) return 'NaN'
+    if (value === Infinity || value === -Infinity || isNaN(value)) return 'NaN'
+
+    // Advocate good dev practices
+    if (typeof value === 'string') {
+      console.warn(
+        `Value "${value}" is expected to be a number, but a \`string\` was received with the following number formatting options:
+${JSON.stringify({ precision, trailingZeros, notation, notationDisplay, showZeroExponent, unit, unitPlacement }, null, 2)}
+The value will be parsed as a \`float\` number.`
+      )
+      value = +value
+    }
 
     // Fix `notationDisplay` in case of inconsistency in formatting hierarchy integration
     notationDisplay =
