@@ -31,6 +31,7 @@ import {
   getScaledValue,
   includesPath,
   filterMapFeature,
+  adjustArcPath,
 } from '../../../utils'
 
 export const Geos = memo(({ highlightLayerId, mapId }) => {
@@ -249,10 +250,11 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         R.mapObjIndexed((geoObj, geoJsonValue) => {
           const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
           const geoType = R.prop('type')(geoObj)
-          const filteredFeatures = R.find(
-            (feature) =>
-              R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-          )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+          const filteredFeature =
+            R.find(
+              (feature) =>
+                R.path(['properties', geoJsonProp])(feature) === geoJsonValue
+            )(R.pathOr({}, [geoType, 'features'])(selectedArcs)) ?? {}
 
           const filters = R.pipe(
             R.pathOr([], [geoObj.type, 'filters']),
@@ -267,7 +269,15 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             'solid',
             'lineBy'
           )(R.path([geoType, 'colorBy'], enabledArcs))
-          return R.mergeRight(filteredFeatures, {
+
+          const adjustedFeature = R.assocPath(
+            ['geometry', 'coordinates'],
+            adjustArcPath(
+              R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
+            )
+          )(filteredFeature)
+
+          return R.mergeRight(adjustedFeature, {
             properties: {
               cave_name: JSON.stringify([geoType, id]),
               color: color,
