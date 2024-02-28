@@ -205,7 +205,14 @@ const MapControls = ({ allowProjections, mapId }) => {
     () =>
       R.pipe(
         R.values,
-        R.chain(R.pipe(R.prop('data'), R.values, R.pluck('filters'))),
+        R.chain(
+          R.pipe(
+            R.prop('data'),
+            R.values,
+            R.reject(R.prop('group')), // Filters are not applied to grouped nodes
+            R.pluck('filters')
+          )
+        ),
         R.unnest,
         R.any(R.both(R.isNotNil, R.propOr(true, 'active')))
       )(legendData),
