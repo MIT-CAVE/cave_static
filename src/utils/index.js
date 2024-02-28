@@ -1,5 +1,5 @@
 import { quantileSorted } from 'd3-array'
-import { color, hsl } from 'd3-color'
+import { color, rgb } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
 import { Parser } from 'expr-eval'
 import PropTypes from 'prop-types'
@@ -479,15 +479,17 @@ export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   return rgbObjToRgbaArray(color(getColor(value)))
 })
 
-/**
- * This function calculates basic contrast.
- * For better accessibility compliance, there's an APCA algorithm-based solution in
- * https://github.com/Myndex/max-contrast. However, its GPLv3 license may not be
- * compatible with `cave_static`'s Apache License v2.0.
- * See: https://ruitina.com/apca-accessible-colour-contrast/
- */
-export const getContrastText = (bgColor) =>
-  hsl(color(bgColor)).l > 0.5 ? 'black' : 'white'
+export const getContrastText = (bgColor) => {
+  const background = rgb(bgColor)
+  // luminance is calculated using the formula provided in WCAG 2.0 guidelines,
+  // a specific weighted sum of the RGB values of the color
+  const luminance =
+    0.2126 * Math.pow(background.r / 255, 2.2) +
+    0.7152 * Math.pow(background.g / 255, 2.2) +
+    0.0722 * Math.pow(background.b / 255, 2.2)
+  // Using 0.179 threshold from the WCAG guidelines instead of 0.5 for better contrast
+  return luminance > 0.179 ? 'black' : 'white'
+}
 
 export const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
