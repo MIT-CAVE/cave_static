@@ -49,8 +49,6 @@ export const propVariant = {
   FIELD: 'field',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
-  LIST_CHECKBOX: 'listCheckbox',
-  LIST_TOGGLE: 'listToggle',
   NESTED: 'nested',
   PICTURE: 'picture',
   RADIO: 'radio',
