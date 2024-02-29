@@ -42,6 +42,7 @@ export const propVariant = {
   CHECKBOX: 'checkbox',
   COLUMN: 'column',
   COMBOBOX: 'combobox',
+  COMBOBOX_MULTI: 'comboboxMulti',
   DATE: 'date',
   DATETIME: 'datetime',
   DROPDOWN: 'dropdown',

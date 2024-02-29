@@ -571,11 +571,15 @@ const FilterModal = ({
       <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
         <Tab
           value="stats"
-          label={`Statistics${numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''}`}
+          label={`Statistics${
+            numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''
+          }`}
         />
         <Tab
           value="groups"
-          label={`Groups${numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''}`}
+          label={`Groups${
+            numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''
+          }`}
         />
       </Tabs>
       {filterTab === 'stats' ? (
