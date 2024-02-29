@@ -39,19 +39,25 @@ const ChartToolbar = ({ chartObj, index, path }) => {
           path,
           value: R.pipe(
             R.assoc('type', value),
-            // If we switch to globalOutput and an unsupported plot
-            // is selected, we change to a table
+            // If the new selected `vizType` doesn't support the current
+            // chart variant chosen, switch to a 'table' variant.
             R.when(
-              R.both(
-                R.always(R.equals('globalOutput')(value)),
-                R.pipe(
-                  R.prop('variant'),
-                  R.includes(R.__, [
-                    chartVariant.BAR,
-                    chartVariant.LINE,
-                    chartVariant.TABLE,
-                  ]),
-                  R.not
+              R.either(
+                R.both(
+                  R.always(value === 'groupedOutput'),
+                  R.propEq(chartVariant.OVERVIEW, 'variant')
+                ),
+                R.both(
+                  R.always(value === 'globalOutput'),
+                  R.pipe(
+                    R.prop('variant'),
+                    R.flip(R.includes)([
+                      chartVariant.BAR,
+                      chartVariant.LINE,
+                      chartVariant.TABLE,
+                    ]),
+                    R.not
+                  )
                 )
               ),
               R.assoc('variant', chartVariant.TABLE)
