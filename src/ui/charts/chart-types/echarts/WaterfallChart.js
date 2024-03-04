@@ -52,6 +52,7 @@ const getBarLayout = R.memoizeWith(
 
 const getYDomain = R.pipe(
   R.flatten,
+  R.reject(isNaN),
   getMinMax,
   // Cap the min value at 0 if it's greater than 1
   R.over(R.lensIndex(0), R.when(R.lte(1), R.always(0))),
