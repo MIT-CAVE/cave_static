@@ -50,6 +50,14 @@ const getBarLayout = R.memoizeWith(
   }
 )
 
+const getYDomain = R.pipe(
+  R.flatten,
+  getMinMax,
+  // Cap the min value at 0 if it's greater than 1
+  R.over(R.lensIndex(0), R.when(R.lte(1), R.always(0))),
+  R.apply(adjustMinMax) // Apply adjusted min/max values
+)
+
 const WaterfallChart = ({
   data,
   xAxisTitle,
@@ -177,11 +185,7 @@ const WaterfallChart = ({
         R.last
       )
     ),
-    R.flatten,
-    getMinMax,
-    // `R.apply` will convert the resulting `[<min>, <max>]`
-    // array to arguments for the `adjustMinMax` function
-    R.apply(adjustMinMax)
+    getYDomain
   )(series)
 
   const scaleFactor = getDecimalScaleFactor(yMax)
@@ -429,11 +433,7 @@ const StackedWaterfallChart = ({
         R.map(R.values)
       )
     ),
-    R.flatten,
-    getMinMax,
-    // `R.apply` will convert the resulting `[<min>, <max>]`
-    // array to arguments for the `adjustMinMax` function
-    R.apply(adjustMinMax)
+    getYDomain
   )(yValues)
 
   const getGraphSeries = (nodesData) => ({
