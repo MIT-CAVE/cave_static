@@ -2,7 +2,6 @@ import { quantileSorted } from 'd3-array'
 import { color, rgb } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
 import { Parser } from 'expr-eval'
-import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
@@ -122,22 +121,6 @@ export const eitherBoolOrNotNull = (value) =>
   typeof value === 'boolean' ? value : value != null
 
 export const getHeadOrValue = R.when(R.is(Array), R.head)
-
-/**
- * @deprecated
- * Adjust a given icon class
- * @function
- * @returns {function} A function that returns an icon that matches CAVE
- * standards.
- * @private
- */
-export const toIconInstance = (IconClass, className) => (
-  <IconClass className={className} size={36} />
-)
-toIconInstance.propTypes = {
-  className: PropTypes.string,
-  IconClass: PropTypes.node,
-}
 
 export const parseArray = (input) => {
   var s = input
