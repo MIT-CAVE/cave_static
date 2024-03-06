@@ -1,6 +1,6 @@
 import { Box, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -36,20 +36,27 @@ import {
 } from '../../../utils'
 
 const DashboardChart = ({ chartObj }) => {
+  const [formattedData, setFormattedData] = useState([])
+  const loading = useRef(true)
+
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectStatGroupings)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
-  const [formattedData, setFormattedData] = useState([])
+  useEffect(() => {
+    return () => {
+      loading.current = true
+    }
+  })
 
   useEffect(() => {
     const runWorkers = async () => {
-      const formattedData = await memoizedChartFunc(chartObj)
-      setFormattedData(formattedData)
+      const computedData = await memoizedChartFunc(chartObj)
+      setFormattedData(computedData)
+      loading.current = false
     }
-    setFormattedData([])
     runWorkers()
   }, [chartObj, memoizedChartFunc])
 
@@ -175,7 +182,9 @@ const DashboardChart = ({ chartObj }) => {
       )(statPaths)
     : getNumberFormat(stat)
 
-  if (R.isEmpty(formattedData))
+  // TODO: Use an empty `formattedData` to provide better
+  // feedback in the UI when the chart content is empty
+  if (loading.current || R.isEmpty(formattedData))
     return (
       <CircularProgress
         sx={{
