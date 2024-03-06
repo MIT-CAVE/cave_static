@@ -89,7 +89,6 @@ const WaterfallChart = ({
       : api.value(1)
 
     const index = params.dataIndex
-    const style = api.style()
 
     const startCoord = api.coord([
       index === 0 || isNaN(previousVal) ? index : index - 1,
@@ -115,7 +114,9 @@ const WaterfallChart = ({
             width: barWidth,
             height: startCoord[1] - endCoord[1],
           },
-          style,
+          style: {
+            fill: api.visual('color'),
+          },
         },
         // Dashed line connecting the bars
         {
@@ -126,11 +127,11 @@ const WaterfallChart = ({
             x2: endCoord[0] + xOffset,
             y2: startCoord[1],
           },
-          style: api.style({
+          style: {
             stroke: api.visual('color'),
             lineDash: [8, 4],
             lineWidth: 2,
-          }),
+          },
         },
       ],
     }
@@ -282,7 +283,6 @@ const StackedWaterfallChart = ({
 
   const renderItem = (params, api) => {
     const index = params.dataIndex
-    const style = api.style()
     const newValue = api.value(1)
 
     const direction = Math.sign(newValue) === -1 ? 'falling' : 'rising'
@@ -329,7 +329,9 @@ const StackedWaterfallChart = ({
         width: barWidth,
         height: endCoord[1] - startCoord[1],
       },
-      style,
+      style: {
+        fill: api.visual('color'),
+      },
     }
 
     // Dashed line connecting the bars
@@ -342,12 +344,12 @@ const StackedWaterfallChart = ({
           y2: lineStartCoord[1],
         },
         type: 'line',
-        style: api.style({
+        style: {
           stroke: '#ffffff',
           lineWidth: 2,
           lineDash: [8, 6],
           symbolSize: 120,
-        }),
+        },
         z2: 1,
       },
     ]
