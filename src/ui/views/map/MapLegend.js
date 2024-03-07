@@ -295,12 +295,11 @@ const MapLegendGroupRowToggleLayer = ({
     )(pageLayout)
     return mapIndices.length > 1
       ? R.pathOr(mapId, [mapId, 'name'])(mapData)
-      : `${R.cond([
-          [R.equals(0), R.always('Top-Left')],
-          [R.equals(1), R.always('Top-Right')],
-          [R.equals(2), R.always('Bottom-Left')],
-          [R.equals(3), R.always('Bottom-Right')],
-        ])(mapIndices[0])} Chart`
+      : `${
+          ['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][
+            mapIndices[0]
+          ]
+        } Chart`
   }, [mapData, mapId, pageLayout])
 
   return (

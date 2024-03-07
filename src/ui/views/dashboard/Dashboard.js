@@ -164,12 +164,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
             labelExtra={
               isMaximized
                 ? null
-                : `(${R.cond([
-                    [R.equals(0), R.always('Top-Left')],
-                    [R.equals(1), R.always('Top-Right')],
-                    [R.equals(2), R.always('Bottom-Left')],
-                    [R.equals(3), R.always('Bottom-Right')],
-                  ])(index)} Chart)`
+                : `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][index]} Chart)`
             }
             open={filterOpen}
             onSave={handleSaveFilters}
