@@ -1389,7 +1389,10 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
                       parseFloat
                     )(globalOutput),
                   ],
-                  { name: globalOutput.name || globalOutput.id }
+                  {
+                    id: globalOutput.id,
+                    name: globalOutput.name || globalOutput.id,
+                  }
                 )
               )
             )(val),
