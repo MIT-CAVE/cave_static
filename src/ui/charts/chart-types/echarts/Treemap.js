@@ -2,18 +2,16 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { findSubgroupLabels } from '../../../../utils'
+import { NumberFormat, findSubgroupLabels } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({ data, colors }) => {
+const Treemap = ({ data, colors, numberFormat }) => {
   const xLabels = R.pluck('name', data)
-
   const yValues = R.has('children', R.head(data))
     ? R.pluck('children', data)
     : R.pluck('value', data)
-
   const subGroupLabels = findSubgroupLabels(yValues)
 
   const assignColors = () => {
@@ -121,6 +119,7 @@ const Treemap = ({ data, colors }) => {
     },
     tooltip: {
       trigger: 'item',
+      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
     },
   }
 

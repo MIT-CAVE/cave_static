@@ -66,6 +66,8 @@ const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat }) => {
       data: series,
       type: 'heatmap',
       label: {
+        formatter: (params) =>
+          NumberFormat.format(params.data[2], numberFormat),
         show: true,
       },
       emphasis: {

@@ -79,9 +79,7 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
             },
             detail: {
               offsetCenter: [`${calculateOffset(acc)}%`, '103%'],
-              formatter: () => {
-                return `${NumberFormat.format(value, numberFormat)}`
-              },
+              formatter: NumberFormat.format(value, numberFormat),
             },
           },
         ],
