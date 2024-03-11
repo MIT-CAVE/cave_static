@@ -241,10 +241,6 @@ export const selectAssociatedData = createSelector(selectAssociated, (data) =>
 export const selectSettingsIconUrl = createSelector(selectSettings, (data) =>
   R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
 )
-export const selectDebug = createSelector(
-  selectSettings,
-  R.propOr(false, 'debug')
-)
 export const selectNumberFormat = createSelector(
   selectSettings,
   R.pipe(R.propOr({}, 'defaults'), R.pick(NUMBER_FORMAT_KEYS))
@@ -1143,7 +1139,6 @@ export const selectGroupedOutputValueBuffers = createSelector(
 export const selectMemoizedChartFunc = createSelector(
   [
     selectGroupedOutputsData,
-    selectDebug,
     selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
@@ -1152,7 +1147,6 @@ export const selectMemoizedChartFunc = createSelector(
   ],
   (
     groupedOutputs,
-    debug,
     statisticTypes,
     groupings,
     groupingIndicies,
@@ -1315,13 +1309,11 @@ export const selectMemoizedChartFunc = createSelector(
           // Formats and sorts merged stats
           const getFormattedData = R.map(
             R.pipe(
-              debug
-                ? R.identity
-                : recursiveMap(
-                    (val) => R.type(val) !== 'Object',
-                    R.identity,
-                    R.dissoc(undefined)
-                  ),
+              recursiveMap(
+                (val) => R.type(val) !== 'Object',
+                R.identity,
+                R.dissoc(undefined)
+              ),
               recursiveMapLayers,
               customSortByX(getOrderingAtIndex(0)),
               // The 0th layer is sorted above due to not being a child, so we start at 1
