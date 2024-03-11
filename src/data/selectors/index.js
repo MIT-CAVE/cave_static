@@ -1168,17 +1168,23 @@ export const selectMemoizedChartFunc = createSelector(
           [chartAggrFunc.MEAN]: R.mean,
         }
 
+        const createParentalPath = (path, category, currentLevel) => {
+          const parent = R.path(
+            [category, 'levels', currentLevel, 'parent'],
+            groupings
+          )
+          if (R.isNil(parent)) return R.append(currentLevel, path)
+          else
+            return createParentalPath(
+              R.append(currentLevel, path),
+              category,
+              parent
+            )
+        }
+
         // Given an index returns a string to group all similar indicies by
         const categoryFunc = R.curry((category, level, outputGroup) => {
-          const createParentalPath = (path, currentLevel) => {
-            const parent = R.path(
-              [category, 'levels', currentLevel, 'parent'],
-              groupings
-            )
-            if (R.isNil(parent)) return R.append(currentLevel, path)
-            else return createParentalPath(R.append(currentLevel, path), parent)
-          }
-          const parentalPath = createParentalPath([], level)
+          const parentalPath = createParentalPath([], category, level)
           const groupList = R.path([outputGroup, 'groupLists', category])(
             groupedOutputs
           )
@@ -1240,17 +1246,6 @@ export const selectMemoizedChartFunc = createSelector(
         )(actualStat)
 
         return Promise.all(calculatedStats).then((resolvedStats) => {
-          // Ordering for the X's in the chart
-          const getOrderingAtIndex = (idx) =>
-            R.pathOr(
-              [],
-              [
-                R.path(['groupingId', idx], obj),
-                'levels',
-                R.path(['groupingLevel', idx], obj),
-                'ordering',
-              ]
-            )(groupings)
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
           const statValues = R.map(
@@ -1291,14 +1286,27 @@ export const selectMemoizedChartFunc = createSelector(
               : R.is(Array, val)
                 ? val
                 : [val]
-
+          // Ordering for the X's in the chart
+          const getOrderingsAtIndex = (idx) => {
+            const parentalPath = createParentalPath(
+              [],
+              R.path(['groupingId', idx], obj),
+              R.path(['groupingLevel', idx], obj)
+            )
+            return R.map((level) =>
+              R.pathOr(
+                [],
+                [R.path(['groupingId', idx], obj), 'levels', level, 'ordering']
+              )(groupings)
+            )(parentalPath)
+          }
           const nLevelOrder = R.curry((depth, chartItem) => {
             return R.has('children', chartItem)
               ? R.assoc(
                   'children',
                   R.map(nLevelOrder(depth + 1))(
                     customSortByX(
-                      getOrderingAtIndex(depth),
+                      getOrderingsAtIndex(depth),
                       R.prop('children', chartItem)
                     )
                   ),
@@ -1315,7 +1323,7 @@ export const selectMemoizedChartFunc = createSelector(
                 R.dissoc(undefined)
               ),
               recursiveMapLayers,
-              customSortByX(getOrderingAtIndex(0)),
+              customSortByX(getOrderingsAtIndex(0)),
               // The 0th layer is sorted above due to not being a child, so we start at 1
               R.map(nLevelOrder(1))
             )

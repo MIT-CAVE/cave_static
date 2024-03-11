@@ -727,28 +727,27 @@ export const capitalize = R.when(
   R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])
 )
 
-export const customSortByX = R.curry((ordering, data) => {
-  // Sort by the predefined `ordering` list
-  const sortByPredef = R.sortBy(
-    R.pipe(
-      R.prop('name'),
-      R.split(' \u279D '),
-      R.find(R.includes(R.__, ordering)),
-      R.indexOf(R.__, ordering)
-    )
-  )
-  // Sort by alphabetical order (ascending)
-  const sortByAlpha = R.sortBy(R.prop('name'))
-  // Separate the items that appear in `ordering` from the rest
-  const sublists = R.partition(
-    R.pipe(
-      R.prop('name'),
-      R.split(' \u279D '),
-      R.any(R.includes(R.__, ordering))
-    )
+export const customSortByX = R.curry((orderings, data) => {
+  const itemDepth = R.pipe(
+    R.head,
+    R.prop('name'),
+    R.split(' \u279D '),
+    R.length
   )(data)
-  return R.converge(R.concat, [
-    R.pipe(R.head, sortByPredef),
-    R.pipe(R.last, sortByAlpha),
-  ])(sublists)
+  // Sort by the predefined `ordering` list
+  const sortByPredef = (depth) =>
+    R.ascend(
+      R.pipe(
+        R.prop('name'),
+        R.split(' \u279D '),
+        R.prop(depth),
+        R.indexOf(R.__, orderings[depth] ?? []),
+        // If not found in `ordering`, move to the end
+        R.when(R.equals(-1), R.always(Infinity))
+      )
+    )
+  return R.sortWith([
+    ...R.reverse(R.map(sortByPredef, R.range(0, itemDepth))),
+    R.ascend(R.prop('name')),
+  ])(data)
 })
