@@ -1168,17 +1168,32 @@ export const selectMemoizedChartFunc = createSelector(
           [chartAggrFunc.MEAN]: R.mean,
         }
 
-        const createParentalPath = (path, category, currentLevel) => {
+        const createParentalPath = (
+          path,
+          category,
+          currentLevel,
+          onlyOrdering = false
+        ) => {
           const parent = R.path(
             [category, 'levels', currentLevel, 'parent'],
             groupings
           )
-          if (R.isNil(parent)) return R.append(currentLevel, path)
+          if (
+            R.isNil(parent) ||
+            (onlyOrdering &&
+              !R.pathOr(
+                true,
+                [category, 'levels', currentLevel, 'orderWithParent'],
+                groupings
+              ))
+          )
+            return R.append(currentLevel, path)
           else
             return createParentalPath(
               R.append(currentLevel, path),
               category,
-              parent
+              parent,
+              onlyOrdering
             )
         }
 
@@ -1291,7 +1306,8 @@ export const selectMemoizedChartFunc = createSelector(
             const parentalPath = createParentalPath(
               [],
               R.path(['groupingId', idx], obj),
-              R.path(['groupingLevel', idx], obj)
+              R.path(['groupingLevel', idx], obj),
+              true
             )
             return R.map((level) =>
               R.pathOr(
