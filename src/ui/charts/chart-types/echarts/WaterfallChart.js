@@ -404,7 +404,7 @@ const StackedWaterfallChart = ({
   )(yValues)
 
   const [yMin, yMax] = R.pipe(
-    R.when(
+    R.ifElse(
       (val) => R.type(R.head(R.head(val))) === 'Object',
       R.pipe(
         R.mapAccum(
@@ -434,7 +434,8 @@ const StackedWaterfallChart = ({
         R.last,
         R.project(['max', 'min']),
         R.map(R.values)
-      )
+      ),
+      R.always(R.chain(R.props(['startValue', 'endValue']))(categoryBounds))
     ),
     getYDomain
   )(yValues)

@@ -538,10 +538,10 @@ const fromZeroToOne = (x) => x >= 0 && x < 1
  * @returns {number[]} An array containing the new estimated bounds.
  * @private
  */
-export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.2) =>
+export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.05) =>
   fromZeroToOne(Math.abs(valueMin)) && fromZeroToOne(Math.abs(valueMax))
     ? [
-        valueMin > 0 ? valueMin * (1 - adjustPct) : 0,
+        valueMin > 0 ? 0 : valueMin * (1 + adjustPct),
         valueMax * (1 + adjustPct),
       ]
     : [
