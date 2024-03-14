@@ -478,6 +478,10 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
         }}
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
       />
     </Source>,
     <Source
@@ -505,6 +509,10 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
           'line-width': ['get', 'size'],
           'line-dasharray': LINE_TYPES['dashed'],
         }}
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
       />
     </Source>,
     <Source
@@ -531,6 +539,10 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
           'line-dasharray': LINE_TYPES['dotted'],
+        }}
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
         }}
       />
     </Source>,
