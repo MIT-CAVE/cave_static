@@ -33,16 +33,14 @@ export const includesPath = (paths, path) => {
 // given a path of arc points adjust them to ensure proper wrapping around the anti-meridian
 export const adjustArcPath = (path) => {
   const idicies = R.range(1, path.length)
-
+  let lastCoord = path[0][0]
   const adjustedCoords = R.map((index) => {
     const x = path[index][0]
-    const prevX = path[index - 1][0]
 
-    const dx = x - prevX
+    const dx = x - lastCoord
 
-    const adjustedX = dx >= 180 ? x - 360 : dx <= -180 ? x + 360 : x
-
-    return [adjustedX, path[index][1]]
+    lastCoord = dx >= 180 ? x - 360 : dx <= -180 ? x + 360 : x
+    return [lastCoord, path[index][1]]
   })(idicies)
 
   return R.prepend(path[0], adjustedCoords)
