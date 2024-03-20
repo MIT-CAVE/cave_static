@@ -1,6 +1,6 @@
 import { Box, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -37,7 +37,7 @@ import {
 
 const DashboardChart = ({ chartObj }) => {
   const [formattedData, setFormattedData] = useState([])
-  const loading = useRef(true)
+  const [loading, setLoading] = useState(true)
 
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -45,17 +45,24 @@ const DashboardChart = ({ chartObj }) => {
   const categories = useSelector(selectStatGroupings)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
+  const chartType = R.propOr('', 'variant', chartObj)
+
   useEffect(() => {
-    return () => {
-      loading.current = true
-    }
-  })
+    setLoading(false)
+  }, [formattedData])
+
+  // for some reason useLayoutEffect doesn't set the state before the chart is rendered
+  // so we use useMemo to trigger the loading state
+  useMemo(() => {
+    setLoading(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartType])
 
   useEffect(() => {
     const runWorkers = async () => {
-      const computedData = await memoizedChartFunc(chartObj)
-      setFormattedData(computedData)
-      loading.current = false
+      memoizedChartFunc(chartObj).then((computedData) => {
+        setFormattedData(computedData)
+      })
     }
     runWorkers()
   }, [chartObj, memoizedChartFunc])
@@ -184,7 +191,7 @@ const DashboardChart = ({ chartObj }) => {
 
   // TODO: Use an empty `formattedData` to provide better
   // feedback in the UI when the chart content is empty
-  if (loading.current || R.isEmpty(formattedData))
+  if (R.isEmpty(formattedData) || loading)
     return (
       <CircularProgress
         sx={{
