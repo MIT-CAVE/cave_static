@@ -2,17 +2,17 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { NumberFormat, findSubgroupLabels } from '../../../../utils'
+import { NumberFormat } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 
 // import { exampleNestedData } from './testData'
 
 const Sunburst = ({ data, colors, numberFormat }) => {
-  const xLabels = R.pluck('name', data)
-  const yValues = R.has('children', R.head(data))
-    ? R.pluck('children', data)
-    : R.pluck('value', data)
-  const subGroupLabels = findSubgroupLabels(yValues)
+  const findNames = (data) =>
+    R.has('children', R.head(data))
+      ? R.map((d) => R.prepend(R.prop('name', d), findNames(d.children)), data)
+      : R.pluck('name', data)
+  const xLabels = R.pipe(findNames, R.flatten)(data)
 
   const assignColors = () => {
     let availableColors = CHART_PALETTE
@@ -25,27 +25,30 @@ const Sunburst = ({ data, colors, numberFormat }) => {
         return [val, randomChoice]
       }),
       R.fromPairs
-    )(R.concat(xLabels, subGroupLabels))
+    )(xLabels)
     return assignments
   }
 
   const assignments = R.mergeLeft(colors, assignColors())
 
-  const normalData = R.isEmpty(subGroupLabels)
-    ? R.map((obj) =>
-        R.pipe(R.assocPath(['itemStyle', 'color'], assignments[obj.name]))(obj)
-      )(data)
-    : R.map((d) => ({
-        name: d.name,
-        itemStyle: { color: assignments[d.name] },
-        visualMap: false,
-        children: R.map((child) => ({
-          value: child.value,
-          name: child.name,
-          itemStyle: { color: assignments[child.name] },
+  const processDeepData = (item) =>
+    !R.has('children', R.head(item))
+      ? R.map((obj) =>
+          R.pipe(
+            R.assocPath(['itemStyle', 'color'], assignments[obj.name]),
+            R.assocPath(['label', 'rotate'], 0),
+            R.assoc('visualMap', false)
+          )(obj)
+        )(item)
+      : R.map((d) => ({
+          name: d.name,
+          itemStyle: { color: assignments[d.name] },
           visualMap: false,
-        }))(d.children),
-      }))(data)
+          label: { rotate: 0 },
+          children: processDeepData(d.children),
+        }))(item)
+
+  const normalData = processDeepData(data)
 
   const options = {
     // visualMap: subGrouped
