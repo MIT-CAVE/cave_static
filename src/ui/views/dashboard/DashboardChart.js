@@ -33,6 +33,7 @@ import {
   getSubLabelFn,
   getColoringFn,
   getGroupLabelFn,
+  forceArray,
 } from '../../../utils'
 
 const DashboardChart = ({ chartObj }) => {
@@ -124,7 +125,11 @@ const DashboardChart = ({ chartObj }) => {
 
   const labels = { xAxisTitle, yAxisTitle }
 
-  const statPaths = R.zip(chartObj.groupedOutputDataId)(chartObj.statId)
+  const statPaths = R.pipe(
+    R.props(['groupedOutputDataId', 'statId']),
+    R.map(forceArray),
+    R.apply(R.zip)
+  )(chartObj)
 
   const multiStatLabelProps = R.map((item) => {
     const stat = R.pathOr({}, item)(statisticTypes)

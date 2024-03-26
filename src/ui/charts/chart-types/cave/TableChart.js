@@ -35,7 +35,7 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
     ...(type === 'number' && {
       headerAlign: 'center',
       align: 'center',
-      valueFormatter: ({ value, field }) =>
+      valueFormatter: (value) =>
         NumberFormat.format(value, numberFormat[field]),
     }),
   }))
