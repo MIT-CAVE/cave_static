@@ -48,7 +48,6 @@ const styles = {
     flexDirection: 'column',
     height: '100%',
     my: 2,
-    px: 2,
     textAlign: 'center',
     overflow: 'auto',
   },
@@ -373,10 +372,10 @@ const GridFilter = ({
         field: 'logic',
         headerName: 'Logic',
         headerAlign: 'center',
+        display: 'flex',
         align: 'center',
         width: 90,
         editable: true,
-        sortable: false,
         type: 'singleSelect',
         valueOptions: ['and'], // FIXME: ['or', 'and'],
         getOptionLabel: (option) => option.toUpperCase(),
@@ -388,9 +387,9 @@ const GridFilter = ({
         field: 'source',
         headerName: sourceHeaderName,
         type: 'singleSelect',
-        width: 180,
+        display: 'flex',
+        flex: 1,
         editable: true,
-        sortable: false,
         valueOptions: sourceValueOpts,
         renderCell: ({ formattedValue }) => (
           <OverflowText text={formattedValue} />
@@ -407,11 +406,11 @@ const GridFilter = ({
         field: 'relation',
         headerName: 'Relation',
         headerAlign: 'center',
+        display: 'flex',
         align: 'center',
         width: 90,
         type: 'singleSelect',
         editable: true,
-        sortable: false,
         valueOptions: ({ row, id }) => {
           const rowAlt = apiRef.current.getRow(id)
           const valueAlt = rowAlt.source
@@ -426,10 +425,10 @@ const GridFilter = ({
         field: 'value',
         headerName: 'Value',
         headerAlign: 'right',
+        display: 'flex',
         align: 'right',
-        width: 140,
+        width: 150,
         editable: true,
-        sortable: false,
         valueParser: (value, params) => {
           const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
           const valueType = sourceValueTypes[editRow.source]
@@ -514,10 +513,10 @@ const GridFilter = ({
         field: 'actions',
         headerName: 'Actions',
         headerAlign: 'right',
+        display: 'flex',
         align: 'right',
         width: 100,
         type: 'actions',
-        sortable: false,
         getActions: ({ id }) =>
           R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
             ? [
@@ -582,6 +581,8 @@ const GridFilter = ({
           hideFooter
           checkboxSelection
           disableColumnMenu
+          disableColumnResize
+          disableColumnSorting
           disableRowSelectionOnClick
           onRowEditStop={handleRowEditStop}
           onCellDoubleClick={handleCellDoubleClick}
