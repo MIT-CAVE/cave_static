@@ -1,6 +1,22 @@
-import { Box, ButtonGroup, CardContent } from '@mui/material'
+import {
+  Box,
+  ButtonGroup,
+  CardContent,
+  IconButton,
+  ToggleButton,
+  Slider,
+} from '@mui/material'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo } from 'react'
+import {
+  MdOutlinePlayArrow,
+  MdArrowBack,
+  MdStop,
+  MdArrowForward,
+  MdFastForward,
+  MdFastRewind,
+  MdOutlineRefresh,
+} from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import TimeButtons from './TimeButtons'
@@ -15,6 +31,7 @@ import {
 import { draggableId } from '../../../utils/enums'
 import Draggable from '../../compound/Draggable'
 import GlobalOutputsPad from '../../compound/GlobalOutputsPad'
+import Select from '../../compound/Select'
 
 const styles = {
   session: {
@@ -27,13 +44,20 @@ const styles = {
     overflowWrap: 'break-word',
   },
   time: {
-    width: '160px',
+    width: '500px',
     pr: 3,
-    bgcolor: 'background.paper',
+    bgcolor: 'white',
     button: {
       width: '42px',
     },
-    height: '42px',
+    height: '150px',
+  },
+  icon: {
+    color: 'black',
+  },
+  buttons: {
+    display: 'flex',
+    alignItems: 'center',
   },
 }
 
@@ -105,7 +129,44 @@ const Draggables = () => {
           sx={styles.time}
           component={Box}
         >
-          <TimeButtons />
+          <Slider></Slider>
+          <div style={styles.buttons}>
+            <TimeButtons />
+            <IconButton sx={styles.icon}>
+              <MdOutlinePlayArrow />
+            </IconButton>
+            <div>
+              <IconButton sx={styles.icon}>
+                <MdFastRewind />
+              </IconButton>
+              <IconButton sx={styles.icon}>
+                <MdArrowBack />
+              </IconButton>
+              <IconButton sx={styles.icon}>
+                <MdStop />
+              </IconButton>
+              <IconButton sx={styles.icon}>
+                <MdArrowForward />
+              </IconButton>
+              <IconButton sx={styles.icon}>
+                <MdFastForward />
+              </IconButton>
+            </div>
+            <ToggleButton sx={styles.icon}>
+              <MdOutlineRefresh />
+            </ToggleButton>
+            <Select
+              sx={styles.icon}
+              optionsList={[
+                { value: '0.5', label: '0.5x', iconName: '' },
+                { value: '0.75', label: '0.75x', iconName: '' },
+                { value: '1', label: 'Normal', iconName: '' },
+                { value: '1.25', label: '1.25x', iconName: '' },
+                { value: '1.5', label: '1.5x', iconName: '' },
+                { value: '2', label: '2x', iconName: '' },
+              ]}
+            />
+          </div>
         </Draggable>
       )}
       {R.path([draggableId.SESSION, 'open'])(draggables) && (
