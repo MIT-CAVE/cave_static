@@ -749,3 +749,22 @@ export const customSortByX = R.curry((orderings, data) => {
     R.ascend(R.prop('name')),
   ])(data)
 })
+
+export const cleanUndefinedStats = (chartObj) => {
+  const statIds = R.pathOr([], ['statId'], chartObj)
+  if (R.is(String, statIds)) return chartObj
+  const transformations = {
+    statId: R.dropLast(1),
+    groupedOutputDataId: R.dropLast(1),
+  }
+  const reduced_chart = R.isNil(R.last(statIds))
+    ? R.evolve(transformations, chartObj)
+    : chartObj
+
+  return R.any(R.isNil)(reduced_chart['statId'])
+    ? R.pipe(
+        R.assoc('statId', []),
+        R.assoc('groupedOutputDataId', [])
+      )(reduced_chart)
+    : reduced_chart
+}
