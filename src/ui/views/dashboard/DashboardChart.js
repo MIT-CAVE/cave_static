@@ -154,25 +154,24 @@ const DashboardChart = ({ chartObj }) => {
           )}`
         : ''
     }`
-
-  const labelProps = R.pipe(
-    R.when(
-      R.always(subGrouped),
-      R.prepend({
-        type: 'string',
-        key: 'level',
-        label: getGroupingLabel(1),
-      })
-    ),
-    R.when(
-      R.always(cleanedChartObj.groupingId != null),
-      R.prepend({
-        type: 'string',
-        key: 'grouping',
-        label: getGroupingLabel(0),
-      })
-    )
-  )(multiStatLabelProps)
+  const groupingRange = R.pipe(
+    R.prop('groupingId'),
+    R.length,
+    R.range(0),
+    R.reverse
+  )(cleanedChartObj)
+  const labelProps = R.reduce(
+    (acc, value) =>
+      R.prepend(
+        {
+          type: 'string',
+          key: `grouping${value}`,
+          label: getGroupingLabel(value),
+        },
+        acc
+      ),
+    multiStatLabelProps
+  )(groupingRange)
 
   // eslint-disable-next-line no-unused-vars
   const getNumberFormat = R.pipe(
@@ -196,7 +195,6 @@ const DashboardChart = ({ chartObj }) => {
         {}
       )(statPaths)
     : getNumberFormat(stat)
-
   // TODO: Use an empty `formattedData` to provide better
   // feedback in the UI when the chart content is empty
   if (R.isEmpty(formattedData) || loading)
