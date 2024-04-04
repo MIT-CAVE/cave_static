@@ -106,6 +106,11 @@ export const getColoringFn = R.curry((data, item, subItem) =>
   R.pathOr({}, [item, 'levels', subItem, 'coloring'])(data)
 )
 
+export const findColoring = (name, colors) => {
+  const smallestName = R.pipe(R.split(' \u279D '), R.head)(name)
+  return R.prop(smallestName, colors)
+}
+
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
   if (!namesSet.has(name)) return name

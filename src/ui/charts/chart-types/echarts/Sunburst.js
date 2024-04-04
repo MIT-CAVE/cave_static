@@ -2,7 +2,7 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { NumberFormat } from '../../../../utils'
+import { NumberFormat, findColoring } from '../../../../utils'
 import { CHART_PALETTE } from '../../../../utils/constants'
 
 // import { exampleNestedData } from './testData'
@@ -29,20 +29,25 @@ const Sunburst = ({ data, colors, numberFormat }) => {
     return assignments
   }
 
-  const assignments = R.mergeLeft(colors, assignColors())
+  const assignments = assignColors()
 
   const processDeepData = (item) =>
     !R.has('children', R.head(item))
       ? R.map((obj) =>
           R.pipe(
-            R.assocPath(['itemStyle', 'color'], assignments[obj.name]),
+            R.assocPath(
+              ['itemStyle', 'color'],
+              findColoring(obj.name, colors) ?? assignments[obj.name]
+            ),
             R.assocPath(['label', 'rotate'], 0),
             R.assoc('visualMap', false)
           )(obj)
         )(item)
       : R.map((d) => ({
           name: d.name,
-          itemStyle: { color: assignments[d.name] },
+          itemStyle: {
+            color: findColoring(d.name, colors) ?? assignments[d.name],
+          },
           visualMap: false,
           label: { rotate: 0 },
           children: processDeepData(d.children),

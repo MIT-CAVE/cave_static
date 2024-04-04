@@ -78,27 +78,23 @@ const DashboardChart = ({ chartObj }) => {
           getColoringFn(
             categories,
             R.path(['groupingId', 1], cleanedChartObj),
-            R.path(['groupingLevel', 1]),
-            cleanedChartObj
+            R.path(['groupingLevel', 1], cleanedChartObj)
           ),
           getColoringFn(
             categories,
             R.path(['groupingId', 0], cleanedChartObj),
-            R.path(['groupingLevel', 0]),
-            cleanedChartObj
+            R.path(['groupingLevel', 0], cleanedChartObj)
           )
         )
       : getColoringFn(
           categories,
           R.path(['groupingId', 1], cleanedChartObj),
-          R.path(['groupingLevel', 1]),
-          cleanedChartObj
+          R.path(['groupingLevel', 1], cleanedChartObj)
         )
     : getColoringFn(
         categories,
         R.path(['groupingId', 0], cleanedChartObj),
-        R.path(['groupingLevel', 0]),
-        cleanedChartObj
+        R.path(['groupingLevel', 0], cleanedChartObj)
       )
 
   const xAxisTitle = cleanedChartObj.groupingId

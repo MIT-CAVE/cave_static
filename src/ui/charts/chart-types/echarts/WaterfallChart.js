@@ -10,6 +10,7 @@ import {
   getDecimalScaleLabel,
   getMinMax,
   findSubgroupLabels,
+  findColoring,
 } from '../../../../utils'
 
 /**
@@ -155,7 +156,7 @@ const WaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
-          color: R.prop(R.head(d).name, colors),
+          color: findColoring(R.head(d).name, colors),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -170,8 +171,8 @@ const WaterfallChart = ({
     (d) => [
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
-        color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        color: R.addIndex(R.map)(
+          (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
         )(xLabels),
       }),
     ]
@@ -381,7 +382,7 @@ const StackedWaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
-          color: R.prop(R.head(d).name, colors),
+          color: findColoring(R.head(d).name, colors),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -396,8 +397,8 @@ const StackedWaterfallChart = ({
     (d) => [
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
-        color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        color: R.addIndex(R.map)(
+          (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
         )(xLabels),
       }),
     ]
