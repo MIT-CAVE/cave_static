@@ -69,33 +69,30 @@ const DashboardChart = ({ chartObj }) => {
     runWorkers()
   }, [cleanedChartObj, memoizedChartFunc])
 
-  const subGrouped = R.hasPath(['groupingLevel', 1])(cleanedChartObj)
+  const groupingRange = R.pipe(
+    R.prop('groupingId'),
+    R.length,
+    R.range(0),
+    R.reverse
+  )(cleanedChartObj)
 
-  //TODO: Generalize this for n-level grouping
-  const colors = subGrouped
-    ? cleanedChartObj.variant === chartVariant.SUNBURST
-      ? R.mergeLeft(
-          getColoringFn(
-            categories,
-            R.path(['groupingId', 1], cleanedChartObj),
-            R.path(['groupingLevel', 1], cleanedChartObj)
-          ),
-          getColoringFn(
-            categories,
-            R.path(['groupingId', 0], cleanedChartObj),
-            R.path(['groupingLevel', 0], cleanedChartObj)
-          )
+  const colors =
+    cleanedChartObj.variant === chartVariant.SUNBURST ||
+    cleanedChartObj.variant === chartVariant.TREEMAP
+      ? R.mergeAll(
+          R.map((idx) =>
+            getColoringFn(
+              categories,
+              R.path(['groupingId', idx], cleanedChartObj),
+              R.path(['groupingLevel', idx], cleanedChartObj)
+            )
+          )(groupingRange)
         )
       : getColoringFn(
           categories,
-          R.path(['groupingId', 1], cleanedChartObj),
-          R.path(['groupingLevel', 1], cleanedChartObj)
+          R.path(['groupingId', R.head(groupingRange)], cleanedChartObj),
+          R.path(['groupingLevel', R.head(groupingRange)], cleanedChartObj)
         )
-    : getColoringFn(
-        categories,
-        R.path(['groupingId', 0], cleanedChartObj),
-        R.path(['groupingLevel', 0], cleanedChartObj)
-      )
 
   const xAxisTitle = cleanedChartObj.groupingId
     ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
@@ -150,12 +147,7 @@ const DashboardChart = ({ chartObj }) => {
           )}`
         : ''
     }`
-  const groupingRange = R.pipe(
-    R.prop('groupingId'),
-    R.length,
-    R.range(0),
-    R.reverse
-  )(cleanedChartObj)
+
   const labelProps = R.reduce(
     (acc, value) =>
       R.prepend(
