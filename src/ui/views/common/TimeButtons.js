@@ -75,8 +75,10 @@ const TimeButtons = () => {
           valueLabelDisplay="on"
           step={1}
           min={1}
+          // max={timeLength + 1}
           value={currentTime + 1}
           onChange={(e, newValue) => dispatch(timeSelection(newValue))}
+          sx={{ marginRight: '8px', marginLeft: '8px' }}
         />
       </Box>
       <Box
@@ -203,7 +205,7 @@ const TimeButtons = () => {
         </Box>
         <Box sx={{ display: 'flex', height: '40px' }}>
           <ToggleButton>
-            <MdOutlineCached />
+            <MdOutlineCached fontSize="20px" />
           </ToggleButton>
           <Select
             optionsList={[
