@@ -56,13 +56,13 @@ const TimeButtons = () => {
         // display: timeLength === 0 ? 'none' : 'flex',
         display: 'flex',
         flexDirection: 'column',
+        bgcolor: 'background.paper',
       }}
     >
       <Box
         sx={{
           display: 'flex',
           width: '100%',
-          bgcolor: 'background.paper',
           borderBottom: 0,
           paddingRight: 100,
           height: '50px',
@@ -75,10 +75,10 @@ const TimeButtons = () => {
           valueLabelDisplay="on"
           step={1}
           min={1}
-          // max={timeLength + 1}
+          max={timeLength}
           value={currentTime + 1}
           onChange={(e, newValue) => dispatch(timeSelection(newValue))}
-          sx={{ marginRight: '8px', marginLeft: '8px' }}
+          sx={{ marginRight: '12px', marginLeft: '12px' }}
         />
       </Box>
       <Box
@@ -86,10 +86,10 @@ const TimeButtons = () => {
           display: 'flex',
           justifyContent: 'space-between',
           width: '100%',
-          bgcolor: 'background.paper',
           borderTop: 0,
           paddingTop: 0.5,
           paddingBottom: 0.5,
+          paddingLeft: '4px',
         }}
         aria-label="contained button group"
         variant="contained"
@@ -203,7 +203,7 @@ const TimeButtons = () => {
             <MdKeyboardDoubleArrowRight />
           </TooltipButton>
         </Box>
-        <Box sx={{ display: 'flex', height: '40px' }}>
+        <Box sx={{ display: 'flex', height: '40px', paddingRight: '14px' }}>
           <ToggleButton>
             <MdOutlineCached fontSize="20px" />
           </ToggleButton>
