@@ -265,7 +265,7 @@ const MapControls = ({ allowProjections, mapId }) => {
       >
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
-          <TimeButtons />
+          <TimeButtons compact />
 
           {/* Map legend */}
           <ButtonGroup

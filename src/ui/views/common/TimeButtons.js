@@ -35,7 +35,7 @@ import { updateAnimation } from '../../../data/utilities/timeSlice'
 import Select from '../../compound/Select'
 import TooltipButton from '../../compound/TooltipButton'
 
-const TimeButtons = () => {
+const TimeControlFull = () => {
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
@@ -70,6 +70,9 @@ const TimeButtons = () => {
         }}
       >
         <Slider
+          onMouseDown={(event) => {
+            event.stopPropagation()
+          }}
           aria-label="time slider"
           defaultValue={1}
           valueLabelDisplay="on"
@@ -204,23 +207,138 @@ const TimeButtons = () => {
           </TooltipButton>
         </Box>
         <Box sx={{ display: 'flex', height: '40px', paddingRight: '14px' }}>
-          <ToggleButton>
+          <ToggleButton size="small">
             <MdOutlineCached fontSize="20px" />
           </ToggleButton>
-          <Select
-            optionsList={[
-              { value: '0.5', label: '0.5x', iconName: '' },
-              { value: '0.75', label: '0.75x', iconName: '' },
-              { value: '1', label: 'Normal', iconName: '' },
-              { value: '1.25', label: '1.25x', iconName: '' },
-              { value: '1.5', label: '1.5x', iconName: '' },
-              { value: '2', label: '2x', iconName: '' },
-            ]}
-          />
+          <FormControl size="small">
+            <Select
+              optionsList={[
+                { value: '0.5', label: '0.5x', iconName: '' },
+                { value: '0.75', label: '0.75x', iconName: '' },
+                { value: '1', label: 'Normal', iconName: '' },
+                { value: '1.25', label: '1.25x', iconName: '' },
+                { value: '1.5', label: '1.5x', iconName: '' },
+                { value: '2', label: '2x', iconName: '' },
+              ]}
+            />
+          </FormControl>
         </Box>
       </Box>
     </ButtonGroup>
   )
 }
 
-export default TimeButtons
+const TimeControlCompact = () => {
+  const currentTime = useSelector(selectCurrentTime)
+  const timeUnits = useSelector(selectCurrentTimeUnits)
+  const timeLength = useSelector(selectCurrentTimeLength)
+  const animationInterval = useSelector(selectAnimationInterval)
+  const [open, setOpen] = useState(false)
+
+  const animation = R.is(Number, animationInterval)
+
+  const advanceAnimation = () => {
+    dispatch(timeAdvance(timeLength))
+  }
+
+  const dispatch = useDispatch()
+
+  return (
+    <ButtonGroup
+      sx={{
+        // display: timeLength === 0 ? 'none' : '',
+        width: '100%',
+        bgcolor: 'background.paper',
+      }}
+      aria-label="contained button group"
+      variant="contained"
+    >
+      <TooltipButton
+        title={`Reduce time by one ${timeUnits}`}
+        placement="left-end"
+        disabled={currentTime === 0}
+        onClick={() => {
+          const newTime = currentTime - 1
+          if (newTime >= 0) {
+            dispatch(timeSelection(newTime))
+          }
+        }}
+      >
+        <MdNavigateBefore />
+      </TooltipButton>
+      {animation ? (
+        <TooltipButton
+          title="Pause animation"
+          placement="top"
+          onClick={() => {
+            clearInterval(animationInterval)
+            dispatch(updateAnimation(false))
+          }}
+        >
+          <MdPause />
+        </TooltipButton>
+      ) : (
+        <TooltipButton
+          title="Play animation"
+          placement="top"
+          onClick={() => {
+            const animationInterval = setInterval(advanceAnimation, 1000)
+            dispatch(updateAnimation(animationInterval))
+          }}
+        >
+          <MdPlayArrow />
+        </TooltipButton>
+      )}
+      <TooltipButton
+        title={`Set current ${timeUnits}`}
+        placement="top"
+        onClick={() => {
+          setOpen(true)
+        }}
+      >
+        {currentTime + 1}
+      </TooltipButton>
+      <Dialog
+        open={open}
+        onClose={() => {
+          setOpen(false)
+        }}
+      >
+        <DialogTitle>{`Set ${timeUnits}`}</DialogTitle>
+        <DialogContent>
+          <Box component="form" sx={{ display: 'flex', flexWrap: 'wrap' }}>
+            <FormControl sx={{ m: 1, minWidth: 120 }}>
+              <InputLabel id="time-select-label">{`Choose a ${timeUnits}`}</InputLabel>
+              <Select
+                value={currentTime}
+                onChange={(event) => {
+                  dispatch(timeSelection(event.target.value))
+                  setOpen(false)
+                }}
+              >
+                {R.map((time) => (
+                  <MenuItem key={time} value={time - 1}>
+                    {time}
+                  </MenuItem>
+                ))(R.range(1, timeLength + 1))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+      </Dialog>
+      <TooltipButton
+        title={`Advance time by one ${timeUnits}`}
+        placement="top"
+        disabled={currentTime === timeLength - 1}
+        onClick={advanceAnimation}
+      >
+        <MdNavigateNext />
+      </TooltipButton>
+    </ButtonGroup>
+  )
+}
+
+const TimeControl = ({ compact }) =>
+  compact ? <TimeControlCompact /> : <TimeControlFull />
+
+export default TimeControl
