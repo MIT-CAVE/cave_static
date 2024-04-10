@@ -67,6 +67,7 @@ import {
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getChartItemColor,
+  findColoring,
 } from '../../../../utils'
 
 // Register the required components
@@ -223,8 +224,8 @@ const EchartsPlot = ({
   const visualMap =
     chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
 
-  const color = R.addIndex(R.map)((item, idx) =>
-    R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+  const color = R.addIndex(R.map)(
+    (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
   )(xLabels)
 
   const series = R.ifElse(
@@ -237,7 +238,7 @@ const EchartsPlot = ({
         R.mergeRight(baseObject, {
           id: R.head(d).id,
           name: R.head(d).name,
-          color: R.prop(R.head(d).name, colors),
+          color: findColoring(R.head(d).name, colors),
           data: R.map(
             R.pipe(
               (idx) => R.find(R.propEq(idx, 'index'), d),

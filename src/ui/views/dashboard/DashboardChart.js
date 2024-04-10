@@ -33,6 +33,8 @@ import {
   getSubLabelFn,
   getColoringFn,
   getGroupLabelFn,
+  forceArray,
+  cleanUndefinedStats,
 } from '../../../utils'
 
 const DashboardChart = ({ chartObj }) => {
@@ -44,8 +46,8 @@ const DashboardChart = ({ chartObj }) => {
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectStatGroupings)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
-
-  const chartType = R.propOr('', 'variant', chartObj)
+  const cleanedChartObj = cleanUndefinedStats(chartObj)
+  const chartType = R.propOr('', 'variant', cleanedChartObj)
 
   useEffect(() => {
     setLoading(false)
@@ -60,71 +62,70 @@ const DashboardChart = ({ chartObj }) => {
 
   useEffect(() => {
     const runWorkers = async () => {
-      memoizedChartFunc(chartObj).then((computedData) => {
+      memoizedChartFunc(cleanedChartObj).then((computedData) => {
         setFormattedData(computedData)
       })
     }
     runWorkers()
-  }, [chartObj, memoizedChartFunc])
+  }, [cleanedChartObj, memoizedChartFunc])
 
-  const subGrouped = R.hasPath(['groupingLevel', 1])(chartObj)
+  const groupingRange = R.pipe(
+    R.prop('groupingId'),
+    R.length,
+    R.range(0),
+    R.reverse
+  )(cleanedChartObj)
 
-  //TODO: Generalize this for n-level grouping
-  const colors = subGrouped
-    ? chartObj.variant === chartVariant.SUNBURST
-      ? R.mergeLeft(
-          getColoringFn(
-            categories,
-            R.path(['groupingId', 1], chartObj),
-            R.path(['groupingLevel', 1]),
-            chartObj
-          ),
-          getColoringFn(
-            categories,
-            R.path(['groupingId', 0], chartObj),
-            R.path(['groupingLevel', 0]),
-            chartObj
-          )
+  const colors =
+    cleanedChartObj.variant === chartVariant.SUNBURST ||
+    cleanedChartObj.variant === chartVariant.TREEMAP
+      ? R.mergeAll(
+          R.map((idx) =>
+            getColoringFn(
+              categories,
+              R.path(['groupingId', idx], cleanedChartObj),
+              R.path(['groupingLevel', idx], cleanedChartObj)
+            )
+          )(groupingRange)
         )
       : getColoringFn(
           categories,
-          R.path(['groupingId', 1], chartObj),
-          R.path(['groupingLevel', 1]),
-          chartObj
+          R.path(['groupingId', R.head(groupingRange)], cleanedChartObj),
+          R.path(['groupingLevel', R.head(groupingRange)], cleanedChartObj)
         )
-    : getColoringFn(
-        categories,
-        R.path(['groupingId', 0], chartObj),
-        R.path(['groupingLevel', 0]),
-        chartObj
-      )
 
-  const xAxisTitle = chartObj.groupingId
-    ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], chartObj))}${
-        chartObj.groupingLevel && R.pathOr('', ['groupingLevel', 0], chartObj)
+  const xAxisTitle = cleanedChartObj.groupingId
+    ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
+        cleanedChartObj.groupingLevel &&
+        R.pathOr('', ['groupingLevel', 0], cleanedChartObj)
           ? ` \u279D ${getSubLabelFn(
               categories,
-              R.path(['groupingId', 0], chartObj),
-              R.path(['groupingLevel', 0], chartObj),
-              chartObj
+              R.path(['groupingId', 0], cleanedChartObj),
+              R.path(['groupingLevel', 0], cleanedChartObj),
+              cleanedChartObj
             )}`
           : ''
       }`
     : ''
 
-  const stat = R.pathOr({}, [chartObj.groupedOutputDataId, chartObj.statId])(
-    statisticTypes
-  )
+  const stat = R.pathOr({}, [
+    cleanedChartObj.groupedOutputDataId,
+    cleanedChartObj.statId,
+  ])(statisticTypes)
   const unit = stat.unit || numberFormatDefault.unit
 
   const yAxisTitle = `${getGroupLabelFn(statisticTypes)([
-    chartObj.groupedOutputDataId,
-    chartObj.statId,
+    cleanedChartObj.groupedOutputDataId,
+    cleanedChartObj.statId,
   ])}${unit ? ` [${unit}]` : ''}`
 
   const labels = { xAxisTitle, yAxisTitle }
 
-  const statPaths = R.zip(chartObj.groupedOutputDataId)(chartObj.statId)
+  const statPaths = R.pipe(
+    R.props(['groupedOutputDataId', 'statId']),
+    R.map(forceArray),
+    R.apply(R.zip)
+  )(cleanedChartObj)
 
   const multiStatLabelProps = R.map((item) => {
     const stat = R.pathOr({}, item)(statisticTypes)
@@ -137,34 +138,28 @@ const DashboardChart = ({ chartObj }) => {
   })(statPaths)
 
   const getGroupingLabel = (n) =>
-    `${getLabelFn(categories)(R.path(['groupingId', n], chartObj))}${
-      R.path(['groupingLevel', n], chartObj)
+    `${getLabelFn(categories)(R.path(['groupingId', n], cleanedChartObj))}${
+      R.path(['groupingLevel', n], cleanedChartObj)
         ? ` \u279D ${getSubLabelFn(
             categories,
-            R.path(['groupingId', n], chartObj),
-            R.path(['groupingLevel', n], chartObj)
+            R.path(['groupingId', n], cleanedChartObj),
+            R.path(['groupingLevel', n], cleanedChartObj)
           )}`
         : ''
     }`
 
-  const labelProps = R.pipe(
-    R.when(
-      R.always(subGrouped),
-      R.prepend({
-        type: 'string',
-        key: 'level',
-        label: getGroupingLabel(1),
-      })
-    ),
-    R.when(
-      R.always(chartObj.groupingId != null),
-      R.prepend({
-        type: 'string',
-        key: 'grouping',
-        label: getGroupingLabel(0),
-      })
-    )
-  )(multiStatLabelProps)
+  const labelProps = R.reduce(
+    (acc, value) =>
+      R.prepend(
+        {
+          type: 'string',
+          key: `grouping${value}`,
+          label: getGroupingLabel(value),
+        },
+        acc
+      ),
+    multiStatLabelProps
+  )(groupingRange)
 
   // eslint-disable-next-line no-unused-vars
   const getNumberFormat = R.pipe(
@@ -174,7 +169,7 @@ const DashboardChart = ({ chartObj }) => {
     R.omit(['unit', 'unitPlacement'])
   )
 
-  const numberFormat = R.is(Array)(chartObj.statId)
+  const numberFormat = R.is(Array)(cleanedChartObj.statId)
     ? // Multi-stat charts
       R.reduce(
         (acc, [groupedOutputDataId, statId]) =>
@@ -188,7 +183,6 @@ const DashboardChart = ({ chartObj }) => {
         {}
       )(statPaths)
     : getNumberFormat(stat)
-
   // TODO: Use an empty `formattedData` to provide better
   // feedback in the UI when the chart content is empty
   if (R.isEmpty(formattedData) || loading)
@@ -208,78 +202,78 @@ const DashboardChart = ({ chartObj }) => {
         flex: '1 1 auto',
       }}
     >
-      {chartObj.variant === chartVariant.TABLE &&
-      chartObj.groupingId &&
-      chartObj.groupingId[0] ? (
+      {cleanedChartObj.variant === chartVariant.TABLE &&
+      cleanedChartObj.groupingId &&
+      cleanedChartObj.groupingId[0] ? (
         <TableChart data={formattedData} {...{ labelProps, numberFormat }} />
-      ) : chartObj.variant === chartVariant.BOX_PLOT ? (
+      ) : cleanedChartObj.variant === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.BAR ? (
+      ) : cleanedChartObj.variant === chartVariant.BAR ? (
         <BarPlot
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.STACKED_BAR ? (
+      ) : cleanedChartObj.variant === chartVariant.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.STACKED_WATERFALL ? (
+      ) : cleanedChartObj.variant === chartVariant.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.LINE ? (
+      ) : cleanedChartObj.variant === chartVariant.LINE ? (
         <LinePlot
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.WATERFALL ? (
+      ) : cleanedChartObj.variant === chartVariant.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.CUMULATIVE_LINE ? (
+      ) : cleanedChartObj.variant === chartVariant.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.SUNBURST ? (
+      ) : cleanedChartObj.variant === chartVariant.SUNBURST ? (
         <Sunburst data={formattedData} {...{ colors, numberFormat }} />
-      ) : chartObj.variant === chartVariant.TREEMAP ? (
+      ) : cleanedChartObj.variant === chartVariant.TREEMAP ? (
         <Treemap data={formattedData} {...{ colors, numberFormat }} />
-      ) : chartObj.variant === chartVariant.GAUGE ? (
+      ) : cleanedChartObj.variant === chartVariant.GAUGE ? (
         <GaugeChart
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.HEATMAP ? (
+      ) : cleanedChartObj.variant === chartVariant.HEATMAP ? (
         <Heatmap data={formattedData} {...{ numberFormat, ...labels }} />
-      ) : chartObj.variant === chartVariant.AREA ? (
+      ) : cleanedChartObj.variant === chartVariant.AREA ? (
         <LinePlot
           area
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.STACKED_AREA ? (
+      ) : cleanedChartObj.variant === chartVariant.STACKED_AREA ? (
         <LinePlot
           area
           stack="x"
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : chartObj.variant === chartVariant.SCATTER &&
-        R.isNil(R.path(['statId', 2], chartObj)) ? (
+      ) : cleanedChartObj.variant === chartVariant.SCATTER &&
+        R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
         <ScatterPlot
           data={formattedData}
           labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
         />
-      ) : chartObj.variant === chartVariant.SCATTER ? (
+      ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
           {...{ labelProps, colors, numberFormat }}

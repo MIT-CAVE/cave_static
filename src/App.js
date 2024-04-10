@@ -133,6 +133,17 @@ const App = () => {
               paper: '#4a4a4a',
             },
           },
+          components: {
+            // TODO: Keep track of: https://github.com/mui/mui-x/issues/12443
+            MuiDataGrid: {
+              styleOverrides: {
+                root: {
+                  '--DataGrid-containerBackground': '#4a4a4a',
+                  '--DataGrid-rowBorderColor': 'rgb(81,81,81)',
+                },
+              },
+            },
+          },
           typography: {
             fontFamily: 'inherit',
           },

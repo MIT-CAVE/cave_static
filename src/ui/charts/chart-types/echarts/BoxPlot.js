@@ -8,6 +8,7 @@ import {
   getDecimalScaleLabel,
   findSubgroupLabels,
   getChartItemColor,
+  findColoring,
 } from '../../../../utils'
 
 // sort array ascending
@@ -63,7 +64,7 @@ const EchartsBoxPlot = ({
         name: R.head(d).name,
         type: chartType,
         smooth: true,
-        color: R.prop(R.head(d).name, colors),
+        color: findColoring(R.head(d).name, colors),
         emphasis: {
           focus: 'series',
         },
@@ -85,8 +86,8 @@ const EchartsBoxPlot = ({
           focus: 'series',
         },
         colorBy: 'data',
-        color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        color: R.addIndex(R.map)(
+          (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
         )(xLabels),
       }),
     ]

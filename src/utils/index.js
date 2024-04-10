@@ -33,7 +33,7 @@ export const includesPath = (paths, path) => {
 // given a path of arc points adjust them to ensure proper wrapping around the anti-meridian
 export const adjustArcPath = (path) => {
   const idicies = R.range(1, path.length)
-  let lastCoord = path[0][0]
+  let lastCoord = R.path([0, 0])(path)
   const adjustedCoords = R.map((index) => {
     const x = path[index][0]
 
@@ -105,6 +105,11 @@ export const getSubLabelFn = R.curry((data, item, subItem) =>
 export const getColoringFn = R.curry((data, item, subItem) =>
   R.pathOr({}, [item, 'levels', subItem, 'coloring'])(data)
 )
+
+export const findColoring = (name, colors) => {
+  const smallestName = R.pipe(R.split(' \u279D '), R.head)(name)
+  return R.prop(smallestName, colors)
+}
 
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
@@ -749,3 +754,22 @@ export const customSortByX = R.curry((orderings, data) => {
     R.ascend(R.prop('name')),
   ])(data)
 })
+
+export const cleanUndefinedStats = (chartObj) => {
+  const statIds = R.pathOr([], ['statId'], chartObj)
+  if (R.is(String, statIds)) return chartObj
+  const transformations = {
+    statId: R.dropLast(1),
+    groupedOutputDataId: R.dropLast(1),
+  }
+  const reduced_chart = R.isNil(R.last(statIds))
+    ? R.evolve(transformations, chartObj)
+    : chartObj
+
+  return R.any(R.isNil)(reduced_chart['statId'])
+    ? R.pipe(
+        R.assoc('statId', []),
+        R.assoc('groupedOutputDataId', [])
+      )(reduced_chart)
+    : reduced_chart
+}
