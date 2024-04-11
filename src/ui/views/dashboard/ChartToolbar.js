@@ -1,6 +1,7 @@
-import { Grid } from '@mui/material'
+import { Badge, Grid, IconButton } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback } from 'react'
+import { FaFilter } from 'react-icons/fa'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
@@ -27,7 +28,14 @@ const style = {
   '>:first-child': { ml: 0 },
 }
 
-const ChartToolbar = ({ chartObj, index, path }) => {
+const ChartToolbar = ({
+  chartObj,
+  index,
+  path,
+  numFilters,
+  showFilter,
+  onOpenFilter,
+}) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -115,6 +123,19 @@ const ChartToolbar = ({ chartObj, index, path }) => {
         <GlobalOutputsToolbar {...{ chartObj, index }} />
       ) : (
         <MapToolbar {...{ chartObj, index }} />
+      )}
+      {showFilter && (
+        <IconButton onClick={onOpenFilter} sx={{ mr: 1, ml: 'auto' }}>
+          <Badge
+            {...{
+              color: 'info',
+              badgeContent: numFilters,
+              invisible: numFilters < 1,
+            }}
+          >
+            <FaFilter />
+          </Badge>
+        </IconButton>
       )}
     </Grid>
   )

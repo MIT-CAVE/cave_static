@@ -170,16 +170,20 @@ const DashboardItem = ({ chartObj, index, path }) => {
             onSave={handleSaveFilters}
             onClose={handleCloseFilter}
           />
-          {showToolbar && <ChartToolbar {...{ chartObj, index, path }} />}
+          {showToolbar && (
+            <ChartToolbar
+              numFilters={numActiveStatFilters + numGroupingFilters}
+              showFilter={vizType === 'groupedOutput'}
+              onOpenFilter={handleOpenFilter}
+              {...{ chartObj, index, path }}
+            />
+          )}
           {!lockedLayout && !chartObj.lockedLayout && (
             <ChartMenu
               {...{ isMaximized, showToolbar }}
-              numFilters={numActiveStatFilters + numGroupingFilters}
-              showFilter={vizType === 'groupedOutput'}
               onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
               onShowToolbar={handleShowToolbar}
-              onOpenFilter={handleOpenFilter}
             />
           )}
           {vizType === 'groupedOutput' ? (
