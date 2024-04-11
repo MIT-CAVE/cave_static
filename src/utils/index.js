@@ -437,9 +437,21 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
-export const getChartItemColor = (colorIndex) =>
-  CHART_PALETTE[colorIndex % CHART_PALETTE.length]
+export const generateHash = (str) => {
+  var hash = 0
+  if (str.length === 0) return hash
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i)
+    hash = (hash << 5) - hash + chr
+    hash |= 0 // Convert to 32bit integer
+  }
+  return hash
+}
 
+export const getChartItemColor = (name) => {
+  const colorIndex = Math.abs(generateHash(name))
+  return CHART_PALETTE[colorIndex % CHART_PALETTE.length]
+}
 /**
  * Converts a d3-color RGB object into a conventional RGBA array.
  * @function

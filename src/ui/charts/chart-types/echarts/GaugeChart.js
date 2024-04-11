@@ -92,8 +92,8 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
   const initialSeries = [
     R.mergeDeepLeft(R.assoc('data', createSeriesData(yValues), baseObject), {
       colorBy: 'data',
-      color: R.addIndex(R.map)(
-        (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
+      color: R.map(
+        (item) => findColoring(item, colors) ?? getChartItemColor(item)
       )(xLabels),
     }),
   ]

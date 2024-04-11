@@ -2,8 +2,11 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { NumberFormat, findColoring } from '../../../../utils'
-import { CHART_PALETTE } from '../../../../utils/constants'
+import {
+  NumberFormat,
+  findColoring,
+  getChartItemColor,
+} from '../../../../utils'
 
 // import { exampleNestedData } from './testData'
 
@@ -15,13 +18,9 @@ const Sunburst = ({ data, colors, numberFormat }) => {
   const xLabels = R.pipe(findNames, R.flatten)(data)
 
   const assignColors = () => {
-    let availableColors = CHART_PALETTE
-
     const assignments = R.pipe(
       R.map((val) => {
-        let randomChoice =
-          availableColors[Math.floor(Math.random() * availableColors.length)]
-        availableColors = R.without([randomChoice], availableColors)
+        const randomChoice = getChartItemColor(val)
         return [val, randomChoice]
       }),
       R.fromPairs

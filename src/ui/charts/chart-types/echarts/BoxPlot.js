@@ -64,7 +64,9 @@ const EchartsBoxPlot = ({
         name: R.head(d).name,
         type: chartType,
         smooth: true,
-        color: findColoring(R.head(d).name, colors),
+        color:
+          findColoring(R.head(d).name, colors) ??
+          getChartItemColor(R.head(d).name),
         emphasis: {
           focus: 'series',
         },
@@ -86,8 +88,8 @@ const EchartsBoxPlot = ({
           focus: 'series',
         },
         colorBy: 'data',
-        color: R.addIndex(R.map)(
-          (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
+        color: R.map(
+          (item) => findColoring(item, colors) ?? getChartItemColor(item)
         )(xLabels),
       }),
     ]

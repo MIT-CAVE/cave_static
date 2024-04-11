@@ -2,7 +2,12 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { NumberFormat, findColoring, getMinMax } from '../../../../utils'
+import {
+  NumberFormat,
+  findColoring,
+  getMinMax,
+  getChartItemColor,
+} from '../../../../utils'
 
 const BubblePlot = ({ data, labelProps, numberFormat, colors }) => {
   const labels = R.pluck('label')(labelProps)
@@ -31,7 +36,7 @@ const BubblePlot = ({ data, labelProps, numberFormat, colors }) => {
       {
         data: [val.value],
         name: val.name,
-        color: findColoring(val.name, colors),
+        color: findColoring(val.name, colors) ?? getChartItemColor(val.name),
       },
       baseObject
     )

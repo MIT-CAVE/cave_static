@@ -224,8 +224,8 @@ const EchartsPlot = ({
   const visualMap =
     chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
 
-  const color = R.addIndex(R.map)(
-    (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
+  const color = R.map(
+    (item) => findColoring(item, colors) ?? getChartItemColor(item)
   )(xLabels)
 
   const series = R.ifElse(
@@ -238,7 +238,9 @@ const EchartsPlot = ({
         R.mergeRight(baseObject, {
           id: R.head(d).id,
           name: R.head(d).name,
-          color: findColoring(R.head(d).name, colors),
+          color:
+            findColoring(R.head(d).name, colors) ??
+            getChartItemColor(R.head(d).name),
           data: R.map(
             R.pipe(
               (idx) => R.find(R.propEq(idx, 'index'), d),

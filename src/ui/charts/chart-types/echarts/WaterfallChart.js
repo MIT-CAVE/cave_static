@@ -156,7 +156,9 @@ const WaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
-          color: findColoring(R.head(d).name, colors),
+          color:
+            findColoring(R.head(d).name, colors) ??
+            getChartItemColor(R.head(d).name),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -171,8 +173,8 @@ const WaterfallChart = ({
     (d) => [
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
-        color: R.addIndex(R.map)(
-          (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
+        color: R.map(
+          (item) => findColoring(item, colors) ?? getChartItemColor(item)
         )(xLabels),
       }),
     ]
@@ -382,7 +384,9 @@ const StackedWaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
-          color: findColoring(R.head(d).name, colors),
+          color:
+            findColoring(R.head(d).name, colors) ??
+            getChartItemColor(R.head(d).name),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -397,8 +401,8 @@ const StackedWaterfallChart = ({
     (d) => [
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
-        color: R.addIndex(R.map)(
-          (item, idx) => findColoring(item, colors) ?? getChartItemColor(idx)
+        color: R.map(
+          (item) => findColoring(item, colors) ?? getChartItemColor(item)
         )(xLabels),
       }),
     ]
@@ -449,14 +453,14 @@ const StackedWaterfallChart = ({
         name: 'Initial',
         symbol: 'diamond',
         itemStyle: {
-          color: getChartItemColor(subGroupLabels.length),
+          color: getChartItemColor('Initial'),
         },
       },
       {
         name: 'Net Change',
         symbol: 'circle',
         itemStyle: {
-          color: getChartItemColor(subGroupLabels.length + 1),
+          color: getChartItemColor('Net Change'),
         },
       },
     ],
