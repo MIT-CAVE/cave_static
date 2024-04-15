@@ -9,7 +9,7 @@ import {
   ToggleButton,
   Slider,
   Stack,
-  // Select as MuiSelect,
+  Select as MuiSelect,
 } from '@mui/material'
 import * as R from 'ramda'
 import { useState } from 'react'
@@ -35,14 +35,40 @@ import { updateAnimation } from '../../../data/utilities/timeSlice'
 import Select from '../../compound/Select'
 import TooltipButton from '../../compound/TooltipButton'
 
+const styles = {
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    bgcolor: 'background.paper',
+  },
+  slider: {
+    mt: 2,
+    ml: 2,
+    width: 'calc(100% - 16px - 40px)',
+  },
+  animControls: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    py: 0.5,
+    pl: 0.5,
+  },
+  animRightCtrls: {
+    display: 'flex',
+    pr: 1.5,
+  },
+}
+
 const TimeControlFull = () => {
+  const [playbackSpeed, setPlaybackSpeed] = useState(1)
+  const [toggleSelected, setToggleSelected] = useState(false)
+
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
   const animationInterval = useSelector(selectAnimationInterval)
-  // const [open, setOpen] = useState(false)
-  const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [toggleSelected, setToggleSelected] = useState(false)
+  const dispatch = useDispatch()
 
   const animation = R.is(Number, animationInterval)
 
@@ -50,186 +76,108 @@ const TimeControlFull = () => {
     dispatch(timeAdvance(timeLength))
   }
 
-  const dispatch = useDispatch()
-
-  console.log(currentTime)
-
   return (
     <Stack
-      sx={{
+      sx={[
+        styles.root,
         // display: timeLength === 0 ? 'none' : 'flex',
-        bgcolor: 'background.paper',
-      }}
+      ]}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          width: '100%',
-          borderBottom: 0,
-          paddingRight: 100,
-          height: '50px',
-          alignItems: 'end',
+      <Slider
+        onMouseDown={(event) => {
+          event.stopPropagation()
         }}
-      >
-        <Slider
-          onMouseDown={(event) => {
-            event.stopPropagation()
-          }}
-          aria-label="time slider"
-          defaultValue={1}
-          valueLabelDisplay="on"
-          step={1}
-          min={1}
-          max={timeLength}
-          value={currentTime}
-          onChange={(e, newValue) => dispatch(timeSelection(newValue))}
-          sx={{ marginRight: '12px', marginLeft: '12px' }}
-        />
-      </Box>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          width: '100%',
-          borderTop: 0,
-          paddingBottom: 1,
-          paddingLeft: '4px',
+        sx={styles.slider}
+        aria-label="time slider"
+        valueLabelDisplay="on"
+        marks
+        max={timeLength}
+        min={1}
+        step={1}
+        value={currentTime + 1}
+        onChange={(e, newValue) => {
+          dispatch(timeSelection(newValue - 1))
         }}
-        aria-label="contained button group"
-        variant="contained"
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <TooltipButton
-            title={`Go back to start`}
-            placement="bottom"
-            disabled={currentTime === 1}
-            onClick={() => {
-              const newTime = 1
-              if (newTime >= 1) {
-                dispatch(timeSelection(newTime))
-              }
-            }}
-          >
-            <MdSkipPrevious size={40} />
-          </TooltipButton>
-          <TooltipButton
-            title={`Reduce time by one ${timeUnits}`}
-            placement="bottom"
-            disabled={currentTime === 1}
-            onClick={() => {
-              const newTime = currentTime - 1
-              if (newTime >= 1) {
-                dispatch(timeSelection(newTime))
-              }
-            }}
-          >
-            <MdNavigateBefore size={40} />
-          </TooltipButton>
-          {animation ? (
-            <TooltipButton
-              title="Pause animation"
-              placement="bottom"
-              onClick={() => {
-                clearInterval(animationInterval)
-                dispatch(updateAnimation(false))
-              }}
-            >
-              <MdPauseCircle size={40} />
-            </TooltipButton>
-          ) : (
-            <TooltipButton
-              title="Play animation"
-              placement="bottom"
-              onClick={() => {
-                const animationInterval = setInterval(advanceAnimation, 1000)
-                dispatch(updateAnimation(animationInterval))
-              }}
-            >
-              <MdPlayCircle size={40} />
-            </TooltipButton>
-          )}
-          {/* <TooltipButton
-            title={`Set current ${timeUnits}`}
-            placement="bottom"
-            onClick={() => {
-              setOpen(true)
-            }}
-          >
-            {currentTime + 1}
-          </TooltipButton> */}
-          {/* <Dialog
-            open={open}
-            onClose={() => {
-              setOpen(false)
-            }}
-          >
-            <DialogTitle>{`Set ${timeUnits}`}</DialogTitle>
-            <DialogContent>
-              <Box component="form" sx={{ display: 'flex', flexWrap: 'wrap' }}>
-                <FormControl sx={{ m: 1, minWidth: 120 }}>
-                  <InputLabel id="time-select-label">{`Choose a ${timeUnits}`}</InputLabel>
-                  <MuiSelect
-                    value={currentTime}
-                    onChange={(event) => {
-                      dispatch(timeSelection(event.target.value))
-                      setOpen(false)
-                    }}
-                  >
-                    {R.map((time) => (
-                      <MenuItem key={time} value={time - 1}>
-                        {time}
-                      </MenuItem>
-                    ))(R.range(1, timeLength + 1))}
-                  </MuiSelect>
-                </FormControl>
-              </Box>
-            </DialogContent>
-          </Dialog> */}
-          <TooltipButton
-            title={`Advance time by one ${timeUnits}`}
-            placement="bottom"
-            disabled={currentTime === timeLength}
-            // onClick={advanceAnimation}
-            onClick={() => {
-              const newTime = currentTime + 1
-              if (newTime <= timeLength) {
-                dispatch(timeSelection(newTime))
-              }
-            }}
-          >
-            <MdNavigateNext size={40} />
-          </TooltipButton>
-          <TooltipButton
-            title={`Go to end`}
-            placement="bottom"
-            disabled={currentTime === timeLength}
-            onClick={() => {
-              const newTime = timeLength
-              if (newTime >= 1) {
-                dispatch(timeSelection(newTime))
-              }
-            }}
-          >
-            <MdSkipNext size={40} />
-          </TooltipButton>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            height: '40px',
-            paddingRight: '14px',
-            paddingTop: '4px',
+      />
+      <Box sx={styles.animControls}>
+        <TooltipButton
+          title="Go back to start"
+          placement="bottom"
+          disabled={currentTime === 0}
+          onClick={() => {
+            dispatch(timeSelection(0))
           }}
         >
+          <MdSkipPrevious />
+        </TooltipButton>
+        <TooltipButton
+          title={`Reduce time by one ${timeUnits}`}
+          placement="bottom"
+          disabled={currentTime === 0}
+          onClick={() => {
+            const newTime = currentTime - 1
+            if (newTime >= 0) {
+              dispatch(timeSelection(newTime))
+            }
+          }}
+        >
+          <MdNavigateBefore />
+        </TooltipButton>
+
+        {animation ? (
+          <TooltipButton
+            title="Pause animation"
+            placement="bottom"
+            onClick={() => {
+              clearInterval(animationInterval)
+              dispatch(updateAnimation(false))
+            }}
+          >
+            <MdPauseCircle size={40} />
+          </TooltipButton>
+        ) : (
+          <TooltipButton
+            title="Play animation"
+            placement="bottom"
+            onClick={() => {
+              const animationInterval = setInterval(advanceAnimation, 1000)
+              dispatch(updateAnimation(animationInterval))
+            }}
+          >
+            <MdPlayCircle size={40} />
+          </TooltipButton>
+        )}
+        <TooltipButton
+          title={`Advance time by one ${timeUnits}`}
+          placement="bottom"
+          disabled={currentTime === timeLength - 1}
+          onClick={advanceAnimation}
+        >
+          <MdNavigateNext />
+        </TooltipButton>
+        <TooltipButton
+          title="Go to end"
+          placement="bottom"
+          disabled={currentTime === timeLength - 1}
+          onClick={() => {
+            const newTime = timeLength - 1
+            if (newTime >= 0) {
+              dispatch(timeSelection(newTime))
+            }
+          }}
+        >
+          <MdSkipNext />
+        </TooltipButton>
+        <Stack sx={{ ml: 3, mr: 1.5 }} direction="row" spacing={1}>
           <ToggleButton
             size="small"
-            sx={{ height: '40px' }}
+            value="loop"
             selected={toggleSelected}
             onChange={() => setToggleSelected(!toggleSelected)}
           >
-            <MdOutlineCached size={40} />
+            <MdOutlineCached size={20} />
           </ToggleButton>
-          <FormControl size="small">
+          <FormControl size="small" sx={{ width: '100px' }}>
             <Select
               value={playbackSpeed}
               onChange={(e) => setPlaybackSpeed(e.target.value)}
@@ -243,7 +191,7 @@ const TimeControlFull = () => {
               ]}
             />
           </FormControl>
-        </Box>
+        </Stack>
       </Box>
     </Stack>
   )
@@ -330,7 +278,7 @@ const TimeControlCompact = () => {
           <Box component="form" sx={{ display: 'flex', flexWrap: 'wrap' }}>
             <FormControl sx={{ m: 1, minWidth: 120 }}>
               <InputLabel id="time-select-label">{`Choose a ${timeUnits}`}</InputLabel>
-              <Select
+              <MuiSelect
                 value={currentTime}
                 onChange={(event) => {
                   dispatch(timeSelection(event.target.value))
@@ -342,7 +290,7 @@ const TimeControlCompact = () => {
                     {time}
                   </MenuItem>
                 ))(R.range(1, timeLength + 1))}
-              </Select>
+              </MuiSelect>
             </FormControl>
           </Box>
         </DialogContent>

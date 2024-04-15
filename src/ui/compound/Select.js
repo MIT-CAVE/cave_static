@@ -32,6 +32,7 @@ const styles = {
     '& .MuiSelect-select': {
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'center',
       whiteSpace: 'normal !important',
     },
   },

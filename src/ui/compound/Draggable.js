@@ -16,8 +16,8 @@ const styles = {
   },
   closeBtn: {
     position: 'absolute',
-    top: 1,
-    right: -7,
+    top: 0,
+    right: 0,
   },
 }
 

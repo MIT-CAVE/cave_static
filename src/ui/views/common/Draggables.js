@@ -27,13 +27,8 @@ const styles = {
     overflowWrap: 'break-word',
   },
   time: {
-    width: '500px',
-    // pr: 3,
+    // width: '400px',
     bgcolor: 'background.paper',
-    button: {
-      width: '42px',
-    },
-    // height: '150px',
   },
   icon: {
     color: 'black',
@@ -108,9 +103,8 @@ const Draggables = () => {
         )}
       {R.path([draggableId.TIME, 'open'])(draggables) && (
         <Draggable
-          onClose={handleToggleDraggable(draggableId.TIME)}
           sx={styles.time}
-          // component={Box}
+          onClose={handleToggleDraggable(draggableId.TIME)}
         >
           <TimeButtons />
         </Draggable>
