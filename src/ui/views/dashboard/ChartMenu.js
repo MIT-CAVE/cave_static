@@ -74,6 +74,9 @@ const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
 
 const ChartMenu = ({
   isMaximized,
+  isGroupedOutput,
+  defaultToZero,
+  onToggleDefaultToZero,
   showToolbar,
   onShowToolbar,
   onRemoveChart,
@@ -127,6 +130,14 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
+        {isGroupedOutput && (
+          <ToggleMenuItem
+            label="0 NA Values"
+            value={defaultToZero}
+            onClick={onToggleDefaultToZero}
+          />
+        )}
+        {isGroupedOutput && <Divider />}
         <BaseMenuItem
           label="Remove Chart"
           ReactIcon={MdClose}

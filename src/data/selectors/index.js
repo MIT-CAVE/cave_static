@@ -1142,17 +1142,9 @@ export const selectMemoizedChartFunc = createSelector(
     selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
-    selectGroupedOutputNames,
     selectGroupedOutputValueBuffers,
   ],
-  (
-    groupedOutputs,
-    statisticTypes,
-    groupings,
-    groupingIndicies,
-    statNames,
-    valueBuffers
-  ) =>
+  (groupedOutputs, statisticTypes, groupings, groupingIndicies, valueBuffers) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
       async (obj) => {
@@ -1279,7 +1271,7 @@ export const selectMemoizedChartFunc = createSelector(
           )
 
           // Helper function to map merged stats to chart input object
-          const recursiveMapLayers = (val) =>
+          const recursiveMapLayers = (val, lowestGroupings) =>
             R.type(val) === 'Object'
               ? R.pipe(
                   R.values,
@@ -1289,18 +1281,34 @@ export const selectMemoizedChartFunc = createSelector(
                 ? R.values(
                     R.mapObjIndexed((value, key) => ({
                       name: R.isNil(obj.groupingId) ? 'All' : key,
-                      children: recursiveMapLayers(value),
+                      children: recursiveMapLayers(value, lowestGroupings),
                     }))(val)
                   )
-                : R.values(
-                    R.mapObjIndexed((value, key) => ({
-                      name: key,
-                      value: recursiveMapLayers(value),
-                    }))(val)
-                  )
+                : R.map((key) => ({
+                    name: key,
+                    value: recursiveMapLayers(R.propOr(0, key, val)),
+                  }))(R.isNil(lowestGroupings) ? R.keys(val) : lowestGroupings)
               : R.is(Array, val)
                 ? val
                 : [val]
+
+          // Helper function to list all of the lowest grouping levels before recursing
+          const recursiveMapLayersHelper = (objWithGroups) => {
+            const listLowestGroupings = (groupingLevel) =>
+              R.ifElse(
+                R.pipe(R.values, R.head, R.type, R.equals('Object')),
+                R.pipe(R.values, R.map(listLowestGroupings), R.flatten, R.uniq),
+                R.keys
+              )(groupingLevel)
+
+            return recursiveMapLayers(
+              objWithGroups,
+              R.propOr(false, 'defaultToZero', obj)
+                ? listLowestGroupings(objWithGroups)
+                : null
+            )
+          }
+
           // Ordering for the X's in the chart
           const getOrderingsAtIndex = (idx) => {
             const parentalPath = createParentalPath(
@@ -1338,7 +1346,7 @@ export const selectMemoizedChartFunc = createSelector(
                 R.identity,
                 R.dissoc(undefined)
               ),
-              recursiveMapLayers,
+              recursiveMapLayersHelper,
               customSortByX(getOrderingsAtIndex(0)),
               // The 0th layer is sorted above due to not being a child, so we start at 1
               R.map(nLevelOrder(1))
@@ -1357,7 +1365,6 @@ export const selectMemoizedChartFunc = createSelector(
             R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
             R.values
           )
-
           return R.is(Array, obj.statId)
             ? mergeMultiStatData(formattedData)
             : R.head(formattedData)

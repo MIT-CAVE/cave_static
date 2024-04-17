@@ -73,6 +73,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const defaultFilters = R.propOr([], 'filters')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
+  const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleShowToolbar = useCallback(() => {
@@ -117,6 +118,16 @@ const DashboardItem = ({ chartObj, index, path }) => {
     },
     [chartObj, dispatch, path, sync]
   )
+
+  const handleDefaultToZero = useCallback(() => {
+    dispatch(
+      mutateLocal({
+        path,
+        value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
+        sync: !includesPath(R.values(sync), path),
+      })
+    )
+  }, [chartObj, defaultToZero, dispatch, path, sync])
 
   const [statFilters, groupingFilters] = useMemo(
     () =>
@@ -184,6 +195,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
               onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
               onShowToolbar={handleShowToolbar}
+              defaultToZero={defaultToZero}
+              onToggleDefaultToZero={handleDefaultToZero}
+              isGroupedOutput={vizType === 'groupedOutput'}
             />
           )}
           {vizType === 'groupedOutput' ? (
