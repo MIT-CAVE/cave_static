@@ -133,15 +133,9 @@ const App = () => {
               paper: '#4a4a4a',
             },
           },
-          components: {
-            // TODO: Keep track of: https://github.com/mui/mui-x/issues/12443
+          mixins: {
             MuiDataGrid: {
-              styleOverrides: {
-                root: {
-                  '--DataGrid-containerBackground': '#4a4a4a',
-                  '--DataGrid-rowBorderColor': 'rgb(81,81,81)',
-                },
-              },
+              containerBackground: '#4a4a4a',
             },
           },
           typography: {
