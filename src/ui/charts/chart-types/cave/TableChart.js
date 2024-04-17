@@ -26,6 +26,12 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
     )
   )(rawList)
 
+  const multiNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+
   const columns = labelProps.map(({ label, key: field, type }) => ({
     headerName: label,
     type,
@@ -36,7 +42,10 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
       headerAlign: 'center',
       align: 'center',
       valueFormatter: (value) =>
-        NumberFormat.format(value['value'], numberFormat[field]),
+        NumberFormat.format(
+          value,
+          multiNumberFormat ? numberFormat[field] : numberFormat
+        ),
     }),
   }))
 
