@@ -12,7 +12,7 @@ import {
   Select as MuiSelect,
 } from '@mui/material'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   MdNavigateNext,
   MdNavigateBefore,
@@ -63,6 +63,7 @@ const styles = {
 const TimeControlFull = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [toggleSelected, setToggleSelected] = useState(false)
+  const [playing, setPlaying] = useState(false)
 
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
@@ -74,6 +75,23 @@ const TimeControlFull = () => {
 
   const advanceAnimation = () => {
     dispatch(timeAdvance(timeLength))
+  }
+
+  useEffect(() => {
+    if (!toggleSelected && currentTime + 1 === timeLength) {
+      clearInterval(animationInterval)
+      dispatch(updateAnimation(false))
+    }
+  }, [currentTime, toggleSelected, timeLength, animationInterval, dispatch])
+
+  const togglePlaybackSpeed = (newPlaybackSpeed) => {
+    clearInterval(animationInterval)
+    dispatch(updateAnimation(false))
+    const newAnimationInterval = setInterval(
+      advanceAnimation,
+      1000 / newPlaybackSpeed
+    )
+    dispatch(updateAnimation(newAnimationInterval))
   }
 
   return (
@@ -129,6 +147,7 @@ const TimeControlFull = () => {
             title="Pause animation"
             placement="bottom"
             onClick={() => {
+              setPlaying(false)
               clearInterval(animationInterval)
               dispatch(updateAnimation(false))
             }}
@@ -140,8 +159,8 @@ const TimeControlFull = () => {
             title="Play animation"
             placement="bottom"
             onClick={() => {
-              const animationInterval = setInterval(advanceAnimation, 1000)
-              dispatch(updateAnimation(animationInterval))
+              setPlaying(true)
+              togglePlaybackSpeed(playbackSpeed)
             }}
           >
             <MdPlayCircle size={40} />
@@ -180,7 +199,12 @@ const TimeControlFull = () => {
           <FormControl size="small" sx={{ width: '100px' }}>
             <Select
               value={playbackSpeed}
-              onChange={(e) => setPlaybackSpeed(e.target.value)}
+              onChange={(e) => {
+                setPlaybackSpeed(e.target.value)
+                if (playing) {
+                  togglePlaybackSpeed(e.target.value)
+                }
+              }}
               optionsList={[
                 { value: 0.5, label: '0.5x' },
                 { value: 0.75, label: '0.75x' },
