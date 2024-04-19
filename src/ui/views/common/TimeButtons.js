@@ -12,7 +12,7 @@ import {
   Select as MuiSelect,
 } from '@mui/material'
 import * as R from 'ramda'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   MdNavigateNext,
   MdNavigateBefore,
@@ -62,8 +62,7 @@ const styles = {
 
 const TimeControlFull = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [toggleSelected, setToggleSelected] = useState(false)
-  const [playing, setPlaying] = useState(false)
+  const [looping, setLooping] = useState(false)
 
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
@@ -73,26 +72,29 @@ const TimeControlFull = () => {
 
   const animation = R.is(Number, animationInterval)
 
-  const advanceAnimation = () => {
+  const advanceAnimation = useCallback(() => {
     dispatch(timeAdvance(timeLength))
-  }
+  }, [dispatch, timeLength])
 
   useEffect(() => {
-    if (!toggleSelected && currentTime + 1 === timeLength) {
+    if (!looping && currentTime + 1 === timeLength) {
       clearInterval(animationInterval)
       dispatch(updateAnimation(false))
     }
-  }, [currentTime, toggleSelected, timeLength, animationInterval, dispatch])
+  }, [currentTime, looping, timeLength, animationInterval, dispatch])
 
-  const togglePlaybackSpeed = (newPlaybackSpeed) => {
-    clearInterval(animationInterval)
-    dispatch(updateAnimation(false))
-    const newAnimationInterval = setInterval(
-      advanceAnimation,
-      1000 / newPlaybackSpeed
-    )
-    dispatch(updateAnimation(newAnimationInterval))
-  }
+  const togglePlaybackSpeed = useCallback(
+    (newPlaybackSpeed) => {
+      clearInterval(animationInterval)
+      dispatch(updateAnimation(false))
+      const newAnimationInterval = setInterval(
+        advanceAnimation,
+        1000 / newPlaybackSpeed
+      )
+      dispatch(updateAnimation(newAnimationInterval))
+    },
+    [advanceAnimation, animationInterval, dispatch]
+  )
 
   return (
     <Stack
@@ -147,7 +149,6 @@ const TimeControlFull = () => {
             title="Pause animation"
             placement="bottom"
             onClick={() => {
-              setPlaying(false)
               clearInterval(animationInterval)
               dispatch(updateAnimation(false))
             }}
@@ -159,7 +160,6 @@ const TimeControlFull = () => {
             title="Play animation"
             placement="bottom"
             onClick={() => {
-              setPlaying(true)
               togglePlaybackSpeed(playbackSpeed)
             }}
           >
@@ -191,8 +191,8 @@ const TimeControlFull = () => {
           <ToggleButton
             size="small"
             value="loop"
-            selected={toggleSelected}
-            onChange={() => setToggleSelected(!toggleSelected)}
+            selected={looping}
+            onChange={() => setLooping(!looping)}
           >
             <MdOutlineCached size={20} />
           </ToggleButton>
@@ -201,7 +201,7 @@ const TimeControlFull = () => {
               value={playbackSpeed}
               onChange={(e) => {
                 setPlaybackSpeed(e.target.value)
-                if (playing) {
+                if (animation) {
                   togglePlaybackSpeed(e.target.value)
                 }
               }}
