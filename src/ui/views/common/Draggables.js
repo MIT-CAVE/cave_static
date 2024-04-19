@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import TimeButtons from './TimeButtons'
+import TimeControl from './TimeControl'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
@@ -106,7 +106,7 @@ const Draggables = () => {
           sx={styles.time}
           onClose={handleToggleDraggable(draggableId.TIME)}
         >
-          <TimeButtons />
+          <TimeControl />
         </Draggable>
       )}
       {R.path([draggableId.SESSION, 'open'])(draggables) && (

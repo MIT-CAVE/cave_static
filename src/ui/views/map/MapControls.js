@@ -42,7 +42,7 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 import { unitPlacements } from '../../../utils/enums'
-import TimeButtons from '../common/TimeButtons'
+import TimeControl from '../common/TimeControl'
 
 import { FetchedIcon, TooltipButton } from '../../compound'
 
@@ -265,7 +265,7 @@ const MapControls = ({ allowProjections, mapId }) => {
       >
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
-          <TimeButtons compact />
+          <TimeControl compact />
 
           {/* Map legend */}
           <ButtonGroup
