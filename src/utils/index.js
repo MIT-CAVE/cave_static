@@ -745,7 +745,7 @@ export const capitalize = R.when(
 export const customSortByX = R.curry((orderings, data) => {
   const itemDepth = R.pipe(
     R.head,
-    R.prop('name'),
+    R.propOr('\u279D', 'name'),
     R.split(' \u279D '),
     R.length
   )(data)
