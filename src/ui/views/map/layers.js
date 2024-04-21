@@ -260,7 +260,8 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
             R.pathOr([], [geoObj.type, 'filters']),
             R.reject(R.propEq(false, 'active'))
           )(enabledArcs)
-          if (!filterMapFeature(filters, geoObj)) return false
+          if (R.isEmpty(filteredFeature) || !filterMapFeature(filters, geoObj))
+            return false
 
           const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
