@@ -106,7 +106,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
               value={R.propOr([], 'globalOutput', chartObj)}
               header="Select Global Outputs"
               optionsList={R.pipe(
-                R.filter(R.prop('value')),
+                R.reject(R.pipe(R.prop('value'), R.isNil)),
                 withIndex,
                 R.project(['id', 'name', 'icon']),
                 R.map(

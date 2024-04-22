@@ -700,7 +700,7 @@ export const selectGlobalOutputProps = createSelector(
       R.propOr({}, 'props'),
       R.propOr({}, 'values'),
     ]),
-    R.filter(R.prop('value')),
+    R.reject(R.pipe(R.prop('value'), R.isNil)),
     R.map(R.assoc('enabled', false))
   )
 )
@@ -1396,7 +1396,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
                 R.propOr({}, 'values'),
               ]),
               R.pick(selectedGlobalOutputs),
-              R.filter(R.prop('value')), // It should be filtered by now, but just in case
+              R.reject(R.pipe(R.prop('value'), R.isNil)), // It should be filtered by now, but just in case
               withIndex,
               R.map((globalOutput) =>
                 R.assoc(
