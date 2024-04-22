@@ -250,18 +250,21 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         R.mapObjIndexed((geoObj, geoJsonValue) => {
           const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
           const geoType = R.prop('type')(geoObj)
-          const filteredFeature =
-            R.find(
-              (feature) =>
-                R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-            )(R.pathOr({}, [geoType, 'features'])(selectedArcs)) ?? {}
+          const filteredFeature = R.find(
+            (feature) =>
+              R.path(['properties', geoJsonProp])(feature) === geoJsonValue
+          )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
 
           const filters = R.pipe(
             R.pathOr([], [geoObj.type, 'filters']),
             R.reject(R.propEq(false, 'active'))
           )(enabledArcs)
-          if (R.isEmpty(filteredFeature) || !filterMapFeature(filters, geoObj))
+          if (R.isNil(filteredFeature)) {
+            console.warn(
+              `No feature with ${geoJsonValue} for property ${geoJsonProp}`
+            )
             return false
+          } else if (!filterMapFeature(filters, geoObj)) return false
 
           const color = findLineColor(geoObj)
           const size = findLineSize(geoObj)
