@@ -645,6 +645,12 @@ export const getQuartilesData = R.mapObjIndexed(
   R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
+export const getQuartiles = R.ifElse(
+  R.isNil,
+  R.always(R.repeat(NaN, 5)),
+  R.pipe(R.sort(R.comparator(R.lt)), getQuantiles(5))
+)
+
 const allowedRangeKeys = [
   'startGradientColor',
   'endGradientColor',
