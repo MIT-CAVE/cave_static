@@ -62,7 +62,7 @@ const styles = {
 
 const TimeControlFull = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [looping, setLooping] = useState(false)
+  const [looping, setLooping] = useState(true)
 
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
