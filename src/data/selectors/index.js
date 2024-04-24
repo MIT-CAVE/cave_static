@@ -2158,7 +2158,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             const colorString = R.equals('', colorPropVal)
               ? nullColor
               : `rgba(${color.join(',')})`
-
+            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+              return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =
@@ -2270,7 +2271,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             const colorString = R.equals('', colorPropVal)
               ? nullColor
               : `rgba(${color.join(',')})`
-
+            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+              return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =

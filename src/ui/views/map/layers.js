@@ -278,6 +278,9 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
                 'lineBy'
               )(R.path([geoType, 'colorBy'], enabledArcs))
 
+              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1)
+                return false
+
               const adjustedFeature = R.assocPath(
                 ['geometry', 'coordinates'],
                 adjustArcPath(
