@@ -11,12 +11,10 @@ import {
   selectArcRange,
   selectEnabledGeosFunc,
   selectGeoColorRange,
-  selectMatchingKeysFunc,
   selectMatchingKeysByTypeFunc,
   selectGeoTypes,
   selectArcTypes,
   selectLineMatchingKeysByTypeFunc,
-  selectLineMatchingKeysFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
@@ -37,12 +35,10 @@ import {
 export const Geos = memo(({ highlightLayerId, mapId }) => {
   const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const geoColorRange = useSelector(selectGeoColorRange)
-  const matchingKeys = useSelector(selectMatchingKeysFunc)(mapId)
   const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
   const geoTypes = useSelector(selectGeoTypes)
   const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
   const arcTypes = useSelector(selectArcTypes)
-  const lineMatchingKeys = useSelector(selectLineMatchingKeysFunc)(mapId)
   const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByTypeFunc)(
     mapId
   )
@@ -109,7 +105,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
         const value = R.path(['values', colorProp], geoObj)
-        return `${geoObj.geoJsonValue}${value}`
+        return `${geoObj.geoJsonValue}${value}${geoObj.type}`
       },
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
@@ -147,7 +143,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
         const propVal = R.path(['values', sizeProp], d)
-        return `${R.prop('data_key', d)}${propVal}`
+        return `${R.prop('data_key', d)}${propVal}${d.type}`
       },
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
@@ -173,7 +169,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       (d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
         const propVal = R.path(['values', colorProp], d[1])
-        return `${R.prop('data_key', d)}${propVal}`
+        return `${R.prop('data_key', d)}${propVal}${d.type}`
       },
       (d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
@@ -214,87 +210,104 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
   const geoJsonObject = useMemo(
     () =>
       R.pipe(
-        R.mapObjIndexed((geoObj, geoJsonValue) => {
-          const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-          const geoType = R.prop('type')(geoObj)
+        R.map(
+          R.pipe(
+            R.mapObjIndexed((geoObj, geoJsonValue) => {
+              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+              const geoType = R.prop('type')(geoObj)
 
-          const filters = R.pipe(
-            R.pathOr([], [geoObj.type, 'filters']),
-            R.reject(R.propEq(false, 'active'))
-          )(enabledGeos)
-          if (!filterMapFeature(filters, geoObj)) return false
+              const filters = R.pipe(
+                R.pathOr([], [geoObj.type, 'filters']),
+                R.reject(R.propEq(false, 'active'))
+              )(enabledGeos)
+              if (!filterMapFeature(filters, geoObj)) return false
 
-          const filteredFeature = R.find(
-            (feature) =>
-              R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-          )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
-          const color = findColor(geoObj)
+              const filteredFeature = R.find(
+                (feature) =>
+                  R.path(['properties', geoJsonProp])(feature) === geoJsonValue
+              )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
+              const color = findColor(geoObj)
 
-          const id = R.prop('data_key')(geoObj)
-          return R.mergeRight(filteredFeature, {
-            properties: {
-              cave_name: JSON.stringify([geoType, id]),
-              color: color,
-            },
-          })
-        }),
+              const id = R.prop('data_key')(geoObj)
+              return R.mergeRight(filteredFeature, {
+                properties: {
+                  cave_name: JSON.stringify([geoType, id]),
+                  color: color,
+                },
+              })
+            }),
+            R.values,
+            R.filter(R.identity)
+          )
+        ),
         R.values,
-        R.filter(R.identity)
-      )(matchingKeys),
-    [enabledGeos, findColor, matchingKeys, selectedGeos]
+        R.unnest
+      )(matchingKeysByType),
+    [enabledGeos, findColor, matchingKeysByType, selectedGeos]
   )
 
   const lineGeoJsonObject = useMemo(
     () =>
       R.pipe(
-        R.mapObjIndexed((geoObj, geoJsonValue) => {
-          const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-          const geoType = R.prop('type')(geoObj)
-          const filteredFeature = R.find(
-            (feature) =>
-              R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-          )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+        R.map(
+          R.pipe(
+            R.mapObjIndexed((geoObj, geoJsonValue) => {
+              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+              const geoType = R.prop('type')(geoObj)
+              const filteredFeature = R.find(
+                (feature) =>
+                  R.path(['properties', geoJsonProp])(feature) === geoJsonValue
+              )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
 
-          const filters = R.pipe(
-            R.pathOr([], [geoObj.type, 'filters']),
-            R.reject(R.propEq(false, 'active'))
-          )(enabledArcs)
-          if (R.isNil(filteredFeature)) {
-            console.warn(
-              `No feature with ${geoJsonValue} for property ${geoJsonProp}`
-            )
-            return false
-          } else if (!filterMapFeature(filters, geoObj)) return false
+              const filters = R.pipe(
+                R.pathOr([], [geoObj.type, 'filters']),
+                R.reject(R.propEq(false, 'active'))
+              )(enabledArcs)
+              if (R.isNil(filteredFeature)) {
+                console.warn(
+                  `No feature with ${geoJsonValue} for property ${geoJsonProp}`
+                )
+                return false
+              } else if (!filterMapFeature(filters, geoObj)) return false
 
-          const color = findLineColor(geoObj)
-          const size = findLineSize(geoObj)
-          const id = R.prop('data_key')(geoObj)
-          const dashPattern = R.propOr(
-            'solid',
-            'lineBy'
-          )(R.path([geoType, 'colorBy'], enabledArcs))
+              const color = findLineColor(geoObj)
+              const size = findLineSize(geoObj)
+              const id = R.prop('data_key')(geoObj)
+              const dashPattern = R.propOr(
+                'solid',
+                'lineBy'
+              )(R.path([geoType, 'colorBy'], enabledArcs))
 
-          const adjustedFeature = R.assocPath(
-            ['geometry', 'coordinates'],
-            adjustArcPath(
-              R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
-            )
-          )(filteredFeature)
-
-          return R.mergeRight(adjustedFeature, {
-            properties: {
-              cave_name: JSON.stringify([geoType, id]),
-              color: color,
-              dash: dashPattern,
-              size: size,
-            },
-          })
-        }),
+              const adjustedFeature = R.assocPath(
+                ['geometry', 'coordinates'],
+                adjustArcPath(
+                  R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
+                )
+              )(filteredFeature)
+              return R.mergeRight(adjustedFeature, {
+                properties: {
+                  cave_name: JSON.stringify([geoType, id]),
+                  color: color,
+                  dash: dashPattern,
+                  size: size,
+                },
+              })
+            }),
+            R.values,
+            R.filter(R.identity)
+          )
+        ),
         R.values,
-        R.filter(R.identity),
+        R.unnest,
         R.groupBy(R.path(['properties', 'dash']))
-      )(lineMatchingKeys),
-    [enabledArcs, findLineColor, findLineSize, lineMatchingKeys, selectedArcs]
+      )(lineMatchingKeysByType),
+    [
+      enabledArcs,
+      findLineColor,
+      findLineSize,
+      lineMatchingKeysByType,
+      selectedArcs,
+    ]
   )
 
   return [

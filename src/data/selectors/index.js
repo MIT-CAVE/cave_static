@@ -1649,38 +1649,7 @@ export const selectGeoColorRange = createSelector(
     )
 )
 
-export const selectMatchingKeysFunc = createSelector(
-  [selectEnabledGeosFunc, selectMergedGeos, selectGeoColorRange],
-  (enabledGeosFunc, geosByType, geoRange) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(R.toPairs),
-          R.values,
-          R.unnest,
-          R.map((d) => R.assoc('data_key', d[0], d[1])),
-          R.filter((d) => {
-            const colorProp = R.path(
-              [d.type, 'colorBy'],
-              enabledGeosFunc(mapId)
-            )
-
-            const statRange = geoRange(d.type, colorProp, false)
-
-            return !(
-              R.has('nullColor', statRange) &&
-              R.isNil(R.prop('nullColor', statRange))
-            )
-          }),
-          R.indexBy(R.prop('geoJsonValue'))
-        )(geosByType),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-
-export const selectLineMatchingKeysFunc = createSelector(
+export const selectLineMatchingKeysByTypeFunc = createSelector(
   [selectMultiLineDataFunc, selectArcRange, selectEnabledArcsFunc],
   (dataFunc, arcRange, enabledArcsFunc) =>
     maxSizedMemoization(
@@ -1702,21 +1671,8 @@ export const selectLineMatchingKeysFunc = createSelector(
               R.isNil(R.prop('nullColor', statRange))
             )
           }),
-          R.indexBy(R.prop('geoJsonValue'))
-        )(dataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-export const selectLineMatchingKeysByTypeFunc = createSelector(
-  selectLineMatchingKeysFunc,
-  (dataFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.toPairs,
-          R.groupBy(R.path([1, 'type'])),
-          R.map(R.fromPairs)
+          R.groupBy(R.prop('type')),
+          R.map(R.indexBy(R.prop('geoJsonValue')))
         )(dataFunc(mapId)),
       MAX_MEMOIZED_CHARTS
     )
