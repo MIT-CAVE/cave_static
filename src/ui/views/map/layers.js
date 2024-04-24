@@ -84,7 +84,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         const url = R.pathOr('', [arcName, 'geoJson', 'geoJsonLayer'], arcTypes)
         // Special catch for empty urls on initial call
         if (url === '') {
-          break
+          continue
         }
         let response = await cache.match(url)
         // add to cache if not found
@@ -278,9 +278,9 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
                 'lineBy'
               )(R.path([geoType, 'colorBy'], enabledArcs))
 
-              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1)
+              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1) {
                 return false
-
+              }
               const adjustedFeature = R.assocPath(
                 ['geometry', 'coordinates'],
                 adjustArcPath(
@@ -312,7 +312,6 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       selectedArcs,
     ]
   )
-
   return [
     <Source
       type="geojson"
