@@ -1100,7 +1100,12 @@ export const selectMatchingKeysByTypeFunc = createSelector(
       (mapId) =>
         R.pipe(
           R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(R.indexBy(R.prop('geoJsonValue')))
+          R.map(
+            R.pipe(
+              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
+              R.indexBy(R.prop('geoJsonValue'))
+            )
+          )
         )(geosByType),
       MAX_MEMOIZED_CHARTS
     )
