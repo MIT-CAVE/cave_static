@@ -99,8 +99,9 @@ const styles = {
     fontWeight: 700,
   },
   categoryIcon: {
-    m: 0.75,
     p: 0.5,
+    mx: 'auto',
+    my: 0.75,
     width: '16px',
     height: '16px',
     borderRadius: 1,
