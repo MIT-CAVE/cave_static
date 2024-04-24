@@ -263,7 +263,10 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
                 R.pathOr([], [geoObj.type, 'filters']),
                 R.reject(R.propEq(false, 'active'))
               )(enabledArcs)
-              if (R.isNil(filteredFeature)) {
+              if (
+                R.isNil(filteredFeature) &&
+                !R.isEmpty(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+              ) {
                 console.warn(
                   `No feature with ${geoJsonValue} for property ${geoJsonProp}`
                 )
