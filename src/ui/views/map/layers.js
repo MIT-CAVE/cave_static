@@ -32,7 +32,7 @@ import {
   adjustArcPath,
 } from '../../../utils'
 
-export const Geos = memo(({ highlightLayerId, mapId }) => {
+export const Geos = memo(({ mapId }) => {
   const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const geoColorRange = useSelector(selectGeoColorRange)
   const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
@@ -46,8 +46,6 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
 
   const [selectedGeos, setSelectedGeos] = useState({})
   const [selectedArcs, setSelectedArcs] = useState({})
-
-  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
@@ -320,6 +318,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       type="geojson"
       key={layerId.GEOGRAPHY_LAYER}
       id={layerId.GEOGRAPHY_LAYER}
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: geoJsonObject,
@@ -331,9 +330,8 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         type="fill"
         paint={{
           'fill-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -344,6 +342,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
     <Source
       id={layerId.MULTI_ARC_LAYER_SOLID}
       key={layerId.MULTI_ARC_LAYER_SOLID}
+      generateId={true}
       type="geojson"
       data={{
         type: 'FeatureCollection',
@@ -360,9 +359,8 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         }}
         paint={{
           'line-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -375,6 +373,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       id={layerId.MULTI_ARC_LAYER_DASH}
       key={layerId.MULTI_ARC_LAYER_DASH}
       type="geojson"
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: R.propOr([], 'dashed', lineGeoJsonObject),
@@ -390,9 +389,8 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         }}
         paint={{
           'line-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -406,6 +404,7 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
       id={layerId.MULTI_ARC_LAYER_DOT}
       key={layerId.MULTI_ARC_LAYER_DOT}
       type="geojson"
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: R.propOr([], 'dotted', lineGeoJsonObject),
@@ -421,9 +420,8 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
         }}
         paint={{
           'line-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -436,15 +434,15 @@ export const Geos = memo(({ highlightLayerId, mapId }) => {
   ]
 })
 
-export const Nodes = memo(({ highlightLayerId, mapId }) => {
+export const Nodes = memo(({ mapId }) => {
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
 
   return (
     <Source
       id={layerId.NODE_ICON_LAYER}
       key={layerId.NODE_ICON_LAYER}
       type="geojson"
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: nodeGeoJson,
@@ -461,9 +459,8 @@ export const Nodes = memo(({ highlightLayerId, mapId }) => {
         }}
         paint={{
           'icon-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -472,14 +469,14 @@ export const Nodes = memo(({ highlightLayerId, mapId }) => {
     </Source>
   )
 })
-export const Arcs = memo(({ highlightLayerId, mapId }) => {
+export const Arcs = memo(({ mapId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
-  const highlight = R.isNotNil(highlightLayerId) ? highlightLayerId : -1
   return [
     <Source
       id={layerId.ARC_LAYER_SOLID}
       key={layerId.ARC_LAYER_SOLID}
       type="geojson"
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: R.propOr([], 'solid', arcLayerGeoJson),
@@ -491,9 +488,8 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
         type="line"
         paint={{
           'line-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -510,6 +506,7 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
       id={layerId.ARC_LAYER_DASH}
       key={layerId.ARC_LAYER_DASH}
       type="geojson"
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: R.propOr([], 'dashed', arcLayerGeoJson),
@@ -521,9 +518,8 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
         type="line"
         paint={{
           'line-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
@@ -541,6 +537,7 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
       id={layerId.ARC_LAYER_DOT}
       key={layerId.ARC_LAYER_DOT}
       type="geojson"
+      generateId={true}
       data={{
         type: 'FeatureCollection',
         features: R.propOr([], 'dotted', arcLayerGeoJson),
@@ -552,9 +549,8 @@ export const Arcs = memo(({ highlightLayerId, mapId }) => {
         type="line"
         paint={{
           'line-color': [
-            'match',
-            ['get', 'cave_name'],
-            highlight,
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
             HIGHLIGHT_COLOR,
             ['get', 'color'],
           ],
