@@ -178,7 +178,7 @@ const PropNestedHelper = ({
         return (
           <React.Fragment key={key}>
             <FormControlLabel
-              {...{ key, label }}
+              {...{ label }}
               disabled={!enabled}
               sx={{ pl: 1, ml: depth * 5 }}
               control={

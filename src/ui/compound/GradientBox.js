@@ -48,6 +48,8 @@ const GradientBox = ({
           zeroMinWidth
           sx={{
             mx: 1,
+            // puts this 'on top' of the gradient for clickability
+            zIndex: 2,
             fontWeight: 700,
             textAlign: 'center',
             padding: '8% 32% 8% 2%',

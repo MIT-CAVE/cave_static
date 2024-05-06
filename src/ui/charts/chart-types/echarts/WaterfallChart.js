@@ -10,6 +10,7 @@ import {
   getDecimalScaleLabel,
   getMinMax,
   findSubgroupLabels,
+  findColoring,
 } from '../../../../utils'
 
 /**
@@ -50,6 +51,15 @@ const getBarLayout = R.memoizeWith(
   }
 )
 
+const getYDomain = R.pipe(
+  R.flatten,
+  R.reject(isNaN),
+  getMinMax,
+  // Cap the min value at 0 if it's greater than 1
+  R.over(R.lensIndex(0), R.when(R.lte(1), R.always(0))),
+  R.apply(adjustMinMax) // Apply adjusted min/max values
+)
+
 const WaterfallChart = ({
   data,
   xAxisTitle,
@@ -80,7 +90,6 @@ const WaterfallChart = ({
       : api.value(1)
 
     const index = params.dataIndex
-    const style = api.style()
 
     const startCoord = api.coord([
       index === 0 || isNaN(previousVal) ? index : index - 1,
@@ -106,7 +115,9 @@ const WaterfallChart = ({
             width: barWidth,
             height: startCoord[1] - endCoord[1],
           },
-          style,
+          style: {
+            fill: api.visual('color'),
+          },
         },
         // Dashed line connecting the bars
         {
@@ -117,11 +128,11 @@ const WaterfallChart = ({
             x2: endCoord[0] + xOffset,
             y2: startCoord[1],
           },
-          style: api.style({
+          style: {
             stroke: api.visual('color'),
             lineDash: [8, 4],
             lineWidth: 2,
-          }),
+          },
         },
       ],
     }
@@ -145,7 +156,9 @@ const WaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
-          color: R.prop(R.head(d).name, colors),
+          color:
+            findColoring(R.head(d).name, colors) ??
+            getChartItemColor(R.head(d).name),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -160,8 +173,8 @@ const WaterfallChart = ({
     (d) => [
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
-        color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        color: R.map(
+          (item) => findColoring(item, colors) ?? getChartItemColor(item)
         )(xLabels),
       }),
     ]
@@ -177,11 +190,7 @@ const WaterfallChart = ({
         R.last
       )
     ),
-    R.flatten,
-    getMinMax,
-    // `R.apply` will convert the resulting `[<min>, <max>]`
-    // array to arguments for the `adjustMinMax` function
-    R.apply(adjustMinMax)
+    getYDomain
   )(series)
 
   const scaleFactor = getDecimalScaleFactor(yMax)
@@ -277,7 +286,6 @@ const StackedWaterfallChart = ({
 
   const renderItem = (params, api) => {
     const index = params.dataIndex
-    const style = api.style()
     const newValue = api.value(1)
 
     const direction = Math.sign(newValue) === -1 ? 'falling' : 'rising'
@@ -324,7 +332,9 @@ const StackedWaterfallChart = ({
         width: barWidth,
         height: endCoord[1] - startCoord[1],
       },
-      style,
+      style: {
+        fill: api.visual('color'),
+      },
     }
 
     // Dashed line connecting the bars
@@ -337,12 +347,12 @@ const StackedWaterfallChart = ({
           y2: lineStartCoord[1],
         },
         type: 'line',
-        style: api.style({
+        style: {
           stroke: '#ffffff',
           lineWidth: 2,
           lineDash: [8, 6],
           symbolSize: 120,
-        }),
+        },
         z2: 1,
       },
     ]
@@ -374,7 +384,9 @@ const StackedWaterfallChart = ({
       R.map((d) =>
         R.mergeDeepLeft(baseData, {
           name: R.head(d).name,
-          color: R.prop(R.head(d).name, colors),
+          color:
+            findColoring(R.head(d).name, colors) ??
+            getChartItemColor(R.head(d).name),
           data: R.map(
             // Sort by index, ensuring that empty data is set to undefined
             R.pipe(
@@ -389,15 +401,15 @@ const StackedWaterfallChart = ({
     (d) => [
       R.mergeDeepLeft(R.assoc('data', R.unnest(d), baseData), {
         colorBy: 'data',
-        color: R.addIndex(R.map)((item, idx) =>
-          R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+        color: R.map(
+          (item) => findColoring(item, colors) ?? getChartItemColor(item)
         )(xLabels),
       }),
     ]
   )(yValues)
 
   const [yMin, yMax] = R.pipe(
-    R.when(
+    R.ifElse(
       (val) => R.type(R.head(R.head(val))) === 'Object',
       R.pipe(
         R.mapAccum(
@@ -427,13 +439,10 @@ const StackedWaterfallChart = ({
         R.last,
         R.project(['max', 'min']),
         R.map(R.values)
-      )
+      ),
+      R.always(R.chain(R.props(['startValue', 'endValue']))(categoryBounds))
     ),
-    R.flatten,
-    getMinMax,
-    // `R.apply` will convert the resulting `[<min>, <max>]`
-    // array to arguments for the `adjustMinMax` function
-    R.apply(adjustMinMax)
+    getYDomain
   )(yValues)
 
   const getGraphSeries = (nodesData) => ({
@@ -444,14 +453,14 @@ const StackedWaterfallChart = ({
         name: 'Initial',
         symbol: 'diamond',
         itemStyle: {
-          color: getChartItemColor(subGroupLabels.length),
+          color: getChartItemColor('Initial'),
         },
       },
       {
         name: 'Net Change',
         symbol: 'circle',
         itemStyle: {
-          color: getChartItemColor(subGroupLabels.length + 1),
+          color: getChartItemColor('Net Change'),
         },
       },
     ],

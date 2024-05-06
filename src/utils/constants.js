@@ -2,7 +2,7 @@ import { chartAggrFunc, chartVariant } from './enums'
 
 export const DEFAULT_LOCALE = 'en-US'
 
-export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/4.10.1'
+export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/5.0.1'
 
 export const APP_BAR_WIDTH = 70
 export const PANE_WIDTH = 450

@@ -1,9 +1,9 @@
-import { Box, ButtonGroup, CardContent } from '@mui/material'
+import { ButtonGroup, CardContent } from '@mui/material'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import TimeButtons from './TimeButtons'
+import TimeControl from './TimeControl'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
@@ -27,13 +27,15 @@ const styles = {
     overflowWrap: 'break-word',
   },
   time: {
-    width: '160px',
-    pr: 3,
+    // width: '400px',
     bgcolor: 'background.paper',
-    button: {
-      width: '42px',
-    },
-    height: '42px',
+  },
+  icon: {
+    color: 'black',
+  },
+  buttons: {
+    display: 'flex',
+    alignItems: 'center',
   },
 }
 
@@ -95,17 +97,18 @@ const Draggables = () => {
           <Draggable
             sx={styles.globalOutputs}
             onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
+            cancel={'.MuiButtonBase-root'}
           >
             <GlobalOutputsPad />
           </Draggable>
         )}
       {R.path([draggableId.TIME, 'open'])(draggables) && (
         <Draggable
-          onClose={handleToggleDraggable(draggableId.TIME)}
           sx={styles.time}
-          component={Box}
+          onClose={handleToggleDraggable(draggableId.TIME)}
+          cancel={'.MuiButtonBase-root, .MuiFormControl-root, .MuiSlider-thumb'}
         >
-          <TimeButtons />
+          <TimeControl />
         </Draggable>
       )}
       {R.path([draggableId.SESSION, 'open'])(draggables) && (
@@ -113,6 +116,7 @@ const Draggables = () => {
           component={ButtonGroup}
           sx={styles.session}
           onClose={handleToggleDraggable(draggableId.SESSION)}
+          cancel={'.MuiButtonBase-root'}
         >
           <CardContent style={styles.content}>
             {`Current Session: ${sessionName}`}

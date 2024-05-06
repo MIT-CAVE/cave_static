@@ -67,6 +67,7 @@ import {
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getChartItemColor,
+  findColoring,
 } from '../../../../utils'
 
 // Register the required components
@@ -223,8 +224,8 @@ const EchartsPlot = ({
   const visualMap =
     chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
 
-  const color = R.addIndex(R.map)((item, idx) =>
-    R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+  const color = R.map(
+    (item) => findColoring(item, colors) ?? getChartItemColor(item)
   )(xLabels)
 
   const series = R.ifElse(
@@ -235,8 +236,11 @@ const EchartsPlot = ({
       R.collectBy(R.prop('name')),
       R.map((d) =>
         R.mergeRight(baseObject, {
+          id: R.head(d).id,
           name: R.head(d).name,
-          color: R.prop(R.head(d).name, colors),
+          color:
+            findColoring(R.head(d).name, colors) ??
+            getChartItemColor(R.head(d).name),
           data: R.map(
             R.pipe(
               (idx) => R.find(R.propEq(idx, 'index'), d),
@@ -290,6 +294,15 @@ const EchartsPlot = ({
       }
     : {}
 
+  const multiNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+
+  const getNumberFormat = (labelKey, value) =>
+    NumberFormat.format(value, numberFormat[labelKey])
+
   const options = {
     xAxis: {
       name: xAxisTitle,
@@ -304,7 +317,23 @@ const EchartsPlot = ({
     },
     series,
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      ...(multiNumberFormat
+        ? {
+            formatter: (params) =>
+              `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${params
+                  .map(
+                    ({ marker, seriesId, seriesName, value }) =>
+                      `<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
+                        <div><strong>${getNumberFormat(seriesId, value)}</strong></div>
+                      </div>`
+                  )
+                  .join('')}`,
+          }
+        : {
+            valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+          }),
     },
     ...lineMap,
   }

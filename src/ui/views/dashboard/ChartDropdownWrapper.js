@@ -11,7 +11,7 @@ import { addExtraProps, forceArray } from '../../../utils'
 const styles = {
   root: {
     mx: 0.5,
-    minWidth: '64px',
+    minWidth: '56px',
   },
   button: {
     top: 0,

@@ -1,8 +1,7 @@
 import { quantileSorted } from 'd3-array'
-import { color, hsl } from 'd3-color'
+import { color, rgb } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
 import { Parser } from 'expr-eval'
-import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
@@ -34,16 +33,14 @@ export const includesPath = (paths, path) => {
 // given a path of arc points adjust them to ensure proper wrapping around the anti-meridian
 export const adjustArcPath = (path) => {
   const idicies = R.range(1, path.length)
-
+  let lastCoord = R.path([0, 0])(path)
   const adjustedCoords = R.map((index) => {
     const x = path[index][0]
-    const prevX = path[index - 1][0]
 
-    const dx = x - prevX
+    const dx = x - lastCoord
 
-    const adjustedX = dx >= 180 ? x - 360 : dx <= -180 ? x + 360 : x
-
-    return [adjustedX, path[index][1]]
+    lastCoord = dx >= 180 ? x - 360 : dx <= -180 ? x + 360 : x
+    return [lastCoord, path[index][1]]
   })(idicies)
 
   return R.prepend(path[0], adjustedCoords)
@@ -109,6 +106,11 @@ export const getColoringFn = R.curry((data, item, subItem) =>
   R.pathOr({}, [item, 'levels', subItem, 'coloring'])(data)
 )
 
+export const findColoring = (name, colors) => {
+  const smallestName = R.pipe(R.split(' \u279D '), R.head)(name)
+  return R.prop(smallestName, colors)
+}
+
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
   if (!namesSet.has(name)) return name
@@ -122,22 +124,6 @@ export const eitherBoolOrNotNull = (value) =>
   typeof value === 'boolean' ? value : value != null
 
 export const getHeadOrValue = R.when(R.is(Array), R.head)
-
-/**
- * @deprecated
- * Adjust a given icon class
- * @function
- * @returns {function} A function that returns an icon that matches CAVE
- * standards.
- * @private
- */
-export const toIconInstance = (IconClass, className) => (
-  <IconClass className={className} size={36} />
-)
-toIconInstance.propTypes = {
-  className: PropTypes.string,
-  IconClass: PropTypes.node,
-}
 
 export const parseArray = (input) => {
   var s = input
@@ -451,9 +437,21 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
-export const getChartItemColor = (colorIndex) =>
-  CHART_PALETTE[colorIndex % CHART_PALETTE.length]
+export const generateHash = (str) => {
+  var hash = 0
+  if (str.length === 0) return hash
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i)
+    hash = (hash << 5) - hash + chr
+    hash |= 0 // Convert to 32bit integer
+  }
+  return hash
+}
 
+export const getChartItemColor = (name) => {
+  const colorIndex = Math.abs(generateHash(name))
+  return CHART_PALETTE[colorIndex % CHART_PALETTE.length]
+}
 /**
  * Converts a d3-color RGB object into a conventional RGBA array.
  * @function
@@ -479,15 +477,17 @@ export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   return rgbObjToRgbaArray(color(getColor(value)))
 })
 
-/**
- * This function calculates basic contrast.
- * For better accessibility compliance, there's an APCA algorithm-based solution in
- * https://github.com/Myndex/max-contrast. However, its GPLv3 license may not be
- * compatible with `cave_static`'s Apache License v2.0.
- * See: https://ruitina.com/apca-accessible-colour-contrast/
- */
-export const getContrastText = (bgColor) =>
-  hsl(color(bgColor)).l > 0.5 ? 'black' : 'white'
+export const getContrastText = (bgColor) => {
+  const background = rgb(bgColor)
+  // luminance is calculated using the formula provided in WCAG 2.0 guidelines,
+  // a specific weighted sum of the RGB values of the color
+  const luminance =
+    0.2126 * Math.pow(background.r / 255, 2.2) +
+    0.7152 * Math.pow(background.g / 255, 2.2) +
+    0.0722 * Math.pow(background.b / 255, 2.2)
+  // Using 0.179 threshold from the WCAG guidelines instead of 0.5 for better contrast
+  return luminance > 0.179 ? 'black' : 'white'
+}
 
 export const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
@@ -553,10 +553,10 @@ const fromZeroToOne = (x) => x >= 0 && x < 1
  * @returns {number[]} An array containing the new estimated bounds.
  * @private
  */
-export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.2) =>
+export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.05) =>
   fromZeroToOne(Math.abs(valueMin)) && fromZeroToOne(Math.abs(valueMax))
     ? [
-        valueMin > 0 ? valueMin * (1 - adjustPct) : 0,
+        valueMin > 0 ? 0 : valueMin * (1 + adjustPct),
         valueMax * (1 + adjustPct),
       ]
     : [
@@ -643,6 +643,12 @@ export const getSliderMarks = R.curry(
 
 export const getQuartilesData = R.mapObjIndexed(
   R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
+)
+
+export const getQuartiles = R.ifElse(
+  R.isNil,
+  R.always(R.repeat(NaN, 5)),
+  R.pipe(R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
 const allowedRangeKeys = [
@@ -742,28 +748,46 @@ export const capitalize = R.when(
   R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])
 )
 
-export const customSortByX = R.curry((ordering, data) => {
-  // Sort by the predefined `ordering` list
-  const sortByPredef = R.sortBy(
-    R.pipe(
-      R.prop('name'),
-      R.split(' \u279D '),
-      R.find(R.includes(R.__, ordering)),
-      R.indexOf(R.__, ordering)
-    )
-  )
-  // Sort by alphabetical order (ascending)
-  const sortByAlpha = R.sortBy(R.prop('name'))
-  // Separate the items that appear in `ordering` from the rest
-  const sublists = R.partition(
-    R.pipe(
-      R.prop('name'),
-      R.split(' \u279D '),
-      R.any(R.includes(R.__, ordering))
-    )
+export const customSortByX = R.curry((orderings, data) => {
+  const itemDepth = R.pipe(
+    R.head,
+    R.propOr('', 'name'),
+    R.split(' \u279D '),
+    R.length
   )(data)
-  return R.converge(R.concat, [
-    R.pipe(R.head, sortByPredef),
-    R.pipe(R.last, sortByAlpha),
-  ])(sublists)
+  // Sort by the predefined `ordering` list
+  const sortByPredef = (depth) =>
+    R.ascend(
+      R.pipe(
+        R.prop('name'),
+        R.split(' \u279D '),
+        R.prop(depth),
+        R.indexOf(R.__, orderings[depth] ?? []),
+        // If not found in `ordering`, move to the end
+        R.when(R.equals(-1), R.always(Infinity))
+      )
+    )
+  return R.sortWith([
+    ...R.reverse(R.map(sortByPredef, R.range(0, itemDepth))),
+    R.ascend(R.prop('name')),
+  ])(data)
 })
+
+export const cleanUndefinedStats = (chartObj) => {
+  const statIds = R.pathOr([], ['statId'], chartObj)
+  if (R.is(String, statIds)) return chartObj
+  const transformations = {
+    statId: R.dropLast(1),
+    groupedOutputDataId: R.dropLast(1),
+  }
+  const reduced_chart = R.isNil(R.last(statIds))
+    ? R.evolve(transformations, chartObj)
+    : chartObj
+
+  return R.any(R.isNil)(reduced_chart['statId'])
+    ? R.pipe(
+        R.assoc('statId', []),
+        R.assoc('groupedOutputDataId', [])
+      )(reduced_chart)
+    : reduced_chart
+}

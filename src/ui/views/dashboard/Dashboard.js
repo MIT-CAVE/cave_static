@@ -73,6 +73,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const defaultFilters = R.propOr([], 'filters')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
+  const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleShowToolbar = useCallback(() => {
@@ -117,6 +118,16 @@ const DashboardItem = ({ chartObj, index, path }) => {
     },
     [chartObj, dispatch, path, sync]
   )
+
+  const handleDefaultToZero = useCallback(() => {
+    dispatch(
+      mutateLocal({
+        path,
+        value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
+        sync: !includesPath(R.values(sync), path),
+      })
+    )
+  }, [chartObj, defaultToZero, dispatch, path, sync])
 
   const [statFilters, groupingFilters] = useMemo(
     () =>
@@ -164,27 +175,29 @@ const DashboardItem = ({ chartObj, index, path }) => {
             labelExtra={
               isMaximized
                 ? null
-                : `(${R.cond([
-                    [R.equals(0), R.always('Top-Left')],
-                    [R.equals(1), R.always('Top-Right')],
-                    [R.equals(2), R.always('Bottom-Left')],
-                    [R.equals(3), R.always('Bottom-Right')],
-                  ])(index)} Chart)`
+                : `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][index]} Chart)`
             }
             open={filterOpen}
             onSave={handleSaveFilters}
             onClose={handleCloseFilter}
           />
-          {showToolbar && <ChartToolbar {...{ chartObj, index, path }} />}
+          {showToolbar && (
+            <ChartToolbar
+              numFilters={numActiveStatFilters + numGroupingFilters}
+              showFilter={vizType === 'groupedOutput'}
+              onOpenFilter={handleOpenFilter}
+              {...{ chartObj, index, path }}
+            />
+          )}
           {!lockedLayout && !chartObj.lockedLayout && (
             <ChartMenu
               {...{ isMaximized, showToolbar }}
-              numFilters={numActiveStatFilters + numGroupingFilters}
-              showFilter={vizType === 'groupedOutput'}
               onRemoveChart={handleRemoveChart}
               onToggleMaximize={handleToggleMaximize}
               onShowToolbar={handleShowToolbar}
-              onOpenFilter={handleOpenFilter}
+              defaultToZero={defaultToZero}
+              onToggleDefaultToZero={handleDefaultToZero}
+              isGroupedOutput={vizType === 'groupedOutput'}
             />
           )}
           {vizType === 'groupedOutput' ? (
@@ -249,7 +262,7 @@ const Dashboard = () => {
       ]}
       disableGutters
     >
-      {!R.isEmpty(pageLayout) && (
+      {R.isNotEmpty(pageLayout) && (
         <Grid container spacing={1}>
           {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
             if (maximizedIndex > -1 && index !== maximizedIndex) return null

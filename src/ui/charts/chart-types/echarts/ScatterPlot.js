@@ -2,9 +2,15 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { NumberFormat, getMinMax } from '../../../../utils'
+import {
+  NumberFormat,
+  findColoring,
+  getMinMax,
+  getChartItemColor,
+} from '../../../../utils'
 
-const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
+const ScatterPlot = ({ data, labelProps, numberFormat, colors }) => {
+  const labels = R.pluck('label')(labelProps)
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
@@ -12,6 +18,9 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
     R.any(R.equals('undefined'), labels)
   )
     return []
+
+  const labelKeys = R.pluck('key')(labelProps)
+  const labelsExcludingUnits = R.map(R.replace(/\s*\[.*?\]/g, ''))(labels)
 
   const baseObject = {
     type: 'scatter',
@@ -27,7 +36,7 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
       {
         data: [val.value],
         name: val.name,
-        color: R.prop(val.name, colors),
+        color: findColoring(val.name, colors) ?? getChartItemColor(val.name),
       },
       baseObject
     )
@@ -48,6 +57,9 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
   const xRange = xMax - xMin
   const yRange = yMax - yMin
 
+  const getNumberFormat = (labelKey, value) =>
+    NumberFormat.format(value, numberFormat[labelKey])
+
   const options = {
     xAxis: {
       type: 'value',
@@ -64,8 +76,20 @@ const ScatterPlot = ({ data, labels, numberFormat, colors }) => {
     series,
     tooltip: {
       trigger: 'item',
-      formatter: '<b>{a0}</b><br/>{c}<br/>',
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      formatter: function (params) {
+        return `<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
+                <div style="display: flex">
+                  <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: center; margin-right: 30px">
+                    <div>${labelsExcludingUnits[1]}</div>
+                    <div>${labelsExcludingUnits[2]}</div>
+                  </div>
+                  <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: flex-end; font-weight:bold">
+                  <div>${getNumberFormat(labelKeys[1], params.value[0])}</div>
+                  <div>${getNumberFormat(labelKeys[2], params.value[1])}</div>
+                  </div>
+                </div>
+              `
+      },
     },
   }
 

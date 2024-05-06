@@ -124,7 +124,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
           return
         }
         const visibleValues = R.filter(containsSearchText)(levelValues)
-        if (!R.isEmpty(visibleValues)) {
+        if (R.isNotEmpty(visibleValues)) {
           resultGroupings[grouping].data[level] = visibleValues
         }
       })(levels)
@@ -162,7 +162,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
           option: R.equals('exc'),
           format: R.equals(grouping),
           prop: R.equals(level),
-          value: R.pipe(R.intersection(visibleValues), R.isEmpty, R.not),
+          value: R.pipe(R.intersection(visibleValues), R.isNotEmpty),
         })
       )(filters)
 
@@ -190,7 +190,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
           R.converge(
             // Check if there are any visible
             // values excluded in the filter
-            R.pipe(R.intersection, R.isEmpty, R.not),
+            R.pipe(R.intersection, R.isNotEmpty),
             [
               R.pipe(R.prop('prop'), R.flip(R.prop)(levels)), // Visible values
               R.prop('value'),
@@ -366,8 +366,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
         defaultFilter.format === filter.format &&
         R.pipe(
           R.symmetricDifference(defaultFilter.value),
-          R.isEmpty,
-          R.not
+          R.isNotEmpty
         )(filter.value)
       )
     })(filters)
@@ -571,11 +570,15 @@ const FilterModal = ({
       <Tabs variant="fullWidth" value={filterTab} onChange={handleChangeTab}>
         <Tab
           value="stats"
-          label={`Statistics${numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''}`}
+          label={`Statistics${
+            numActiveStatFilters > 0 ? ` (${numActiveStatFilters})` : ''
+          }`}
         />
         <Tab
           value="groups"
-          label={`Groups${numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''}`}
+          label={`Groups${
+            numGroupingFilters > 0 ? ` (${numGroupingFilters})` : ''
+          }`}
         />
       </Tabs>
       {filterTab === 'stats' ? (

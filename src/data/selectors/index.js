@@ -173,6 +173,17 @@ export const selectModals = createSelector(selectData, (data) =>
 export const selectMap = createSelector(selectData, (data) =>
   R.propOr({}, 'maps', data)
 )
+// Ordered dicts
+export const selectOrderedAppBar = createSelector(selectAppBar, (data) =>
+  orderEntireDict(data)
+)
+export const selectOrderedMaps = createSelector(selectMap, (data) =>
+  orderEntireDict(data)
+)
+export const selectOrderedGroupedOutputs = createSelector(
+  selectGroupedOutputs,
+  (data) => orderEntireDict(data)
+)
 // Data -> Types
 export const selectFeatureData = createSelector(selectMapFeatures, (data) =>
   R.propOr({}, 'data')(data)
@@ -199,13 +210,11 @@ export const selectModalsData = createSelector(
   R.propOr({}, 'data')
 )
 export const selectMapData = createSelector(
-  [selectMap, selectCurrentTime],
-  (data, time) =>
-    getTimeValue(time, orderEntireDict(R.propOr({}, 'data', data)))
+  [selectOrderedMaps, selectCurrentTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
 )
-
-export const selectAppBarData = createSelector(selectAppBar, (data) =>
-  orderEntireDict(R.propOr({}, 'data')(data))
+export const selectAppBarData = createSelector(selectOrderedAppBar, (data) =>
+  R.propOr({}, 'data')(data)
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
@@ -226,8 +235,8 @@ export const selectRightAppBarData = createSelector(
   )
 )
 export const selectGroupedOutputsData = createSelector(
-  selectGroupedOutputs,
-  (data) => orderEntireDict(R.propOr({}, 'data')(data))
+  selectOrderedGroupedOutputs,
+  (data) => R.propOr({}, 'data')(data)
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
@@ -240,10 +249,6 @@ export const selectAssociatedData = createSelector(selectAssociated, (data) =>
 // Data -> settings
 export const selectSettingsIconUrl = createSelector(selectSettings, (data) =>
   R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
-)
-export const selectDebug = createSelector(
-  selectSettings,
-  R.propOr(false, 'debug')
 )
 export const selectNumberFormat = createSelector(
   selectSettings,
@@ -545,14 +550,14 @@ export const selectRightGroupedAppBar = createSelector(
 export const selectLeftAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(leftData)) ||
-    (mirrorMode && !R.isEmpty(rightData))
+    (!mirrorMode && R.isNotEmpty(leftData)) ||
+    (mirrorMode && R.isNotEmpty(rightData))
 )
 export const selectRightAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(rightData)) ||
-    (mirrorMode && !R.isEmpty(leftData))
+    (!mirrorMode && R.isNotEmpty(rightData)) ||
+    (mirrorMode && R.isNotEmpty(leftData))
 )
 export const selectDemoViews = createSelector(
   [selectAppBarData, selectDemoSettings],
@@ -704,7 +709,7 @@ export const selectGlobalOutputProps = createSelector(
       R.propOr({}, 'props'),
       R.propOr({}, 'values'),
     ]),
-    R.filter(R.prop('value')),
+    R.reject(R.pipe(R.prop('value'), R.isNil)),
     R.map(R.assoc('enabled', false))
   )
 )
@@ -809,7 +814,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
   }
 )
 export const selectMapStyleOptions = createSelector(
-  [selectMap, selectMapboxToken],
+  [selectOrderedMaps, selectMapboxToken],
   (data, token) => ({
     ...DEFAULT_MAP_STYLES,
     ...R.pipe(
@@ -1104,15 +1109,20 @@ export const selectMatchingKeysByTypeFunc = createSelector(
       (mapId) =>
         R.pipe(
           R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(R.indexBy(R.prop('geoJsonValue')))
+          R.map(
+            R.pipe(
+              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
+              R.indexBy(R.prop('geoJsonValue'))
+            )
+          )
         )(geosByType),
       MAX_MEMOIZED_CHARTS
     )
 )
 // outputs derived
 export const selectStatGroupings = createSelector(
-  selectGroupedOutputs,
-  (data) => orderEntireDict(R.propOr({}, 'groupings', data))
+  selectOrderedGroupedOutputs,
+  (data) => R.propOr({}, 'groupings', data)
 )
 
 export const selectStatGroupingIndicies = createSelector(
@@ -1143,22 +1153,12 @@ export const selectGroupedOutputValueBuffers = createSelector(
 export const selectMemoizedChartFunc = createSelector(
   [
     selectGroupedOutputsData,
-    selectDebug,
     selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
-    selectGroupedOutputNames,
     selectGroupedOutputValueBuffers,
   ],
-  (
-    groupedOutputs,
-    debug,
-    statisticTypes,
-    groupings,
-    groupingIndicies,
-    statNames,
-    valueBuffers
-  ) =>
+  (groupedOutputs, statisticTypes, groupings, groupingIndicies, valueBuffers) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
       async (obj) => {
@@ -1174,17 +1174,38 @@ export const selectMemoizedChartFunc = createSelector(
           [chartAggrFunc.MEAN]: R.mean,
         }
 
+        const createParentalPath = (
+          path,
+          category,
+          currentLevel,
+          onlyOrdering = false
+        ) => {
+          const parent = R.path(
+            [category, 'levels', currentLevel, 'parent'],
+            groupings
+          )
+          if (
+            R.isNil(parent) ||
+            (onlyOrdering &&
+              !R.pathOr(
+                true,
+                [category, 'levels', currentLevel, 'orderWithParent'],
+                groupings
+              ))
+          )
+            return R.append(currentLevel, path)
+          else
+            return createParentalPath(
+              R.append(currentLevel, path),
+              category,
+              parent,
+              onlyOrdering
+            )
+        }
+
         // Given an index returns a string to group all similar indicies by
         const categoryFunc = R.curry((category, level, outputGroup) => {
-          const createParentalPath = (path, currentLevel) => {
-            const parent = R.path(
-              [category, 'levels', currentLevel, 'parent'],
-              groupings
-            )
-            if (R.isNil(parent)) return R.append(currentLevel, path)
-            else return createParentalPath(R.append(currentLevel, path), parent)
-          }
-          const parentalPath = createParentalPath([], level)
+          const parentalPath = createParentalPath([], category, level)
           const groupList = R.path([outputGroup, 'groupLists', category])(
             groupedOutputs
           )
@@ -1246,17 +1267,6 @@ export const selectMemoizedChartFunc = createSelector(
         )(actualStat)
 
         return Promise.all(calculatedStats).then((resolvedStats) => {
-          // Ordering for the X's in the chart
-          const getOrderingAtIndex = (idx) =>
-            R.pathOr(
-              [],
-              [
-                R.path(['groupingId', idx], obj),
-                'levels',
-                R.path(['groupingLevel', idx], obj),
-                'ordering',
-              ]
-            )(groupings)
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
           const statValues = R.map(
@@ -1269,13 +1279,13 @@ export const selectMemoizedChartFunc = createSelector(
                   : R.identity
               ),
               R.identity,
-              R.filter(R.pipe(R.isEmpty, R.not))
+              R.filter(R.isNotEmpty)
             ),
             resolvedStats
           )
 
           // Helper function to map merged stats to chart input object
-          const recursiveMapLayers = (val) =>
+          const recursiveMapLayers = (val, lowestGroupings) =>
             R.type(val) === 'Object'
               ? R.pipe(
                   R.values,
@@ -1285,26 +1295,56 @@ export const selectMemoizedChartFunc = createSelector(
                 ? R.values(
                     R.mapObjIndexed((value, key) => ({
                       name: R.isNil(obj.groupingId) ? 'All' : key,
-                      children: recursiveMapLayers(value),
+                      children: recursiveMapLayers(value, lowestGroupings),
                     }))(val)
                   )
-                : R.values(
-                    R.mapObjIndexed((value, key) => ({
-                      name: key,
-                      value: recursiveMapLayers(value),
-                    }))(val)
-                  )
+                : R.map((key) => ({
+                    name: key,
+                    value: recursiveMapLayers(R.propOr(0, key, val)),
+                  }))(R.isNil(lowestGroupings) ? R.keys(val) : lowestGroupings)
               : R.is(Array, val)
                 ? val
                 : [val]
 
+          // Helper function to list all of the lowest grouping levels before recursing
+          const recursiveMapLayersHelper = (objWithGroups) => {
+            const listLowestGroupings = (groupingLevel) =>
+              R.ifElse(
+                R.pipe(R.values, R.head, R.type, R.equals('Object')),
+                R.pipe(R.values, R.map(listLowestGroupings), R.flatten, R.uniq),
+                R.keys
+              )(groupingLevel)
+
+            return recursiveMapLayers(
+              objWithGroups,
+              R.propOr(false, 'defaultToZero', obj)
+                ? listLowestGroupings(objWithGroups)
+                : null
+            )
+          }
+
+          // Ordering for the X's in the chart
+          const getOrderingsAtIndex = (idx) => {
+            const parentalPath = createParentalPath(
+              [],
+              R.path(['groupingId', idx], obj),
+              R.path(['groupingLevel', idx], obj),
+              true
+            )
+            return R.map((level) =>
+              R.pathOr(
+                [],
+                [R.path(['groupingId', idx], obj), 'levels', level, 'ordering']
+              )(groupings)
+            )(parentalPath)
+          }
           const nLevelOrder = R.curry((depth, chartItem) => {
             return R.has('children', chartItem)
               ? R.assoc(
                   'children',
                   R.map(nLevelOrder(depth + 1))(
                     customSortByX(
-                      getOrderingAtIndex(depth),
+                      getOrderingsAtIndex(depth),
                       R.prop('children', chartItem)
                     )
                   ),
@@ -1315,15 +1355,13 @@ export const selectMemoizedChartFunc = createSelector(
           // Formats and sorts merged stats
           const getFormattedData = R.map(
             R.pipe(
-              debug
-                ? R.identity
-                : recursiveMap(
-                    (val) => R.type(val) !== 'Object',
-                    R.identity,
-                    R.dissoc(undefined)
-                  ),
-              recursiveMapLayers,
-              customSortByX(getOrderingAtIndex(0)),
+              recursiveMap(
+                (val) => R.type(val) !== 'Object',
+                R.identity,
+                R.dissoc(undefined)
+              ),
+              recursiveMapLayersHelper,
+              customSortByX(getOrderingsAtIndex(0)),
               // The 0th layer is sorted above due to not being a child, so we start at 1
               R.map(nLevelOrder(1))
             )
@@ -1341,7 +1379,6 @@ export const selectMemoizedChartFunc = createSelector(
             R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
             R.values
           )
-
           return R.is(Array, obj.statId)
             ? mergeMultiStatData(formattedData)
             : R.head(formattedData)
@@ -1373,7 +1410,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
                 R.propOr({}, 'values'),
               ]),
               R.pick(selectedGlobalOutputs),
-              R.filter(R.prop('value')), // It should be filtered by now, but just in case
+              R.reject(R.pipe(R.prop('value'), R.isNil)), // It should be filtered by now, but just in case
               withIndex,
               R.map((globalOutput) =>
                 R.assoc(
@@ -1389,7 +1426,10 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
                       parseFloat
                     )(globalOutput),
                   ],
-                  { name: globalOutput.name || globalOutput.id }
+                  {
+                    id: globalOutput.id,
+                    name: globalOutput.name || globalOutput.id,
+                  }
                 )
               )
             )(val),
@@ -1623,38 +1663,7 @@ export const selectGeoColorRange = createSelector(
     )
 )
 
-export const selectMatchingKeysFunc = createSelector(
-  [selectEnabledGeosFunc, selectMergedGeos, selectGeoColorRange],
-  (enabledGeosFunc, geosByType, geoRange) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(R.toPairs),
-          R.values,
-          R.unnest,
-          R.map((d) => R.assoc('data_key', d[0], d[1])),
-          R.filter((d) => {
-            const colorProp = R.path(
-              [d.type, 'colorBy'],
-              enabledGeosFunc(mapId)
-            )
-
-            const statRange = geoRange(d.type, colorProp, false)
-
-            return !(
-              R.has('nullColor', statRange) &&
-              R.isNil(R.prop('nullColor', statRange))
-            )
-          }),
-          R.indexBy(R.prop('geoJsonValue'))
-        )(geosByType),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-
-export const selectLineMatchingKeysFunc = createSelector(
+export const selectLineMatchingKeysByTypeFunc = createSelector(
   [selectMultiLineDataFunc, selectArcRange, selectEnabledArcsFunc],
   (dataFunc, arcRange, enabledArcsFunc) =>
     maxSizedMemoization(
@@ -1676,21 +1685,8 @@ export const selectLineMatchingKeysFunc = createSelector(
               R.isNil(R.prop('nullColor', statRange))
             )
           }),
-          R.indexBy(R.prop('geoJsonValue'))
-        )(dataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-export const selectLineMatchingKeysByTypeFunc = createSelector(
-  selectLineMatchingKeysFunc,
-  (dataFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.toPairs,
-          R.groupBy(R.path([1, 'type'])),
-          R.map(R.fromPairs)
+          R.groupBy(R.prop('type')),
+          R.map(R.indexBy(R.prop('geoJsonValue')))
         )(dataFunc(mapId)),
       MAX_MEMOIZED_CHARTS
     )
@@ -2176,7 +2172,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             const colorString = R.equals('', colorPropVal)
               ? nullColor
               : `rgba(${color.join(',')})`
-
+            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+              return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =
@@ -2288,7 +2285,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             const colorString = R.equals('', colorPropVal)
               ? nullColor
               : `rgba(${color.join(',')})`
-
+            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+              return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =

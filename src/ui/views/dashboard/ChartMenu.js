@@ -10,7 +10,6 @@ import {
   Switch,
 } from '@mui/material'
 import { memo } from 'react'
-import { FaFilter } from 'react-icons/fa'
 import {
   MdClose,
   MdFullscreen,
@@ -75,10 +74,10 @@ const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
 
 const ChartMenu = ({
   isMaximized,
+  isGroupedOutput,
+  defaultToZero,
+  onToggleDefaultToZero,
   showToolbar,
-  showFilter,
-  numFilters,
-  onOpenFilter,
   onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
@@ -108,13 +107,7 @@ const ChartMenu = ({
           placement="bottom-start"
           onClick={handleOpenMenu}
         >
-          <Badge
-            color="info"
-            variant="dot"
-            invisible={!showFilter || numFilters < 1}
-          >
-            <MdMoreVert />
-          </Badge>
+          <MdMoreVert />
         </TooltipButton>
       </ButtonGroup>
       <Menu
@@ -137,19 +130,14 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        {showFilter && (
-          <BaseMenuItem
-            label="Filter Data"
-            ReactIcon={FaFilter}
-            badgeProps={{
-              color: 'info',
-              badgeContent: numFilters,
-              invisible: numFilters < 1,
-            }}
-            onClick={handleEventAndCloseMenu(onOpenFilter)}
+        {isGroupedOutput && (
+          <ToggleMenuItem
+            label="0 NA Values"
+            value={defaultToZero}
+            onClick={onToggleDefaultToZero}
           />
         )}
-        {showFilter && <Divider />}
+        {isGroupedOutput && <Divider />}
         <BaseMenuItem
           label="Remove Chart"
           ReactIcon={MdClose}

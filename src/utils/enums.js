@@ -42,6 +42,7 @@ export const propVariant = {
   CHECKBOX: 'checkbox',
   COLUMN: 'column',
   COMBOBOX: 'combobox',
+  COMBOBOX_MULTI: 'comboboxMulti',
   DATE: 'date',
   DATETIME: 'datetime',
   DROPDOWN: 'dropdown',
@@ -149,9 +150,9 @@ export const chartMaxGrouping = {
   [chartVariant.STACKED_AREA]: 2,
   [chartVariant.STACKED_BAR]: 2,
   [chartVariant.STACKED_WATERFALL]: 2,
-  [chartVariant.SUNBURST]: 2,
-  [chartVariant.TABLE]: 2,
-  [chartVariant.TREEMAP]: 2,
+  [chartVariant.SUNBURST]: Infinity, // FIXME: Should we set up a limit?
+  [chartVariant.TABLE]: Infinity, // FIXME
+  [chartVariant.TREEMAP]: Infinity, // FIXME
   [chartVariant.WATERFALL]: 2,
   [chartVariant.GAUGE]: 1,
   [chartVariant.HEATMAP]: 2,

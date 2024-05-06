@@ -54,7 +54,6 @@ const Map = ({ mapboxToken, mapId }) => {
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const sync = useSelector(selectSync)
-  const [highlightLayerId, setHighlightLayerId] = useState()
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   const mapExists = R.has(mapId, mapData)
@@ -63,6 +62,7 @@ const Map = ({ mapboxToken, mapId }) => {
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef(false)
+  const highlight = useRef(null)
 
   const demoInterval = useRef(-1)
   useEffect(() => {
@@ -144,6 +144,8 @@ const Map = ({ mapboxToken, mapId }) => {
                   JSON.parse(clickedNode.properties.cave_obj)
                 )
               : JSON.parse(clickedNode.properties.cave_obj),
+            clickedNode['id'],
+            clickedNode['source'],
           ]
         : R.isNotNil(clickedArc)
           ? [
@@ -156,6 +158,8 @@ const Map = ({ mapboxToken, mapId }) => {
                     JSON.parse(clickedArc.properties.cave_name),
                     arcData
                   ),
+              clickedArc['id'],
+              clickedArc['source'],
             ]
           : R.isNotNil(clickedGeo)
             ? [
@@ -166,6 +170,8 @@ const Map = ({ mapboxToken, mapId }) => {
                   JSON.parse(clickedGeo.properties.cave_name),
                   geosData
                 ),
+                clickedGeo['id'],
+                clickedGeo['source'],
               ]
             : null
 
@@ -180,29 +186,40 @@ const Map = ({ mapboxToken, mapId }) => {
       if (mapRef.current) {
         const canvas = mapRef.current.getCanvas()
         const featureObj = getFeatureFromEvent(e)
+        if (R.isNotNil(highlight.current)) {
+          mapRef.current.setFeatureState(highlight.current, { hover: false })
+          highlight.current = null
+        }
         if (!featureObj) {
           if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
-          if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
         } else {
-          const [id] = featureObj
-          setHighlightLayerId(id)
+          const id = featureObj[3]
+          const source = featureObj[4]
+          mapRef.current.setFeatureState({ source, id }, { hover: true })
+          highlight.current = { source, id }
           if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
         }
       }
     },
-    [getFeatureFromEvent, highlightLayerId]
+    [getFeatureFromEvent]
   )
 
   const onMouseOver = useCallback(() => {
-    if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
-  }, [highlightLayerId])
+    if (R.isNotNil(highlight.current)) {
+      mapRef.current.setFeatureState(highlight.current, { hover: false })
+      highlight.current = null
+    }
+  }, [])
 
   const onClick = useCallback(
     (e) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) return
       const [id, feature, obj] = featureObj
-      setHighlightLayerId()
+      if (R.isNotNil(highlight.current)) {
+        mapRef.current.setFeatureState(highlight.current, { hover: false })
+        highlight.current = null
+      }
 
       dispatch(
         mutateLocal({
@@ -245,7 +262,7 @@ const Map = ({ mapboxToken, mapId }) => {
     return () =>
       document.removeEventListener('clearHighlight', onMouseOver, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightLayerId])
+  }, [])
 
   return !mapExists ? (
     []
@@ -284,9 +301,9 @@ const Map = ({ mapboxToken, mapId }) => {
           mapRef.current && mapRef.current.resize()
         }}
       >
-        <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
-        <Arcs highlightLayerId={highlightLayerId} mapId={mapId} />
-        <Nodes highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Geos mapId={mapId} />
+        <Arcs mapId={mapId} />
+        <Nodes mapId={mapId} />
         <Arcs3D mapId={mapId} />
       </ReactMapGL>
       <MapModal mapId={mapId} />

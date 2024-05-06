@@ -7,6 +7,7 @@ import {
   adjustMinMax,
   getMinMax,
   getChartItemColor,
+  findColoring,
 } from '../../../../utils'
 
 const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
@@ -79,9 +80,7 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
             },
             detail: {
               offsetCenter: [`${calculateOffset(acc)}%`, '103%'],
-              formatter: () => {
-                return `${NumberFormat.format(value, numberFormat)}`
-              },
+              formatter: NumberFormat.format(value, numberFormat),
             },
           },
         ],
@@ -93,8 +92,8 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
   const initialSeries = [
     R.mergeDeepLeft(R.assoc('data', createSeriesData(yValues), baseObject), {
       colorBy: 'data',
-      color: R.addIndex(R.map)((item, idx) =>
-        R.has(item, colors) ? R.prop(item, colors) : getChartItemColor(idx)
+      color: R.map(
+        (item) => findColoring(item, colors) ?? getChartItemColor(item)
       )(xLabels),
     }),
   ]

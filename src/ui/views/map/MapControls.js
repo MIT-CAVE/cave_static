@@ -42,7 +42,7 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 import { unitPlacements } from '../../../utils/enums'
-import TimeButtons from '../common/TimeButtons'
+import TimeControl from '../common/TimeControl'
 
 import { FetchedIcon, TooltipButton } from '../../compound'
 
@@ -205,7 +205,14 @@ const MapControls = ({ allowProjections, mapId }) => {
     () =>
       R.pipe(
         R.values,
-        R.chain(R.pipe(R.prop('data'), R.values, R.pluck('filters'))),
+        R.chain(
+          R.pipe(
+            R.prop('data'),
+            R.values,
+            R.reject(R.prop('group')), // Filters are not applied to grouped nodes
+            R.pluck('filters')
+          )
+        ),
         R.unnest,
         R.any(R.both(R.isNotNil, R.propOr(true, 'active')))
       )(legendData),
@@ -258,7 +265,7 @@ const MapControls = ({ allowProjections, mapId }) => {
       >
         <Box sx={styles.rowButtons}>
           {/*Animation Controls*/}
-          <TimeButtons />
+          <TimeControl compact />
 
           {/* Map legend */}
           <ButtonGroup

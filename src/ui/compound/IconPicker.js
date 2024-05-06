@@ -2,51 +2,50 @@ import { Typography } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import TextField from '@mui/material/TextField'
 import * as R from 'ramda'
-import React, { useEffect, useState } from 'react'
+import { cloneElement, forwardRef, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
-import { List } from 'react-virtualized'
+import { FixedSizeList } from 'react-window'
 
 import FetchedIcon from './FetchedIcon'
 
 import { selectSettingsIconUrl } from '../../data/selectors'
 
-const ListboxComponent = React.forwardRef(
-  function ListboxComponent(props, ref) {
-    const { children, role, ...other } = props
-    const itemCount = Array.isArray(children) ? children.length : 0
-    const itemSize = 79
+const ListboxComponent = forwardRef(function ListboxComponent(props, ref) {
+  const { children, role, ...other } = props
+  const itemCount = Array.isArray(children) ? children.length : 0
+  const itemSize = 79
 
-    return (
-      <div ref={ref}>
-        <div {...other}>
-          <List
-            height={250}
-            width={300}
-            rowHeight={itemSize}
-            overscanCount={5}
-            rowCount={itemCount}
-            rowRenderer={(props) => {
-              const child = children[props.index]
-              return React.cloneElement(
-                child,
-                {
-                  style: props.style,
-                },
-                <>
-                  <FetchedIcon size={52} iconName={child.key} />
-                  <Typography sx={{ mx: 'auto' }} align="right">
-                    {child.key}
-                  </Typography>
-                </>
-              )
-            }}
-            role={role}
-          />
-        </div>
+  return (
+    <div ref={ref}>
+      <div {...other}>
+        <FixedSizeList
+          height={250}
+          width={300}
+          itemSize={itemSize}
+          itemCount={itemCount}
+          overscanCount={5}
+          role={role}
+        >
+          {(props) => {
+            const child = children[props.index]
+            return cloneElement(
+              child,
+              {
+                style: props.style,
+              },
+              <>
+                <FetchedIcon size={52} iconName={child.key} />
+                <Typography sx={{ mx: 'auto' }} align="right">
+                  {child.key}
+                </Typography>
+              </>
+            )
+          }}
+        </FixedSizeList>
       </div>
-    )
-  }
-)
+    </div>
+  )
+})
 
 export default function IconPicker({ onSelect }) {
   const [options, setOptions] = useState([])
@@ -77,10 +76,10 @@ export default function IconPicker({ onSelect }) {
       renderInput={(params) => (
         <TextField
           {...params}
-          autoFocus={true}
+          fullWidth
+          autoFocus
           variant="outlined"
           label="Search to replace the icon"
-          fullWidth
         />
       )}
     />

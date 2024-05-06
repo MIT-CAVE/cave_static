@@ -133,6 +133,11 @@ const App = () => {
               paper: '#4a4a4a',
             },
           },
+          mixins: {
+            MuiDataGrid: {
+              containerBackground: '#4a4a4a',
+            },
+          },
           typography: {
             fontFamily: 'inherit',
           },
