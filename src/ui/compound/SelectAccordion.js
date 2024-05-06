@@ -133,7 +133,6 @@ const SelectAccordion = ({
       open={controlled ? open : openState}
       value={values}
       onOpen={(event) => {
-        console.log(controlled, { open })
         controlled ? onOpen(event) : setOpenState(true)
       }}
       onClose={(event) => {
