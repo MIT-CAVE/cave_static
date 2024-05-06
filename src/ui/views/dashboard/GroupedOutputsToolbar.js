@@ -62,7 +62,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   // Determine which groups can be selected based on the chosen stat(s)
   const groupByOptions = R.ifElse(
     R.propSatisfies(
-      R.either(R.is(String), R.both(R.is(Array), R.pipe(R.isEmpty, R.not))),
+      R.either(R.is(String), R.both(R.is(Array), R.isNotEmpty)),
       'statId'
     ),
     R.pipe(

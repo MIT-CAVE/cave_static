@@ -72,7 +72,7 @@ const ActionItems = ({ items = [], disabled }) => {
           </Tooltip>
         )
       )}
-      {!R.isEmpty(hiddenItems) && (
+      {R.isNotEmpty(hiddenItems) && (
         <>
           <IconButton {...{ disabled }} onClick={handleOpenMenu}>
             <FetchedIcon iconName="md/MdMoreVert" />

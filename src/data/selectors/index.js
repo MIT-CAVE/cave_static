@@ -550,14 +550,14 @@ export const selectRightGroupedAppBar = createSelector(
 export const selectLeftAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(leftData)) ||
-    (mirrorMode && !R.isEmpty(rightData))
+    (!mirrorMode && R.isNotEmpty(leftData)) ||
+    (mirrorMode && R.isNotEmpty(rightData))
 )
 export const selectRightAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(rightData)) ||
-    (mirrorMode && !R.isEmpty(leftData))
+    (!mirrorMode && R.isNotEmpty(rightData)) ||
+    (mirrorMode && R.isNotEmpty(leftData))
 )
 export const selectDemoViews = createSelector(
   [selectAppBarData, selectDemoSettings],
@@ -1279,7 +1279,7 @@ export const selectMemoizedChartFunc = createSelector(
                   : R.identity
               ),
               R.identity,
-              R.filter(R.pipe(R.isEmpty, R.not))
+              R.filter(R.isNotEmpty)
             ),
             resolvedStats
           )

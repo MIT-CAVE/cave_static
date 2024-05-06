@@ -65,7 +65,7 @@ const styles = {
     }),
   },
   tabBtn: {
-    mx: 'auto',
+    alignSelf: 'center',
   },
   navBtn: {
     my: 0.5,
@@ -151,7 +151,8 @@ const getAppBarItem = ({
   ) : type === 'pane' ? (
     variant === 'modal' ? (
       <ButtonInTabs
-        {...{ key, icon, color }}
+        key={key}
+        {...{ icon, color }}
         disabled={loading}
         onClick={() => {
           dispatch(
@@ -189,7 +190,8 @@ const getAppBarItem = ({
     )
   ) : type === 'button' ? (
     <ButtonInTabs
-      {...{ key, icon, color }}
+      key={key}
+      {...{ icon, color }}
       disabled={loading}
       onClick={() => {
         dispatch(
@@ -208,7 +210,8 @@ const getAppBarItem = ({
     />
   ) : type === 'page' ? (
     <ButtonInTabs
-      {...{ key, icon, color }}
+      key={key}
+      {...{ icon, color }}
       disabled={loading}
       sx={[
         styles.navBtn,
