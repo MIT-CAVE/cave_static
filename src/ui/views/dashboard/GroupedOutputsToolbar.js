@@ -1,4 +1,4 @@
-import { IconButton, Paper, Grid } from '@mui/material'
+import { Grid, IconButton, Paper } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { MdSwapHoriz } from 'react-icons/md'
@@ -21,6 +21,7 @@ import {
   chartStatUses,
   chartVariant,
 } from '../../../utils/enums'
+import SelectAccordionList from '../../compound/SelectAccordionList'
 
 import {
   Select,
@@ -100,6 +101,47 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   }
 
   const path = ['pages', 'data', currentPage, 'pageLayout', index]
+
+  const handleAddGroup = () => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.evolve({
+          groupingId: R.append(null),
+          groupingLevel: R.append(null),
+        })(chartObj),
+      })
+    )
+  }
+  const handleDeleteGroupFn = (n = 0) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.pipe(
+          R.dissocPath(['groupingId', n]),
+          R.dissocPath(['groupingLevel', n])
+        )(chartObj),
+      })
+    )
+  }
+  const handleChangeGroupIndexFn = (prevN, n) => {
+    const [grouping, level] = getGroupValues(prevN)
+    const [grouping2, level2] = getGroupValues(n)
+    dispatch(
+      mutateLocal({
+        path,
+        value: R.pipe(
+          R.assocPath(['groupingId', prevN], grouping2),
+          R.assocPath(['groupingLevel', prevN], level2),
+          R.assocPath(['groupingId', n], grouping),
+          R.assocPath(['groupingLevel', n], level)
+        )(chartObj),
+        sync: !includesPath(R.values(sync), path),
+      })
+    )
+  }
   const handleSelectGroupFn =
     (n = 0) =>
     (item, subItem) => {
@@ -420,82 +462,102 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           />
         )}
       </ChartDropdownWrapper>
-      <ChartDropdownWrapper>
-        <SelectAccordion
-          {...{ itemGroups }}
-          values={getGroupValues()}
-          placeholder="Group By"
-          getLabel={getLabelFn(categories)}
-          getSubLabel={getSubLabelFn(categories)}
-          onSelect={handleSelectGroupFn()}
-        />
-      </ChartDropdownWrapper>
 
-      {chartMaxGrouping[chartObj.variant] === 2 ? (
+      {chartMaxGrouping[chartObj.variant] > 2 ? (
+        <ChartDropdownWrapper>
+          <SelectAccordionList
+            {...{ itemGroups }}
+            values={R.pipe(
+              R.props(['groupingId', 'groupingLevel']),
+              R.map(R.defaultTo('')),
+              R.apply(R.zip)
+            )(chartObj)}
+            placeholder="Group By"
+            getLabel={getLabelFn(categories)}
+            getSubLabel={getSubLabelFn(categories)}
+            onAddGroup={handleAddGroup}
+            onChangeGroupIndex={handleChangeGroupIndexFn}
+            onDeleteGroup={handleDeleteGroupFn}
+            onSelectGroup={handleSelectGroupFn}
+          />
+        </ChartDropdownWrapper>
+      ) : (
         <>
-          <Paper
-            component={Grid}
-            display="flex"
-            item
-            elevation={6}
-            sx={{
-              minWidth: '35px',
-              height: '40%',
-              my: 'auto',
-              borderRadius: '40%',
-              mx: 0.5,
-            }}
-          >
-            <SwapButton
-              onClick={() => {
-                const [grouping, level] = getGroupValues()
-                const [grouping2, level2] = getGroupValues(1)
-                dispatch(
-                  mutateLocal({
-                    path,
-                    value: R.pipe(
-                      R.assocPath(['groupingId', 0], grouping2),
-                      R.assocPath(['groupingLevel', 0], level2),
-                      R.assocPath(['groupingId', 1], grouping),
-                      R.assocPath(['groupingLevel', 1], level)
-                    )(chartObj),
-                    sync: !includesPath(R.values(sync), path),
-                  })
-                )
-              }}
-            />
-          </Paper>
-          <ChartDropdownWrapper
-            menuProps={{
-              transformOrigin: { horizontal: 'right', vertical: 'top' },
-              anchorOrigin: { horizontal: 'right', vertical: 'bottom' },
-            }}
-            clearable={R.hasPath(['groupingLevel', 1], chartObj)}
-            onClear={() => {
-              dispatch(
-                mutateLocal({
-                  path,
-                  sync: !includesPath(R.values(sync), path),
-                  value: R.pipe(
-                    R.dissocPath(['groupingId', 1]),
-                    R.dissocPath(['groupingLevel', 1])
-                  )(chartObj),
-                })
-              )
-            }}
-          >
+          <ChartDropdownWrapper>
             <SelectAccordion
               {...{ itemGroups }}
-              values={getGroupValues(1)}
-              placeholder="Sub Group"
+              values={getGroupValues()}
+              placeholder="Group By"
               getLabel={getLabelFn(categories)}
               getSubLabel={getSubLabelFn(categories)}
-              onSelect={handleSelectGroupFn(1)}
+              onSelect={handleSelectGroupFn()}
             />
           </ChartDropdownWrapper>
+          {chartMaxGrouping[chartObj.variant] === 2 && (
+            <>
+              <Paper
+                component={Grid}
+                display="flex"
+                item
+                elevation={6}
+                sx={{
+                  minWidth: '35px',
+                  height: '40%',
+                  my: 'auto',
+                  borderRadius: '40%',
+                  mx: 0.5,
+                }}
+              >
+                <SwapButton
+                  onClick={() => {
+                    const [grouping, level] = getGroupValues()
+                    const [grouping2, level2] = getGroupValues(1)
+                    dispatch(
+                      mutateLocal({
+                        path,
+                        value: R.pipe(
+                          R.assocPath(['groupingId', 0], grouping2),
+                          R.assocPath(['groupingLevel', 0], level2),
+                          R.assocPath(['groupingId', 1], grouping),
+                          R.assocPath(['groupingLevel', 1], level)
+                        )(chartObj),
+                        sync: !includesPath(R.values(sync), path),
+                      })
+                    )
+                  }}
+                />
+              </Paper>
+              <ChartDropdownWrapper
+                menuProps={{
+                  transformOrigin: { horizontal: 'right', vertical: 'top' },
+                  anchorOrigin: { horizontal: 'right', vertical: 'bottom' },
+                }}
+                clearable={R.hasPath(['groupingLevel', 1], chartObj)}
+                onClear={() => {
+                  dispatch(
+                    mutateLocal({
+                      path,
+                      sync: !includesPath(R.values(sync), path),
+                      value: R.pipe(
+                        R.dissocPath(['groupingId', 1]),
+                        R.dissocPath(['groupingLevel', 1])
+                      )(chartObj),
+                    })
+                  )
+                }}
+              >
+                <SelectAccordion
+                  {...{ itemGroups }}
+                  values={getGroupValues(1)}
+                  placeholder="Sub Group"
+                  getLabel={getLabelFn(categories)}
+                  getSubLabel={getSubLabelFn(categories)}
+                  onSelect={handleSelectGroupFn(1)}
+                />
+              </ChartDropdownWrapper>
+            </>
+          )}
         </>
-      ) : (
-        []
       )}
     </>
   )
