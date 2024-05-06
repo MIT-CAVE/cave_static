@@ -1,6 +1,7 @@
 import {
   Autocomplete,
   Chip,
+  ClickAwayListener,
   Divider,
   IconButton,
   Stack,
@@ -40,6 +41,7 @@ const SelectAccordionList = ({
   disabled,
   values,
   placeholder,
+  maxGrouping,
   itemGroups = {},
   getLabel = R.identity,
   getSubLabel = R.identity,
@@ -61,146 +63,155 @@ const SelectAccordionList = ({
     [getLabel, getSubLabel]
   )
 
+  const handleClickAway = useCallback(
+    (event) => {
+      if (R.includes(true)(subOpen)) return
+      onClickAway(event)
+      setOpen(false)
+    },
+    [onClickAway, subOpen]
+  )
+
   return (
-    <Autocomplete
-      {...{ disabled, open, options, ...props }}
-      sx={styles.root}
-      multiple
-      fullWidth
-      disablePortal
-      disableListWrap
-      disableClearable
-      disableCloseOnSelect
-      noOptionsText="No Groups"
-      value={values}
-      getOptionLabel={R.toString}
-      isOptionEqualToValue={(index, value) => R.equals(value)(values[index])}
-      onOpen={() => {
-        setOpen(true)
-      }}
-      // // BUG: This one triggers before `onOpen`'s `setSubOpen` finishes
-      // onClose={(event) => {
-      //   if (R.includes(true)(subOpen)) return
-      //   onClickAway(event)
-      //   setOpen(false)
-      // }}
-      renderOption={(props, optionIndex) => {
-        const { key, ...other } = R.dissoc('aria-selected')(props)
-        const isLast = optionIndex === values.length - 1
-        return (
-          <Fragment key={key}>
-            <li {...other}>
-              <SelectAccordion
-                {...{ itemGroups, getLabel, getSubLabel }}
-                fullWidth
-                placeholder="Group By"
-                values={R.when(
-                  R.any(R.isNil),
-                  R.always('')
-                )(values[optionIndex])}
-                open={subOpen[optionIndex] ?? false}
-                onOpen={() => {
-                  setSubOpen(R.assoc(optionIndex, true))
-                }}
-                onClose={(event) => {
-                  setSubOpen(R.assoc(optionIndex, false))
-                  onClickAway(event)
-                  setOpen(false)
-                }}
-                onSelect={onSelectGroup(optionIndex)}
-              />
-              {values.length > 1 && (
-                <Stack direction="column" ml={1} spacing={0.5}>
-                  <IconButton
-                    size="small"
-                    disabled={optionIndex < 1}
-                    onClick={() => {
-                      onChangeGroupIndex(optionIndex, optionIndex - 1)
-                    }}
-                  >
-                    <MdKeyboardArrowUp />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    disabled={isLast}
-                    onClick={() => {
-                      onChangeGroupIndex(optionIndex, optionIndex + 1)
-                    }}
-                  >
-                    <MdKeyboardArrowDown />
-                  </IconButton>
-                </Stack>
-              )}
-              <IconButton
-                size="small"
-                sx={{ ml: 1 }}
-                onClick={() => {
-                  onDeleteGroup(optionIndex)
-                }}
-              >
-                <IoMdCloseCircle />
-              </IconButton>
-            </li>
-            {!isLast && <Divider component="li" sx={{ opacity: 0.6 }} />}
-          </Fragment>
-        )
-      }}
-      renderTags={(value, getTagProps) =>
-        value.map((option, index) => {
-          const { key, ...props } = getTagProps({ index })
-          const undefGroup = option[0] == null
+    <ClickAwayListener onClickAway={handleClickAway}>
+      <Autocomplete
+        {...{ disabled, open, options, ...props }}
+        sx={styles.root}
+        multiple
+        fullWidth
+        disablePortal
+        disableListWrap
+        disableClearable
+        disableCloseOnSelect
+        noOptionsText="No Groups"
+        value={values}
+        getOptionLabel={R.toString}
+        isOptionEqualToValue={(index, value) => R.equals(value)(values[index])}
+        onOpen={() => {
+          setOpen(true)
+        }}
+        renderOption={(props, optionIndex) => {
+          const { key, ...other } = R.dissoc('aria-selected')(props)
+          const isLast = optionIndex === values.length - 1
           return (
-            <Chip
-              key={key}
-              {...props}
-              variant={undefGroup ? 'filled' : 'outlined'}
-              color={undefGroup ? 'default' : 'primary'}
-              label={undefGroup ? 'All' : getTagLabel(option)}
-              onDelete={() => {
-                onDeleteGroup(index)
+            <Fragment key={key}>
+              <li {...other}>
+                <SelectAccordion
+                  {...{ itemGroups, getLabel, getSubLabel }}
+                  fullWidth
+                  placeholder="Group By"
+                  values={R.when(
+                    R.any(R.isNil),
+                    R.always('')
+                  )(values[optionIndex])}
+                  open={subOpen[optionIndex] ?? false}
+                  onOpen={() => {
+                    setSubOpen(R.assoc(optionIndex, true))
+                  }}
+                  onClose={() => {
+                    setSubOpen(R.assoc(optionIndex, false))
+                  }}
+                  onSelect={onSelectGroup(optionIndex)}
+                />
+                {values.length > 1 && (
+                  <Stack direction="column" ml={1} spacing={0.5}>
+                    <IconButton
+                      size="small"
+                      disabled={optionIndex < 1}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onChangeGroupIndex(optionIndex, optionIndex - 1)
+                      }}
+                    >
+                      <MdKeyboardArrowUp />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      disabled={isLast}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onChangeGroupIndex(optionIndex, optionIndex + 1)
+                      }}
+                    >
+                      <MdKeyboardArrowDown />
+                    </IconButton>
+                  </Stack>
+                )}
+                <IconButton
+                  size="small"
+                  sx={{ ml: 1 }}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onDeleteGroup(optionIndex)
+                  }}
+                >
+                  <IoMdCloseCircle />
+                </IconButton>
+              </li>
+              {!isLast && <Divider component="li" sx={{ opacity: 0.6 }} />}
+            </Fragment>
+          )
+        }}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => {
+            const { key, ...props } = getTagProps({ index })
+            const undefGroup = option[0] == null
+            return (
+              <Chip
+                key={key}
+                {...props}
+                variant={undefGroup ? 'outlined' : 'filled'}
+                color={undefGroup ? 'warning' : 'default'}
+                label={undefGroup ? 'All' : getTagLabel(option)}
+                onDelete={() => {
+                  onDeleteGroup(index)
+                }}
+              />
+            )
+          })
+        }
+        renderInput={(params) => {
+          const { InputProps, inputProps, ...other } = params
+          // HACK: This workaround ensures proper marqueeing of overflowing tags since tag elements
+          // rendered as part of the `startAdornment` prop of a MUI `InputBase` component.
+          return (
+            <TextField
+              {...other}
+              InputProps={{
+                ...InputProps,
+                startAdornment: (
+                  <>
+                    <OverflowText>
+                      {InputProps.startAdornment ?? placeholder}
+                    </OverflowText>
+                    {values.length < maxGrouping && (
+                      <IconButton
+                        size="small"
+                        sx={{ ml: 0.5 }}
+                        onClick={onAddGroup}
+                      >
+                        <MdAddCircle />
+                      </IconButton>
+                    )}
+                  </>
+                ),
+              }}
+              inputProps={{
+                ...inputProps,
+                readOnly: true,
               }}
             />
           )
-        })
-      }
-      renderInput={(params) => {
-        const { InputProps, inputProps, ...other } = params
-        // HACK: This workaround ensures proper marqueeing of overflowing tags since tag elements
-        // rendered as part of the `startAdornment` prop of a MUI `InputBase` component.
-        return (
-          <TextField
-            {...other}
-            InputProps={{
-              ...InputProps,
-              startAdornment: (
-                <>
-                  <OverflowText>
-                    {InputProps.startAdornment ?? placeholder}
-                  </OverflowText>
-                  <IconButton
-                    size="small"
-                    sx={{ ml: 0.5 }}
-                    onClick={onAddGroup}
-                  >
-                    <MdAddCircle />
-                  </IconButton>
-                </>
-              ),
-            }}
-            inputProps={{
-              ...inputProps,
-              readOnly: true,
-            }}
-          />
-        )
-      }}
-    />
+        }}
+      />
+    </ClickAwayListener>
   )
 }
 SelectAccordionList.propTypes = {
   disabled: PropTypes.bool,
   values: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
   header: PropTypes.string,
+  maxGrouping: PropTypes.number,
   itemGroups: PropTypes.object,
   getLabel: PropTypes.func,
   getSubLabel: PropTypes.func,

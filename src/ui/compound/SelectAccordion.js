@@ -130,13 +130,14 @@ const SelectAccordion = ({
       {...{ disabled, ...props }}
       sx={styles.select}
       displayEmpty
-      open={controlled ? open : openState}
       value={values}
+      open={controlled ? open : openState}
       onOpen={(event) => {
         controlled ? onOpen(event) : setOpenState(true)
       }}
       onClose={(event) => {
         if (controlled) {
+          event.stopPropagation()
           onClose(event)
         } else {
           onClickAway(event)

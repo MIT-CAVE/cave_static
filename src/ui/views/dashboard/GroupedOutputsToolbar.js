@@ -1,7 +1,5 @@
-import { Grid, IconButton, Paper } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
-import { MdSwapHoriz } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
@@ -21,11 +19,10 @@ import {
   chartStatUses,
   chartVariant,
 } from '../../../utils/enums'
-import SelectAccordionList from '../../compound/SelectAccordionList'
 
 import {
   Select,
-  SelectAccordion,
+  SelectAccordionList,
   SelectMulti,
   SelectMultiAccordion,
 } from '../../compound'
@@ -40,12 +37,6 @@ import {
   mapIndexed,
   forceArray,
 } from '../../../utils'
-
-const SwapButton = (props) => (
-  <IconButton sx={{ mx: 'auto' }} {...props}>
-    <MdSwapHoriz fontSize="22px" />
-  </IconButton>
-)
 
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const categories = useSelector(selectStatGroupings)
@@ -463,102 +454,24 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         )}
       </ChartDropdownWrapper>
 
-      {chartMaxGrouping[chartObj.variant] > 2 ? (
-        <ChartDropdownWrapper>
-          <SelectAccordionList
-            {...{ itemGroups }}
-            values={R.pipe(
-              R.props(['groupingId', 'groupingLevel']),
-              R.map(R.defaultTo('')),
-              R.apply(R.zip)
-            )(chartObj)}
-            placeholder="Group By"
-            getLabel={getLabelFn(categories)}
-            getSubLabel={getSubLabelFn(categories)}
-            onAddGroup={handleAddGroup}
-            onChangeGroupIndex={handleChangeGroupIndexFn}
-            onDeleteGroup={handleDeleteGroupFn}
-            onSelectGroup={handleSelectGroupFn}
-          />
-        </ChartDropdownWrapper>
-      ) : (
-        <>
-          <ChartDropdownWrapper>
-            <SelectAccordion
-              {...{ itemGroups }}
-              values={getGroupValues()}
-              placeholder="Group By"
-              getLabel={getLabelFn(categories)}
-              getSubLabel={getSubLabelFn(categories)}
-              onSelect={handleSelectGroupFn()}
-            />
-          </ChartDropdownWrapper>
-          {chartMaxGrouping[chartObj.variant] === 2 && (
-            <>
-              <Paper
-                component={Grid}
-                display="flex"
-                item
-                elevation={6}
-                sx={{
-                  minWidth: '35px',
-                  height: '40%',
-                  my: 'auto',
-                  borderRadius: '40%',
-                  mx: 0.5,
-                }}
-              >
-                <SwapButton
-                  onClick={() => {
-                    const [grouping, level] = getGroupValues()
-                    const [grouping2, level2] = getGroupValues(1)
-                    dispatch(
-                      mutateLocal({
-                        path,
-                        value: R.pipe(
-                          R.assocPath(['groupingId', 0], grouping2),
-                          R.assocPath(['groupingLevel', 0], level2),
-                          R.assocPath(['groupingId', 1], grouping),
-                          R.assocPath(['groupingLevel', 1], level)
-                        )(chartObj),
-                        sync: !includesPath(R.values(sync), path),
-                      })
-                    )
-                  }}
-                />
-              </Paper>
-              <ChartDropdownWrapper
-                menuProps={{
-                  transformOrigin: { horizontal: 'right', vertical: 'top' },
-                  anchorOrigin: { horizontal: 'right', vertical: 'bottom' },
-                }}
-                clearable={R.hasPath(['groupingLevel', 1], chartObj)}
-                onClear={() => {
-                  dispatch(
-                    mutateLocal({
-                      path,
-                      sync: !includesPath(R.values(sync), path),
-                      value: R.pipe(
-                        R.dissocPath(['groupingId', 1]),
-                        R.dissocPath(['groupingLevel', 1])
-                      )(chartObj),
-                    })
-                  )
-                }}
-              >
-                <SelectAccordion
-                  {...{ itemGroups }}
-                  values={getGroupValues(1)}
-                  placeholder="Sub Group"
-                  getLabel={getLabelFn(categories)}
-                  getSubLabel={getSubLabelFn(categories)}
-                  onSelect={handleSelectGroupFn(1)}
-                />
-              </ChartDropdownWrapper>
-            </>
-          )}
-        </>
-      )}
+      <ChartDropdownWrapper sx={{ minWidth: '152px' }}>
+        <SelectAccordionList
+          {...{ itemGroups }}
+          values={R.pipe(
+            R.props(['groupingId', 'groupingLevel']),
+            R.map(R.defaultTo('')),
+            R.apply(R.zip)
+          )(chartObj)}
+          placeholder="Group By"
+          maxGrouping={chartMaxGrouping[chartObj.variant]}
+          getLabel={getLabelFn(categories)}
+          getSubLabel={getSubLabelFn(categories)}
+          onAddGroup={handleAddGroup}
+          onChangeGroupIndex={handleChangeGroupIndexFn}
+          onDeleteGroup={handleDeleteGroupFn}
+          onSelectGroup={handleSelectGroupFn}
+        />
+      </ChartDropdownWrapper>
     </>
   )
 }
