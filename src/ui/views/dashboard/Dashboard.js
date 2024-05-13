@@ -1,12 +1,14 @@
 import { Container, Grid, Paper, Fab, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
 import { lazy, Suspense, useCallback, useMemo } from 'react'
+import GridLayout from 'react-grid-layout'
 import { MdAdd } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartMenu from './ChartMenu'
 import ChartToolbar from './ChartToolbar'
 import DashboardGlobalOutput from './DashboardGlobalOutputs'
+// import { Responsive as ResponsiveGridLayout } from "react-grid-layout"
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -262,7 +264,7 @@ const Dashboard = () => {
       ]}
       disableGutters
     >
-      {!R.isEmpty(pageLayout) && (
+      {/* {!R.isEmpty(pageLayout) && (
         <Grid container spacing={1}>
           {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
             if (maximizedIndex > -1 && index !== maximizedIndex) return null
@@ -275,6 +277,21 @@ const Dashboard = () => {
             )
           })}
         </Grid>
+      )} */}
+      {!R.isEmpty(pageLayout) && (
+        <GridLayout cols={2}>
+          {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
+            if (maximizedIndex > -1 && index !== maximizedIndex) return null
+            return (
+              <DashboardItem
+                key={index}
+                {...{ chartObj, index }}
+                path={[...layoutPath, index]}
+                // data-grid={{ x: 0, y: 0, w: 1, h: 1, isDraggable: true }}
+              />
+            )
+          })}
+        </GridLayout>
       )}
       {!lockedLayout && maximizedIndex < 0 && pageLayout.length < 4 && (
         <Fab
