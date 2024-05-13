@@ -20,7 +20,8 @@ const PropCheckbox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <FormGroup>
         {R.map(({ id: key, name: label }) => (
           <FormControlLabel
-            {...{ key, label }}
+            key={key}
+            {...{ label }}
             disabled={!enabled}
             sx={{ pl: 1 }}
             control={

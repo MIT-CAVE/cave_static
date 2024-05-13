@@ -219,7 +219,7 @@ const CategoricalItems = ({
         {R.values(
           R.mapObjIndexed(
             (val, key) => (
-              <Stack alignItems="center" {...{ key }}>
+              <Stack alignItems="center" key={key}>
                 <StableTooltip
                   title={
                     <BlockPicker

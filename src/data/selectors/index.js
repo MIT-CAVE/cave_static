@@ -173,6 +173,17 @@ export const selectModals = createSelector(selectData, (data) =>
 export const selectMap = createSelector(selectData, (data) =>
   R.propOr({}, 'maps', data)
 )
+// Ordered dicts
+export const selectOrderedAppBar = createSelector(selectAppBar, (data) =>
+  orderEntireDict(data)
+)
+export const selectOrderedMaps = createSelector(selectMap, (data) =>
+  orderEntireDict(data)
+)
+export const selectOrderedGroupedOutputs = createSelector(
+  selectGroupedOutputs,
+  (data) => orderEntireDict(data)
+)
 // Data -> Types
 export const selectFeatureData = createSelector(selectMapFeatures, (data) =>
   R.propOr({}, 'data')(data)
@@ -199,13 +210,11 @@ export const selectModalsData = createSelector(
   R.propOr({}, 'data')
 )
 export const selectMapData = createSelector(
-  [selectMap, selectCurrentTime],
-  (data, time) =>
-    getTimeValue(time, orderEntireDict(R.propOr({}, 'data', data)))
+  [selectOrderedMaps, selectCurrentTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
 )
-
-export const selectAppBarData = createSelector(selectAppBar, (data) =>
-  orderEntireDict(R.propOr({}, 'data')(data))
+export const selectAppBarData = createSelector(selectOrderedAppBar, (data) =>
+  R.propOr({}, 'data')(data)
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
@@ -226,8 +235,8 @@ export const selectRightAppBarData = createSelector(
   )
 )
 export const selectGroupedOutputsData = createSelector(
-  selectGroupedOutputs,
-  (data) => orderEntireDict(R.propOr({}, 'data')(data))
+  selectOrderedGroupedOutputs,
+  (data) => R.propOr({}, 'data')(data)
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
@@ -541,14 +550,14 @@ export const selectRightGroupedAppBar = createSelector(
 export const selectLeftAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(leftData)) ||
-    (mirrorMode && !R.isEmpty(rightData))
+    (!mirrorMode && R.isNotEmpty(leftData)) ||
+    (mirrorMode && R.isNotEmpty(rightData))
 )
 export const selectRightAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(rightData)) ||
-    (mirrorMode && !R.isEmpty(leftData))
+    (!mirrorMode && R.isNotEmpty(rightData)) ||
+    (mirrorMode && R.isNotEmpty(leftData))
 )
 export const selectDemoViews = createSelector(
   [selectAppBarData, selectDemoSettings],
@@ -805,7 +814,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
   }
 )
 export const selectMapStyleOptions = createSelector(
-  [selectMap, selectMapboxToken],
+  [selectOrderedMaps, selectMapboxToken],
   (data, token) => ({
     ...DEFAULT_MAP_STYLES,
     ...R.pipe(
@@ -1112,8 +1121,8 @@ export const selectMatchingKeysByTypeFunc = createSelector(
 )
 // outputs derived
 export const selectStatGroupings = createSelector(
-  selectGroupedOutputs,
-  (data) => orderEntireDict(R.propOr({}, 'groupings', data))
+  selectOrderedGroupedOutputs,
+  (data) => R.propOr({}, 'groupings', data)
 )
 
 export const selectStatGroupingIndicies = createSelector(
@@ -1270,7 +1279,7 @@ export const selectMemoizedChartFunc = createSelector(
                   : R.identity
               ),
               R.identity,
-              R.filter(R.pipe(R.isEmpty, R.not))
+              R.filter(R.isNotEmpty)
             ),
             resolvedStats
           )

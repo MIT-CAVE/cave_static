@@ -66,20 +66,25 @@ const SelectAccordion = ({
   placeholder,
   itemGroups = {},
   groupLabel = 'group',
+  open,
+  onOpen,
+  onClose,
   getLabel = (label) => label,
   getSubLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
   ...props
 } = {}) => {
-  const [open, setOpen] = useState(false)
+  const [openState, setOpenState] = useState(false)
+
+  const controlled = open != null
 
   const SubItem = ({ item, subItem, ...props }) => (
     <MenuItem
       component="div"
       onClick={() => {
         onSelect && onSelect(item, subItem)
-        setOpen(false)
+        setOpenState(false)
       }}
       {...props}
     >
@@ -122,16 +127,22 @@ const SelectAccordion = ({
 
   return (
     <Select
-      {...{ disabled, open, ...props }}
+      {...{ disabled, ...props }}
       sx={styles.select}
       displayEmpty
       value={values}
-      onOpen={() => {
-        setOpen(true)
+      open={controlled ? open : openState}
+      onOpen={(event) => {
+        controlled ? onOpen(event) : setOpenState(true)
       }}
       onClose={(event) => {
-        onClickAway(event)
-        setOpen(false)
+        if (controlled) {
+          event.stopPropagation()
+          onClose(event)
+        } else {
+          onClickAway(event)
+          setOpenState(false)
+        }
       }}
       // Display both item and sub-item values
       {...(values !== '' && {
@@ -148,9 +159,14 @@ const SelectAccordion = ({
       {placeholder && (
         <MenuItem
           value=""
-          onClick={() => {
-            onSelect && onSelect(null, null)
-            setOpen(false)
+          onClick={(event) => {
+            event.stopPropagation()
+            if (controlled) {
+              onClose(event)
+            } else {
+              onSelect && onSelect(null, null)
+              setOpenState(false)
+            }
           }}
         >
           <OverflowText text={placeholder} />
@@ -199,11 +215,14 @@ SelectAccordion.propTypes = {
   disabled: PropTypes.bool,
   values: PropTypes.oneOfType([PropTypes.array, PropTypes.string]),
   placeholder: PropTypes.string,
+  open: PropTypes.bool,
   itemGroups: PropTypes.object,
   getLabel: PropTypes.func,
   getSubLabel: PropTypes.func,
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
+  onOpen: PropTypes.func,
+  onClose: PropTypes.func,
 }
 
 export default memo(SelectAccordion)

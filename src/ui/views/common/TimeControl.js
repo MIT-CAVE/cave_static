@@ -42,7 +42,7 @@ const styles = {
     bgcolor: 'background.paper',
   },
   slider: {
-    mt: 2,
+    mt: 4,
     ml: 2,
     width: 'calc(100% - 16px - 40px)',
   },

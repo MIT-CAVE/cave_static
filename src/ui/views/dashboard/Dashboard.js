@@ -264,7 +264,7 @@ const Dashboard = () => {
       ]}
       disableGutters
     >
-      {/* {!R.isEmpty(pageLayout) && (
+      {/* {R.isNotEmpty(pageLayout) && (
         <Grid container spacing={1}>
           {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
             if (maximizedIndex > -1 && index !== maximizedIndex) return null
