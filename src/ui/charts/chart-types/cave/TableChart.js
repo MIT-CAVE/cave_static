@@ -57,6 +57,10 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
         sx={{
           minWidth: 0,
           bgcolor: 'background.paper',
+          // Fixes MUI style bug in horizontal scroll bar
+          '.MuiDataGrid-scrollbar--horizontal': {
+            display: 'block',
+          },
         }}
       />
     </FlexibleContainer>
