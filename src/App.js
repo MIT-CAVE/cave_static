@@ -133,6 +133,18 @@ const App = () => {
               paper: '#4a4a4a',
             },
           },
+          components: {
+            MuiDataGrid: {
+              styleOverrides: {
+                root: {
+                  // Fixes MUI style bug in horizontal scroll bar
+                  '.MuiDataGrid-scrollbar--horizontal': {
+                    display: 'block',
+                  },
+                },
+              },
+            },
+          },
           mixins: {
             MuiDataGrid: {
               containerBackground: '#4a4a4a',
