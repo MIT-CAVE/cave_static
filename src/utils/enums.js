@@ -36,6 +36,7 @@ export const propId = {
   SELECTOR: 'selector',
   DATE: 'date',
   HEAD: 'head',
+  COORDINATE: 'coordinate',
 }
 
 export const propVariant = {
@@ -49,6 +50,9 @@ export const propVariant = {
   FIELD: 'field',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
+  LATLNG_INPUT: 'latLngInput',
+  LATLNG_MAP: 'latLngMap',
+  LATLNG_PATH: 'latLngPath',
   NESTED: 'nested',
   PICTURE: 'picture',
   RADIO: 'radio',
