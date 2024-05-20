@@ -297,6 +297,7 @@ const Map = ({ mapboxToken, mapId }) => {
         ref={mapRef}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
+        useWebGL2={true}
         onRender={() => {
           mapRef.current && mapRef.current.resize()
         }}

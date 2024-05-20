@@ -24,7 +24,7 @@
     "expr-eval": "^2.0.2",
     "isomorphic-fetch": "^3.0.0",
     "kdbush": "^4.0.2",
-    "mapbox-gl": "^3.3.0",
+    "mapbox-gl": "^2.15.0",
     "maplibre-gl": "^4.2.0",
     "prop-types": "^15.8.1",
     "ramda": "^0.30.0",
