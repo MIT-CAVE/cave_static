@@ -110,12 +110,21 @@ const Map = ({ mapboxToken, mapId }) => {
   }, [iconUrl, iconData, nodeIcons, mapId])
 
   const loadIconsToStyle = useCallback(() => {
+    mapRef.current &&
+      mapRef.current
+        .getMap()
+        .setFog(
+          R.pathOr(getDefaultFog(), [
+            mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+            'fog',
+          ])(mapStyleOptions)
+        )
     R.forEachObjIndexed((iconImage, iconName) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     })(iconData)
-  }, [iconData])
+  }, [iconData, isMapboxTokenProvided, mapStyle, mapStyleOptions])
 
   useEffect(() => {
     loadIconsToStyle()
