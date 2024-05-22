@@ -35,8 +35,7 @@ const styles = {
   },
   icon: {
     color: 'text.secondary',
-    bgcolor: (theme) =>
-      theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300',
+    bgcolor: 'grey.800',
     mx: 1,
     p: 2,
     display: 'flex',

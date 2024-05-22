@@ -12,7 +12,7 @@ const styles = {
     top: 0,
     left: 0,
     cursor: 'move',
-    zIndex: 1300,
+    zIndex: 2001,
   },
   closeBtn: {
     position: 'absolute',

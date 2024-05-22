@@ -28,8 +28,7 @@ const styles = {
     width: '100%',
   },
   accordionGroup: {
-    bgcolor: (theme) =>
-      theme.palette.mode === 'dark' ? 'grey.800' : 'grey.300',
+    bgcolor: 'grey.800',
   },
   accordionSummary: {
     '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
@@ -47,8 +46,7 @@ const styles = {
   soloCategory: {
     width: '100%',
     border: 1,
-    borderColor: (theme) =>
-      theme.palette.mode === 'dark' ? 'grey.600' : 'grey.300',
+    borderColor: 'grey.600',
   },
 }
 
