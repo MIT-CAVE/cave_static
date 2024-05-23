@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { mutateLocal, deleteLocal } from '../../../data/local'
 import { toggleMirror } from '../../../data/local/settingsSlice'
 import {
+  selectCurrentTimeLength,
   selectData,
   selectDemoMode,
   selectGlobalOutputProps,
@@ -288,6 +289,7 @@ const GlobalOutputsSwitch = () => {
 const AppSettingsPane = () => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
+  const timeLength = useSelector(selectCurrentTimeLength)
   const syncToggles = useSelector(selectSyncToggles)
   const sync = useSelector(selectSync)
 
@@ -310,7 +312,9 @@ const AppSettingsPane = () => {
               id={draggableId.GLOBAL_OUTPUTS}
               name="Global Outputs"
             />
-            <DraggableSwitch id={draggableId.TIME} name="Time Control" />
+            {timeLength > 0 && (
+              <DraggableSwitch id={draggableId.TIME} name="Time Control" />
+            )}
           </FormGroup>
         </FormControl>
       </FieldContainer>

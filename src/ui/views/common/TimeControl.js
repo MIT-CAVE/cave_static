@@ -97,12 +97,7 @@ const TimeControlFull = () => {
   )
 
   return (
-    <Stack
-      sx={[
-        styles.root,
-        // display: timeLength === 0 ? 'none' : 'flex',
-      ]}
-    >
+    <Stack sx={styles.root}>
       <Slider
         onMouseDown={(event) => {
           event.stopPropagation()
@@ -331,7 +326,15 @@ const TimeControlCompact = () => {
   )
 }
 
-const TimeControl = ({ compact }) =>
-  compact ? <TimeControlCompact /> : <TimeControlFull />
+const TimeControl = ({ compact }) => {
+  const timeLength = useSelector(selectCurrentTimeLength)
+  return timeLength > 0 ? (
+    compact ? (
+      <TimeControlCompact />
+    ) : (
+      <TimeControlFull />
+    )
+  ) : null
+}
 
 export default TimeControl
