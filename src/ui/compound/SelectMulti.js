@@ -1,13 +1,13 @@
 import { Checkbox, ListItemIcon, MenuItem, Select } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 import WrappedText from './WrappedText'
 
-import { forceArray, forcePath } from '../../utils'
+import { forceArray } from '../../utils'
 
 const styles = {
   icon: {
@@ -50,7 +50,12 @@ const SelectMulti = ({
   ...props
 } = {}) => {
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState(forcePath(selectedValue))
+  const [selected, setSelected] = useState('')
+  useEffect(() => {
+    // NOTE: Need this workaround as this component isn't
+    // re-rendered when `value`|`selectedValue` changes
+    setSelected(forceArray(selectedValue))
+  }, [selectedValue])
   return (
     <Select
       {...{ disabled, open, ...props }}
