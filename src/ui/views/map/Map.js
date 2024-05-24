@@ -31,6 +31,7 @@ import {
   selectMapData,
   selectAllNodeIcons,
   selectSync,
+  selectIsMapboxTokenProvided,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, ICON_RESOLUTION } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -53,12 +54,12 @@ const Map = ({ mapboxToken, mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
+  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const sync = useSelector(selectSync)
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   const mapExists = R.has(mapId, mapData)
 
-  const isMapboxTokenProvided = R.isNotNil(mapboxToken) && mapboxToken !== ''
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef(false)
@@ -110,15 +111,16 @@ const Map = ({ mapboxToken, mapId }) => {
   }, [iconUrl, iconData, nodeIcons, mapId])
 
   const loadIconsToStyle = useCallback(() => {
-    mapRef.current &&
-      mapRef.current
-        .getMap()
-        .setFog(
+    if (mapRef.current) {
+      const map = mapRef.current.getMap()
+      map.setFog &&
+        map.setFog(
           R.pathOr(getDefaultFog(), [
             mapStyle || getDefaultStyleId(isMapboxTokenProvided),
             'fog',
           ])(mapStyleOptions)
         )
+    }
     R.forEachObjIndexed((iconImage, iconName) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
