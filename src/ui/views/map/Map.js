@@ -308,9 +308,11 @@ const Map = ({ mapboxToken, mapId }) => {
         ref={mapRef}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
-        onRender={() => {
-          mapRef.current && mapRef.current.resize()
-        }}
+        // The handler below causes `onMove` to fire endlessly when `isMapboxTokenProvided` is `false`.
+        // The built-in `trackResize` prop which defaults to `True` should already handle the resizing.
+        // onRender={() => {
+        //   mapRef.current && mapRef.current.resize()
+        // }}
       >
         <Geos mapId={mapId} />
         <Arcs mapId={mapId} />
