@@ -2,12 +2,16 @@ import { Box, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useState } from 'react'
-import { Map, Marker, NavigationControl } from 'react-map-gl'
+import ReactMapboxGL, { Marker, NavigationControl } from 'react-map-gl'
+import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
 
 import NumberInput from './NumberInput'
 
-import { selectMapboxToken } from '../../data/selectors'
+import {
+  selectIsMapboxTokenProvided,
+  selectMapboxToken,
+} from '../../data/selectors'
 
 import { forceArray } from '../../utils'
 
@@ -18,15 +22,6 @@ const getStyles = (enabled) => ({
   opacity: enabled ? '' : 0.7,
 })
 
-const mapSettings = {
-  style: {
-    width: 480,
-    height: 480,
-    margin: 10,
-  },
-  mapStyle: 'mapbox://styles/mapbox/dark-v11',
-}
-
 const numberFormatProps = {
   precision: 6,
   trailingZeros: true,
@@ -35,6 +30,8 @@ const numberFormatProps = {
 
 const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const mapboxToken = useSelector(selectMapboxToken)
+  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
+  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
   const enabled = prop.enabled || false
   const [value, setValue] = useState(
     R.defaultTo(R.prop('value', prop), currentVal)
@@ -43,6 +40,17 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     latitude: value[1],
     longitude: value[0],
   })
+
+  const mapSettings = {
+    style: {
+      width: 480,
+      height: 480,
+      margin: 10,
+    },
+    mapStyle: isMapboxTokenProvided
+      ? 'mapbox://styles/mapbox/dark-v11'
+      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  }
 
   const inputLat = (lat) => {
     if (!enabled) return
@@ -85,7 +93,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           onClickAway={inputLng}
         />
       </Box>
-      <Map
+      <ReactMapGL
         {...viewState}
         mapboxAccessToken={mapboxToken}
         style={mapSettings.style}
@@ -100,7 +108,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           anchor="center"
         />
         <NavigationControl />
-      </Map>
+      </ReactMapGL>
     </Box>
   )
 }

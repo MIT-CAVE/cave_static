@@ -17,12 +17,21 @@ import {
   MdDeleteForever,
   MdUndo,
 } from 'react-icons/md'
-import { Map, Marker, NavigationControl, Source, Layer } from 'react-map-gl'
+import ReactMapboxGL, {
+  Marker,
+  NavigationControl,
+  Source,
+  Layer,
+} from 'react-map-gl'
+import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
 
 import NumberInput from './NumberInput'
 
-import { selectMapboxToken } from '../../data/selectors'
+import {
+  selectIsMapboxTokenProvided,
+  selectMapboxToken,
+} from '../../data/selectors'
 
 import { adjustArcPath, forceArray } from '../../utils'
 
@@ -41,31 +50,6 @@ const styles = {
     maxHeight: 200,
     border: 1,
     margin: 1,
-  },
-}
-
-const mapSettings = {
-  style: {
-    width: 480,
-    height: 480,
-    margin: 10,
-  },
-  mapStyle: 'mapbox://styles/mapbox/dark-v11',
-  lineLayout: {
-    'line-join': 'round',
-    'line-cap': 'round',
-  },
-  linePaint: {
-    'line-color': 'rgba(3, 170, 238, 0.5)',
-    'line-width': 5,
-  },
-  pathSource: {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'LineString',
-      coordinates: [],
-    },
   },
 }
 
@@ -100,16 +84,46 @@ const displayPath = (path) => {
     </List>
   )
 }
-const getPathData = (path) =>
-  R.assocPath(
-    ['geometry', 'coordinates'],
-    adjustArcPath(path),
-    mapSettings.pathSource
-  )
 
 const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const mapboxToken = useSelector(selectMapboxToken)
+  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const enabled = prop.enabled || false
+
+  const mapSettings = {
+    style: {
+      width: 480,
+      height: 480,
+      margin: 10,
+    },
+    mapStyle: isMapboxTokenProvided
+      ? 'mapbox://styles/mapbox/dark-v11'
+      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    lineLayout: {
+      'line-join': 'round',
+      'line-cap': 'round',
+    },
+    linePaint: {
+      'line-color': 'rgba(3, 170, 238, 0.5)',
+      'line-width': 5,
+    },
+    pathSource: {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: [],
+      },
+    },
+  }
+
+  const getPathData = (path) =>
+    R.assocPath(
+      ['geometry', 'coordinates'],
+      adjustArcPath(path),
+      mapSettings.pathSource
+    )
+
   const [value, setValue] = useState(
     R.defaultTo(R.prop('value', prop), currentVal)
   )
@@ -165,6 +179,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       longitude: getLastLng(slicedPath),
     })
   }
+
+  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   return (
     <Box>
@@ -243,7 +259,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         </>
       )}
 
-      <Map
+      <ReactMapGL
         {...viewState}
         mapboxAccessToken={mapboxToken}
         style={mapSettings.style}
@@ -267,7 +283,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           />
         </Source>
         <NavigationControl />
-      </Map>
+      </ReactMapGL>
       {editState !== edit.RESET && displayPath(value)}
     </Box>
   )
