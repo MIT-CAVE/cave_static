@@ -251,7 +251,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           latitude={getLastLat(value)}
           onDragEnd={onDragEnd}
           draggable={true}
-          anchor="bottom"
+          anchor="center"
         />
         <Source id="polylineLayer" type="geojson" data={pathData}>
           <Layer

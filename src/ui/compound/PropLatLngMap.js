@@ -97,7 +97,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           latitude={value[1]}
           onDragEnd={onDragEnd}
           draggable={true}
-          anchor="bottom"
+          anchor="center"
         />
         <NavigationControl />
       </Map>
