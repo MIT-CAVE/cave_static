@@ -72,7 +72,7 @@ const ActionItems = ({ items = [], disabled }) => {
           </Tooltip>
         )
       )}
-      {!R.isEmpty(hiddenItems) && (
+      {R.isNotEmpty(hiddenItems) && (
         <>
           <IconButton {...{ disabled }} onClick={handleOpenMenu}>
             <FetchedIcon iconName="md/MdMoreVert" />
@@ -145,8 +145,9 @@ const ListItemCard = ({
         { position: 'relative' },
         selected && {
           border: 1,
-          bgcolor: (theme) =>
-            theme.palette.mode === 'dark' ? '#132a73' : '#c2eaff',
+          bgcolor: '#132a73',
+          backgroundImage:
+            'linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06))',
         },
         ...forceArray(sx),
       ]}
@@ -376,7 +377,7 @@ const UnstyledHeader = ({
 }) => (
   <ListItemCard
     elevation={0}
-    cardHeaderSx={[{ px: 0, py: 2 }, ...forceArray(sx)]}
+    cardHeaderSx={[{ px: 1, py: 2 }, ...forceArray(sx)]}
     titleTypographyProps={{ variant: 'h6' }}
     subheaderTypographyProps={{ variant: 'subtitle' }}
     {...{ title, subtitle, actionItems, ...props }}

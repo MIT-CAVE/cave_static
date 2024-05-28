@@ -31,6 +31,7 @@ import {
   selectMapData,
   selectAllNodeIcons,
   selectSync,
+  selectIsMapboxTokenProvided,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, ICON_RESOLUTION } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -53,16 +54,16 @@ const Map = ({ mapboxToken, mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
+  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const sync = useSelector(selectSync)
-  const [highlightLayerId, setHighlightLayerId] = useState()
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   const mapExists = R.has(mapId, mapData)
 
-  const isMapboxTokenProvided = R.isNotNil(mapboxToken) && mapboxToken !== ''
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef(false)
+  const highlight = useRef(null)
 
   const demoInterval = useRef(-1)
   useEffect(() => {
@@ -110,12 +111,22 @@ const Map = ({ mapboxToken, mapId }) => {
   }, [iconUrl, iconData, nodeIcons, mapId])
 
   const loadIconsToStyle = useCallback(() => {
+    if (mapRef.current) {
+      const map = mapRef.current.getMap()
+      map.setFog &&
+        map.setFog(
+          R.pathOr(getDefaultFog(), [
+            mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+            'fog',
+          ])(mapStyleOptions)
+        )
+    }
     R.forEachObjIndexed((iconImage, iconName) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     })(iconData)
-  }, [iconData])
+  }, [iconData, isMapboxTokenProvided, mapStyle, mapStyleOptions])
 
   useEffect(() => {
     loadIconsToStyle()
@@ -144,6 +155,8 @@ const Map = ({ mapboxToken, mapId }) => {
                   JSON.parse(clickedNode.properties.cave_obj)
                 )
               : JSON.parse(clickedNode.properties.cave_obj),
+            clickedNode['id'],
+            clickedNode['source'],
           ]
         : R.isNotNil(clickedArc)
           ? [
@@ -156,6 +169,8 @@ const Map = ({ mapboxToken, mapId }) => {
                     JSON.parse(clickedArc.properties.cave_name),
                     arcData
                   ),
+              clickedArc['id'],
+              clickedArc['source'],
             ]
           : R.isNotNil(clickedGeo)
             ? [
@@ -166,6 +181,8 @@ const Map = ({ mapboxToken, mapId }) => {
                   JSON.parse(clickedGeo.properties.cave_name),
                   geosData
                 ),
+                clickedGeo['id'],
+                clickedGeo['source'],
               ]
             : null
 
@@ -180,29 +197,40 @@ const Map = ({ mapboxToken, mapId }) => {
       if (mapRef.current) {
         const canvas = mapRef.current.getCanvas()
         const featureObj = getFeatureFromEvent(e)
+        if (R.isNotNil(highlight.current)) {
+          mapRef.current.setFeatureState(highlight.current, { hover: false })
+          highlight.current = null
+        }
         if (!featureObj) {
           if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
-          if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
         } else {
-          const [id] = featureObj
-          setHighlightLayerId(id)
+          const id = featureObj[3]
+          const source = featureObj[4]
+          mapRef.current.setFeatureState({ source, id }, { hover: true })
+          highlight.current = { source, id }
           if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
         }
       }
     },
-    [getFeatureFromEvent, highlightLayerId]
+    [getFeatureFromEvent]
   )
 
   const onMouseOver = useCallback(() => {
-    if (R.isNotNil(highlightLayerId)) setHighlightLayerId()
-  }, [highlightLayerId])
+    if (R.isNotNil(highlight.current)) {
+      mapRef.current.setFeatureState(highlight.current, { hover: false })
+      highlight.current = null
+    }
+  }, [])
 
   const onClick = useCallback(
     (e) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) return
       const [id, feature, obj] = featureObj
-      setHighlightLayerId()
+      if (R.isNotNil(highlight.current)) {
+        mapRef.current.setFeatureState(highlight.current, { hover: false })
+        highlight.current = null
+      }
 
       dispatch(
         mutateLocal({
@@ -245,7 +273,7 @@ const Map = ({ mapboxToken, mapId }) => {
     return () =>
       document.removeEventListener('clearHighlight', onMouseOver, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightLayerId])
+  }, [])
 
   return !mapExists ? (
     []
@@ -280,13 +308,15 @@ const Map = ({ mapboxToken, mapId }) => {
         ref={mapRef}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
-        onRender={() => {
-          mapRef.current && mapRef.current.resize()
-        }}
+        // The handler below causes `onMove` to fire endlessly when `isMapboxTokenProvided` is `false`.
+        // The built-in `trackResize` prop which defaults to `True` should already handle the resizing.
+        // onRender={() => {
+        //   mapRef.current && mapRef.current.resize()
+        // }}
       >
-        <Geos highlightLayerId={highlightLayerId} mapId={mapId} />
-        <Arcs highlightLayerId={highlightLayerId} mapId={mapId} />
-        <Nodes highlightLayerId={highlightLayerId} mapId={mapId} />
+        <Geos mapId={mapId} />
+        <Arcs mapId={mapId} />
+        <Nodes mapId={mapId} />
         <Arcs3D mapId={mapId} />
       </ReactMapGL>
       <MapModal mapId={mapId} />

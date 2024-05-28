@@ -48,11 +48,9 @@ const GlobalOutputHead = ({
   ...props
 }) => {
   const { name: title, icon, style } = prop
+  const other = R.omit(['currentVal', 'mapGlobalOutput'])(props)
   return (
-    <Grid
-      sx={[rootStyle, style, ...forceArray(sx)]}
-      {...R.dissoc('mapGlobalOutput', props)}
-    >
+    <Grid sx={[rootStyle, style, ...forceArray(sx)]} {...other}>
       <Grid container item spacing={gridSpacing} flexWrap="nowrap">
         {icon && (
           <Grid item alignSelf="center">

@@ -1,5 +1,4 @@
 import { Alert, AlertTitle, Collapse, IconButton, Stack } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
 import * as R from 'ramda'
 import React, { Fragment, useEffect, useRef } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
@@ -12,7 +11,6 @@ import { removeMessage } from '../../../data/utilities/messagesSlice'
 const SnackBar = () => {
   const messages = useSelector(selectMessages)
   const dispatch = useDispatch()
-  const theme = useTheme()
 
   const closingTimers = useRef({})
 
@@ -77,8 +75,8 @@ const SnackBar = () => {
         position: 'fixed',
         bottom: 20,
         right: 20,
+        bgcolor: 'background.paper',
         zIndex: 2001,
-        backgroundColor: theme.palette.background.paper,
       }}
     >
       <TransitionGroup>

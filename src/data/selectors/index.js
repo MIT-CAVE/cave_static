@@ -173,6 +173,17 @@ export const selectModals = createSelector(selectData, (data) =>
 export const selectMap = createSelector(selectData, (data) =>
   R.propOr({}, 'maps', data)
 )
+// Ordered dicts
+export const selectOrderedAppBar = createSelector(selectAppBar, (data) =>
+  orderEntireDict(data)
+)
+export const selectOrderedMaps = createSelector(selectMap, (data) =>
+  orderEntireDict(data)
+)
+export const selectOrderedGroupedOutputs = createSelector(
+  selectGroupedOutputs,
+  (data) => orderEntireDict(data)
+)
 // Data -> Types
 export const selectFeatureData = createSelector(selectMapFeatures, (data) =>
   R.propOr({}, 'data')(data)
@@ -199,13 +210,11 @@ export const selectModalsData = createSelector(
   R.propOr({}, 'data')
 )
 export const selectMapData = createSelector(
-  [selectMap, selectCurrentTime],
-  (data, time) =>
-    getTimeValue(time, orderEntireDict(R.propOr({}, 'data', data)))
+  [selectOrderedMaps, selectCurrentTime],
+  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
 )
-
-export const selectAppBarData = createSelector(selectAppBar, (data) =>
-  orderEntireDict(R.propOr({}, 'data')(data))
+export const selectAppBarData = createSelector(selectOrderedAppBar, (data) =>
+  R.propOr({}, 'data')(data)
 )
 export const selectLeftAppBarData = createSelector(
   selectAppBarData,
@@ -226,8 +235,8 @@ export const selectRightAppBarData = createSelector(
   )
 )
 export const selectGroupedOutputsData = createSelector(
-  selectGroupedOutputs,
-  (data) => orderEntireDict(R.propOr({}, 'data')(data))
+  selectOrderedGroupedOutputs,
+  (data) => R.propOr({}, 'data')(data)
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
@@ -541,14 +550,14 @@ export const selectRightGroupedAppBar = createSelector(
 export const selectLeftAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(leftData)) ||
-    (mirrorMode && !R.isEmpty(rightData))
+    (!mirrorMode && R.isNotEmpty(leftData)) ||
+    (mirrorMode && R.isNotEmpty(rightData))
 )
 export const selectRightAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && !R.isEmpty(rightData)) ||
-    (mirrorMode && !R.isEmpty(leftData))
+    (!mirrorMode && R.isNotEmpty(rightData)) ||
+    (mirrorMode && R.isNotEmpty(leftData))
 )
 export const selectDemoViews = createSelector(
   [selectAppBarData, selectDemoSettings],
@@ -700,7 +709,7 @@ export const selectGlobalOutputProps = createSelector(
       R.propOr({}, 'props'),
       R.propOr({}, 'values'),
     ]),
-    R.filter(R.prop('value')),
+    R.reject(R.pipe(R.prop('value'), R.isNil)),
     R.map(R.assoc('enabled', false))
   )
 )
@@ -804,21 +813,25 @@ export const selectCurrentMapProjectionFunc = createSelector(
     },
   }
 )
+export const selectIsMapboxTokenProvided = createSelector(
+  selectMapboxToken,
+  R.both(R.isNotNil, R.isNotEmpty)
+)
 export const selectMapStyleOptions = createSelector(
-  [selectMap, selectMapboxToken],
-  (data, token) => ({
-    ...DEFAULT_MAP_STYLES,
-    ...R.pipe(
+  [selectOrderedMaps, selectIsMapboxTokenProvided],
+  (data, isMapboxTokenProvided) =>
+    R.pipe(
       orderEntireDict,
       R.propOr([], 'additionalMapStyles'),
+      R.mergeRight(DEFAULT_MAP_STYLES),
       R.filter(
         (style) =>
-          token !== '' ||
+          isMapboxTokenProvided ||
           R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
       )
-    )(data),
-  })
+    )(data)
 )
+
 export const selectPitchSliderToggleFunc = createSelector(
   selectMapControlsByMap,
   (controls) =>
@@ -1100,15 +1113,20 @@ export const selectMatchingKeysByTypeFunc = createSelector(
       (mapId) =>
         R.pipe(
           R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(R.indexBy(R.prop('geoJsonValue')))
+          R.map(
+            R.pipe(
+              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
+              R.indexBy(R.prop('geoJsonValue'))
+            )
+          )
         )(geosByType),
       MAX_MEMOIZED_CHARTS
     )
 )
 // outputs derived
 export const selectStatGroupings = createSelector(
-  selectGroupedOutputs,
-  (data) => orderEntireDict(R.propOr({}, 'groupings', data))
+  selectOrderedGroupedOutputs,
+  (data) => R.propOr({}, 'groupings', data)
 )
 
 export const selectStatGroupingIndicies = createSelector(
@@ -1265,7 +1283,7 @@ export const selectMemoizedChartFunc = createSelector(
                   : R.identity
               ),
               R.identity,
-              R.filter(R.pipe(R.isEmpty, R.not))
+              R.filter(R.isNotEmpty)
             ),
             resolvedStats
           )
@@ -1396,7 +1414,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
                 R.propOr({}, 'values'),
               ]),
               R.pick(selectedGlobalOutputs),
-              R.filter(R.prop('value')), // It should be filtered by now, but just in case
+              R.reject(R.pipe(R.prop('value'), R.isNil)), // It should be filtered by now, but just in case
               withIndex,
               R.map((globalOutput) =>
                 R.assoc(
@@ -1649,38 +1667,7 @@ export const selectGeoColorRange = createSelector(
     )
 )
 
-export const selectMatchingKeysFunc = createSelector(
-  [selectEnabledGeosFunc, selectMergedGeos, selectGeoColorRange],
-  (enabledGeosFunc, geosByType, geoRange) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(R.toPairs),
-          R.values,
-          R.unnest,
-          R.map((d) => R.assoc('data_key', d[0], d[1])),
-          R.filter((d) => {
-            const colorProp = R.path(
-              [d.type, 'colorBy'],
-              enabledGeosFunc(mapId)
-            )
-
-            const statRange = geoRange(d.type, colorProp, false)
-
-            return !(
-              R.has('nullColor', statRange) &&
-              R.isNil(R.prop('nullColor', statRange))
-            )
-          }),
-          R.indexBy(R.prop('geoJsonValue'))
-        )(geosByType),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-
-export const selectLineMatchingKeysFunc = createSelector(
+export const selectLineMatchingKeysByTypeFunc = createSelector(
   [selectMultiLineDataFunc, selectArcRange, selectEnabledArcsFunc],
   (dataFunc, arcRange, enabledArcsFunc) =>
     maxSizedMemoization(
@@ -1702,21 +1689,8 @@ export const selectLineMatchingKeysFunc = createSelector(
               R.isNil(R.prop('nullColor', statRange))
             )
           }),
-          R.indexBy(R.prop('geoJsonValue'))
-        )(dataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-export const selectLineMatchingKeysByTypeFunc = createSelector(
-  selectLineMatchingKeysFunc,
-  (dataFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.toPairs,
-          R.groupBy(R.path([1, 'type'])),
-          R.map(R.fromPairs)
+          R.groupBy(R.prop('type')),
+          R.map(R.indexBy(R.prop('geoJsonValue')))
         )(dataFunc(mapId)),
       MAX_MEMOIZED_CHARTS
     )
@@ -2202,7 +2176,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             const colorString = R.equals('', colorPropVal)
               ? nullColor
               : `rgba(${color.join(',')})`
-
+            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+              return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =
@@ -2314,7 +2289,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             const colorString = R.equals('', colorPropVal)
               ? nullColor
               : `rgba(${color.join(',')})`
-
+            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+              return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =

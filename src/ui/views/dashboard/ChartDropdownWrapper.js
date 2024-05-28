@@ -11,7 +11,7 @@ import { addExtraProps, forceArray } from '../../../utils'
 const styles = {
   root: {
     mx: 0.5,
-    minWidth: '64px',
+    minWidth: '56px',
   },
   button: {
     top: 0,
@@ -32,6 +32,7 @@ const ChartDropdownWrapper = ({
   ...props
 }) => {
   const isMaximized = useSelector(selectIsMaximized)
+  const child = Children.only(children)
   return (
     <Paper
       component={Grid}
@@ -45,16 +46,20 @@ const ChartDropdownWrapper = ({
       elevation={3}
       {...props}
     >
-      {addExtraProps(Children.only(children), {
-        MenuProps: {
-          sx: {
-            '.MuiMenu-paper': {
-              maxHeight: isMaximized ? 'calc(100% - 88px)' : 'calc(50% - 88px)',
+      {child.type.name === 'Select'
+        ? addExtraProps(child, {
+            MenuProps: {
+              sx: {
+                '.MuiMenu-paper': {
+                  maxHeight: isMaximized
+                    ? 'calc(100% - 88px)'
+                    : 'calc(50% - 88px)',
+                },
+              },
+              ...menuProps,
             },
-          },
-          ...menuProps,
-        },
-      })}
+          })
+        : child}
       {clearable && (
         <IconButton sx={styles.button} onClick={onClear}>
           <MdCancel fontSize="medium" />

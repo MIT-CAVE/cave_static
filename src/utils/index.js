@@ -645,6 +645,12 @@ export const getQuartilesData = R.mapObjIndexed(
   R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
+export const getQuartiles = R.ifElse(
+  R.isNil,
+  R.always(R.repeat(NaN, 5)),
+  R.pipe(R.sort(R.comparator(R.lt)), getQuantiles(5))
+)
+
 const allowedRangeKeys = [
   'startGradientColor',
   'endGradientColor',
@@ -745,7 +751,7 @@ export const capitalize = R.when(
 export const customSortByX = R.curry((orderings, data) => {
   const itemDepth = R.pipe(
     R.head,
-    R.propOr('\u279D', 'name'),
+    R.propOr('', 'name'),
     R.split(' \u279D '),
     R.length
   )(data)

@@ -13,11 +13,14 @@ const styles = {
     p: 1,
   },
   button: {
-    width: '40px',
-    height: '40px',
+    width: '36px',
+    minWidth: 0,
     position: 'absolute',
     top: '15px',
     left: '15px',
+    '.MuiButton-startIcon': {
+      m: 0,
+    },
   },
   img: {
     width: '100%',
@@ -41,13 +44,12 @@ const PropPicture = ({ prop, sx = [], ...props }) => {
       <img src={prop.value} alt="" style={styles.img} />
       <Button
         variant="contained"
+        startIcon={<AiOutlineExpandAlt />}
         onClick={() => {
           setExpanded(true)
         }}
         sx={styles.button}
-      >
-        <AiOutlineExpandAlt style={styles.img} />
-      </Button>
+      />
       <Dialog
         open={expanded}
         onClose={() => {

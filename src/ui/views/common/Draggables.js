@@ -23,6 +23,8 @@ const styles = {
     maxWidth: '300px',
     pr: 3,
     bgcolor: '#132a73',
+    color: 'text.primary',
+    border: 1,
     overflow: 'hidden',
     overflowWrap: 'break-word',
   },
@@ -97,6 +99,7 @@ const Draggables = () => {
           <Draggable
             sx={styles.globalOutputs}
             onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
+            cancel={'.MuiButtonBase-root'}
           >
             <GlobalOutputsPad />
           </Draggable>
@@ -105,6 +108,7 @@ const Draggables = () => {
         <Draggable
           sx={styles.time}
           onClose={handleToggleDraggable(draggableId.TIME)}
+          cancel={'.MuiButtonBase-root, .MuiFormControl-root, .MuiSlider-thumb'}
         >
           <TimeControl />
         </Draggable>
@@ -114,6 +118,7 @@ const Draggables = () => {
           component={ButtonGroup}
           sx={styles.session}
           onClose={handleToggleDraggable(draggableId.SESSION)}
+          cancel={'.MuiButtonBase-root'}
         >
           <CardContent style={styles.content}>
             {`Current Session: ${sessionName}`}

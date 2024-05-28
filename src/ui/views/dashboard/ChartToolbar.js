@@ -20,12 +20,19 @@ import { Select } from '../../compound'
 
 import { includesPath } from '../../../utils'
 
-const style = {
-  display: 'flex',
-  flexWrap: 'nowrap',
-  pb: 0.75,
-  width: (theme) => `calc(100% - ${theme.spacing(6)})`,
-  '>:first-child': { ml: 0 },
+const styles = {
+  root: {
+    display: 'flex',
+    flexWrap: 'nowrap',
+    pb: 0.75,
+    width: (theme) => `calc(100% - ${theme.spacing(6)})`,
+    '>:first-child': { ml: 0 },
+  },
+  filter: {
+    mr: 0.5,
+    ml: 'auto',
+    alignSelf: 'center',
+  },
 }
 
 const ChartToolbar = ({
@@ -81,7 +88,7 @@ const ChartToolbar = ({
   return (
     <Grid
       sx={[
-        style,
+        styles.root,
         (lockedLayout || chartObj.lockedLayout) && {
           width: '100%',
           '>:last-child': { mr: 0 },
@@ -125,7 +132,7 @@ const ChartToolbar = ({
         <MapToolbar {...{ chartObj, index }} />
       )}
       {showFilter && (
-        <IconButton onClick={onOpenFilter} sx={{ mr: 1, ml: 'auto' }}>
+        <IconButton sx={styles.filter} onClick={onOpenFilter}>
           <Badge
             {...{
               color: 'info',

@@ -99,8 +99,9 @@ const styles = {
     fontWeight: 700,
   },
   categoryIcon: {
-    m: 0.75,
     p: 0.5,
+    mx: 'auto',
+    my: 0.75,
     width: '16px',
     height: '16px',
     borderRadius: 1,
@@ -218,7 +219,7 @@ const CategoricalItems = ({
         {R.values(
           R.mapObjIndexed(
             (val, key) => (
-              <Stack alignItems="center" {...{ key }}>
+              <Stack alignItems="center" key={key}>
                 <StableTooltip
                   title={
                     <BlockPicker
