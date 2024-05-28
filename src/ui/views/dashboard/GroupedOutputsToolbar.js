@@ -456,6 +456,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
       <ChartDropdownWrapper sx={{ minWidth: '152px' }}>
         <SelectAccordionList
+          disabled={chartObj.groupedOutputDataId == null}
           {...{ itemGroups }}
           values={R.pipe(
             R.props(['groupingId', 'groupingLevel']),

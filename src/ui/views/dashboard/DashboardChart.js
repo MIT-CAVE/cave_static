@@ -161,7 +161,6 @@ const DashboardChart = ({ chartObj }) => {
     multiStatLabelProps
   )(groupingRange)
 
-  // eslint-disable-next-line no-unused-vars
   const getNumberFormat = R.pipe(
     numberFormatPropsFn,
     // `unit`s are excluded as they will be represented

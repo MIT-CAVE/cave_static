@@ -813,21 +813,25 @@ export const selectCurrentMapProjectionFunc = createSelector(
     },
   }
 )
+export const selectIsMapboxTokenProvided = createSelector(
+  selectMapboxToken,
+  R.both(R.isNotNil, R.isNotEmpty)
+)
 export const selectMapStyleOptions = createSelector(
-  [selectOrderedMaps, selectMapboxToken],
-  (data, token) => ({
-    ...DEFAULT_MAP_STYLES,
-    ...R.pipe(
+  [selectOrderedMaps, selectIsMapboxTokenProvided],
+  (data, isMapboxTokenProvided) =>
+    R.pipe(
       orderEntireDict,
       R.propOr([], 'additionalMapStyles'),
+      R.mergeRight(DEFAULT_MAP_STYLES),
       R.filter(
         (style) =>
-          token !== '' ||
+          isMapboxTokenProvided ||
           R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
       )
-    )(data),
-  })
+    )(data)
 )
+
 export const selectPitchSliderToggleFunc = createSelector(
   selectMapControlsByMap,
   (controls) =>
