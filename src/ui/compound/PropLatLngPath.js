@@ -24,7 +24,7 @@ import NumberInput from './NumberInput'
 
 import { selectMapboxToken } from '../../data/selectors'
 
-import { forceArray } from '../../utils'
+import { adjustArcPath, forceArray } from '../../utils'
 
 const styles = {
   getBoxStyle: (enabled) => ({
@@ -101,7 +101,11 @@ const displayPath = (path) => {
   )
 }
 const getPathData = (path) =>
-  R.assocPath(['geometry', 'coordinates'], path, mapSettings.pathSource)
+  R.assocPath(
+    ['geometry', 'coordinates'],
+    adjustArcPath(path),
+    mapSettings.pathSource
+  )
 
 const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const mapboxToken = useSelector(selectMapboxToken)
