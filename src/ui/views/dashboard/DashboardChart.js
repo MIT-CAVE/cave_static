@@ -182,9 +182,8 @@ const DashboardChart = ({ chartObj }) => {
         {}
       )(statPaths)
     : getNumberFormat(stat)
-  // TODO: Use an empty `formattedData` to provide better
-  // feedback in the UI when the chart content is empty
-  if (R.isEmpty(formattedData) || loading)
+
+  if (loading)
     return (
       <CircularProgress
         sx={{
@@ -192,6 +191,35 @@ const DashboardChart = ({ chartObj }) => {
           mt: '25%',
         }}
       />
+    )
+  if (R.isEmpty(formattedData))
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          width: '100%',
+        }}
+      >
+        <Box
+          sx={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+          }}
+        >
+          Empty Chart Data
+        </Box>
+        <Box
+          sx={{
+            fontSize: '1.5rem',
+          }}
+        >
+          Please check your data or your filters.
+        </Box>
+      </Box>
     )
   return (
     <Box
