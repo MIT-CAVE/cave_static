@@ -121,7 +121,7 @@ const VerticalContainer = ({
       <Grid item pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid item container alignItems="start" overflow="auto" flexGrow={1}>
+      <Grid item container alignItems="start" overflow="visible" flexGrow={1}>
         {children}
       </Grid>
     </Grid>

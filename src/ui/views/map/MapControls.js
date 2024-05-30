@@ -42,7 +42,6 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 import { unitPlacements } from '../../../utils/enums'
-import TimeControl from '../common/TimeControl'
 
 import { FetchedIcon, TooltipButton } from '../../compound'
 
@@ -264,9 +263,6 @@ const MapControls = ({ allowProjections, mapId }) => {
         onMouseLeave={() => setHover(false)}
       >
         <Box sx={styles.rowButtons}>
-          {/*Animation Controls*/}
-          <TimeControl compact />
-
           {/* Map legend */}
           <ButtonGroup
             sx={styles.btnGroup}
