@@ -2,9 +2,8 @@ import { InputAdornment, TextField, Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import React, { useEffect, useRef, useState } from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
-import Keyboard from 'react-simple-keyboard'
-import 'react-simple-keyboard/build/css/index.css'
-import './Keyboard.css'
+
+import VirtualKeyboard from './VirtualKeyboard.js'
 
 import { getStatusIcon } from '../../utils'
 
@@ -26,31 +25,16 @@ const TextInput = ({
 }) => {
   const focused = useRef(false)
   const [value, setValue] = useState(valueParent)
-  // const [keyboardState, setKeyboardState] = useState({
-  //   layoutName: 'default',
-  //   input: value,
-  // })
+  const keyboard = useRef(null)
 
-  // function onKeyboardChange(input) {
-  //   onChange(input)
-  //   setKeyboardState({ ...keyboardState, input })
-  // }
-
-  // function onKeyPress(button) {
-  //   if (button === '{shift}' || button === '{lock}') handleShift()
-  // }
-
-  // const handleShift = () => {
-  //   const layoutName = keyboardState.layoutName
-
-  //   setKeyboardState({
-  //     layoutName: layoutName === 'default' ? 'shift' : 'default',
-  //   })
-  // }
+  const setInput = (value) => {
+    setValue(value)
+    keyboard.current.setInput(value)
+  }
 
   useEffect(() => {
     if (focused.current) return
-    setValue(valueParent)
+    setInput(valueParent)
   }, [valueParent, setValue])
 
   return (
@@ -74,7 +58,7 @@ const TextInput = ({
         onChange={(event) => {
           controlled
             ? onChange(event.target.value)
-            : setValue(event.target.value)
+            : setInput(event.target.value)
         }}
         onFocus={() => {
           if (!enabled) return
@@ -100,24 +84,11 @@ const TextInput = ({
           ),
         }}
       />
-      <Keyboard
-        // layoutName={keyboardState.layoutName}
-        layout={{
-          default: [
-            '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
-            '{tab} q w e r t y u i o p [ ] \\',
-            "{lock} a s d f g h j k l ; ' {enter}",
-            '{shift} z x c v b n m , . / {shift}',
-            '.com @ {space}',
-          ],
-          shift: [
-            '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-            '{tab} Q W E R T Y U I O P { } |',
-            '{lock} A S D F G H J K L : " {enter}',
-            '{shift} Z X C V B N M < > ? {shift}',
-            '.com @ {space}',
-          ],
-        }}
+      <VirtualKeyboard
+        keyboardRef={keyboard}
+        controlled={controlled}
+        setInput={setInput}
+        onChange={onChange}
       />
     </Box>
   )
