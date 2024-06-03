@@ -280,6 +280,12 @@ export const selectCurrentTimeUnits = createSelector(
   selectTimeSettings,
   (data) => R.propOr('unit', 'timeUnits')(data)
 )
+export const selectCurrentLooping = createSelector(selectTimeSettings, (data) =>
+  R.propOr(false, 'looping')(data)
+)
+export const selectCurrentSpeed = createSelector(selectTimeSettings, (data) =>
+  R.propOr(1, 'fps')(data)
+)
 export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )

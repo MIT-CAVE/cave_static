@@ -18,6 +18,8 @@ import {
   selectCurrentTimeLength,
   selectCurrentTimeUnits,
   selectAnimationInterval,
+  selectCurrentLooping,
+  selectCurrentSpeed,
 } from '../../../data/selectors'
 import { updateAnimation } from '../../../data/utilities/timeSlice'
 import Select from '../../compound/Select'
@@ -49,8 +51,10 @@ const styles = {
 }
 
 const TimeControl = () => {
-  const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [looping, setLooping] = useState(true)
+  const [playbackSpeed, setPlaybackSpeed] = useState(
+    useSelector(selectCurrentSpeed)
+  )
+  const [looping, setLooping] = useState(useSelector(selectCurrentLooping))
 
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
