@@ -50,3 +50,11 @@ body {
   left: 0;
   bottom: 0;
 }
+
+.simple-keyboard {
+  color: black;
+}
+
+.simple-keyboard .hg-button.bigger-keys {
+  flex: 50;
+}
