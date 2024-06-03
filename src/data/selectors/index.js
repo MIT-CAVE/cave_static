@@ -50,6 +50,11 @@ const workerManager = new ThreadMaxWorkers()
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
 
+// Virtual Keyboard
+export const selectVirtualKeyboard = createSelector(selectUtilities, (data) =>
+  R.prop('virtualKeyboard')(data)
+)
+
 // Loading
 export const selectLoading = createSelector(selectUtilities, (data) =>
   R.prop('loading')(data)
