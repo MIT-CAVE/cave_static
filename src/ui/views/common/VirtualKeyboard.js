@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Keyboard from 'react-simple-keyboard'
 import 'react-simple-keyboard/build/css/index.css'
@@ -7,18 +7,82 @@ import 'react-simple-keyboard/build/css/index.css'
 import { selectVirtualKeyboard } from '../../../data/selectors'
 import { setInputValue } from '../../../data/utilities/virtualKeyboardSlice'
 
-const VirtualKeyboard = ({ controlled, onChange }) => {
+const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
   const [layoutName, setLayoutName] = useState('default')
   const [prevButton, setPrevButton] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [position, setPosition] = useState({
+    x: window.innerWidth / 2 - (0.8 * window.innerWidth) / 2,
+    y: window.innerHeight - 250,
+  })
 
   const keyboardRef = useRef(null)
   const dragOffset = useRef({ x: 0, y: 0 })
 
+  const dragText = 'drag to move'
+
+  // Reset position when window is resized
+  useEffect(() => {
+    const onResize = () => {
+      setPosition({
+        x: window.innerWidth / 2 - (0.8 * window.innerWidth) / 2,
+        y: window.innerHeight - 250,
+      })
+    }
+
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
+
+  // Dragging
+  const onMouseDown = (e) => {
+    if (e.target.innerText === dragText) {
+      setIsDragging(true)
+      dragOffset.current = {
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      }
+    }
+  }
+
+  const onMouseMove = useCallback(
+    (e) => {
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragOffset.current.x,
+          y: e.clientY - dragOffset.current.y,
+        })
+      }
+    },
+    [isDragging]
+  )
+
+  const onMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', onMouseUp)
+    } else {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [onMouseMove, isDragging])
+
+  // Sync input values with virtual keyboard
   useEffect(() => {
     keyboardRef?.current?.setInput(virtualKeyboard.inputValue)
   }, [virtualKeyboard.inputValue])
@@ -32,7 +96,11 @@ const VirtualKeyboard = ({ controlled, onChange }) => {
       nextLayout = 'numPad'
     } else if (button === '{toggleDefault}') {
       nextLayout = 'default'
-    } else if (prevButton === '{shift}' && layoutName === 'shift') {
+    } else if (
+      prevButton === '{shift}' &&
+      layoutName === 'shift' &&
+      button !== '{drag}'
+    ) {
       nextLayout = 'default'
     }
 
@@ -40,42 +108,11 @@ const VirtualKeyboard = ({ controlled, onChange }) => {
     setPrevButton(button)
   }
 
-  const setInput = (value) => {
-    dispatch(setInputValue(value))
-  }
-
-  const onMouseDown = (e) => {
-    if (e.target.innerText === 'drag') {
-      setIsDragging(true)
-      dragOffset.current = {
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
-      }
-    }
-  }
-
-  const onMouseMove = (e) => {
-    if (isDragging) {
-      setPosition({
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      })
-    }
-  }
-
-  const onMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  // TODOB REMOVE
-  // if (!virtualKeyboard.isOpen) return null
-
-  // TODOB FIX DRAGGING
   return (
     <Box
       sx={{
         position: 'fixed',
-        bottom: `${position.y}px`,
+        top: `${position.y}px`,
         left: `${position.x}px`,
         width: '80vw',
         zIndex: 1000000,
@@ -90,7 +127,7 @@ const VirtualKeyboard = ({ controlled, onChange }) => {
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
         onChange={(value) => {
-          controlled ? onChange(value) : setInput(value)
+          dispatch(setInputValue(value))
         }}
         onKeyPress={onKeyPress}
         layoutName={layoutName}
@@ -126,7 +163,7 @@ const VirtualKeyboard = ({ controlled, onChange }) => {
           '{toggleNumPad}': '123',
           '{toggleDefault}': 'ABC',
           '{space}': ' ',
-          '{drag}': 'drag',
+          '{drag}': dragText,
         }}
         buttonTheme={[
           {

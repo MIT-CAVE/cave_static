@@ -173,7 +173,7 @@ const App = () => {
           </LocalizationProvider>
           <RightAppBar />
         </Box>
-        <VirtualKeyboard controlled={false} onChange={() => {}} />
+        <VirtualKeyboard />
       </ThemeProvider>
     </StyledEngineProvider>
   )

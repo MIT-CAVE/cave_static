@@ -41,15 +41,28 @@ const TextInput = ({
     setValue(valueParent)
   }, [valueParent, setValue])
 
+  // Update virtual keyboard's value when this field's value changes
   useEffect(() => {
     if (!enabled || virtualKeyboard.currField !== field.current) return
     dispatch(setInputValue(value))
   }, [dispatch, virtualKeyboard.currField, enabled, value])
 
+  // Update this field's value or trigger onChange when user types on virtual keyboard
   useEffect(() => {
     if (!enabled || virtualKeyboard.currField !== field.current) return
-    setValue(virtualKeyboard.inputValue)
-  }, [enabled, virtualKeyboard.currField, virtualKeyboard.inputValue])
+
+    if (controlled) {
+      onChange(virtualKeyboard.inputValue)
+    } else {
+      setValue(virtualKeyboard.inputValue)
+    }
+  }, [
+    onChange,
+    enabled,
+    controlled,
+    virtualKeyboard.currField,
+    virtualKeyboard.inputValue,
+  ])
 
   const setAsCurrField = () => {
     field.current = virtualKeyboard.currField + 1
