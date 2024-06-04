@@ -32,28 +32,43 @@ const TextInput = ({
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
-  const focused = useRef(false)
-  const field = useRef(-1)
   const [value, setValue] = useState(valueParent)
+  const focused = useRef(false)
+  const justFocused = useRef(false)
+  const field = useRef(-1)
 
   useEffect(() => {
     if (focused.current) return
     setValue(valueParent)
   }, [valueParent, setValue])
 
-  // Update virtual keyboard's value when this field's value changes
   useEffect(() => {
-    if (!enabled || virtualKeyboard.currField !== field.current) return
+    if (focused.current && virtualKeyboard.currField !== field.current) {
+      focused.current = false
+    }
+  }, [virtualKeyboard.currField])
+
+  // Update virtual keyboard's value when this field's value changes
+  // from anything besides the virtual keyboard
+  const setAllValues = (value) => {
+    console.log('updating virtual keyboard value', value)
+    setValue(value)
     dispatch(setInputValue(value))
-  }, [dispatch, virtualKeyboard.currField, enabled, value])
+  }
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
   useEffect(() => {
     if (!enabled || virtualKeyboard.currField !== field.current) return
 
+    if (justFocused.current) {
+      justFocused.current = false
+      return
+    }
+
     if (controlled) {
       onChange(virtualKeyboard.inputValue)
-    } else {
+    } else if (virtualKeyboard.inputValue !== value) {
+      console.log('updating field value', virtualKeyboard.inputValue)
       setValue(virtualKeyboard.inputValue)
     }
   }, [
@@ -62,11 +77,14 @@ const TextInput = ({
     controlled,
     virtualKeyboard.currField,
     virtualKeyboard.inputValue,
+    value,
   ])
 
   const setAsCurrField = () => {
+    justFocused.current = true
     field.current = virtualKeyboard.currField + 1
     dispatch(incrementField())
+    dispatch(setInputValue(value))
   }
 
   return (
@@ -79,7 +97,9 @@ const TextInput = ({
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
       onChange={(event) => {
-        controlled ? onChange(event.target.value) : setValue(event.target.value)
+        controlled
+          ? onChange(event.target.value)
+          : setAllValues(event.target.value)
       }}
       onFocus={() => {
         if (!enabled) return
@@ -90,7 +110,6 @@ const TextInput = ({
       onBlur={() => {
         if (!enabled) return
 
-        focused.current = false
         onClickAway(value)
       }}
       helperText={help}

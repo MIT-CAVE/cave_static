@@ -13,6 +13,7 @@ export const virtualKeyboardSlice = createSlice({
       return R.assoc('isOpen', !state.isOpen, state)
     },
     setInputValue(state, action) {
+      console.log(action.payload)
       return R.assoc('inputValue', action.payload, state)
     },
     incrementField(state) {

@@ -82,7 +82,7 @@ const VirtualKeyboard = () => {
     }
   }, [onMouseMove, isDragging])
 
-  // Sync input values with virtual keyboard
+  // Sync input field value with virtual keyboard
   useEffect(() => {
     keyboardRef?.current?.setInput(virtualKeyboard.inputValue)
   }, [virtualKeyboard.inputValue])
