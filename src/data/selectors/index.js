@@ -284,7 +284,7 @@ export const selectCurrentLooping = createSelector(selectTimeSettings, (data) =>
   R.propOr(false, 'looping')(data)
 )
 export const selectCurrentSpeed = createSelector(selectTimeSettings, (data) =>
-  R.propOr(1, 'fps')(data)
+  R.propOr(1, 'speed')(data)
 )
 export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
