@@ -50,6 +50,7 @@ export const propVariant = {
   FIELD: 'field',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
+  INCSLIDER: 'incslider',
   LATLNG_INPUT: 'latLngInput',
   LATLNG_MAP: 'latLngMap',
   LATLNG_PATH: 'latLngPath',
