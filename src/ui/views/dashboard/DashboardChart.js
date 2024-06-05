@@ -26,6 +26,7 @@ import {
   Heatmap,
   ScatterPlot,
   BubblePlot,
+  DistributionChart,
 } from '../../charts'
 
 import {
@@ -299,6 +300,11 @@ const DashboardChart = ({ chartObj }) => {
           data={formattedData}
           labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
+        <DistributionChart
+          data={formattedData}
+          {...{ colors, numberFormat, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot

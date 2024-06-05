@@ -38,6 +38,8 @@ import {
   forceArray,
 } from '../../../utils'
 
+// import { Slider } from '@mui/material'
+
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
@@ -295,6 +297,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               value: chartVariant.SCATTER,
               iconName: 'md/MdScatterPlot',
             },
+            {
+              label: 'Distribution',
+              value: chartVariant.DISTRIBUTION,
+              iconName: 'md/MdBarChart',
+            },
           ]}
           displayIcon
           onSelect={handleSelectChart}
@@ -473,6 +480,37 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           onSelectGroup={handleSelectGroupFn}
         />
       </ChartDropdownWrapper>
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <ChartDropdownWrapper>
+          <Select
+            // disabled={chartObj.variant !== chartVariant.DISTRIBUTION}
+            value="Distribution Type"
+            displayIcon
+            optionsList={[
+              {
+                label: 'PDF',
+                // value: chartAggrFunc.SUM,
+                iconName: 'md/MdFunctions',
+              },
+              {
+                label: 'CDF',
+                // value: chartAggrFunc.MEAN,
+                iconName: 'md/MdFunctions',
+              },
+            ]}
+          />
+        </ChartDropdownWrapper>
+      )}
+      {/* {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <Slider
+          aria-label="bucket slider"
+          valueLabelDisplay="on"
+          // value={}
+          sx={{ mt: 4, ml: 4, width: '200px' }}
+          max={15}
+          min={1}
+        ></Slider>
+      )} */}
     </>
   )
 }

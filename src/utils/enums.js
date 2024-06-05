@@ -134,6 +134,7 @@ export const chartVariant = {
   GAUGE: 'gauge',
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
+  DISTRIBUTION: 'distribution',
   OVERVIEW: 'overview',
 }
 
