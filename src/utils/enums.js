@@ -135,6 +135,7 @@ export const chartVariant = {
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
   DISTRIBUTION: 'distribution',
+  CUMULATIVE_DISTRIBUTION: 'cumulative_distribution',
   OVERVIEW: 'overview',
 }
 

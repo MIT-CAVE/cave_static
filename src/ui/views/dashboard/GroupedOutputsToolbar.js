@@ -302,6 +302,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               value: chartVariant.DISTRIBUTION,
               iconName: 'md/MdBarChart',
             },
+            {
+              label: 'Cumulative Distribution',
+              value: chartVariant.CUMULATIVE_DISTRIBUTION,
+              iconName: 'md/MdBarChart',
+            },
           ]}
           displayIcon
           onSelect={handleSelectChart}
@@ -480,7 +485,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           onSelectGroup={handleSelectGroupFn}
         />
       </ChartDropdownWrapper>
-      {chartObj.variant === chartVariant.DISTRIBUTION && (
+      {/* {chartObj.variant === chartVariant.DISTRIBUTION && (
         <ChartDropdownWrapper>
           <Select
             // disabled={chartObj.variant !== chartVariant.DISTRIBUTION}
@@ -500,16 +505,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             ]}
           />
         </ChartDropdownWrapper>
-      )}
-      {/* {chartObj.variant === chartVariant.DISTRIBUTION && (
-        <Slider
-          aria-label="bucket slider"
-          valueLabelDisplay="on"
-          // value={}
-          sx={{ mt: 4, ml: 4, width: '200px' }}
-          max={15}
-          min={1}
-        ></Slider>
       )} */}
     </>
   )

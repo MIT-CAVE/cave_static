@@ -27,6 +27,7 @@ import {
   ScatterPlot,
   BubblePlot,
   DistributionChart,
+  CumulativeDistributionChart,
 } from '../../charts'
 
 import {
@@ -303,6 +304,11 @@ const DashboardChart = ({ chartObj }) => {
         />
       ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
         <DistributionChart
+          data={formattedData}
+          {...{ colors, numberFormat, ...labels }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.CUMULATIVE_DISTRIBUTION ? (
+        <CumulativeDistributionChart
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />

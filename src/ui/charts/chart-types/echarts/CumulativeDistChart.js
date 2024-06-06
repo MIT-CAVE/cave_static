@@ -5,11 +5,11 @@ import { useState } from 'react'
 import EchartsPlot from './BaseChart'
 
 /**
- * Renders a distribution chart.
+ * Renders a cumulative distribution chart.
  * @todo Implement this component.
  * @todo Write the documentation by following JSDoc 3.
  */
-const DistributionChart = ({
+const CumulativeDistributionChart = ({
   data,
   yAxisTitle,
   numberFormat,
@@ -55,9 +55,16 @@ const DistributionChart = ({
     buckets[bucketIndex]++
   }
 
+  // Calculate the cumulative counts for CDF
+  const cumulativeCounts = buckets.reduce((acc, count, index) => {
+    const cumulativeCount = index === 0 ? count : acc[index - 1] + count
+    acc.push(cumulativeCount)
+    return acc
+  }, [])
+
   const newData = bucketRanges.map((range, index) => ({
     name: `[${range.min},${range.max})`,
-    value: buckets[index] / values.length,
+    value: cumulativeCounts[index] / values.length,
   }))
 
   return (
@@ -66,7 +73,7 @@ const DistributionChart = ({
         data={newData}
         chartType="bar"
         xAxisTitle={yAxisTitle}
-        yAxisTitle="Probability Density"
+        yAxisTitle="Cumulative Density"
         seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
         {...{ numberFormat, stack, colors }}
       />
@@ -82,7 +89,7 @@ const DistributionChart = ({
     </>
   )
 }
-DistributionChart.propTypes = {
+CumulativeDistributionChart.propTypes = {
   data: PropTypes.array,
   numberFormat: PropTypes.object,
   xAxisTitle: PropTypes.string,
@@ -90,4 +97,4 @@ DistributionChart.propTypes = {
   area: PropTypes.bool,
 }
 
-export { DistributionChart }
+export { CumulativeDistributionChart }
