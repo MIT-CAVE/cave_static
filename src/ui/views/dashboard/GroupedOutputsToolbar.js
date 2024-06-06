@@ -298,14 +298,24 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               iconName: 'md/MdScatterPlot',
             },
             {
-              label: 'Distribution',
-              value: chartVariant.DISTRIBUTION,
+              label: 'PDF Bar',
+              value: chartVariant.PDF_BAR,
               iconName: 'md/MdBarChart',
             },
             {
-              label: 'Cumulative Distribution',
-              value: chartVariant.CUMULATIVE_DISTRIBUTION,
+              label: 'CDF Bar',
+              value: chartVariant.CDF_BAR,
               iconName: 'md/MdBarChart',
+            },
+            {
+              label: 'PDF Line',
+              value: chartVariant.PDF_LINE,
+              iconName: 'md/MdShowChart',
+            },
+            {
+              label: 'CDF Line',
+              value: chartVariant.CDF_LINE,
+              iconName: 'md/MdShowChart',
             },
           ]}
           displayIcon

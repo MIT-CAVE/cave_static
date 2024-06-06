@@ -134,8 +134,10 @@ export const chartVariant = {
   GAUGE: 'gauge',
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
-  DISTRIBUTION: 'distribution',
-  CUMULATIVE_DISTRIBUTION: 'cumulative_distribution',
+  PDF_BAR: 'pdf_bar',
+  CDF_BAR: 'cdf_bar',
+  PDF_LINE: 'pdf_line',
+  CDF_LINE: 'cdf_line',
   OVERVIEW: 'overview',
 }
 

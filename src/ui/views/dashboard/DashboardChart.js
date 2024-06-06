@@ -27,7 +27,6 @@ import {
   ScatterPlot,
   BubblePlot,
   DistributionChart,
-  CumulativeDistributionChart,
 } from '../../charts'
 
 import {
@@ -302,15 +301,39 @@ const DashboardChart = ({ chartObj }) => {
           labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
         />
-      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
+      ) : cleanedChartObj.variant === chartVariant.PDF_BAR ? (
         <DistributionChart
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          chartType="bar"
+          yAxisTitle="Probability Density"
+          xAxisTitle={yAxisTitle}
+          {...{ colors, numberFormat }}
         />
-      ) : cleanedChartObj.variant === chartVariant.CUMULATIVE_DISTRIBUTION ? (
-        <CumulativeDistributionChart
+      ) : cleanedChartObj.variant === chartVariant.CDF_BAR ? (
+        <DistributionChart
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          yAxisTitle="Cumulative Density"
+          xAxisTitle={yAxisTitle}
+          chartType="bar"
+          cumulative={true}
+          {...{ numberFormat, colors }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.PDF_LINE ? (
+        <DistributionChart
+          data={formattedData}
+          yAxisTitle="Probability Density"
+          xAxisTitle={yAxisTitle}
+          chartType="line"
+          {...{ numberFormat, colors }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.CDF_LINE ? (
+        <DistributionChart
+          data={formattedData}
+          yAxisTitle="Cumulative Density"
+          xAxisTitle={yAxisTitle}
+          chartType="line"
+          cumulative={true}
+          {...{ numberFormat, colors }}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot

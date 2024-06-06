@@ -16,6 +16,7 @@ const DistributionChart = ({
   numberFormat,
   colors,
   cumulative,
+  chartType,
   stack = false,
   area = false,
 }) => {
@@ -69,9 +70,9 @@ const DistributionChart = ({
     <>
       <EchartsPlot
         data={calcDistributionData}
-        chartType="bar"
         seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
-        {...{ numberFormat, stack, colors, xAxisTitle, yAxisTitle }}
+        xAxisTitle={yAxisTitle}
+        {...{ numberFormat, stack, colors, xAxisTitle, yAxisTitle, chartType }}
       />
       <Slider
         aria-label="bucket slider"
