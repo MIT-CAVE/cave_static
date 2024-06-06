@@ -6,23 +6,22 @@ export const virtualKeyboardSlice = createSlice({
   initialState: {
     isOpen: false,
     inputValue: '',
-    currField: 0,
+    caretPosition: [0, 0],
   },
   reducers: {
     toggleKeyboard(state) {
       return R.assoc('isOpen', !state.isOpen, state)
     },
     setInputValue(state, action) {
-      console.log(action.payload)
       return R.assoc('inputValue', action.payload, state)
     },
-    incrementField(state) {
-      return R.assoc('currField', state.currField + 1, state)
+    setCaretPosition(state, action) {
+      return R.assoc('caretPosition', action.payload, state)
     },
   },
 })
 
-export const { toggleKeyboard, setInputValue, incrementField } =
+export const { toggleKeyboard, setInputValue, setCaretPosition } =
   virtualKeyboardSlice.actions
 
 export default virtualKeyboardSlice.reducer

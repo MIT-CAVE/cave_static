@@ -1,5 +1,6 @@
 import { InputAdornment, TextField, Box } from '@mui/material'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 import React, { useEffect, useState, useRef } from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
 import { useDispatch, useSelector } from 'react-redux'
@@ -8,7 +9,7 @@ import { selectVirtualKeyboard } from '../../data/selectors'
 import {
   toggleKeyboard,
   setInputValue,
-  incrementField,
+  setCaretPosition,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { getStatusIcon } from '../../utils'
@@ -32,60 +33,65 @@ const TextInput = ({
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
-  const [value, setValue] = useState(valueParent)
   const focused = useRef(false)
-  const justFocused = useRef(false)
-  const field = useRef(-1)
+  const inputRef = useRef(null)
+
+  const [value, setValue] = useState(valueParent)
 
   useEffect(() => {
     if (focused.current) return
     setValue(valueParent)
   }, [valueParent, setValue])
 
-  useEffect(() => {
-    if (focused.current && virtualKeyboard.currField !== field.current) {
-      focused.current = false
-    }
-  }, [virtualKeyboard.currField])
-
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard
-  const setAllValues = (value) => {
-    console.log('updating virtual keyboard value', value)
-    setValue(value)
-    dispatch(setInputValue(value))
+  const setAllValues = (inputValue) => {
+    setValue(inputValue)
+    dispatch(setInputValue(inputValue))
+    const currCursorPosition = [
+      inputRef.current.selectionStart,
+      inputRef.current.selectionEnd,
+    ]
+    dispatch(setCaretPosition(currCursorPosition))
   }
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
   useEffect(() => {
-    if (!enabled || virtualKeyboard.currField !== field.current) return
-
-    if (justFocused.current) {
-      justFocused.current = false
+    if (!enabled || !focused.current || virtualKeyboard.inputValue === value)
       return
-    }
 
     if (controlled) {
       onChange(virtualKeyboard.inputValue)
-    } else if (virtualKeyboard.inputValue !== value) {
-      console.log('updating field value', virtualKeyboard.inputValue)
+    } else {
       setValue(virtualKeyboard.inputValue)
     }
   }, [
     onChange,
     enabled,
     controlled,
-    virtualKeyboard.currField,
     virtualKeyboard.inputValue,
+    virtualKeyboard.caretPosition,
     value,
   ])
 
-  const setAsCurrField = () => {
-    justFocused.current = true
-    field.current = virtualKeyboard.currField + 1
-    dispatch(incrementField())
-    dispatch(setInputValue(value))
-  }
+  // Keep cursor position correct when user types on virtual keyboard since
+  // setting the value will reset the cursor position to the end
+  // Triggers when cursor position changes rather than immediately after typing
+  // to let value update first
+  useEffect(() => {
+    if (
+      inputRef.current &&
+      !R.equals(virtualKeyboard.caretPosition, [
+        inputRef.current.selectionStart,
+        inputRef.current.selectionEnd,
+      ])
+    ) {
+      inputRef.current.setSelectionRange(
+        virtualKeyboard.caretPosition[0],
+        virtualKeyboard.caretPosition[1]
+      )
+    }
+  }, [virtualKeyboard.caretPosition, value])
 
   return (
     <TextField
@@ -96,6 +102,14 @@ const TextInput = ({
       value={controlled ? valueParent : value}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
+      onSelect={() => {
+        dispatch(
+          setCaretPosition([
+            inputRef.current.selectionStart,
+            inputRef.current.selectionEnd,
+          ])
+        )
+      }}
       onChange={(event) => {
         controlled
           ? onChange(event.target.value)
@@ -105,14 +119,16 @@ const TextInput = ({
         if (!enabled) return
 
         focused.current = true
-        setAsCurrField()
+        setAllValues(value)
       }}
       onBlur={() => {
         if (!enabled) return
 
+        focused.current = false
         onClickAway(value)
       }}
       helperText={help}
+      inputRef={inputRef}
       InputProps={{
         readOnly: !enabled,
         endAdornment: (
@@ -120,7 +136,6 @@ const TextInput = ({
             <Box
               sx={{ cursor: 'pointer' }}
               onClick={() => {
-                setAsCurrField()
                 dispatch(toggleKeyboard())
               }}
             >

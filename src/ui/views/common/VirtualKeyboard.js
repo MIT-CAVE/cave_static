@@ -5,7 +5,10 @@ import Keyboard from 'react-simple-keyboard'
 import 'react-simple-keyboard/build/css/index.css'
 
 import { selectVirtualKeyboard } from '../../../data/selectors'
-import { setInputValue } from '../../../data/utilities/virtualKeyboardSlice'
+import {
+  setInputValue,
+  setCaretPosition,
+} from '../../../data/utilities/virtualKeyboardSlice'
 
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
@@ -42,6 +45,8 @@ const VirtualKeyboard = () => {
 
   // Dragging
   const onMouseDown = (e) => {
+    e.preventDefault()
+
     if (e.target.innerText === dragText) {
       setIsDragging(true)
       dragOffset.current = {
@@ -82,10 +87,15 @@ const VirtualKeyboard = () => {
     }
   }, [onMouseMove, isDragging])
 
-  // Sync input field value with virtual keyboard
+  // Sync keyboard with input field value
   useEffect(() => {
-    keyboardRef?.current?.setInput(virtualKeyboard.inputValue)
-  }, [virtualKeyboard.inputValue])
+    if (
+      keyboardRef.current.getInput() &&
+      virtualKeyboard.inputValue !== keyboardRef.current.getInput()
+    ) {
+      keyboardRef.current?.setInput(virtualKeyboard.inputValue)
+    }
+  }, [dispatch, virtualKeyboard.inputValue, virtualKeyboard.caretPosition])
 
   const onKeyPress = (button) => {
     let nextLayout = layoutName
@@ -128,6 +138,19 @@ const VirtualKeyboard = () => {
         keyboardRef={(r) => (keyboardRef.current = r)}
         onChange={(value) => {
           dispatch(setInputValue(value))
+
+          if (
+            keyboardRef.current.getCaretPosition() !== null &&
+            keyboardRef.current.getCaretPosition() !==
+              virtualKeyboard.caretPosition[0]
+          ) {
+            dispatch(
+              setCaretPosition([
+                keyboardRef.current.getCaretPosition(),
+                keyboardRef.current.getCaretPosition(),
+              ])
+            )
+          }
         }}
         onKeyPress={onKeyPress}
         layoutName={layoutName}
