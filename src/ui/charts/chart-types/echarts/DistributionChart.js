@@ -77,7 +77,7 @@ const DistributionChart = ({
         aria-label="bucket slider"
         valueLabelDisplay="on"
         value={numBuckets}
-        sx={{ position: 'absolute', ml: 102, mt: 2, width: '500px' }}
+        sx={{ position: 'absolute', width: '30%', left: '35%', top: '1%' }}
         max={20}
         min={1}
         onChange={(e) => setNumBuckets(e.target.value)}
