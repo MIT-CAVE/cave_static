@@ -47,13 +47,12 @@ const DistributionChart = ({
     })
   }
 
-  for (const val of values) {
-    const bucketIndex = Math.min(
-      Math.floor((val - minValue) / bucketSize),
-      numBuckets - 1
-    )
-    buckets[bucketIndex]++
-  }
+  // Add each value to a bucket
+  values.forEach((val) => {
+    buckets[
+      Math.min(Math.floor((val - minValue) / bucketSize), numBuckets - 1)
+    ]++
+  })
 
   const newData = bucketRanges.map((range, index) => ({
     name: `[${range.min},${range.max})`,

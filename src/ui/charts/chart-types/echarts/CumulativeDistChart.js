@@ -47,13 +47,12 @@ const CumulativeDistributionChart = ({
     })
   }
 
-  for (const val of values) {
-    const bucketIndex = Math.min(
-      Math.floor((val - minValue) / bucketSize),
-      numBuckets - 1
-    )
-    buckets[bucketIndex]++
-  }
+  // Add each value to a bucket
+  values.forEach((val) => {
+    buckets[
+      Math.min(Math.floor((val - minValue) / bucketSize), numBuckets - 1)
+    ]++
+  })
 
   // Calculate the cumulative counts for CDF
   const cumulativeCounts = buckets.reduce((acc, count, index) => {
