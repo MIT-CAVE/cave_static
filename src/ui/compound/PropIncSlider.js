@@ -21,29 +21,30 @@ const getStyles = (enabled) => ({
 })
 
 const PropIncSlider = ({ prop, sx = [], ...props }) => {
-  const { enabled = false, options } = prop
+  console.log('PropIncSlider', prop)
+  const { enabled = false, valueOptions } = prop
   const [value, setValue] = useState(prop.value)
   const marks = R.map(
     (x) => ({
       value: x,
-      label: options[x],
+      label: valueOptions[x],
     }),
-    R.range(0, R.length(options))
+    R.range(0, R.length(valueOptions))
   )
   return (
     <Box sx={[getStyles(enabled).box, ...forceArray(sx)]} {...props}>
       <Slider
         style={getStyles(enabled).slider}
         min={0}
-        max={R.length(options) - 1}
+        max={R.length(valueOptions) - 1}
         step={null}
         track={false}
         disabled={!enabled}
         valueLabelDisplay="off"
-        value={R.indexOf(value, options)}
+        value={R.indexOf(value, valueOptions)}
         marks={marks}
         onChange={(_, val) => {
-          if (enabled) setValue(options[val])
+          if (enabled) setValue(valueOptions[val])
         }}
       />
     </Box>
