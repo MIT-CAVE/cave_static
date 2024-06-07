@@ -10,7 +10,6 @@ import {
   toggleKeyboard,
   setLayout,
   setInputValue,
-  setCaretPosition,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { getStatusIcon } from '../../utils'
@@ -36,6 +35,7 @@ const TextInput = ({
 
   const focused = useRef(false)
   const inputRef = useRef(null)
+  const inputChange = useRef(false)
 
   const [value, setValue] = useState(valueParent)
 
@@ -49,11 +49,7 @@ const TextInput = ({
   const setAllValues = (inputValue) => {
     setValue(inputValue)
     dispatch(setInputValue(inputValue))
-    const currCursorPosition = [
-      inputRef.current.selectionStart,
-      inputRef.current.selectionEnd,
-    ]
-    dispatch(setCaretPosition(currCursorPosition))
+    inputChange.current = true
   }
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
@@ -66,22 +62,18 @@ const TextInput = ({
     } else {
       setValue(virtualKeyboard.inputValue)
     }
-  }, [
-    onChange,
-    enabled,
-    controlled,
-    virtualKeyboard.inputValue,
-    virtualKeyboard.caretPosition,
-    value,
-  ])
+  }, [onChange, enabled, controlled, virtualKeyboard.inputValue, value])
 
   // Keep cursor position correct when user types on virtual keyboard since
   // setting the value will reset the cursor position to the end
   // Triggers when cursor position changes rather than immediately after typing
   // to let value update first
   useEffect(() => {
+    if (!focused.current) return
+
     if (
       inputRef.current &&
+      !inputChange.current &&
       !R.equals(virtualKeyboard.caretPosition, [
         inputRef.current.selectionStart,
         inputRef.current.selectionEnd,
@@ -92,7 +84,11 @@ const TextInput = ({
         virtualKeyboard.caretPosition[1]
       )
     }
-  }, [virtualKeyboard.caretPosition, value])
+
+    if (inputChange.current) {
+      inputChange.current = false
+    }
+  }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, value])
 
   return (
     <TextField
@@ -103,14 +99,6 @@ const TextInput = ({
       value={controlled ? valueParent : value}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
-      onSelect={() => {
-        dispatch(
-          setCaretPosition([
-            inputRef.current.selectionStart,
-            inputRef.current.selectionEnd,
-          ])
-        )
-      }}
       onChange={(event) => {
         controlled
           ? onChange(event.target.value)

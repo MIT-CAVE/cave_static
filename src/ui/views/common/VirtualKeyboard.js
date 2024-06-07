@@ -95,7 +95,7 @@ const VirtualKeyboard = () => {
     ) {
       keyboardRef.current?.setInput(virtualKeyboard.inputValue)
     }
-  }, [dispatch, virtualKeyboard.inputValue, virtualKeyboard.caretPosition])
+  }, [dispatch, virtualKeyboard.inputValue])
 
   const onKeyPress = (button) => {
     let nextLayout = virtualKeyboard.layout
