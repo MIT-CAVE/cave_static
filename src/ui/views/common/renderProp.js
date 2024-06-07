@@ -16,6 +16,7 @@ import {
   PropHStepper,
   PropHeadColumn,
   PropHeadRow,
+  PropIncSlider,
   PropLatLngInput,
   PropLatLngMap,
   PropLatLngPath,
@@ -67,6 +68,7 @@ const getNumberPropRenderFn = R.cond([
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
   [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.equals(propVariant.ICON_COMPACT), R.always(PropNumberIconCompact)],
+  [R.equals(propVariant.INCSLIDER), R.always(PropIncSlider)],
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
