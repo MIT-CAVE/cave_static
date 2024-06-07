@@ -307,6 +307,7 @@ const DashboardChart = ({ chartObj }) => {
           chartType="bar"
           yAxisTitle="Probability Density"
           xAxisTitle={yAxisTitle}
+          cumulative={false}
           {...{ colors, numberFormat }}
         />
       ) : cleanedChartObj.variant === chartVariant.CDF_BAR ? (
@@ -323,6 +324,7 @@ const DashboardChart = ({ chartObj }) => {
           data={formattedData}
           yAxisTitle="Probability Density"
           xAxisTitle={yAxisTitle}
+          cumulative={false}
           chartType="line"
           {...{ numberFormat, colors }}
         />

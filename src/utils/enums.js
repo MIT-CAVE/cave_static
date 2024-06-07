@@ -165,6 +165,10 @@ export const chartMaxGrouping = {
   [chartVariant.GAUGE]: 1,
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
+  [chartVariant.PDF_BAR]: 2,
+  [chartVariant.CDF_BAR]: 2,
+  [chartVariant.PDF_LINE]: 2,
+  [chartVariant.CDF_LINE]: 2,
 }
 
 // Stat limits for multistat charts

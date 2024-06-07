@@ -1,8 +1,16 @@
-import { Slider } from '@mui/material'
+import { Slider, Typography, Box } from '@mui/material'
+import { styled } from '@mui/system'
 import PropTypes from 'prop-types'
 import { useState, useMemo } from 'react'
 
 import EchartsPlot from './BaseChart'
+
+const CustomSlider = styled(Slider)(() => ({
+  '& .MuiSlider-valueLabel': {
+    fontSize: '10px',
+    padding: '3px 8px',
+  },
+}))
 
 /**
  * Renders a distribution chart.
@@ -20,7 +28,7 @@ const DistributionChart = ({
   stack = false,
   area = false,
 }) => {
-  const [numBuckets, setNumBuckets] = useState(1)
+  const [numBuckets, setNumBuckets] = useState(10)
 
   const calcDistributionData = useMemo(() => {
     const values = data.map((val) => val.value[0])
@@ -74,15 +82,28 @@ const DistributionChart = ({
         xAxisTitle={yAxisTitle}
         {...{ numberFormat, stack, colors, xAxisTitle, yAxisTitle, chartType }}
       />
-      <Slider
-        aria-label="bucket slider"
-        valueLabelDisplay="on"
-        value={numBuckets}
-        sx={{ position: 'absolute', width: '30%', left: '35%', top: '1%' }}
-        max={20}
-        min={1}
-        onChange={(e) => setNumBuckets(e.target.value)}
-      ></Slider>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          position: 'absolute',
+          width: '30%',
+          left: '32%',
+          top: '30px',
+        }}
+      >
+        <Typography sx={{ whiteSpace: 'nowrap', mr: 2 }}>
+          Number of buckets
+        </Typography>
+        <CustomSlider
+          aria-label="bucket slider"
+          valueLabelDisplay="auto"
+          value={numBuckets}
+          max={20}
+          min={2}
+          onChange={(e) => setNumBuckets(e.target.value)}
+        ></CustomSlider>
+      </Box>
     </>
   )
 }
