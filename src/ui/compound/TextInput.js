@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { selectVirtualKeyboard } from '../../data/selectors'
 import {
   toggleKeyboard,
+  setLayout,
   setInputValue,
   setCaretPosition,
 } from '../../data/utilities/virtualKeyboardSlice'
@@ -137,6 +138,7 @@ const TextInput = ({
               sx={{ cursor: 'pointer' }}
               onClick={() => {
                 dispatch(toggleKeyboard())
+                dispatch(setLayout('default'))
               }}
             >
               <BiSolidKeyboard />

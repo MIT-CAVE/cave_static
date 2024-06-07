@@ -6,6 +6,7 @@ import 'react-simple-keyboard/build/css/index.css'
 
 import { selectVirtualKeyboard } from '../../../data/selectors'
 import {
+  setLayout,
   setInputValue,
   setCaretPosition,
 } from '../../../data/utilities/virtualKeyboardSlice'
@@ -14,7 +15,6 @@ const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
-  const [layoutName, setLayoutName] = useState('default')
   const [prevButton, setPrevButton] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
@@ -98,23 +98,23 @@ const VirtualKeyboard = () => {
   }, [dispatch, virtualKeyboard.inputValue, virtualKeyboard.caretPosition])
 
   const onKeyPress = (button) => {
-    let nextLayout = layoutName
+    let nextLayout = virtualKeyboard.layout
 
     if (button === '{shift}' || button === '{lock}') {
-      nextLayout = layoutName === 'default' ? 'shift' : 'default'
+      nextLayout = virtualKeyboard.layout === 'default' ? 'shift' : 'default'
     } else if (button === '{toggleNumPad}') {
       nextLayout = 'numPad'
     } else if (button === '{toggleDefault}') {
       nextLayout = 'default'
     } else if (
       prevButton === '{shift}' &&
-      layoutName === 'shift' &&
+      virtualKeyboard.layout === 'shift' &&
       button !== '{drag}'
     ) {
       nextLayout = 'default'
     }
 
-    setLayoutName(nextLayout)
+    dispatch(setLayout(nextLayout))
     setPrevButton(button)
   }
 
@@ -153,7 +153,7 @@ const VirtualKeyboard = () => {
           }
         }}
         onKeyPress={onKeyPress}
-        layoutName={layoutName}
+        layoutName={virtualKeyboard.layout}
         layout={{
           default: [
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
