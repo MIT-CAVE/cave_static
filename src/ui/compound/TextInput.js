@@ -36,6 +36,7 @@ const TextInput = ({
   const focused = useRef(false)
   const inputRef = useRef(null)
   const inputChanged = useRef(false)
+  const isTouchDragging = useRef(false)
 
   const [value, setValue] = useState(valueParent)
 
@@ -115,6 +116,27 @@ const TextInput = ({
 
         focused.current = false
         onClickAway(value)
+
+        if (virtualKeyboard.isOpen) {
+          dispatch(toggleKeyboard())
+        }
+      }}
+      onTouchStart={() => {
+        if (!enabled) return
+
+        isTouchDragging.current = false
+      }}
+      onTouchMove={() => {
+        if (!enabled) return
+
+        isTouchDragging.current = true
+      }}
+      onTouchEnd={() => {
+        if (!enabled) return
+
+        if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
+          dispatch(toggleKeyboard())
+        }
       }}
       helperText={help}
       inputRef={inputRef}

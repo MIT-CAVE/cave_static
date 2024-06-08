@@ -72,6 +72,29 @@ const VirtualKeyboard = () => {
     setIsDragging(false)
   }
 
+  const onTouchStart = (e) => {
+    if (e.target.innerText === dragText) {
+      setIsDragging(true)
+      dragOffset.current = {
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y,
+      }
+    }
+  }
+
+  const onTouchMove = (e) => {
+    if (isDragging) {
+      setPosition({
+        x: e.touches[0].clientX - dragOffset.current.x,
+        y: e.touches[0].clientY - dragOffset.current.y,
+      })
+    }
+  }
+
+  const onTouchEnd = () => {
+    setIsDragging(false)
+  }
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', onMouseMove)
@@ -126,10 +149,14 @@ const VirtualKeyboard = () => {
         color: 'black',
         cursor: isDragging ? 'grabbing' : 'grab',
         visibility: virtualKeyboard.isOpen ? 'visible' : 'hidden',
+        touchAction: 'none',
       }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
