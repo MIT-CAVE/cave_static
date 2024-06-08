@@ -89,10 +89,7 @@ const VirtualKeyboard = () => {
 
   // Sync keyboard with input field value
   useEffect(() => {
-    if (
-      keyboardRef.current.getInput() &&
-      virtualKeyboard.inputValue !== keyboardRef.current.getInput()
-    ) {
+    if (virtualKeyboard.inputValue !== keyboardRef.current.getInput()) {
       keyboardRef.current?.setInput(virtualKeyboard.inputValue)
     }
   }, [dispatch, virtualKeyboard.inputValue])

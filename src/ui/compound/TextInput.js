@@ -35,7 +35,7 @@ const TextInput = ({
 
   const focused = useRef(false)
   const inputRef = useRef(null)
-  const inputChange = useRef(false)
+  const inputChanged = useRef(false)
 
   const [value, setValue] = useState(valueParent)
 
@@ -49,7 +49,7 @@ const TextInput = ({
   const setAllValues = (inputValue) => {
     setValue(inputValue)
     dispatch(setInputValue(inputValue))
-    inputChange.current = true
+    inputChanged.current = true
   }
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
@@ -73,7 +73,7 @@ const TextInput = ({
 
     if (
       inputRef.current &&
-      !inputChange.current &&
+      !inputChanged.current &&
       !R.equals(virtualKeyboard.caretPosition, [
         inputRef.current.selectionStart,
         inputRef.current.selectionEnd,
@@ -85,8 +85,8 @@ const TextInput = ({
       )
     }
 
-    if (inputChange.current) {
-      inputChange.current = false
+    if (inputChanged.current) {
+      inputChanged.current = false
     }
   }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, value])
 
