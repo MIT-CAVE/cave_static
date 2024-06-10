@@ -65,10 +65,7 @@ const TextInput = ({
     }
   }, [onChange, enabled, controlled, virtualKeyboard.inputValue, value])
 
-  // Keep cursor position correct when user types on virtual keyboard since
-  // setting the value will reset the cursor position to the end
-  // Triggers when cursor position changes rather than immediately after typing
-  // to let value update first
+  // Keep cursor position synced with virtual keyboard's
   useEffect(() => {
     if (!focused.current) return
 
@@ -114,12 +111,12 @@ const TextInput = ({
       onBlur={() => {
         if (!enabled) return
 
-        focused.current = false
-        onClickAway(value)
-
         if (virtualKeyboard.isOpen) {
           dispatch(toggleKeyboard())
         }
+
+        focused.current = false
+        onClickAway(value)
       }}
       onTouchStart={() => {
         if (!enabled) return
@@ -136,6 +133,7 @@ const TextInput = ({
 
         if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
           dispatch(toggleKeyboard())
+          dispatch(setLayout('default'))
         }
       }}
       helperText={help}

@@ -1,7 +1,16 @@
-import { InputAdornment, TextField } from '@mui/material'
+import { InputAdornment, TextField, Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { BiSolidKeyboard } from 'react-icons/bi'
+import { useDispatch, useSelector } from 'react-redux'
+
+import { selectVirtualKeyboard } from '../../data/selectors'
+import {
+  toggleKeyboard,
+  setLayout,
+  setInputValue,
+} from '../../data/utilities/virtualKeyboardSlice'
 
 import { NumberFormat, getStatusIcon } from '../../utils'
 
@@ -19,11 +28,107 @@ const NumberInput = ({
   numberFormat: { unit, unitPlacement, ...numberFormat },
   onClickAway,
 }) => {
+  const dispatch = useDispatch()
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
+
   const focused = useRef(false)
+  const inputRef = useRef(null)
+  const inputChanged = useRef(false)
+  const isTouchDragging = useRef(false)
+
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
     defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
   )
+
+  // Update virtual keyboard's value when this field's value changes
+  // from anything besides the virtual keyboard
+  const setAllValues = useCallback(
+    (inputValue) => {
+      setValueText(inputValue)
+      dispatch(setInputValue(inputValue.toString()))
+      inputChanged.current = true
+    },
+    [dispatch]
+  )
+
+  // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
+  const { validNaNs, zerosMatch } = useMemo(
+    () => ({
+      validNaNs: new RegExp(`^(-|\\+)?0?\\${NumberFormat.decimal}?$`),
+      zerosMatch: new RegExp(`\\${NumberFormat.decimal}\\d*?[1-9]*(0+)?$`),
+    }),
+    []
+  )
+
+  const handleChange = useCallback(
+    (event) => {
+      const rawValueText = event.target.value
+      const rawValue = NumberFormat.parse(rawValueText)
+      if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText))
+        return
+
+      if (isNaN(rawValue)) {
+        setValue(defaultValue) // Go back to default in case blur occurs prematurely
+        setAllValues(rawValueText)
+      } else {
+        const forceInt = numberFormat.precision === 0 // Decimals not allowed
+        const trailingZeros = R.pipe(
+          R.match(zerosMatch),
+          R.nth(1)
+        )(rawValueText)
+        const newValueText = rawValue.toString()
+
+        setValue(rawValue)
+        setAllValues(
+          `${newValueText}${
+            !forceInt &&
+            // was the decimal lost in formatting?
+            rawValueText.includes(NumberFormat.decimal) &&
+            !newValueText.includes(NumberFormat.decimal)
+              ? NumberFormat.decimal
+              : ''
+          }${trailingZeros != null ? trailingZeros : ''}`
+        )
+      }
+    },
+    [setAllValues, numberFormat.precision, validNaNs, zerosMatch, defaultValue]
+  )
+
+  // Update this field's value when user types on virtual keyboard
+  useEffect(() => {
+    if (
+      !enabled ||
+      !focused.current ||
+      virtualKeyboard.inputValue === valueText
+    )
+      return
+
+    handleChange({ target: { value: virtualKeyboard.inputValue } })
+  }, [enabled, virtualKeyboard.inputValue, valueText, handleChange])
+
+  // Keep cursor position synced with virtual keyboard's
+  useEffect(() => {
+    if (!focused.current) return
+
+    if (
+      inputRef.current &&
+      !inputChanged.current &&
+      !R.equals(virtualKeyboard.caretPosition, [
+        inputRef.current.selectionStart,
+        inputRef.current.selectionEnd,
+      ])
+    ) {
+      inputRef.current.setSelectionRange(
+        virtualKeyboard.caretPosition[0],
+        virtualKeyboard.caretPosition[1]
+      )
+    }
+
+    if (inputChanged.current) {
+      inputChanged.current = false
+    }
+  }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, value])
 
   useEffect(() => {
     if (focused.current) return
@@ -35,43 +140,6 @@ const NumberInput = ({
     )
   }, [defaultValue, numberFormat, setValue, setValueText])
 
-  // NaN's can happen for these valid inputs: '.', '-', '-.', '+', '+.'
-  const { validNaNs, zerosMatch } = useMemo(
-    () => ({
-      validNaNs: new RegExp(`^(-|\\+)?0?\\${NumberFormat.decimal}?$`),
-      zerosMatch: new RegExp(`\\${NumberFormat.decimal}\\d*?[1-9]*(0+)?$`),
-    }),
-    []
-  )
-
-  const handleChange = (event) => {
-    const rawValueText = event.target.value
-    const rawValue = NumberFormat.parse(rawValueText)
-    if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText))
-      return
-
-    if (isNaN(rawValue)) {
-      setValue(defaultValue) // Go back to default in case blur occurs prematurely
-      setValueText(rawValueText)
-    } else {
-      const forceInt = numberFormat.precision === 0 // Decimals not allowed
-      const trailingZeros = R.pipe(R.match(zerosMatch), R.nth(1))(rawValueText)
-      const newValueText = rawValue.toString()
-
-      setValue(rawValue)
-      setValueText(
-        `${newValueText}${
-          !forceInt &&
-          // was the decimal lost in formatting?
-          rawValueText.includes(NumberFormat.decimal) &&
-          !newValueText.includes(NumberFormat.decimal)
-            ? NumberFormat.decimal
-            : ''
-        }${trailingZeros != null ? trailingZeros : ''}`
-      )
-    }
-  }
-
   return (
     <TextField
       sx={{ width: '100%' }}
@@ -82,29 +150,59 @@ const NumberInput = ({
       onChange={handleChange}
       onFocus={() => {
         focused.current = true
-        setValueText(value)
+        setAllValues(value)
       }}
       onBlur={() => {
         if (!enabled) return
 
+        if (virtualKeyboard.isOpen) {
+          dispatch(toggleKeyboard())
+        }
+
         focused.current = false
         const clampedVal = R.clamp(min, max, value)
         setValue(clampedVal)
-        setValueText(NumberFormat.format(clampedVal, numberFormat))
+        setAllValues(NumberFormat.format(clampedVal, numberFormat))
         if (clampedVal === defaultValue) return
 
         onClickAway(clampedVal)
       }}
+      onTouchStart={() => {
+        if (!enabled) return
+
+        isTouchDragging.current = false
+      }}
+      onTouchMove={() => {
+        if (!enabled) return
+
+        isTouchDragging.current = true
+      }}
+      onTouchEnd={() => {
+        if (!enabled) return
+
+        if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
+          dispatch(toggleKeyboard())
+          dispatch(setLayout('numPad'))
+        }
+      }}
       helperText={help}
+      inputRef={inputRef}
       InputProps={{
         readOnly: !enabled,
-        ...(color !== 'default' && {
-          endAdornment: (
-            <InputAdornment position="end">
-              {getStatusIcon(color)}
-            </InputAdornment>
-          ),
-        }),
+        endAdornment: (
+          <InputAdornment position="end">
+            <Box
+              sx={{ cursor: 'pointer' }}
+              onClick={() => {
+                dispatch(toggleKeyboard())
+                dispatch(setLayout('numPad'))
+              }}
+            >
+              <BiSolidKeyboard />
+            </Box>
+            {color !== 'default' && getStatusIcon(color)}
+          </InputAdornment>
+        ),
       }}
     />
   )
