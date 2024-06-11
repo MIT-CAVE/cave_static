@@ -10,7 +10,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
@@ -29,6 +29,7 @@ import {
   selectSyncToggles,
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
+import { useMutateState } from '../../../utils/hooks'
 
 import { InfoButton, List, OverflowText } from '../../compound'
 
@@ -249,21 +250,16 @@ const DraggableSwitch = ({ id, name }) => {
 const GlobalOutputsSwitch = () => {
   const draggable = useSelector(selectGlobalOutputsDraggable)
   const props = useSelector(selectGlobalOutputProps)
-  const dispatch = useDispatch()
 
-  const onSelect = useCallback(
-    (value) => {
-      dispatch(
-        mutateLocal({
-          path: ['globalOutputs', 'props'],
-          value: R.mapObjIndexed((prop, key) =>
-            R.assoc('draggable', R.includes(key)(value))(prop)
-          )(props),
-          sync: false,
-        })
-      )
-    },
-    [dispatch, props]
+  const onSelect = useMutateState(
+    (value) => ({
+      path: ['globalOutputs', 'props'],
+      value: R.mapObjIndexed((prop, key) =>
+        R.assoc('draggable', R.includes(key)(value))(prop)
+      )(props),
+      sync: false,
+    }),
+    [props]
   )
   return (
     <>

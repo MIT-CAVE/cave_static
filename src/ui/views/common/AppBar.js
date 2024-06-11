@@ -15,6 +15,7 @@ import {
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
+import { useMutateState } from '../../../utils/hooks'
 
 import { FetchedIcon } from '../../compound'
 
@@ -281,20 +282,16 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     [appBar, open]
   )
 
-  const changePane = useCallback(
-    (pane) => {
-      dispatch(
-        mutateLocal({
-          path: ['panes', 'paneState', side],
-          value: {
-            pin, // Preserves state of a pinned pane
-            ...(open === pane ? {} : { open: pane }),
-          },
-          sync: !includesPath(R.values(sync), ['panes', 'paneState', side]),
-        })
-      )
-    },
-    [dispatch, sync, open, pin, side]
+  const changePane = useMutateState(
+    (pane) => ({
+      path: ['panes', 'paneState', side],
+      value: {
+        pin, // Preserves state of a pinned pane
+        ...(open === pane ? {} : { open: pane }),
+      },
+      sync: !includesPath(R.values(sync), ['panes', 'paneState', side]),
+    }),
+    [sync, open, pin, side]
   )
 
   const mapAppBarItems = R.pipe(

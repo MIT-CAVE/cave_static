@@ -12,7 +12,6 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { mutateLocal } from '../../../data/local'
 import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
   selectCurrentTime,
@@ -24,6 +23,7 @@ import {
   selectSync,
 } from '../../../data/selectors'
 import { updateAnimation } from '../../../data/utilities/timeSlice'
+import { useMutateState } from '../../../utils/hooks'
 import Select from '../../compound/Select'
 import TooltipButton from '../../compound/TooltipButton'
 
@@ -67,27 +67,22 @@ const TimeControl = () => {
   const animation = R.is(Number, animationInterval)
   const sync = useSelector(selectSync)
 
-  const toggleLooping = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path: ['settings', 'time', 'looping'],
-        value: !looping,
-        sync: !includesPath(R.values(sync), ['settings', 'time', 'looping']),
-      })
-    )
-  }, [looping, sync, dispatch])
+  const toggleLooping = useMutateState(
+    () => ({
+      path: ['settings', 'time', 'looping'],
+      value: !looping,
+      sync: !includesPath(R.values(sync), ['settings', 'time', 'looping']),
+    }),
+    [looping, sync]
+  )
 
-  const updatePlaybackSpeed = useCallback(
-    (newPlaybackSpeed) => {
-      dispatch(
-        mutateLocal({
-          path: ['settings', 'time', 'speed'],
-          value: newPlaybackSpeed,
-          sync: !includesPath(R.values(sync), ['settings', 'time', 'speed']),
-        })
-      )
-    },
-    [sync, dispatch]
+  const updatePlaybackSpeed = useMutateState(
+    (newPlaybackSpeed) => ({
+      path: ['settings', 'time', 'speed'],
+      value: newPlaybackSpeed,
+      sync: !includesPath(R.values(sync), ['settings', 'time', 'speed']),
+    }),
+    [sync]
   )
 
   const advanceAnimation = useCallback(() => {
