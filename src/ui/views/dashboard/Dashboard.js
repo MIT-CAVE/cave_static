@@ -72,6 +72,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const defaultFilters = R.propOr([], 'filters')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
+  const showNA = R.propOr(false, 'showNA')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleShowToolbar = useMutateState(
@@ -117,6 +118,15 @@ const DashboardItem = ({ chartObj, index, path }) => {
       sync: !includesPath(R.values(sync), path),
     }),
     [chartObj, defaultToZero, path, sync]
+  )
+
+  const handleToggleShowNA = useMutateState(
+    () => ({
+      path,
+      value: R.assoc('showNA', !showNA)(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [chartObj, path, showNA, sync]
   )
 
   const [statFilters, groupingFilters] = useMemo(
@@ -187,6 +197,8 @@ const DashboardItem = ({ chartObj, index, path }) => {
               onShowToolbar={handleShowToolbar}
               defaultToZero={defaultToZero}
               onToggleDefaultToZero={handleDefaultToZero}
+              showNA={showNA}
+              onToggleShowNA={handleToggleShowNA}
               isGroupedOutput={vizType === 'groupedOutput'}
             />
           )}
