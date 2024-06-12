@@ -18,6 +18,9 @@ import {
   chartMaxGrouping,
   chartStatUses,
   chartVariant,
+  distributionTypes,
+  distributionYAxes,
+  distributionVariants,
 } from '../../../utils/enums'
 
 import {
@@ -48,8 +51,16 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
-  const distributionType = R.propOr('pdf', 'distributionType', chartObj)
-  const distributionYAxis = R.propOr('counts', 'distributionYAxis', chartObj)
+  const distributionType = R.propOr(
+    distributionTypes.PDF,
+    'distributionType',
+    chartObj
+  )
+  const distributionYAxis = R.propOr(
+    distributionYAxes.COUNTS,
+    'distributionYAxis',
+    chartObj
+  )
   const distributionVariant = R.propOr('bar', 'distributionVariant', chartObj)
 
   const getGroupsById = (groupedOutputDataId) =>
@@ -521,12 +532,12 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             optionsList={[
               {
                 label: 'PDF',
-                value: 'pdf',
+                value: distributionTypes.PDF,
                 // iconName: 'md/MdFunctions',
               },
               {
                 label: 'CDF',
-                value: 'cdf',
+                value: distributionTypes.CDF,
                 // iconName: 'md/MdFunctions',
               },
             ]}
@@ -542,12 +553,12 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             optionsList={[
               {
                 label: 'Density',
-                value: 'density',
+                value: distributionYAxes.DENSITY,
                 iconName: 'md/MdPercent',
               },
               {
                 label: 'Counts',
-                value: 'counts',
+                value: distributionYAxes.COUNTS,
                 iconName: 'md/MdNumbers',
               },
             ]}
@@ -563,12 +574,12 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             optionsList={[
               {
                 label: 'Bar',
-                value: 'bar',
+                value: distributionVariants.BAR,
                 iconName: 'md/MdBarChart',
               },
               {
                 label: 'Line',
-                value: 'line',
+                value: distributionVariants.LINE,
                 iconName: 'md/MdShowChart',
               },
             ]}

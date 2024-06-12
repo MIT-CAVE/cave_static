@@ -135,9 +135,6 @@ export const chartVariant = {
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
   DISTRIBUTION: 'distribution',
-  // CDF_BAR: 'cdf_bar',
-  // PDF_LINE: 'pdf_line',
-  // CDF_LINE: 'cdf_line',
   OVERVIEW: 'overview',
 }
 
@@ -166,9 +163,6 @@ export const chartMaxGrouping = {
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
   [chartVariant.DISTRIBUTION]: 2,
-  // [chartVariant.CDF_BAR]: 2,
-  // [chartVariant.PDF_LINE]: 2,
-  // [chartVariant.CDF_LINE]: 2,
 }
 
 // Stat limits for multistat charts
@@ -203,4 +197,19 @@ export const displayOptions = {
   E_LOWER_PLUS: 'e+',
   X10: 'x10^',
   X10_PLUS: 'x10^+',
+}
+
+export const distributionTypes = {
+  PDF: 'pdf',
+  CDF: 'cdf',
+}
+
+export const distributionYAxes = {
+  COUNTS: 'counts',
+  DENSITY: 'density',
+}
+
+export const distributionVariants = {
+  BAR: 'bar',
+  LINE: 'line',
 }

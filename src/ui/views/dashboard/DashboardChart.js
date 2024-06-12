@@ -10,7 +10,11 @@ import {
   selectStatGroupings,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
-import { chartVariant } from '../../../utils/enums'
+import {
+  chartVariant,
+  distributionTypes,
+  distributionYAxes,
+} from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -49,9 +53,13 @@ const DashboardChart = ({ chartObj }) => {
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
   const cleanedChartObj = cleanUndefinedStats(chartObj)
   const chartType = R.propOr('', 'variant', cleanedChartObj)
-  const distributionType = R.propOr('pdf', 'distributionType', cleanedChartObj)
+  const distributionType = R.propOr(
+    distributionTypes.PDF,
+    'distributionType',
+    cleanedChartObj
+  )
   const distributionYAxis = R.propOr(
-    'counts',
+    distributionYAxes.COUNTS,
     'distributionYAxis',
     cleanedChartObj
   )
@@ -315,11 +323,15 @@ const DashboardChart = ({ chartObj }) => {
       ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
         <DistributionChart
           data={formattedData}
-          cumulative={distributionType === 'cdf'}
+          cumulative={distributionType === distributionTypes.CDF}
           chartType={distributionVariant}
-          counts={distributionYAxis === 'counts'}
+          counts={distributionYAxis === distributionYAxes.COUNTS}
           yAxisTitle={
-            distributionYAxis === 'counts' ? 'Counts' : 'Probability Density'
+            distributionYAxis === distributionYAxes.COUNTS
+              ? 'Counts'
+              : distributionType === distributionTypes.PDF
+                ? 'Probability Density'
+                : 'Cumulative Density'
           }
           xAxisTitle={yAxisTitle}
           {...{ colors, numberFormat }}
