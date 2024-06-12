@@ -301,7 +301,8 @@ const DashboardChart = ({ chartObj }) => {
           labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
         />
-      ) : cleanedChartObj.variant === chartVariant.PDF_BAR ? (
+      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION &&
+        cleanedChartObj.isPDF === true ? (
         <DistributionChart
           data={formattedData}
           chartType="bar"
@@ -310,7 +311,8 @@ const DashboardChart = ({ chartObj }) => {
           cumulative={false}
           {...{ colors, numberFormat }}
         />
-      ) : cleanedChartObj.variant === chartVariant.CDF_BAR ? (
+      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION &&
+        cleanedChartObj.isPDF === false ? (
         <DistributionChart
           data={formattedData}
           yAxisTitle="Cumulative Density"

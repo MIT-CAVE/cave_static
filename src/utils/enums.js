@@ -134,10 +134,10 @@ export const chartVariant = {
   GAUGE: 'gauge',
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
-  PDF_BAR: 'pdf_bar',
-  CDF_BAR: 'cdf_bar',
-  PDF_LINE: 'pdf_line',
-  CDF_LINE: 'cdf_line',
+  DISTRIBUTION: 'distribution',
+  // CDF_BAR: 'cdf_bar',
+  // PDF_LINE: 'pdf_line',
+  // CDF_LINE: 'cdf_line',
   OVERVIEW: 'overview',
 }
 
@@ -165,10 +165,10 @@ export const chartMaxGrouping = {
   [chartVariant.GAUGE]: 1,
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
-  [chartVariant.PDF_BAR]: 2,
-  [chartVariant.CDF_BAR]: 2,
-  [chartVariant.PDF_LINE]: 2,
-  [chartVariant.CDF_LINE]: 2,
+  [chartVariant.DISTRIBUTION]: 2,
+  // [chartVariant.CDF_BAR]: 2,
+  // [chartVariant.PDF_LINE]: 2,
+  // [chartVariant.CDF_LINE]: 2,
 }
 
 // Stat limits for multistat charts

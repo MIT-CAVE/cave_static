@@ -216,6 +216,16 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
+  const handleSelectDistributionType = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('isPDF', value === 'pdf', chartObj),
+      })
+    )
+  }
+
   return (
     <>
       <ChartDropdownWrapper>
@@ -298,25 +308,25 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               iconName: 'md/MdScatterPlot',
             },
             {
-              label: 'PDF Bar',
-              value: chartVariant.PDF_BAR,
+              label: 'Distribution',
+              value: chartVariant.DISTRIBUTION,
               iconName: 'md/MdBarChart',
             },
-            {
-              label: 'CDF Bar',
-              value: chartVariant.CDF_BAR,
-              iconName: 'md/MdBarChart',
-            },
-            {
-              label: 'PDF Line',
-              value: chartVariant.PDF_LINE,
-              iconName: 'md/MdShowChart',
-            },
-            {
-              label: 'CDF Line',
-              value: chartVariant.CDF_LINE,
-              iconName: 'md/MdShowChart',
-            },
+            // {
+            //   label: 'CDF Bar',
+            //   value: chartVariant.CDF_BAR,
+            //   iconName: 'md/MdBarChart',
+            // },
+            // {
+            //   label: 'PDF Line',
+            //   value: chartVariant.PDF_LINE,
+            //   iconName: 'md/MdShowChart',
+            // },
+            // {
+            //   label: 'CDF Line',
+            //   value: chartVariant.CDF_LINE,
+            //   iconName: 'md/MdShowChart',
+            // },
           ]}
           displayIcon
           onSelect={handleSelectChart}
@@ -495,27 +505,27 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           onSelectGroup={handleSelectGroupFn}
         />
       </ChartDropdownWrapper>
-      {/* {chartObj.variant === chartVariant.DISTRIBUTION && (
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
         <ChartDropdownWrapper>
           <Select
-            // disabled={chartObj.variant !== chartVariant.DISTRIBUTION}
-            value="Distribution Type"
-            displayIcon
+            value={chartObj.isPDF ? 'pdf' : 'cdf'}
+            // displayIcon
             optionsList={[
               {
                 label: 'PDF',
-                // value: chartAggrFunc.SUM,
-                iconName: 'md/MdFunctions',
+                value: 'pdf',
+                // iconName: 'md/MdFunctions',
               },
               {
                 label: 'CDF',
-                // value: chartAggrFunc.MEAN,
-                iconName: 'md/MdFunctions',
+                value: 'cdf',
+                // iconName: 'md/MdFunctions',
               },
             ]}
+            onSelect={handleSelectDistributionType}
           />
         </ChartDropdownWrapper>
-      )} */}
+      )}
     </>
   )
 }
