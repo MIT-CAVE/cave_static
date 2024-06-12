@@ -49,6 +49,17 @@ const DashboardChart = ({ chartObj }) => {
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
   const cleanedChartObj = cleanUndefinedStats(chartObj)
   const chartType = R.propOr('', 'variant', cleanedChartObj)
+  const distributionType = R.propOr('pdf', 'distributionType', cleanedChartObj)
+  const distributionYAxis = R.propOr(
+    'counts',
+    'distributionYAxis',
+    cleanedChartObj
+  )
+  const distributionVariant = R.propOr(
+    'bar',
+    'distributionVariant',
+    cleanedChartObj
+  )
 
   useEffect(() => {
     setLoading(false)
@@ -301,43 +312,17 @@ const DashboardChart = ({ chartObj }) => {
           labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat }}
         />
-      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION &&
-        cleanedChartObj.isPDF === true ? (
+      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
         <DistributionChart
           data={formattedData}
-          chartType="bar"
-          yAxisTitle="Probability Density"
+          cumulative={distributionType === 'cdf'}
+          chartType={distributionVariant}
+          counts={distributionYAxis === 'counts'}
+          yAxisTitle={
+            distributionYAxis === 'counts' ? 'Counts' : 'Probability Density'
+          }
           xAxisTitle={yAxisTitle}
-          cumulative={false}
           {...{ colors, numberFormat }}
-        />
-      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION &&
-        cleanedChartObj.isPDF === false ? (
-        <DistributionChart
-          data={formattedData}
-          yAxisTitle="Cumulative Density"
-          xAxisTitle={yAxisTitle}
-          chartType="bar"
-          cumulative={true}
-          {...{ numberFormat, colors }}
-        />
-      ) : cleanedChartObj.variant === chartVariant.PDF_LINE ? (
-        <DistributionChart
-          data={formattedData}
-          yAxisTitle="Probability Density"
-          xAxisTitle={yAxisTitle}
-          cumulative={false}
-          chartType="line"
-          {...{ numberFormat, colors }}
-        />
-      ) : cleanedChartObj.variant === chartVariant.CDF_LINE ? (
-        <DistributionChart
-          data={formattedData}
-          yAxisTitle="Cumulative Density"
-          xAxisTitle={yAxisTitle}
-          chartType="line"
-          cumulative={true}
-          {...{ numberFormat, colors }}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot

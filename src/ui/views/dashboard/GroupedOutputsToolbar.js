@@ -48,6 +48,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+  const distributionType = R.propOr('pdf', 'distributionType', chartObj)
+  const distributionYAxis = R.propOr('counts', 'distributionYAxis', chartObj)
+  const distributionVariant = R.propOr('bar', 'distributionVariant', chartObj)
 
   const getGroupsById = (groupedOutputDataId) =>
     R.pipe(R.path([groupedOutputDataId, 'groupLists']), R.keys)(groupedOutputs)
@@ -221,7 +224,27 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       mutateLocal({
         path,
         sync: !includesPath(R.values(sync), path),
-        value: R.assoc('isPDF', value === 'pdf', chartObj),
+        value: R.assoc('distributionType', value, chartObj),
+      })
+    )
+  }
+
+  const handleSelectYAxis = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('distributionYAxis', value, chartObj),
+      })
+    )
+  }
+
+  const handleSelectDistributionVariant = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('distributionVariant', value, chartObj),
       })
     )
   }
@@ -312,21 +335,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               value: chartVariant.DISTRIBUTION,
               iconName: 'md/MdBarChart',
             },
-            // {
-            //   label: 'CDF Bar',
-            //   value: chartVariant.CDF_BAR,
-            //   iconName: 'md/MdBarChart',
-            // },
-            // {
-            //   label: 'PDF Line',
-            //   value: chartVariant.PDF_LINE,
-            //   iconName: 'md/MdShowChart',
-            // },
-            // {
-            //   label: 'CDF Line',
-            //   value: chartVariant.CDF_LINE,
-            //   iconName: 'md/MdShowChart',
-            // },
           ]}
           displayIcon
           onSelect={handleSelectChart}
@@ -508,7 +516,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       {chartObj.variant === chartVariant.DISTRIBUTION && (
         <ChartDropdownWrapper>
           <Select
-            value={chartObj.isPDF ? 'pdf' : 'cdf'}
+            value={distributionType}
             // displayIcon
             optionsList={[
               {
@@ -523,6 +531,48 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               },
             ]}
             onSelect={handleSelectDistributionType}
+          />
+        </ChartDropdownWrapper>
+      )}
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <ChartDropdownWrapper>
+          <Select
+            value={distributionYAxis}
+            // displayIcon
+            optionsList={[
+              {
+                label: 'Density',
+                value: 'density',
+                iconName: 'md/MdPercent',
+              },
+              {
+                label: 'Counts',
+                value: 'counts',
+                iconName: 'md/MdNumbers',
+              },
+            ]}
+            onSelect={handleSelectYAxis}
+          />
+        </ChartDropdownWrapper>
+      )}
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <ChartDropdownWrapper>
+          <Select
+            value={distributionVariant}
+            // displayIcon
+            optionsList={[
+              {
+                label: 'Bar',
+                value: 'bar',
+                iconName: 'md/MdBarChart',
+              },
+              {
+                label: 'Line',
+                value: 'line',
+                iconName: 'md/MdShowChart',
+              },
+            ]}
+            onSelect={handleSelectDistributionVariant}
           />
         </ChartDropdownWrapper>
       )}

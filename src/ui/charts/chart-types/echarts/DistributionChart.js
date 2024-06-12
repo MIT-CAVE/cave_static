@@ -25,6 +25,7 @@ const DistributionChart = ({
   colors,
   cumulative,
   chartType,
+  counts,
   stack = false,
   area = false,
 }) => {
@@ -77,16 +78,17 @@ const DistributionChart = ({
 
         return bucketRanges.map((range, index) => ({
           name: `[${range.min.toFixed(2)},${range.max.toFixed(2)})`,
-          value: cumulativeCounts[index] / values.length,
+          value: counts
+            ? cumulativeCounts[index]
+            : cumulativeCounts[index] / values.length,
         }))
       }
-
       return bucketRanges.map((range, index) => ({
         name: `[${range.min.toFixed(2)},${range.max.toFixed(2)})`,
-        value: buckets[index] / values.length,
+        value: counts ? buckets[index] : buckets[index] / values.length,
       }))
     }
-  }, [data, numBuckets, cumulative])
+  }, [data, numBuckets, cumulative, counts])
 
   return (
     <>
