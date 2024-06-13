@@ -89,6 +89,18 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     }
   }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, valueText])
 
+  const syncCaretPosition = () => {
+    if (inputRef.current.selectionStart === inputRef.current.selectionEnd) {
+      dispatch(
+        setCaretPosition([
+          inputRef.current.selectionStart,
+          inputRef.current.selectionStart,
+        ])
+      )
+      selfChanged.current = true
+    }
+  }
+
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <Autocomplete
@@ -106,6 +118,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
             fullWidth
             label={placeholder}
             {...params}
+            onSelect={syncCaretPosition}
             inputRef={inputRef}
             InputProps={{
               ...params.InputProps,
@@ -118,19 +131,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                       onClick={() => {
                         dispatch(toggleKeyboard())
                         dispatch(setLayout('default'))
-
-                        if (
-                          inputRef.current.selectionStart ===
-                          inputRef.current.selectionEnd
-                        ) {
-                          dispatch(
-                            setCaretPosition([
-                              inputRef.current.selectionStart,
-                              inputRef.current.selectionStart,
-                            ])
-                          )
-                          selfChanged.current = true
-                        }
+                        syncCaretPosition()
                       }}
                       onMouseDown={(event) => event.preventDefault()}
                     >

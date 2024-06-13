@@ -89,6 +89,18 @@ const TextInput = ({
     }
   }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, value])
 
+  const syncCaretPosition = () => {
+    if (inputRef.current.selectionStart === inputRef.current.selectionEnd) {
+      dispatch(
+        setCaretPosition([
+          inputRef.current.selectionStart,
+          inputRef.current.selectionStart,
+        ])
+      )
+      selfChanged.current = true
+    }
+  }
+
   return (
     <TextField
       {...{ label, placeholder, sx, ...props }}
@@ -103,6 +115,7 @@ const TextInput = ({
           ? onChange(event.target.value)
           : setAllValues(event.target.value)
       }}
+      onSelect={syncCaretPosition}
       onFocus={() => {
         if (!enabled) return
 
@@ -148,19 +161,7 @@ const TextInput = ({
               onClick={() => {
                 dispatch(toggleKeyboard())
                 dispatch(setLayout('default'))
-
-                if (
-                  inputRef.current.selectionStart ===
-                  inputRef.current.selectionEnd
-                ) {
-                  dispatch(
-                    setCaretPosition([
-                      inputRef.current.selectionStart,
-                      inputRef.current.selectionStart,
-                    ])
-                  )
-                  selfChanged.current = true
-                }
+                syncCaretPosition()
               }}
               onMouseDown={(event) => event.preventDefault()}
             >

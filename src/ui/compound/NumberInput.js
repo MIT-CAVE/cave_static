@@ -141,6 +141,18 @@ const NumberInput = ({
     )
   }, [defaultValue, numberFormat, setValue, setValueText])
 
+  const syncCaretPosition = () => {
+    if (inputRef.current.selectionStart === inputRef.current.selectionEnd) {
+      dispatch(
+        setCaretPosition([
+          inputRef.current.selectionStart,
+          inputRef.current.selectionStart,
+        ])
+      )
+      selfChanged.current = true
+    }
+  }
+
   return (
     <TextField
       sx={{ width: '100%' }}
@@ -149,6 +161,7 @@ const NumberInput = ({
       focused={color !== 'default'}
       value={valueText}
       onChange={handleChange}
+      onSelect={syncCaretPosition}
       onFocus={() => {
         focused.current = true
         setAllValues(value)
@@ -197,19 +210,7 @@ const NumberInput = ({
               onClick={() => {
                 dispatch(toggleKeyboard())
                 dispatch(setLayout('numPad'))
-
-                if (
-                  inputRef.current.selectionStart ===
-                  inputRef.current.selectionEnd
-                ) {
-                  dispatch(
-                    setCaretPosition([
-                      inputRef.current.selectionStart,
-                      inputRef.current.selectionStart,
-                    ])
-                  )
-                  selfChanged.current = true
-                }
+                syncCaretPosition()
               }}
               onMouseDown={(event) => event.preventDefault()}
             >
