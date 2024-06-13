@@ -1,6 +1,16 @@
 import { Autocomplete, Box, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { BiSolidKeyboard } from 'react-icons/bi'
+import { useDispatch, useSelector } from 'react-redux'
+
+import { selectVirtualKeyboard } from '../../data/selectors'
+import {
+  toggleKeyboard,
+  setLayout,
+  setInputValue,
+} from '../../data/utilities/virtualKeyboardSlice'
 
 import { withIndex, forceArray } from '../../utils'
 
@@ -16,30 +26,142 @@ const getStyles = (enabled) => ({
 })
 
 const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
+  const dispatch = useDispatch()
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
+
+  const inputRef = useRef(null)
+  const inputChanged = useRef(false)
+  const isTouchDragging = useRef(false)
+
   const { enabled = false, options, placeholder } = prop
-  const [value] = R.defaultTo(prop.value, currentVal)
+  const [valueText, setValueText] = useState('')
+  const [value, setValue] = useState(R.defaultTo(prop.value, currentVal))
+  const [focused, setFocused] = useState(false)
   const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
+
+  // Update virtual keyboard's value when this field's value changes
+  // from anything besides the virtual keyboard
+  const setAllValues = useCallback(
+    (inputValue) => {
+      setValueText(inputValue)
+      dispatch(setInputValue(inputValue))
+      inputChanged.current = true
+    },
+    [dispatch]
+  )
+
+  // Update this field's value when user types on virtual keyboard
+  useEffect(() => {
+    if (!enabled || !focused || virtualKeyboard.inputValue === valueText) return
+
+    setValueText(virtualKeyboard.inputValue)
+  }, [setValueText, focused, enabled, virtualKeyboard.inputValue, valueText])
+
+  // Keep cursor position synced with virtual keyboard's
+  useEffect(() => {
+    if (!focused) return
+
+    if (
+      inputRef.current &&
+      !inputChanged.current &&
+      !R.equals(virtualKeyboard.caretPosition, [
+        inputRef.current.selectionStart,
+        inputRef.current.selectionEnd,
+      ])
+    ) {
+      inputRef.current.setSelectionRange(
+        virtualKeyboard.caretPosition[0],
+        virtualKeyboard.caretPosition[1]
+      )
+    }
+
+    if (inputChanged.current) {
+      inputChanged.current = false
+    }
+  }, [
+    focused,
+    virtualKeyboard.caretPosition,
+    virtualKeyboard.inputValue,
+    valueText,
+  ])
+
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <Autocomplete
-        fullWidth
-        {...{ value }}
-        sx={{ p: 1.5 }}
-        disabled={!enabled}
-        disablePortal
-        options={R.pluck('id')(optionsListRaw)}
-        renderInput={(params) => (
-          // The placeholder in the API serves as a label in the context of the MUI component.
-          <TextField fullWidth label={placeholder} {...params} />
-        )}
-        onChange={(event, val) => {
-          if (enabled) onChange([val])
-        }}
-        getOptionLabel={(option) =>
-          R.pathOr(option, [option, 'name'])(indexedOptions)
-        }
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+        <Autocomplete
+          fullWidth
+          // {...{ value }}
+          value={value}
+          inputValue={valueText}
+          sx={{ p: 1.5 }}
+          disabled={!enabled}
+          disablePortal
+          options={R.pluck('id')(optionsListRaw)}
+          renderInput={(params) => (
+            // The placeholder in the API serves as a label in the context of the MUI component.
+            <TextField fullWidth label={placeholder} {...params} />
+          )}
+          onInputChange={(event, newInputValue, reason) => {
+            if (reason === 'input') {
+              // avoid infinite loop when loading component
+              setAllValues(newInputValue)
+            }
+          }}
+          onChange={(event, val) => {
+            if (!enabled) return
+
+            onChange([val])
+            setValue(val)
+            setAllValues(R.defaultTo('', indexedOptions[val]?.['name']))
+          }}
+          onFocus={() => {
+            if (!enabled) return
+
+            setFocused(true)
+          }}
+          onBlur={() => {
+            if (!enabled) return
+
+            if (virtualKeyboard.isOpen) {
+              dispatch(toggleKeyboard())
+            }
+
+            setAllValues(R.defaultTo('', indexedOptions[value]?.['name']))
+            setFocused(false)
+          }}
+          onTouchStart={() => {
+            if (!enabled) return
+
+            isTouchDragging.current = false
+          }}
+          onTouchMove={() => {
+            if (!enabled) return
+
+            isTouchDragging.current = true
+          }}
+          onTouchEnd={() => {
+            if (!enabled) return
+
+            if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
+              dispatch(toggleKeyboard())
+              dispatch(setLayout('default'))
+            }
+          }}
+          getOptionLabel={(option) =>
+            R.pathOr(option, [option, 'name'])(indexedOptions)
+          }
+        />
+        <Box
+          sx={{ cursor: 'pointer' }}
+          onClick={() => {
+            dispatch(toggleKeyboard())
+            dispatch(setLayout('default'))
+          }}
+        >
+          <BiSolidKeyboard />
+        </Box>
+      </Box>
     </Box>
   )
 }
