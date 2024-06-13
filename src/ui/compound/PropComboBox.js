@@ -1,7 +1,7 @@
 import { Autocomplete, Box, TextField, InputAdornment } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState, useEffect, useRef, Fragment } from 'react'
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -10,6 +10,7 @@ import {
   toggleKeyboard,
   setLayout,
   setInputValue,
+  setCaretPosition,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { withIndex, forceArray } from '../../utils'
@@ -30,22 +31,27 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
   const inputRef = useRef(null)
-  const inputChanged = useRef(false)
+  const selfChanged = useRef(false)
   const isTouchDragging = useRef(false)
   const focused = useRef(false)
 
   const { enabled = false, options, placeholder } = prop
-  const [valueText, setValueText] = useState('')
   const [value, setValue] = useState(R.defaultTo(prop.value, currentVal))
   const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
+
+  const valueName = useMemo(
+    () => indexedOptions[value]?.['name'],
+    [indexedOptions, value]
+  )
+  const [valueText, setValueText] = useState(valueName)
 
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard
   const setAllValues = (inputValue) => {
     setValueText(inputValue)
     dispatch(setInputValue(inputValue))
-    inputChanged.current = true
+    selfChanged.current = true
   }
 
   // Update this field's value when user types on virtual keyboard
@@ -66,7 +72,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
 
     if (
       inputRef.current &&
-      !inputChanged.current &&
+      !selfChanged.current &&
       !R.equals(virtualKeyboard.caretPosition, [
         inputRef.current.selectionStart,
         inputRef.current.selectionEnd,
@@ -78,8 +84,8 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       )
     }
 
-    if (inputChanged.current) {
-      inputChanged.current = false
+    if (selfChanged.current) {
+      selfChanged.current = false
     }
   }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, valueText])
 
@@ -112,9 +118,21 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                       onClick={() => {
                         dispatch(toggleKeyboard())
                         dispatch(setLayout('default'))
-                        // unfocus element because of bug
-                        inputRef.current.blur()
+
+                        if (
+                          inputRef.current.selectionStart ===
+                          inputRef.current.selectionEnd
+                        ) {
+                          dispatch(
+                            setCaretPosition([
+                              inputRef.current.selectionStart,
+                              inputRef.current.selectionStart,
+                            ])
+                          )
+                          selfChanged.current = true
+                        }
                       }}
+                      onMouseDown={(event) => event.preventDefault()}
                     >
                       <BiSolidKeyboard />
                     </Box>
@@ -140,7 +158,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         onFocus={() => {
           if (!enabled) return
 
-          setAllValues(R.defaultTo('', indexedOptions[value]?.['name']))
+          setAllValues(R.defaultTo('', valueName))
           focused.current = true
         }}
         onBlur={() => {
@@ -150,7 +168,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
             dispatch(toggleKeyboard())
           }
 
-          setAllValues(R.defaultTo('', indexedOptions[value]?.['name']))
+          setAllValues(R.defaultTo('', valueName))
           focused.current = false
         }}
         onTouchStart={() => {

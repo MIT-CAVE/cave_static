@@ -10,6 +10,7 @@ import {
   toggleKeyboard,
   setLayout,
   setInputValue,
+  setCaretPosition,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { NumberFormat, getStatusIcon } from '../../utils'
@@ -33,7 +34,7 @@ const NumberInput = ({
 
   const focused = useRef(false)
   const inputRef = useRef(null)
-  const inputChanged = useRef(false)
+  const selfChanged = useRef(false)
   const isTouchDragging = useRef(false)
 
   const [value, setValue] = useState(defaultValue)
@@ -47,7 +48,7 @@ const NumberInput = ({
     (inputValue) => {
       setValueText(inputValue)
       dispatch(setInputValue(inputValue.toString()))
-      inputChanged.current = true
+      selfChanged.current = true
     },
     [dispatch]
   )
@@ -113,7 +114,7 @@ const NumberInput = ({
 
     if (
       inputRef.current &&
-      !inputChanged.current &&
+      !selfChanged.current &&
       !R.equals(virtualKeyboard.caretPosition, [
         inputRef.current.selectionStart,
         inputRef.current.selectionEnd,
@@ -125,8 +126,8 @@ const NumberInput = ({
       )
     }
 
-    if (inputChanged.current) {
-      inputChanged.current = false
+    if (selfChanged.current) {
+      selfChanged.current = false
     }
   }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, value])
 
@@ -196,7 +197,21 @@ const NumberInput = ({
               onClick={() => {
                 dispatch(toggleKeyboard())
                 dispatch(setLayout('numPad'))
+
+                if (
+                  inputRef.current.selectionStart ===
+                  inputRef.current.selectionEnd
+                ) {
+                  dispatch(
+                    setCaretPosition([
+                      inputRef.current.selectionStart,
+                      inputRef.current.selectionStart,
+                    ])
+                  )
+                  selfChanged.current = true
+                }
               }}
+              onMouseDown={(event) => event.preventDefault()}
             >
               <BiSolidKeyboard />
             </Box>

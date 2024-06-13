@@ -10,6 +10,7 @@ import {
   toggleKeyboard,
   setLayout,
   setInputValue,
+  setCaretPosition,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { getStatusIcon } from '../../utils'
@@ -35,7 +36,7 @@ const TextInput = ({
 
   const focused = useRef(false)
   const inputRef = useRef(null)
-  const inputChanged = useRef(false)
+  const selfChanged = useRef(false)
   const isTouchDragging = useRef(false)
 
   const [value, setValue] = useState(valueParent)
@@ -50,7 +51,7 @@ const TextInput = ({
   const setAllValues = (inputValue) => {
     setValue(inputValue)
     dispatch(setInputValue(inputValue))
-    inputChanged.current = true
+    selfChanged.current = true
   }
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
@@ -71,7 +72,7 @@ const TextInput = ({
 
     if (
       inputRef.current &&
-      !inputChanged.current &&
+      !selfChanged.current &&
       !R.equals(virtualKeyboard.caretPosition, [
         inputRef.current.selectionStart,
         inputRef.current.selectionEnd,
@@ -83,8 +84,8 @@ const TextInput = ({
       )
     }
 
-    if (inputChanged.current) {
-      inputChanged.current = false
+    if (selfChanged.current) {
+      selfChanged.current = false
     }
   }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, value])
 
@@ -147,7 +148,21 @@ const TextInput = ({
               onClick={() => {
                 dispatch(toggleKeyboard())
                 dispatch(setLayout('default'))
+
+                if (
+                  inputRef.current.selectionStart ===
+                  inputRef.current.selectionEnd
+                ) {
+                  dispatch(
+                    setCaretPosition([
+                      inputRef.current.selectionStart,
+                      inputRef.current.selectionStart,
+                    ])
+                  )
+                  selfChanged.current = true
+                }
               }}
+              onMouseDown={(event) => event.preventDefault()}
             >
               <BiSolidKeyboard />
             </Box>

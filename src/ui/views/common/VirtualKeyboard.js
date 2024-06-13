@@ -117,6 +117,16 @@ const VirtualKeyboard = () => {
     }
   }, [dispatch, virtualKeyboard.inputValue])
 
+  // Sync keyboard with input field caret position
+  useEffect(() => {
+    if (
+      virtualKeyboard.caretPosition[0] !==
+      keyboardRef.current.getCaretPosition()
+    ) {
+      keyboardRef.current?.setCaretPosition(virtualKeyboard.caretPosition[0])
+    }
+  }, [dispatch, virtualKeyboard.caretPosition])
+
   const onKeyPress = (button) => {
     let nextLayout = virtualKeyboard.layout
 
