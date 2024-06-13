@@ -32,11 +32,11 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const inputRef = useRef(null)
   const inputChanged = useRef(false)
   const isTouchDragging = useRef(false)
+  const focused = useRef(false)
 
   const { enabled = false, options, placeholder } = prop
   const [valueText, setValueText] = useState('')
   const [value, setValue] = useState(R.defaultTo(prop.value, currentVal))
-  const [focused, setFocused] = useState(false)
   const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
 
@@ -50,14 +50,19 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
 
   // Update this field's value when user types on virtual keyboard
   useEffect(() => {
-    if (!enabled || !focused || virtualKeyboard.inputValue === valueText) return
+    if (
+      !enabled ||
+      !focused.current ||
+      virtualKeyboard.inputValue === valueText
+    )
+      return
 
     setValueText(virtualKeyboard.inputValue)
-  }, [setValueText, focused, enabled, virtualKeyboard.inputValue, valueText])
+  }, [setValueText, enabled, virtualKeyboard.inputValue, valueText])
 
   // Keep cursor position synced with virtual keyboard's
   useEffect(() => {
-    if (!focused) return
+    if (!focused.current) return
 
     if (
       inputRef.current &&
@@ -76,12 +81,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     if (inputChanged.current) {
       inputChanged.current = false
     }
-  }, [
-    focused,
-    virtualKeyboard.caretPosition,
-    virtualKeyboard.inputValue,
-    valueText,
-  ])
+  }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, valueText])
 
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
@@ -141,7 +141,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           if (!enabled) return
 
           setAllValues(R.defaultTo('', indexedOptions[value]?.['name']))
-          setFocused(true)
+          focused.current = true
         }}
         onBlur={() => {
           if (!enabled) return
@@ -151,7 +151,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           }
 
           setAllValues(R.defaultTo('', indexedOptions[value]?.['name']))
-          setFocused(false)
+          focused.current = false
         }}
         onTouchStart={() => {
           if (!enabled) return
