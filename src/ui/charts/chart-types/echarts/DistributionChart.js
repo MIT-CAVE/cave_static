@@ -1,9 +1,12 @@
 import { Slider, Typography, Box } from '@mui/material'
 import { styled } from '@mui/system'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 import { useState, useMemo } from 'react'
 
 import EchartsPlot from './BaseChart'
+
+import { findSubgroupLabels } from '../../../../utils'
 
 const CustomSlider = styled(Slider)(() => ({
   '& .MuiSlider-valueLabel': {
@@ -32,20 +35,58 @@ const DistributionChart = ({
   const [numBuckets, setNumBuckets] = useState(10)
 
   const calcDistributionData = useMemo(() => {
-    const hasSubgroups = data.some(
-      (item) =>
-        item.children &&
-        Array.isArray(item.children) &&
-        item.children.length > 0
-    )
+    const hasSubgroups = R.has('children', R.head(data))
     if (hasSubgroups) {
-      return data
-    } else {
-      const values = data.map((val) => val.value[0])
+      const values = R.flatten(
+        data.map((obj) => R.pluck('value', obj.children))
+      )
+      const yValues = R.pluck('children', data)
+      const subGroupLabels = findSubgroupLabels(yValues)
+
       const minValue = Math.min(...values)
       const maxValue = Math.max(...values)
       const range = maxValue - minValue
-      const bucketSize = range / numBuckets
+      const bucketSize = Math.ceil(range / numBuckets)
+      const buckets = Array.from({ length: numBuckets }, () => {
+        return subGroupLabels.reduce((acc, curr) => {
+          acc[curr] = 0
+          return acc
+        }, {})
+      })
+      const bucketRanges = []
+      for (let i = 0; i < numBuckets; i++) {
+        const bucketMin = minValue + i * bucketSize
+        const bucketMax = minValue + (i + 1) * bucketSize
+        bucketRanges.push({
+          min: bucketMin,
+          max: bucketMax,
+        })
+      }
+
+      const flattenedYValues = R.flatten(yValues)
+      for (const obj of flattenedYValues) {
+        const bucketIndex = Math.min(
+          Math.floor((obj.value[0] - minValue) / bucketSize),
+          numBuckets - 1
+        )
+        buckets[bucketIndex][obj.name]++
+      }
+
+      const newData = bucketRanges.map((range, index) => {
+        const dataItem = { name: `[${range.min},${range.max})`, children: [] }
+        for (const [key, val] of Object.entries(buckets[index])) {
+          dataItem.children.push({ name: key, value: [val] })
+        }
+        return dataItem
+      })
+      console.log('new data', newData)
+      return newData
+    } else {
+      const values = [6, 5, -3, 1, -3, 4]
+      const minValue = Math.min(...values)
+      const maxValue = Math.max(...values)
+      const range = maxValue - minValue
+      const bucketSize = Math.ceil(range / numBuckets)
 
       const buckets = new Array(numBuckets).fill(0)
       const bucketRanges = []
@@ -77,15 +118,17 @@ const DistributionChart = ({
         }, [])
 
         return bucketRanges.map((range, index) => ({
-          name: `[${range.min.toFixed(2)},${range.max.toFixed(2)})`,
-          value: counts
-            ? cumulativeCounts[index]
-            : cumulativeCounts[index] / values.length,
+          name: `[${range.min},${range.max})`,
+          value: [
+            counts
+              ? cumulativeCounts[index]
+              : cumulativeCounts[index] / values.length,
+          ],
         }))
       }
       return bucketRanges.map((range, index) => ({
-        name: `[${range.min.toFixed(2)},${range.max.toFixed(2)})`,
-        value: counts ? buckets[index] : buckets[index] / values.length,
+        name: `[${range.min},${range.max})`,
+        value: [counts ? buckets[index] : buckets[index] / values.length],
       }))
     }
   }, [data, numBuckets, cumulative, counts])
