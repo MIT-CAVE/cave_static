@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { selectVirtualKeyboard } from '../../data/selectors'
 import {
-  toggleKeyboard,
+  setIsOpen,
   setLayout,
   setInputValue,
   setCaretPosition,
@@ -120,7 +120,6 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   // clicking the clear button can correctly clear text
   useEffect(() => {
     if (justFocused) {
-      console.log('just focused')
       setJustFocused(false)
       setAllValues(valueName)
     }
@@ -130,7 +129,6 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <Autocomplete
         fullWidth
-        // {...{ value }}
         value={value}
         inputValue={valueText}
         sx={{ p: 1.5 }}
@@ -154,7 +152,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                     <Box
                       sx={{ cursor: 'pointer' }}
                       onClick={() => {
-                        dispatch(toggleKeyboard())
+                        dispatch(setIsOpen(!virtualKeyboard.isOpen))
                         dispatch(setLayout('default'))
                         syncCaretPosition()
                       }}
@@ -184,7 +182,6 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         onFocus={() => {
           if (!enabled) return
 
-          // setAllValues(valueName)
           focused.current = true
           setJustFocused(true)
         }}
@@ -192,8 +189,9 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           if (!enabled) return
 
           if (virtualKeyboard.isOpen) {
-            dispatch(toggleKeyboard())
+            dispatch(setIsOpen(false))
           }
+
           setAllValues(valueName)
           focused.current = false
         }}
@@ -210,9 +208,13 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         onTouchEnd={() => {
           if (!enabled) return
 
+          // delay so that clicking on the keyboard button doesn't immediately
+          // close the keyboard due to onClick event
           if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
-            dispatch(toggleKeyboard())
-            dispatch(setLayout('default'))
+            setTimeout(() => {
+              dispatch(setIsOpen(true))
+              dispatch(setLayout('default'))
+            }, 10)
           }
         }}
         getOptionLabel={(option) =>

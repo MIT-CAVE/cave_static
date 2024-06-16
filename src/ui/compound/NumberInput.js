@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { selectVirtualKeyboard } from '../../data/selectors'
 import {
-  toggleKeyboard,
+  setIsOpen,
   setLayout,
   setInputValue,
   setCaretPosition,
@@ -170,7 +170,7 @@ const NumberInput = ({
         if (!enabled) return
 
         if (virtualKeyboard.isOpen) {
-          dispatch(toggleKeyboard())
+          dispatch(setIsOpen(false))
         }
 
         focused.current = false
@@ -194,9 +194,13 @@ const NumberInput = ({
       onTouchEnd={() => {
         if (!enabled) return
 
+        // delay so that clicking on the keyboard button doesn't immediately
+        // close the keyboard due to onClick event
         if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
-          dispatch(toggleKeyboard())
-          dispatch(setLayout('numPad'))
+          setTimeout(() => {
+            dispatch(setIsOpen(true))
+            dispatch(setLayout('default'))
+          }, 10)
         }
       }}
       helperText={help}
@@ -208,7 +212,7 @@ const NumberInput = ({
             <Box
               sx={{ cursor: 'pointer' }}
               onClick={() => {
-                dispatch(toggleKeyboard())
+                dispatch(setIsOpen(!virtualKeyboard.isOpen))
                 dispatch(setLayout('numPad'))
                 syncCaretPosition()
               }}
