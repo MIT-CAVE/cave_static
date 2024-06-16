@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Keyboard from 'react-simple-keyboard'
 import 'react-simple-keyboard/build/css/index.css'
+import './virtual-keyboard.css'
 
 import { selectVirtualKeyboard } from '../../../data/selectors'
 import {
@@ -11,6 +12,8 @@ import {
   setCaretPosition,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
+const KEYBOARD_WIDTH_RATIO = 0.8
+
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
@@ -18,8 +21,8 @@ const VirtualKeyboard = () => {
   const [prevButton, setPrevButton] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
-    x: window.innerWidth / 2 - (0.8 * window.innerWidth) / 2,
-    y: window.innerHeight - 250,
+    x: window.innerWidth / 2 - (KEYBOARD_WIDTH_RATIO * window.innerWidth) / 2,
+    y: window.innerHeight,
   })
 
   const keyboardRef = useRef(null)
@@ -31,8 +34,10 @@ const VirtualKeyboard = () => {
   useEffect(() => {
     const onResize = () => {
       setPosition({
-        x: window.innerWidth / 2 - (0.8 * window.innerWidth) / 2,
-        y: window.innerHeight - 250,
+        x:
+          window.innerWidth / 2 -
+          (KEYBOARD_WIDTH_RATIO * window.innerWidth) / 2,
+        y: window.innerHeight,
       })
     }
 
@@ -152,9 +157,9 @@ const VirtualKeyboard = () => {
     <Box
       sx={{
         position: 'fixed',
-        top: `${position.y}px`,
+        bottom: `${window.innerHeight - position.y}px`,
         left: `${position.x}px`,
-        width: '80vw',
+        width: `${KEYBOARD_WIDTH_RATIO * 100}vw`,
         zIndex: 1000000,
         color: 'black',
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -207,7 +212,7 @@ const VirtualKeyboard = () => {
             '7 8 9',
             '4 5 6',
             '1 2 3',
-            '0 . {bksp}',
+            '. 0 {bksp}',
             '{toggleDefault} {enter} {drag}',
           ],
         }}
@@ -226,6 +231,10 @@ const VirtualKeyboard = () => {
           {
             class: 'bigger-keys',
             buttons: '{space}',
+          },
+          {
+            class: 'drag',
+            buttons: '{drag}',
           },
         ]}
       />

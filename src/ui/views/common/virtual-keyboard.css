@@ -1,0 +1,24 @@
+.react-simple-keyboard:hover {
+  cursor: default;
+}
+
+.react-simple-keyboard .hg-button {
+  height: 5vh;
+  font-size: 1.5rem;
+}
+
+.react-simple-keyboard .hg-button:hover {
+  cursor: pointer;
+}
+
+.react-simple-keyboard .hg-button.bigger-keys {
+  flex: 3;
+}
+
+.react-simple-keyboard .hg-button.drag:hover {
+  cursor: grab;
+}
+
+.react-simple-keyboard .hg-button.drag:active {
+  cursor: grabbing;
+}

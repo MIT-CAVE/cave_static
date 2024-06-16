@@ -1,7 +1,14 @@
 import { Autocomplete, Box, TextField, InputAdornment } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react'
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  Fragment,
+} from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -37,22 +44,26 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
 
   const { enabled = false, options, placeholder } = prop
   const [value, setValue] = useState(R.defaultTo(prop.value, currentVal))
+  const [justFocused, setJustFocused] = useState(false)
   const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
 
   const valueName = useMemo(
-    () => indexedOptions[value]?.['name'],
+    () => R.defaultTo('', indexedOptions[value]?.['name']),
     [indexedOptions, value]
   )
   const [valueText, setValueText] = useState(valueName)
 
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard
-  const setAllValues = (inputValue) => {
-    setValueText(inputValue)
-    dispatch(setInputValue(inputValue))
-    selfChanged.current = true
-  }
+  const setAllValues = useCallback(
+    (inputValue) => {
+      setValueText(inputValue)
+      dispatch(setInputValue(inputValue))
+      selfChanged.current = true
+    },
+    [dispatch]
+  )
 
   // Update this field's value when user types on virtual keyboard
   useEffect(() => {
@@ -62,6 +73,10 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       virtualKeyboard.inputValue === valueText
     )
       return
+
+    if (virtualKeyboard.inputValue === '') {
+      setValue(null)
+    }
 
     setValueText(virtualKeyboard.inputValue)
   }, [setValueText, enabled, virtualKeyboard.inputValue, valueText])
@@ -100,6 +115,16 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       selfChanged.current = true
     }
   }
+
+  // Delay update from focus to here so that focusing via
+  // clicking the clear button can correctly clear text
+  useEffect(() => {
+    if (justFocused) {
+      console.log('just focused')
+      setJustFocused(false)
+      setAllValues(valueName)
+    }
+  }, [justFocused, setAllValues, valueName])
 
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
@@ -159,8 +184,9 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         onFocus={() => {
           if (!enabled) return
 
-          setAllValues(R.defaultTo('', valueName))
+          // setAllValues(valueName)
           focused.current = true
+          setJustFocused(true)
         }}
         onBlur={() => {
           if (!enabled) return
@@ -168,8 +194,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           if (virtualKeyboard.isOpen) {
             dispatch(toggleKeyboard())
           }
-
-          setAllValues(R.defaultTo('', valueName))
+          setAllValues(valueName)
           focused.current = false
         }}
         onTouchStart={() => {
