@@ -110,8 +110,15 @@ const NumberInput = ({
 
     const rawValueText = virtualKeyboard.inputValue
     const rawValue = NumberFormat.parse(rawValueText)
-    if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText))
+    if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText)) {
       dispatch(setInputValue(valueText))
+      dispatch(
+        setCaretPosition([
+          virtualKeyboard.caretPosition[0] - 1,
+          virtualKeyboard.caretPosition[1] - 1,
+        ])
+      )
+    }
 
     handleChange({ target: { value: virtualKeyboard.inputValue } })
   }, [
@@ -119,6 +126,7 @@ const NumberInput = ({
     enabled,
     validNaNs,
     virtualKeyboard.inputValue,
+    virtualKeyboard.caretPosition,
     valueText,
     handleChange,
   ])
