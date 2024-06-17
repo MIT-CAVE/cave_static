@@ -46,7 +46,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const focused = useRef(false)
 
   const { enabled = false, options, placeholder } = prop
-  const [value, setValue] = useState(R.defaultTo(prop.value, currentVal))
+  const [value, setValue] = useState(R.defaultTo(prop.value[0], currentVal[0]))
   const [justFocused, setJustFocused] = useState(false)
   const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
