@@ -36,135 +36,98 @@ const DistributionChart = ({
 
   const calcDistributionData = useMemo(() => {
     const hasSubgroups = R.has('children', R.head(data))
+    const values = hasSubgroups
+      ? R.flatten(data.map((obj) => R.pluck('value', obj.children)))
+      : data.map((val) => val.value[0])
+    const minValue = Math.min(...values)
+    const maxValue = Math.max(...values)
+    const range = maxValue - minValue
+    const bucketSize = Math.ceil(range / numBuckets)
+
+    // initialize array with bucket ranges
+    const bucketRanges = R.times(
+      (i) => ({
+        min: minValue + i * bucketSize,
+        max: minValue + (i + 1) * bucketSize,
+      }),
+      numBuckets
+    )
+
     if (hasSubgroups) {
-      const values = R.flatten(
-        data.map((obj) => R.pluck('value', obj.children))
-      )
       const yValues = R.pluck('children', data)
       const flattenedYValues = R.flatten(yValues)
       const subGroupLabels = findSubgroupLabels(yValues)
-      const subGroupCounts = {}
-      for (const obj of flattenedYValues) {
-        if (obj.name in subGroupCounts) {
-          subGroupCounts[obj.name]++
-        } else {
-          subGroupCounts[obj.name] = 1
-        }
-      }
+      const subGroupCounts = R.countBy(R.prop('name'), flattenedYValues)
 
-      const minValue = Math.min(...values)
-      const maxValue = Math.max(...values)
-      const range = maxValue - minValue
-      const bucketSize = Math.ceil(range / numBuckets)
-      const buckets = Array.from({ length: numBuckets }, () => {
-        return subGroupLabels.reduce((acc, curr) => {
-          acc[curr] = 0
-          return acc
-        }, {})
-      })
-      const bucketRanges = []
-      for (let i = 0; i < numBuckets; i++) {
-        const bucketMin = minValue + i * bucketSize
-        const bucketMax = minValue + (i + 1) * bucketSize
-        bucketRanges.push({
-          min: bucketMin,
-          max: bucketMax,
-        })
-      }
+      // initialize buckets, setting all subGroup counts to 0
+      const buckets = R.times(
+        () => R.fromPairs(R.map((label) => [label, 0], subGroupLabels)),
+        numBuckets
+      )
 
-      for (const obj of flattenedYValues) {
-        const bucketIndex = Math.min(
-          Math.floor((obj.value[0] - minValue) / bucketSize),
-          numBuckets - 1
-        )
-        buckets[bucketIndex][obj.name]++
-      }
+      // add each data object to corresponding bucket
+      R.forEach((obj) => {
+        buckets[
+          Math.min(
+            Math.floor((obj.value[0] - minValue) / bucketSize),
+            numBuckets - 1
+          )
+        ][obj.name]++
+      }, flattenedYValues)
 
-      if (cumulative) {
-        const cumulativeCounts = []
-        cumulativeCounts.push(buckets[0])
-        for (let i = 1; i < buckets.length; i++) {
-          const nextBucket = {}
-          for (const subGroup of subGroupLabels) {
-            nextBucket[subGroup] =
-              buckets[i][subGroup] + cumulativeCounts[i - 1][subGroup]
-          }
-          cumulativeCounts.push(nextBucket)
-        }
+      // calculate final buckets based on PDF/CDF
+      const finalBuckets = cumulative
+        ? R.reduce(
+            (acc, currentBucket) =>
+              R.append(
+                R.isEmpty(acc)
+                  ? currentBucket
+                  : R.mergeWith(R.add, currentBucket, R.last(acc)),
+                acc
+              ),
+            [],
+            buckets
+          )
+        : buckets
 
-        const newData = bucketRanges.map((range, index) => {
-          const dataItem = { name: `[${range.min},${range.max})`, children: [] }
-          for (const [key, val] of Object.entries(cumulativeCounts[index])) {
-            dataItem.children.push({
+      // return new data
+      return R.addIndex(R.map)(
+        (range, index) => ({
+          name: `[${range.min},${range.max})`,
+          children: R.pipe(
+            R.toPairs,
+            R.map(([key, val]) => ({
               name: key,
               value: counts ? [val] : [val / subGroupCounts[key]],
-            })
-          }
-          return dataItem
-        })
-        return newData
-      }
-
-      const newData = bucketRanges.map((range, index) => {
-        const dataItem = { name: `[${range.min},${range.max})`, children: [] }
-        for (const [key, val] of Object.entries(buckets[index])) {
-          dataItem.children.push({
-            name: key,
-            value: counts ? [val] : [val / subGroupCounts[key]],
-          })
-        }
-        return dataItem
-      })
-      return newData
+            }))
+          )(finalBuckets[index]),
+        }),
+        bucketRanges
+      )
     } else {
-      const values = [6, 5, -3, 1, -3, 4]
-      const minValue = Math.min(...values)
-      const maxValue = Math.max(...values)
-      const range = maxValue - minValue
-      const bucketSize = Math.ceil(range / numBuckets)
-
+      // initialize buckets and add each value to corresponding bucket
       const buckets = new Array(numBuckets).fill(0)
-      const bucketRanges = []
+      R.forEach((val) => {
+        buckets[
+          Math.min(Math.floor((val - minValue) / bucketSize), numBuckets - 1)
+        ]++
+      }, values)
 
-      for (let i = 0; i < numBuckets; i++) {
-        const bucketMin = minValue + i * bucketSize
-        const bucketMax = minValue + (i + 1) * bucketSize
-        bucketRanges.push({
-          min: bucketMin,
-          max: bucketMax,
-        })
-      }
+      // calculate final buckets based on PDF/CDF
+      const finalBuckets = cumulative
+        ? R.scan(R.add, 0, buckets).slice(1)
+        : buckets
 
-      // Add each value to a bucket
-      values.forEach((val) => {
-        const bucketIndex = Math.min(
-          Math.floor((val - minValue) / bucketSize),
-          numBuckets - 1
-        )
-        buckets[bucketIndex]++
-      })
-
-      if (cumulative) {
-        // Calculate the cumulative counts for CDF
-        const cumulativeCounts = buckets.reduce((acc, count, index) => {
-          const cumulativeCount = index === 0 ? count : acc[index - 1] + count
-          acc.push(cumulativeCount)
-          return acc
-        }, [])
-
-        return bucketRanges.map((range, index) => ({
+      // return new data
+      return R.addIndex(R.map)(
+        (range, index) => ({
           name: `[${range.min},${range.max})`,
           value: [
-            counts
-              ? cumulativeCounts[index]
-              : cumulativeCounts[index] / values.length,
+            counts ? finalBuckets[index] : finalBuckets[index] / values.length,
           ],
-        }))
-      }
-      return bucketRanges.map((range, index) => ({
-        name: `[${range.min},${range.max})`,
-        value: [counts ? buckets[index] : buckets[index] / values.length],
-      }))
+        }),
+        bucketRanges
+      )
     }
   }, [data, numBuckets, cumulative, counts])
 
