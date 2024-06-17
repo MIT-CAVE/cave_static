@@ -15,6 +15,9 @@ import {
 
 import { NumberFormat, getStatusIcon } from '../../utils'
 
+const DELAY = 10
+const KEYBOARD_LAYOUT = 'numPad'
+
 const NumberInput = ({
   color = 'default',
   enabled,
@@ -163,14 +166,27 @@ const NumberInput = ({
       onChange={handleChange}
       onSelect={syncCaretPosition}
       onFocus={() => {
+        // delay to ensure the keyboard closing is overriden
+        // if user focuses to another input field
+        if (virtualKeyboard.isOpen) {
+          setTimeout(() => {
+            dispatch(setIsOpen(true))
+            dispatch(setLayout(KEYBOARD_LAYOUT))
+          }, DELAY)
+        }
+
         focused.current = true
         setAllValues(value)
       }}
       onBlur={() => {
         if (!enabled) return
 
+        // delay so that focusing to another input field keeps
+        // the keyboard open
         if (virtualKeyboard.isOpen) {
-          dispatch(setIsOpen(false))
+          setTimeout(() => {
+            dispatch(setIsOpen(false))
+          }, DELAY)
         }
 
         focused.current = false
@@ -199,8 +215,8 @@ const NumberInput = ({
         if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
           setTimeout(() => {
             dispatch(setIsOpen(true))
-            dispatch(setLayout('default'))
-          }, 10)
+            dispatch(setLayout(KEYBOARD_LAYOUT))
+          }, DELAY)
         }
       }}
       helperText={help}
@@ -212,11 +228,18 @@ const NumberInput = ({
             <Box
               sx={{ cursor: 'pointer' }}
               onClick={() => {
+                if (!focused.current) {
+                  inputRef.current.focus()
+                  inputRef.current.setSelectionRange(value.length, value.length)
+                }
+
                 dispatch(setIsOpen(!virtualKeyboard.isOpen))
-                dispatch(setLayout('numPad'))
+                dispatch(setLayout(KEYBOARD_LAYOUT))
                 syncCaretPosition()
               }}
-              onMouseDown={(event) => event.preventDefault()}
+              onMouseDown={(event) => {
+                if (focused.current) event.preventDefault()
+              }}
             >
               <BiSolidKeyboard />
             </Box>

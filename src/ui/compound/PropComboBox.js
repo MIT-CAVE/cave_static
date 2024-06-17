@@ -33,6 +33,9 @@ const getStyles = (enabled) => ({
   },
 })
 
+const DELAY = 10
+const KEYBOARD_LAYOUT = 'default'
+
 const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
@@ -152,11 +155,21 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                     <Box
                       sx={{ cursor: 'pointer' }}
                       onClick={() => {
+                        if (!focused.current) {
+                          inputRef.current.focus()
+                          inputRef.current.setSelectionRange(
+                            value.length,
+                            value.length
+                          )
+                        }
+
                         dispatch(setIsOpen(!virtualKeyboard.isOpen))
-                        dispatch(setLayout('default'))
+                        dispatch(setLayout(KEYBOARD_LAYOUT))
                         syncCaretPosition()
                       }}
-                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseDown={(event) => {
+                        if (focused.current) event.preventDefault()
+                      }}
                     >
                       <BiSolidKeyboard />
                     </Box>
@@ -182,14 +195,27 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
         onFocus={() => {
           if (!enabled) return
 
+          // delay to ensure the keyboard closing is overriden
+          // if user focuses to another input field
+          if (virtualKeyboard.isOpen) {
+            setTimeout(() => {
+              dispatch(setIsOpen(true))
+              dispatch(setLayout(KEYBOARD_LAYOUT))
+            }, DELAY)
+          }
+
           focused.current = true
           setJustFocused(true)
         }}
         onBlur={() => {
           if (!enabled) return
 
+          // delay so that focusing to another input field keeps
+          // the keyboard open
           if (virtualKeyboard.isOpen) {
-            dispatch(setIsOpen(false))
+            setTimeout(() => {
+              dispatch(setIsOpen(false))
+            }, DELAY)
           }
 
           setAllValues(valueName)
@@ -213,8 +239,8 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
             setTimeout(() => {
               dispatch(setIsOpen(true))
-              dispatch(setLayout('default'))
-            }, 10)
+              dispatch(setLayout(KEYBOARD_LAYOUT))
+            }, DELAY)
           }
         }}
         getOptionLabel={(option) =>
