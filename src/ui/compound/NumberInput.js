@@ -108,8 +108,20 @@ const NumberInput = ({
     )
       return
 
+    const rawValueText = virtualKeyboard.inputValue
+    const rawValue = NumberFormat.parse(rawValueText)
+    if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText))
+      dispatch(setInputValue(valueText))
+
     handleChange({ target: { value: virtualKeyboard.inputValue } })
-  }, [enabled, virtualKeyboard.inputValue, valueText, handleChange])
+  }, [
+    dispatch,
+    enabled,
+    validNaNs,
+    virtualKeyboard.inputValue,
+    valueText,
+    handleChange,
+  ])
 
   // Keep cursor position synced with virtual keyboard's
   useEffect(() => {
