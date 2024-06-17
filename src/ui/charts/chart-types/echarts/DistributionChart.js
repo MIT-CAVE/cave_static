@@ -15,6 +15,10 @@ const CustomSlider = styled(Slider)(() => ({
   },
 }))
 
+const formatToSignificantFigures = (num, sigFigs) => {
+  return Number.parseFloat(num.toPrecision(sigFigs))
+}
+
 /**
  * Renders a distribution chart.
  * @todo Implement this component.
@@ -41,14 +45,13 @@ const DistributionChart = ({
       : data.map((val) => val.value[0])
     const minValue = Math.min(...values)
     const maxValue = Math.max(...values)
-    const range = maxValue - minValue
-    const bucketSize = Math.ceil(range / numBuckets)
+    const bucketSize = (maxValue - minValue) / numBuckets
 
     // initialize array with bucket ranges
     const bucketRanges = R.times(
       (i) => ({
-        min: minValue + i * bucketSize,
-        max: minValue + (i + 1) * bucketSize,
+        min: formatToSignificantFigures(minValue + i * bucketSize, 3),
+        max: formatToSignificantFigures(minValue + (i + 1) * bucketSize, 3),
       }),
       numBuckets
     )
