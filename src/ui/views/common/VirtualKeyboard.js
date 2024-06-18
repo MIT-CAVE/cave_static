@@ -12,7 +12,8 @@ import {
   setCaretPosition,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
-const KEYBOARD_WIDTH_RATIO = 0.8
+const DEFAULT_WIDTH_RATIO = 0.8
+const NUMPAD_WIDTH_RATIO = 0.2
 
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
@@ -21,22 +22,29 @@ const VirtualKeyboard = () => {
   const [prevButton, setPrevButton] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
-    x: window.innerWidth / 2 - (KEYBOARD_WIDTH_RATIO * window.innerWidth) / 2,
+    x: window.innerWidth / 2,
     y: window.innerHeight,
   })
+  const [boxHeight, setBoxHeight] = useState(0)
 
+  const boxRef = useRef(null)
   const keyboardRef = useRef(null)
   const dragOffset = useRef({ x: 0, y: 0 })
 
   const dragText = 'drag to move'
 
+  useEffect(() => {
+    if (boxRef.current) {
+      const { height } = boxRef.current.getBoundingClientRect()
+      setBoxHeight(height)
+    }
+  }, [virtualKeyboard.isOpen])
+
   // Reset position when window is resized
   useEffect(() => {
     const onResize = () => {
       setPosition({
-        x:
-          window.innerWidth / 2 -
-          (KEYBOARD_WIDTH_RATIO * window.innerWidth) / 2,
+        x: window.innerWidth / 2,
         y: window.innerHeight,
       })
     }
@@ -49,24 +57,24 @@ const VirtualKeyboard = () => {
   }, [])
 
   // Dragging
-  const onMouseDown = (e) => {
-    e.preventDefault()
+  const onMouseDown = (event) => {
+    event.preventDefault()
 
-    if (e.target.innerText === dragText) {
+    if (event.target.innerText === dragText) {
       setIsDragging(true)
       dragOffset.current = {
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
+        x: event.clientX - position.x,
+        y: event.clientY - position.y,
       }
     }
   }
 
   const onMouseMove = useCallback(
-    (e) => {
+    (event) => {
       if (isDragging) {
         setPosition({
-          x: e.clientX - dragOffset.current.x,
-          y: e.clientY - dragOffset.current.y,
+          x: event.clientX - dragOffset.current.x,
+          y: event.clientY - dragOffset.current.y,
         })
       }
     },
@@ -77,21 +85,21 @@ const VirtualKeyboard = () => {
     setIsDragging(false)
   }
 
-  const onTouchStart = (e) => {
-    if (e.target.innerText === dragText) {
+  const onTouchStart = (event) => {
+    if (event.target.innerText === dragText) {
       setIsDragging(true)
       dragOffset.current = {
-        x: e.touches[0].clientX - position.x,
-        y: e.touches[0].clientY - position.y,
+        x: event.touches[0].clientX - position.x,
+        y: event.touches[0].clientY - position.y,
       }
     }
   }
 
-  const onTouchMove = (e) => {
+  const onTouchMove = (event) => {
     if (isDragging) {
       setPosition({
-        x: e.touches[0].clientX - dragOffset.current.x,
-        y: e.touches[0].clientY - dragOffset.current.y,
+        x: event.touches[0].clientX - dragOffset.current.x,
+        y: event.touches[0].clientY - dragOffset.current.y,
       })
     }
   }
@@ -155,11 +163,13 @@ const VirtualKeyboard = () => {
 
   return (
     <Box
+      ref={boxRef}
       sx={{
         position: 'fixed',
-        bottom: `${window.innerHeight - position.y}px`,
+        bottom: `${window.innerHeight - position.y - boxHeight / 2}px`,
         left: `${position.x}px`,
-        width: `${KEYBOARD_WIDTH_RATIO * 100}vw`,
+        width: `${(virtualKeyboard.layout === 'numPad' ? NUMPAD_WIDTH_RATIO : DEFAULT_WIDTH_RATIO) * 100}vw`,
+        transform: 'translate(-50%, -50%)',
         zIndex: 1000000,
         color: 'black',
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -192,6 +202,7 @@ const VirtualKeyboard = () => {
           }
         }}
         onKeyPress={onKeyPress}
+        theme={`hg-theme-default ${virtualKeyboard.layout === 'numPad' && 'hg-layout-numpad'}`}
         layoutName={virtualKeyboard.layout}
         layout={{
           default: [

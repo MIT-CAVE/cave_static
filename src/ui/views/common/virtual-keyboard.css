@@ -22,3 +22,7 @@
 .react-simple-keyboard .hg-button.drag:active {
   cursor: grabbing;
 }
+
+.react-simple-keyboard.hg-layout-numpad .hg-button {
+  flex: 1;
+}
