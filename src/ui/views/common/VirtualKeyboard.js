@@ -14,6 +14,7 @@ import {
 
 const DEFAULT_WIDTH_RATIO = 0.8
 const NUMPAD_WIDTH_RATIO = 0.2
+const MAX_WIDTH = 1600
 
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
@@ -25,7 +26,7 @@ const VirtualKeyboard = () => {
     x: window.innerWidth / 2,
     y: window.innerHeight,
   })
-  const [boxHeight, setBoxHeight] = useState(0)
+  const [boxDimensions, setBoxDimensions] = useState({ height: 0, width: 0 })
 
   const boxRef = useRef(null)
   const keyboardRef = useRef(null)
@@ -35,10 +36,21 @@ const VirtualKeyboard = () => {
 
   useEffect(() => {
     if (boxRef.current) {
-      const { height } = boxRef.current.getBoundingClientRect()
-      setBoxHeight(height)
+      const { height, width } = boxRef.current.getBoundingClientRect()
+      setBoxDimensions({ height, width })
     }
   }, [virtualKeyboard.layout])
+
+  // Set max default width
+  useEffect(() => {
+    const width = Math.min(
+      (virtualKeyboard.layout === 'numPad'
+        ? NUMPAD_WIDTH_RATIO
+        : DEFAULT_WIDTH_RATIO) * window.innerWidth,
+      MAX_WIDTH
+    )
+    setBoxDimensions({ height: boxDimensions.height, width })
+  }, [virtualKeyboard.layout, boxDimensions.height])
 
   // Reset position when window is resized
   useEffect(() => {
@@ -48,10 +60,9 @@ const VirtualKeyboard = () => {
         y: window.innerHeight,
       })
 
-      const { height } = boxRef.current.getBoundingClientRect()
-      setBoxHeight(height)
+      const { height, width } = boxRef.current.getBoundingClientRect()
+      setBoxDimensions({ height, width: Math.min(width, MAX_WIDTH) })
     }
-
     window.addEventListener('resize', onResize)
 
     return () => {
@@ -187,9 +198,9 @@ const VirtualKeyboard = () => {
       ref={boxRef}
       sx={{
         position: 'fixed',
-        bottom: `${window.innerHeight - position.y - boxHeight / 2}px`,
+        bottom: `${window.innerHeight - position.y - boxDimensions.height / 2}px`,
         left: `${position.x}px`,
-        width: `${(virtualKeyboard.layout === 'numPad' ? NUMPAD_WIDTH_RATIO : DEFAULT_WIDTH_RATIO) * 100}vw`,
+        width: `${boxDimensions.width}px`,
         transform: 'translate(-50%, -50%)',
         zIndex: 1000000,
         color: 'black',
