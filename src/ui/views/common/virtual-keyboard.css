@@ -15,6 +15,11 @@
 
 .react-simple-keyboard .hg-button:hover {
   cursor: pointer;
+  background-color: rgb(116, 116, 116);
+}
+
+.react-simple-keyboard .hg-button:active {
+  background-color: rgb(107, 105, 105);
 }
 
 .react-simple-keyboard .hg-button.bigger-keys {
