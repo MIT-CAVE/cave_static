@@ -26,6 +26,14 @@
   flex: 3;
 }
 
+.react-simple-keyboard .hg-button.medium-keys {
+  flex: 2;
+}
+
+.react-simple-keyboard .hg-button.smaller-keys {
+  flex: 1;
+}
+
 .react-simple-keyboard .hg-button.drag:hover {
   cursor: grab;
 }

@@ -244,7 +244,7 @@ const VirtualKeyboard = () => {
             '{toggleNumPad} {space} {drag}',
           ],
           shift: [
-            '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
+            '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
             '{lock} A S D F G H J K L : " {enter}',
             '{shift} Z X C V B N M < > ? {shift}',
@@ -269,11 +269,20 @@ const VirtualKeyboard = () => {
           '{toggleDefault}': 'ABC',
           '{space}': ' ',
           '{drag}': dragText,
+          '{@}': '@',
         }}
         buttonTheme={[
           {
             class: 'bigger-keys',
             buttons: '{space}',
+          },
+          {
+            class: 'medium-keys',
+            buttons: '{bksp} {tab} {lock} {enter} {shift}',
+          },
+          {
+            class: 'smaller-keys',
+            buttons: '` 1 2 3 4 5 6 7 8 9 0 - = ~ ! {@} # $ % ^ & * ( ) _ +',
           },
           {
             class: 'drag',
