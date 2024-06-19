@@ -85,6 +85,24 @@ const VirtualKeyboard = () => {
     setIsDragging(false)
   }
 
+  // Reset caret position when lost by changing from default to numPad layout
+  useEffect(() => {
+    const onMouseUpGlobal = () => {
+      if (
+        keyboardRef?.current !== null &&
+        keyboardRef.current?.getCaretPosition() === null
+      ) {
+        keyboardRef.current.setCaretPosition(virtualKeyboard.caretPosition[0])
+      }
+    }
+
+    window.addEventListener('mouseup', onMouseUpGlobal)
+
+    return () => {
+      window.removeEventListener('mouseup', onMouseUpGlobal)
+    }
+  }, [virtualKeyboard.caretPosition])
+
   const onTouchStart = (event) => {
     if (event.target.innerText === dragText) {
       setIsDragging(true)
