@@ -38,7 +38,7 @@ const VirtualKeyboard = () => {
       const { height } = boxRef.current.getBoundingClientRect()
       setBoxHeight(height)
     }
-  }, [virtualKeyboard.isOpen])
+  }, [virtualKeyboard.layout])
 
   // Reset position when window is resized
   useEffect(() => {
@@ -47,6 +47,9 @@ const VirtualKeyboard = () => {
         x: window.innerWidth / 2,
         y: window.innerHeight,
       })
+
+      const { height } = boxRef.current.getBoundingClientRect()
+      setBoxHeight(height)
     }
 
     window.addEventListener('resize', onResize)
@@ -241,8 +244,9 @@ const VirtualKeyboard = () => {
             '7 8 9',
             '4 5 6',
             '1 2 3',
-            '. 0 {bksp}',
-            '{toggleDefault} {enter} {drag}',
+            '. 0 -',
+            '{toggleDefault} {enter} {bksp}',
+            '{drag}',
           ],
         }}
         display={{
