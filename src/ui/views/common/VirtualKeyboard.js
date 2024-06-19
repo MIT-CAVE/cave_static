@@ -203,7 +203,6 @@ const VirtualKeyboard = () => {
         width: `${boxDimensions.width}px`,
         transform: 'translate(-50%, 0)',
         zIndex: 1000000,
-        color: 'black',
         cursor: isDragging ? 'grabbing' : 'grab',
         visibility: virtualKeyboard.isOpen ? 'visible' : 'hidden',
         touchAction: 'none',

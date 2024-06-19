@@ -1,8 +1,14 @@
+.react-simple-keyboard {
+  background-color: rgb(118, 116, 116);
+}
+
 .react-simple-keyboard:hover {
   cursor: default;
 }
 
 .react-simple-keyboard .hg-button {
+  color: white;
+  background-color: rgb(130, 130, 130);
   height: 5vh;
   font-size: 1.5rem;
 }
