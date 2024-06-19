@@ -24,7 +24,7 @@ const VirtualKeyboard = () => {
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
     x: window.innerWidth / 2,
-    y: window.innerHeight,
+    y: 0,
   })
   const [boxDimensions, setBoxDimensions] = useState({ height: 0, width: 0 })
 
@@ -57,7 +57,7 @@ const VirtualKeyboard = () => {
     const onResize = () => {
       setPosition({
         x: window.innerWidth / 2,
-        y: window.innerHeight,
+        y: 0,
       })
 
       const { height, width } = boxRef.current.getBoundingClientRect()
@@ -198,10 +198,10 @@ const VirtualKeyboard = () => {
       ref={boxRef}
       sx={{
         position: 'fixed',
-        bottom: `${window.innerHeight - position.y - boxDimensions.height / 2}px`,
+        bottom: `${-position.y}px`,
         left: `${position.x}px`,
         width: `${boxDimensions.width}px`,
-        transform: 'translate(-50%, -50%)',
+        transform: 'translate(-50%, 0)',
         zIndex: 1000000,
         color: 'black',
         cursor: isDragging ? 'grabbing' : 'grab',
