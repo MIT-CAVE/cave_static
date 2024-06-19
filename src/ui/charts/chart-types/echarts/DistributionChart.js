@@ -10,8 +10,8 @@ import { findSubgroupLabels } from '../../../../utils'
 
 const CustomSlider = styled(Slider)(() => ({
   '& .MuiSlider-valueLabel': {
-    fontSize: '10px',
-    padding: '3px 8px',
+    fontSize: '9px',
+    padding: '2px 6px',
   },
 }))
 
@@ -137,6 +137,7 @@ const DistributionChart = ({
   return (
     <>
       <EchartsPlot
+        distribution={true}
         data={calcDistributionData}
         seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
         xAxisTitle={yAxisTitle}
@@ -149,7 +150,7 @@ const DistributionChart = ({
           position: 'absolute',
           width: '25%',
           right: '10%',
-          top: '25px',
+          bottom: '15px',
         }}
       >
         <Typography sx={{ whiteSpace: 'nowrap', mr: 2 }}>
