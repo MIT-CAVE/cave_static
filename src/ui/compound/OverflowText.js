@@ -62,7 +62,10 @@ const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
         gradient={false}
         pauseOnHover
         {...{ speed }}
-        style={{ display: isOverflowing ? '' : 'none' }}
+        style={{
+          display: isOverflowing ? '' : 'none',
+          width: node.current?.scrollWidth,
+        }}
       >
         <Box sx={styles.marqueeContent}>{children || text}</Box>
       </Marquee>
