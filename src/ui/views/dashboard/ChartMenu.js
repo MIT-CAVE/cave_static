@@ -77,6 +77,8 @@ const ChartMenu = ({
   isGroupedOutput,
   defaultToZero,
   onToggleDefaultToZero,
+  showNA,
+  onToggleShowNA,
   showToolbar,
   onShowToolbar,
   onRemoveChart,
@@ -130,13 +132,20 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        {isGroupedOutput && (
+        {isGroupedOutput && [
           <ToggleMenuItem
+            key="defaultToZero"
             label="0 NA Values"
             value={defaultToZero}
             onClick={onToggleDefaultToZero}
-          />
-        )}
+          />,
+          <ToggleMenuItem
+            key="showNA"
+            label="NA Groupings"
+            value={showNA}
+            onClick={onToggleShowNA}
+          />,
+        ]}
         {isGroupedOutput && <Divider />}
         <BaseMenuItem
           label="Remove Chart"

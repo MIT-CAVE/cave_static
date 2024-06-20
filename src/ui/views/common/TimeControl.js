@@ -1,6 +1,6 @@
 import { FormControl, Box, ToggleButton, Slider, Stack } from '@mui/material'
 import * as R from 'ramda'
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useCallback } from 'react'
 import {
   MdNavigateNext,
   MdNavigateBefore,
@@ -18,10 +18,16 @@ import {
   selectCurrentTimeLength,
   selectCurrentTimeUnits,
   selectAnimationInterval,
+  selectCurrentLooping,
+  selectCurrentSpeed,
+  selectSync,
 } from '../../../data/selectors'
 import { updateAnimation } from '../../../data/utilities/timeSlice'
+import { useMutateState } from '../../../utils/hooks'
 import Select from '../../compound/Select'
 import TooltipButton from '../../compound/TooltipButton'
+
+import { includesPath } from '../../../utils'
 
 const styles = {
   root: {
@@ -49,8 +55,8 @@ const styles = {
 }
 
 const TimeControl = () => {
-  const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [looping, setLooping] = useState(true)
+  const playbackSpeed = useSelector(selectCurrentSpeed)
+  const looping = useSelector(selectCurrentLooping)
 
   const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
@@ -59,6 +65,25 @@ const TimeControl = () => {
   const dispatch = useDispatch()
 
   const animation = R.is(Number, animationInterval)
+  const sync = useSelector(selectSync)
+
+  const toggleLooping = useMutateState(
+    () => ({
+      path: ['settings', 'time', 'looping'],
+      value: !looping,
+      sync: !includesPath(R.values(sync), ['settings', 'time', 'looping']),
+    }),
+    [looping, sync]
+  )
+
+  const updatePlaybackSpeed = useMutateState(
+    (newPlaybackSpeed) => ({
+      path: ['settings', 'time', 'speed'],
+      value: newPlaybackSpeed,
+      sync: !includesPath(R.values(sync), ['settings', 'time', 'speed']),
+    }),
+    [sync]
+  )
 
   const advanceAnimation = useCallback(() => {
     dispatch(timeAdvance(timeLength))
@@ -71,10 +96,9 @@ const TimeControl = () => {
     }
   }, [currentTime, looping, timeLength, animationInterval, dispatch])
 
-  const togglePlaybackSpeed = useCallback(
+  const toggleAnimationSpeed = useCallback(
     (newPlaybackSpeed) => {
       clearInterval(animationInterval)
-      dispatch(updateAnimation(false))
       const newAnimationInterval = setInterval(
         advanceAnimation,
         1000 / newPlaybackSpeed
@@ -143,7 +167,7 @@ const TimeControl = () => {
             title="Play animation"
             placement="bottom"
             onClick={() => {
-              togglePlaybackSpeed(playbackSpeed)
+              toggleAnimationSpeed(playbackSpeed)
             }}
           >
             <MdPlayCircle size={40} />
@@ -175,7 +199,7 @@ const TimeControl = () => {
             size="small"
             value="loop"
             selected={looping}
-            onChange={() => setLooping(!looping)}
+            onChange={() => toggleLooping()}
           >
             <MdOutlineCached size={20} />
           </ToggleButton>
@@ -183,9 +207,9 @@ const TimeControl = () => {
             <Select
               value={playbackSpeed}
               onChange={(e) => {
-                setPlaybackSpeed(e.target.value)
+                updatePlaybackSpeed(e.target.value)
                 if (animation) {
-                  togglePlaybackSpeed(e.target.value)
+                  toggleAnimationSpeed(e.target.value)
                 }
               }}
               optionsList={[

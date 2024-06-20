@@ -198,6 +198,7 @@ const EchartsPlot = ({
   seriesObj = {},
   colors,
   distribution = false,
+  showNA,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -328,17 +329,44 @@ const EchartsPlot = ({
             formatter: (params) =>
               `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
                 ${params
-                  .map(
-                    ({ marker, seriesId, seriesName, value }) =>
-                      `<div style="display: flex">
+                  .map(({ marker, seriesId, seriesName, value }) =>
+                    R.isNil(value) && !showNA
+                      ? false
+                      : `<div style="display: flex">
                         <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
                         <div><strong>${getNumberFormat(seriesId, value)}</strong></div>
                       </div>`
                   )
+                  .filter(R.identity)
                   .join('')}`,
           }
         : {
-            valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+            formatter: (params) =>
+              params.length === 1
+                ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${params
+                  .map(({ marker, value }) =>
+                    R.isNil(value) && !showNA
+                      ? false
+                      : `<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
+                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                      </div>`
+                  )
+                  .filter(R.identity)
+                  .join('')}`
+                : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${params
+                  .map(({ marker, seriesId, value }) =>
+                    R.isNil(value) && !showNA
+                      ? false
+                      : `<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesId}</div>
+                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                      </div>`
+                  )
+                  .filter(R.identity)
+                  .join('')}`,
           }),
     },
     ...lineMap,
