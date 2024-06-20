@@ -10,7 +10,11 @@ import {
   selectStatGroupings,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
-import { chartVariant } from '../../../utils/enums'
+import {
+  chartVariant,
+  distributionTypes,
+  distributionYAxes,
+} from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -26,6 +30,7 @@ import {
   Heatmap,
   ScatterPlot,
   BubblePlot,
+  DistributionChart,
 } from '../../charts'
 
 import {
@@ -48,6 +53,21 @@ const DashboardChart = ({ chartObj }) => {
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
   const cleanedChartObj = cleanUndefinedStats(chartObj)
   const chartType = R.propOr('', 'variant', cleanedChartObj)
+  const distributionType = R.propOr(
+    distributionTypes.PDF,
+    'distributionType',
+    cleanedChartObj
+  )
+  const distributionYAxis = R.propOr(
+    distributionYAxes.COUNTS,
+    'distributionYAxis',
+    cleanedChartObj
+  )
+  const distributionVariant = R.propOr(
+    'bar',
+    'distributionVariant',
+    cleanedChartObj
+  )
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
 
   useEffect(() => {
@@ -299,6 +319,22 @@ const DashboardChart = ({ chartObj }) => {
         <ScatterPlot
           data={formattedData}
           labelProps={R.dissoc(3)(labelProps)}
+          {...{ colors, numberFormat }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
+        <DistributionChart
+          data={formattedData}
+          cumulative={distributionType === distributionTypes.CDF}
+          chartType={distributionVariant}
+          counts={distributionYAxis === distributionYAxes.COUNTS}
+          yAxisTitle={
+            distributionYAxis === distributionYAxes.COUNTS
+              ? 'Counts'
+              : distributionType === distributionTypes.PDF
+                ? 'Probability Density'
+                : 'Cumulative Density'
+          }
+          xAxisTitle={yAxisTitle}
           {...{ colors, numberFormat }}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (

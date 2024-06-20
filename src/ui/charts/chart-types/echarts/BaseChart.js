@@ -197,6 +197,7 @@ const EchartsPlot = ({
   stack = false,
   seriesObj = {},
   colors,
+  distribution = false,
   showNA,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
@@ -305,6 +306,11 @@ const EchartsPlot = ({
     NumberFormat.format(value, numberFormat[labelKey])
 
   const options = {
+    grid: distribution
+      ? {
+          bottom: '80',
+        }
+      : {},
     xAxis: {
       name: xAxisTitle,
       data: xLabels,
