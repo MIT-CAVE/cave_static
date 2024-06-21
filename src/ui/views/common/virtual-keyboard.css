@@ -20,10 +20,7 @@
   flex: 2;
 }
 
-.react-simple-keyboard .hg-button.smaller-keys {
-  flex: 1;
-}
-
+.react-simple-keyboard .hg-button.smaller-keys,
 .react-simple-keyboard.hg-layout-numpad .hg-button {
   flex: 1;
 }
