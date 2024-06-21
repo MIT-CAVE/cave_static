@@ -1309,14 +1309,8 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
   const getSortedGroups = (layerKey) =>
     withIndex(R.propOr({}, layerKey)(legendObj))
 
-  const sortedGroupsData = getSortedGroups('data')
-
   return (
-    <details
-      {...props}
-      open={R.any(R.prop('value'))(sortedGroupsData)}
-      css={nonSx.primaryDetails}
-    >
+    <details {...props} open css={nonSx.primaryDetails}>
       <summary css={nonSx.listTitle}>
         <span>{R.propOr(legendObj.id, 'name')(legendObj)}</span>
         <MdExpandMore />
@@ -1363,7 +1357,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             legendObj={legendItem}
           />
         )
-      })(sortedGroupsData)}
+      })(getSortedGroups('data'))}
     </details>
   )
 }
