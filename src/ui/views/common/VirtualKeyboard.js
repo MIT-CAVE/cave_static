@@ -135,6 +135,7 @@ const VirtualKeyboard = () => {
   useEffect(() => {
     const onTouchStart = (event) => {
       event.preventDefault()
+
       if (event.target.innerText === dragText) {
         setIsDragging(true)
         dragOffset.current = {
@@ -205,8 +206,10 @@ const VirtualKeyboard = () => {
       nextLayout = 'default'
     }
 
-    dispatch(setLayout(nextLayout))
-    setPrevButton(button)
+    setTimeout(() => {
+      dispatch(setLayout(nextLayout))
+      setPrevButton(button)
+    }, 0)
   }
 
   return (
