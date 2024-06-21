@@ -44,7 +44,6 @@
   }
 }
 
-.react-simple-keyboard .hg-button:focus,
 .react-simple-keyboard .hg-button:active {
   background-color: var(--gray-3);
 }

@@ -117,29 +117,6 @@ const VirtualKeyboard = () => {
     }
   }, [virtualKeyboard.caretPosition])
 
-  const onTouchStart = (event) => {
-    if (event.target.innerText === dragText) {
-      setIsDragging(true)
-      dragOffset.current = {
-        x: event.touches[0].clientX - position.x,
-        y: event.touches[0].clientY - position.y,
-      }
-    }
-  }
-
-  const onTouchMove = (event) => {
-    if (isDragging) {
-      setPosition({
-        x: event.touches[0].clientX - dragOffset.current.x,
-        y: event.touches[0].clientY - dragOffset.current.y,
-      })
-    }
-  }
-
-  const onTouchEnd = () => {
-    setIsDragging(false)
-  }
-
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', onMouseMove)
@@ -154,6 +131,45 @@ const VirtualKeyboard = () => {
       window.removeEventListener('mouseup', onMouseUp)
     }
   }, [onMouseMove, isDragging])
+
+  useEffect(() => {
+    const onTouchStart = (event) => {
+      event.preventDefault()
+      if (event.target.innerText === dragText) {
+        setIsDragging(true)
+        dragOffset.current = {
+          x: event.touches[0].clientX - position.x,
+          y: event.touches[0].clientY - position.y,
+        }
+      }
+    }
+
+    const onTouchMove = (event) => {
+      if (isDragging) {
+        setPosition({
+          x: event.touches[0].clientX - dragOffset.current.x,
+          y: event.touches[0].clientY - dragOffset.current.y,
+        })
+      }
+    }
+
+    const onTouchEnd = () => {
+      setIsDragging(false)
+    }
+
+    const element = boxRef.current
+    if (element) {
+      element.addEventListener('touchstart', onTouchStart)
+      element.addEventListener('touchmove', onTouchMove)
+      element.addEventListener('touchend', onTouchEnd)
+
+      return () => {
+        element.removeEventListener('touchstart', onTouchStart)
+        element.removeEventListener('touchmove', onTouchMove)
+        element.removeEventListener('touchend', onTouchEnd)
+      }
+    }
+  }, [isDragging, position.x, position.y])
 
   // Sync keyboard with input field value
   useEffect(() => {
@@ -210,9 +226,6 @@ const VirtualKeyboard = () => {
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
     >
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
