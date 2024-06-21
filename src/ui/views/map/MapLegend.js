@@ -894,7 +894,11 @@ const MapLegendGeoToggle = ({
   }
 
   return (
-    <details key={geoType} css={nonSx.typeWrapper} open>
+    <details
+      key={geoType}
+      css={nonSx.typeWrapper}
+      open={eitherBoolOrNotNull(displayedGeos[geoType])}
+    >
       <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
           icon={<FetchedIcon iconName={R.prop('icon', legendObj)} />}
@@ -1161,15 +1165,17 @@ const LegendCard = memo(
       )
     }
 
+    const isOpen = eitherBoolOrNotNull(displayedGeometry[geometryType])
+
     return (
-      <details key={geometryType} css={nonSx.typeWrapper} open>
+      <details key={geometryType} css={nonSx.typeWrapper} open={isOpen}>
         <summary css={nonSx.itemSummary}>
           <MapLegendGroupRowToggleLayer
             icon={<FetchedIcon iconName={icon} />}
             legendName={R.propOr(geometryType, 'name')(typeObj)}
             toggle={
               <Switch
-                checked={eitherBoolOrNotNull(displayedGeometry[geometryType])}
+                checked={isOpen}
                 onChange={(event) => {
                   event.target.checked
                     ? dispatch(
@@ -1303,8 +1309,14 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
   const getSortedGroups = (layerKey) =>
     withIndex(R.propOr({}, layerKey)(legendObj))
 
+  const sortedGroupsData = getSortedGroups('data')
+
   return (
-    <details {...props} open css={nonSx.primaryDetails}>
+    <details
+      {...props}
+      open={R.any(R.prop('value'))(sortedGroupsData)}
+      css={nonSx.primaryDetails}
+    >
       <summary css={nonSx.listTitle}>
         <span>{R.propOr(legendObj.id, 'name')(legendObj)}</span>
         <MdExpandMore />
@@ -1351,7 +1363,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             legendObj={legendItem}
           />
         )
-      })(getSortedGroups('data'))}
+      })(sortedGroupsData)}
     </details>
   )
 }
