@@ -1,25 +1,15 @@
 .react-simple-keyboard {
-  background-color: rgb(118, 116, 116);
-}
-
-.react-simple-keyboard:hover {
-  cursor: default;
+  --gray-1: rgb(130, 130, 130);
+  --gray-2: rgb(116, 116, 116);
+  --gray-3: rgb(105, 105, 105);
+  background-color: var(--gray-2);
 }
 
 .react-simple-keyboard .hg-button {
   color: white;
-  background-color: rgb(130, 130, 130);
+  background-color: var(--gray-1);
   height: 5vh;
   font-size: 1.5rem;
-}
-
-.react-simple-keyboard .hg-button:hover {
-  cursor: pointer;
-  background-color: rgb(116, 116, 116);
-}
-
-.react-simple-keyboard .hg-button:active {
-  background-color: rgb(107, 105, 105);
 }
 
 .react-simple-keyboard .hg-button.bigger-keys {
@@ -34,14 +24,30 @@
   flex: 1;
 }
 
-.react-simple-keyboard .hg-button.drag:hover {
-  cursor: grab;
-}
-
-.react-simple-keyboard .hg-button.drag:active {
-  cursor: grabbing;
-}
-
 .react-simple-keyboard.hg-layout-numpad .hg-button {
   flex: 1;
+}
+
+@media (hover: hover) {
+  .react-simple-keyboard:hover {
+    cursor: default;
+  }
+
+  .react-simple-keyboard .hg-button:hover {
+    cursor: pointer;
+    background-color: var(--gray-2);
+  }
+
+  .react-simple-keyboard .hg-button.drag:hover {
+    cursor: grab;
+  }
+
+  .react-simple-keyboard .hg-button.drag:active {
+    cursor: grabbing;
+  }
+}
+
+.react-simple-keyboard .hg-button:focus,
+.react-simple-keyboard .hg-button:active {
+  background-color: var(--gray-3);
 }
