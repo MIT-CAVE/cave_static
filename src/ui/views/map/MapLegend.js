@@ -894,7 +894,11 @@ const MapLegendGeoToggle = ({
   }
 
   return (
-    <details key={geoType} css={nonSx.typeWrapper} open>
+    <details
+      key={geoType}
+      css={nonSx.typeWrapper}
+      open={eitherBoolOrNotNull(displayedGeos[geoType])}
+    >
       <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
           icon={<FetchedIcon iconName={R.prop('icon', legendObj)} />}
@@ -1161,15 +1165,17 @@ const LegendCard = memo(
       )
     }
 
+    const isOpen = eitherBoolOrNotNull(displayedGeometry[geometryType])
+
     return (
-      <details key={geometryType} css={nonSx.typeWrapper} open>
+      <details key={geometryType} css={nonSx.typeWrapper} open={isOpen}>
         <summary css={nonSx.itemSummary}>
           <MapLegendGroupRowToggleLayer
             icon={<FetchedIcon iconName={icon} />}
             legendName={R.propOr(geometryType, 'name')(typeObj)}
             toggle={
               <Switch
-                checked={eitherBoolOrNotNull(displayedGeometry[geometryType])}
+                checked={isOpen}
                 onChange={(event) => {
                   event.target.checked
                     ? dispatch(
