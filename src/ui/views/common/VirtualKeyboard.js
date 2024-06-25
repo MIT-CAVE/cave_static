@@ -14,7 +14,7 @@ import {
 } from '../../../data/utilities/virtualKeyboardSlice'
 
 const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 1 / 3
-const NUMPAD_WIDTH_TO_HEIGHT_RATIO = 3 / 2
+const NUMPAD_WIDTH_TO_HEIGHT_RATIO = 11 / 10
 const DEFAULT_WIDTH_RATIO = 0.8
 const NUMPAD_WIDTH_RATIO = 0.2
 const MAX_WIDTH = 1600
@@ -196,23 +196,26 @@ const VirtualKeyboard = () => {
   }
 
   const onResizeMove = useCallback(
-    (clientX) => {
+    (clientX, clientY) => {
       if (!isResizing) return
 
       let newWidth = Math.max(500, (clientX - position.x) * 2)
+      let newHeight = Math.max(200, window.innerHeight - clientY - position.y)
 
       const left = position.x - newWidth / 2
       const right = position.x + newWidth / 2
+      const top = position.y + newHeight
 
       if (left <= 0) newWidth = position.x * 2
       if (window.innerWidth <= right)
         newWidth = (window.innerWidth - position.x) * 2
+      if (window.innerHeight <= top) newHeight = window.innerHeight - position.y
 
       setBoxDimensions((prevDimensions) => ({
         ...prevDimensions,
         [layoutSizeName]: {
           width: newWidth,
-          height: prevDimensions[layoutSizeName].height,
+          height: newHeight,
         },
       }))
     },
@@ -225,7 +228,7 @@ const VirtualKeyboard = () => {
 
   const onMouseMoveResize = useCallback(
     (event) => {
-      onResizeMove(event.clientX)
+      onResizeMove(event.clientX, event.clientY)
     },
     [onResizeMove]
   )
@@ -318,11 +321,13 @@ const VirtualKeyboard = () => {
           border: '1px solid white',
           borderRadius: '50%',
           color: 'white',
-          cursor: isResizing ? 'ew-resize' : 'grab',
+          cursor: isResizing ? 'grabbing' : 'grab',
         }}
         onMouseDown={onResizeStart}
         onTouchStart={onResizeStart}
-        onTouchMove={(event) => onResizeMove(event.touches[0].clientX)}
+        onTouchMove={(event) =>
+          onResizeMove(event.touches[0].clientX, event.touches[0].clientY)
+        }
         onTouchEnd={onResizeEnd}
       >
         <IoMdResize />
