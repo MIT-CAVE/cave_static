@@ -113,7 +113,8 @@ const Map = ({ mapboxToken, mapId }) => {
   const loadIconsToStyle = useCallback(() => {
     if (mapRef.current) {
       const map = mapRef.current.getMap()
-      map.setFog &&
+      map.isStyleLoaded() &&
+        map.setFog &&
         map.setFog(
           R.pathOr(getDefaultFog(), [
             mapStyle || getDefaultStyleId(isMapboxTokenProvided),
