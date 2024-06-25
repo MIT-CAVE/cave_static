@@ -65,6 +65,8 @@ const Map = ({ mapboxToken, mapId }) => {
   const mapRef = useRef(false)
   const highlight = useRef(null)
 
+  const mapLoaded = mapRef.current && mapRef.current.isStyleLoaded()
+
   const demoInterval = useRef(-1)
   useEffect(() => {
     const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
@@ -113,7 +115,7 @@ const Map = ({ mapboxToken, mapId }) => {
   const loadIconsToStyle = useCallback(() => {
     if (mapRef.current) {
       const map = mapRef.current.getMap()
-      map.isStyleLoaded() &&
+      mapLoaded &&
         map.setFog &&
         map.setFog(
           R.pathOr(getDefaultFog(), [
@@ -127,7 +129,7 @@ const Map = ({ mapboxToken, mapId }) => {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     })(iconData)
-  }, [iconData, isMapboxTokenProvided, mapStyle, mapStyleOptions])
+  }, [iconData, isMapboxTokenProvided, mapStyle, mapStyleOptions, mapLoaded])
 
   useEffect(() => {
     loadIconsToStyle()
