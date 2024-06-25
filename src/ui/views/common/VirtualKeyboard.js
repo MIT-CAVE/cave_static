@@ -14,6 +14,7 @@ import {
 } from '../../../data/utilities/virtualKeyboardSlice'
 
 const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 1 / 3
+const NUMPAD_WIDTH_TO_HEIGHT_RATIO = 3 / 2
 const DEFAULT_WIDTH_RATIO = 0.8
 const NUMPAD_WIDTH_RATIO = 0.2
 const MAX_WIDTH = 1600
@@ -36,8 +37,7 @@ const VirtualKeyboard = () => {
 
   const boxRef = useRef(null)
   const keyboardRef = useRef(null)
-  const offset = useRef({ x: 0, y: 0 })
-  const defaultSize = useRef({ default: true, numPad: true })
+  const cursorOffset = useRef({ x: 0, y: 0 })
 
   const dragText = 'drag to move'
 
@@ -62,25 +62,13 @@ const VirtualKeyboard = () => {
         NUMPAD_WIDTH_RATIO * window.innerWidth,
         MAX_WIDTH
       )
-      // fix ratio of width to height for numPad cause it should be
-      // different than default ratio
-      console.log({
-        default: {
-          height: DEFAULT_WIDTH_TO_HEIGHT_RATIO * defaultWidth,
-          width: defaultWidth,
-        },
-        numPad: {
-          height: DEFAULT_WIDTH_TO_HEIGHT_RATIO * numPadWidth,
-          width: numPadWidth,
-        },
-      })
       setBoxDimensions({
         default: {
-          height: DEFAULT_WIDTH_TO_HEIGHT_RATIO * defaultWidth,
+          height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
           width: defaultWidth,
         },
         numPad: {
-          height: DEFAULT_WIDTH_TO_HEIGHT_RATIO * numPadWidth,
+          height: numPadWidth * NUMPAD_WIDTH_TO_HEIGHT_RATIO,
           width: numPadWidth,
         },
       })
@@ -93,33 +81,73 @@ const VirtualKeyboard = () => {
   }, [layoutSizeName, virtualKeyboard.layout])
 
   // Dragging
-  const onMouseDown = (event) => {
-    event.preventDefault()
+  const onDragStart = useCallback(
+    (event, clientX, clientY) => {
+      event.preventDefault()
 
-    if (event.target.innerText === dragText) {
-      setIsDragging(true)
-      offset.current = {
-        x: event.clientX - position.x,
-        y: event.clientY - position.y,
-      }
-    }
-  }
-
-  const onMouseMove = useCallback(
-    (event) => {
-      if (isDragging) {
-        setPosition({
-          x: event.clientX - offset.current.x,
-          y: event.clientY - offset.current.y,
-        })
+      if (event.target.innerText === dragText) {
+        setIsDragging(true)
+        cursorOffset.current = {
+          x: clientX - position.x,
+          y: window.innerHeight - clientY - position.y,
+        }
       }
     },
-    [isDragging]
+    [position]
   )
 
-  const onMouseUp = () => {
+  const onDragMove = useCallback(
+    (clientX, clientY) => {
+      if (!isDragging) return
+
+      let newX = clientX - cursorOffset.current.x
+      let newY = window.innerHeight - clientY - cursorOffset.current.y
+
+      const left = newX - boxDimensions[layoutSizeName].width / 2
+      const right = newX + boxDimensions[layoutSizeName].width / 2
+      const top = newY + boxDimensions[layoutSizeName].height
+      const bottom = newY
+
+      if (left <= 0) newX = boxDimensions[layoutSizeName].width / 2
+      if (window.innerWidth <= right)
+        newX = window.innerWidth - boxDimensions[layoutSizeName].width / 2
+      if (window.innerHeight <= top)
+        newY = window.innerHeight - boxDimensions[layoutSizeName].height
+      if (bottom <= 0) newY = 0
+
+      setPosition({
+        x: newX,
+        y: newY,
+      })
+    },
+    [isDragging, boxDimensions, layoutSizeName]
+  )
+
+  const onMouseMoveDrag = useCallback(
+    (event) => {
+      onDragMove(event.clientX, event.clientY)
+    },
+    [onDragMove]
+  )
+
+  const onDragEnd = () => {
     setIsDragging(false)
   }
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', onMouseMoveDrag)
+      window.addEventListener('mouseup', onDragEnd)
+    } else {
+      window.removeEventListener('mousemove', onMouseMoveDrag)
+      window.removeEventListener('mouseup', onDragEnd)
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMoveDrag)
+      window.removeEventListener('mouseup', onDragEnd)
+    }
+  }, [onMouseMoveDrag, isDragging])
 
   // Reset caret position when lost by changing from default to numPad layout
   useEffect(() => {
@@ -140,105 +168,80 @@ const VirtualKeyboard = () => {
   }, [virtualKeyboard.caretPosition])
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
-    } else {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
+    const onTouchStartDrag = (event) => {
+      onDragStart(event, event.touches[0].clientX, event.touches[0].clientY)
     }
 
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
-  }, [onMouseMove, isDragging])
-
-  useEffect(() => {
-    const onTouchStart = (event) => {
-      event.preventDefault()
-
-      if (event.target.innerText === dragText) {
-        setIsDragging(true)
-        offset.current = {
-          x: event.touches[0].clientX - position.x,
-          y: event.touches[0].clientY - position.y,
-        }
-      }
-    }
-
-    const onTouchMove = (event) => {
-      if (isDragging) {
-        setPosition({
-          x: event.touches[0].clientX - offset.current.x,
-          y: event.touches[0].clientY - offset.current.y,
-        })
-      }
-    }
-
-    const onTouchEnd = () => {
-      setIsDragging(false)
+    const onTouchMoveDrag = (event) => {
+      onDragMove(event.touches[0].clientX, event.touches[0].clientY)
     }
 
     const element = boxRef.current
     if (element) {
-      element.addEventListener('touchstart', onTouchStart)
-      element.addEventListener('touchmove', onTouchMove)
-      element.addEventListener('touchend', onTouchEnd)
+      element.addEventListener('touchstart', onTouchStartDrag)
+      element.addEventListener('touchmove', onTouchMoveDrag)
+      element.addEventListener('touchend', onDragEnd)
 
       return () => {
-        element.removeEventListener('touchstart', onTouchStart)
-        element.removeEventListener('touchmove', onTouchMove)
-        element.removeEventListener('touchend', onTouchEnd)
+        element.removeEventListener('touchstart', onTouchStartDrag)
+        element.removeEventListener('touchmove', onTouchMoveDrag)
+        element.removeEventListener('touchend', onDragEnd)
       }
     }
-  }, [isDragging, position.x, position.y])
+  }, [onDragStart, onDragMove])
 
-  // Resize
-  const onMouseDownResize = () => {
+  // Resizing
+  const onResizeStart = () => {
     setIsResizing(true)
+  }
+
+  const onResizeMove = useCallback(
+    (clientX) => {
+      if (!isResizing) return
+
+      let newWidth = Math.max(500, (clientX - position.x) * 2)
+
+      const left = position.x - newWidth / 2
+      const right = position.x + newWidth / 2
+
+      if (left <= 0) newWidth = position.x * 2
+      if (window.innerWidth <= right)
+        newWidth = (window.innerWidth - position.x) * 2
+
+      setBoxDimensions((prevDimensions) => ({
+        ...prevDimensions,
+        [layoutSizeName]: {
+          width: newWidth,
+          height: prevDimensions[layoutSizeName].height,
+        },
+      }))
+    },
+    [layoutSizeName, isResizing, position]
+  )
+
+  const onResizeEnd = () => {
+    setIsResizing(false)
   }
 
   const onMouseMoveResize = useCallback(
     (event) => {
-      if (isResizing) {
-        defaultSize.current = {
-          default:
-            layoutSizeName === 'default' ? false : defaultSize.current.default,
-          numPad:
-            layoutSizeName === 'numPad' ? false : defaultSize.current.numPad,
-        }
-        setBoxDimensions((prevDimensions) => ({
-          ...prevDimensions,
-          [layoutSizeName]: {
-            width: Math.max(100, (event.clientX - position.x) * 2),
-            height: Math.max(
-              100,
-              window.innerHeight - event.clientY + position.y
-            ),
-          },
-        }))
-      }
+      onResizeMove(event.clientX)
     },
-    [layoutSizeName, isResizing, position.x, position.y]
+    [onResizeMove]
   )
-
-  const onMouseUpResize = () => {
-    setIsResizing(false)
-  }
 
   useEffect(() => {
     if (isResizing) {
       window.addEventListener('mousemove', onMouseMoveResize)
-      window.addEventListener('mouseup', onMouseUpResize)
+      window.addEventListener('mouseup', onResizeEnd)
     } else {
       window.removeEventListener('mousemove', onMouseMoveResize)
-      window.removeEventListener('mouseup', onMouseUpResize)
+      window.removeEventListener('mouseup', onResizeEnd)
     }
 
     return () => {
       window.removeEventListener('mousemove', onMouseMoveResize)
-      window.removeEventListener('mouseup', onMouseUpResize)
+      window.removeEventListener('mouseup', onResizeEnd)
     }
   }, [onMouseMoveResize, isResizing])
 
@@ -287,7 +290,7 @@ const VirtualKeyboard = () => {
       ref={boxRef}
       sx={{
         position: 'fixed',
-        bottom: `${-position.y}px`,
+        bottom: `${position.y}px`,
         left: `${position.x}px`,
         width: `${boxDimensions[layoutSizeName].width}px`,
         height: `${boxDimensions[layoutSizeName].height}px`,
@@ -296,11 +299,8 @@ const VirtualKeyboard = () => {
         cursor: isDragging ? 'grabbing' : 'grab',
         visibility: virtualKeyboard.isOpen ? 'visible' : 'hidden',
         touchAction: 'none',
-        backgroundColor: 'blue',
       }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
+      onMouseDown={(event) => onDragStart(event, event.clientX, event.clientY)}
     >
       <Box
         sx={{
@@ -318,8 +318,12 @@ const VirtualKeyboard = () => {
           border: '1px solid white',
           borderRadius: '50%',
           color: 'white',
+          cursor: isResizing ? 'ew-resize' : 'grab',
         }}
-        onMouseDown={onMouseDownResize}
+        onMouseDown={onResizeStart}
+        onTouchStart={onResizeStart}
+        onTouchMove={(event) => onResizeMove(event.touches[0].clientX)}
+        onTouchEnd={onResizeEnd}
       >
         <IoMdResize />
       </Box>
