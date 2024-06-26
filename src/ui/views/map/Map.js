@@ -64,8 +64,7 @@ const Map = ({ mapboxToken, mapId }) => {
 
   const mapRef = useRef(false)
   const highlight = useRef(null)
-
-  const mapLoaded = mapRef.current && mapRef.current.isStyleLoaded()
+  const fogTimeout = useRef(null)
 
   const demoInterval = useRef(-1)
   useEffect(() => {
@@ -112,28 +111,36 @@ const Map = ({ mapboxToken, mapId }) => {
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 
-  const loadIconsToStyle = useCallback(() => {
-    if (mapRef.current) {
+  const loadFog = useCallback(() => {
+    if (mapRef.current && mapRef.current.isStyleLoaded()) {
       const map = mapRef.current.getMap()
-      mapLoaded &&
-        map.setFog &&
-        map.setFog(
-          R.pathOr(getDefaultFog(), [
-            mapStyle || getDefaultStyleId(isMapboxTokenProvided),
-            'fog',
-          ])(mapStyleOptions)
-        )
+      map.setFog(
+        R.pathOr(getDefaultFog(), [
+          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+          'fog',
+        ])(mapStyleOptions)
+      )
+      fogTimeout.current = null
+    } else {
+      fogTimeout.current = setTimeout(loadFog, 100)
     }
+  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions])
+
+  const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     })(iconData)
-  }, [iconData, isMapboxTokenProvided, mapStyle, mapStyleOptions, mapLoaded])
+  }, [iconData])
 
   useEffect(() => {
     loadIconsToStyle()
-  }, [iconData, loadIconsToStyle])
+    loadFog()
+    return () => {
+      if (fogTimeout.current) clearTimeout(fogTimeout.current)
+    }
+  }, [iconData, loadFog, loadIconsToStyle])
 
   const getFeatureFromEvent = useCallback(
     (e) => {
