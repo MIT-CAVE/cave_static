@@ -11,7 +11,7 @@ module.exports = {
       },
       {
         key: 'Cross-Origin-Resource-Policy',
-        value: 'same-site',
+        value: 'cross-origin',
       },
     ],
   },
