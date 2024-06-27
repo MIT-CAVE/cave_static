@@ -13,11 +13,13 @@ import {
   setCaretPosition,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
-const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 1 / 3
-const NUMPAD_WIDTH_TO_HEIGHT_RATIO = 11 / 10
+const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
 const DEFAULT_WIDTH_RATIO = 0.8
 const NUMPAD_WIDTH_RATIO = 0.2
 const MAX_WIDTH = 1600
+const DEFAULT_MIN_WIDTH = 500
+const NUMPAD_MIN_WIDTH =
+  DEFAULT_MIN_WIDTH * (NUMPAD_WIDTH_RATIO / DEFAULT_WIDTH_TO_HEIGHT_RATIO)
 
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
@@ -68,7 +70,7 @@ const VirtualKeyboard = () => {
           width: defaultWidth,
         },
         numPad: {
-          height: numPadWidth * NUMPAD_WIDTH_TO_HEIGHT_RATIO,
+          height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
           width: numPadWidth,
         },
       })
@@ -191,16 +193,30 @@ const VirtualKeyboard = () => {
   }, [onDragStart, onDragMove])
 
   // Resizing
-  const onResizeStart = () => {
+  const onResizeStart = (clientX, clientY) => {
     setIsResizing(true)
+
+    cursorOffset.current = {
+      x: clientX - (position.x + boxDimensions[layoutSizeName].width / 2),
+      y:
+        window.innerHeight -
+        clientY -
+        (position.y + boxDimensions[layoutSizeName].height),
+    }
   }
 
   const onResizeMove = useCallback(
     (clientX, clientY) => {
       if (!isResizing) return
 
-      let newWidth = Math.max(500, (clientX - position.x) * 2)
-      let newHeight = Math.max(200, window.innerHeight - clientY - position.y)
+      let newWidth = Math.max(
+        layoutSizeName === 'default' ? DEFAULT_MIN_WIDTH : NUMPAD_MIN_WIDTH,
+        (clientX - position.x - cursorOffset.current.x) * 2
+      )
+      let newHeight = Math.max(
+        300,
+        window.innerHeight - clientY - position.y - cursorOffset.current.y
+      )
 
       const left = position.x - newWidth / 2
       const right = position.x + newWidth / 2
@@ -318,13 +334,15 @@ const VirtualKeyboard = () => {
           height: '50px',
           zIndex: 1000001,
           backgroundColor: 'gray',
-          border: '1px solid white',
+          border: '3px solid rgb(116, 116, 116)',
           borderRadius: '50%',
           color: 'white',
           cursor: isResizing ? 'grabbing' : 'grab',
         }}
-        onMouseDown={onResizeStart}
-        onTouchStart={onResizeStart}
+        onMouseDown={(event) => onResizeStart(event.clientX, event.clientY)}
+        onTouchStart={(event) =>
+          onResizeStart(event.touches[0].clientX, event.touches[0].clientY)
+        }
         onTouchMove={(event) =>
           onResizeMove(event.touches[0].clientX, event.touches[0].clientY)
         }
@@ -359,14 +377,16 @@ const VirtualKeyboard = () => {
             '{tab} q w e r t y u i o p [ ] \\',
             "{lock} a s d f g h j k l ; ' {enter}",
             '{shift} z x c v b n m , . / {shift}',
-            '{toggleNumPad} {space} {drag}',
+            '{toggleNumPad} {space} {toggleNumPad}',
+            '{drag}',
           ],
           shift: [
             '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
             '{lock} A S D F G H J K L : " {enter}',
             '{shift} Z X C V B N M < > ? {shift}',
-            '{toggleNumPad} {space} {drag}',
+            '{toggleNumPad} {space} {toggleNumPad}',
+            '{drag}',
           ],
           numPad: [
             '7 8 9',
