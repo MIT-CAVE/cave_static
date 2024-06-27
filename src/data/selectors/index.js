@@ -1053,10 +1053,11 @@ export const selectNodeTypeKeys = createSelector(
   }
 )
 
-const getMergedAllProps = (data) =>
+const getMergedAllProps = (data, dataType) =>
   R.mapObjIndexed((type, key) =>
     R.pipe(
       R.pathOr({}, ['data', 'location']),
+      dataType === 'node' ? R.map((d) => d[0]) : R.identity,
       R.dissoc('timeValues'),
       R.values,
       R.head,
@@ -1069,6 +1070,7 @@ const getMergedAllProps = (data) =>
         )(type)
         const location = R.pipe(
           R.pathOr({}, ['data', 'location']),
+          dataType === 'node' ? R.map((d) => d[0]) : R.identity,
           R.pluck(idx)
         )(type)
         return R.pipe(
@@ -1083,15 +1085,15 @@ const getMergedAllProps = (data) =>
 
 export const selectMergedArcs = createSelector(
   [selectLocalizedArcTypes, selectCurrentTime],
-  (arcs, time) => getMergedAllProps(getTimeValue(time, arcs))
+  (arcs, time) => getMergedAllProps(getTimeValue(time, arcs), 'arc')
 )
 export const selectMergedNodes = createSelector(
   [selectLocalizedNodeTypes, selectCurrentTime],
-  (nodes, time) => getMergedAllProps(getTimeValue(time, nodes))
+  (nodes, time) => getMergedAllProps(getTimeValue(time, nodes), 'node')
 )
 export const selectMergedGeos = createSelector(
   [selectLocalizedGeoTypes, selectCurrentTime],
-  (geos, time) => getMergedAllProps(getTimeValue(time, geos))
+  (geos, time) => getMergedAllProps(getTimeValue(time, geos), 'geo')
 )
 // Map (Custom)
 export const selectLayerById = (state, id) =>
