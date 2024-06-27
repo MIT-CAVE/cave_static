@@ -296,13 +296,22 @@ const GridFilter = ({
   const handleClickDiscard = useCallback(
     (id) => () => {
       const row = apiRef.current.getRow(id)
-      setRowModesModel(
-        R.assoc(id, { mode: GridRowModes.View, ignoreModifications: true })
-      )
-      if (row.isNew) deleteRow(id)
+      if (row) {
+        setRowModesModel((prev) =>
+          R.assoc(
+            id,
+            { mode: GridRowModes.View, ignoreModifications: true },
+            prev
+          )
+        )
+        if (row.isNew) {
+          setRows((prevRows) => prevRows.filter((r) => r.id !== id))
+        }
+      }
     },
-    [apiRef, deleteRow]
+    [apiRef]
   )
+
   const handleClickEdit = useCallback(
     (id) => () => {
       setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
