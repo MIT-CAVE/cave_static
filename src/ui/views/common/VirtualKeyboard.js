@@ -159,6 +159,7 @@ const VirtualKeyboard = () => {
             : 1 / DEFAULT_TO_NUMPAD_WIDTH_RATIO)
       ),
     }))
+
     // Reset position and default size when window is resized
     const onResize = () => {
       setPosition({
@@ -185,6 +186,27 @@ const VirtualKeyboard = () => {
       window.removeEventListener('resize', onResize)
     }
   }, [virtualKeyboard.layout])
+
+  // Clip keyboard into window when changing from numPad to default
+  // would otherwise make some part of keyboard appear offscreen
+  useEffect(() => {
+    const newWidth = boxDimensions.width
+
+    let newX = position.x
+
+    const left = position.x - newWidth / 2
+    const right = position.x + newWidth / 2
+
+    if (left < 0) newX = newWidth / 2
+    if (window.innerWidth < right) newX = window.innerWidth - newWidth / 2
+
+    if (newX !== position.x) {
+      setPosition((prevPosition) => ({
+        ...prevPosition,
+        x: newX,
+      }))
+    }
+  }, [boxDimensions.width, position.x])
 
   // Dragging
   const onDragStart = useCallback(
