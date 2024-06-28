@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { IoMdResize } from 'react-icons/io'
 import { useDispatch, useSelector } from 'react-redux'
 import Keyboard from 'react-simple-keyboard'
@@ -13,20 +13,15 @@ import {
   setCaretPosition,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
-const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
 const DEFAULT_WIDTH_RATIO = 0.8
-const NUMPAD_WIDTH_RATIO = 0.2
-const MAX_WIDTH = 1600
-const DEFAULT_MIN_WIDTH = 600
-const NUMPAD_MIN_WIDTH =
-  DEFAULT_MIN_WIDTH * (NUMPAD_WIDTH_RATIO / DEFAULT_WIDTH_TO_HEIGHT_RATIO)
+const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
+const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
+const DEFAULT_MAX_WIDTH = 1600
+const DEFAULT_MIN_WIDTH = 1000
+const MIN_HEIGHT = 300
 
-const Resizable = ({
-  position,
-  boxDimensions,
-  setBoxDimensions,
-  layoutSizeName,
-}) => {
+const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
   const [isResizing, setIsResizing] = useState(false)
   const cursorOffset = useRef({ x: 0, y: 0 })
 
@@ -34,8 +29,8 @@ const Resizable = ({
     setIsResizing(true)
 
     cursorOffset.current = {
-      x: clientX - boxDimensions[layoutSizeName].width / 2,
-      y: window.innerHeight - clientY - boxDimensions[layoutSizeName].height,
+      x: clientX - boxDimensions.width / 2,
+      y: window.innerHeight - clientY - boxDimensions.height,
     }
   }
 
@@ -44,11 +39,14 @@ const Resizable = ({
       if (!isResizing) return
 
       let newWidth = Math.max(
-        layoutSizeName === 'default' ? DEFAULT_MIN_WIDTH : NUMPAD_MIN_WIDTH,
+        DEFAULT_MIN_WIDTH *
+          (virtualKeyboard.layout === 'numPad'
+            ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
+            : 1),
         (clientX - cursorOffset.current.x) * 2
       )
       let newHeight = Math.max(
-        300,
+        MIN_HEIGHT,
         window.innerHeight - clientY - cursorOffset.current.y
       )
 
@@ -61,15 +59,12 @@ const Resizable = ({
         newWidth = (window.innerWidth - position.x) * 2
       if (window.innerHeight < top) newHeight = window.innerHeight - position.y
 
-      setBoxDimensions((prevDimensions) => ({
-        ...prevDimensions,
-        [layoutSizeName]: {
-          width: newWidth,
-          height: newHeight,
-        },
-      }))
+      setBoxDimensions({
+        width: newWidth,
+        height: newHeight,
+      })
     },
-    [layoutSizeName, isResizing, position, setBoxDimensions]
+    [isResizing, position, setBoxDimensions, virtualKeyboard.layout]
   )
 
   const onResizeEnd = () => {
@@ -142,8 +137,8 @@ const VirtualKeyboard = () => {
     y: 0,
   })
   const [boxDimensions, setBoxDimensions] = useState({
-    default: { height: 0, width: 0 },
-    numPad: { height: 0, width: 0 },
+    height: 0,
+    width: 0,
   })
 
   const boxRef = useRef(null)
@@ -152,13 +147,19 @@ const VirtualKeyboard = () => {
 
   const dragText = 'drag to move'
 
-  const layoutSizeName = useMemo(
-    () => (virtualKeyboard.layout === 'numPad' ? 'numPad' : 'default'),
-    [virtualKeyboard.layout]
-  )
-
-  // Reset position and default size when window is resized
   useEffect(() => {
+    // Change width when layout is changed
+    setBoxDimensions((prevDimensions) => ({
+      ...prevDimensions,
+      width: Math.min(
+        window.innerWidth,
+        prevDimensions.width *
+          (virtualKeyboard.layout === 'numPad'
+            ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
+            : 1 / DEFAULT_TO_NUMPAD_WIDTH_RATIO)
+      ),
+    }))
+    // Reset position and default size when window is resized
     const onResize = () => {
       setPosition({
         x: window.innerWidth / 2,
@@ -167,21 +168,15 @@ const VirtualKeyboard = () => {
 
       const defaultWidth = Math.min(
         DEFAULT_WIDTH_RATIO * window.innerWidth,
-        MAX_WIDTH
-      )
-      const numPadWidth = Math.min(
-        NUMPAD_WIDTH_RATIO * window.innerWidth,
-        MAX_WIDTH
+        DEFAULT_MAX_WIDTH
       )
       setBoxDimensions({
-        default: {
-          height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
-          width: defaultWidth,
-        },
-        numPad: {
-          height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
-          width: numPadWidth,
-        },
+        height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
+        width:
+          defaultWidth *
+          (virtualKeyboard.layout === 'numPad'
+            ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
+            : 1),
       })
     }
     window.addEventListener('resize', onResize)
@@ -189,7 +184,7 @@ const VirtualKeyboard = () => {
     return () => {
       window.removeEventListener('resize', onResize)
     }
-  }, [layoutSizeName, virtualKeyboard.layout])
+  }, [virtualKeyboard.layout])
 
   // Dragging
   const onDragStart = useCallback(
@@ -214,16 +209,16 @@ const VirtualKeyboard = () => {
       let newX = clientX - cursorOffset.current.x
       let newY = window.innerHeight - clientY - cursorOffset.current.y
 
-      const left = newX - boxDimensions[layoutSizeName].width / 2
-      const right = newX + boxDimensions[layoutSizeName].width / 2
-      const top = newY + boxDimensions[layoutSizeName].height
+      const left = newX - boxDimensions.width / 2
+      const right = newX + boxDimensions.width / 2
+      const top = newY + boxDimensions.height
       const bottom = newY
 
-      if (left < 0) newX = boxDimensions[layoutSizeName].width / 2
+      if (left < 0) newX = boxDimensions.width / 2
       if (window.innerWidth < right)
-        newX = window.innerWidth - boxDimensions[layoutSizeName].width / 2
+        newX = window.innerWidth - boxDimensions.width / 2
       if (window.innerHeight < top)
-        newY = window.innerHeight - boxDimensions[layoutSizeName].height
+        newY = window.innerHeight - boxDimensions.height
       if (bottom < 0) newY = 0
 
       setPosition({
@@ -231,7 +226,7 @@ const VirtualKeyboard = () => {
         y: newY,
       })
     },
-    [isDragging, boxDimensions, layoutSizeName]
+    [isDragging, boxDimensions]
   )
 
   const onDragEnd = () => {
@@ -345,12 +340,12 @@ const VirtualKeyboard = () => {
         position: 'fixed',
         bottom: `${position.y}px`,
         left: `${position.x}px`,
-        width: `${boxDimensions[layoutSizeName].width}px`,
-        height: `${boxDimensions[layoutSizeName].height}px`,
+        width: `${boxDimensions.width}px`,
+        height: `${boxDimensions.height}px`,
         transform: 'translate(-50%, 0)',
         zIndex: 1000000,
         cursor: isDragging ? 'grabbing' : 'grab',
-        visibility: virtualKeyboard.isOpen ? 'visible' : 'hidden',
+        visibility: virtualKeyboard.isOpen ? 'visible' : 'visible',
         touchAction: 'none',
       }}
       onMouseDown={(event) => onDragStart(event, event.clientX, event.clientY)}
@@ -359,7 +354,6 @@ const VirtualKeyboard = () => {
         position={position}
         boxDimensions={boxDimensions}
         setBoxDimensions={setBoxDimensions}
-        layoutSizeName={layoutSizeName}
       />
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
@@ -409,7 +403,7 @@ const VirtualKeyboard = () => {
           ],
         }}
         display={{
-          '{bksp}': 'backspace',
+          '{bksp}': 'delete',
           '{tab}': 'tab',
           '{enter}': 'enter',
           '{shift}': 'shift',
