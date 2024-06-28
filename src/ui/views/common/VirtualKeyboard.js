@@ -17,7 +17,7 @@ const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
 const DEFAULT_WIDTH_RATIO = 0.8
 const NUMPAD_WIDTH_RATIO = 0.2
 const MAX_WIDTH = 1600
-const DEFAULT_MIN_WIDTH = 500
+const DEFAULT_MIN_WIDTH = 600
 const NUMPAD_MIN_WIDTH =
   DEFAULT_MIN_WIDTH * (NUMPAD_WIDTH_RATIO / DEFAULT_WIDTH_TO_HEIGHT_RATIO)
 
@@ -125,18 +125,15 @@ const VirtualKeyboard = () => {
     [isDragging, boxDimensions, layoutSizeName]
   )
 
-  const onMouseMoveDrag = useCallback(
-    (event) => {
-      onDragMove(event.clientX, event.clientY)
-    },
-    [onDragMove]
-  )
-
   const onDragEnd = () => {
     setIsDragging(false)
   }
 
   useEffect(() => {
+    const onMouseMoveDrag = (event) => {
+      onDragMove(event.clientX, event.clientY)
+    }
+
     if (isDragging) {
       window.addEventListener('mousemove', onMouseMoveDrag)
       window.addEventListener('mouseup', onDragEnd)
@@ -149,7 +146,7 @@ const VirtualKeyboard = () => {
       window.removeEventListener('mousemove', onMouseMoveDrag)
       window.removeEventListener('mouseup', onDragEnd)
     }
-  }, [onMouseMoveDrag, isDragging])
+  }, [onDragMove, isDragging])
 
   // Reset caret position when lost by changing from default to numPad layout
   useEffect(() => {
@@ -197,11 +194,8 @@ const VirtualKeyboard = () => {
     setIsResizing(true)
 
     cursorOffset.current = {
-      x: clientX - (position.x + boxDimensions[layoutSizeName].width / 2),
-      y:
-        window.innerHeight -
-        clientY -
-        (position.y + boxDimensions[layoutSizeName].height),
+      x: clientX - boxDimensions[layoutSizeName].width / 2,
+      y: window.innerHeight - clientY - boxDimensions[layoutSizeName].height,
     }
   }
 
@@ -211,11 +205,11 @@ const VirtualKeyboard = () => {
 
       let newWidth = Math.max(
         layoutSizeName === 'default' ? DEFAULT_MIN_WIDTH : NUMPAD_MIN_WIDTH,
-        (clientX - position.x - cursorOffset.current.x) * 2
+        (clientX - cursorOffset.current.x) * 2
       )
       let newHeight = Math.max(
         300,
-        window.innerHeight - clientY - position.y - cursorOffset.current.y
+        window.innerHeight - clientY - cursorOffset.current.y
       )
 
       const left = position.x - newWidth / 2
