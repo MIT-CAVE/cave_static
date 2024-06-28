@@ -21,6 +21,116 @@ const DEFAULT_MIN_WIDTH = 600
 const NUMPAD_MIN_WIDTH =
   DEFAULT_MIN_WIDTH * (NUMPAD_WIDTH_RATIO / DEFAULT_WIDTH_TO_HEIGHT_RATIO)
 
+const Resizable = ({
+  position,
+  boxDimensions,
+  setBoxDimensions,
+  layoutSizeName,
+}) => {
+  const [isResizing, setIsResizing] = useState(false)
+  const cursorOffset = useRef({ x: 0, y: 0 })
+
+  const onResizeStart = (clientX, clientY) => {
+    setIsResizing(true)
+
+    cursorOffset.current = {
+      x: clientX - boxDimensions[layoutSizeName].width / 2,
+      y: window.innerHeight - clientY - boxDimensions[layoutSizeName].height,
+    }
+  }
+
+  const onResizeMove = useCallback(
+    (clientX, clientY) => {
+      if (!isResizing) return
+
+      let newWidth = Math.max(
+        layoutSizeName === 'default' ? DEFAULT_MIN_WIDTH : NUMPAD_MIN_WIDTH,
+        (clientX - cursorOffset.current.x) * 2
+      )
+      let newHeight = Math.max(
+        300,
+        window.innerHeight - clientY - cursorOffset.current.y
+      )
+
+      const left = position.x - newWidth / 2
+      const right = position.x + newWidth / 2
+      const top = position.y + newHeight
+
+      if (left < 0) newWidth = position.x * 2
+      if (window.innerWidth < right)
+        newWidth = (window.innerWidth - position.x) * 2
+      if (window.innerHeight < top) newHeight = window.innerHeight - position.y
+
+      setBoxDimensions((prevDimensions) => ({
+        ...prevDimensions,
+        [layoutSizeName]: {
+          width: newWidth,
+          height: newHeight,
+        },
+      }))
+    },
+    [layoutSizeName, isResizing, position, setBoxDimensions]
+  )
+
+  const onResizeEnd = () => {
+    setIsResizing(false)
+  }
+
+  const onMouseMoveResize = useCallback(
+    (event) => {
+      onResizeMove(event.clientX, event.clientY)
+    },
+    [onResizeMove]
+  )
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', onMouseMoveResize)
+      window.addEventListener('mouseup', onResizeEnd)
+    } else {
+      window.removeEventListener('mousemove', onMouseMoveResize)
+      window.removeEventListener('mouseup', onResizeEnd)
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMoveResize)
+      window.removeEventListener('mouseup', onResizeEnd)
+    }
+  }, [onMouseMoveResize, isResizing])
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        transform: 'translate(50%, -50%)',
+        width: '50px',
+        height: '50px',
+        zIndex: 1000001,
+        backgroundColor: 'gray',
+        border: '3px solid rgb(116, 116, 116)',
+        borderRadius: '50%',
+        color: 'white',
+        cursor: isResizing ? 'grabbing' : 'grab',
+      }}
+      onMouseDown={(event) => onResizeStart(event.clientX, event.clientY)}
+      onTouchStart={(event) =>
+        onResizeStart(event.touches[0].clientX, event.touches[0].clientY)
+      }
+      onTouchMove={(event) =>
+        onResizeMove(event.touches[0].clientX, event.touches[0].clientY)
+      }
+      onTouchEnd={onResizeEnd}
+    >
+      <IoMdResize />
+    </Box>
+  )
+}
+
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
@@ -35,7 +145,6 @@ const VirtualKeyboard = () => {
     default: { height: 0, width: 0 },
     numPad: { height: 0, width: 0 },
   })
-  const [isResizing, setIsResizing] = useState(false)
 
   const boxRef = useRef(null)
   const keyboardRef = useRef(null)
@@ -110,12 +219,12 @@ const VirtualKeyboard = () => {
       const top = newY + boxDimensions[layoutSizeName].height
       const bottom = newY
 
-      if (left <= 0) newX = boxDimensions[layoutSizeName].width / 2
-      if (window.innerWidth <= right)
+      if (left < 0) newX = boxDimensions[layoutSizeName].width / 2
+      if (window.innerWidth < right)
         newX = window.innerWidth - boxDimensions[layoutSizeName].width / 2
-      if (window.innerHeight <= top)
+      if (window.innerHeight < top)
         newY = window.innerHeight - boxDimensions[layoutSizeName].height
-      if (bottom <= 0) newY = 0
+      if (bottom < 0) newY = 0
 
       setPosition({
         x: newX,
@@ -189,75 +298,6 @@ const VirtualKeyboard = () => {
     }
   }, [onDragStart, onDragMove])
 
-  // Resizing
-  const onResizeStart = (clientX, clientY) => {
-    setIsResizing(true)
-
-    cursorOffset.current = {
-      x: clientX - boxDimensions[layoutSizeName].width / 2,
-      y: window.innerHeight - clientY - boxDimensions[layoutSizeName].height,
-    }
-  }
-
-  const onResizeMove = useCallback(
-    (clientX, clientY) => {
-      if (!isResizing) return
-
-      let newWidth = Math.max(
-        layoutSizeName === 'default' ? DEFAULT_MIN_WIDTH : NUMPAD_MIN_WIDTH,
-        (clientX - cursorOffset.current.x) * 2
-      )
-      let newHeight = Math.max(
-        300,
-        window.innerHeight - clientY - cursorOffset.current.y
-      )
-
-      const left = position.x - newWidth / 2
-      const right = position.x + newWidth / 2
-      const top = position.y + newHeight
-
-      if (left <= 0) newWidth = position.x * 2
-      if (window.innerWidth <= right)
-        newWidth = (window.innerWidth - position.x) * 2
-      if (window.innerHeight <= top) newHeight = window.innerHeight - position.y
-
-      setBoxDimensions((prevDimensions) => ({
-        ...prevDimensions,
-        [layoutSizeName]: {
-          width: newWidth,
-          height: newHeight,
-        },
-      }))
-    },
-    [layoutSizeName, isResizing, position]
-  )
-
-  const onResizeEnd = () => {
-    setIsResizing(false)
-  }
-
-  const onMouseMoveResize = useCallback(
-    (event) => {
-      onResizeMove(event.clientX, event.clientY)
-    },
-    [onResizeMove]
-  )
-
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', onMouseMoveResize)
-      window.addEventListener('mouseup', onResizeEnd)
-    } else {
-      window.removeEventListener('mousemove', onMouseMoveResize)
-      window.removeEventListener('mouseup', onResizeEnd)
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMoveResize)
-      window.removeEventListener('mouseup', onResizeEnd)
-    }
-  }, [onMouseMoveResize, isResizing])
-
   // Sync keyboard with input field value
   useEffect(() => {
     if (virtualKeyboard.inputValue !== keyboardRef.current.getInput()) {
@@ -315,35 +355,12 @@ const VirtualKeyboard = () => {
       }}
       onMouseDown={(event) => onDragStart(event, event.clientX, event.clientY)}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          transform: 'translate(50%, -50%)',
-          width: '50px',
-          height: '50px',
-          zIndex: 1000001,
-          backgroundColor: 'gray',
-          border: '3px solid rgb(116, 116, 116)',
-          borderRadius: '50%',
-          color: 'white',
-          cursor: isResizing ? 'grabbing' : 'grab',
-        }}
-        onMouseDown={(event) => onResizeStart(event.clientX, event.clientY)}
-        onTouchStart={(event) =>
-          onResizeStart(event.touches[0].clientX, event.touches[0].clientY)
-        }
-        onTouchMove={(event) =>
-          onResizeMove(event.touches[0].clientX, event.touches[0].clientY)
-        }
-        onTouchEnd={onResizeEnd}
-      >
-        <IoMdResize />
-      </Box>
+      <Resizable
+        position={position}
+        boxDimensions={boxDimensions}
+        setBoxDimensions={setBoxDimensions}
+        layoutSizeName={layoutSizeName}
+      />
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
         onChange={(value) => {
