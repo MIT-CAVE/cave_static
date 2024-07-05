@@ -13,13 +13,6 @@ import {
   setCaretPosition,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
-const DEFAULT_WIDTH_RATIO = 0.8
-const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
-const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
-const DEFAULT_MAX_WIDTH = 1600
-const DEFAULT_MIN_WIDTH = 1000
-const MIN_HEIGHT = 300
-
 const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
   const [isResizing, setIsResizing] = useState(false)
@@ -125,6 +118,13 @@ const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
     </Box>
   )
 }
+
+const DEFAULT_WIDTH_RATIO = 0.8
+const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
+const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
+const DEFAULT_MAX_WIDTH = 1600
+const DEFAULT_MIN_WIDTH = 1000
+const MIN_HEIGHT = 300
 
 const dragText = 'drag to move'
 
@@ -368,7 +368,7 @@ const VirtualKeyboard = () => {
         transform: 'translate(-50%, 0)',
         zIndex: 1000000,
         cursor: isDragging ? 'grabbing' : 'grab',
-        visibility: virtualKeyboard.isOpen ? 'visible' : 'visible',
+        visibility: virtualKeyboard.isOpen ? 'visible' : 'hidden',
         touchAction: 'none',
       }}
       onMouseDown={(event) => onDragStart(event, event.clientX, event.clientY)}
