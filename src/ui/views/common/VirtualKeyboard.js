@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { IoMdResize } from 'react-icons/io'
 import { useDispatch, useSelector } from 'react-redux'
 import Keyboard from 'react-simple-keyboard'
@@ -126,6 +126,8 @@ const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
   )
 }
 
+const dragText = 'drag to move'
+
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
@@ -145,7 +147,10 @@ const VirtualKeyboard = () => {
   const keyboardRef = useRef(null)
   const cursorOffset = useRef({ x: 0, y: 0 })
 
-  const dragText = 'drag to move'
+  const isNumPad = useMemo(
+    () => virtualKeyboard.layout === 'numPad',
+    [virtualKeyboard.layout]
+  )
 
   useEffect(() => {
     // Change width when layout is changed
@@ -154,7 +159,7 @@ const VirtualKeyboard = () => {
       width: Math.min(
         window.innerWidth,
         prevDimensions.width *
-          (virtualKeyboard.layout === 'numPad'
+          (isNumPad
             ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
             : 1 / DEFAULT_TO_NUMPAD_WIDTH_RATIO)
       ),
@@ -173,11 +178,7 @@ const VirtualKeyboard = () => {
       )
       setBoxDimensions({
         height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
-        width:
-          defaultWidth *
-          (virtualKeyboard.layout === 'numPad'
-            ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
-            : 1),
+        width: defaultWidth * (isNumPad ? DEFAULT_TO_NUMPAD_WIDTH_RATIO : 1),
       })
     }
     window.addEventListener('resize', onResize)
@@ -185,7 +186,7 @@ const VirtualKeyboard = () => {
     return () => {
       window.removeEventListener('resize', onResize)
     }
-  }, [virtualKeyboard.layout])
+  }, [isNumPad])
 
   // Clip keyboard into window when changing from numPad to default
   // would otherwise make some part of keyboard appear offscreen
@@ -400,28 +401,28 @@ const VirtualKeyboard = () => {
         layoutName={virtualKeyboard.layout}
         layout={{
           default: [
+            '{drag}',
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
             '{tab} q w e r t y u i o p [ ] \\',
             "{lock} a s d f g h j k l ; ' {enter}",
             '{shift} z x c v b n m , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
-            '{drag}',
           ],
           shift: [
+            '{drag}',
             '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
             '{lock} A S D F G H J K L : " {enter}',
             '{shift} Z X C V B N M < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
-            '{drag}',
           ],
           numPad: [
+            '{drag}',
             '7 8 9',
             '4 5 6',
             '1 2 3',
             '. 0 -',
             '{toggleDefault} {enter} {bksp}',
-            '{drag}',
           ],
         }}
         display={{
