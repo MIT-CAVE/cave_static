@@ -20,7 +20,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     unitPlacement: 'afterWithSpace',
   }
   const enabled = prop.enabled || false
-  const value = R.defaultTo(R.prop('value', prop), currentVal)
+  const value = R.defaultTo(R.prop('value', prop), currentVal)[0]
 
   return (
     <>
@@ -31,7 +31,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           numberFormat={numberFormatProps}
           value={R.clamp(-90, 90, value[1])}
           onClickAway={(lat) => {
-            if (enabled) onChange([value[0], lat])
+            if (enabled) onChange([[value[0], lat]])
           }}
         />
       </Box>
@@ -42,7 +42,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           numberFormat={numberFormatProps}
           value={R.clamp(-180, 180, value[0])}
           onClickAway={(lng) => {
-            if (enabled) onChange([lng, value[1]])
+            if (enabled) onChange([[lng, value[1]]])
           }}
         />
       </Box>

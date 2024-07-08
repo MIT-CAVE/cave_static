@@ -10,7 +10,11 @@ import {
   selectStatGroupings,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
-import { chartVariant } from '../../../utils/enums'
+import {
+  chartVariant,
+  distributionTypes,
+  distributionYAxes,
+} from '../../../utils/enums'
 
 import {
   BarPlot,
@@ -26,6 +30,7 @@ import {
   Heatmap,
   ScatterPlot,
   BubblePlot,
+  DistributionChart,
 } from '../../charts'
 
 import {
@@ -48,6 +53,22 @@ const DashboardChart = ({ chartObj }) => {
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
   const cleanedChartObj = cleanUndefinedStats(chartObj)
   const chartType = R.propOr('', 'variant', cleanedChartObj)
+  const distributionType = R.propOr(
+    distributionTypes.PDF,
+    'distributionType',
+    cleanedChartObj
+  )
+  const distributionYAxis = R.propOr(
+    distributionYAxes.COUNTS,
+    'distributionYAxis',
+    cleanedChartObj
+  )
+  const distributionVariant = R.propOr(
+    'bar',
+    'distributionVariant',
+    cleanedChartObj
+  )
+  const showNA = R.propOr(false, 'showNA', cleanedChartObj)
 
   useEffect(() => {
     setLoading(false)
@@ -236,38 +257,38 @@ const DashboardChart = ({ chartObj }) => {
       ) : cleanedChartObj.variant === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.BAR ? (
         <BarPlot
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.LINE ? (
         <LinePlot
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.SUNBURST ? (
         <Sunburst data={formattedData} {...{ colors, numberFormat }} />
@@ -284,20 +305,36 @@ const DashboardChart = ({ chartObj }) => {
         <LinePlot
           area
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.STACKED_AREA ? (
         <LinePlot
           area
           stack="x"
           data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
+          {...{ colors, numberFormat, showNA, ...labels }}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER &&
         R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
         <ScatterPlot
           data={formattedData}
           labelProps={R.dissoc(3)(labelProps)}
+          {...{ colors, numberFormat }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.DISTRIBUTION ? (
+        <DistributionChart
+          data={formattedData}
+          cumulative={distributionType === distributionTypes.CDF}
+          chartType={distributionVariant}
+          counts={distributionYAxis === distributionYAxes.COUNTS}
+          yAxisTitle={
+            distributionYAxis === distributionYAxes.COUNTS
+              ? 'Counts'
+              : distributionType === distributionTypes.PDF
+                ? 'Probability Density'
+                : 'Cumulative Density'
+          }
+          xAxisTitle={yAxisTitle}
           {...{ colors, numberFormat }}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (

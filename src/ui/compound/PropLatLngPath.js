@@ -70,9 +70,9 @@ const getLastLng = (path) => path[path.length - 1][0]
 const displayPath = (path) => {
   return (
     <List sx={styles.text}>
-      {path.map(([lng, lat]) => {
+      {path.map(([lng, lat], idx) => {
         return (
-          <ListItem disablePadding maxHeight={200}>
+          <ListItem disablePadding maxHeight={200} key={idx}>
             <ListItemButton component="a" href="#simple-list">
               <ListItemText
                 primary={`(${lat.toFixed(6)}, ${lng.toFixed(6)})\n`}

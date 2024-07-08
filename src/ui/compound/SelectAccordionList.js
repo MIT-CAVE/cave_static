@@ -178,6 +178,10 @@ const SelectAccordionList = ({
                 onDelete={() => {
                   onDeleteGroup(index)
                 }}
+                onClick={() => {
+                  setOpen(true)
+                  setSubOpen(R.assoc(index, true))
+                }}
               />
             )
           })

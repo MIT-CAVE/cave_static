@@ -146,8 +146,14 @@ export const filterMapFeature = (filters, featureObj) => {
     const value = R.path(['values', prop], featureObj)
     if (type === 'selector') {
       if (R.has('option', filterObj)) {
-        if (R.any(R.flip(R.includes)(value), filterValue)) {
-          return false
+        if (filterObj.option === 'exc') {
+          if (R.any(R.flip(R.includes)(value), filterValue)) {
+            return false
+          }
+        } else if (filterObj.option === 'inc') {
+          if (R.none(R.flip(R.includes)(value), filterValue)) {
+            return false
+          }
         }
       } else {
         if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {

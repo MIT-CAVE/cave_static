@@ -34,7 +34,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
   const enabled = prop.enabled || false
   const [value, setValue] = useState(
-    R.defaultTo(R.prop('value', prop), currentVal)
+    R.defaultTo(R.prop('value', prop), currentVal)[0]
   )
   const [viewState, setViewState] = useState({
     latitude: value[1],
@@ -54,21 +54,21 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
 
   const inputLat = (lat) => {
     if (!enabled) return
-    onChange([value[0], lat])
+    onChange([[value[0], lat]])
     setValue([value[0], lat])
     setViewState({ latitude: lat, longitude: value[0] })
   }
 
   const inputLng = (lng) => {
     if (!enabled) return
-    onChange([lng, value[1]])
+    onChange([[lng, value[1]]])
     setValue([lng, value[1]])
     setViewState({ latitude: value[1], longitude: lng })
   }
 
   const onDragEnd = (event) => {
     if (!enabled) return
-    onChange([event.lngLat.lng, event.lngLat.lat])
+    onChange([[event.lngLat.lng, event.lngLat.lat]])
     setValue([event.lngLat.lng, event.lngLat.lat])
     setViewState({ latitude: event.lngLat.lat, longitude: event.lngLat.lng })
   }

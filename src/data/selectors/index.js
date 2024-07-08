@@ -285,6 +285,12 @@ export const selectCurrentTimeUnits = createSelector(
   selectTimeSettings,
   (data) => R.propOr('unit', 'timeUnits')(data)
 )
+export const selectCurrentLooping = createSelector(selectTimeSettings, (data) =>
+  R.propOr(false, 'looping')(data)
+)
+export const selectCurrentSpeed = createSelector(selectTimeSettings, (data) =>
+  R.propOr(1, 'speed')(data)
+)
 export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )
@@ -1538,13 +1544,6 @@ export const selectArcRange = createSelector(
               )(R.propOr([], type, arcsByType))
             )
           ),
-          R.when(
-            (range) => size && (!R.has('min', range) || !R.has('max', range)),
-            () => {
-              console.warn('sizeBy does not support categorical variables.')
-              return { min: 0, max: 0 }
-            }
-          ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(legendObjectsFunc({ mapId, layerKey: 'arc' }))
     )
@@ -1632,13 +1631,6 @@ export const selectNodeRange = createSelector(
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, nodesByType))
             )
-          ),
-          R.when(
-            (range) => size && (!R.has('min', range) || !R.has('max', range)),
-            () => {
-              console.warn('sizeBy does not support categorical variables.')
-              return { min: 0, max: 0 }
-            }
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(legendObjectsFunc({ mapId, layerKey: 'node' }))
@@ -1954,16 +1946,19 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             if (!filterMapFeature(filters, node)) return false
             const sizeProp = legendObj.sizeBy
             const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
-            const sizePropVal = parseFloat(R.path(['values', sizeProp], node))
-            const size = isNaN(sizePropVal)
+            const sizePropVal = R.path(['values', sizeProp], node)
+            const isSizeCategorical = !R.has('min', sizeRange)
+            const size = R.isNil(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-              : getScaledValue(
-                  R.prop('min', sizeRange),
-                  R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', sizeRange)),
-                  parseFloat(R.prop('endSize', sizeRange)),
-                  sizePropVal
-                )
+              : isSizeCategorical
+                ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
+                : getScaledValue(
+                    R.prop('min', sizeRange),
+                    R.prop('max', sizeRange),
+                    parseFloat(R.prop('startSize', sizeRange)),
+                    parseFloat(R.prop('endSize', sizeRange)),
+                    parseFloat(sizePropVal)
+                  )
             const colorProp = legendObj.colorBy
             const colorPropVal = R.pipe(
               R.path(['values', colorProp]),
@@ -1978,8 +1973,8 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               colorRange
             )
 
-            const isCategorical = !R.has('min', colorRange)
-            const color = isCategorical
+            const isColorCategorical = !R.has('min', colorRange)
+            const color = isColorCategorical
               ? R.map((val) => parseFloat(val))(
                   R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
                     .replace(/[^\d,.]/g, '')
@@ -2032,32 +2027,42 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
         R.map((group) => {
           const nodeType = group.properties.type
           const legendObj = legendObjectsFunc(mapId)[nodeType]
-          const sizeRange =
-            nodeClustersFunc(mapId).range[group.properties.type].size
           const sizePropObj = R.path(['properties', 'sizeProp'], group)
           const sizeProp = legendObj.sizeBy
-          const size = getScaledValue(
-            R.prop('min', sizeRange),
-            R.prop('max', sizeRange),
-            parseFloat(R.prop('startSize', legendObj.sizeByOptions[sizeProp])),
-            parseFloat(R.prop('endSize', legendObj.sizeByOptions[sizeProp])),
-            parseFloat(sizePropObj.value)
+          const isSizeCategorical = !R.has('min')(
+            legendObj.sizeByOptions[sizeProp]
           )
+          const sizeRange = isSizeCategorical
+            ? legendObj.sizeByOptions[sizeProp]
+            : nodeClustersFunc(mapId).range[group.properties.type].size
+          const size = isSizeCategorical
+            ? parseFloat(R.propOr('0', sizePropObj.value, sizeRange))
+            : getScaledValue(
+                R.prop('min', sizeRange),
+                R.prop('max', sizeRange),
+                parseFloat(
+                  R.prop('startSize', legendObj.sizeByOptions[sizeProp])
+                ),
+                parseFloat(
+                  R.prop('endSize', legendObj.sizeByOptions[sizeProp])
+                ),
+                parseFloat(sizePropObj.value)
+              )
 
           const colorProp = legendObj.colorBy
           const colorObj = group.properties.colorProp
           const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const isCategorical = !R.has('min')(
+          const isColorCategorical = !R.has('min')(
             legendObj.colorByOptions[colorProp]
           )
           const value = R.prop('value', colorObj)
-          const colorRange = isCategorical
+          const colorRange = isColorCategorical
             ? legendObj.colorByOptions[colorProp]
             : R.map((prop) => legendObj.colorByOptions[colorProp][prop])([
                 'startGradientColor',
                 'endGradientColor',
               ])
-          const color = isCategorical
+          const color = isColorCategorical
             ? R.propOr('', value, colorRange)
                 .replace(/[^\d,.]/g, '')
                 .split(',')

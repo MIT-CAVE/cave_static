@@ -24,7 +24,7 @@ import {
   GridToolbarFilterButton,
 } from '@mui/x-data-grid'
 import * as R from 'ramda'
-import { useEffect, useState, Fragment, useCallback } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -38,7 +38,7 @@ import {
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { draggableId } from '../../../utils/enums'
-import { useMenu } from '../../../utils/hooks'
+import { useMenu, useMutateState } from '../../../utils/hooks'
 
 import { FetchedIcon, TextInput } from '../../compound'
 
@@ -651,15 +651,14 @@ const SessionPane = ({ width }) => {
     setCurrentAction({})
   }
 
-  const handleToggleDraggable = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path: ['draggables', draggableId.SESSION, 'open'],
-        value: !sessionDraggable.open,
-        sync: false,
-      })
-    )
-  }, [dispatch, sessionDraggable.open])
+  const handleToggleDraggable = useMutateState(
+    () => ({
+      path: ['draggables', draggableId.SESSION, 'open'],
+      value: !sessionDraggable.open,
+      sync: false,
+    }),
+    [draggableId.SESSION, sessionDraggable.open]
+  )
 
   const sessionIdCurrent = `${sessions.session_id}` // Intentional conversion to String
   const teamAllSessions = R.pipe(
