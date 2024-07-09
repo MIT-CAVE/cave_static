@@ -11,6 +11,7 @@ import {
   setLayout,
   setInputValue,
   setCaretPosition,
+  setEnter,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
 const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
@@ -333,29 +334,6 @@ const VirtualKeyboard = () => {
     }
   }, [dispatch, virtualKeyboard.caretPosition])
 
-  const onKeyPress = (button) => {
-    let nextLayout = virtualKeyboard.layout
-
-    if (button === '{shift}' || button === '{lock}') {
-      nextLayout = virtualKeyboard.layout === 'default' ? 'shift' : 'default'
-    } else if (button === '{toggleNumPad}') {
-      nextLayout = 'numPad'
-    } else if (button === '{toggleDefault}') {
-      nextLayout = 'default'
-    } else if (
-      prevButton === '{shift}' &&
-      virtualKeyboard.layout === 'shift' &&
-      button !== '{drag}'
-    ) {
-      nextLayout = 'default'
-    }
-
-    setTimeout(() => {
-      dispatch(setLayout(nextLayout))
-      setPrevButton(button)
-    }, 0)
-  }
-
   return (
     <Box
       ref={boxRef}
@@ -396,7 +374,31 @@ const VirtualKeyboard = () => {
             )
           }
         }}
-        onKeyPress={onKeyPress}
+        onKeyPress={(button) => {
+          let nextLayout = virtualKeyboard.layout
+
+          if (button === '{shift}' || button === '{lock}') {
+            nextLayout =
+              virtualKeyboard.layout === 'default' ? 'shift' : 'default'
+          } else if (button === '{toggleNumPad}') {
+            nextLayout = 'numPad'
+          } else if (button === '{toggleDefault}') {
+            nextLayout = 'default'
+          } else if (
+            prevButton === '{shift}' &&
+            virtualKeyboard.layout === 'shift' &&
+            button !== '{drag}'
+          ) {
+            nextLayout = 'default'
+          } else if (button === '{enter}') {
+            dispatch(setEnter(true))
+          }
+
+          setTimeout(() => {
+            dispatch(setLayout(nextLayout))
+            setPrevButton(button)
+          }, 0)
+        }}
         theme={`hg-theme-default ${virtualKeyboard.layout === 'numPad' && 'hg-layout-numpad'}`}
         layoutName={virtualKeyboard.layout}
         layout={{

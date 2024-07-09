@@ -11,6 +11,7 @@ import {
   setLayout,
   setInputValue,
   setCaretPosition,
+  setEnter,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { NumberFormat, getStatusIcon } from '../../utils'
@@ -44,6 +45,14 @@ const NumberInput = ({
   const [valueText, setValueText] = useState(
     defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
   )
+
+  useEffect(() => {
+    if (focused.current && virtualKeyboard.enter) {
+      inputRef.current.blur()
+      dispatch(setIsOpen(false))
+      dispatch(setEnter(false))
+    }
+  }, [dispatch, virtualKeyboard.enter])
 
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard

@@ -8,6 +8,7 @@ export const virtualKeyboardSlice = createSlice({
     layout: 'default',
     inputValue: '',
     caretPosition: [0, 0],
+    enter: false,
   },
   reducers: {
     setIsOpen(state, action) {
@@ -22,10 +23,18 @@ export const virtualKeyboardSlice = createSlice({
     setCaretPosition(state, action) {
       return R.assoc('caretPosition', action.payload, state)
     },
+    setEnter(state, action) {
+      return R.assoc('enter', action.payload, state)
+    },
   },
 })
 
-export const { setIsOpen, setLayout, setInputValue, setCaretPosition } =
-  virtualKeyboardSlice.actions
+export const {
+  setIsOpen,
+  setLayout,
+  setInputValue,
+  setCaretPosition,
+  setEnter,
+} = virtualKeyboardSlice.actions
 
 export default virtualKeyboardSlice.reducer

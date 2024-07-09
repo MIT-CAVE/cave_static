@@ -11,6 +11,7 @@ import {
   setLayout,
   setInputValue,
   setCaretPosition,
+  setEnter,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { getStatusIcon } from '../../utils'
@@ -48,6 +49,14 @@ const TextInput = ({
     if (focused.current) return
     setValue(valueParent)
   }, [valueParent, setValue])
+
+  useEffect(() => {
+    if (focused.current && virtualKeyboard.enter) {
+      inputRef.current.blur()
+      dispatch(setIsOpen(false))
+      dispatch(setEnter(false))
+    }
+  }, [dispatch, virtualKeyboard.enter])
 
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard

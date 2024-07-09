@@ -18,6 +18,7 @@ import {
   setLayout,
   setInputValue,
   setCaretPosition,
+  setEnter,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { withIndex, forceArray } from '../../utils'
@@ -56,6 +57,14 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     [indexedOptions, value]
   )
   const [valueText, setValueText] = useState(valueName)
+
+  useEffect(() => {
+    if (focused.current && virtualKeyboard.enter) {
+      inputRef.current.blur()
+      dispatch(setIsOpen(false))
+      dispatch(setEnter(false))
+    }
+  }, [dispatch, virtualKeyboard.enter])
 
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard
