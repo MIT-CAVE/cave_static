@@ -20,6 +20,7 @@ const NumberInput = ({
   onClickAway,
 }) => {
   const focused = useRef(false)
+  const justBlurred = useRef(false)
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
     defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
@@ -27,6 +28,11 @@ const NumberInput = ({
 
   useEffect(() => {
     if (focused.current) return
+    if (justBlurred.current) {
+      justBlurred.current = false
+      return
+    }
+
     setValue(defaultValue)
     setValueText(
       defaultValue == null
@@ -94,6 +100,7 @@ const NumberInput = ({
         if (clampedVal === defaultValue) return
 
         onClickAway(clampedVal)
+        justBlurred.current = true
       }}
       helperText={help}
       InputProps={{
