@@ -350,7 +350,7 @@ const EchartsPlot = ({
                       ? false
                       : `<div style="display: flex">
                         <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                        <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
                       </div>`
                   )
                   .filter(R.identity)
@@ -362,7 +362,7 @@ const EchartsPlot = ({
                       ? false
                       : `<div style="display: flex">
                         <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                        <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
                       </div>`
                   )
                   .filter(R.identity)
