@@ -12,6 +12,7 @@ import {
   setInputValue,
   setCaretPosition,
   setEnter,
+  setIsTextArea,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { getStatusIcon } from '../../utils'
@@ -156,6 +157,7 @@ const TextInput = ({
 
         focused.current = false
         onClickAway(value)
+        dispatch(setIsTextArea(false))
       }}
       onTouchStart={() => {
         if (!enabled) return

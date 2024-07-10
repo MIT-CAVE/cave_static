@@ -19,6 +19,7 @@ import {
   setInputValue,
   setCaretPosition,
   setEnter,
+  setIsTextArea,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { withIndex, forceArray } from '../../utils'
@@ -229,6 +230,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
 
           setAllValues(valueName)
           focused.current = false
+          dispatch(setIsTextArea(false))
         }}
         onTouchStart={() => {
           if (!enabled) return

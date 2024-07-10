@@ -9,6 +9,7 @@ export const virtualKeyboardSlice = createSlice({
     inputValue: '',
     caretPosition: [0, 0],
     enter: false,
+    isTextArea: false,
   },
   reducers: {
     setIsOpen(state, action) {
@@ -26,6 +27,9 @@ export const virtualKeyboardSlice = createSlice({
     setEnter(state, action) {
       return R.assoc('enter', action.payload, state)
     },
+    setIsTextArea(state, action) {
+      return R.assoc('isTextArea', action.payload, state)
+    },
   },
 })
 
@@ -35,6 +39,7 @@ export const {
   setInputValue,
   setCaretPosition,
   setEnter,
+  setIsTextArea,
 } = virtualKeyboardSlice.actions
 
 export default virtualKeyboardSlice.reducer

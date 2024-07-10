@@ -12,6 +12,7 @@ import {
   setInputValue,
   setCaretPosition,
   setEnter,
+  setIsTextArea,
 } from '../../data/utilities/virtualKeyboardSlice'
 
 import { NumberFormat, getStatusIcon } from '../../utils'
@@ -218,6 +219,7 @@ const NumberInput = ({
           }, DELAY)
         }
 
+        dispatch(setIsTextArea(false))
         focused.current = false
         const clampedVal = R.clamp(min, max, value)
         setValue(clampedVal)

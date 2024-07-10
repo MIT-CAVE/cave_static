@@ -152,6 +152,9 @@ const VirtualKeyboard = () => {
     [virtualKeyboard.layout]
   )
 
+  const newLineOnEnter =
+    virtualKeyboard.isTextArea && virtualKeyboard.layout === 'shift'
+
   useEffect(() => {
     // Change width when layout is changed
     setBoxDimensions((prevDimensions) => ({
@@ -187,6 +190,10 @@ const VirtualKeyboard = () => {
       window.removeEventListener('resize', onResize)
     }
   }, [isNumPad])
+
+  useEffect(() => {
+    setPrevButton(null)
+  }, [virtualKeyboard.isOpen, isNumPad])
 
   // Clip keyboard into window when changing from numPad to default
   // would otherwise make some part of keyboard appear offscreen
@@ -374,6 +381,7 @@ const VirtualKeyboard = () => {
             )
           }
         }}
+        newLineOnEnter={newLineOnEnter}
         onKeyPress={(button) => {
           let nextLayout = virtualKeyboard.layout
 
@@ -384,14 +392,14 @@ const VirtualKeyboard = () => {
             nextLayout = 'numPad'
           } else if (button === '{toggleDefault}') {
             nextLayout = 'default'
+          } else if (button === '{enter}' && !newLineOnEnter) {
+            dispatch(setEnter(true))
           } else if (
             prevButton === '{shift}' &&
             virtualKeyboard.layout === 'shift' &&
             button !== '{drag}'
           ) {
             nextLayout = 'default'
-          } else if (button === '{enter}') {
-            dispatch(setEnter(true))
           }
 
           setTimeout(() => {
@@ -430,7 +438,7 @@ const VirtualKeyboard = () => {
         display={{
           '{bksp}': 'delete',
           '{tab}': 'tab',
-          '{enter}': 'enter',
+          '{enter}': newLineOnEnter ? 'new line' : 'enter',
           '{shift}': 'shift',
           '{lock}': 'caps',
           '{toggleNumPad}': '123',
