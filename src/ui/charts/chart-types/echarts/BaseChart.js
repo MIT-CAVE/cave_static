@@ -357,11 +357,11 @@ const EchartsPlot = ({
                   .join('')}`
                 : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
                 ${params
-                  .map(({ marker, seriesId, value }) =>
+                  .map(({ marker, seriesName, value }) =>
                     R.isNil(value) && !showNA
                       ? false
                       : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesId}</div>
+                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
                         <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
                       </div>`
                   )
