@@ -4,7 +4,6 @@ import { IoMdResize } from 'react-icons/io'
 import { useDispatch, useSelector } from 'react-redux'
 import Keyboard from 'react-simple-keyboard'
 import 'react-simple-keyboard/build/css/index.css'
-import './virtual-keyboard.css'
 
 import { selectVirtualKeyboard } from '../../../data/selectors'
 import {
@@ -348,6 +347,7 @@ const VirtualKeyboard = () => {
         cursor: isDragging ? 'grabbing' : 'grab',
         visibility: virtualKeyboard.isOpen ? 'visible' : 'hidden',
         touchAction: 'none',
+        ...styles,
       }}
       onMouseDown={(event) => onDragStart(event, event.clientX, event.clientY)}
     >
@@ -463,3 +463,51 @@ const VirtualKeyboard = () => {
 }
 
 export default VirtualKeyboard
+
+const styles = {
+  '& .react-simple-keyboard': {
+    '--gray-1': 'rgb(130, 130, 130)',
+    '--gray-2': 'rgb(116, 116, 116)',
+    '--gray-3': 'rgb(105, 105, 105)',
+    'background-color': 'var(--gray-2)',
+    height: '100%',
+  },
+  '& .react-simple-keyboard .hg-rows': {
+    display: 'flex',
+    'flex-direction': 'column',
+    'justify-content': 'space-between',
+    height: '100%',
+  },
+  '& .react-simple-keyboard .hg-row': {
+    flex: 1,
+  },
+  '& .react-simple-keyboard .hg-button': {
+    color: 'white',
+    'background-color': 'var(--gray-1)',
+    height: '100%',
+    'font-size': '1.5rem',
+  },
+  '& .react-simple-keyboard .hg-button.bigger-keys': {
+    flex: 3,
+  },
+  '& .react-simple-keyboard .hg-button.medium-keys': {
+    flex: 2,
+  },
+  '& .react-simple-keyboard .hg-button.smaller-keys, & .react-simple-keyboard.hg-layout-numpad .hg-button':
+    {
+      flex: 1,
+    },
+  '& .react-simple-keyboard .hg-button:hover': {
+    cursor: 'pointer',
+    'background-color': 'var(--gray-2)',
+  },
+  '& .react-simple-keyboard .hg-button.drag:hover': {
+    cursor: 'grab',
+  },
+  '& .react-simple-keyboard .hg-button.drag:active': {
+    cursor: 'grabbing',
+  },
+  '& .react-simple-keyboard .hg-button:active': {
+    'background-color': 'var(--gray-3)',
+  },
+}
