@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { BiBracket } from 'react-icons/bi'
 import {
   MdAddCircleOutline,
   MdCheck,
@@ -22,6 +23,7 @@ import {
   MdEdit,
   MdRestore,
   MdSave,
+  MdOutlineCancel,
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
@@ -172,10 +174,63 @@ const GridFilter = ({
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
   const [idCount, setIdCount] = useState(0)
-  const [rows, setRows] = useState([])
+  // const [rows, setRows] = useState([])
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
   const [canSaveRow, setCanSaveRow] = useState({})
+
+  const [rows, setRows] = useState([
+    {
+      id: 0,
+      type: 'group',
+      groupId: 0,
+      logic: 'or',
+    },
+    {
+      id: 1,
+      type: 'group',
+      groupId: 1,
+      logic: 'and',
+    },
+    {
+      id: 2,
+      type: 'rule',
+      groupId: 1,
+      source: 'numericPropExampleA',
+      relation: 'lt',
+      value: 71,
+    },
+    {
+      id: 3,
+      type: 'group',
+      groupId: 2,
+      logic: 'or',
+    },
+    {
+      id: 4,
+      type: 'rule',
+      groupId: 2,
+      source: 'numericPropExampleB',
+      relation: 'lt',
+      value: 0.1,
+    },
+    {
+      id: 5,
+      type: 'rule',
+      groupId: 2,
+      source: 'numericPropExampleB',
+      relation: 'geq',
+      value: 0.9,
+    },
+    {
+      id: 6,
+      type: 'rule',
+      groupId: 0,
+      source: 'selectorPropForColor',
+      relation: 'exc',
+      value: ['a'],
+    },
+  ])
 
   const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
@@ -218,8 +273,8 @@ const GridFilter = ({
     )(filterCriteria)
 
     setInitialRows(initRows)
-    setRows(initRows)
-    setIdCount(initRows.length)
+    // setRows(initRows)
+    // setIdCount(initRows.length)
   }, [filters])
 
   useEffect(() => {
@@ -250,29 +305,29 @@ const GridFilter = ({
         const hasError =
           newCellProps.error ||
           R.pipe(
-            // We ignore the `logic` field in the first row
-            R.when(R.always(id === rows[0].id), R.dissoc('logic')),
+            // We always ignore 'logic' field because edited 'rule' type rows do not have that field
+            R.dissoc('logic'),
             R.values,
             R.any(isValueInvalid)
           )(otherFieldsProps)
-
         setCanSaveRow(R.assoc(id, !hasError))
       }
       return newCellProps
     },
-    [rows]
+    []
   )
 
+  // eslint-disable-next-line
   const handleAddRow = useCallback(() => {
-    setRows(
-      R.append({
-        isNew: true,
-        id: idCount,
-        source: '',
-        relation: '',
-        logic: 'and',
-      })
-    )
+    // setRows(
+    //   R.append({
+    //     isNew: true,
+    //     id: idCount,
+    //     source: '',
+    //     relation: '',
+    //     logic: 'and',
+    //   })
+    // )
     setRowModesModel(
       R.assoc(idCount, {
         mode: GridRowModes.Edit,
@@ -284,7 +339,8 @@ const GridFilter = ({
   }, [apiRef, idCount, rows.length])
 
   const deleteRow = useCallback((id) => {
-    setRows(R.reject(R.propEq(id, 'id')))
+    console.log('id', id)
+    // setRows(R.reject(R.propEq(id, 'id')))
   }, [])
   const handleDeleteRow = useCallback(
     (id) => () => {
@@ -319,7 +375,7 @@ const GridFilter = ({
 
   const processRowUpdate = (newRow) => {
     const updatedRow = R.dissoc('isNew')(newRow)
-    setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
+    // setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
     return updatedRow
   }
 
@@ -379,11 +435,11 @@ const GridFilter = ({
         display: 'flex',
         align: 'center',
         width: 90,
-        editable: true,
+        editable: false,
         type: 'singleSelect',
-        valueOptions: ['and'], // FIXME: ['or', 'and'],
+        valueOptions: ({ row }) => (row.type === 'rule' ? '' : ['and']),
         getOptionLabel: (option) => option.toUpperCase(),
-        cellClassName: ({ id }) => (id > rows[0].id ? '' : 'hidden'),
+        cellClassName: ({ row }) => (row.type === 'rule' ? 'hidden' : ''),
         preProcessEditCellProps,
       },
       GRID_CHECKBOX_SELECTION_COL_DEF,
@@ -393,7 +449,7 @@ const GridFilter = ({
         type: 'singleSelect',
         display: 'flex',
         flex: 1,
-        editable: true,
+        editable: ({ row }) => row.type === 'rule',
         valueOptions: sourceValueOpts,
         renderCell: ({ formattedValue }) => (
           <OverflowText text={formattedValue} />
@@ -414,14 +470,16 @@ const GridFilter = ({
         align: 'center',
         width: 90,
         type: 'singleSelect',
-        editable: true,
+        editable: ({ row }) => row.type === 'rule',
         valueOptions: ({ row, id }) => {
           const rowAlt = apiRef.current.getRow(id)
           const valueAlt = rowAlt.source
           const value = R.propOr(valueAlt, 'source')(row)
           const valueType =
             value && value !== '' ? sourceValueTypes[value] : 'number'
-          return getRelationValueOptsByType(valueType)
+          return row.type === 'group'
+            ? ''
+            : getRelationValueOptsByType(valueType)
         },
         preProcessEditCellProps,
       },
@@ -432,7 +490,7 @@ const GridFilter = ({
         display: 'flex',
         align: 'right',
         width: 150,
-        editable: true,
+        editable: ({ row }) => row.type === 'rule',
         valueParser: (value, params) => {
           const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
           const valueType = sourceValueTypes[editRow.source]
@@ -474,22 +532,27 @@ const GridFilter = ({
                   ).format(getDateFormat(valueType))
                 : value
 
-          return R.cond([
-            [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
-            [
-              R.equals('multiSelect'),
-              R.always(
-                <GridMultiSelectCell
-                  options={R.path([row.source, 'options'])(filterables)}
-                  colorByOptions={R.path([row.source, 'colorByOptions'])(
-                    filterableExtraProps
-                  )}
-                  {...params}
-                />
-              ),
-            ],
-            [R.T, R.always(<OverflowText text={`${formattedValue}`} />)],
-          ])(valueType)
+          return row.type === 'group'
+            ? ''
+            : R.cond([
+                [
+                  R.equals('boolean'),
+                  R.always(<GridBooleanCell {...params} />),
+                ],
+                [
+                  R.equals('multiSelect'),
+                  R.always(
+                    <GridMultiSelectCell
+                      options={R.path([row.source, 'options'])(filterables)}
+                      colorByOptions={R.path([row.source, 'colorByOptions'])(
+                        filterableExtraProps
+                      )}
+                      {...params}
+                    />
+                  ),
+                ],
+                [R.T, R.always(<OverflowText text={`${formattedValue}`} />)],
+              ])(valueType)
         },
         renderEditCell: (params) => {
           const valueType = sourceValueTypes[params.row.source]
@@ -521,33 +584,55 @@ const GridFilter = ({
         align: 'right',
         width: 100,
         type: 'actions',
-        getActions: ({ id }) =>
-          R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
+        getActions: ({ id, row }) => {
+          return row.type === 'group'
             ? [
                 <GridActionsCellItem
-                  disabled={!canSaveRow[id]}
-                  icon={<MdSave size="20px" />}
-                  label="Save"
-                  onClick={handleClickSave(id)}
+                  icon={<MdAddCircleOutline size="20px" />}
+                  label="Add Rule"
+                  onClick={() => console.log('Add Rule', id)}
+                  // onClick={() => handleAddRow(row.groupId)}
                 />,
                 <GridActionsCellItem
-                  icon={<MdRestore size="20px" />}
-                  label="Discard"
-                  onClick={handleClickDiscard(id)}
+                  icon={<BiBracket size="20px" />}
+                  label="Add Group"
+                  onClick={() => console.log('Add Group', id)}
+                  sx={{ margin: '-10px' }}
+                />,
+                <GridActionsCellItem
+                  icon={<MdOutlineCancel size="20px" />}
+                  label="Remove Group"
+                  onClick={() => console.log('Remove Group', id)}
+                  sx={{ marginRight: '-3px' }}
                 />,
               ]
-            : [
-                <GridActionsCellItem
-                  icon={<MdEdit size="20px" />}
-                  label="Edit"
-                  onClick={handleClickEdit(id)}
-                />,
-                <GridActionsCellItem
-                  icon={<MdDelete size="20px" />}
-                  label="Delete"
-                  onClick={handleDeleteRow(id)}
-                />,
-              ],
+            : R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
+              ? [
+                  <GridActionsCellItem
+                    disabled={!canSaveRow[id]}
+                    icon={<MdSave size="20px" />}
+                    label="Save"
+                    onClick={handleClickSave(id)}
+                  />,
+                  <GridActionsCellItem
+                    icon={<MdRestore size="20px" />}
+                    label="Discard"
+                    onClick={handleClickDiscard(id)}
+                  />,
+                ]
+              : [
+                  <GridActionsCellItem
+                    icon={<MdEdit size="20px" />}
+                    label="Edit"
+                    onClick={handleClickEdit(id)}
+                  />,
+                  <GridActionsCellItem
+                    icon={<MdDelete size="20px" />}
+                    label="Delete"
+                    onClick={handleDeleteRow(id)}
+                  />,
+                ]
+        },
         preProcessEditCellProps,
       },
     ],
@@ -559,11 +644,12 @@ const GridFilter = ({
       handleClickDiscard,
       handleClickEdit,
       handleClickSave,
+      // handleAddRow,
       handleDeleteRow,
       numberFormatProps,
       preProcessEditCellProps,
       rowModesModel,
-      rows,
+      // rows,
       sourceHeaderName,
       sourceValueOpts,
       sourceValueTypes,
@@ -592,7 +678,7 @@ const GridFilter = ({
           onCellDoubleClick={handleCellDoubleClick}
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
         />
-        <Button
+        {/* <Button
           fullWidth
           size="medium"
           sx={styles.addBtn}
@@ -600,7 +686,7 @@ const GridFilter = ({
           onClick={handleAddRow}
         >
           Add a Constraint
-        </Button>
+        </Button> */}
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
