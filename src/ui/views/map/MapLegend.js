@@ -347,7 +347,15 @@ const MapLegendGroupRowToggleLayer = ({
   legendName,
   toggleGroup,
   toggleGroupLabel,
-  filters = [],
+  filters = [
+    {
+      isNew: true,
+      id: 0,
+      type: 'group',
+      groupId: 0,
+      logic: 'or',
+    },
+  ],
   filterableProps: filterables,
   filterableExtraProps,
   onSaveFilters,

@@ -173,6 +173,12 @@ const GridFilter = ({
   onSave,
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
+  // useEffect(() => {
+  //   console.log('filters', filters)
+  // }, [filters])
+  // useEffect(() => {
+  //   console.log('default filters', defaultFilters)
+  // }, [defaultFilters])
   const [idCount, setIdCount] = useState(0)
   const [groupIdCount, setGroupIdCount] = useState(0)
   const [initialRows, setInitialRows] = useState([])
@@ -319,19 +325,19 @@ const GridFilter = ({
     []
   )
 
-  const handleAddFirstRow = () => {
-    setRows([
-      {
-        isNew: true,
-        id: 0,
-        type: 'group',
-        groupId: 0,
-        logic: 'or',
-      },
-    ])
-    setIdCount(idCount + 1)
-    setGroupIdCount(groupIdCount + 1)
-  }
+  // const handleAddFirstRow = () => {
+  //   setRows([
+  //     {
+  //       isNew: true,
+  //       id: 0,
+  //       type: 'group',
+  //       groupId: 0,
+  //       logic: 'or',
+  //     },
+  //   ])
+  //   setIdCount(idCount + 1)
+  //   setGroupIdCount(groupIdCount + 1)
+  // }
 
   const handleAddRow = useCallback(
     (groupId) => {
@@ -748,7 +754,7 @@ const GridFilter = ({
           onCellDoubleClick={handleCellDoubleClick}
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
         />
-        {rows.length === 0 && (
+        {/* {rows.length === 0 && (
           <Button
             fullWidth
             size="medium"
@@ -758,7 +764,7 @@ const GridFilter = ({
           >
             Add a Constraint
           </Button>
-        )}
+        )} */}
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
