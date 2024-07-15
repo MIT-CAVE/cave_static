@@ -13,7 +13,12 @@ import {
   setEnter,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
-const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
+const Resizable = ({
+  position,
+  setPosition,
+  boxDimensions,
+  setBoxDimensions,
+}) => {
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
   const [isResizing, setIsResizing] = useState(false)
   const cursorOffset = useRef({ x: 0, y: 0 })
@@ -22,8 +27,8 @@ const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
     setIsResizing(true)
 
     cursorOffset.current = {
-      x: clientX - boxDimensions.width / 2,
-      y: window.innerHeight - clientY - boxDimensions.height,
+      x: clientX - boxDimensions.width,
+      y: -clientY - boxDimensions.height,
     }
   }
 
@@ -36,28 +41,41 @@ const Resizable = ({ position, boxDimensions, setBoxDimensions }) => {
           (virtualKeyboard.layout === 'numPad'
             ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
             : 1),
-        (clientX - cursorOffset.current.x) * 2
+        clientX - cursorOffset.current.x
       )
-      let newHeight = Math.max(
-        MIN_HEIGHT,
-        window.innerHeight - clientY - cursorOffset.current.y
-      )
+      let newHeight = Math.max(MIN_HEIGHT, -clientY - cursorOffset.current.y)
 
-      const left = position.x - newWidth / 2
-      const right = position.x + newWidth / 2
+      const deltaWidth = newWidth - boxDimensions.width
+      let newPositionX = position.x + deltaWidth / 2
+
+      const left = position.x - boxDimensions.width / 2
+      const right = newPositionX + newWidth / 2
       const top = position.y + newHeight
 
-      if (left < 0) newWidth = position.x * 2
-      if (window.innerWidth < right)
-        newWidth = (window.innerWidth - position.x) * 2
+      if (window.innerWidth < right) {
+        newWidth = window.innerWidth - left
+        newPositionX = left + newWidth / 2
+      }
       if (window.innerHeight < top) newHeight = window.innerHeight - position.y
 
       setBoxDimensions({
         width: newWidth,
         height: newHeight,
       })
+
+      setPosition({
+        ...position,
+        x: newPositionX,
+      })
     },
-    [isResizing, position, setBoxDimensions, virtualKeyboard.layout]
+    [
+      isResizing,
+      position,
+      setPosition,
+      boxDimensions.width,
+      setBoxDimensions,
+      virtualKeyboard.layout,
+    ]
   )
 
   const onResizeEnd = () => {
@@ -357,6 +375,7 @@ const VirtualKeyboard = () => {
     >
       <Resizable
         position={position}
+        setPosition={setPosition}
         boxDimensions={boxDimensions}
         setBoxDimensions={setBoxDimensions}
       />
