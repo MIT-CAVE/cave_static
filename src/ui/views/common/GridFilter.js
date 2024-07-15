@@ -321,25 +321,35 @@ const GridFilter = ({
   )
 
   // eslint-disable-next-line
-  const handleAddRow = useCallback(() => {
-    // setRows(
-    //   R.append({
-    //     isNew: true,
-    //     id: idCount,
-    //     source: '',
-    //     relation: '',
-    //     logic: 'and',
-    //   })
-    // )
-    setRowModesModel(
-      R.assoc(idCount, {
-        mode: GridRowModes.Edit,
-        fieldToFocus: rows.length < 1 ? 'source' : 'logic',
-      })
-    )
-    apiRef.current.selectRow(idCount)
-    setIdCount(idCount + 1)
-  }, [apiRef, idCount, rows.length])
+  const handleAddRow = useCallback(
+    (groupId) => {
+      const index = rows.findIndex((row) => row.groupId === groupId)
+      const newRow = {
+        isNew: true,
+        id: idCount,
+        type: 'rule',
+        parentGroupId: groupId,
+        source: '',
+        relation: '',
+        value: '',
+      }
+      setRowModesModel(
+        R.assoc(idCount, {
+          mode: GridRowModes.Edit,
+          fieldToFocus: rows.length < 1 ? 'source' : 'logic',
+        })
+      )
+      const newRows = [
+        ...rows.slice(0, index + 1),
+        newRow,
+        ...rows.slice(index + 1),
+      ]
+      setRows(newRows)
+      apiRef.current.selectRow(idCount)
+      setIdCount(idCount + 1)
+    },
+    [apiRef, idCount, rows]
+  )
 
   const handleAddGroup = useCallback(
     (groupId, logic) => {
@@ -359,11 +369,11 @@ const GridFilter = ({
         ...rows.slice(index + 1),
       ]
       setRows(newRows)
-      // apiRef.current.selectRow(idCount)
+      apiRef.current.selectRow(idCount)
       setIdCount(idCount + 1)
       setGroupIdCount(groupIdCount + 1)
     },
-    [groupIdCount, idCount, rows]
+    [groupIdCount, idCount, rows, apiRef]
   )
 
   const deleteRow = useCallback((id) => {
@@ -423,7 +433,7 @@ const GridFilter = ({
 
   const processRowUpdate = (newRow) => {
     const updatedRow = R.dissoc('isNew')(newRow)
-    // setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
+    setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
     return updatedRow
   }
 
@@ -639,8 +649,8 @@ const GridFilter = ({
                 <GridActionsCellItem
                   icon={<MdAddCircleOutline size="20px" />}
                   label="Add Rule"
-                  onClick={() => console.log('Add Rule', id)}
-                  // onClick={() => handleAddRow(row.groupId)}
+                  // onClick={() => console.log('Add Rule', id)}
+                  onClick={() => handleAddRow(row.groupId)}
                 />,
                 <GridActionsCellItem
                   icon={<BiBracket size="20px" />}
@@ -694,7 +704,7 @@ const GridFilter = ({
       handleClickDiscard,
       handleClickEdit,
       handleClickSave,
-      // handleAddRow,
+      handleAddRow,
       handleAddGroup,
       handleDeleteRow,
       handleDeleteGroup,
