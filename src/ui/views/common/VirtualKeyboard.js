@@ -123,7 +123,7 @@ const DEFAULT_WIDTH_RATIO = 0.8
 const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
 const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
 const DEFAULT_MAX_WIDTH = 1600
-const DEFAULT_MIN_WIDTH = 1000
+const DEFAULT_MIN_WIDTH = 1300
 const MIN_HEIGHT = 300
 
 const dragText = 'drag to move'
@@ -151,9 +151,6 @@ const VirtualKeyboard = () => {
     () => virtualKeyboard.layout === 'numPad',
     [virtualKeyboard.layout]
   )
-
-  const newLineOnEnter =
-    virtualKeyboard.isTextArea && virtualKeyboard.layout === 'shift'
 
   useEffect(() => {
     // Change width when layout is changed
@@ -381,7 +378,7 @@ const VirtualKeyboard = () => {
             )
           }
         }}
-        newLineOnEnter={newLineOnEnter}
+        newLineOnEnter={true}
         onKeyPress={(button) => {
           let nextLayout = virtualKeyboard.layout
 
@@ -392,7 +389,7 @@ const VirtualKeyboard = () => {
             nextLayout = 'numPad'
           } else if (button === '{toggleDefault}') {
             nextLayout = 'default'
-          } else if (button === '{enter}' && !newLineOnEnter) {
+          } else if (button === '{blur}') {
             dispatch(setEnter(true))
           } else if (
             prevButton === '{shift}' &&
@@ -414,7 +411,7 @@ const VirtualKeyboard = () => {
             '{drag}',
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
             '{tab} q w e r t y u i o p [ ] \\',
-            "{lock} a s d f g h j k l ; ' {enter}",
+            `{lock} a s d f g h j k l ; ' ${virtualKeyboard.isTextArea ? '[{enter} {blur}]' : '{blur}'}`,
             '{shift} z x c v b n m , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
           ],
@@ -422,7 +419,7 @@ const VirtualKeyboard = () => {
             '{drag}',
             '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
-            '{lock} A S D F G H J K L : " {enter}',
+            `{lock} A S D F G H J K L : " ${virtualKeyboard.isTextArea ? '[{enter} {blur}]' : '{blur}'}`,
             '{shift} Z X C V B N M < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
           ],
@@ -432,13 +429,14 @@ const VirtualKeyboard = () => {
             '4 5 6',
             '1 2 3',
             '. 0 -',
-            '{toggleDefault} {enter} {bksp}',
+            '{toggleDefault} {blur} {bksp}',
           ],
         }}
         display={{
           '{bksp}': 'delete',
           '{tab}': 'tab',
-          '{enter}': newLineOnEnter ? 'new line' : 'enter',
+          '{enter}': 'enter',
+          '{blur}': 'submit',
           '{shift}': 'shift',
           '{lock}': 'caps',
           '{toggleNumPad}': '123',
@@ -454,7 +452,7 @@ const VirtualKeyboard = () => {
           },
           {
             class: 'medium-keys',
-            buttons: '{bksp} {tab} {lock} {enter} {shift}',
+            buttons: '{bksp} {tab} {lock} {blur} {enter} {shift}',
           },
           {
             class: 'smaller-keys',
@@ -494,13 +492,15 @@ const styles = {
     'background-color': 'var(--gray-1)',
     height: '100%',
     'font-size': '1.5rem',
+    padding: '0',
   },
   '& .react-simple-keyboard .hg-button.bigger-keys': {
     flex: 3,
   },
-  '& .react-simple-keyboard .hg-button.medium-keys': {
-    flex: 2,
-  },
+  '& .react-simple-keyboard .hg-button.medium-keys, & .react-simple-keyboard .hg-button-container':
+    {
+      flex: 2,
+    },
   '& .react-simple-keyboard .hg-button.smaller-keys, & .react-simple-keyboard.hg-layout-numpad .hg-button':
     {
       flex: 1,
