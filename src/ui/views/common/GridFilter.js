@@ -173,67 +173,68 @@ const GridFilter = ({
   onSave,
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
-  const [idCount, setIdCount] = useState(7)
-  const [groupIdCount, setGroupIdCount] = useState(3)
-  // const [rows, setRows] = useState([])
+  const [idCount, setIdCount] = useState(0)
+  const [groupIdCount, setGroupIdCount] = useState(0)
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
   const [canSaveRow, setCanSaveRow] = useState({})
 
   const [rows, setRows] = useState([
-    {
-      id: 0,
-      type: 'group',
-      groupId: 0,
-      logic: 'or',
-    },
-    {
-      id: 1,
-      type: 'group',
-      groupId: 1,
-      parentGroupId: 0,
-      logic: 'and',
-    },
-    {
-      id: 2,
-      type: 'rule',
-      parentGroupId: 1,
-      source: 'numericPropExampleA',
-      relation: 'lt',
-      value: 71,
-    },
-    {
-      id: 3,
-      type: 'group',
-      groupId: 2,
-      parentGroupId: 1,
-      logic: 'or',
-    },
-    {
-      id: 4,
-      type: 'rule',
-      parentGroupId: 2,
-      source: 'numericPropExampleB',
-      relation: 'lt',
-      value: 0.1,
-    },
-    {
-      id: 5,
-      type: 'rule',
-      parentGroupId: 2,
-      source: 'numericPropExampleB',
-      relation: 'geq',
-      value: 0.9,
-    },
-    {
-      id: 6,
-      type: 'rule',
-      parentGroupId: 0,
-      source: 'selectorPropForColor',
-      relation: 'exc',
-      value: ['a'],
-    },
+    // {
+    //   id: 0,
+    //   type: 'group',
+    //   groupId: 0,
+    //   logic: 'or',
+    // },
+    // {
+    //   id: 1,
+    //   type: 'group',
+    //   groupId: 1,
+    //   parentGroupId: 0,
+    //   logic: 'and',
+    // },
+    // {
+    //   id: 2,
+    //   type: 'rule',
+    //   parentGroupId: 1,
+    //   source: 'numericPropExampleA',
+    //   relation: 'lt',
+    //   value: 71,
+    // },
+    // {
+    //   id: 3,
+    //   type: 'group',
+    //   groupId: 2,
+    //   parentGroupId: 1,
+    //   logic: 'or',
+    // },
+    // {
+    //   id: 4,
+    //   type: 'rule',
+    //   parentGroupId: 2,
+    //   source: 'numericPropExampleB',
+    //   relation: 'lt',
+    //   value: 0.1,
+    // },
+    // {
+    //   id: 5,
+    //   type: 'rule',
+    //   parentGroupId: 2,
+    //   source: 'numericPropExampleB',
+    //   relation: 'geq',
+    //   value: 0.9,
+    // },
+    // {
+    //   id: 6,
+    //   type: 'rule',
+    //   parentGroupId: 0,
+    //   source: 'selectorPropForColor',
+    //   relation: 'exc',
+    //   value: ['a'],
+    // },
   ])
+
+  // console.log('rows', rows)
 
   const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
@@ -267,8 +268,6 @@ const GridFilter = ({
     const initRows = mapIndexed(
       R.pipe(
         R.flip(R.assoc('id')),
-        // Set up `logic` for first row in case it is `undefined`
-        R.when(R.propEq(0, 'id'), R.assoc('logic', 'and')),
         // Drop truthy `active` values
         R.when(R.propEq(true, 'active'), R.dissoc('active')),
         renameKeys({ option: 'relation', prop: 'source' })
@@ -276,8 +275,8 @@ const GridFilter = ({
     )(filterCriteria)
 
     setInitialRows(initRows)
-    // setRows(initRows)
-    // setIdCount(initRows.length)
+    setRows(initRows)
+    setIdCount(initRows.length)
   }, [filters])
 
   useEffect(() => {
@@ -320,7 +319,20 @@ const GridFilter = ({
     []
   )
 
-  // eslint-disable-next-line
+  const handleAddFirstRow = () => {
+    setRows([
+      {
+        isNew: true,
+        id: 0,
+        type: 'group',
+        groupId: 0,
+        logic: 'or',
+      },
+    ])
+    setIdCount(idCount + 1)
+    setGroupIdCount(groupIdCount + 1)
+  }
+
   const handleAddRow = useCallback(
     (groupId) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
@@ -353,7 +365,6 @@ const GridFilter = ({
 
   const handleAddGroup = useCallback(
     (groupId, logic) => {
-      console.log(rows)
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
         isNew: true,
@@ -464,7 +475,6 @@ const GridFilter = ({
     return !isEditing && unsavedChanges
   }, [initialRows, rowModesModel, rows])
 
-  // eslint-disable-next-line
   const handleClickSaveAll = useCallback(() => {
     const newFilters = R.map(
       R.pipe(
@@ -649,13 +659,11 @@ const GridFilter = ({
                 <GridActionsCellItem
                   icon={<MdAddCircleOutline size="20px" />}
                   label="Add Rule"
-                  // onClick={() => console.log('Add Rule', id)}
                   onClick={() => handleAddRow(row.groupId)}
                 />,
                 <GridActionsCellItem
                   icon={<BiBracket size="20px" />}
                   label="Add Group"
-                  // onClick={() => console.log('Add Group', id)}
                   onClick={() => handleAddGroup(row.groupId, row.logic)}
                   sx={{ margin: '-10px' }}
                 />,
@@ -740,15 +748,17 @@ const GridFilter = ({
           onCellDoubleClick={handleCellDoubleClick}
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
         />
-        {/* <Button
-          fullWidth
-          size="medium"
-          sx={styles.addBtn}
-          startIcon={<MdAddCircleOutline />}
-          onClick={handleAddRow}
-        >
-          Add a Constraint
-        </Button> */}
+        {rows.length === 0 && (
+          <Button
+            fullWidth
+            size="medium"
+            sx={styles.addBtn}
+            startIcon={<MdAddCircleOutline />}
+            onClick={handleAddFirstRow}
+          >
+            Add a Constraint
+          </Button>
+        )}
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
@@ -757,8 +767,7 @@ const GridFilter = ({
           color="error"
           variant="contained"
           startIcon={<MdRestore />}
-          onClick={() => console.log('Discard changes')}
-          // onClick={restoreFilters}
+          onClick={restoreFilters}
         >
           Discard Changes
         </Button>
@@ -767,8 +776,7 @@ const GridFilter = ({
           color="primary"
           variant="contained"
           startIcon={<MdCheck />}
-          onClick={() => console.log('Save constraints')}
-          // onClick={handleClickSaveAll}
+          onClick={handleClickSaveAll}
         >
           Save Constraints
         </Button>
