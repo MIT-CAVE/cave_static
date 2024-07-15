@@ -240,8 +240,6 @@ const GridFilter = ({
     // },
   ])
 
-  // console.log('rows', rows)
-
   const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
@@ -671,14 +669,22 @@ const GridFilter = ({
                   icon={<BiBracket size="20px" />}
                   label="Add Group"
                   onClick={() => handleAddGroup(row.groupId, row.logic)}
-                  sx={{ margin: '-10px' }}
+                  sx={
+                    id === 0
+                      ? { marginRight: '-3px', marginLeft: '-10px' }
+                      : { margin: '-10px' }
+                  }
                 />,
-                <GridActionsCellItem
-                  icon={<MdOutlineCancel size="20px" />}
-                  label="Remove Group"
-                  onClick={() => handleDeleteGroup(id, row.groupId)}
-                  sx={{ marginRight: '-3px' }}
-                />,
+                id === 0 ? (
+                  <></>
+                ) : (
+                  <GridActionsCellItem
+                    icon={<MdOutlineCancel size="20px" />}
+                    label="Remove Group"
+                    onClick={() => handleDeleteGroup(id, row.groupId)}
+                    sx={{ marginRight: '-3px' }}
+                  />
+                ),
               ]
             : R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
               ? [
