@@ -190,12 +190,13 @@ const GridFilter = ({
       id: 1,
       type: 'group',
       groupId: 1,
+      parentGroupId: 0,
       logic: 'and',
     },
     {
       id: 2,
       type: 'rule',
-      groupId: 1,
+      parentGroupId: 1,
       source: 'numericPropExampleA',
       relation: 'lt',
       value: 71,
@@ -204,12 +205,13 @@ const GridFilter = ({
       id: 3,
       type: 'group',
       groupId: 2,
+      parentGroupId: 1,
       logic: 'or',
     },
     {
       id: 4,
       type: 'rule',
-      groupId: 2,
+      parentGroupId: 2,
       source: 'numericPropExampleB',
       relation: 'lt',
       value: 0.1,
@@ -217,7 +219,7 @@ const GridFilter = ({
     {
       id: 5,
       type: 'rule',
-      groupId: 2,
+      parentGroupId: 2,
       source: 'numericPropExampleB',
       relation: 'geq',
       value: 0.9,
@@ -225,7 +227,7 @@ const GridFilter = ({
     {
       id: 6,
       type: 'rule',
-      groupId: 0,
+      parentGroupId: 0,
       source: 'selectorPropForColor',
       relation: 'exc',
       value: ['a'],
@@ -339,14 +341,34 @@ const GridFilter = ({
   }, [apiRef, idCount, rows.length])
 
   const deleteRow = useCallback((id) => {
-    console.log('id', id)
-    // setRows(R.reject(R.propEq(id, 'id')))
+    setRows(R.reject(R.propEq(id, 'id')))
   }, [])
+
   const handleDeleteRow = useCallback(
     (id) => () => {
       deleteRow(id)
     },
     [deleteRow]
+  )
+
+  const handleDeleteGroup = useCallback(
+    (id, groupId) => {
+      const rowsToDelete = [id]
+
+      const deleteChildren = (groupId) => {
+        const children = rows.filter((row) => row.parentGroupId === groupId)
+        for (const child of children) {
+          rowsToDelete.push(child.id)
+          if (child.type === 'group') {
+            deleteChildren(child.groupId)
+          }
+        }
+      }
+
+      deleteChildren(groupId)
+      R.forEach(deleteRow, rowsToDelete)
+    },
+    [deleteRow, rows]
   )
 
   const handleClickDiscard = useCallback(
@@ -406,6 +428,7 @@ const GridFilter = ({
     return !isEditing && unsavedChanges
   }, [initialRows, rowModesModel, rows])
 
+  // eslint-disable-next-line
   const handleClickSaveAll = useCallback(() => {
     const newFilters = R.map(
       R.pipe(
@@ -602,7 +625,7 @@ const GridFilter = ({
                 <GridActionsCellItem
                   icon={<MdOutlineCancel size="20px" />}
                   label="Remove Group"
-                  onClick={() => console.log('Remove Group', id)}
+                  onClick={() => handleDeleteGroup(id, row.groupId)}
                   sx={{ marginRight: '-3px' }}
                 />,
               ]
@@ -646,6 +669,7 @@ const GridFilter = ({
       handleClickSave,
       // handleAddRow,
       handleDeleteRow,
+      handleDeleteGroup,
       numberFormatProps,
       preProcessEditCellProps,
       rowModesModel,
@@ -695,7 +719,8 @@ const GridFilter = ({
           color="error"
           variant="contained"
           startIcon={<MdRestore />}
-          onClick={restoreFilters}
+          onClick={() => console.log('Discard changes')}
+          // onClick={restoreFilters}
         >
           Discard Changes
         </Button>
@@ -704,7 +729,8 @@ const GridFilter = ({
           color="primary"
           variant="contained"
           startIcon={<MdCheck />}
-          onClick={handleClickSaveAll}
+          onClick={() => console.log('Save constraints')}
+          // onClick={handleClickSaveAll}
         >
           Save Constraints
         </Button>
