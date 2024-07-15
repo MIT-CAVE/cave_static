@@ -173,7 +173,8 @@ const GridFilter = ({
   onSave,
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
-  const [idCount, setIdCount] = useState(0)
+  const [idCount, setIdCount] = useState(7)
+  const [groupIdCount, setGroupIdCount] = useState(3)
   // const [rows, setRows] = useState([])
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
@@ -339,6 +340,31 @@ const GridFilter = ({
     apiRef.current.selectRow(idCount)
     setIdCount(idCount + 1)
   }, [apiRef, idCount, rows.length])
+
+  const handleAddGroup = useCallback(
+    (groupId, logic) => {
+      console.log(rows)
+      const index = rows.findIndex((row) => row.groupId === groupId)
+      const newRow = {
+        isNew: true,
+        id: idCount,
+        type: 'group',
+        groupId: groupIdCount,
+        parentGroupId: groupId,
+        logic: logic === 'and' ? 'or' : 'and',
+      }
+      const newRows = [
+        ...rows.slice(0, index + 1),
+        newRow,
+        ...rows.slice(index + 1),
+      ]
+      setRows(newRows)
+      // apiRef.current.selectRow(idCount)
+      setIdCount(idCount + 1)
+      setGroupIdCount(groupIdCount + 1)
+    },
+    [groupIdCount, idCount, rows]
+  )
 
   const deleteRow = useCallback((id) => {
     setRows(R.reject(R.propEq(id, 'id')))
@@ -619,7 +645,8 @@ const GridFilter = ({
                 <GridActionsCellItem
                   icon={<BiBracket size="20px" />}
                   label="Add Group"
-                  onClick={() => console.log('Add Group', id)}
+                  // onClick={() => console.log('Add Group', id)}
+                  onClick={() => handleAddGroup(row.groupId, row.logic)}
                   sx={{ margin: '-10px' }}
                 />,
                 <GridActionsCellItem
@@ -668,6 +695,7 @@ const GridFilter = ({
       handleClickEdit,
       handleClickSave,
       // handleAddRow,
+      handleAddGroup,
       handleDeleteRow,
       handleDeleteGroup,
       numberFormatProps,
