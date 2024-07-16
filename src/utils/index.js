@@ -138,45 +138,73 @@ export const parseArray = (input) => {
   var items = s.split(',')
   return R.map(R.trim)(items)
 }
-export const filterMapFeature = (filters, featureObj) => {
-  for (const filterObj of filters) {
-    const prop = R.prop('prop', filterObj)
-    const filterValue = R.prop('value', filterObj)
-    const type = R.path(['props', prop, 'type'], featureObj)
-    const value = R.path(['values', prop], featureObj)
-    if (type === 'selector') {
-      if (R.has('option', filterObj)) {
-        if (filterObj.option === 'exc') {
-          if (R.any(R.flip(R.includes)(value), filterValue)) {
-            return false
-          }
-        } else if (filterObj.option === 'inc') {
-          if (R.none(R.flip(R.includes)(value), filterValue)) {
-            return false
-          }
+
+const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
+  const prop = R.prop('prop', filterObj)
+  const filterValue = R.prop('value', filterObj)
+  const type = R.path(['props', prop, 'type'], featureObj)
+  const value = R.path(['values', prop], featureObj)
+
+  if (type === 'selector') {
+    if (R.has('option', filterObj)) {
+      if (filterObj.option === 'exc') {
+        if (R.any(R.flip(R.includes)(value), filterValue)) {
+          return false
         }
-      } else {
-        if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
+      } else if (filterObj.option === 'inc') {
+        if (R.none(R.flip(R.includes)(value), filterValue)) {
           return false
         }
       }
-    } else if (type === 'num' && filterObj['option'] !== 'eq') {
-      return !R.has('option', filterObj)
-        ? true
-        : R.prop('option', filterObj) === 'gt'
-          ? R.gt(value, filterValue)
-          : R.prop('option', filterObj) === 'gte'
-            ? R.gte(value, filterValue)
-            : R.prop('option', filterObj) === 'lt'
-              ? R.lt(value, filterValue)
-              : R.lte(value, filterValue)
     } else {
-      if (filterValue !== value) {
+      if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
         return false
       }
     }
+  } else if (type === 'num' && filterObj['option'] !== 'eq') {
+    if (!R.has('option', filterObj)) {
+      return true
+    }
+    return R.prop('option', filterObj) === 'gt'
+      ? R.gt(value, filterValue)
+      : R.prop('option', filterObj) === 'gte'
+        ? R.gte(value, filterValue)
+        : R.prop('option', filterObj) === 'lt'
+          ? R.lt(value, filterValue)
+          : R.lte(value, filterValue)
+  } else {
+    if (filterValue !== value) {
+      return false
+    }
   }
   return true
+}
+
+const doesFeatureSatisfyGroup = (groupId, logic, filters, featureObj) => {
+  const children = filters.filter((filt) => filt.parentGroupId === groupId)
+  if (R.isEmpty(children)) return true
+  const filterResults = children.map((child) => {
+    if (child.type === 'rule') {
+      return doesFeatureSatisfyFilter(child, featureObj)
+    }
+    return doesFeatureSatisfyGroup(
+      child.groupId,
+      child.logic,
+      filters,
+      featureObj
+    )
+  })
+  if (logic === 'and') {
+    return filterResults.every((bool) => bool === true)
+  } else {
+    return filterResults.some((bool) => bool === true)
+  }
+}
+
+export const filterMapFeature = (filters, featureObj) => {
+  const filterResult = doesFeatureSatisfyGroup(0, 'or', filters, featureObj)
+  // console.log('feature obj', featureObj, filterResult)
+  return filterResult
 }
 
 export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
