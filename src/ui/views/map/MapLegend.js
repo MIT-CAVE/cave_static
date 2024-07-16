@@ -367,9 +367,13 @@ const MapLegendGroupRowToggleLayer = ({
   const mapData = useSelector(selectMapData)
 
   const numActiveFilters = useMemo(
-    () => R.count(R.propOr(true, 'active'))(filters),
+    () =>
+      R.count(R.both(R.propOr(true, 'active'), R.propEq('rule', 'type')))(
+        filters
+      ),
     [filters]
   )
+
   const isFilterDisabled = useMemo(
     () => R.isEmpty(filterables) || toggleGroupLabel === 'Grouped',
     [filterables, toggleGroupLabel]

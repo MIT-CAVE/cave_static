@@ -180,7 +180,7 @@ const GridFilter = ({
   //   console.log('default filters', defaultFilters)
   // }, [defaultFilters])
   const [idCount, setIdCount] = useState(0)
-  const [groupIdCount, setGroupIdCount] = useState(0)
+  const [groupIdCount, setGroupIdCount] = useState(1)
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
   const [canSaveRow, setCanSaveRow] = useState({})
@@ -510,7 +510,7 @@ const GridFilter = ({
         width: 90,
         editable: false,
         type: 'singleSelect',
-        valueOptions: ({ row }) => (row.type === 'rule' ? '' : ['and']),
+        valueOptions: ({ row }) => (row.type === 'rule' ? '' : ['and', 'or']),
         getOptionLabel: (option) => option.toUpperCase(),
         cellClassName: ({ row }) => (row.type === 'rule' ? 'hidden' : ''),
         preProcessEditCellProps,
