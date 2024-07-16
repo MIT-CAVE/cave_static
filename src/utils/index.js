@@ -183,28 +183,18 @@ const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
 const doesFeatureSatisfyGroup = (groupId, logic, filters, featureObj) => {
   const children = filters.filter((filt) => filt.parentGroupId === groupId)
   if (R.isEmpty(children)) return true
-  const filterResults = children.map((child) => {
-    if (child.type === 'rule') {
-      return doesFeatureSatisfyFilter(child, featureObj)
-    }
-    return doesFeatureSatisfyGroup(
-      child.groupId,
-      child.logic,
-      filters,
-      featureObj
-    )
-  })
-  if (logic === 'and') {
-    return filterResults.every((bool) => bool === true)
-  } else {
-    return filterResults.some((bool) => bool === true)
-  }
+  const filterResults = children.map((child) =>
+    R.propEq('type', 'rule', child)
+      ? doesFeatureSatisfyFilter(child, featureObj)
+      : doesFeatureSatisfyGroup(child.groupId, child.logic, filters, featureObj)
+  )
+  return R.equals('and', logic)
+    ? R.all(Boolean, filterResults)
+    : R.any(Boolean, filterResults)
 }
 
 export const filterMapFeature = (filters, featureObj) => {
-  const filterResult = doesFeatureSatisfyGroup(0, 'or', filters, featureObj)
-  // console.log('feature obj', featureObj, filterResult)
-  return filterResult
+  return doesFeatureSatisfyGroup(0, 'or', filters, featureObj)
 }
 
 export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
