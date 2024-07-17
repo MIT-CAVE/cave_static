@@ -441,7 +441,7 @@ export const selectPageLayout = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr({}, [currentPage, 'pageLayout'], dashboardData),
+      R.pathOr([], [currentPage, 'pageLayout'], dashboardData),
       [currentPage, 'pageLayout'],
       localDashboardData
     )

@@ -39,9 +39,9 @@ const NumberInput = ({
 
   const focused = useRef(false)
   const inputRef = useRef(null)
+  const justBlurred = useRef(false)
   const selfChanged = useRef(false)
   const isTouchDragging = useRef(false)
-
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
     defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
@@ -166,6 +166,11 @@ const NumberInput = ({
 
   useEffect(() => {
     if (focused.current) return
+    if (justBlurred.current) {
+      justBlurred.current = false
+      return
+    }
+
     setValue(defaultValue)
     setValueText(
       defaultValue == null
@@ -227,6 +232,7 @@ const NumberInput = ({
         if (clampedVal === defaultValue) return
 
         onClickAway(clampedVal)
+        justBlurred.current = true
       }}
       onTouchStart={() => {
         if (!enabled) return
