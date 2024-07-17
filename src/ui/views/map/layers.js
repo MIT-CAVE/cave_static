@@ -3,7 +3,7 @@ import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { ArcLayer3D } from './CustomLayers'
+import { ArcLayer3D, Node3D } from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -436,37 +436,53 @@ export const Geos = memo(({ mapId }) => {
 
 export const Nodes = memo(({ mapId }) => {
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const nodeGeoJson3D = nodeGeoJson.map((node) => {
+    return {
+      ...node,
+      geometry: {
+        ...node.geometry,
+        coordinates: [
+          node.geometry.coordinates[0],
+          node.geometry.coordinates[1],
+          0,
+        ],
+      },
+    }
+  })
 
   return (
-    <Source
-      id={layerId.NODE_ICON_LAYER}
-      key={layerId.NODE_ICON_LAYER}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: nodeGeoJson,
-      }}
-    >
-      <Layer
+    <>
+      <Source
         id={layerId.NODE_ICON_LAYER}
         key={layerId.NODE_ICON_LAYER}
-        type="symbol"
-        layout={{
-          'icon-image': ['get', 'icon'],
-          'icon-size': ['get', 'size'],
-          'icon-allow-overlap': true,
+        type="geojson"
+        generateId={true}
+        data={{
+          type: 'FeatureCollection',
+          features: nodeGeoJson,
         }}
-        paint={{
-          'icon-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
-        }}
-      />
-    </Source>
+      >
+        <Node3D nodes={nodeGeoJson3D} />
+        <Layer
+          id={layerId.NODE_ICON_LAYER}
+          key={layerId.NODE_ICON_LAYER}
+          type="symbol"
+          layout={{
+            'icon-image': ['get', 'icon'],
+            'icon-size': ['get', 'size'],
+            'icon-allow-overlap': true,
+          }}
+          paint={{
+            'icon-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              HIGHLIGHT_COLOR,
+              ['get', 'color'],
+            ],
+          }}
+        />
+      </Source>
+    </>
   )
 })
 export const Arcs = memo(({ mapId }) => {

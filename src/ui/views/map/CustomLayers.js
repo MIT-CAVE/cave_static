@@ -267,3 +267,280 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   }
   return <Layer {...customLayer} />
 })
+
+// export const Node3D = ({ nodes, id, key }) => {
+//   return nodes.map((node) => (
+//     <Marker
+//       id={id}
+//       key={key}
+//       longitude={node.geometry.coordinates[0]}
+//       latitude={node.geometry.coordinates[1]}
+//       rotationAlignment="horizon"
+//       offset={[0, -node.geometry.coordinates[2]]}
+//       style={{
+//         width: `${node.geometry.coordinates[2] * 2}px`,
+//         height: `${node.geometry.coordinates[2] * 2}px`,
+//         backgroundSize: 'cover',
+//         backgroundImage:
+//           "url('https://docs.mapbox.com/mapbox-gl-js/assets/pin.svg')",
+//       }}
+//     />
+//   ))
+// }
+
+// function lnglat_to_globe(lnglat, opts = {}) {
+//   let { r = 1, mode = 'degrees' } = opts
+//   let lat = lnglat[1]
+//   let lng = lnglat[0]
+//   let R
+
+//   // Third component represents elevation, if it exists
+//   if (lnglat.length > 2) {
+//     R = 1.001 + 0.000005 * lnglat[2]
+//   } else {
+//     R = r
+//   }
+//   if (mode === 'degrees') {
+//     lat = (lat * Math.PI) / 180
+//     lng = (lng * Math.PI) / 180
+//   }
+
+//   // Convert latitude to spherical phi
+//   let phi = Math.PI / 2 - lat
+//   let theta = lng
+//   let x = R * Math.sin(phi) * Math.cos(theta)
+//   if (Math.abs(x) < 0.000001) {
+//     x = 0
+//   }
+//   let y = R * Math.sin(phi) * Math.sin(theta)
+//   if (Math.abs(y) < 0.000001) {
+//     y = 0
+//   }
+//   let z = R * Math.cos(phi)
+//   if (Math.abs(z) < 0.000001) {
+//     z = 0
+//   }
+//   return { x, y, z }
+// }
+
+// function lngLatToXYZ(longitude, latitude, globeRadius) {
+//   const phi = (90 - latitude) * (Math.PI / 180) // Convert latitude to radians
+//   const theta = (longitude + 180) * (Math.PI / 180) // Convert longitude to radians
+
+//   const x = -globeRadius * Math.sin(phi) * Math.cos(theta)
+//   const y = globeRadius * Math.cos(phi)
+//   const z = globeRadius * Math.sin(phi) * Math.sin(theta)
+
+//   return { x, y, z }
+// }
+
+const lngLatToXYZ = (map, lngLat, altitude = 0) => {
+  const mercatorCoordinate = MercatorCoordinate.fromLngLat(lngLat, altitude)
+  return { x: mercatorCoordinate.x, y: mercatorCoordinate.y, z: 10 }
+}
+
+const createNodes = (nodes, findCoordinates, findLngLat) => {
+  return nodes.map((n) => {
+    const nodeLocation = findCoordinates(n)
+    const geometry = new THREE.SphereGeometry(0.0025)
+    const material = new THREE.MeshBasicMaterial({ color: 0x0000ff })
+    const node = new THREE.Mesh(geometry, material)
+    node.position.set(nodeLocation.x, nodeLocation.y, 0.05)
+    node.userData = findLngLat(n)
+    return node
+  })
+}
+
+export const Node3D = memo(({ nodes, onClick = () => {} }) => {
+  const { current: map } = useMap()
+
+  // const handleMouseMove = (event) => {
+  //   if (map) {
+  //     const layer = map.getLayer('3d-node-layer')
+  //     if (layer) {
+  //       const { lngLat, point } = event
+  //       const { lng, lat } = lngLat
+  //       const { x, y } = point
+
+  //       // console.log('Screen', point)
+  //     }
+  //   }
+  // }
+
+  // useEffect(() => {
+  //   if (map) {
+  //     map.on('mousemove', handleMouseMove)
+  //     return () => map.off('mousemove', handleMouseMove)
+  //   }
+  // }, [map])
+
+  // const clickHandler = useRef()
+  // const hoverHandler = useRef()
+
+  useEffect(() => {
+    if (map) {
+      const layer = map.getLayer('3d-node-layer')
+      if (layer) {
+        layer.implementation.updateNodes(
+          createNodes(
+            nodes,
+            (n) => {
+              const coordinates = lngLatToXYZ(
+                map,
+                [n.geometry.coordinates[0], n.geometry.coordinates[1]],
+                n.geometry.coordinates[2]
+              )
+              return {
+                ...coordinates,
+                y: -coordinates.y,
+              }
+            },
+            (n) => {
+              return {
+                lng: n.geometry.coordinates[0],
+                lat: n.geometry.coordinates[1],
+              }
+            }
+          )
+        )
+      }
+    }
+  }, [nodes, map])
+
+  // useEffect(() => {
+  //   if (map) {
+  //     const layer = map.getLayer('3d-node-layer')
+  //     if (layer) {
+  //       layer.implementation.onClick = onClick
+  //     }
+  //   }
+  // }, [onClick, map])
+
+  // useEffect(() => {
+  //   return () => {
+  //     if (map) {
+  //       const canvas = map.getCanvas()
+  //       if (clickHandler.current) {
+  //         canvas.removeEventListener('click', clickHandler.current)
+  //       }
+  //       if (hoverHandler.current) {
+  //         canvas.removeEventListener('mousemove', hoverHandler.current)
+  //       }
+  //     }
+  //   }
+  // }, [map])
+
+  const customLayer = {
+    id: '3d-node-layer',
+    type: 'custom',
+    renderingMode: '3d',
+    highlightedId: -1,
+    oldColor: -1,
+    onClick,
+    onAdd: function (map, gl) {
+      this.camera = new THREE.PerspectiveCamera()
+      this.scene = new THREE.Scene()
+      this.map = map
+      this.nodes = createNodes(
+        nodes,
+        (n) => {
+          const coordinates = lngLatToXYZ(
+            this.map,
+            [n.geometry.coordinates[0], n.geometry.coordinates[1]],
+            n.geometry.coordinates[2]
+          )
+          return {
+            ...coordinates,
+            y: -coordinates.y,
+          }
+        },
+        (n) => {
+          return {
+            lng: n.geometry.coordinates[0],
+            lat: n.geometry.coordinates[1],
+          }
+        }
+      )
+      this.nodes.forEach((node) => this.scene.add(node))
+
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: map.getCanvas(),
+        context: gl,
+        antialias: true,
+      })
+      this.renderer.autoClear = false
+      this.raycaster = new THREE.Raycaster()
+      // this.raycaster.near = -1
+      // this.raycaster.far = 1e6
+
+      // clickHandler.current = (e) => this.raycast(e, true)
+      // hoverHandler.current = (e) => this.raycast(e, false)
+      // map.getCanvas().addEventListener('mousemove', hoverHandler.current, false)
+      // map.getCanvas().addEventListener('click', clickHandler.current, false)
+      map.moveLayer('3d-node-layer')
+    },
+    // onRemove: function () {
+    //   this.map
+    //     .getCanvas()
+    //     .removeEventListener('mousemove', hoverHandler.current)
+    //   this.map.getCanvas().removeEventListener('click', clickHandler.current)
+    // },
+    updateNodes: function (newNodes) {
+      this.scene.remove.apply(this.scene, this.scene.children)
+      this.nodes = createNodes(
+        newNodes,
+        (n) => n.position,
+        (n) => n.userData
+      )
+      this.nodes.forEach((node) => this.scene.add(node))
+    },
+    // raycast: function (e, click) {
+    //   // const layer = this
+    //   const point = { x: e.layerX, y: e.layerY }
+    //   const mouse = new THREE.Vector2()
+    //   mouse.x = (point.x / e.srcElement.width) * 2 - 1
+    //   mouse.y = 1 - (point.y / e.srcElement.height) * 2
+
+    //   const camInverseProjection = new THREE.Matrix4()
+    //     .copy(this.camera.projectionMatrix)
+    //     .invert()
+    //   const cameraPosition = new THREE.Vector3().applyMatrix4(
+    //     camInverseProjection
+    //   )
+    //   const mousePosition = new THREE.Vector3(mouse.x, mouse.y, 1).applyMatrix4(
+    //     camInverseProjection
+    //   )
+    //   const viewDirection = mousePosition
+    //     .clone()
+    //     .sub(cameraPosition)
+    //     .normalize()
+
+    //   this.raycaster.set(cameraPosition, viewDirection)
+
+    //   const intersects = this.raycaster.intersectObjects(this.nodes, true)
+    //   if (intersects.length) {
+    //     e.stopImmediatePropagation()
+    //     if (click) this.onClick(intersects[0].object.userData)
+    //   }
+    // },
+    render: function (gl, matrix) {
+      const m = new THREE.Matrix4().fromArray(matrix)
+      const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
+      const zoom = this.map.transform._zoom
+      const scale = 40 / Math.pow(2, zoom)
+      this.nodes.forEach((node) => {
+        // node.up = this.camera.up
+        node.scale.set(scale, scale, 1)
+        // const zAdjustment = (20 - zoom) * 0.006 // Example adjustment, tweak as needed
+        // console.log(zAdjustment)
+        // node.position.z = zAdjustment
+      })
+      this.camera.projectionMatrix = m.multiply(l)
+      this.renderer.resetState()
+      this.renderer.render(this.scene, this.camera)
+      this.map.triggerRepaint()
+    },
+  }
+
+  return <Layer {...customLayer} />
+})
