@@ -464,7 +464,7 @@ const VirtualKeyboard = () => {
           ],
           shift: [
             '{drag}',
-            '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
+            '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
             `{lock} A S D F G H J K L : " ${enterKeys}`,
             '{shift} Z X C V B N M < > ? {shift}',
@@ -480,7 +480,7 @@ const VirtualKeyboard = () => {
           ],
           shiftAndLock: [
             '{drag}',
-            '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
+            '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
             '{tab} q w e r t y u i o p [ ] \\',
             `{lock} a s d f g h j k l ; ' ${enterKeys}`,
             '{shift} z x c v b n m , . / {shift}',
@@ -506,7 +506,6 @@ const VirtualKeyboard = () => {
           '{toggleDefault}': 'ABC',
           '{space}': ' ',
           '{drag}': dragText,
-          '{@}': '@',
         }}
         buttonTheme={[
           {
@@ -519,7 +518,7 @@ const VirtualKeyboard = () => {
           },
           {
             class: 'smaller-keys',
-            buttons: '` 1 2 3 4 5 6 7 8 9 0 - = ~ ! {@} # $ % ^ & * ( ) _ +',
+            buttons: '` 1 2 3 4 5 6 7 8 9 0 - = ~ ! @ # $ % ^ & * ( ) _ +',
           },
           {
             class: 'drag',
