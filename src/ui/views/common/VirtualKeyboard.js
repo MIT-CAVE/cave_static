@@ -1,4 +1,4 @@
-import { Box } from '@mui/material'
+import { Box, Paper } from '@mui/material'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { IoMdResize } from 'react-icons/io'
 import { useDispatch, useSelector } from 'react-redux'
@@ -168,6 +168,11 @@ const VirtualKeyboard = () => {
   const isNumPad = useMemo(
     () => virtualKeyboard.layout === 'numPad',
     [virtualKeyboard.layout]
+  )
+
+  const enterKeys = useMemo(
+    () => (virtualKeyboard.isTextArea ? '[{enter} {blur}]' : '{blur}'),
+    [virtualKeyboard.isTextArea]
   )
 
   useEffect(() => {
@@ -358,6 +363,8 @@ const VirtualKeyboard = () => {
   return (
     <Box
       ref={boxRef}
+      component={Paper}
+      elevation={12}
       sx={{
         position: 'fixed',
         bottom: `${position.y}px`,
@@ -401,9 +408,24 @@ const VirtualKeyboard = () => {
         onKeyPress={(button) => {
           let nextLayout = virtualKeyboard.layout
 
-          if (button === '{shift}' || button === '{lock}') {
+          if (button === '{shift}') {
             nextLayout =
-              virtualKeyboard.layout === 'default' ? 'shift' : 'default'
+              virtualKeyboard.layout === 'default'
+                ? 'shift'
+                : virtualKeyboard.layout === 'lock'
+                  ? 'shiftAndLock'
+                  : virtualKeyboard.layout === 'shiftAndLock'
+                    ? 'lock'
+                    : 'default'
+          } else if (button === '{lock}') {
+            nextLayout =
+              virtualKeyboard.layout === 'default'
+                ? 'lock'
+                : virtualKeyboard.layout === 'shift'
+                  ? 'shiftAndLock'
+                  : virtualKeyboard.layout === 'shiftAndLock'
+                    ? 'shift'
+                    : 'default'
           } else if (button === '{toggleNumPad}') {
             nextLayout = 'numPad'
           } else if (button === '{toggleDefault}') {
@@ -411,11 +433,17 @@ const VirtualKeyboard = () => {
           } else if (button === '{blur}') {
             dispatch(setEnter(true))
           } else if (
-            prevButton === '{shift}' &&
+            // QUESTION: Do we really need to check `prevButton` here?
+            (prevButton === '{shift}' || prevButton === '{lock}') &&
             virtualKeyboard.layout === 'shift' &&
             button !== '{drag}'
           ) {
             nextLayout = 'default'
+          } else if (
+            virtualKeyboard.layout === 'shiftAndLock' &&
+            button !== '{drag}'
+          ) {
+            nextLayout = 'lock'
           }
 
           setTimeout(() => {
@@ -430,7 +458,7 @@ const VirtualKeyboard = () => {
             '{drag}',
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
             '{tab} q w e r t y u i o p [ ] \\',
-            `{lock} a s d f g h j k l ; ' ${virtualKeyboard.isTextArea ? '[{enter} {blur}]' : '{blur}'}`,
+            `{lock} a s d f g h j k l ; ' ${enterKeys}`,
             '{shift} z x c v b n m , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
           ],
@@ -438,8 +466,24 @@ const VirtualKeyboard = () => {
             '{drag}',
             '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
-            `{lock} A S D F G H J K L : " ${virtualKeyboard.isTextArea ? '[{enter} {blur}]' : '{blur}'}`,
+            `{lock} A S D F G H J K L : " ${enterKeys}`,
             '{shift} Z X C V B N M < > ? {shift}',
+            '{toggleNumPad} {space} {toggleNumPad}',
+          ],
+          lock: [
+            '{drag}',
+            '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
+            '{tab} Q W E R T Y U I O P { } |',
+            `{lock} A S D F G H J K L : " ${enterKeys}`,
+            '{shift} Z X C V B N M < > ? {shift}',
+            '{toggleNumPad} {space} {toggleNumPad}',
+          ],
+          shiftAndLock: [
+            '{drag}',
+            '~ ! {@} # $ % ^ & * ( ) _ + {bksp}',
+            '{tab} q w e r t y u i o p [ ] \\',
+            `{lock} a s d f g h j k l ; ' ${enterKeys}`,
+            '{shift} z x c v b n m , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
           ],
           numPad: [
@@ -481,6 +525,18 @@ const VirtualKeyboard = () => {
             class: 'drag',
             buttons: '{drag}',
           },
+          {
+            class: virtualKeyboard.layout === 'shift' ? 'highlight' : '',
+            buttons: '{shift}',
+          },
+          {
+            class: virtualKeyboard.layout === 'lock' ? 'highlight' : '',
+            buttons: '{lock}',
+          },
+          {
+            class: virtualKeyboard.layout === 'shiftAndLock' ? 'highlight' : '',
+            buttons: '{shift} {lock}',
+          },
         ]}
       />
     </Box>
@@ -491,27 +547,28 @@ export default VirtualKeyboard
 
 const styles = {
   '& .react-simple-keyboard': {
-    '--gray-1': 'rgb(130, 130, 130)',
-    '--gray-2': 'rgb(116, 116, 116)',
-    '--gray-3': 'rgb(105, 105, 105)',
-    'background-color': 'var(--gray-2)',
+    '--gray-1': (theme) => theme.palette.grey[600],
+    '--gray-2': (theme) => theme.palette.grey[700], // theme.palette.background.paper,
+    '--gray-3': (theme) => theme.palette.grey[800],
+    backgroundColor: 'var(--gray-2)',
     height: '100%',
   },
   '& .react-simple-keyboard .hg-rows': {
     display: 'flex',
-    'flex-direction': 'column',
-    'justify-content': 'space-between',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     height: '100%',
   },
   '& .react-simple-keyboard .hg-row': {
     flex: 1,
   },
   '& .react-simple-keyboard .hg-button': {
-    color: 'white',
-    'background-color': 'var(--gray-1)',
+    color: 'text.primary',
+    backgroundColor: 'var(--gray-1)',
     height: '100%',
-    'font-size': '1.5rem',
-    padding: '0',
+    fontSize: '1.25rem',
+    padding: 0,
+    boxShadow: (theme) => theme.shadows[12],
   },
   '& .react-simple-keyboard .hg-button.bigger-keys': {
     flex: 3,
@@ -524,9 +581,17 @@ const styles = {
     {
       flex: 1,
     },
+  '& .react-simple-keyboard .hg-button.highlight': {
+    backgroundColor: 'var(--gray-2)',
+    color: '#0f0',
+    // fontWeight: 800,
+  },
+  '& .react-simple-keyboard .hg-button.highlight:hover': {
+    backgroundColor: 'var(--gray-1)',
+  },
   '& .react-simple-keyboard .hg-button:hover': {
     cursor: 'pointer',
-    'background-color': 'var(--gray-2)',
+    backgroundColor: 'var(--gray-2)',
   },
   '& .react-simple-keyboard .hg-button.drag:hover': {
     cursor: 'grab',
@@ -535,6 +600,6 @@ const styles = {
     cursor: 'grabbing',
   },
   '& .react-simple-keyboard .hg-button:active': {
-    'background-color': 'var(--gray-3)',
+    backgroundColor: 'var(--gray-3)',
   },
 }
