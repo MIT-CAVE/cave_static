@@ -1,4 +1,5 @@
 import { Box, Button, Paper, Stack } from '@mui/material'
+import { darken, lighten, styled } from '@mui/material/styles'
 import {
   DataGrid,
   GRID_CHECKBOX_SELECTION_COL_DEF,
@@ -38,6 +39,36 @@ import { selectNumberFormatPropsFn } from '../../../data/selectors'
 import { OverflowText } from '../../compound'
 
 import { NumberFormat, mapIndexed, renameKeys } from '../../../utils'
+
+const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
+  '& .row-color-0': {
+    backgroundColor: theme.palette.background.paper,
+    '&.Mui-selected': {
+      backgroundColor: theme.palette.background.paper,
+    },
+    '&.Mui-selected:hover': {
+      backgroundColor: lighten(theme.palette.background.paper, 0.1),
+    },
+  },
+  '& .row-color-1': {
+    backgroundColor: darken(theme.palette.background.paper, 0.1),
+    '&.Mui-selected': {
+      backgroundColor: darken(theme.palette.background.paper, 0.1),
+    },
+    '&.Mui-selected:hover': {
+      backgroundColor: theme.palette.background.paper,
+    },
+  },
+  '& .row-color-2': {
+    backgroundColor: darken(theme.palette.background.paper, 0.2),
+    '&.Mui-selected': {
+      backgroundColor: darken(theme.palette.background.paper, 0.2),
+    },
+    '&.Mui-selected:hover': {
+      backgroundColor: darken(theme.palette.background.paper, 0.1),
+    },
+  },
+}))
 
 const styles = {
   addBtn: {
@@ -338,7 +369,7 @@ const GridFilter = ({
   // }
 
   const handleAddRow = useCallback(
-    (groupId) => {
+    (groupId, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
         isNew: true,
@@ -348,6 +379,7 @@ const GridFilter = ({
         source: '',
         relation: '',
         value: '',
+        depth: depth,
       }
       setRowModesModel(
         R.assoc(idCount, {
@@ -368,7 +400,7 @@ const GridFilter = ({
   )
 
   const handleAddGroup = useCallback(
-    (groupId, logic) => {
+    (groupId, logic, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
         isNew: true,
@@ -377,6 +409,7 @@ const GridFilter = ({
         groupId: groupIdCount,
         parentGroupId: groupId,
         logic: logic === 'and' ? 'or' : 'and',
+        depth: depth + 1,
       }
       const newRows = [
         ...rows.slice(0, index + 1),
@@ -663,12 +696,14 @@ const GridFilter = ({
                 <GridActionsCellItem
                   icon={<MdAddCircleOutline size="20px" />}
                   label="Add Rule"
-                  onClick={() => handleAddRow(row.groupId)}
+                  onClick={() => handleAddRow(row.groupId, row.depth)}
                 />,
                 <GridActionsCellItem
                   icon={<BiBracket size="20px" />}
                   label="Add Group"
-                  onClick={() => handleAddGroup(row.groupId, row.logic)}
+                  onClick={() =>
+                    handleAddGroup(row.groupId, row.logic, row.depth)
+                  }
                   sx={
                     id === 0
                       ? { marginRight: '-3px', marginLeft: '-10px' }
@@ -741,7 +776,7 @@ const GridFilter = ({
   return (
     <>
       <Paper sx={styles.content}>
-        <DataGrid
+        <StyledDataGrid
           {...{ apiRef, columns, rows, rowModesModel, processRowUpdate }}
           slots={{
             noRowsOverlay: () => (
@@ -759,6 +794,7 @@ const GridFilter = ({
           onRowEditStop={handleRowEditStop}
           onCellDoubleClick={handleCellDoubleClick}
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
+          getRowClassName={(params) => `row-color-${params.row.depth}`}
         />
         {/* {rows.length === 0 && (
           <Button
