@@ -183,12 +183,12 @@ const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
 const doesFeatureSatisfyGroup = (groupId, logic, filters, featureObj) => {
   const children = filters.filter((filt) => filt.parentGroupId === groupId)
   if (R.isEmpty(children)) return true
-  const filterResults = children.map((child) =>
-    R.propEq('type', 'rule', child)
+  const filterResults = children.map((child) => {
+    return child.type === 'rule'
       ? doesFeatureSatisfyFilter(child, featureObj)
       : doesFeatureSatisfyGroup(child.groupId, child.logic, filters, featureObj)
-  )
-  return R.equals('and', logic)
+  })
+  return logic === 'and'
     ? R.all(Boolean, filterResults)
     : R.any(Boolean, filterResults)
 }
