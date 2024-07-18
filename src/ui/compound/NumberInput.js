@@ -17,6 +17,31 @@ import {
 
 import { NumberFormat, getStatusIcon } from '../../utils'
 
+const shallowEqual = (object1, object2) => {
+  const keys1 = Object.keys(object1)
+  const keys2 = Object.keys(object2)
+
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+
+  for (let key of keys1) {
+    if (object1[key] !== object2[key]) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const removeUnits = (numberFormat) => {
+  // Here, units are excluded from `format` as
+  // they are rendered in the prop container
+  // eslint-disable-next-line no-unused-vars
+  const { unit, unitPlacement, ...rest } = numberFormat
+  return rest
+}
+
 const DELAY = 10
 const KEYBOARD_LAYOUT = 'numPad'
 
@@ -28,10 +53,7 @@ const NumberInput = ({
   max,
   placeholder,
   value: defaultValue,
-  // Here, units are excluded from `format` as
-  // they are rendered in the prop container
-  // eslint-disable-next-line no-unused-vars
-  numberFormat: { unit, unitPlacement, ...numberFormat },
+  numberFormat,
   onClickAway,
 }) => {
   const dispatch = useDispatch()
@@ -42,10 +64,23 @@ const NumberInput = ({
   const justBlurred = useRef(false)
   const selfChanged = useRef(false)
   const isTouchDragging = useRef(false)
+  // only changes when numberFormat's keys/values change
+  const [numberFormatMemo, setNumberFormatMemo] = useState(() =>
+    removeUnits(numberFormat)
+  )
   const [value, setValue] = useState(defaultValue)
   const [valueText, setValueText] = useState(
-    defaultValue == null ? '' : NumberFormat.format(defaultValue, numberFormat)
+    defaultValue == null
+      ? ''
+      : NumberFormat.format(defaultValue, numberFormatMemo)
   )
+
+  useEffect(() => {
+    const newNumberFormatMemo = removeUnits(numberFormat)
+    if (!shallowEqual(newNumberFormatMemo, numberFormatMemo)) {
+      setNumberFormatMemo(newNumberFormatMemo)
+    }
+  }, [numberFormat, numberFormatMemo])
 
   useEffect(() => {
     if (focused.current && virtualKeyboard.enter) {
@@ -86,7 +121,7 @@ const NumberInput = ({
         setValue(defaultValue) // Go back to default in case blur occurs prematurely
         setAllValues(rawValueText)
       } else {
-        const forceInt = numberFormat.precision === 0 // Decimals not allowed
+        const forceInt = numberFormatMemo.precision === 0 // Decimals not allowed
         const trailingZeros = R.pipe(
           R.match(zerosMatch),
           R.nth(1)
@@ -106,7 +141,13 @@ const NumberInput = ({
         )
       }
     },
-    [setAllValues, numberFormat.precision, validNaNs, zerosMatch, defaultValue]
+    [
+      setAllValues,
+      numberFormatMemo.precision,
+      validNaNs,
+      zerosMatch,
+      defaultValue,
+    ]
   )
 
   // Update this field's value when user types on virtual keyboard
@@ -166,18 +207,14 @@ const NumberInput = ({
 
   useEffect(() => {
     if (focused.current) return
-    if (justBlurred.current) {
-      justBlurred.current = false
-      return
-    }
 
     setValue(defaultValue)
     setValueText(
       defaultValue == null
         ? ''
-        : NumberFormat.format(defaultValue, numberFormat)
+        : NumberFormat.format(defaultValue, numberFormatMemo)
     )
-  }, [defaultValue, numberFormat, setValue, setValueText])
+  }, [defaultValue, numberFormatMemo])
 
   const syncCaretPosition = () => {
     if (inputRef.current.selectionStart === inputRef.current.selectionEnd) {
@@ -228,7 +265,7 @@ const NumberInput = ({
         focused.current = false
         const clampedVal = R.clamp(min, max, value)
         setValue(clampedVal)
-        setAllValues(NumberFormat.format(clampedVal, numberFormat))
+        setAllValues(NumberFormat.format(clampedVal, numberFormatMemo))
         if (clampedVal === defaultValue) return
 
         onClickAway(clampedVal)
