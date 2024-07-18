@@ -462,7 +462,7 @@ const GridFilter = ({
         type: 'singleSelect',
         renderCell: ({ row }) => {
           return row.id === 0 ? (
-            <Box>{row.logic.toUpperCase()}</Box>
+            <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
           ) : row.type === 'rule' ? (
             ''
           ) : (
