@@ -40,35 +40,27 @@ import { OverflowText } from '../../compound'
 
 import { NumberFormat, mapIndexed, renameKeys } from '../../../utils'
 
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-  '& .row-color-0': {
-    backgroundColor: theme.palette.background.paper,
-    '&.Mui-selected': {
-      backgroundColor: theme.palette.background.paper,
-    },
-    '&.Mui-selected:hover': {
-      backgroundColor: lighten(theme.palette.background.paper, 0.1),
-    },
-  },
-  '& .row-color-1': {
-    backgroundColor: darken(theme.palette.background.paper, 0.1),
-    '&.Mui-selected': {
-      backgroundColor: darken(theme.palette.background.paper, 0.1),
-    },
-    '&.Mui-selected:hover': {
-      backgroundColor: theme.palette.background.paper,
-    },
-  },
-  '& .row-color-2': {
-    backgroundColor: darken(theme.palette.background.paper, 0.2),
-    '&.Mui-selected': {
-      backgroundColor: darken(theme.palette.background.paper, 0.2),
-    },
-    '&.Mui-selected:hover': {
-      backgroundColor: darken(theme.palette.background.paper, 0.1),
-    },
-  },
-}))
+const StyledDataGrid = styled(DataGrid)(({ theme, maxDepth }) => {
+  return R.pipe(
+    R.range(0),
+    R.map((i) => {
+      const backgroundColor = darken(theme.palette.background.paper, i * 0.1)
+      const hoverColor = lighten(backgroundColor, 0.1)
+      return {
+        [`& .row-color-${i}`]: {
+          backgroundColor: backgroundColor,
+          '&.Mui-selected': {
+            backgroundColor: backgroundColor,
+          },
+          '&.Mui-selected:hover': {
+            backgroundColor: hoverColor,
+          },
+        },
+      }
+    }),
+    R.mergeAll
+  )(maxDepth + 1)
+})
 
 const styles = {
   addBtn: {
@@ -204,72 +196,12 @@ const GridFilter = ({
   onSave,
 }) => {
   const [filters, setFilters] = useState(defaultFilters)
-  // useEffect(() => {
-  //   console.log('filters', filters)
-  // }, [filters])
-  // useEffect(() => {
-  //   console.log('default filters', defaultFilters)
-  // }, [defaultFilters])
   const [idCount, setIdCount] = useState(0)
   const [groupIdCount, setGroupIdCount] = useState(1)
+  const [rows, setRows] = useState([])
   const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
   const [canSaveRow, setCanSaveRow] = useState({})
-
-  const [rows, setRows] = useState([
-    // {
-    //   id: 0,
-    //   type: 'group',
-    //   groupId: 0,
-    //   logic: 'or',
-    // },
-    // {
-    //   id: 1,
-    //   type: 'group',
-    //   groupId: 1,
-    //   parentGroupId: 0,
-    //   logic: 'and',
-    // },
-    // {
-    //   id: 2,
-    //   type: 'rule',
-    //   parentGroupId: 1,
-    //   source: 'numericPropExampleA',
-    //   relation: 'lt',
-    //   value: 71,
-    // },
-    // {
-    //   id: 3,
-    //   type: 'group',
-    //   groupId: 2,
-    //   parentGroupId: 1,
-    //   logic: 'or',
-    // },
-    // {
-    //   id: 4,
-    //   type: 'rule',
-    //   parentGroupId: 2,
-    //   source: 'numericPropExampleB',
-    //   relation: 'lt',
-    //   value: 0.1,
-    // },
-    // {
-    //   id: 5,
-    //   type: 'rule',
-    //   parentGroupId: 2,
-    //   source: 'numericPropExampleB',
-    //   relation: 'geq',
-    //   value: 0.9,
-    // },
-    // {
-    //   id: 6,
-    //   type: 'rule',
-    //   parentGroupId: 0,
-    //   source: 'selectorPropForColor',
-    //   relation: 'exc',
-    //   value: ['a'],
-    // },
-  ])
 
   const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
@@ -342,7 +274,6 @@ const GridFilter = ({
         const hasError =
           newCellProps.error ||
           R.pipe(
-            // We always ignore 'logic' field because edited 'rule' type rows do not have that field
             R.dissoc('logic'),
             R.values,
             R.any(isValueInvalid)
@@ -353,20 +284,6 @@ const GridFilter = ({
     },
     []
   )
-
-  // const handleAddFirstRow = () => {
-  //   setRows([
-  //     {
-  //       isNew: true,
-  //       id: 0,
-  //       type: 'group',
-  //       groupId: 0,
-  //       logic: 'or',
-  //     },
-  //   ])
-  //   setIdCount(idCount + 1)
-  //   setGroupIdCount(groupIdCount + 1)
-  // }
 
   const handleAddRow = useCallback(
     (groupId, depth) => {
@@ -766,11 +683,15 @@ const GridFilter = ({
       numberFormatProps,
       preProcessEditCellProps,
       rowModesModel,
-      // rows,
       sourceHeaderName,
       sourceValueOpts,
       sourceValueTypes,
     ]
+  )
+
+  const maxDepth = useMemo(
+    () => R.pipe(R.map(R.propOr(0, 'depth')), R.reduce(R.max, 0))(rows),
+    [rows]
   )
 
   return (
@@ -794,19 +715,9 @@ const GridFilter = ({
           onRowEditStop={handleRowEditStop}
           onCellDoubleClick={handleCellDoubleClick}
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
+          maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
         />
-        {/* {rows.length === 0 && (
-          <Button
-            fullWidth
-            size="medium"
-            sx={styles.addBtn}
-            startIcon={<MdAddCircleOutline />}
-            onClick={handleAddFirstRow}
-          >
-            Add a Constraint
-          </Button>
-        )} */}
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
