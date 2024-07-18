@@ -26,6 +26,7 @@ import {
   MdSave,
   MdOutlineCancel,
 } from 'react-icons/md'
+import { PiArrowElbowDownRight } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import EnhancedEditSingleSelect from './EnhancedEditSingleSelect'
@@ -456,13 +457,21 @@ const GridFilter = ({
         headerName: 'Logic',
         headerAlign: 'center',
         display: 'flex',
-        align: 'center',
         width: 90,
         editable: false,
         type: 'singleSelect',
-        valueOptions: ({ row }) => (row.type === 'rule' ? '' : ['and', 'or']),
-        getOptionLabel: (option) => option.toUpperCase(),
-        cellClassName: ({ row }) => (row.type === 'rule' ? 'hidden' : ''),
+        renderCell: ({ row }) => {
+          return row.id === 0 ? (
+            <Box>{row.logic.toUpperCase()}</Box>
+          ) : row.type === 'rule' ? (
+            ''
+          ) : (
+            <Box sx={{ paddingLeft: `${row.depth * 8}px`, display: 'flex' }}>
+              <PiArrowElbowDownRight style={{ marginRight: '3px' }} />
+              {row.logic.toUpperCase()}
+            </Box>
+          )
+        },
         preProcessEditCellProps,
       },
       GRID_CHECKBOX_SELECTION_COL_DEF,
