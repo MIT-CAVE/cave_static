@@ -61,7 +61,6 @@ const NumberInput = ({
 
   const focused = useRef(false)
   const inputRef = useRef(null)
-  const justBlurred = useRef(false)
   const selfChanged = useRef(false)
   const isTouchDragging = useRef(false)
   // only changes when numberFormat's keys/values change
@@ -269,7 +268,6 @@ const NumberInput = ({
         if (clampedVal === defaultValue) return
 
         onClickAway(clampedVal)
-        justBlurred.current = true
       }}
       onTouchStart={() => {
         if (!enabled) return
