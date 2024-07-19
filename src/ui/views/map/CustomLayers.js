@@ -268,41 +268,66 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   return <Layer {...customLayer} />
 })
 
-export const NodesWithZ = memo(({ nodes }) => {
+export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
   const { current: map } = useMap()
-  const layer = map.getLayer('3d-node-layer')
+  const layer = map.getLayer('nodes-with-altitude')
+  const canvas = map.getCanvas()
+  const clickHandler = useRef()
+  const hoverHandler = useRef()
   const prevNodes = useRef()
 
   // Converts geoJson nodes into Three.js nodes with altitude
   const createNodes = (nodes) => {
     return nodes.map((node) => {
       const nodeXYZ = MercatorCoordinate.fromLngLat(
-        [node.geometry.coordinates[0], node.geometry.coordinates[1]],
-        node.geometry.coordinates[2]
+        [
+          R.path(['geometry', 'coordinates', 0], node),
+          R.path(['geometry', 'coordinates', 1], node),
+        ],
+        R.path(['geometry', 'coordinates', 2], node)
       )
-      const spriteMaterial = new THREE.SpriteMaterial({ color: 0x0000ff })
+      const spriteMaterial = new THREE.SpriteMaterial({
+        color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], node),
+      })
       const nodeWithAltitude = new THREE.Sprite(spriteMaterial)
       nodeWithAltitude.position.set(nodeXYZ.x, -nodeXYZ.y, nodeXYZ.z)
       nodeWithAltitude.userData = {
-        lng: node.geometry.coordinates[0],
-        lat: node.geometry.coordinates[1],
+        cave_name: R.path(['properties', 'cave_name'], node),
+        cave_obj: R.path(['properties', 'cave_obj'], node),
       }
       return nodeWithAltitude
     })
   }
 
   useEffect(() => {
-    if (!layer) return
-
-    if (!R.equals(nodes, prevNodes.current))
+    if (layer && !R.equals(nodes, prevNodes.current)) {
       layer.implementation.updateNodes(createNodes(nodes))
-    else prevNodes.current = nodes
+      prevNodes.current = nodes
+    }
   }, [nodes, layer])
 
+  useEffect(() => {
+    if (layer) layer.implementation.onClick = onClick
+  }, [onClick, layer])
+
+  useEffect(
+    () => () => {
+      if (canvas) {
+        if (clickHandler.current)
+          canvas.removeEventListener('click', clickHandler.current)
+        if (hoverHandler.current)
+          canvas.removeEventListener('mousemove', hoverHandler.current)
+      }
+    },
+    [canvas]
+  )
+
   const customLayer = {
-    id: '3d-node-layer',
+    id: 'nodes-with-altitude',
     type: 'custom',
-    renderingMode: '3d',
+    highlightedId: -1,
+    oldColor: -1,
+    onClick,
     onAdd: function (map, gl) {
       this.camera = new THREE.PerspectiveCamera()
       this.scene = new THREE.Scene()
@@ -315,7 +340,92 @@ export const NodesWithZ = memo(({ nodes }) => {
         antialias: true,
       })
       this.renderer.autoClear = false
-      map.moveLayer('3d-node-layer')
+      this.raycaster = new THREE.Raycaster()
+      this.raycaster.near = -1
+      this.raycaster.far = 1e6
+
+      clickHandler.current = (e) => this.raycast(e, true)
+      hoverHandler.current = (e) => this.raycast(e, false)
+      map.getCanvas().addEventListener('mousemove', hoverHandler.current, false)
+      map.getCanvas().addEventListener('click', clickHandler.current, false)
+      map.moveLayer('nodes-with-altitude')
+    },
+    onRemove: function () {
+      this.map
+        .getCanvas()
+        .removeEventListener('mousemove', hoverHandler.current)
+      this.map.getCanvas().removeEventListener('click', clickHandler.current)
+    },
+    raycast: (e, click) => {
+      const layer =
+        map.getLayer('nodes-with-altitude') &&
+        map.getLayer('nodes-with-altitude').implementation
+      if (layer) {
+        const point = { x: e.layerX, y: e.layerY }
+        const mouse = new THREE.Vector2()
+        mouse.x = (point.x / e.srcElement.width) * 2 - 1
+        mouse.y = 1 - (point.y / e.srcElement.height) * 2
+        const camInverseProjection = new THREE.Matrix4()
+          .copy(layer.camera.projectionMatrix)
+          .invert()
+        const cameraPosition = new THREE.Vector3().applyMatrix4(
+          camInverseProjection
+        )
+        const mousePosition = new THREE.Vector3(
+          mouse.x,
+          mouse.y,
+          1
+        ).applyMatrix4(camInverseProjection)
+        const viewDirection = mousePosition
+          .clone()
+          .sub(cameraPosition)
+          .normalize()
+
+        layer.raycaster.camera = layer.camera
+        layer.raycaster.set(cameraPosition, viewDirection)
+
+        const intersects = layer.raycaster.intersectObjects(layer.nodes, true)
+        if (intersects && intersects.length) {
+          e.stopImmediatePropagation()
+          const event = new CustomEvent('clearHighlight')
+          document.dispatchEvent(event)
+          if (click) layer.onClick(intersects[0].object.userData)
+        }
+
+        if (!click) {
+          if (intersects.length) {
+            if (
+              layer.highlightedId !== intersects[0].object.userData.cave_name
+            ) {
+              if (layer.highlightedId !== -1) {
+                R.forEach((nodes) => {
+                  if (nodes.userData.cave_name === layer.highlightedId)
+                    nodes.material.color.set(layer.oldColor)
+                })(layer.nodes)
+              }
+              map.getCanvas().style.cursor = 'pointer'
+              layer.highlightedId = intersects[0].object.userData.cave_name
+              layer.oldColor = intersects[0].object.material.color.clone()
+              const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
+              const colorObj = new THREE.Color(
+                colorArr[0] / 255,
+                colorArr[1] / 255,
+                colorArr[2] / 255
+              )
+              R.forEach((nodes) => {
+                if (nodes.userData.cave_name === layer.highlightedId)
+                  nodes.material.color.set(colorObj)
+              })(layer.nodes)
+            }
+          } else if (layer.highlightedId !== -1) {
+            R.forEach((nodes) => {
+              if (nodes.userData.cave_name === layer.highlightedId)
+                nodes.material.color.set(layer.oldColor)
+            })(layer.nodes)
+            layer.highlightedId = -1
+          }
+        }
+      }
     },
     updateNodes: function (newNodes) {
       this.scene.remove.apply(this.scene, this.scene.children)
@@ -326,7 +436,7 @@ export const NodesWithZ = memo(({ nodes }) => {
       const m = new THREE.Matrix4().fromArray(matrix)
       const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
       const zoom = this.map.transform._zoom
-      const scale = 1 / Math.pow(2, zoom)
+      const scale = 0.1 / Math.pow(2, zoom)
       this.nodes.forEach((node) => node.scale.set(scale, scale, 1))
       this.camera.projectionMatrix = m.multiply(l)
       this.renderer.resetState()

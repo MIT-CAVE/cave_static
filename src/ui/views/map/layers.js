@@ -435,6 +435,9 @@ export const Geos = memo(({ mapId }) => {
 })
 
 export const Nodes = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
+
   const { current: map } = useMap()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const nodeGeoJson3D = nodeGeoJson.map((node) => {
@@ -452,41 +455,64 @@ export const Nodes = memo(({ mapId }) => {
   })
 
   return (
-    <>
-      <Source
-        id={layerId.NODE_ICON_LAYER}
-        key={layerId.NODE_ICON_LAYER}
-        type="geojson"
-        generateId={true}
-        data={{
-          type: 'FeatureCollection',
-          features: nodeGeoJson,
-        }}
-      >
-        {map.getProjection().name !== 'globe' || map.getZoom() >= 6 ? (
-          <NodesWithZ nodes={nodeGeoJson3D} />
-        ) : (
-          <Layer
-            id={layerId.NODE_ICON_LAYER}
-            key={layerId.NODE_ICON_LAYER}
-            type="symbol"
-            layout={{
-              'icon-image': ['get', 'icon'],
-              'icon-size': ['get', 'size'],
-              'icon-allow-overlap': true,
-            }}
-            paint={{
-              'icon-color': [
-                'case',
-                ['boolean', ['feature-state', 'hover'], false],
-                HIGHLIGHT_COLOR,
-                ['get', 'color'],
-              ],
-            }}
-          />
-        )}
-      </Source>
-    </>
+    <Source
+      id={layerId.NODE_ICON_LAYER}
+      key={layerId.NODE_ICON_LAYER}
+      type="geojson"
+      generateId={true}
+      data={{
+        type: 'FeatureCollection',
+        features: nodeGeoJson,
+      }}
+    >
+      {map.getProjection().name !== 'globe' || map.getZoom() >= 6 ? (
+        <NodesWithZ
+          nodes={nodeGeoJson3D}
+          onClick={({ cave_name, cave_obj: obj }) => {
+            const [type] = JSON.parse(cave_name)
+            dispatch(
+              mutateLocal({
+                path: ['panes', 'paneState', 'center'],
+                value: {
+                  open: {
+                    ...(obj || {}),
+                    feature: 'nodes',
+                    type: R.propOr(type, 'name')(obj),
+                    key: cave_name,
+                    mapId,
+                  },
+                  type: 'feature',
+                },
+                sync: !includesPath(R.values(sync), [
+                  'panes',
+                  'paneState',
+                  'center',
+                ]),
+              })
+            )
+          }}
+        />
+      ) : (
+        <Layer
+          id={layerId.NODE_ICON_LAYER}
+          key={layerId.NODE_ICON_LAYER}
+          type="symbol"
+          layout={{
+            'icon-image': ['get', 'icon'],
+            'icon-size': ['get', 'size'],
+            'icon-allow-overlap': true,
+          }}
+          paint={{
+            'icon-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              HIGHLIGHT_COLOR,
+              ['get', 'color'],
+            ],
+          }}
+        />
+      )}
+    </Source>
   )
 })
 export const Arcs = memo(({ mapId }) => {
