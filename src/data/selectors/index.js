@@ -128,6 +128,10 @@ export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
 )
+export const selectEditLayoutMode = createSelector(
+  selectLocalSettings,
+  R.propOr(false, 'editLayout')
+)
 export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'mirror', data)
 )
