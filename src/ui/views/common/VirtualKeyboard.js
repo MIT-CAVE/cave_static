@@ -175,6 +175,14 @@ const VirtualKeyboard = () => {
     [virtualKeyboard.isTextArea]
   )
 
+  const addHighlightClass = useCallback(
+    (layout, buttons) =>
+      virtualKeyboard.layout === layout
+        ? [{ class: 'highlight', buttons }]
+        : [],
+    [virtualKeyboard.layout]
+  )
+
   useEffect(() => {
     // Change width when layout is changed
     setBoxDimensions((prevDimensions) => ({
@@ -524,18 +532,9 @@ const VirtualKeyboard = () => {
             class: 'drag',
             buttons: '{drag}',
           },
-          {
-            class: virtualKeyboard.layout === 'shift' ? 'highlight' : '',
-            buttons: '{shift}',
-          },
-          {
-            class: virtualKeyboard.layout === 'lock' ? 'highlight' : '',
-            buttons: '{lock}',
-          },
-          {
-            class: virtualKeyboard.layout === 'shiftAndLock' ? 'highlight' : '',
-            buttons: '{shift} {lock}',
-          },
+          ...addHighlightClass('shift', '{shift}'),
+          ...addHighlightClass('lock', '{lock}'),
+          ...addHighlightClass('shiftAndLock', '{shift} {lock}'),
         ]}
       />
     </Box>
