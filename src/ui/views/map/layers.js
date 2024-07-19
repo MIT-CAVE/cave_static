@@ -1,9 +1,9 @@
 import * as R from 'ramda'
 import { useMemo, useEffect, useState, memo, useCallback } from 'react'
-import { Layer, Source } from 'react-map-gl'
+import { Layer, Source, useMap } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { ArcLayer3D, Node3D } from './CustomLayers'
+import { ArcLayer3D, NodesWithZ } from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -435,6 +435,7 @@ export const Geos = memo(({ mapId }) => {
 })
 
 export const Nodes = memo(({ mapId }) => {
+  const { current: map } = useMap()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const nodeGeoJson3D = nodeGeoJson.map((node) => {
     return {
@@ -444,7 +445,7 @@ export const Nodes = memo(({ mapId }) => {
         coordinates: [
           node.geometry.coordinates[0],
           node.geometry.coordinates[1],
-          0,
+          400000,
         ],
       },
     }
@@ -462,25 +463,28 @@ export const Nodes = memo(({ mapId }) => {
           features: nodeGeoJson,
         }}
       >
-        <Node3D nodes={nodeGeoJson3D} />
-        <Layer
-          id={layerId.NODE_ICON_LAYER}
-          key={layerId.NODE_ICON_LAYER}
-          type="symbol"
-          layout={{
-            'icon-image': ['get', 'icon'],
-            'icon-size': ['get', 'size'],
-            'icon-allow-overlap': true,
-          }}
-          paint={{
-            'icon-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              HIGHLIGHT_COLOR,
-              ['get', 'color'],
-            ],
-          }}
-        />
+        {map.getProjection().name !== 'globe' || map.getZoom() >= 6 ? (
+          <NodesWithZ nodes={nodeGeoJson3D} />
+        ) : (
+          <Layer
+            id={layerId.NODE_ICON_LAYER}
+            key={layerId.NODE_ICON_LAYER}
+            type="symbol"
+            layout={{
+              'icon-image': ['get', 'icon'],
+              'icon-size': ['get', 'size'],
+              'icon-allow-overlap': true,
+            }}
+            paint={{
+              'icon-color': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false],
+                HIGHLIGHT_COLOR,
+                ['get', 'color'],
+              ],
+            }}
+          />
+        )}
       </Source>
     </>
   )
