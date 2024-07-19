@@ -6,6 +6,7 @@ import {
   IconButton,
   Stack,
   TextField,
+  autocompleteClasses,
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
@@ -21,19 +22,21 @@ import OverflowText from './OverflowText'
 import SelectAccordion from './SelectAccordion'
 
 const styles = {
-  root: {
-    '.MuiAutocomplete-inputRoot': {
-      borderRadius: 0,
-      flex: '1 1 auto',
-      flexWrap: 'nowrap',
-    },
-    '.MuiAutocomplete-input': {
-      p: '0 !important',
-      minWidth: '0 !important',
-    },
-    '.MuiFormControl-root': {
-      height: '100%',
-    },
+  // [`.${autocompleteClasses.popperDisablePortal}`]: {
+  //   width: 'auto !important',
+  //   maxWidth: 'calc(100% - 32px)',
+  // },
+  [`.${autocompleteClasses.input}`]: {
+    p: '0 !important',
+    minWidth: '0 !important',
+  },
+  [`.${autocompleteClasses.inputRoot}`]: {
+    borderRadius: 0,
+    flex: '1 1 auto',
+    flexWrap: 'nowrap',
+  },
+  '.MuiFormControl-root': {
+    height: '100%',
   },
 }
 
@@ -73,10 +76,19 @@ const SelectAccordionList = ({
   )
 
   return (
-    <ClickAwayListener onClickAway={handleClickAway}>
+    <ClickAwayListener touchEvent={false} onClickAway={handleClickAway}>
       <Autocomplete
         {...{ disabled, open, options, ...props }}
-        sx={styles.root}
+        sx={styles}
+        slotProps={{
+          // Using the `popper` slot since `.MuiAutocomplete-popperDisablePortal` doesn't seem to work
+          popper: {
+            sx: {
+              width: 'auto !important',
+              maxWidth: 'calc(100% - 32px)',
+            },
+          },
+        }}
         multiple
         fullWidth
         disablePortal
@@ -166,6 +178,10 @@ const SelectAccordionList = ({
                 onDelete={() => {
                   onDeleteGroup(index)
                 }}
+                onClick={() => {
+                  setOpen(true)
+                  setSubOpen(R.assoc(index, true))
+                }}
               />
             )
           })
@@ -186,6 +202,7 @@ const SelectAccordionList = ({
                     </OverflowText>
                     {values.length < maxGrouping && (
                       <IconButton
+                        {...{ disabled }}
                         size="small"
                         sx={{ ml: 0.5 }}
                         onClick={onAddGroup}

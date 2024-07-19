@@ -23,6 +23,8 @@ const styles = {
     maxWidth: '300px',
     pr: 3,
     bgcolor: '#132a73',
+    color: 'text.primary',
+    border: 1,
     overflow: 'hidden',
     overflowWrap: 'break-word',
   },

@@ -1,16 +1,15 @@
 import { Container, Grid, Paper, Fab, CircularProgress } from '@mui/material'
 import * as R from 'ramda'
-import { lazy, Suspense, useCallback, useMemo } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import GridLayout from 'react-grid-layout'
 import { MdAdd } from 'react-icons/md'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import ChartMenu from './ChartMenu'
 import ChartToolbar from './ChartToolbar'
 import DashboardGlobalOutput from './DashboardGlobalOutputs'
 // import { Responsive as ResponsiveGridLayout } from "react-grid-layout"
 
-import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
   selectPageLayout,
@@ -22,7 +21,7 @@ import {
   selectShowToolbar,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { useFilter } from '../../../utils/hooks'
+import { useFilter, useMutateState } from '../../../utils/hooks'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
@@ -67,7 +66,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
   const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
 
   const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
 
@@ -76,60 +74,62 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const defaultFilters = R.propOr([], 'filters')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
+  const showNA = R.propOr(false, 'showNA')(chartObj)
 
   // Allow session_mutate to perform non-object value update
-  const handleShowToolbar = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path,
-        value: R.assoc('showToolbar', !showToolbar)(chartObj),
-        sync: !includesPath(R.values(sync), path),
-      })
-    )
-  }, [dispatch, showToolbar, sync, chartObj, path])
-
-  const handleToggleMaximize = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path,
-        value: R.assoc('maximized', !isMaximized)(chartObj),
-        sync: !includesPath(R.values(sync), path),
-      })
-    )
-  }, [chartObj, dispatch, isMaximized, path, sync])
-
-  const handleRemoveChart = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path: R.init(path),
-        value: R.remove(index, 1)(pageLayout),
-        sync: !includesPath(R.values(sync), R.init(path)),
-      })
-    )
-  }, [dispatch, pageLayout, sync, index, path])
-
-  const handleSaveFilters = useCallback(
-    (filters) => {
-      dispatch(
-        mutateLocal({
-          path,
-          value: R.assoc('filters', filters)(chartObj),
-          sync: !includesPath(R.values(sync), path),
-        })
-      )
-    },
-    [chartObj, dispatch, path, sync]
+  const handleShowToolbar = useMutateState(
+    () => ({
+      path,
+      value: R.assoc('showToolbar', !showToolbar)(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [showToolbar, sync, chartObj, path]
   )
 
-  const handleDefaultToZero = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path,
-        value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
-        sync: !includesPath(R.values(sync), path),
-      })
-    )
-  }, [chartObj, defaultToZero, dispatch, path, sync])
+  const handleToggleMaximize = useMutateState(
+    () => ({
+      path,
+      value: R.assoc('maximized', !isMaximized)(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [chartObj, isMaximized, path, sync]
+  )
+
+  const handleRemoveChart = useMutateState(
+    () => ({
+      path: R.init(path),
+      value: R.remove(index, 1)(pageLayout),
+      sync: !includesPath(R.values(sync), R.init(path)),
+    }),
+    [pageLayout, sync, index, path]
+  )
+
+  const handleSaveFilters = useMutateState(
+    (filters) => ({
+      path,
+      value: R.assoc('filters', filters)(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [chartObj, path, sync]
+  )
+
+  const handleDefaultToZero = useMutateState(
+    () => ({
+      path,
+      value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [chartObj, defaultToZero, path, sync]
+  )
+
+  const handleToggleShowNA = useMutateState(
+    () => ({
+      path,
+      value: R.assoc('showNA', !showNA)(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [chartObj, path, showNA, sync]
+  )
 
   const [statFilters, groupingFilters] = useMemo(
     () =>
@@ -199,6 +199,8 @@ const DashboardItem = ({ chartObj, index, path }) => {
               onShowToolbar={handleShowToolbar}
               defaultToZero={defaultToZero}
               onToggleDefaultToZero={handleDefaultToZero}
+              showNA={showNA}
+              onToggleShowNA={handleToggleShowNA}
               isGroupedOutput={vizType === 'groupedOutput'}
             />
           )}
@@ -226,7 +228,6 @@ const Dashboard = () => {
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const rightBar = useSelector(selectRightAppBarDisplay)
   const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
 
   const layoutPath = useMemo(
     () => ['pages', 'data', currentPage, 'pageLayout'],
@@ -238,15 +239,14 @@ const Dashboard = () => {
     [pageLayout]
   )
 
-  const handleAddChart = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path: layoutPath,
-        value: R.append(CHART_DEFAULTS)(pageLayout),
-        sync: !includesPath(R.values(sync), layoutPath),
-      })
-    )
-  }, [dispatch, pageLayout, layoutPath, sync])
+  const handleAddChart = useMutateState(
+    () => ({
+      path: layoutPath,
+      value: R.append(CHART_DEFAULTS)(pageLayout),
+      sync: !includesPath(R.values(sync), layoutPath),
+    }),
+    [pageLayout, layoutPath, sync]
+  )
 
   const emptyGridCells = R.pipe(
     R.length,

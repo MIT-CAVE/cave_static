@@ -8,7 +8,6 @@ import PropButton from '../../compound/PropButton'
 import {
   PropCheckbox,
   PropComboBox,
-  PropComboBoxMulti,
   PropContainer,
   PropDate,
   PropDateTime,
@@ -17,6 +16,10 @@ import {
   PropHStepper,
   PropHeadColumn,
   PropHeadRow,
+  PropIncSlider,
+  PropLatLngInput,
+  PropLatLngMap,
+  PropLatLngPath,
   PropNested,
   PropNumberField,
   PropNumberSlider,
@@ -65,12 +68,12 @@ const getNumberPropRenderFn = R.cond([
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
   [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.equals(propVariant.ICON_COMPACT), R.always(PropNumberIconCompact)],
+  [R.equals(propVariant.INCSLIDER), R.always(PropIncSlider)],
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
   [R.equals(propVariant.CHECKBOX), R.always(PropCheckbox)],
   [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
-  [R.equals(propVariant.COMBOBOX_MULTI), R.always(PropComboBoxMulti)],
   [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
   [R.equals(propVariant.HRADIO), R.always(PropHRadio)],
   [R.equals(propVariant.HSTEPPER), R.always(PropHStepper)],
@@ -91,7 +94,15 @@ const getHeaderPropRenderFn = R.cond([
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
   [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
   [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
+
   [R.T, invalidVariant('head')],
+])
+const getCoordinatePropRenderFn = R.cond([
+  [R.isNil, R.always(PropLatLngInput)],
+  [R.equals(propVariant.LATLNG_INPUT), R.always(PropLatLngInput)],
+  [R.equals(propVariant.LATLNG_MAP), R.always(PropLatLngMap)],
+  [R.equals(propVariant.LATLNG_PATH), R.always(PropLatLngPath)],
+  [R.T, invalidVariant('coordinate')],
 ])
 
 const getRendererFn = R.cond([
@@ -103,6 +114,7 @@ const getRendererFn = R.cond([
   [R.equals(propId.SELECTOR), R.always(getSelectorPropRenderFn)],
   [R.equals(propId.DATE), R.always(getDatePropRenderFn)],
   [R.equals(propId.HEAD), R.always(getHeaderPropRenderFn)],
+  [R.equals(propId.COORDINATE), R.always(getCoordinatePropRenderFn)],
   [
     R.T,
     (type) => {

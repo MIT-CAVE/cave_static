@@ -18,6 +18,9 @@ import {
   chartMaxGrouping,
   chartStatUses,
   chartVariant,
+  distributionTypes,
+  distributionYAxes,
+  distributionVariants,
 } from '../../../utils/enums'
 
 import {
@@ -38,6 +41,8 @@ import {
   forceArray,
 } from '../../../utils'
 
+// import { Slider } from '@mui/material'
+
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
@@ -46,6 +51,17 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+  const distributionType = R.propOr(
+    distributionTypes.PDF,
+    'distributionType',
+    chartObj
+  )
+  const distributionYAxis = R.propOr(
+    distributionYAxes.COUNTS,
+    'distributionYAxis',
+    chartObj
+  )
+  const distributionVariant = R.propOr('bar', 'distributionVariant', chartObj)
 
   const getGroupsById = (groupedOutputDataId) =>
     R.pipe(R.path([groupedOutputDataId, 'groupLists']), R.keys)(groupedOutputs)
@@ -214,6 +230,36 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
+  const handleSelectDistributionType = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('distributionType', value, chartObj),
+      })
+    )
+  }
+
+  const handleSelectYAxis = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('distributionYAxis', value, chartObj),
+      })
+    )
+  }
+
+  const handleSelectDistributionVariant = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('distributionVariant', value, chartObj),
+      })
+    )
+  }
+
   return (
     <>
       <ChartDropdownWrapper>
@@ -294,6 +340,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               label: 'Scatter',
               value: chartVariant.SCATTER,
               iconName: 'md/MdScatterPlot',
+            },
+            {
+              label: 'Distribution',
+              value: chartVariant.DISTRIBUTION,
+              iconName: 'md/MdBarChart',
             },
           ]}
           displayIcon
@@ -456,6 +507,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
       <ChartDropdownWrapper sx={{ minWidth: '152px' }}>
         <SelectAccordionList
+          disabled={chartObj.groupedOutputDataId == null}
           {...{ itemGroups }}
           values={R.pipe(
             R.props(['groupingId', 'groupingLevel']),
@@ -472,6 +524,69 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           onSelectGroup={handleSelectGroupFn}
         />
       </ChartDropdownWrapper>
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <ChartDropdownWrapper>
+          <Select
+            value={distributionType}
+            // displayIcon
+            optionsList={[
+              {
+                label: 'PDF',
+                value: distributionTypes.PDF,
+                // iconName: 'md/MdFunctions',
+              },
+              {
+                label: 'CDF',
+                value: distributionTypes.CDF,
+                // iconName: 'md/MdFunctions',
+              },
+            ]}
+            onSelect={handleSelectDistributionType}
+          />
+        </ChartDropdownWrapper>
+      )}
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <ChartDropdownWrapper>
+          <Select
+            value={distributionYAxis}
+            // displayIcon
+            optionsList={[
+              {
+                label: 'Density',
+                value: distributionYAxes.DENSITY,
+                iconName: 'md/MdPercent',
+              },
+              {
+                label: 'Counts',
+                value: distributionYAxes.COUNTS,
+                iconName: 'md/MdNumbers',
+              },
+            ]}
+            onSelect={handleSelectYAxis}
+          />
+        </ChartDropdownWrapper>
+      )}
+      {chartObj.variant === chartVariant.DISTRIBUTION && (
+        <ChartDropdownWrapper>
+          <Select
+            value={distributionVariant}
+            // displayIcon
+            optionsList={[
+              {
+                label: 'Bar',
+                value: distributionVariants.BAR,
+                iconName: 'md/MdBarChart',
+              },
+              {
+                label: 'Line',
+                value: distributionVariants.LINE,
+                iconName: 'md/MdShowChart',
+              },
+            ]}
+            onSelect={handleSelectDistributionVariant}
+          />
+        </ChartDropdownWrapper>
+      )}
     </>
   )
 }

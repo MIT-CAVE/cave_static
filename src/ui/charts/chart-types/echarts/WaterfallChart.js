@@ -66,6 +66,7 @@ const WaterfallChart = ({
   yAxisTitle,
   numberFormat,
   colors,
+  showNA,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -198,7 +199,32 @@ const WaterfallChart = ({
 
   const options = {
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      formatter: (params) =>
+        params.length === 1
+          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${params
+                  .map(({ marker, value }) =>
+                    R.isNil(value) && !showNA
+                      ? false
+                      : `<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
+                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                      </div>`
+                  )
+                  .filter(R.identity)
+                  .join('')}`
+          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ${params
+            .map(({ marker, seriesName, value }) =>
+              R.isNil(value) && !showNA
+                ? false
+                : `<div style="display: flex">
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
+                  <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                </div>`
+            )
+            .filter(R.identity)
+            .join('')}`,
     },
     xAxis: {
       name: xAxisTitle,
@@ -228,6 +254,7 @@ const StackedWaterfallChart = ({
   yAxisTitle,
   numberFormat,
   colors,
+  showNA,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -536,7 +563,32 @@ const StackedWaterfallChart = ({
       ],
     },
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      formatter: (params) =>
+        params.length === 3
+          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${params
+                  .map(({ marker, value }) =>
+                    R.isNil(value) && !showNA
+                      ? false
+                      : `<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
+                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                      </div>`
+                  )
+                  .filter(R.identity)
+                  .join('')}`
+          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ${params
+            .map(({ marker, seriesName, value, seriesType }) =>
+              R.isNil(value) && !showNA
+                ? false
+                : `<div style="display: flex">
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesType === 'graph' ? '' : seriesName}</div>
+                  <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                </div>`
+            )
+            .filter(R.identity)
+            .join('')}`,
     },
   }
 

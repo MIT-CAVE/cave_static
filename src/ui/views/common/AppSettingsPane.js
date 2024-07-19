@@ -10,12 +10,13 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
 import { toggleMirror } from '../../../data/local/settingsSlice'
 import {
+  selectCurrentTimeLength,
   selectData,
   selectDemoMode,
   selectGlobalOutputProps,
@@ -28,6 +29,7 @@ import {
   selectSyncToggles,
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
+import { useMutateState } from '../../../utils/hooks'
 
 import { InfoButton, List, OverflowText } from '../../compound'
 
@@ -248,21 +250,16 @@ const DraggableSwitch = ({ id, name }) => {
 const GlobalOutputsSwitch = () => {
   const draggable = useSelector(selectGlobalOutputsDraggable)
   const props = useSelector(selectGlobalOutputProps)
-  const dispatch = useDispatch()
 
-  const onSelect = useCallback(
-    (value) => {
-      dispatch(
-        mutateLocal({
-          path: ['globalOutputs', 'props'],
-          value: R.mapObjIndexed((prop, key) =>
-            R.assoc('draggable', R.includes(key)(value))(prop)
-          )(props),
-          sync: false,
-        })
-      )
-    },
-    [dispatch, props]
+  const onSelect = useMutateState(
+    (value) => ({
+      path: ['globalOutputs', 'props'],
+      value: R.mapObjIndexed((prop, key) =>
+        R.assoc('draggable', R.includes(key)(value))(prop)
+      )(props),
+      sync: false,
+    }),
+    [props]
   )
   return (
     <>
@@ -288,6 +285,7 @@ const GlobalOutputsSwitch = () => {
 const AppSettingsPane = () => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
+  const timeLength = useSelector(selectCurrentTimeLength)
   const syncToggles = useSelector(selectSyncToggles)
   const sync = useSelector(selectSync)
 
@@ -310,7 +308,9 @@ const AppSettingsPane = () => {
               id={draggableId.GLOBAL_OUTPUTS}
               name="Global Outputs"
             />
-            <DraggableSwitch id={draggableId.TIME} name="Time Control" />
+            {timeLength > 0 && (
+              <DraggableSwitch id={draggableId.TIME} name="Time Control" />
+            )}
           </FormGroup>
         </FormControl>
       </FieldContainer>

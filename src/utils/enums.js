@@ -36,6 +36,7 @@ export const propId = {
   SELECTOR: 'selector',
   DATE: 'date',
   HEAD: 'head',
+  COORDINATE: 'coordinate',
 }
 
 export const propVariant = {
@@ -49,6 +50,10 @@ export const propVariant = {
   FIELD: 'field',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
+  INCSLIDER: 'incslider',
+  LATLNG_INPUT: 'latLngInput',
+  LATLNG_MAP: 'latLngMap',
+  LATLNG_PATH: 'latLngPath',
   NESTED: 'nested',
   PICTURE: 'picture',
   RADIO: 'radio',
@@ -130,6 +135,7 @@ export const chartVariant = {
   GAUGE: 'gauge',
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
+  DISTRIBUTION: 'distribution',
   OVERVIEW: 'overview',
 }
 
@@ -157,6 +163,7 @@ export const chartMaxGrouping = {
   [chartVariant.GAUGE]: 1,
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
+  [chartVariant.DISTRIBUTION]: 2,
 }
 
 // Stat limits for multistat charts
@@ -191,4 +198,19 @@ export const displayOptions = {
   E_LOWER_PLUS: 'e+',
   X10: 'x10^',
   X10_PLUS: 'x10^+',
+}
+
+export const distributionTypes = {
+  PDF: 'pdf',
+  CDF: 'cdf',
+}
+
+export const distributionYAxes = {
+  COUNTS: 'counts',
+  DENSITY: 'density',
+}
+
+export const distributionVariants = {
+  BAR: 'bar',
+  LINE: 'line',
 }

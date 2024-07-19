@@ -26,6 +26,7 @@ const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
   const checkedFalse = useRef(false)
   const parent = useRef(null)
   const node = useRef(null)
+  const width = useRef(null)
 
   const checkOverflow = useCallback((node) => {
     if (node === null) return
@@ -42,6 +43,9 @@ const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
   // This useEffect is needed to check if the text is overflowing.
   useEffect(() => {
     // if the non-scrolling text isn't rendered, try and see if it overflows
+    if (isOverflowing === false) {
+      width.current = node.current.offsetWidth
+    }
     if (node.current.scrollWidth === 0) {
       if (!checkedFalse.current) {
         // we only need to try once so keep track of that here
@@ -62,7 +66,10 @@ const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
         gradient={false}
         pauseOnHover
         {...{ speed }}
-        style={{ display: isOverflowing ? '' : 'none' }}
+        style={{
+          display: isOverflowing ? '' : 'none',
+          width: width.current,
+        }}
       >
         <Box sx={styles.marqueeContent}>{children || text}</Box>
       </Marquee>

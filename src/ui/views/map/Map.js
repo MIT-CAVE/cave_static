@@ -31,6 +31,7 @@ import {
   selectMapData,
   selectAllNodeIcons,
   selectSync,
+  selectIsMapboxTokenProvided,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, ICON_RESOLUTION } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -53,16 +54,17 @@ const Map = ({ mapboxToken, mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
+  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const sync = useSelector(selectSync)
   const [iconData, setIconData] = useState({})
   const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
   const mapExists = R.has(mapId, mapData)
 
-  const isMapboxTokenProvided = R.isNotNil(mapboxToken) && mapboxToken !== ''
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   const mapRef = useRef(false)
   const highlight = useRef(null)
+  const fogTimeout = useRef(null)
 
   const demoInterval = useRef(-1)
   useEffect(() => {
@@ -109,6 +111,21 @@ const Map = ({ mapboxToken, mapId }) => {
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 
+  const loadFog = useCallback(() => {
+    if (mapRef.current && mapRef.current.isStyleLoaded()) {
+      const map = mapRef.current.getMap()
+      map.setFog(
+        R.pathOr(getDefaultFog(), [
+          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+          'fog',
+        ])(mapStyleOptions)
+      )
+      fogTimeout.current = null
+    } else {
+      fogTimeout.current = setTimeout(loadFog, 100)
+    }
+  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions])
+
   const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
@@ -119,7 +136,11 @@ const Map = ({ mapboxToken, mapId }) => {
 
   useEffect(() => {
     loadIconsToStyle()
-  }, [iconData, loadIconsToStyle])
+    loadFog()
+    return () => {
+      if (fogTimeout.current) clearTimeout(fogTimeout.current)
+    }
+  }, [iconData, loadFog, loadIconsToStyle])
 
   const getFeatureFromEvent = useCallback(
     (e) => {
@@ -297,8 +318,10 @@ const Map = ({ mapboxToken, mapId }) => {
         ref={mapRef}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
+        // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
+        // Checking if token is provided to prevents both issues
         onRender={() => {
-          mapRef.current && mapRef.current.resize()
+          isMapboxTokenProvided && mapRef.current && mapRef.current.resize()
         }}
       >
         <Geos mapId={mapId} />

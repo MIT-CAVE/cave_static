@@ -1,20 +1,20 @@
 import { Badge, Grid, IconButton } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback } from 'react'
+import { memo } from 'react'
 import { FaFilter } from 'react-icons/fa'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
 import GlobalOutputsToolbar from './GlobalOutputsToolbar'
 import GroupedOutputsToolbar from './GroupedOutputsToolbar'
 import MapToolbar from './MapToolbar'
 
-import { mutateLocal } from '../../../data/local'
 import {
   selectDashboardLockedLayout,
   selectSync,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
+import { useMutateState } from '../../../utils/hooks'
 
 import { Select } from '../../compound'
 
@@ -45,44 +45,39 @@ const ChartToolbar = ({
 }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
 
-  const handleSelectVizType = useCallback(
-    (value) => {
-      dispatch(
-        mutateLocal({
-          path,
-          value: R.pipe(
-            R.assoc('type', value),
-            // If the new selected `vizType` doesn't support the current
-            // chart variant chosen, switch to a 'table' variant.
-            R.when(
-              R.either(
-                R.both(
-                  R.always(value === 'groupedOutput'),
-                  R.propEq(chartVariant.OVERVIEW, 'variant')
-                ),
-                R.both(
-                  R.always(value === 'globalOutput'),
-                  R.pipe(
-                    R.prop('variant'),
-                    R.flip(R.includes)([
-                      chartVariant.BAR,
-                      chartVariant.LINE,
-                      chartVariant.TABLE,
-                    ]),
-                    R.not
-                  )
-                )
-              ),
-              R.assoc('variant', chartVariant.TABLE)
+  const handleSelectVizType = useMutateState(
+    (value) => ({
+      path,
+      value: R.pipe(
+        R.assoc('type', value),
+        // If the new selected `vizType` doesn't support the current
+        // chart variant chosen, switch to a 'table' variant.
+        R.when(
+          R.either(
+            R.both(
+              R.always(value === 'groupedOutput'),
+              R.propEq(chartVariant.OVERVIEW, 'variant')
+            ),
+            R.both(
+              R.always(value === 'globalOutput'),
+              R.pipe(
+                R.prop('variant'),
+                R.flip(R.includes)([
+                  chartVariant.BAR,
+                  chartVariant.LINE,
+                  chartVariant.TABLE,
+                ]),
+                R.not
+              )
             )
-          )(chartObj),
-          sync: !includesPath(R.values(sync), path),
-        })
-      )
-    },
-    [dispatch, sync, chartObj, path]
+          ),
+          R.assoc('variant', chartVariant.TABLE)
+        )
+      )(chartObj),
+      sync: !includesPath(R.values(sync), path),
+    }),
+    [sync, chartObj, path]
   )
 
   return (

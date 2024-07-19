@@ -190,7 +190,7 @@ const getMinLabel = (valRange, numberFormat, group) =>
 const getMaxLabel = (valRange, numberFormat, group) =>
   getMinMaxLabel(valRange, numberFormat, group, 'max', 'legendMaxLabel')
 
-const CategoricalItems = ({
+const CategoricalColorItems = ({
   colorRange,
   getLabel = capitalize,
   mapId,
@@ -253,6 +253,87 @@ const CategoricalItems = ({
               </Stack>
             ),
             colorRange
+          )
+        )}
+      </Stack>
+    </OverflowText>
+  )
+}
+
+const CategoricalSizeItems = ({
+  sizeRange,
+  getLabel = capitalize,
+  icon,
+  iconPath,
+  sizePath,
+  geometryType,
+}) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
+  return (
+    <OverflowText sx={{ width: '100%' }}>
+      <Stack
+        direction="row"
+        spacing={3}
+        justifyContent="center"
+        alignItems={'flex-end'}
+      >
+        {R.values(
+          R.mapObjIndexed(
+            (val, key) => (
+              <Stack alignItems="center" key={key}>
+                <StableTooltip
+                  enabled={geometryType === 'nodes'}
+                  title={
+                    <IconPicker
+                      onSelect={(iconName) => {
+                        dispatch(
+                          mutateLocal({
+                            path: iconPath,
+                            sync: !includesPath(R.values(sync), iconPath),
+                            value: iconName,
+                          })
+                        )
+                      }}
+                    />
+                  }
+                >
+                  <Grid
+                    item
+                    container
+                    alignItems="center"
+                    justifyContent={'center'}
+                    xs={4}
+                  >
+                    <Grid item>
+                      {addExtraProps(icon, {
+                        css: {
+                          width: val,
+                          height: val,
+                        },
+                      })}
+                    </Grid>
+                  </Grid>
+                </StableTooltip>
+                <div>
+                  <SizePickerTooltip
+                    value={parseFloat(val)}
+                    onSelect={(newSize) => {
+                      dispatch(
+                        mutateLocal({
+                          path: [...sizePath, key],
+                          sync: !includesPath(R.values(sync), sizePath),
+                          value: newSize,
+                        })
+                      )
+                    }}
+                  >
+                    <div>{getLabel(key)}</div>
+                  </SizePickerTooltip>
+                </div>
+              </Stack>
+            ),
+            sizeRange
           )
         )}
       </Stack>
@@ -420,6 +501,7 @@ const MapLegendSizeBySection = ({
   legendGroupId,
   legendObj,
   mapId,
+  getCategoryName,
 }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
@@ -441,6 +523,9 @@ const MapLegendSizeBySection = ({
   const iconPath = R.append('icon')(typePath)
   const startSizePath = [...typePath, 'sizeByOptions', sizeProp, 'startSize']
   const endSizePath = [...typePath, 'sizeByOptions', sizeProp, 'endSize']
+  const propSizePath = [...typePath, 'sizeByOptions', sizeProp]
+
+  const isCategorical = !R.has('min', sizeRange)
 
   return (
     <>
@@ -480,94 +565,110 @@ const MapLegendSizeBySection = ({
       </Grid>
 
       {/* Second row: Size icons with value range */}
-      <Grid item container alignItems="center" justifyContent="center" xs={12}>
-        <SizePickerTooltip
-          value={parseFloat(R.prop('startSize')(sizeRange))}
-          onSelect={(newSize) => {
-            dispatch(
-              mutateLocal({
-                path: startSizePath,
-                sync: !includesPath(R.values(sync), startSizePath),
-                value: newSize,
-              })
-            )
-          }}
+      {isCategorical ? (
+        <CategoricalSizeItems
+          sizeRange={sizeRange}
+          getLabel={getCategoryName}
+          icon={icon}
+          iconPath={iconPath}
+          sizePath={propSizePath}
+          geometryType={geometryName}
+        />
+      ) : (
+        <Grid
+          item
+          container
+          alignItems="center"
+          justifyContent="center"
+          xs={12}
         >
-          <Grid
-            item
-            sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
-            xs={3.5}
+          <SizePickerTooltip
+            value={parseFloat(R.prop('startSize')(sizeRange))}
+            onSelect={(newSize) => {
+              dispatch(
+                mutateLocal({
+                  path: startSizePath,
+                  sync: !includesPath(R.values(sync), startSizePath),
+                  value: newSize,
+                })
+              )
+            }}
           >
-            <OverflowText
-              text={getMinLabel(valueRange, numberFormatProps, group)}
-            />
-          </Grid>
-        </SizePickerTooltip>
-        <StableTooltip
-          enabled={geometryName === 'nodes'}
-          title={
-            <IconPicker
-              onSelect={(iconName) => {
-                dispatch(
-                  mutateLocal({
-                    path: iconPath,
-                    sync: !includesPath(R.values(sync), iconPath),
-                    value: iconName,
-                  })
-                )
-              }}
-            />
-          }
-        >
-          <Grid
-            item
-            container
-            alignItems="center"
-            justifyContent={'center'}
-            xs={4}
-          >
-            <Grid item sx={{ pr: 0.75 }}>
-              {addExtraProps(icon, {
-                css: {
-                  width: R.prop('startSize')(sizeRange),
-                  height: R.prop('startSize')(sizeRange),
-                },
-              })}
+            <Grid
+              item
+              sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
+              xs={3.5}
+            >
+              <OverflowText
+                text={getMinLabel(valueRange, numberFormatProps, group)}
+              />
             </Grid>
-            <Grid item sx={{ pl: 0.75 }}>
-              {addExtraProps(icon, {
-                css: {
-                  width: R.prop('endSize')(sizeRange),
-                  height: R.prop('endSize')(sizeRange),
-                },
-              })}
-            </Grid>
-          </Grid>
-        </StableTooltip>
-        <SizePickerTooltip
-          value={parseFloat(R.prop('endSize')(sizeRange))}
-          onSelect={(newSize) => {
-            dispatch(
-              mutateLocal({
-                path: endSizePath,
-                sync: !includesPath(R.values(sync), endSizePath),
-                value: newSize,
-              })
-            )
-          }}
-        >
-          <Grid
-            item
-            sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
-            xs={3.5}
+          </SizePickerTooltip>
+          <StableTooltip
+            enabled={geometryName === 'nodes'}
+            title={
+              <IconPicker
+                onSelect={(iconName) => {
+                  dispatch(
+                    mutateLocal({
+                      path: iconPath,
+                      sync: !includesPath(R.values(sync), iconPath),
+                      value: iconName,
+                    })
+                  )
+                }}
+              />
+            }
           >
-            <OverflowText
-              text={getMaxLabel(valueRange, numberFormatProps, group)}
-            />
-          </Grid>
-        </SizePickerTooltip>
-      </Grid>
-
+            <Grid
+              item
+              container
+              alignItems="center"
+              justifyContent={'center'}
+              xs={4}
+            >
+              <Grid item sx={{ pr: 0.75 }}>
+                {addExtraProps(icon, {
+                  css: {
+                    width: R.prop('startSize')(sizeRange),
+                    height: R.prop('startSize')(sizeRange),
+                  },
+                })}
+              </Grid>
+              <Grid item sx={{ pl: 0.75 }}>
+                {addExtraProps(icon, {
+                  css: {
+                    width: R.prop('endSize')(sizeRange),
+                    height: R.prop('endSize')(sizeRange),
+                  },
+                })}
+              </Grid>
+            </Grid>
+          </StableTooltip>
+          <SizePickerTooltip
+            value={parseFloat(R.prop('endSize')(sizeRange))}
+            onSelect={(newSize) => {
+              dispatch(
+                mutateLocal({
+                  path: endSizePath,
+                  sync: !includesPath(R.values(sync), endSizePath),
+                  value: newSize,
+                })
+              )
+            }}
+          >
+            <Grid
+              item
+              sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
+              xs={3.5}
+            >
+              <OverflowText
+                text={getMaxLabel(valueRange, numberFormatProps, group)}
+              />
+            </Grid>
+          </SizePickerTooltip>
+        </Grid>
+      )}
       {/* Third row: Clustering functions */}
       {group && (
         <GroupCalcDropdown
@@ -645,7 +746,7 @@ const MapLegendColorBySection = ({
       {/* Second row: Color gradient for value range */}
       <Grid item container alignItems="center" justifyContent="center" xs={12}>
         {isCategorical ? (
-          <CategoricalItems
+          <CategoricalColorItems
             getLabel={getCategoryName}
             propId={colorProp}
             {...{ colorRange, geometryType, legendGroupId, mapId }}
@@ -793,7 +894,11 @@ const MapLegendGeoToggle = ({
   }
 
   return (
-    <details key={geoType} css={nonSx.typeWrapper} open>
+    <details
+      key={geoType}
+      css={nonSx.typeWrapper}
+      open={eitherBoolOrNotNull(displayedGeos[geoType])}
+    >
       <summary css={nonSx.itemSummary}>
         <MapLegendGroupRowToggleLayer
           icon={<FetchedIcon iconName={R.prop('icon', legendObj)} />}
@@ -841,7 +946,7 @@ const MapLegendGeoToggle = ({
 
         <Grid item container xs={12}>
           {isCategorical ? (
-            <CategoricalItems
+            <CategoricalColorItems
               getLabel={getGeoCategoryName}
               geometryName="geos"
               geometryType={geoType}
@@ -1060,15 +1165,17 @@ const LegendCard = memo(
       )
     }
 
+    const isOpen = eitherBoolOrNotNull(displayedGeometry[geometryType])
+
     return (
-      <details key={geometryType} css={nonSx.typeWrapper} open>
+      <details key={geometryType} css={nonSx.typeWrapper} open={isOpen}>
         <summary css={nonSx.itemSummary}>
           <MapLegendGroupRowToggleLayer
             icon={<FetchedIcon iconName={icon} />}
             legendName={R.propOr(geometryType, 'name')(typeObj)}
             toggle={
               <Switch
-                checked={eitherBoolOrNotNull(displayedGeometry[geometryType])}
+                checked={isOpen}
                 onChange={(event) => {
                   event.target.checked
                     ? dispatch(
@@ -1138,6 +1245,7 @@ const LegendCard = memo(
               valueRange={group && sizeDomain ? sizeDomain : sizeRange}
               icon={<FetchedIcon iconName={icon} />}
               getPropName={getGeometryPropName}
+              getCategoryName={getGeometryCategoryName}
               syncPath={R.append('sizeBy')(basePath)}
               propValue={groupCalcBySize}
               onSelectProp={(value) => {
