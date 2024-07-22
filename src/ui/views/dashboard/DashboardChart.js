@@ -339,7 +339,7 @@ const DashboardChart = ({ chartObj }) => {
           {...{ colors, numberFormat }}
         />
       ) : cleanedChartObj.variant === chartVariant.MIXED ? (
-        <MixedChart data={formattedData} />
+        <MixedChart data={formattedData} {...{ labelProps }} />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
