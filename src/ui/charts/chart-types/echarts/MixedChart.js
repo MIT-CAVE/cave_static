@@ -50,13 +50,13 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       return {
         series: R.flatten([
           subGroups.map((sg) => ({
-            name: `${lineLabel}: ${sg.name}`,
+            name: `${R.replace(/\s*\[.*?\]/g, '')(lineLabel)}: ${sg.name}`,
             type: variantType[leftVariant],
             data: sg.lineData,
             yAxisIndex: 0,
           })),
           subGroups.map((sg) => ({
-            name: `${barLabel}: ${sg.name}`,
+            name: `${R.replace(/\s*\[.*?\]/g, '')(barLabel)}: ${sg.name}`,
             type: variantType[rightVariant],
             data: sg.barData,
             yAxisIndex: 1,
@@ -70,13 +70,13 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       return {
         series: [
           {
-            name: lineLabel,
+            name: R.replace(/\s*\[.*?\]/g, '')(lineLabel),
             type: variantType[leftVariant],
             data: lineData,
             yAxisIndex: 0,
           },
           {
-            name: barLabel,
+            name: R.replace(/\s*\[.*?\]/g, '')(barLabel),
             type: variantType[rightVariant],
             data: barData,
             yAxisIndex: 1,
