@@ -260,6 +260,19 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
+  const handleSelectMixedVariants = (index, value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value:
+          index === 0
+            ? R.assoc('leftVariant', value.toLowerCase(), chartObj)
+            : R.assoc('rightVariant', value.toLowerCase(), chartObj),
+      })
+    )
+  }
+
   return (
     <>
       <ChartDropdownWrapper>
@@ -509,7 +522,49 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           />
         )}
       </ChartDropdownWrapper>
-
+      {chartObj.variant === chartVariant.MIXED && (
+        <ChartDropdownWrapper>
+          <SelectMultiAccordion
+            itemGroups={{
+              undefined: mapIndexed((_, idx) => ({
+                id: idx,
+                layoutDirection: 'vertical',
+                subItems: ['Bar', 'Stacked Bar', 'Line', 'Cumulative Line'],
+                //   'Area',
+                //   'Stacked Area',
+                //   'Waterfall',
+                //   'Stacked Waterfall',
+                //   'Box Plot',
+                //   'Heatmap',
+                // ],
+              }))(chartStatUses[chartObj.variant]),
+            }}
+            values={[
+              R.propOr('', 'leftVariant', chartObj),
+              R.propOr('', 'rightVariant', chartObj),
+            ]}
+            header="Select Chart Types"
+            getLabel={(idx) => {
+              const use = chartStatUses[chartObj.variant][idx]
+              const currentVariants = [
+                R.propOr('', 'leftVariant', chartObj),
+                R.propOr('', 'rightVariant', chartObj),
+              ]
+              const capitalizedVariants = {
+                bar: 'Bar',
+                'stacked bar': 'Stacked Bar',
+                line: 'Line',
+                'cumulative line': 'Cumulative Line',
+              }
+              return currentVariants
+                ? `${use}: ${capitalizedVariants[currentVariants[idx]]}`
+                : use
+            }}
+            getSubLabel={(_, chartType) => chartType}
+            onSelect={handleSelectMixedVariants}
+          />
+        </ChartDropdownWrapper>
+      )}
       <ChartDropdownWrapper sx={{ minWidth: '152px' }}>
         <SelectAccordionList
           disabled={chartObj.groupedOutputDataId == null}

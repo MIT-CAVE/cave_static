@@ -172,7 +172,7 @@ export const chartMaxGrouping = {
 export const chartStatUses = {
   [chartVariant.TABLE]: [],
   [chartVariant.SCATTER]: ['X Axis', 'Y Axis', 'Size (Optional)'],
-  [chartVariant.MIXED]: ['Line', 'Bar'],
+  [chartVariant.MIXED]: ['Left', 'Right'],
 }
 
 export const unitPlacements = {

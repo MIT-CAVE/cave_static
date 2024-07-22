@@ -7,10 +7,9 @@ const MixedChart = ({ data, labelProps }) => {
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
   const labels = R.pluck('label')(labelProps)
-  const [xAxisLabel, lineLabel, barLabel] = R.pipe(
-    R.map(R.replace(/\s*\[.*?\]/g, '')),
-    hasSubgroups ? R.props([0, 2, 3]) : R.take(3)
-  )(labels)
+  const [xAxisLabel, lineLabel, barLabel] = hasSubgroups
+    ? R.props([0, 2, 3])(labels)
+    : R.take(3)(labels)
 
   const series = useMemo(() => {
     if (hasSubgroups) {
