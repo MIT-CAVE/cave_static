@@ -260,6 +260,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
+  console.log('group id', chartObj.groupedOutputDataId)
+
   return (
     <>
       <ChartDropdownWrapper>
