@@ -1,12 +1,16 @@
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
-import { memo, useEffect, useRef } from 'react'
+import { memo, useState, useEffect, useRef, useCallback } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { MdDownloading } from 'react-icons/md'
 import { Layer, useMap } from 'react-map-gl'
+import { useSelector } from 'react-redux'
 import * as THREE from 'three'
 
+import { selectSettingsIconUrl } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR } from '../../../utils/constants'
 
-import { rgbStrToArray } from '../../../utils'
+import { rgbStrToArray, fetchIcon } from '../../../utils'
 
 // Generate custom cylinder segments to allow for size scaling
 const generateSegments = (curve, feature, segments = 80) => {
@@ -272,39 +276,108 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
   const { current: map } = useMap()
   const layer = map.getLayer('nodes-with-altitude')
   const canvas = map.getCanvas()
+
+  const iconUrl = useSelector(selectSettingsIconUrl)
+  const [nodeMemo, setNodeMemo] = useState(nodes)
+  const [iconData, setIconData] = useState({})
+
   const clickHandler = useRef()
   const hoverHandler = useRef()
-  const prevNodes = useRef()
 
   // Converts geoJson nodes into Three.js nodes with altitude
-  const createNodes = (nodes) => {
-    return nodes.map((node) => {
-      const nodeXYZ = MercatorCoordinate.fromLngLat(
-        [
-          R.path(['geometry', 'coordinates', 0], node),
-          R.path(['geometry', 'coordinates', 1], node),
-        ],
-        R.pathOr(100000, ['geometry', 'coordinates', 2], node)
-      )
-      const spriteMaterial = new THREE.SpriteMaterial({
-        color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], node),
+  const createNodes = useCallback(
+    (nodes) => {
+      return nodes.map((node) => {
+        const nodeXYZ = MercatorCoordinate.fromLngLat(
+          [
+            R.path(['geometry', 'coordinates', 0], node),
+            R.path(['geometry', 'coordinates', 1], node),
+          ],
+          R.pathOr(100000, ['geometry', 'coordinates', 2], node)
+        )
+
+        // const texture = new THREE.TextureLoader().load(
+        //   iconData[R.path(['properties', 'icon'], node)]
+        // )
+        const iconSrc = iconData[R.path(['properties', 'icon'], node)]
+        const texture = new THREE.TextureLoader().load(iconSrc, (texture) => {
+          const canvas = document.createElement('canvas')
+          const context = canvas.getContext('2d')
+          canvas.width = texture.image.width
+          canvas.height = texture.image.height
+
+          // Draw the original image onto the canvas
+          context.drawImage(texture.image, 0, 0)
+
+          // Get the image data from the canvas
+          const imageData = context.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          )
+          const data = imageData.data // the pixel data
+
+          // Desired color
+          const rgbaColor = rgbStrToArray(
+            R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], node)
+          )
+
+          // Modify non-transparent pixels to the new color
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] !== 0) {
+              data[i] = rgbaColor[0]
+              data[i + 1] = rgbaColor[1]
+              data[i + 2] = rgbaColor[2]
+            }
+          }
+
+          context.putImageData(imageData, 0, 0)
+          texture.image = canvas
+          texture.needsUpdate = true
+        })
+        const spriteMaterial = new THREE.SpriteMaterial({
+          map: texture,
+        })
+        const nodeWithAltitude = new THREE.Sprite(spriteMaterial)
+        nodeWithAltitude.position.set(nodeXYZ.x, -nodeXYZ.y, nodeXYZ.z)
+        nodeWithAltitude.userData = {
+          cave_name: R.path(['properties', 'cave_name'], node),
+          cave_obj: R.path(['properties', 'cave_obj'], node),
+        }
+        return nodeWithAltitude
       })
-      const nodeWithAltitude = new THREE.Sprite(spriteMaterial)
-      nodeWithAltitude.position.set(nodeXYZ.x, -nodeXYZ.y, nodeXYZ.z)
-      nodeWithAltitude.userData = {
-        cave_name: R.path(['properties', 'cave_name'], node),
-        cave_obj: R.path(['properties', 'cave_obj'], node),
-      }
-      return nodeWithAltitude
-    })
-  }
+    },
+    [iconData]
+  )
 
   useEffect(() => {
-    if (layer && !R.equals(nodes, prevNodes.current)) {
-      layer.implementation.updateNodes(createNodes(nodes))
-      prevNodes.current = nodes
+    if (!R.equals(nodes, nodeMemo)) setNodeMemo(nodes)
+  }, [nodes, nodeMemo])
+
+  useEffect(() => {
+    if (layer) {
+      const iconsToLoad = [
+        ...new Set(
+          nodeMemo.map((node) => R.path(['properties', 'icon'], node))
+        ),
+      ]
+      R.forEach(async (iconName) => {
+        const iconComponent =
+          iconName === 'MdDownloading' ? (
+            <MdDownloading />
+          ) : (
+            (await fetchIcon(iconName, iconUrl))()
+          )
+        const svgString = renderToStaticMarkup(iconComponent)
+        const iconSrc = `data:image/svg+xml;base64,${window.btoa(svgString)}`
+        if (!iconData[iconName])
+          setIconData((iconStrings) => R.assoc(iconName, iconSrc)(iconStrings))
+      })(iconsToLoad)
+
+      layer.implementation.updateNodes(createNodes(nodeMemo))
     }
-  }, [nodes, layer])
+  }, [nodeMemo, layer, iconUrl, iconData, createNodes])
 
   useEffect(() => {
     if (layer) layer.implementation.onClick = onClick
