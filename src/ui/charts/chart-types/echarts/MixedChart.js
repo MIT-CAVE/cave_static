@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 
 import { FlexibleChart } from './BaseChart'
 
-const MixedChart = ({ data, labelProps }) => {
+const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
   const labels = R.pluck('label')(labelProps)
@@ -11,7 +11,14 @@ const MixedChart = ({ data, labelProps }) => {
     ? R.props([0, 2, 3])(labels)
     : R.take(3)(labels)
 
-  const series = useMemo(() => {
+  const calcData = useMemo(() => {
+    const variantType = {
+      line: 'line',
+      'cumulative line': 'line',
+      bar: 'bar',
+      'stacked bar': 'bar',
+    }
+
     if (hasSubgroups) {
       const subGroups = R.reduce(
         (acc, item) => {
@@ -37,43 +44,62 @@ const MixedChart = ({ data, labelProps }) => {
         }, subGroups)
       }, data)
 
-      return R.flatten([
-        subGroups.map((sg) => ({
-          name: `${lineLabel}: ${sg.name}`,
-          type: 'line',
-          data: sg.lineData,
-          yAxisIndex: 0,
-        })),
-        subGroups.map((sg) => ({
-          name: `${barLabel}: ${sg.name}`,
-          type: 'bar',
-          data: sg.barData,
-          yAxisIndex: 1,
-        })),
-      ])
+      const lineData = R.flatten(subGroups.map((sg) => sg.lineData))
+      const barData = R.flatten(subGroups.map((sg) => sg.barData))
+      const min = Math.min(...lineData, ...barData)
+      const max = Math.max(...lineData, ...barData)
+
+      return {
+        series: R.flatten([
+          subGroups.map((sg) => ({
+            name: `${lineLabel}: ${sg.name}`,
+            type: variantType[leftVariant],
+            data: sg.lineData,
+            yAxisIndex: 0,
+          })),
+          subGroups.map((sg) => ({
+            name: `${barLabel}: ${sg.name}`,
+            type: variantType[rightVariant],
+            data: sg.barData,
+            yAxisIndex: 1,
+          })),
+        ]),
+        min: min,
+        max: max,
+      }
     } else {
       const [lineData, barData] = R.pipe(R.pluck('value'), R.transpose)(data)
-      return [
-        {
-          name: lineLabel,
-          type: 'line',
-          data: lineData,
-          yAxisIndex: 0,
-        },
-        {
-          name: barLabel,
-          type: 'bar',
-          data: barData,
-          yAxisIndex: 1,
-        },
-      ]
+      const min = Math.min(...lineData, ...barData)
+      const max = Math.max(...lineData, ...barData)
+      return {
+        series: [
+          {
+            name: lineLabel,
+            type: variantType[leftVariant],
+            data: lineData,
+            yAxisIndex: 0,
+          },
+          {
+            name: barLabel,
+            type: variantType[rightVariant],
+            data: barData,
+            yAxisIndex: 1,
+          },
+        ],
+        min: min,
+        max: max,
+      }
     }
-  }, [barLabel, data, hasSubgroups, lineLabel])
+  }, [barLabel, data, hasSubgroups, lineLabel, leftVariant, rightVariant])
+
+  const { series, min, max } = calcData
 
   const createYAxis = (name, rotate) => ({
     type: 'value',
     name,
     nameGap: 50,
+    min: min,
+    max: max,
     nameLocation: 'middle',
     nameRotate: rotate,
     nameTextStyle: {

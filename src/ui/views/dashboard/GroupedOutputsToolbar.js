@@ -530,25 +530,18 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                 id: idx,
                 layoutDirection: 'vertical',
                 subItems: ['Bar', 'Stacked Bar', 'Line', 'Cumulative Line'],
-                //   'Area',
-                //   'Stacked Area',
-                //   'Waterfall',
-                //   'Stacked Waterfall',
-                //   'Box Plot',
-                //   'Heatmap',
-                // ],
               }))(chartStatUses[chartObj.variant]),
             }}
             values={[
-              R.propOr('', 'leftVariant', chartObj),
-              R.propOr('', 'rightVariant', chartObj),
+              R.propOr('line', 'leftVariant', chartObj),
+              R.propOr('bar', 'rightVariant', chartObj),
             ]}
             header="Select Chart Types"
             getLabel={(idx) => {
               const use = chartStatUses[chartObj.variant][idx]
               const currentVariants = [
-                R.propOr('', 'leftVariant', chartObj),
-                R.propOr('', 'rightVariant', chartObj),
+                R.propOr('line', 'leftVariant', chartObj),
+                R.propOr('bar', 'rightVariant', chartObj),
               ]
               const capitalizedVariants = {
                 bar: 'Bar',

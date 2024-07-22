@@ -69,6 +69,8 @@ const DashboardChart = ({ chartObj }) => {
     'distributionVariant',
     cleanedChartObj
   )
+  const leftVariant = R.propOr('line', 'leftVariant', cleanedChartObj)
+  const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
 
   useEffect(() => {
@@ -339,7 +341,12 @@ const DashboardChart = ({ chartObj }) => {
           {...{ colors, numberFormat }}
         />
       ) : cleanedChartObj.variant === chartVariant.MIXED ? (
-        <MixedChart data={formattedData} {...{ labelProps }} />
+        <MixedChart
+          data={formattedData}
+          {...{ labelProps }}
+          leftVariant={leftVariant}
+          rightVariant={rightVariant}
+        />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
