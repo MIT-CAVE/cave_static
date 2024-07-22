@@ -11,7 +11,7 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     ? R.props([0, 2, 3])(labels)
     : R.take(3)(labels)
 
-  const calcData = useMemo(() => {
+  const { series, min, max } = useMemo(() => {
     const variantType = {
       line: 'line',
       'cumulative line': 'line',
@@ -44,10 +44,8 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
         }, subGroups)
       }, data)
 
-      const lineData = R.flatten(subGroups.map((sg) => sg.lineData))
-      const barData = R.flatten(subGroups.map((sg) => sg.barData))
-      const min = Math.min(...lineData, ...barData)
-      const max = Math.max(...lineData, ...barData)
+      const lineData = R.chain(R.prop('lineData'), subGroups)
+      const barData = R.chain(R.prop('barData'), subGroups)
 
       return {
         series: R.flatten([
@@ -64,13 +62,11 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             yAxisIndex: 1,
           })),
         ]),
-        min: min,
-        max: max,
+        min: Math.min(...lineData, ...barData),
+        max: Math.max(...lineData, ...barData),
       }
     } else {
       const [lineData, barData] = R.pipe(R.pluck('value'), R.transpose)(data)
-      const min = Math.min(...lineData, ...barData)
-      const max = Math.max(...lineData, ...barData)
       return {
         series: [
           {
@@ -86,13 +82,11 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             yAxisIndex: 1,
           },
         ],
-        min: min,
-        max: max,
+        min: Math.min(...lineData, ...barData),
+        max: Math.max(...lineData, ...barData),
       }
     }
   }, [barLabel, data, hasSubgroups, lineLabel, leftVariant, rightVariant])
-
-  const { series, min, max } = calcData
 
   const createYAxis = (name, rotate) => ({
     type: 'value',
