@@ -3,11 +3,10 @@ import * as R from 'ramda'
 import { FlexibleChart } from './BaseChart'
 
 const MixedChart = ({ data, labelProps }) => {
-  console.log('data', data)
   const xLabels = R.pluck('name', data)
-  const lineStat = data.map((item) => item.value[0])
-  const barStat = data.map((item) => item.value[1])
+  const [lineData, barData] = R.pipe(R.pluck('value'), R.transpose)(data)
   const labels = R.pluck('label')(labelProps)
+
   if (
     R.isNil(data) ||
     R.isEmpty(data) ||
@@ -15,34 +14,45 @@ const MixedChart = ({ data, labelProps }) => {
     R.any(R.equals('undefined'), labels)
   )
     return []
-  const labelsExcludingUnits = R.map(R.replace(/\s*\[.*?\]/g, ''))(labels)
+
+  const [xAxisLabel, lineLabel, barLabel] = R.pipe(
+    R.map(R.replace(/\s*\[.*?\]/g, '')),
+    R.take(3)
+  )(labels)
+
+  const createYAxis = (name, rotate) => ({
+    type: 'value',
+    name,
+    nameGap: 50,
+    nameLocation: 'middle',
+    nameRotate: rotate,
+    nameTextStyle: {
+      fontSize: 18,
+      height: 500,
+    },
+    axisLine: {
+      show: true,
+    },
+  })
+
   const options = {
     xAxis: {
       type: 'category',
       data: xLabels,
-      name: labels[0],
+      name: xAxisLabel,
     },
-    yAxis: [
-      {
-        type: 'value',
-        name: labelsExcludingUnits[1],
-      },
-      {
-        type: 'value',
-        name: labelsExcludingUnits[2],
-      },
-    ],
+    yAxis: [createYAxis(lineLabel, 90), createYAxis(barLabel, -90)],
     series: [
       {
-        name: labelsExcludingUnits[1],
+        name: lineLabel,
         type: 'line',
-        data: lineStat,
+        data: lineData,
         yAxisIndex: 0,
       },
       {
-        name: labelsExcludingUnits[2],
+        name: barLabel,
         type: 'bar',
-        data: barStat,
+        data: barData,
         yAxisIndex: 1,
       },
     ],
