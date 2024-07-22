@@ -349,7 +349,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             {
               label: 'Mixed',
               value: chartVariant.MIXED,
-              iconName: 'md/MdBarChart',
+              iconName: 'tb/TbChartHistogram',
             },
           ]}
           displayIcon
