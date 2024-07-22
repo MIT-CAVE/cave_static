@@ -284,7 +284,7 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
           R.path(['geometry', 'coordinates', 0], node),
           R.path(['geometry', 'coordinates', 1], node),
         ],
-        R.path(['geometry', 'coordinates', 2], node)
+        R.pathOr(100000, ['geometry', 'coordinates', 2], node)
       )
       const spriteMaterial = new THREE.SpriteMaterial({
         color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], node),

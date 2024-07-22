@@ -440,19 +440,6 @@ export const Nodes = memo(({ mapId }) => {
 
   const { current: map } = useMap()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-  const nodeGeoJson3D = nodeGeoJson.map((node) => {
-    return {
-      ...node,
-      geometry: {
-        ...node.geometry,
-        coordinates: [
-          node.geometry.coordinates[0],
-          node.geometry.coordinates[1],
-          400000,
-        ],
-      },
-    }
-  })
 
   return (
     <Source
@@ -467,7 +454,7 @@ export const Nodes = memo(({ mapId }) => {
     >
       {map.getProjection().name !== 'globe' || map.getZoom() >= 6 ? (
         <NodesWithZ
-          nodes={nodeGeoJson3D}
+          nodes={nodeGeoJson}
           onClick={({ cave_name, cave_obj: obj }) => {
             const [type] = JSON.parse(cave_name)
             dispatch(
@@ -515,6 +502,7 @@ export const Nodes = memo(({ mapId }) => {
     </Source>
   )
 })
+
 export const Arcs = memo(({ mapId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   return [
