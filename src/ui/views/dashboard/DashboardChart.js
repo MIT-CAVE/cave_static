@@ -31,6 +31,8 @@ import {
   ScatterPlot,
   BubblePlot,
   DistributionChart,
+  // eslint-disable-next-line
+  MixedChart,
 } from '../../charts'
 
 import {
@@ -337,6 +339,8 @@ const DashboardChart = ({ chartObj }) => {
           xAxisTitle={yAxisTitle}
           {...{ colors, numberFormat }}
         />
+      ) : cleanedChartObj.variant === chartVariant.MIXED ? (
+        <></>
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}

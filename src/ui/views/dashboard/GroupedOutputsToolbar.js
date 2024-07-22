@@ -346,6 +346,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               value: chartVariant.DISTRIBUTION,
               iconName: 'md/MdBarChart',
             },
+            {
+              label: 'Mixed',
+              value: chartVariant.MIXED,
+              iconName: 'md/MdBarChart',
+            },
           ]}
           displayIcon
           onSelect={handleSelectChart}

@@ -136,6 +136,7 @@ export const chartVariant = {
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
   DISTRIBUTION: 'distribution',
+  MIXED: 'mixed',
   OVERVIEW: 'overview',
 }
 
@@ -164,6 +165,7 @@ export const chartMaxGrouping = {
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
   [chartVariant.DISTRIBUTION]: 2,
+  [chartVariant.MIXED]: 2,
 }
 
 // Stat limits for multistat charts
