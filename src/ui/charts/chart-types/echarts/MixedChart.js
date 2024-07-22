@@ -14,54 +14,44 @@ const MixedChart = ({ data, labelProps }) => {
 
   const series = useMemo(() => {
     if (hasSubgroups) {
-      const skus = {}
+      const subGroups = R.reduce(
+        (acc, item) => {
+          R.forEach((child) => {
+            if (!R.find((sg) => sg.name === child.name, acc)) {
+              acc.push({ name: child.name, lineData: [], barData: [] })
+            }
+          }, item.children)
+          return acc
+        },
+        [],
+        data
+      )
 
-      data.forEach((item) => {
-        item.children.forEach((child) => {
-          if (!skus[child.name]) {
-            skus[child.name] = { name: child.name, value: [], altValue: [] }
-          }
-        })
-      })
+      R.forEach((item) => {
+        R.forEach((subgroup) => {
+          const child = R.find(
+            (child) => child.name === subgroup.name,
+            item.children
+          )
+          subgroup.lineData.push(child ? child.value[0] : null)
+          subgroup.barData.push(child ? child.value[1] : null)
+        }, subGroups)
+      }, data)
 
-      data.forEach((item) => {
-        Object.keys(skus).forEach((skuName) => {
-          const child = item.children.find((child) => child.name === skuName)
-          if (child) {
-            skus[skuName].value.push(child.value[0])
-            skus[skuName].altValue.push(child.value[1])
-          } else {
-            skus[skuName].value.push(null)
-            skus[skuName].altValue.push(null)
-          }
-        })
-      })
-
-      const processedData = [
-        Object.values(skus).map((sku) => ({
-          name: `${lineLabel}: ${sku.name}`,
-          value: sku.value,
-        })),
-        Object.values(skus).map((sku) => ({
-          name: `${barLabel}: ${sku.name}`,
-          value: sku.altValue,
-        })),
-      ]
-
-      return [
-        ...processedData[0].map((sku) => ({
-          name: sku.name,
+      return R.flatten([
+        subGroups.map((sg) => ({
+          name: `${lineLabel}: ${sg.name}`,
           type: 'line',
-          data: sku.value,
+          data: sg.lineData,
           yAxisIndex: 0,
         })),
-        ...processedData[1].map((sku) => ({
-          name: sku.name,
+        subGroups.map((sg) => ({
+          name: `${barLabel}: ${sg.name}`,
           type: 'bar',
-          data: sku.value,
+          data: sg.barData,
           yAxisIndex: 1,
         })),
-      ]
+      ])
     } else {
       const [lineData, barData] = R.pipe(R.pluck('value'), R.transpose)(data)
       return [
