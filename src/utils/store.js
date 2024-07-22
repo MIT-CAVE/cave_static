@@ -3,7 +3,6 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import dataReducer from '../data/data'
 import localReducer from '../data/local'
 import utilitiesReducer from '../data/utilities'
-import virtualKeyboardReducer from '../data/utilities/virtualKeyboardSlice'
 
 const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
 
@@ -39,7 +38,6 @@ const reducer = combineReducers({
   data: dataReducer,
   local: localReducer,
   utilities: utilitiesReducer,
-  keyboard: virtualKeyboardReducer,
 })
 
 const preloadedState = getInitialState(reducer)
