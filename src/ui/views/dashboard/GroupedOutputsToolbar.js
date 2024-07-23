@@ -529,7 +529,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               undefined: mapIndexed((_, idx) => ({
                 id: idx,
                 layoutDirection: 'vertical',
-                subItems: ['Bar', 'Stacked Bar', 'Line', 'Cumulative Line'],
+                subItems: ['Bar', 'Line', 'Cumulative Line'],
               }))(chartStatUses[chartObj.variant]),
             }}
             values={[
