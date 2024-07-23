@@ -341,8 +341,8 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
         nodeWithAltitude.userData = {
           cave_name: R.path(['properties', 'cave_name'], node),
           cave_obj: R.path(['properties', 'cave_obj'], node),
+          size: R.pathOr(1, ['properties', 'size'], node),
         }
-        console.log(nodeWithAltitude)
         return nodeWithAltitude
       })
     },
@@ -508,7 +508,13 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
       const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
       const zoom = this.map.transform._zoom
       const scale = 0.1 / Math.pow(2, zoom)
-      this.nodes.forEach((node) => node.scale.set(scale, scale, 1))
+      this.nodes.forEach((node) =>
+        node.scale.set(
+          node.userData.size * scale,
+          node.userData.size * scale,
+          1
+        )
+      )
       this.camera.projectionMatrix = m.multiply(l)
       this.renderer.resetState()
       this.renderer.render(this.scene, this.camera)
