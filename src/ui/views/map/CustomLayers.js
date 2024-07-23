@@ -8,7 +8,7 @@ import { useSelector } from 'react-redux'
 import * as THREE from 'three'
 
 import { selectSettingsIconUrl } from '../../../data/selectors'
-import { HIGHLIGHT_COLOR } from '../../../utils/constants'
+import { HIGHLIGHT_COLOR, ICON_RESOLUTION } from '../../../utils/constants'
 
 import { rgbStrToArray, fetchIcon } from '../../../utils'
 
@@ -296,34 +296,30 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
           R.pathOr(100000, ['geometry', 'coordinates', 2], node)
         )
 
-        // const texture = new THREE.TextureLoader().load(
-        //   iconData[R.path(['properties', 'icon'], node)]
-        // )
         const iconSrc = iconData[R.path(['properties', 'icon'], node)]
         const texture = new THREE.TextureLoader().load(iconSrc, (texture) => {
           const canvas = document.createElement('canvas')
           const context = canvas.getContext('2d')
-          canvas.width = texture.image.width
-          canvas.height = texture.image.height
-
-          // Draw the original image onto the canvas
-          context.drawImage(texture.image, 0, 0)
-
-          // Get the image data from the canvas
+          canvas.width = ICON_RESOLUTION
+          canvas.height = ICON_RESOLUTION
+          context.drawImage(
+            texture.image,
+            0,
+            0,
+            ICON_RESOLUTION,
+            ICON_RESOLUTION
+          )
           const imageData = context.getImageData(
             0,
             0,
             canvas.width,
             canvas.height
           )
-          const data = imageData.data // the pixel data
+          const data = imageData.data
 
-          // Desired color
           const rgbaColor = rgbStrToArray(
             R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], node)
           )
-
-          // Modify non-transparent pixels to the new color
           for (let i = 0; i < data.length; i += 4) {
             if (data[i + 3] !== 0) {
               data[i] = rgbaColor[0]
@@ -336,6 +332,7 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
           texture.image = canvas
           texture.needsUpdate = true
         })
+
         const spriteMaterial = new THREE.SpriteMaterial({
           map: texture,
         })
@@ -345,6 +342,7 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
           cave_name: R.path(['properties', 'cave_name'], node),
           cave_obj: R.path(['properties', 'cave_obj'], node),
         }
+        console.log(nodeWithAltitude)
         return nodeWithAltitude
       })
     },
