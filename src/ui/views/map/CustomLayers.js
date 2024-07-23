@@ -273,16 +273,9 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
 })
 
 export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
-  const { current: map } = useMap()
-  const layer = map.getLayer('nodes-with-altitude')
-  const canvas = map.getCanvas()
-
   const iconUrl = useSelector(selectSettingsIconUrl)
-  const [nodeMemo, setNodeMemo] = useState(nodes)
+  const [nodesMemo, setNodesMemo] = useState(nodes)
   const [iconData, setIconData] = useState({})
-
-  const clickHandler = useRef()
-  const hoverHandler = useRef()
 
   // Converts geoJson nodes into Three.js nodes with altitude
   const createNodes = useCallback(
@@ -350,177 +343,204 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
   )
 
   useEffect(() => {
-    if (!R.equals(nodes, nodeMemo)) setNodeMemo(nodes)
-  }, [nodes, nodeMemo])
+    if (!R.equals(nodes, nodesMemo)) setNodesMemo(nodes)
+  }, [nodes, nodesMemo])
 
   useEffect(() => {
-    if (layer) {
-      const iconsToLoad = [
-        ...new Set(
-          nodeMemo.map((node) => R.path(['properties', 'icon'], node))
-        ),
-      ]
-      R.forEach(async (iconName) => {
-        const iconComponent =
-          iconName === 'MdDownloading' ? (
-            <MdDownloading />
-          ) : (
-            (await fetchIcon(iconName, iconUrl))()
-          )
-        const svgString = renderToStaticMarkup(iconComponent)
-        const iconSrc = `data:image/svg+xml;base64,${window.btoa(svgString)}`
-        if (!iconData[iconName])
-          setIconData((iconStrings) => R.assoc(iconName, iconSrc)(iconStrings))
-      })(iconsToLoad)
-
-      layer.implementation.updateNodes(createNodes(nodeMemo))
-    }
-  }, [nodeMemo, layer, iconUrl, iconData, createNodes])
-
-  useEffect(() => {
-    if (layer) layer.implementation.onClick = onClick
-  }, [onClick, layer])
-
-  useEffect(
-    () => () => {
-      if (canvas) {
-        if (clickHandler.current)
-          canvas.removeEventListener('click', clickHandler.current)
-        if (hoverHandler.current)
-          canvas.removeEventListener('mousemove', hoverHandler.current)
-      }
-    },
-    [canvas]
-  )
-
-  const customLayer = {
-    id: 'nodes-with-altitude',
-    type: 'custom',
-    highlightedId: -1,
-    oldColor: -1,
-    onClick,
-    onAdd: function (map, gl) {
-      this.camera = new THREE.PerspectiveCamera()
-      this.scene = new THREE.Scene()
-      this.map = map
-      this.nodes = createNodes(nodes)
-      this.nodes.forEach((node) => this.scene.add(node))
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: map.getCanvas(),
-        context: gl,
-        antialias: true,
-      })
-      this.renderer.autoClear = false
-      this.raycaster = new THREE.Raycaster()
-      this.raycaster.near = -1
-      this.raycaster.far = 1e6
-
-      clickHandler.current = (e) => this.raycast(e, true)
-      hoverHandler.current = (e) => this.raycast(e, false)
-      map.getCanvas().addEventListener('mousemove', hoverHandler.current, false)
-      map.getCanvas().addEventListener('click', clickHandler.current, false)
-      map.moveLayer('nodes-with-altitude')
-    },
-    onRemove: function () {
-      this.map
-        .getCanvas()
-        .removeEventListener('mousemove', hoverHandler.current)
-      this.map.getCanvas().removeEventListener('click', clickHandler.current)
-    },
-    raycast: (e, click) => {
-      const layer =
-        map.getLayer('nodes-with-altitude') &&
-        map.getLayer('nodes-with-altitude').implementation
-      if (layer) {
-        const point = { x: e.layerX, y: e.layerY }
-        const mouse = new THREE.Vector2()
-        mouse.x = (point.x / e.srcElement.width) * 2 - 1
-        mouse.y = 1 - (point.y / e.srcElement.height) * 2
-        const camInverseProjection = new THREE.Matrix4()
-          .copy(layer.camera.projectionMatrix)
-          .invert()
-        const cameraPosition = new THREE.Vector3().applyMatrix4(
-          camInverseProjection
+    const iconsToLoad = [
+      ...new Set(nodesMemo.map((node) => R.path(['properties', 'icon'], node))),
+    ]
+    R.forEach(async (iconName) => {
+      const iconComponent =
+        iconName === 'MdDownloading' ? (
+          <MdDownloading />
+        ) : (
+          (await fetchIcon(iconName, iconUrl))()
         )
-        const mousePosition = new THREE.Vector3(
-          mouse.x,
-          mouse.y,
-          1
-        ).applyMatrix4(camInverseProjection)
-        const viewDirection = mousePosition
-          .clone()
-          .sub(cameraPosition)
-          .normalize()
+      const svgString = renderToStaticMarkup(iconComponent)
+      const iconSrc = `data:image/svg+xml;base64,${window.btoa(svgString)}`
+      if (!iconData[iconName])
+        setIconData((iconStrings) => R.assoc(iconName, iconSrc)(iconStrings))
+    })(iconsToLoad)
+  }, [nodesMemo, iconUrl, iconData])
 
-        layer.raycaster.camera = layer.camera
-        layer.raycaster.set(cameraPosition, viewDirection)
+  return (
+    <CustomLayer
+      id={'nodes-with-altitude'}
+      convertFeaturesToObjects={createNodes}
+      features={nodesMemo}
+      onClick={onClick}
+      getScale={(node, zoom) => {
+        const scale = 0.1 / Math.pow(2, zoom)
+        return [node.userData.size * scale, node.userData.size * scale, 1]
+      }}
+    />
+  )
+})
 
-        const intersects = layer.raycaster.intersectObjects(layer.nodes, true)
-        if (intersects && intersects.length) {
-          e.stopImmediatePropagation()
-          const event = new CustomEvent('clearHighlight')
-          document.dispatchEvent(event)
-          if (click) layer.onClick(intersects[0].object.userData)
+const CustomLayer = memo(
+  ({
+    id,
+    convertFeaturesToObjects,
+    features,
+    onClick = () => {},
+    getScale,
+  }) => {
+    const { current: map } = useMap()
+    const layer = map.getLayer(id)
+    const canvas = map.getCanvas()
+
+    const clickHandler = useRef()
+    const hoverHandler = useRef()
+
+    useEffect(() => {
+      if (layer)
+        layer.implementation.updateObjects(convertFeaturesToObjects(features))
+    }, [features, layer, convertFeaturesToObjects])
+
+    useEffect(() => {
+      if (layer) layer.implementation.onClick = onClick
+    }, [onClick, layer])
+
+    useEffect(
+      () => () => {
+        if (canvas) {
+          if (clickHandler.current)
+            canvas.removeEventListener('click', clickHandler.current)
+          if (hoverHandler.current)
+            canvas.removeEventListener('mousemove', hoverHandler.current)
         }
+      },
+      [canvas]
+    )
 
-        if (!click) {
-          if (intersects.length) {
-            if (
-              layer.highlightedId !== intersects[0].object.userData.cave_name
-            ) {
-              if (layer.highlightedId !== -1) {
-                R.forEach((nodes) => {
-                  if (nodes.userData.cave_name === layer.highlightedId)
-                    nodes.material.color.set(layer.oldColor)
-                })(layer.nodes)
+    const customLayer = {
+      id,
+      type: 'custom',
+      highlightedId: -1,
+      oldColor: -1,
+      onClick,
+      onAdd: function (map, gl) {
+        this.camera = new THREE.PerspectiveCamera()
+        this.scene = new THREE.Scene()
+        this.map = map
+        this.objects = convertFeaturesToObjects(features)
+        R.forEach((object) => this.scene.add(object))(this.objects)
+        this.renderer = new THREE.WebGLRenderer({
+          canvas: map.getCanvas(),
+          context: gl,
+          antialias: true,
+        })
+        this.renderer.autoClear = false
+        this.raycaster = new THREE.Raycaster()
+        this.raycaster.near = -1
+        this.raycaster.far = 1e6
+
+        clickHandler.current = (e) => this.raycast(e, true)
+        hoverHandler.current = (e) => this.raycast(e, false)
+        map
+          .getCanvas()
+          .addEventListener('mousemove', hoverHandler.current, false)
+        map.getCanvas().addEventListener('click', clickHandler.current, false)
+        map.moveLayer(id)
+      },
+      onRemove: function () {
+        this.map
+          .getCanvas()
+          .removeEventListener('mousemove', hoverHandler.current)
+        this.map.getCanvas().removeEventListener('click', clickHandler.current)
+      },
+      updateObjects: function (newObjects) {
+        this.scene.remove.apply(this.scene, this.scene.children)
+        R.forEach((object) => this.scene.add(object))(newObjects)
+        this.objects = newObjects
+      },
+      raycast: (e, click) => {
+        const layer = map.getLayer(id) && map.getLayer(id).implementation
+        if (layer) {
+          const point = { x: e.layerX, y: e.layerY }
+          const mouse = new THREE.Vector2()
+          mouse.x = (point.x / e.srcElement.width) * 2 - 1
+          mouse.y = 1 - (point.y / e.srcElement.height) * 2
+          const camInverseProjection = new THREE.Matrix4()
+            .copy(layer.camera.projectionMatrix)
+            .invert()
+          const cameraPosition = new THREE.Vector3().applyMatrix4(
+            camInverseProjection
+          )
+          const mousePosition = new THREE.Vector3(
+            mouse.x,
+            mouse.y,
+            1
+          ).applyMatrix4(camInverseProjection)
+          const viewDirection = mousePosition
+            .clone()
+            .sub(cameraPosition)
+            .normalize()
+
+          layer.raycaster.camera = layer.camera
+          layer.raycaster.set(cameraPosition, viewDirection)
+
+          const intersects = layer.raycaster.intersectObjects(
+            layer.objects,
+            true
+          )
+          if (intersects && intersects.length) {
+            e.stopImmediatePropagation()
+            const event = new CustomEvent('clearHighlight')
+            document.dispatchEvent(event)
+            if (click) layer.onClick(intersects[0].object.userData)
+          }
+
+          if (!click) {
+            if (intersects.length) {
+              if (
+                layer.highlightedId !== intersects[0].object.userData.cave_name
+              ) {
+                if (layer.highlightedId !== -1) {
+                  R.forEach((object) => {
+                    if (object.userData.cave_name === layer.highlightedId)
+                      object.material.color.set(layer.oldColor)
+                  })(layer.objects)
+                }
+                map.getCanvas().style.cursor = 'pointer'
+                layer.highlightedId = intersects[0].object.userData.cave_name
+                layer.oldColor = intersects[0].object.material.color.clone()
+                const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
+                const colorObj = new THREE.Color(
+                  colorArr[0] / 255,
+                  colorArr[1] / 255,
+                  colorArr[2] / 255
+                )
+                R.forEach((object) => {
+                  if (object.userData.cave_name === layer.highlightedId)
+                    object.material.color.set(colorObj)
+                })(layer.objects)
               }
-              map.getCanvas().style.cursor = 'pointer'
-              layer.highlightedId = intersects[0].object.userData.cave_name
-              layer.oldColor = intersects[0].object.material.color.clone()
-              const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
-              const colorObj = new THREE.Color(
-                colorArr[0] / 255,
-                colorArr[1] / 255,
-                colorArr[2] / 255
-              )
-              R.forEach((nodes) => {
-                if (nodes.userData.cave_name === layer.highlightedId)
-                  nodes.material.color.set(colorObj)
-              })(layer.nodes)
+            } else if (layer.highlightedId !== -1) {
+              R.forEach((object) => {
+                if (object.userData.cave_name === layer.highlightedId)
+                  object.material.color.set(layer.oldColor)
+              })(layer.objects)
+              layer.highlightedId = -1
             }
-          } else if (layer.highlightedId !== -1) {
-            R.forEach((nodes) => {
-              if (nodes.userData.cave_name === layer.highlightedId)
-                nodes.material.color.set(layer.oldColor)
-            })(layer.nodes)
-            layer.highlightedId = -1
           }
         }
-      }
-    },
-    updateNodes: function (newNodes) {
-      this.scene.remove.apply(this.scene, this.scene.children)
-      this.nodes = newNodes
-      this.nodes.forEach((node) => this.scene.add(node))
-    },
-    render: function (gl, matrix) {
-      const m = new THREE.Matrix4().fromArray(matrix)
-      const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
-      const zoom = this.map.transform._zoom
-      const scale = 0.1 / Math.pow(2, zoom)
-      this.nodes.forEach((node) =>
-        node.scale.set(
-          node.userData.size * scale,
-          node.userData.size * scale,
-          1
+      },
+      render: function (gl, matrix) {
+        const m = new THREE.Matrix4().fromArray(matrix)
+        const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
+        const zoom = this.map.transform._zoom
+        R.forEach((object) => object.scale.set(...getScale(object, zoom)))(
+          this.objects
         )
-      )
-      this.camera.projectionMatrix = m.multiply(l)
-      this.renderer.resetState()
-      this.renderer.render(this.scene, this.camera)
-      this.map.triggerRepaint()
-    },
-  }
+        this.camera.projectionMatrix = m.multiply(l)
+        this.renderer.resetState()
+        this.renderer.render(this.scene, this.camera)
+        this.map.triggerRepaint()
+      },
+    }
 
-  return <Layer {...customLayer} />
-})
+    return <Layer {...customLayer} />
+  }
+)
