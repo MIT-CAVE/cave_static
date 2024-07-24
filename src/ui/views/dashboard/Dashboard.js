@@ -69,7 +69,19 @@ const DashboardItem = ({ chartObj, index, path }) => {
 
   const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
-  const defaultFilters = R.propOr([], 'filters')(chartObj)
+  const defaultFilters = R.propOr(
+    [
+      {
+        isNew: true,
+        id: 0,
+        type: 'group',
+        groupId: 0,
+        logic: 'or',
+        depth: 0,
+      },
+    ],
+    'filters'
+  )(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
@@ -138,7 +150,10 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const numActiveStatFilters = useMemo(
-    () => R.count(R.propOr(true, 'active'))(statFilters),
+    () =>
+      R.count(R.both(R.propOr(true, 'active'), R.propEq('rule', 'type')))(
+        statFilters
+      ),
     [statFilters]
   )
 
