@@ -1,3 +1,4 @@
+import earcut from 'earcut'
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
 import { memo, useState, useEffect, useRef, useCallback } from 'react'
@@ -278,7 +279,7 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
   const [iconData, setIconData] = useState({})
 
   // Converts geoJson nodes into Three.js nodes with altitude
-  const createNodes = useCallback(
+  const createNodesObjects = useCallback(
     (nodes) => {
       return nodes.map((node) => {
         const nodeXYZ = MercatorCoordinate.fromLngLat(
@@ -367,13 +368,84 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
   return (
     <CustomLayer
       id={'nodes-with-altitude'}
-      convertFeaturesToObjects={createNodes}
+      convertFeaturesToObjects={createNodesObjects}
       features={nodesMemo}
       onClick={onClick}
       getScale={(node, zoom) => {
         const scale = 0.1 / Math.pow(2, zoom)
         return [node.userData.size * scale, node.userData.size * scale, 1]
       }}
+    />
+  )
+})
+
+export const GeosWithZ = memo(({ geos, onClick = () => {} }) => {
+  const [geosMemo, setGeosMemo] = useState(geos)
+
+  // Converts geoJson geos into Three.js geos with altitude
+  const createGeosObjects = (geos) => {
+    const final = R.flatten(
+      geos
+        .filter((geo) => R.path(['geometry'], geo))
+        .map((geo) => {
+          const geoType = R.path(['geometry', 'type'], geo)
+          const polygons =
+            geoType === 'Polygon'
+              ? [R.path(['geometry', 'coordinates'], geo)]
+              : R.path(['geometry', 'coordinates'], geo)
+
+          return polygons.map((polygon) => {
+            // TODOB: POLYGON[0] IS OUTER RING AND OTHER INDICES ARE HOLES SO
+            // MAKE SURE TO HANDLE HOLES
+
+            const vertices = R.flatten(
+              R.map((point) => {
+                const pointXYZ = MercatorCoordinate.fromLngLat(
+                  [R.path([0], point), R.path([1], point)],
+                  R.pathOr(100000, [2], point)
+                )
+
+                return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
+              })(R.slice(0, -1, polygon[0]))
+            )
+
+            const triangles = earcut(vertices, null, 3)
+            const geometry = new THREE.BufferGeometry()
+            const verticesFloat32Array = new Float32Array(vertices)
+            geometry.setAttribute(
+              'position',
+              new THREE.BufferAttribute(verticesFloat32Array, 3)
+            )
+            geometry.setIndex(triangles)
+            const material = new THREE.MeshBasicMaterial({
+              color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], geo),
+              side: THREE.DoubleSide,
+            })
+            const polygonObject = new THREE.Mesh(geometry, material)
+            polygonObject.userData = {
+              cave_name: R.path(['properties', 'cave_name'], geo),
+              cave_obj: R.path(['properties', 'cave_obj'], geo),
+            }
+
+            return polygonObject
+          })
+        })
+    )
+
+    return final
+  }
+
+  useEffect(() => {
+    if (!R.equals(geos, geosMemo)) setGeosMemo(geos)
+  }, [geos, geosMemo])
+
+  return (
+    <CustomLayer
+      id={'geos-with-altitude'}
+      convertFeaturesToObjects={createGeosObjects}
+      features={geosMemo}
+      onClick={onClick}
+      getScale={() => [1, 1, 1]}
     />
   )
 })
@@ -485,7 +557,7 @@ const CustomLayer = memo(
             layer.objects,
             true
           )
-          if (intersects && intersects.length) {
+          if (intersects.length) {
             e.stopImmediatePropagation()
             const event = new CustomEvent('clearHighlight')
             document.dispatchEvent(event)

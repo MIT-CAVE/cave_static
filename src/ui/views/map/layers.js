@@ -3,7 +3,7 @@ import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source, useMap } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { ArcLayer3D, NodesWithZ } from './CustomLayers'
+import { ArcLayer3D, NodesWithZ, GeosWithZ } from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -32,7 +32,12 @@ import {
   adjustArcPath,
 } from '../../../utils'
 
+const getIsGlobe = (map) =>
+  map.getProjection().name === 'globe' && map.getZoom() < 6
+
 export const Geos = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
   const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
   const geoColorRange = useSelector(selectGeoColorRange)
   const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
@@ -44,8 +49,10 @@ export const Geos = memo(({ mapId }) => {
   )
   const arcRange = useSelector(selectArcRange)
 
+  const { current: map } = useMap()
   const [selectedGeos, setSelectedGeos] = useState({})
   const [selectedArcs, setSelectedArcs] = useState({})
+  const [isGlobe, setIsGlobe] = useState(getIsGlobe(map))
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
@@ -230,6 +237,7 @@ export const Geos = memo(({ mapId }) => {
               return R.mergeRight(filteredFeature, {
                 properties: {
                   cave_name: JSON.stringify([geoType, id]),
+                  cave_obj: geoObj,
                   color: color,
                 },
               })
@@ -313,6 +321,19 @@ export const Geos = memo(({ mapId }) => {
       selectedArcs,
     ]
   )
+
+  useEffect(() => {
+    const handleRender = () => {
+      if (isGlobe !== getIsGlobe(map)) setIsGlobe(getIsGlobe(map))
+    }
+
+    map.on('render', handleRender)
+
+    return () => {
+      map.off('render', handleRender)
+    }
+  }, [map, isGlobe])
+
   return [
     <Source
       type="geojson"
@@ -324,20 +345,50 @@ export const Geos = memo(({ mapId }) => {
         features: geoJsonObject,
       }}
     >
-      <Layer
-        id={layerId.GEOGRAPHY_LAYER}
-        key={layerId.GEOGRAPHY_LAYER}
-        type="fill"
-        paint={{
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
-          'fill-opacity': 0.4,
-        }}
-      />
+      {isGlobe ? (
+        <Layer
+          id={layerId.GEOGRAPHY_LAYER}
+          key={layerId.GEOGRAPHY_LAYER}
+          react
+          type="fill"
+          paint={{
+            'fill-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              HIGHLIGHT_COLOR,
+              ['get', 'color'],
+            ],
+            'fill-opacity': 0.4,
+          }}
+        />
+      ) : (
+        <GeosWithZ
+          geos={geoJsonObject}
+          onClick={({ cave_name, cave_obj: obj }) => {
+            const [type] = JSON.parse(cave_name)
+            dispatch(
+              mutateLocal({
+                path: ['panes', 'paneState', 'center'],
+                value: {
+                  open: {
+                    ...(obj || {}),
+                    feature: 'geos',
+                    type: R.propOr(type, 'name')(obj),
+                    key: cave_name,
+                    mapId,
+                  },
+                  type: 'feature',
+                },
+                sync: !includesPath(R.values(sync), [
+                  'panes',
+                  'paneState',
+                  'center',
+                ]),
+              })
+            )
+          }}
+        />
+      )}
     </Source>,
     <Source
       id={layerId.MULTI_ARC_LAYER_SOLID}
@@ -437,9 +488,22 @@ export const Geos = memo(({ mapId }) => {
 export const Nodes = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
+  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
 
   const { current: map } = useMap()
-  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const [isGlobe, setIsGlobe] = useState(getIsGlobe(map))
+
+  useEffect(() => {
+    const handleRender = () => {
+      if (isGlobe !== getIsGlobe(map)) setIsGlobe(getIsGlobe(map))
+    }
+
+    map.on('render', handleRender)
+
+    return () => {
+      map.off('render', handleRender)
+    }
+  }, [map, isGlobe])
 
   return (
     <Source
@@ -452,7 +516,26 @@ export const Nodes = memo(({ mapId }) => {
         features: nodeGeoJson,
       }}
     >
-      {map.getProjection().name !== 'globe' || map.getZoom() >= 6 ? (
+      {isGlobe ? (
+        <Layer
+          id={layerId.NODE_ICON_LAYER}
+          key={layerId.NODE_ICON_LAYER}
+          type="symbol"
+          layout={{
+            'icon-image': ['get', 'icon'],
+            'icon-size': ['get', 'size'],
+            'icon-allow-overlap': true,
+          }}
+          paint={{
+            'icon-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              HIGHLIGHT_COLOR,
+              ['get', 'color'],
+            ],
+          }}
+        />
+      ) : (
         <NodesWithZ
           nodes={nodeGeoJson}
           onClick={({ cave_name, cave_obj: obj }) => {
@@ -477,25 +560,6 @@ export const Nodes = memo(({ mapId }) => {
                 ]),
               })
             )
-          }}
-        />
-      ) : (
-        <Layer
-          id={layerId.NODE_ICON_LAYER}
-          key={layerId.NODE_ICON_LAYER}
-          type="symbol"
-          layout={{
-            'icon-image': ['get', 'icon'],
-            'icon-size': ['get', 'size'],
-            'icon-allow-overlap': true,
-          }}
-          paint={{
-            'icon-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              HIGHLIGHT_COLOR,
-              ['get', 'color'],
-            ],
           }}
         />
       )}
