@@ -450,6 +450,80 @@ export const GeosWithZ = memo(({ geos, onClick = () => {} }) => {
   )
 })
 
+export const GeosArcsWithZ = memo(({ geos, onClick = () => {} }) => {
+  const [geosArcsMemo, setGeosArcsMemo] = useState(geos)
+
+  // Converts geoJson arcs into Three.js arcs with altitude
+  const createGeosArcs = (geos) =>
+    R.pipe(
+      R.filter((geo) => R.path(['geometry', 'coordinates', 0], geo)),
+      R.map((geo) => {
+        const arcType = R.path(['properties', 'dash'], geo)
+        const points = R.map((point) => {
+          const pointXYZ = MercatorCoordinate.fromLngLat(
+            [R.path([0], point), R.path([1], point)],
+            R.pathOr(100000, [2], point)
+          )
+          return new THREE.Vector3(pointXYZ.x, -pointXYZ.y, pointXYZ.z)
+        })(R.path(['geometry', 'coordinates'], geo))
+
+        const createMaterial = (arcType, color) => {
+          const material = new THREE.MeshBasicMaterial({ color })
+          if (arcType === 'dashed' || arcType === 'dotted') {
+            material.wireframe = true
+            material.wireframeLinewidth = arcType === 'dashed' ? 2 : 1
+          }
+          return material
+        }
+
+        const arcs = []
+        for (let i = 0; i < points.length - 1; i++) {
+          const start = points[i]
+          const end = points[i + 1]
+          const midpoint = new THREE.Vector3(
+            (start.x + end.x) / 2,
+            (start.y + end.y) / 2,
+            (start.z + end.z) / 2 + 0.003 // TODOB MAKE THIS DYNAMIC WHEN USER SPECIFIES CENTRAL HEIGHT
+          )
+          const arcCurve = new THREE.CatmullRomCurve3([start, midpoint, end])
+          const tubeGeometry = new THREE.TubeGeometry(
+            arcCurve,
+            40,
+            R.path(['properties', 'size'], geo) * 0.00001,
+            8,
+            false
+          )
+          const color = R.pathOr(
+            'rgba(0,0,0,255)',
+            ['properties', 'color'],
+            geo
+          )
+          const material = createMaterial(arcType, color)
+          const arc = new THREE.Mesh(tubeGeometry, material)
+          arc.userData = R.clone(R.path(['properties'], geo))
+          arcs.push(arc)
+        }
+
+        return arcs
+      }),
+      R.flatten
+    )(geos)
+
+  useEffect(() => {
+    if (!R.equals(geos, geosArcsMemo)) setGeosArcsMemo(geos)
+  }, [geos, geosArcsMemo])
+
+  return (
+    <CustomLayer
+      id={'geos-arcs-with-altitude'}
+      convertFeaturesToObjects={createGeosArcs}
+      features={geosArcsMemo}
+      onClick={onClick}
+      getScale={() => [1, 1, 1]}
+    />
+  )
+})
+
 const CustomLayer = memo(
   ({
     id,

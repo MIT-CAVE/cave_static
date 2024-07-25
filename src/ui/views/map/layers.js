@@ -3,7 +3,12 @@ import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source, useMap } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { ArcLayer3D, NodesWithZ, GeosWithZ } from './CustomLayers'
+import {
+  ArcLayer3D,
+  NodesWithZ,
+  GeosWithZ,
+  GeosArcsWithZ,
+} from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -34,6 +39,33 @@ import {
 
 const getIsGlobe = (map) =>
   map.getProjection().name === 'globe' && map.getZoom() < 6
+
+const handleFeatureClick = (
+  dispatch,
+  sync,
+  mapId,
+  cave_name,
+  cave_obj,
+  feature
+) => {
+  const [type] = JSON.parse(cave_name)
+  dispatch(
+    mutateLocal({
+      path: ['panes', 'paneState', 'center'],
+      value: {
+        open: {
+          ...(cave_obj || {}),
+          feature: feature,
+          type: R.propOr(type, 'name')(cave_obj),
+          key: cave_name,
+          mapId,
+        },
+        type: 'feature',
+      },
+      sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+    })
+  )
+}
 
 export const Geos = memo(({ mapId }) => {
   const dispatch = useDispatch()
@@ -299,6 +331,7 @@ export const Geos = memo(({ mapId }) => {
               return R.mergeRight(adjustedFeature, {
                 properties: {
                   cave_name: JSON.stringify([geoType, id]),
+                  cave_obj: geoObj,
                   color: color,
                   dash: dashPattern,
                   size: size,
@@ -364,29 +397,16 @@ export const Geos = memo(({ mapId }) => {
       ) : (
         <GeosWithZ
           geos={geoJsonObject}
-          onClick={({ cave_name, cave_obj: obj }) => {
-            const [type] = JSON.parse(cave_name)
-            dispatch(
-              mutateLocal({
-                path: ['panes', 'paneState', 'center'],
-                value: {
-                  open: {
-                    ...(obj || {}),
-                    feature: 'geos',
-                    type: R.propOr(type, 'name')(obj),
-                    key: cave_name,
-                    mapId,
-                  },
-                  type: 'feature',
-                },
-                sync: !includesPath(R.values(sync), [
-                  'panes',
-                  'paneState',
-                  'center',
-                ]),
-              })
+          onClick={({ cave_name, cave_obj }) =>
+            handleFeatureClick(
+              dispatch,
+              sync,
+              mapId,
+              cave_name,
+              cave_obj,
+              'geos'
             )
-          }}
+          }
         />
       )}
     </Source>,
@@ -400,25 +420,41 @@ export const Geos = memo(({ mapId }) => {
         features: R.propOr([], 'solid', lineGeoJsonObject),
       }}
     >
-      <Layer
-        id={layerId.MULTI_ARC_LAYER_SOLID}
-        key={layerId.MULTI_ARC_LAYER_SOLID}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-        }}
-        paint={{
-          'line-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-        }}
-      />
+      {isGlobe ? (
+        <Layer
+          id={layerId.MULTI_ARC_LAYER_SOLID}
+          key={layerId.MULTI_ARC_LAYER_SOLID}
+          type="line"
+          layout={{
+            'line-cap': 'round',
+            'line-join': 'round',
+          }}
+          paint={{
+            'line-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              HIGHLIGHT_COLOR,
+              ['get', 'color'],
+            ],
+            'line-opacity': 0.8,
+            'line-width': ['get', 'size'],
+          }}
+        />
+      ) : (
+        <GeosArcsWithZ
+          geos={R.propOr([], 'solid', lineGeoJsonObject)}
+          onClick={({ cave_name, cave_obj }) =>
+            handleFeatureClick(
+              dispatch,
+              sync,
+              mapId,
+              cave_name,
+              cave_obj,
+              'arcs'
+            )
+          }
+        />
+      )}
     </Source>,
     <Source
       id={layerId.MULTI_ARC_LAYER_DASH}
@@ -538,29 +574,16 @@ export const Nodes = memo(({ mapId }) => {
       ) : (
         <NodesWithZ
           nodes={nodeGeoJson}
-          onClick={({ cave_name, cave_obj: obj }) => {
-            const [type] = JSON.parse(cave_name)
-            dispatch(
-              mutateLocal({
-                path: ['panes', 'paneState', 'center'],
-                value: {
-                  open: {
-                    ...(obj || {}),
-                    feature: 'nodes',
-                    type: R.propOr(type, 'name')(obj),
-                    key: cave_name,
-                    mapId,
-                  },
-                  type: 'feature',
-                },
-                sync: !includesPath(R.values(sync), [
-                  'panes',
-                  'paneState',
-                  'center',
-                ]),
-              })
+          onClick={({ cave_name, cave_obj }) =>
+            handleFeatureClick(
+              dispatch,
+              sync,
+              mapId,
+              cave_name,
+              cave_obj,
+              'nodes'
             )
-          }}
+          }
         />
       )}
     </Source>
@@ -672,29 +695,9 @@ export const Arcs3D = memo(({ mapId }) => {
   return (
     <ArcLayer3D
       features={arcLayerGeoJson}
-      onClick={({ cave_name, cave_obj: obj }) => {
-        const [type] = JSON.parse(cave_name)
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: {
-              open: {
-                ...(obj || {}),
-                feature: 'arcs',
-                type: R.propOr(type, 'name')(obj),
-                key: cave_name,
-                mapId,
-              },
-              type: 'feature',
-            },
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
-          })
-        )
-      }}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+      }
     />
   )
 })
