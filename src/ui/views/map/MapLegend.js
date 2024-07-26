@@ -353,7 +353,7 @@ const MapLegendGroupRowToggleLayer = ({
       id: 0,
       type: 'group',
       groupId: 0,
-      logic: 'or',
+      logic: 'and',
       depth: 0,
     },
   ],

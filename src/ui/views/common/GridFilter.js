@@ -326,7 +326,7 @@ const GridFilter = ({
         type: 'group',
         groupId: groupIdCount,
         parentGroupId: groupId,
-        logic: logic === 'and' ? 'or' : 'and',
+        logic: 'and',
         depth: depth + 1,
       }
       const newRows = [
