@@ -41,8 +41,10 @@ const generateSegments = (curve, feature, segments = 80) => {
     // find horizontal angle between 2 points
     const phi =
       Math.atan(
-        (points[idx].y - points[idx + 1].y) /
-          (points[idx].x - points[idx + 1].x)
+        Math.abs(
+          (points[idx].y - points[idx + 1].y) /
+            (points[idx].x - points[idx + 1].x)
+        )
       ) +
       Math.PI / 2
     // generate new cylinder using calculated size
@@ -80,36 +82,65 @@ const generateSegments = (curve, feature, segments = 80) => {
 const geoJsonToSegments = (features) =>
   R.pipe(
     R.map((feature) => {
-      // Coordinates must go from less -> greater long for theta calc
-      const flipped =
-        feature.geometry.coordinates[0][0] < feature.geometry.coordinates[1][0]
-      // convert coordinates to MercatorCoordinates on map
-      const arcOrigin = MercatorCoordinate.fromLngLat(
-        feature.geometry.coordinates[flipped ? 1 : 0],
-        0
-      )
-      const arcDestination = MercatorCoordinate.fromLngLat(
-        feature.geometry.coordinates[flipped ? 0 : 1],
-        0
-      )
-      const distance = Math.sqrt(
-        Math.pow(arcOrigin.x - arcDestination.x, 2) +
-          Math.pow(arcOrigin.y - arcDestination.y, 2)
-      )
-      // create a bezier curve with height scaling on distance in range 0.01- 0.06
-      const curve = new THREE.CubicBezierCurve3(
-        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, 0),
-        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, distance * 0.05 + 0.01),
-        new THREE.Vector3(
-          arcDestination.x,
-          -arcDestination.y,
-          distance * 0.05 + 0.01
-        ),
-        new THREE.Vector3(arcDestination.x, -arcDestination.y, 0)
-      )
-      return generateSegments(curve, feature)
+      if (!R.path(['geometry', 'coordinates', 0], feature)) return []
+
+      const arcs = []
+      for (let i = 0; i < feature.geometry.coordinates.length - 1; i++) {
+        const origin = R.path(['geometry', 'coordinates', i], feature)
+        const destination = R.path(['geometry', 'coordinates', i + 1], feature)
+        // Coordinates must go from greater -> less long for theta calc
+        const flipped =
+          origin[0] < destination[0]
+            ? true
+            : origin[0] === destination[0] && origin[1] < destination[1]
+
+        // convert coordinates to MercatorCoordinates on map
+        const arcOrigin = MercatorCoordinate.fromLngLat(
+          feature.geometry.coordinates[flipped ? i + 1 : i],
+          R.pathOr(
+            0,
+            ['geometry', 'coordinates', flipped ? i + 1 : i, 2],
+            feature
+          )
+        )
+        const arcDestination = MercatorCoordinate.fromLngLat(
+          feature.geometry.coordinates[flipped ? i : i + 1],
+          R.pathOr(
+            0,
+            ['geometry', 'coordinates', flipped ? i : i + 1, 2],
+            feature
+          )
+        )
+
+        const distance = Math.sqrt(
+          Math.pow(arcOrigin.x - arcDestination.x, 2) +
+            Math.pow(arcOrigin.y - arcDestination.y, 2)
+        )
+        // create a bezier curve with height scaling on distance in range 0.01- 0.06
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(arcOrigin.x, -arcOrigin.y, arcOrigin.z),
+          new THREE.Vector3(
+            arcOrigin.x,
+            -arcOrigin.y,
+            arcOrigin.z + distance * 0.05 + 0.01
+          ),
+          new THREE.Vector3(
+            arcDestination.x,
+            -arcDestination.y,
+            arcDestination.z + distance * 0.05 + 0.01
+          ),
+          new THREE.Vector3(
+            arcDestination.x,
+            -arcDestination.y,
+            arcDestination.z
+          )
+        )
+        arcs.push(generateSegments(curve, feature))
+      }
+
+      return arcs
     }),
-    R.unnest
+    R.flatten
   )(features)
 
 export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
@@ -453,61 +484,20 @@ export const GeosWithZ = memo(({ geos, onClick = () => {} }) => {
 export const GeosArcsWithZ = memo(({ geos, onClick = () => {} }) => {
   const [geosArcsMemo, setGeosArcsMemo] = useState(geos)
 
-  // Converts geoJson arcs into Three.js arcs with altitude
-  const createGeosArcs = (geos) =>
-    R.pipe(
-      R.filter((geo) => R.path(['geometry', 'coordinates', 0], geo)),
-      R.map((geo) => {
-        const arcType = R.path(['properties', 'dash'], geo)
-        const points = R.map((point) => {
-          const pointXYZ = MercatorCoordinate.fromLngLat(
-            [R.path([0], point), R.path([1], point)],
-            R.pathOr(100000, [2], point)
-          )
-          return new THREE.Vector3(pointXYZ.x, -pointXYZ.y, pointXYZ.z)
-        })(R.path(['geometry', 'coordinates'], geo))
+  const convertGeos = (geos) =>
+    R.map((geo) => {
+      if (!R.path(['geometry', 'coordinates', 0], geo)) return geo
 
-        const createMaterial = (arcType, color) => {
-          const material = new THREE.MeshBasicMaterial({ color })
-          if (arcType === 'dashed' || arcType === 'dotted') {
-            material.wireframe = true
-            material.wireframeLinewidth = arcType === 'dashed' ? 2 : 1
-          }
-          return material
-        }
-
-        const arcs = []
-        for (let i = 0; i < points.length - 1; i++) {
-          const start = points[i]
-          const end = points[i + 1]
-          const midpoint = new THREE.Vector3(
-            (start.x + end.x) / 2,
-            (start.y + end.y) / 2,
-            (start.z + end.z) / 2 + 0.003 // TODOB MAKE THIS DYNAMIC WHEN USER SPECIFIES CENTRAL HEIGHT
-          )
-          const arcCurve = new THREE.CatmullRomCurve3([start, midpoint, end])
-          const tubeGeometry = new THREE.TubeGeometry(
-            arcCurve,
-            40,
-            R.path(['properties', 'size'], geo) * 0.00001,
-            8,
-            false
-          )
-          const color = R.pathOr(
-            'rgba(0,0,0,255)',
-            ['properties', 'color'],
-            geo
-          )
-          const material = createMaterial(arcType, color)
-          const arc = new THREE.Mesh(tubeGeometry, material)
-          arc.userData = R.clone(R.path(['properties'], geo))
-          arcs.push(arc)
-        }
-
-        return arcs
-      }),
-      R.flatten
-    )(geos)
+      const size = R.pathOr(10, ['properties', 'size'], geo)
+      const resizedGeos = R.assocPath(['properties', 'size'], size * 0.02, geo)
+      return R.assocPath(
+        ['geometry', 'coordinates'],
+        R.map((point) =>
+          R.path([2], point) ? point : R.assocPath([2], 100000, point)
+        )(R.path(['geometry', 'coordinates'], resizedGeos)),
+        resizedGeos
+      )
+    })(geos)
 
   useEffect(() => {
     if (!R.equals(geos, geosArcsMemo)) setGeosArcsMemo(geos)
@@ -516,8 +506,8 @@ export const GeosArcsWithZ = memo(({ geos, onClick = () => {} }) => {
   return (
     <CustomLayer
       id={'geos-arcs-with-altitude'}
-      convertFeaturesToObjects={createGeosArcs}
-      features={geosArcsMemo}
+      convertFeaturesToObjects={geoJsonToSegments}
+      features={convertGeos(geosArcsMemo)}
       onClick={onClick}
       getScale={() => [1, 1, 1]}
     />
