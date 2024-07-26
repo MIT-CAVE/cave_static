@@ -13,6 +13,7 @@ import { HIGHLIGHT_COLOR, ICON_RESOLUTION } from '../../../utils/constants'
 
 import { rgbStrToArray, fetchIcon } from '../../../utils'
 
+const DEFAULT_Z = 100000
 // Generate custom cylinder segments to allow for size scaling
 const generateSegments = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
@@ -301,7 +302,7 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
             R.path(['geometry', 'coordinates', 0], node),
             R.path(['geometry', 'coordinates', 1], node),
           ],
-          R.pathOr(100000, ['geometry', 'coordinates', 2], node)
+          R.pathOr(DEFAULT_Z, ['geometry', 'coordinates', 2], node)
         )
 
         const iconSrc = iconData[R.path(['properties', 'icon'], node)]
@@ -414,7 +415,7 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             R.map((point) => {
               const pointXYZ = MercatorCoordinate.fromLngLat(
                 [R.path([0], point), R.path([1], point)],
-                R.pathOr(100000, [2], point)
+                R.pathOr(DEFAULT_Z, [2], point)
               )
 
               return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
@@ -456,7 +457,6 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
       convertFeaturesToObjects={createGeosObjects}
       features={geosMemo}
       onClick={onClick}
-      getScale={() => [1, 1, 1]}
     />
   )
 })
@@ -465,19 +465,17 @@ export const ArcsWithZ = memo(({ id, geos: arcs, onClick = () => {} }) => {
   const [arcsMemo, setArcsMemo] = useState(arcs)
 
   const convertArcs = (arcs) =>
-    R.map((arc) => {
-      if (!R.path(['geometry', 'coordinates', 0], arc)) return arc
-
-      const size = R.pathOr(10, ['properties', 'size'], arc)
-      const resizedGeos = R.assocPath(['properties', 'size'], size * 0.02, arc)
-      return R.assocPath(
-        ['geometry', 'coordinates'],
-        R.map((point) =>
-          R.path([2], point) ? point : R.assocPath([2], 100000, point)
-        )(R.path(['geometry', 'coordinates'], resizedGeos)),
-        resizedGeos
-      )
-    })(arcs)
+    R.map((arc) =>
+      !R.path(['geometry', 'coordinates', 0], arc)
+        ? arc
+        : R.assocPath(
+            ['geometry', 'coordinates'],
+            R.map((point) =>
+              R.path([2], point) ? point : R.assocPath([2], DEFAULT_Z, point)
+            )(R.path(['geometry', 'coordinates'], arc)),
+            arc
+          )
+    )(arcs)
 
   useEffect(() => {
     if (!R.equals(arcs, arcsMemo)) setArcsMemo(arcs)
@@ -489,7 +487,7 @@ export const ArcsWithZ = memo(({ id, geos: arcs, onClick = () => {} }) => {
       convertFeaturesToObjects={geoJsonToSegments}
       features={convertArcs(arcsMemo)}
       onClick={onClick}
-      getScale={() => [1, 1, 1]}
+      getScale={(arc, zoom) => [1, 1, 1 / Math.pow(2, zoom)]}
     />
   )
 })
@@ -500,7 +498,7 @@ const CustomLayer = memo(
     convertFeaturesToObjects,
     features,
     onClick = () => {},
-    getScale,
+    getScale = () => [1, 1, 1],
   }) => {
     const { current: map } = useMap()
     const layer = map.getLayer(id)
