@@ -3,12 +3,7 @@ import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source, useMap } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import {
-  ArcLayer3D,
-  NodesWithZ,
-  GeosWithZ,
-  GeosArcsWithZ,
-} from './CustomLayers'
+import { ArcLayer3D, NodesWithZ, GeosWithZ, ArcsWithZ } from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -371,13 +366,15 @@ export const Geos = memo(({ mapId }) => {
     return [
       <GeosWithZ
         id="geos-with-altitude"
+        key="geos-with-altitude"
         geos={geoJsonObject}
         onClick={({ cave_name, cave_obj }) =>
           handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
         }
       />,
-      <GeosArcsWithZ
+      <ArcsWithZ
         id="geos-arcs-with-altitude"
+        key="geos-arcs-with-altitude"
         geos={R.unnest(R.values(lineGeoJsonObject))}
         onClick={({ cave_name, cave_obj }) =>
           handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
@@ -579,7 +576,36 @@ export const Nodes = memo(({ mapId }) => {
 })
 
 export const Arcs = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
+
+  const { current: map } = useMap()
+  const [isGlobe, setIsGlobe] = useState(getIsGlobe(map))
+
+  useEffect(() => {
+    const handleRender = () => {
+      if (isGlobe !== getIsGlobe(map)) setIsGlobe(getIsGlobe(map))
+    }
+
+    map.on('render', handleRender)
+
+    return () => {
+      map.off('render', handleRender)
+    }
+  }, [map, isGlobe])
+
+  if (!isGlobe)
+    return (
+      <ArcsWithZ
+        id="arcs-with-altitude"
+        geos={R.unnest(R.values(arcLayerGeoJson))}
+        onClick={({ cave_name, cave_obj }) =>
+          handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+        }
+      />
+    )
+
   return [
     <Source
       id={layerId.ARC_LAYER_SOLID}

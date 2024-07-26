@@ -481,15 +481,15 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
   )
 })
 
-export const GeosArcsWithZ = memo(({ id, geos, onClick = () => {} }) => {
-  const [geosArcsMemo, setGeosArcsMemo] = useState(R.clone(geos))
+export const ArcsWithZ = memo(({ id, geos: arcs, onClick = () => {} }) => {
+  const [arcsMemo, setArcsMemo] = useState(arcs)
 
-  const convertGeos = (geos) =>
-    R.map((geo) => {
-      if (!R.path(['geometry', 'coordinates', 0], geo)) return geo
+  const convertArcs = (arcs) =>
+    R.map((arc) => {
+      if (!R.path(['geometry', 'coordinates', 0], arc)) return arc
 
-      const size = R.pathOr(10, ['properties', 'size'], geo)
-      const resizedGeos = R.assocPath(['properties', 'size'], size * 0.02, geo)
+      const size = R.pathOr(10, ['properties', 'size'], arc)
+      const resizedGeos = R.assocPath(['properties', 'size'], size * 0.02, arc)
       return R.assocPath(
         ['geometry', 'coordinates'],
         R.map((point) =>
@@ -497,17 +497,17 @@ export const GeosArcsWithZ = memo(({ id, geos, onClick = () => {} }) => {
         )(R.path(['geometry', 'coordinates'], resizedGeos)),
         resizedGeos
       )
-    })(geos)
+    })(arcs)
 
   useEffect(() => {
-    if (!R.equals(geos, geosArcsMemo)) setGeosArcsMemo(geos)
-  }, [geos, geosArcsMemo])
+    if (!R.equals(arcs, arcsMemo)) setArcsMemo(arcs)
+  }, [arcs, arcsMemo])
 
   return (
     <CustomLayer
       id={id}
       convertFeaturesToObjects={geoJsonToSegments}
-      features={convertGeos(R.clone(geosArcsMemo))}
+      features={convertArcs(arcsMemo)}
       onClick={onClick}
       getScale={() => [1, 1, 1]}
     />
