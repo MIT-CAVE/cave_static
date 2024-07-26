@@ -40,11 +40,9 @@ const generateSegments = (curve, feature, segments = 80) => {
     const theta = Math.asin((points[idx].z - points[idx + 1].z) / hypotenuse)
     // find horizontal angle between 2 points
     const phi =
-      Math.atan(
-        Math.abs(
-          (points[idx].y - points[idx + 1].y) /
-            (points[idx].x - points[idx + 1].x)
-        )
+      Math.atan2(
+        points[idx].y - points[idx + 1].y,
+        points[idx].x - points[idx + 1].x
       ) +
       Math.PI / 2
     // generate new cylinder using calculated size
@@ -78,6 +76,7 @@ const generateSegments = (curve, feature, segments = 80) => {
     return R.append(cylinder, acc)
   }, [])(R.range(0, R.length(points) - 1))
 }
+
 // Converts array of geoJson features to array of Meshes to be added to scene
 const geoJsonToSegments = (features) =>
   R.pipe(
@@ -86,30 +85,14 @@ const geoJsonToSegments = (features) =>
 
       const arcs = []
       for (let i = 0; i < feature.geometry.coordinates.length - 1; i++) {
-        const origin = R.path(['geometry', 'coordinates', i], feature)
-        const destination = R.path(['geometry', 'coordinates', i + 1], feature)
-        // Coordinates must go from greater -> less long for theta calc
-        const flipped =
-          origin[0] < destination[0]
-            ? true
-            : origin[0] === destination[0] && origin[1] < destination[1]
-
         // convert coordinates to MercatorCoordinates on map
         const arcOrigin = MercatorCoordinate.fromLngLat(
-          feature.geometry.coordinates[flipped ? i + 1 : i],
-          R.pathOr(
-            0,
-            ['geometry', 'coordinates', flipped ? i + 1 : i, 2],
-            feature
-          )
+          R.path(['geometry', 'coordinates', i], feature),
+          R.pathOr(0, ['geometry', 'coordinates', i, 2], feature)
         )
         const arcDestination = MercatorCoordinate.fromLngLat(
-          feature.geometry.coordinates[flipped ? i : i + 1],
-          R.pathOr(
-            0,
-            ['geometry', 'coordinates', flipped ? i : i + 1, 2],
-            feature
-          )
+          R.path(['geometry', 'coordinates', i + 1], feature),
+          R.pathOr(0, ['geometry', 'coordinates', i + 1, 2], feature)
         )
 
         const distance = Math.sqrt(
