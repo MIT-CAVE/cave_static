@@ -294,8 +294,8 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
 
   // Converts geoJson nodes into Three.js nodes with altitude
   const createNodesObjects = useCallback(
-    (nodes) => {
-      return nodes.map((node) => {
+    (nodes) =>
+      R.map((node) => {
         const nodeXYZ = MercatorCoordinate.fromLngLat(
           [
             R.path(['geometry', 'coordinates', 0], node),
@@ -352,8 +352,7 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
           size: R.pathOr(1, ['properties', 'size'], node),
         }
         return nodeWithAltitude
-      })
-    },
+      })(nodes),
     [iconData]
   )
 
@@ -397,57 +396,55 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
   const [geosMemo, setGeosMemo] = useState(geos)
 
   // Converts geoJson geos into Three.js geos with altitude
-  const createGeosObjects = (geos) => {
-    const final = R.flatten(
-      geos
-        .filter((geo) => R.path(['geometry'], geo))
-        .map((geo) => {
-          const geoType = R.path(['geometry', 'type'], geo)
-          const polygons =
-            geoType === 'Polygon'
-              ? [R.path(['geometry', 'coordinates'], geo)]
-              : R.path(['geometry', 'coordinates'], geo)
+  const createGeosObjects = (geos) =>
+    R.pipe(
+      R.map((geo) => {
+        if (!R.path(['geometry', 'coordinates', 0], geo)) return []
 
-          return polygons.map((polygon) => {
-            // TODOB: POLYGON[0] IS OUTER RING AND OTHER INDICES ARE HOLES SO
-            // MAKE SURE TO HANDLE HOLES
+        const geoType = R.path(['geometry', 'type'], geo)
+        const polygons =
+          geoType === 'Polygon'
+            ? [R.path(['geometry', 'coordinates'], geo)]
+            : R.path(['geometry', 'coordinates'], geo)
 
-            const vertices = R.flatten(
-              R.map((point) => {
-                const pointXYZ = MercatorCoordinate.fromLngLat(
-                  [R.path([0], point), R.path([1], point)],
-                  R.pathOr(100000, [2], point)
-                )
+        return R.map((polygon) => {
+          // TODOB: POLYGON[0] IS OUTER RING AND OTHER INDICES ARE HOLES SO
+          // MAKE SURE TO HANDLE HOLES
+          const vertices = R.pipe(
+            R.map((point) => {
+              const pointXYZ = MercatorCoordinate.fromLngLat(
+                [R.path([0], point), R.path([1], point)],
+                R.pathOr(100000, [2], point)
+              )
 
-                return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
-              })(R.slice(0, -1, polygon[0]))
-            )
+              return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
+            }),
+            R.flatten
+          )(R.slice(0, -1, polygon[0]))
 
-            const triangles = earcut(vertices, null, 3)
-            const geometry = new THREE.BufferGeometry()
-            const verticesFloat32Array = new Float32Array(vertices)
-            geometry.setAttribute(
-              'position',
-              new THREE.BufferAttribute(verticesFloat32Array, 3)
-            )
-            geometry.setIndex(triangles)
-            const material = new THREE.MeshBasicMaterial({
-              color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], geo),
-              side: THREE.DoubleSide,
-            })
-            const polygonObject = new THREE.Mesh(geometry, material)
-            polygonObject.userData = {
-              cave_name: R.path(['properties', 'cave_name'], geo),
-              cave_obj: R.path(['properties', 'cave_obj'], geo),
-            }
-
-            return polygonObject
+          const triangles = earcut(vertices, null, 3)
+          const geometry = new THREE.BufferGeometry()
+          const verticesFloat32Array = new Float32Array(vertices)
+          geometry.setAttribute(
+            'position',
+            new THREE.BufferAttribute(verticesFloat32Array, 3)
+          )
+          geometry.setIndex(triangles)
+          const material = new THREE.MeshBasicMaterial({
+            color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], geo),
+            side: THREE.DoubleSide,
           })
-        })
-    )
+          const polygonObject = new THREE.Mesh(geometry, material)
+          polygonObject.userData = {
+            cave_name: R.path(['properties', 'cave_name'], geo),
+            cave_obj: R.path(['properties', 'cave_obj'], geo),
+          }
 
-    return final
-  }
+          return polygonObject
+        })(polygons)
+      }),
+      R.flatten
+    )(geos)
 
   useEffect(() => {
     if (!R.equals(geos, geosMemo)) setGeosMemo(geos)
