@@ -367,6 +367,24 @@ export const Geos = memo(({ mapId }) => {
     }
   }, [map, isGlobe])
 
+  if (!isGlobe)
+    return [
+      <GeosWithZ
+        id="geos-with-altitude"
+        geos={geoJsonObject}
+        onClick={({ cave_name, cave_obj }) =>
+          handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
+        }
+      />,
+      <GeosArcsWithZ
+        id="geos-arcs-with-altitude"
+        geos={R.unnest(R.values(lineGeoJsonObject))}
+        onClick={({ cave_name, cave_obj }) =>
+          handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+        }
+      />,
+    ]
+
   return [
     <Source
       type="geojson"
@@ -378,37 +396,21 @@ export const Geos = memo(({ mapId }) => {
         features: geoJsonObject,
       }}
     >
-      {isGlobe ? (
-        <Layer
-          id={layerId.GEOGRAPHY_LAYER}
-          key={layerId.GEOGRAPHY_LAYER}
-          react
-          type="fill"
-          paint={{
-            'fill-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              HIGHLIGHT_COLOR,
-              ['get', 'color'],
-            ],
-            'fill-opacity': 0.4,
-          }}
-        />
-      ) : (
-        <GeosWithZ
-          geos={geoJsonObject}
-          onClick={({ cave_name, cave_obj }) =>
-            handleFeatureClick(
-              dispatch,
-              sync,
-              mapId,
-              cave_name,
-              cave_obj,
-              'geos'
-            )
-          }
-        />
-      )}
+      <Layer
+        id={layerId.GEOGRAPHY_LAYER}
+        key={layerId.GEOGRAPHY_LAYER}
+        react
+        type="fill"
+        paint={{
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'fill-opacity': 0.4,
+        }}
+      />
     </Source>,
     <Source
       id={layerId.MULTI_ARC_LAYER_SOLID}
@@ -420,41 +422,25 @@ export const Geos = memo(({ mapId }) => {
         features: R.propOr([], 'solid', lineGeoJsonObject),
       }}
     >
-      {isGlobe ? (
-        <Layer
-          id={layerId.MULTI_ARC_LAYER_SOLID}
-          key={layerId.MULTI_ARC_LAYER_SOLID}
-          type="line"
-          layout={{
-            'line-cap': 'round',
-            'line-join': 'round',
-          }}
-          paint={{
-            'line-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              HIGHLIGHT_COLOR,
-              ['get', 'color'],
-            ],
-            'line-opacity': 0.8,
-            'line-width': ['get', 'size'],
-          }}
-        />
-      ) : (
-        <GeosArcsWithZ
-          geos={R.propOr([], 'solid', lineGeoJsonObject)}
-          onClick={({ cave_name, cave_obj }) =>
-            handleFeatureClick(
-              dispatch,
-              sync,
-              mapId,
-              cave_name,
-              cave_obj,
-              'arcs'
-            )
-          }
-        />
-      )}
+      <Layer
+        id={layerId.MULTI_ARC_LAYER_SOLID}
+        key={layerId.MULTI_ARC_LAYER_SOLID}
+        type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+        }}
+        paint={{
+          'line-color': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'line-opacity': 0.8,
+          'line-width': ['get', 'size'],
+        }}
+      />
     </Source>,
     <Source
       id={layerId.MULTI_ARC_LAYER_DASH}
@@ -541,6 +527,24 @@ export const Nodes = memo(({ mapId }) => {
     }
   }, [map, isGlobe])
 
+  if (!isGlobe)
+    return (
+      <NodesWithZ
+        id="nodes-with-altitude"
+        nodes={nodeGeoJson}
+        onClick={({ cave_name, cave_obj }) =>
+          handleFeatureClick(
+            dispatch,
+            sync,
+            mapId,
+            cave_name,
+            cave_obj,
+            'nodes'
+          )
+        }
+      />
+    )
+
   return (
     <Source
       id={layerId.NODE_ICON_LAYER}
@@ -552,40 +556,24 @@ export const Nodes = memo(({ mapId }) => {
         features: nodeGeoJson,
       }}
     >
-      {isGlobe ? (
-        <Layer
-          id={layerId.NODE_ICON_LAYER}
-          key={layerId.NODE_ICON_LAYER}
-          type="symbol"
-          layout={{
-            'icon-image': ['get', 'icon'],
-            'icon-size': ['get', 'size'],
-            'icon-allow-overlap': true,
-          }}
-          paint={{
-            'icon-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              HIGHLIGHT_COLOR,
-              ['get', 'color'],
-            ],
-          }}
-        />
-      ) : (
-        <NodesWithZ
-          nodes={nodeGeoJson}
-          onClick={({ cave_name, cave_obj }) =>
-            handleFeatureClick(
-              dispatch,
-              sync,
-              mapId,
-              cave_name,
-              cave_obj,
-              'nodes'
-            )
-          }
-        />
-      )}
+      <Layer
+        id={layerId.NODE_ICON_LAYER}
+        key={layerId.NODE_ICON_LAYER}
+        type="symbol"
+        layout={{
+          'icon-image': ['get', 'icon'],
+          'icon-size': ['get', 'size'],
+          'icon-allow-overlap': true,
+        }}
+        paint={{
+          'icon-color': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+        }}
+      />
     </Source>
   )
 })

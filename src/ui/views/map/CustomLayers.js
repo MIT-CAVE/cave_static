@@ -304,7 +304,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   return <Layer {...customLayer} />
 })
 
-export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
+export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const [nodesMemo, setNodesMemo] = useState(nodes)
   const [iconData, setIconData] = useState({})
@@ -398,7 +398,7 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
 
   return (
     <CustomLayer
-      id={'nodes-with-altitude'}
+      id={id}
       convertFeaturesToObjects={createNodesObjects}
       features={nodesMemo}
       onClick={onClick}
@@ -410,7 +410,7 @@ export const NodesWithZ = memo(({ nodes, onClick = () => {} }) => {
   )
 })
 
-export const GeosWithZ = memo(({ geos, onClick = () => {} }) => {
+export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
   const [geosMemo, setGeosMemo] = useState(geos)
 
   // Converts geoJson geos into Three.js geos with altitude
@@ -472,7 +472,7 @@ export const GeosWithZ = memo(({ geos, onClick = () => {} }) => {
 
   return (
     <CustomLayer
-      id={'geos-with-altitude'}
+      id={id}
       convertFeaturesToObjects={createGeosObjects}
       features={geosMemo}
       onClick={onClick}
@@ -481,8 +481,8 @@ export const GeosWithZ = memo(({ geos, onClick = () => {} }) => {
   )
 })
 
-export const GeosArcsWithZ = memo(({ geos, onClick = () => {} }) => {
-  const [geosArcsMemo, setGeosArcsMemo] = useState(geos)
+export const GeosArcsWithZ = memo(({ id, geos, onClick = () => {} }) => {
+  const [geosArcsMemo, setGeosArcsMemo] = useState(R.clone(geos))
 
   const convertGeos = (geos) =>
     R.map((geo) => {
@@ -505,9 +505,9 @@ export const GeosArcsWithZ = memo(({ geos, onClick = () => {} }) => {
 
   return (
     <CustomLayer
-      id={'geos-arcs-with-altitude'}
+      id={id}
       convertFeaturesToObjects={geoJsonToSegments}
-      features={convertGeos(geosArcsMemo)}
+      features={convertGeos(R.clone(geosArcsMemo))}
       onClick={onClick}
       getScale={() => [1, 1, 1]}
     />
