@@ -17,7 +17,16 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     ? R.replace(/\s*\[.*?\]/g, '')(rightLabel)
     : ''
 
-  const { series, min, max } = useMemo(() => {
+  const calcData = useMemo(() => {
+    if (
+      R.isNil(data) || R.isEmpty(data) || hasSubgroups
+        ? !R.hasPath([0, 'children', 0, 'value', 1], data)
+        : !R.hasPath([0, 'value', 1], data) ||
+          R.any(R.equals('undefined'), labels)
+    ) {
+      return null
+    }
+
     const variantType = {
       line: 'line',
       'cumulative line': 'line',
@@ -50,13 +59,19 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       }, data)
 
       R.forEach((subgroup) => {
-        if (leftVariant === 'cumulative line') {
+        if (
+          leftVariant === 'cumulative line' &&
+          R.all(R.complement(R.isNil))(subgroup.leftData)
+        ) {
           subgroup.leftData = R.compose(
             R.tail,
             R.scan(R.add, 0)
           )(subgroup.leftData)
         }
-        if (rightVariant === 'cumulative line') {
+        if (
+          rightVariant === 'cumulative line' &&
+          R.all(R.complement(R.isNil))(subgroup.rightData)
+        ) {
           subgroup.rightData = R.compose(
             R.tail,
             R.scan(R.add, 0)
@@ -94,11 +109,13 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     } else {
       const [leftData, rightData] = R.pipe(R.pluck('value'), R.transpose)(data)
       const finalLeftData =
-        leftVariant === 'cumulative line'
+        leftVariant === 'cumulative line' &&
+        R.all(R.complement(R.isNil))(leftData)
           ? R.compose(R.tail, R.scan(R.add, 0))(leftData)
           : leftData
       const finalRightData =
-        rightVariant === 'cumulative line'
+        rightVariant === 'cumulative line' &&
+        R.all(R.complement(R.isNil))(rightData)
           ? R.compose(R.tail, R.scan(R.add, 0))(rightData)
           : rightData
       return {
@@ -127,14 +144,17 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     rightVariant,
     leftLabelWithoutUnits,
     rightLabelWithoutUnits,
+    labels,
   ])
+
+  if (R.isNil(calcData)) return []
 
   const createYAxis = (name, rotate) => ({
     type: 'value',
     name,
     nameGap: 50,
-    min: min,
-    max: max,
+    min: calcData.min,
+    max: calcData.max,
     nameLocation: 'middle',
     nameRotate: rotate,
     nameTextStyle: {
@@ -153,7 +173,7 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       name: xAxisLabel,
     },
     yAxis: [createYAxis(leftLabel, 90), createYAxis(rightLabel, -90)],
-    series,
+    series: calcData.series,
   }
   return <FlexibleChart {...{ options }} />
 }
