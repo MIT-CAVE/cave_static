@@ -431,9 +431,17 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             new THREE.BufferAttribute(verticesFloat32Array, 3)
           )
           geometry.setIndex(triangles)
+          const color = R.pathOr(
+            'rgba(0,0,0,255)',
+            ['properties', 'color'],
+            geo
+          )
+
           const material = new THREE.MeshBasicMaterial({
-            color: R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], geo),
+            color,
             side: THREE.DoubleSide,
+            transparent: true,
+            opacity: parseInt(rgbStrToArray(color)[3]) * 0.5,
           })
           const polygonObject = new THREE.Mesh(geometry, material)
           polygonObject.userData = {
