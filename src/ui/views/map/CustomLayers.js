@@ -441,7 +441,7 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             color,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: parseInt(rgbStrToArray(color)[3]) * 0.5,
+            opacity: parseInt(rgbStrToArray(color)[3]) * 0.4,
           })
           const polygonObject = new THREE.Mesh(geometry, material)
           polygonObject.userData = {
@@ -564,7 +564,18 @@ const CustomLayer = memo(
           .getCanvas()
           .addEventListener('mousemove', hoverHandler.current, false)
         map.getCanvas().addEventListener('click', clickHandler.current, false)
-        map.moveLayer(id)
+
+        let firstSymbolLayer
+
+        for (const layer of map.getStyle().layers) {
+          if (layer.type === 'symbol') {
+            firstSymbolLayer = layer.id
+            break
+          }
+        }
+
+        if (firstSymbolLayer) map.moveLayer(id, firstSymbolLayer)
+        else map.moveLayer(id)
       },
       onRemove: function () {
         this.map
@@ -663,6 +674,6 @@ const CustomLayer = memo(
       },
     }
 
-    return <Layer {...customLayer} />
+    return <Layer {...customLayer} text-allow-overlap={true} />
   }
 )
