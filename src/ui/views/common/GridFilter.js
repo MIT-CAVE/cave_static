@@ -302,7 +302,7 @@ const GridFilter = ({
       setRowModesModel(
         R.assoc(idCount, {
           mode: GridRowModes.Edit,
-          fieldToFocus: rows.length < 1 ? 'source' : 'logic',
+          fieldToFocus: 'source',
         })
       )
       const newRows = [
@@ -329,6 +329,12 @@ const GridFilter = ({
         logic: 'and',
         depth: depth + 1,
       }
+      setRowModesModel(
+        R.assoc(idCount, {
+          mode: GridRowModes.Edit,
+          fieldToFocus: 'logic',
+        })
+      )
       const newRows = [
         ...rows.slice(0, index + 1),
         newRow,
@@ -458,7 +464,7 @@ const GridFilter = ({
         headerAlign: 'center',
         display: 'flex',
         width: 90,
-        editable: false,
+        editable: true,
         type: 'singleSelect',
         renderCell: ({ row }) => {
           return row.id === 0 ? (
@@ -481,7 +487,7 @@ const GridFilter = ({
         type: 'singleSelect',
         display: 'flex',
         flex: 1,
-        editable: ({ row }) => row.type === 'rule',
+        editable: true,
         valueOptions: sourceValueOpts,
         renderCell: ({ formattedValue }) => (
           <OverflowText text={formattedValue} />
@@ -502,16 +508,14 @@ const GridFilter = ({
         align: 'center',
         width: 90,
         type: 'singleSelect',
-        editable: ({ row }) => row.type === 'rule',
+        editable: true,
         valueOptions: ({ row, id }) => {
           const rowAlt = apiRef.current.getRow(id)
           const valueAlt = rowAlt.source
           const value = R.propOr(valueAlt, 'source')(row)
           const valueType =
             value && value !== '' ? sourceValueTypes[value] : 'number'
-          return row.type === 'group'
-            ? ''
-            : getRelationValueOptsByType(valueType)
+          return getRelationValueOptsByType(valueType)
         },
         preProcessEditCellProps,
       },
@@ -522,7 +526,7 @@ const GridFilter = ({
         display: 'flex',
         align: 'right',
         width: 150,
-        editable: ({ row }) => row.type === 'rule',
+        editable: true,
         valueParser: (value, params) => {
           const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
           const valueType = sourceValueTypes[editRow.source]
@@ -726,6 +730,15 @@ const GridFilter = ({
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
           maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
+          isCellEditable={(params) => {
+            const { field, row } = params
+            const nonEditableFields = R.cond([
+              [R.equals('group'), R.always(['source', 'relation', 'value'])],
+              [R.equals('rule'), R.always(['logic'])],
+              [R.T, R.always([])],
+            ])(row.type)
+            return !R.includes(field, nonEditableFields)
+          }}
         />
       </Paper>
 
