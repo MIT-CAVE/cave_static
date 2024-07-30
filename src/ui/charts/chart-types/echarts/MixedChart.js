@@ -8,7 +8,7 @@ const MixedChart = ({
   labelProps,
   leftVariant,
   rightVariant,
-  syncAxes = true,
+  syncAxes = false,
 }) => {
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
@@ -92,16 +92,15 @@ const MixedChart = ({
       const rightMin = Math.min(...R.filter(R.is(Number), rightData))
       const rightMax = Math.max(...R.filter(R.is(Number), rightData))
       const leftMinAfterSync = syncAxes
-        ? -Math.max(
-            Math.abs(leftMin),
-            Math.abs(rightMin),
-            Math.abs(leftMax),
-            Math.abs(rightMax)
-          )
+        ? Math.min(leftMin, rightMin)
         : -Math.max(Math.abs(leftMin), Math.abs(leftMax))
+      const leftMaxAfterSync = syncAxes
+        ? Math.max(leftMax, rightMax)
+        : -leftMinAfterSync
       const rightMinAfterSync = syncAxes
         ? leftMinAfterSync
         : -Math.max(Math.abs(rightMin), Math.abs(rightMax))
+      const rightMaxAfterSync = syncAxes ? leftMaxAfterSync : -rightMinAfterSync
 
       return {
         series: R.flatten([
@@ -119,9 +118,9 @@ const MixedChart = ({
           })),
         ]),
         leftMin: leftMinAfterSync,
-        leftMax: -leftMinAfterSync,
+        leftMax: leftMaxAfterSync,
         rightMin: rightMinAfterSync,
-        rightMax: -rightMinAfterSync,
+        rightMax: rightMaxAfterSync,
       }
     } else {
       const [leftData, rightData] = R.pipe(R.pluck('value'), R.transpose)(data)
@@ -140,16 +139,15 @@ const MixedChart = ({
       const rightMin = Math.min(...R.filter(R.is(Number), finalRightData))
       const rightMax = Math.max(...R.filter(R.is(Number), finalRightData))
       const leftMinAfterSync = syncAxes
-        ? -Math.max(
-            Math.abs(leftMin),
-            Math.abs(rightMin),
-            Math.abs(leftMax),
-            Math.abs(rightMax)
-          )
+        ? Math.min(leftMin, rightMin)
         : -Math.max(Math.abs(leftMin), Math.abs(leftMax))
+      const leftMaxAfterSync = syncAxes
+        ? Math.max(leftMax, rightMax)
+        : -leftMinAfterSync
       const rightMinAfterSync = syncAxes
         ? leftMinAfterSync
         : -Math.max(Math.abs(rightMin), Math.abs(rightMax))
+      const rightMaxAfterSync = syncAxes ? leftMaxAfterSync : -rightMinAfterSync
       return {
         series: [
           {
@@ -166,9 +164,9 @@ const MixedChart = ({
           },
         ],
         leftMin: leftMinAfterSync,
-        leftMax: -leftMinAfterSync,
+        leftMax: leftMaxAfterSync,
         rightMin: rightMinAfterSync,
-        rightMax: -rightMinAfterSync,
+        rightMax: rightMaxAfterSync,
       }
     }
   }, [
