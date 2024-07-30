@@ -19,13 +19,15 @@ const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const rightMax = syncAxes ? leftMax : -rightMin
   return { leftMin, leftMax, rightMin, rightMax }
 }
-
 const isCumulative = (variant, data) => {
   return variant === 'cumulative line' && R.all(R.complement(R.isNil))(data)
 }
-
 const accumulate = (data) => {
   return R.compose(R.tail, R.scan(R.add, 0))(data)
+}
+const getData = (index, variant, data) => {
+  const values = R.pipe(R.pluck('value'), R.pluck(index))(data)
+  return isCumulative(variant, values) ? accumulate(values) : values
 }
 
 const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
@@ -52,12 +54,12 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     ) {
       return null
     }
-
     const variantType = {
       line: 'line',
       'cumulative line': 'line',
       bar: 'bar',
     }
+    const smooth = variantType[rightVariant] === 'line' ? true : undefined
 
     if (hasSubgroups) {
       const subGroups = R.reduce(
@@ -108,14 +110,14 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             type: variantType[leftVariant],
             data: sg.leftData,
             yAxisIndex: 0,
-            smooth: variantType[leftVariant] === 'line' ? true : undefined,
+            smooth,
           })),
           subGroups.map((sg) => ({
             name: `${rightLabelWithoutUnits}: ${sg.name}`,
             type: variantType[rightVariant],
             data: sg.rightData,
             yAxisIndex: 1,
-            smooth: variantType[rightVariant] === 'line' ? true : undefined,
+            smooth,
           })),
         ]),
         leftMin,
@@ -124,14 +126,8 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
         rightMax,
       }
     } else {
-      const leftValues = R.pipe(R.pluck('value'), R.map(R.head))(data)
-      const leftData = isCumulative(leftVariant, leftValues)
-        ? accumulate(leftValues)
-        : leftValues
-      const rightValues = R.pipe(R.pluck('value'), R.pluck(1))(data)
-      const rightData = isCumulative(rightVariant, rightValues)
-        ? accumulate(rightValues)
-        : rightValues
+      const leftData = getData(0, leftVariant, data)
+      const rightData = getData(1, rightVariant, data)
       const { leftMin, leftMax, rightMin, rightMax } = calculateAxesBounds(
         leftData,
         rightData,
@@ -144,14 +140,14 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             type: variantType[leftVariant],
             data: leftData,
             yAxisIndex: 0,
-            smooth: variantType[leftVariant] === 'line' ? true : undefined,
+            smooth,
           },
           {
             name: rightLabelWithoutUnits,
             type: variantType[rightVariant],
             data: rightData,
             yAxisIndex: 1,
-            smooth: variantType[rightVariant] === 'line' ? true : undefined,
+            smooth,
           },
         ],
         leftMin,
