@@ -293,7 +293,7 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
   const [nodesMemo, setNodesMemo] = useState(nodes)
   const [iconData, setIconData] = useState({})
 
-  // Converts geoJson nodes into Three.js nodes with altitude
+  // Converts geoJson nodes into Three.js nodes with height
   const createNodesObjects = useCallback(
     (nodes) =>
       R.map((node) => {
@@ -345,14 +345,14 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
         const spriteMaterial = new THREE.SpriteMaterial({
           map: texture,
         })
-        const nodeWithAltitude = new THREE.Sprite(spriteMaterial)
-        nodeWithAltitude.position.set(nodeXYZ.x, -nodeXYZ.y, nodeXYZ.z)
-        nodeWithAltitude.userData = {
+        const nodeWithHeight = new THREE.Sprite(spriteMaterial)
+        nodeWithHeight.position.set(nodeXYZ.x, -nodeXYZ.y, nodeXYZ.z)
+        nodeWithHeight.userData = {
           cave_name: R.path(['properties', 'cave_name'], node),
           cave_obj: R.path(['properties', 'cave_obj'], node),
           size: R.pathOr(1, ['properties', 'size'], node),
         }
-        return nodeWithAltitude
+        return nodeWithHeight
       })(nodes),
     [iconData]
   )
@@ -396,7 +396,7 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
 export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
   const [geosMemo, setGeosMemo] = useState(geos)
 
-  // Converts geoJson geos into Three.js geos with altitude
+  // Converts geoJson geos into Three.js geos with height
   const createGeosObjects = (geos) =>
     R.pipe(
       R.map((geo) => {
@@ -409,8 +409,6 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             : R.path(['geometry', 'coordinates'], geo)
 
         return R.map((polygon) => {
-          // TODOB: POLYGON[0] IS OUTER RING AND OTHER INDICES ARE HOLES SO
-          // MAKE SURE TO HANDLE HOLES
           const vertices = R.pipe(
             R.map((point) => {
               const pointXYZ = MercatorCoordinate.fromLngLat(
@@ -423,33 +421,91 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             R.flatten
           )(R.slice(0, -1, polygon[0]))
 
-          const triangles = earcut(vertices, null, 3)
-          const geometry = new THREE.BufferGeometry()
-          const verticesFloat32Array = new Float32Array(vertices)
-          geometry.setAttribute(
-            'position',
-            new THREE.BufferAttribute(verticesFloat32Array, 3)
-          )
-          geometry.setIndex(triangles)
           const color = R.pathOr(
-            'rgba(0,0,0,255)',
+            'rgba(0, 0, 0, 255)',
             ['properties', 'color'],
             geo
           )
 
-          const material = new THREE.MeshBasicMaterial({
+          // Create the side faces
+          const sideVertices = []
+          const numPoints = vertices.length / 3
+          for (let i = 0; i < numPoints; i++) {
+            const x = vertices[i * 3]
+            const y = vertices[i * 3 + 1]
+            const z = vertices[i * 3 + 2]
+
+            // Top vertex
+            sideVertices.push(x, y, z)
+            // Corresponding bottom vertex (z = 0)
+            sideVertices.push(x, y, 0)
+          }
+
+          const sideTriangles = []
+          for (let i = 0; i < numPoints - 1; i++) {
+            sideTriangles.push(
+              i * 2,
+              i * 2 + 1,
+              i * 2 + 2,
+              i * 2 + 1,
+              i * 2 + 3,
+              i * 2 + 2
+            )
+          }
+          // Close the last face
+          sideTriangles.push(
+            (numPoints - 1) * 2,
+            (numPoints - 1) * 2 + 1,
+            0,
+            (numPoints - 1) * 2 + 1,
+            1,
+            0
+          )
+
+          const sideGeometry = new THREE.BufferGeometry()
+          const sideVerticesFloat32Array = new Float32Array(sideVertices)
+          sideGeometry.setAttribute(
+            'position',
+            new THREE.BufferAttribute(sideVerticesFloat32Array, 3)
+          )
+          sideGeometry.setIndex(sideTriangles)
+
+          const sideMaterial = new THREE.MeshBasicMaterial({
+            color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: parseInt(rgbStrToArray(color)[3]) * 0.2,
+          })
+
+          const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial)
+
+          // Create the top face
+          const topTriangles = earcut(vertices, null, 3)
+          const topGeometry = new THREE.BufferGeometry()
+          const verticesFloat32Array = new Float32Array(vertices)
+          topGeometry.setAttribute(
+            'position',
+            new THREE.BufferAttribute(verticesFloat32Array, 3)
+          )
+          topGeometry.setIndex(topTriangles)
+
+          const topMaterial = new THREE.MeshBasicMaterial({
             color,
             side: THREE.DoubleSide,
             transparent: true,
             opacity: parseInt(rgbStrToArray(color)[3]) * 0.4,
           })
-          const polygonObject = new THREE.Mesh(geometry, material)
-          polygonObject.userData = {
+          const topMesh = new THREE.Mesh(topGeometry, topMaterial)
+
+          const userData = {
             cave_name: R.path(['properties', 'cave_name'], geo),
             cave_obj: R.path(['properties', 'cave_obj'], geo),
           }
 
-          return polygonObject
+          topMesh.userData = userData
+          sideMesh.userData = userData
+
+          return [topMesh, sideMesh]
         })(polygons)
       }),
       R.flatten
@@ -618,6 +674,7 @@ const CustomLayer = memo(
             layer.objects,
             true
           )
+
           if (intersects.length) {
             e.stopImmediatePropagation()
             const event = new CustomEvent('clearHighlight')
