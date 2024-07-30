@@ -100,7 +100,7 @@ const geoJsonToSegments = (features) =>
           Math.pow(arcOrigin.x - arcDestination.x, 2) +
             Math.pow(arcOrigin.y - arcDestination.y, 2)
         )
-        // create a bezier curve with height scaling on distance in range 0.01- 0.06
+        // create a bezier curve with height scaling on distance in range 0.01 - 0.06
         const curve = new THREE.CubicBezierCurve3(
           new THREE.Vector3(arcOrigin.x, -arcOrigin.y, arcOrigin.z),
           new THREE.Vector3(
@@ -571,6 +571,18 @@ const CustomLayer = memo(
     const clickHandler = useRef()
     const hoverHandler = useRef()
 
+    const createDuplicates = (objects) => {
+      const duplicates = []
+      R.forEach((object) => {
+        const leftDuplicate = object.clone(true)
+        leftDuplicate.position.x -= 1
+        const rightDuplicate = object.clone(true)
+        rightDuplicate.position.x += 1
+        duplicates.push(leftDuplicate, rightDuplicate)
+      })(objects)
+      return duplicates
+    }
+
     useEffect(() => {
       if (layer)
         layer.implementation.updateObjects(convertFeaturesToObjects(features))
@@ -602,7 +614,8 @@ const CustomLayer = memo(
         this.camera = new THREE.PerspectiveCamera()
         this.scene = new THREE.Scene()
         this.map = map
-        this.objects = convertFeaturesToObjects(features)
+        const objects = convertFeaturesToObjects(features)
+        this.objects = R.concat(objects, createDuplicates(objects))
         R.forEach((object) => this.scene.add(object))(this.objects)
         this.renderer = new THREE.WebGLRenderer({
           canvas: map.getCanvas(),
@@ -641,8 +654,9 @@ const CustomLayer = memo(
       },
       updateObjects: function (newObjects) {
         this.scene.remove.apply(this.scene, this.scene.children)
-        R.forEach((object) => this.scene.add(object))(newObjects)
-        this.objects = newObjects
+        const allObjects = R.concat(newObjects, createDuplicates(newObjects))
+        R.forEach((object) => this.scene.add(object))(allObjects)
+        this.objects = allObjects
       },
       raycast: (e, click) => {
         const layer = map.getLayer(id) && map.getLayer(id).implementation
