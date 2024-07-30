@@ -661,7 +661,9 @@ const CustomLayer = memo(
       raycast: (e, click) => {
         const layer = map.getLayer(id) && map.getLayer(id).implementation
         if (layer) {
-          const point = { x: e.layerX, y: e.layerY }
+          const dpr = window.devicePixelRatio || 1
+
+          const point = { x: e.layerX * dpr, y: e.layerY * dpr }
           const mouse = new THREE.Vector2()
           mouse.x = (point.x / e.srcElement.width) * 2 - 1
           mouse.y = 1 - (point.y / e.srcElement.height) * 2
