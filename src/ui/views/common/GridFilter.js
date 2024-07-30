@@ -620,7 +620,7 @@ const GridFilter = ({
         headerAlign: 'right',
         display: 'flex',
         align: 'right',
-        width: 120,
+        width: 130,
         type: 'actions',
         getActions: ({ id, row }) => {
           return row.type === 'group'
@@ -670,7 +670,7 @@ const GridFilter = ({
                     icon={<MdEdit size="20px" />}
                     label="Edit"
                     onClick={handleClickEdit(id)}
-                    sx={{ marginRight: '-10px' }}
+                    sx={id === 0 ? {} : { marginRight: '-10px' }}
                   />,
                   id === 0 ? (
                     <></>
@@ -679,7 +679,6 @@ const GridFilter = ({
                       icon={<MdDelete size="20px" />}
                       label="Remove Group"
                       onClick={() => handleDeleteGroup(id, row.groupId)}
-                      sx={{ marginRight: '-3px' }}
                     />
                   ),
                 ]
