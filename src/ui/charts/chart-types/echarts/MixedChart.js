@@ -4,6 +4,22 @@ import { useMemo, useState } from 'react'
 
 import { FlexibleChart } from './BaseChart'
 
+const calculateAxesBounds = (leftData, rightData, syncAxes) => {
+  const leftDataMin = Math.min(...R.filter(R.is(Number), leftData))
+  const leftDataMax = Math.max(...R.filter(R.is(Number), leftData))
+  const rightDataMin = Math.min(...R.filter(R.is(Number), rightData))
+  const rightDataMax = Math.max(...R.filter(R.is(Number), rightData))
+  const leftMin = syncAxes
+    ? Math.min(leftDataMin, rightDataMin)
+    : -Math.max(Math.abs(leftDataMin), Math.abs(leftDataMax))
+  const leftMax = syncAxes ? Math.max(leftDataMax, rightDataMax) : -leftMin
+  const rightMin = syncAxes
+    ? leftMin
+    : -Math.max(Math.abs(rightDataMin), Math.abs(rightDataMax))
+  const rightMax = syncAxes ? leftMax : -rightMin
+  return { leftMin, leftMax, rightMin, rightMax }
+}
+
 const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
   const [syncAxes, setSyncAxes] = useState(false)
   const hasSubgroups = R.has('children', R.head(data))
@@ -83,20 +99,11 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
 
       const leftData = R.chain(R.prop('leftData'), subGroups)
       const rightData = R.chain(R.prop('rightData'), subGroups)
-      const leftMin = Math.min(...R.filter(R.is(Number), leftData))
-      const leftMax = Math.max(...R.filter(R.is(Number), leftData))
-      const rightMin = Math.min(...R.filter(R.is(Number), rightData))
-      const rightMax = Math.max(...R.filter(R.is(Number), rightData))
-      const leftMinAfterSync = syncAxes
-        ? Math.min(leftMin, rightMin)
-        : -Math.max(Math.abs(leftMin), Math.abs(leftMax))
-      const leftMaxAfterSync = syncAxes
-        ? Math.max(leftMax, rightMax)
-        : -leftMinAfterSync
-      const rightMinAfterSync = syncAxes
-        ? leftMinAfterSync
-        : -Math.max(Math.abs(rightMin), Math.abs(rightMax))
-      const rightMaxAfterSync = syncAxes ? leftMaxAfterSync : -rightMinAfterSync
+      const { leftMin, leftMax, rightMin, rightMax } = calculateAxesBounds(
+        leftData,
+        rightData,
+        syncAxes
+      )
 
       return {
         series: R.flatten([
@@ -115,10 +122,10 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             smooth: variantType[rightVariant] === 'line' ? true : undefined,
           })),
         ]),
-        leftMin: leftMinAfterSync,
-        leftMax: leftMaxAfterSync,
-        rightMin: rightMinAfterSync,
-        rightMax: rightMaxAfterSync,
+        leftMin,
+        leftMax,
+        rightMin,
+        rightMax,
       }
     } else {
       const [leftData, rightData] = R.pipe(R.pluck('value'), R.transpose)(data)
@@ -132,20 +139,11 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
         R.all(R.complement(R.isNil))(rightData)
           ? R.compose(R.tail, R.scan(R.add, 0))(rightData)
           : rightData
-      const leftMin = Math.min(...R.filter(R.is(Number), finalLeftData))
-      const leftMax = Math.max(...R.filter(R.is(Number), finalLeftData))
-      const rightMin = Math.min(...R.filter(R.is(Number), finalRightData))
-      const rightMax = Math.max(...R.filter(R.is(Number), finalRightData))
-      const leftMinAfterSync = syncAxes
-        ? Math.min(leftMin, rightMin)
-        : -Math.max(Math.abs(leftMin), Math.abs(leftMax))
-      const leftMaxAfterSync = syncAxes
-        ? Math.max(leftMax, rightMax)
-        : -leftMinAfterSync
-      const rightMinAfterSync = syncAxes
-        ? leftMinAfterSync
-        : -Math.max(Math.abs(rightMin), Math.abs(rightMax))
-      const rightMaxAfterSync = syncAxes ? leftMaxAfterSync : -rightMinAfterSync
+      const { leftMin, leftMax, rightMin, rightMax } = calculateAxesBounds(
+        finalLeftData,
+        finalRightData,
+        syncAxes
+      )
       return {
         series: [
           {
@@ -163,10 +161,10 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             smooth: variantType[rightVariant] === 'line' ? true : undefined,
           },
         ],
-        leftMin: leftMinAfterSync,
-        leftMax: leftMaxAfterSync,
-        rightMin: rightMinAfterSync,
-        rightMax: rightMaxAfterSync,
+        leftMin,
+        leftMax,
+        rightMin,
+        rightMax,
       }
     }
   }, [
