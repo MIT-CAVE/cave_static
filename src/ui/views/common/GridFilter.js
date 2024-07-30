@@ -24,8 +24,8 @@ import {
   MdEdit,
   MdRestore,
   MdSave,
-  MdOutlineCancel,
 } from 'react-icons/md'
+// eslint-disable-next-line
 import { PiArrowElbowDownRight } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
@@ -466,18 +466,20 @@ const GridFilter = ({
         width: 90,
         editable: true,
         type: 'singleSelect',
-        renderCell: ({ row }) => {
-          return row.id === 0 ? (
-            <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
-          ) : row.type === 'rule' ? (
-            ''
-          ) : (
-            <Box sx={{ paddingLeft: `${row.depth * 8}px`, display: 'flex' }}>
-              <PiArrowElbowDownRight style={{ marginRight: '3px' }} />
-              {row.logic.toUpperCase()}
-            </Box>
-          )
-        },
+        valueOptions: ['and', 'or'],
+        getOptionLabel: (option) => option.toUpperCase(),
+        // renderCell: ({ row }) => {
+        //   return row.id === 0 ? (
+        //     <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
+        //   ) : row.type === 'rule' ? (
+        //     ''
+        //   ) : (
+        //     <Box sx={{ paddingLeft: `${row.depth * 8}px`, display: 'flex' }}>
+        //       <PiArrowElbowDownRight style={{ marginRight: '3px' }} />
+        //       {row.logic.toUpperCase()}
+        //     </Box>
+        //   )
+        // },
         preProcessEditCellProps,
       },
       GRID_CHECKBOX_SELECTION_COL_DEF,
@@ -618,39 +620,69 @@ const GridFilter = ({
         headerAlign: 'right',
         display: 'flex',
         align: 'right',
-        width: 100,
+        width: 120,
         type: 'actions',
         getActions: ({ id, row }) => {
           return row.type === 'group'
-            ? [
-                <GridActionsCellItem
-                  icon={<MdAddCircleOutline size="20px" />}
-                  label="Add Rule"
-                  onClick={() => handleAddRow(row.groupId, row.depth)}
-                />,
-                <GridActionsCellItem
-                  icon={<BiBracket size="20px" />}
-                  label="Add Group"
-                  onClick={() =>
-                    handleAddGroup(row.groupId, row.logic, row.depth)
-                  }
-                  sx={
-                    id === 0
-                      ? { marginRight: '-3px', marginLeft: '-10px' }
-                      : { margin: '-10px' }
-                  }
-                />,
-                id === 0 ? (
-                  <></>
-                ) : (
+            ? R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
+              ? [
                   <GridActionsCellItem
-                    icon={<MdOutlineCancel size="20px" />}
-                    label="Remove Group"
-                    onClick={() => handleDeleteGroup(id, row.groupId)}
-                    sx={{ marginRight: '-3px' }}
-                  />
-                ),
-              ]
+                    icon={<MdAddCircleOutline size="20px" />}
+                    label="Add Rule"
+                    onClick={() => handleAddRow(row.groupId, row.depth)}
+                  />,
+                  <GridActionsCellItem
+                    icon={<BiBracket size="20px" />}
+                    label="Add Group"
+                    onClick={() =>
+                      handleAddGroup(row.groupId, row.logic, row.depth)
+                    }
+                    sx={{ margin: '-10px' }}
+                  />,
+                  <GridActionsCellItem
+                    // disabled={!canSaveRow[id]}
+                    icon={<MdSave size="20px" />}
+                    label="Save"
+                    onClick={handleClickSave(id)}
+                    sx={{ marginRight: '-10px' }}
+                  />,
+                  <GridActionsCellItem
+                    icon={<MdRestore size="20px" />}
+                    label="Discard"
+                    onClick={handleClickDiscard(id)}
+                  />,
+                ]
+              : [
+                  <GridActionsCellItem
+                    icon={<MdAddCircleOutline size="20px" />}
+                    label="Add Rule"
+                    onClick={() => handleAddRow(row.groupId, row.depth)}
+                  />,
+                  <GridActionsCellItem
+                    icon={<BiBracket size="20px" />}
+                    label="Add Group"
+                    onClick={() =>
+                      handleAddGroup(row.groupId, row.logic, row.depth)
+                    }
+                    sx={{ margin: '-10px' }}
+                  />,
+                  <GridActionsCellItem
+                    icon={<MdEdit size="20px" />}
+                    label="Edit"
+                    onClick={handleClickEdit(id)}
+                    sx={{ marginRight: '-10px' }}
+                  />,
+                  id === 0 ? (
+                    <></>
+                  ) : (
+                    <GridActionsCellItem
+                      icon={<MdDelete size="20px" />}
+                      label="Remove Group"
+                      onClick={() => handleDeleteGroup(id, row.groupId)}
+                      sx={{ marginRight: '-3px' }}
+                    />
+                  ),
+                ]
             : R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
               ? [
                   <GridActionsCellItem
