@@ -3,7 +3,13 @@ import { useMemo } from 'react'
 
 import { FlexibleChart } from './BaseChart'
 
-const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
+const MixedChart = ({
+  data,
+  labelProps,
+  leftVariant,
+  rightVariant,
+  syncAxes = true,
+}) => {
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
   const labels = R.pluck('label')(labelProps)
@@ -81,6 +87,21 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
 
       const leftData = R.chain(R.prop('leftData'), subGroups)
       const rightData = R.chain(R.prop('rightData'), subGroups)
+      const leftMin = Math.min(...R.filter(R.is(Number), leftData))
+      const leftMax = Math.max(...R.filter(R.is(Number), leftData))
+      const rightMin = Math.min(...R.filter(R.is(Number), rightData))
+      const rightMax = Math.max(...R.filter(R.is(Number), rightData))
+      const leftMinAfterSync = syncAxes
+        ? -Math.max(
+            Math.abs(leftMin),
+            Math.abs(rightMin),
+            Math.abs(leftMax),
+            Math.abs(rightMax)
+          )
+        : -Math.max(Math.abs(leftMin), Math.abs(leftMax))
+      const rightMinAfterSync = syncAxes
+        ? leftMinAfterSync
+        : -Math.max(Math.abs(rightMin), Math.abs(rightMax))
 
       return {
         series: R.flatten([
@@ -97,14 +118,10 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             yAxisIndex: 1,
           })),
         ]),
-        min: Math.min(
-          ...R.filter(R.is(Number), leftData),
-          ...R.filter(R.is(Number), rightData)
-        ),
-        max: Math.max(
-          ...R.filter(R.is(Number), leftData),
-          ...R.filter(R.is(Number), rightData)
-        ),
+        leftMin: leftMinAfterSync,
+        leftMax: -leftMinAfterSync,
+        rightMin: rightMinAfterSync,
+        rightMax: -rightMinAfterSync,
       }
     } else {
       const [leftData, rightData] = R.pipe(R.pluck('value'), R.transpose)(data)
@@ -118,6 +135,21 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
         R.all(R.complement(R.isNil))(rightData)
           ? R.compose(R.tail, R.scan(R.add, 0))(rightData)
           : rightData
+      const leftMin = Math.min(...R.filter(R.is(Number), finalLeftData))
+      const leftMax = Math.max(...R.filter(R.is(Number), finalLeftData))
+      const rightMin = Math.min(...R.filter(R.is(Number), finalRightData))
+      const rightMax = Math.max(...R.filter(R.is(Number), finalRightData))
+      const leftMinAfterSync = syncAxes
+        ? -Math.max(
+            Math.abs(leftMin),
+            Math.abs(rightMin),
+            Math.abs(leftMax),
+            Math.abs(rightMax)
+          )
+        : -Math.max(Math.abs(leftMin), Math.abs(leftMax))
+      const rightMinAfterSync = syncAxes
+        ? leftMinAfterSync
+        : -Math.max(Math.abs(rightMin), Math.abs(rightMax))
       return {
         series: [
           {
@@ -133,8 +165,10 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             yAxisIndex: 1,
           },
         ],
-        min: Math.min(...finalLeftData, ...finalRightData),
-        max: Math.max(...finalLeftData, ...finalRightData),
+        leftMin: leftMinAfterSync,
+        leftMax: -leftMinAfterSync,
+        rightMin: rightMinAfterSync,
+        rightMax: -rightMinAfterSync,
       }
     }
   }, [
@@ -145,16 +179,23 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     leftLabelWithoutUnits,
     rightLabelWithoutUnits,
     labels,
+    syncAxes,
   ])
 
+  console.log(
+    calcData.leftMin,
+    calcData.leftMax,
+    calcData.rightMin,
+    calcData.rightMax
+  )
   if (R.isNil(calcData)) return []
 
-  const createYAxis = (name, rotate) => ({
+  const createYAxis = (name, rotate, min, max) => ({
     type: 'value',
     name,
     nameGap: 50,
-    min: calcData.min,
-    max: calcData.max,
+    min: min,
+    max: max,
     nameLocation: 'middle',
     nameRotate: rotate,
     nameTextStyle: {
@@ -172,7 +213,10 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       data: xLabels,
       name: xAxisLabel,
     },
-    yAxis: [createYAxis(leftLabel, 90), createYAxis(rightLabel, -90)],
+    yAxis: [
+      createYAxis(leftLabel, 90, calcData.leftMin, calcData.leftMax),
+      createYAxis(rightLabel, -90, calcData.rightMin, calcData.rightMax),
+    ],
     series: calcData.series,
   }
   return <FlexibleChart {...{ options }} />
