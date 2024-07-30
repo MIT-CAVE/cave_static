@@ -318,7 +318,7 @@ const GridFilter = ({
   )
 
   const handleAddGroup = useCallback(
-    (groupId, logic, depth) => {
+    (groupId, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
         isNew: true,
@@ -640,7 +640,6 @@ const GridFilter = ({
                     sx={{ margin: '-10px' }}
                   />,
                   <GridActionsCellItem
-                    // disabled={!canSaveRow[id]}
                     icon={<MdSave size="20px" />}
                     label="Save"
                     onClick={handleClickSave(id)}
@@ -661,9 +660,7 @@ const GridFilter = ({
                   <GridActionsCellItem
                     icon={<BiBracket size="20px" />}
                     label="Add Group"
-                    onClick={() =>
-                      handleAddGroup(row.groupId, row.logic, row.depth)
-                    }
+                    onClick={() => handleAddGroup(row.groupId, row.depth)}
                     sx={{ margin: '-10px' }}
                   />,
                   <GridActionsCellItem
@@ -738,6 +735,15 @@ const GridFilter = ({
     [rows]
   )
 
+  const isCellEditable = (row, field) => {
+    const nonEditableFields = R.cond([
+      [R.equals('group'), R.always(['source', 'relation', 'value'])],
+      [R.equals('rule'), R.always(['logic'])],
+      [R.T, R.always([])],
+    ])(row.type)
+    return !R.includes(field, nonEditableFields)
+  }
+
   return (
     <>
       <Paper sx={styles.content}>
@@ -761,15 +767,7 @@ const GridFilter = ({
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
           maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
-          isCellEditable={(params) => {
-            const { field, row } = params
-            const nonEditableFields = R.cond([
-              [R.equals('group'), R.always(['source', 'relation', 'value'])],
-              [R.equals('rule'), R.always(['logic'])],
-              [R.T, R.always([])],
-            ])(row.type)
-            return !R.includes(field, nonEditableFields)
-          }}
+          isCellEditable={(params) => isCellEditable(params.row, params.field)}
         />
       </Paper>
 
