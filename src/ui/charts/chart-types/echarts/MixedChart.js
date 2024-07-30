@@ -1,3 +1,4 @@
+import { Switch, FormControlLabel } from '@mui/material'
 import * as R from 'ramda'
 import { useMemo } from 'react'
 
@@ -217,7 +218,17 @@ const MixedChart = ({
     ],
     series: calcData.series,
   }
-  return <FlexibleChart {...{ options }} />
+  return (
+    <>
+      <FlexibleChart {...{ options }} />
+      <FormControlLabel
+        sx={{ position: 'absolute', right: 65, top: 10 }}
+        control={<Switch />}
+        label="Sync axes?"
+        labelPlacement="start"
+      />
+    </>
+  )
 }
 
 export { MixedChart }
