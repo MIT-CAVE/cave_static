@@ -197,7 +197,7 @@ export const filterMapFeature = (filters, featureObj) => {
   const rootGroup = filters.find((filter) => filter.groupId === 0)
   return doesFeatureSatisfyGroup(
     0,
-    rootGroup ? rootGroup : 'and',
+    rootGroup ? rootGroup.logic : 'and',
     filters,
     featureObj
   )
