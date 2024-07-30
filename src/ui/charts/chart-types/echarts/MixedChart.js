@@ -1,16 +1,11 @@
 import { Switch, FormControlLabel } from '@mui/material'
 import * as R from 'ramda'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import { FlexibleChart } from './BaseChart'
 
-const MixedChart = ({
-  data,
-  labelProps,
-  leftVariant,
-  rightVariant,
-  syncAxes = false,
-}) => {
+const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
+  const [syncAxes, setSyncAxes] = useState(false)
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
   const labels = R.pluck('label')(labelProps)
@@ -180,13 +175,6 @@ const MixedChart = ({
     labels,
     syncAxes,
   ])
-
-  console.log(
-    calcData.leftMin,
-    calcData.leftMax,
-    calcData.rightMin,
-    calcData.rightMax
-  )
   if (R.isNil(calcData)) return []
 
   const createYAxis = (name, rotate, min, max) => ({
@@ -223,7 +211,9 @@ const MixedChart = ({
       <FlexibleChart {...{ options }} />
       <FormControlLabel
         sx={{ position: 'absolute', right: 65, top: 10 }}
-        control={<Switch />}
+        control={
+          <Switch value={syncAxes} onChange={() => setSyncAxes(!syncAxes)} />
+        }
         label="Sync axes?"
         labelPlacement="start"
       />
