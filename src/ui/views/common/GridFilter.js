@@ -9,24 +9,24 @@ import {
   GridEditDateCell,
   GridEditInputCell,
   GridEditSingleSelectCell,
-  GridRowEditStopReasons,
+  // GridRowEditStopReasons,
   GridRowModes,
   useGridApiRef,
 } from '@mui/x-data-grid'
 import dayjs from 'dayjs'
 import * as R from 'ramda'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { BiBracket } from 'react-icons/bi'
 import {
   MdAddCircleOutline,
   MdCheck,
   MdDelete,
   MdEdit,
-  MdRestore,
-  MdSave,
+  // MdRestore,
+  // MdSave,
   MdOutlineCancel,
 } from 'react-icons/md'
-import { PiArrowElbowDownRight } from 'react-icons/pi'
+// import { PiArrowElbowDownRight } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import EnhancedEditSingleSelect from './EnhancedEditSingleSelect'
@@ -39,7 +39,7 @@ import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
 import { OverflowText } from '../../compound'
 
-import { NumberFormat, mapIndexed, renameKeys } from '../../../utils'
+import { NumberFormat, renameKeys } from '../../../utils'
 
 const StyledDataGrid = styled(DataGrid)(({ theme, maxDepth }) => {
   return R.pipe(
@@ -196,13 +196,16 @@ const GridFilter = ({
   filterableExtraProps,
   onSave,
 }) => {
-  const [filters, setFilters] = useState(defaultFilters)
-  const [idCount, setIdCount] = useState(0)
+  // const [filters, setFilters] = useState(defaultFilters)
+  const [idCount, setIdCount] = useState(1)
   const [groupIdCount, setGroupIdCount] = useState(1)
-  const [rows, setRows] = useState([])
-  const [initialRows, setInitialRows] = useState([])
+  const [rows, setRows] = useState(defaultFilters)
+  // const [initialRows, setInitialRows] = useState([])
   const [rowModesModel, setRowModesModel] = useState({})
-  const [canSaveRow, setCanSaveRow] = useState({})
+  // const [canSaveRow, setCanSaveRow] = useState({})
+  // console.log('rows', rows)
+
+  // console.log(rowModesModel)
 
   const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
@@ -227,64 +230,74 @@ const GridFilter = ({
     [filterables, getNumberFormat]
   )
 
-  const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
+  // const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
 
-  const restoreFilters = useCallback(() => {
-    const filterCriteria = R.filter(
-      R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
-    )(filters)
-    const initRows = mapIndexed(
-      R.pipe(
-        R.flip(R.assoc('id')),
-        // Drop truthy `active` values
-        R.when(R.propEq(true, 'active'), R.dissoc('active')),
-        renameKeys({ option: 'relation', prop: 'source' })
-      )
-    )(filterCriteria)
+  // const restoreFilters = useCallback(() => {
+  //   const filterCriteria = R.filter(
+  //     R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
+  //   )(filters)
+  //   const initRows = mapIndexed(
+  //     R.pipe(
+  //       R.flip(R.assoc('id')),
+  //       // Drop truthy `active` values
+  //       R.when(R.propEq(true, 'active'), R.dissoc('active')),
+  //       renameKeys({ option: 'relation', prop: 'source' })
+  //     )
+  //   )(filterCriteria)
 
-    setInitialRows(initRows)
-    setRows(initRows)
-    setIdCount(initRows.length)
-  }, [filters])
+  //   setInitialRows(initRows)
+  //   setRows(initRows)
+  //   setIdCount(initRows.length)
+  // }, [filters])
+
+  // useEffect(() => {
+  //   restoreFilters()
+  // }, [restoreFilters])
+
+  // useEffect(() => {
+  //   if (!apiRef.current) return
+
+  //   const newSelectedRowIds = rows
+  //     .filter((row) => row.active !== false)
+  //     .map((row) => row.id)
+
+  //   apiRef.current.setRowSelectionModel(newSelectedRowIds)
+  // }, [])
 
   useEffect(() => {
-    restoreFilters()
-  }, [restoreFilters])
-
-  useEffect(() => {
-    if (!isApiRefValid) return
-
     const newSelectedRowIds = R.pipe(
       R.filter(R.propOr(true, 'active')),
       R.pluck('id')
-    )(initialRows)
+    )(rows)
     apiRef.current.setRowSelectionModel(newSelectedRowIds)
-  }, [apiRef, initialRows, isApiRefValid])
+    setRowModesModel({ 0: { mode: GridRowModes.Edit } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const preProcessEditCellProps = useCallback(
-    ({ id, props, hasChanged, otherFieldsProps }) => {
-      const isValueInvalid = R.propSatisfies(
-        R.either(R.isNil, R.isEmpty),
-        'value'
-      )
-      const newCellProps = R.pipe(
-        R.ifElse(isValueInvalid, R.assoc('error', true), R.dissoc('error'))
-      )(props)
+  // const preProcessEditCellProps = useCallback(
+  //   ({ id, props, hasChanged, otherFieldsProps }) => {
+  //     const isValueInvalid = R.propSatisfies(
+  //       R.either(R.isNil, R.isEmpty),
+  //       'value'
+  //     )
+  //     const newCellProps = R.pipe(
+  //       R.ifElse(isValueInvalid, R.assoc('error', true), R.dissoc('error'))
+  //     )(props)
 
-      if (hasChanged) {
-        const hasError =
-          newCellProps.error ||
-          R.pipe(
-            R.dissoc('logic'),
-            R.values,
-            R.any(isValueInvalid)
-          )(otherFieldsProps)
-        setCanSaveRow(R.assoc(id, !hasError))
-      }
-      return newCellProps
-    },
-    []
-  )
+  //     if (hasChanged) {
+  //       const hasError =
+  //         newCellProps.error ||
+  //         R.pipe(
+  //           R.dissoc('logic'),
+  //           R.values,
+  //           R.any(isValueInvalid)
+  //         )(otherFieldsProps)
+  //       setCanSaveRow(R.assoc(id, !hasError))
+  //     }
+  //     return newCellProps
+  //   },
+  //   []
+  // )
 
   const handleAddRow = useCallback(
     (groupId, depth) => {
@@ -389,31 +402,43 @@ const GridFilter = ({
     },
     [apiRef, deleteRow]
   )
-  const handleClickEdit = useCallback(
-    (id) => () => {
-      setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
-    },
-    []
-  )
-  const handleClickSave = useCallback(
-    (id) => () => {
-      setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
-      setCanSaveRow(R.dissoc(id))
-    },
-    []
-  )
+  // const handleClickEdit = useCallback(
+  //   (id) => () => {
+  //     setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
+  //   },
+  //   []
+  // )
+  // const handleClickSave = useCallback(
+  //   (id) => () => {
+  //     setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
+  //     setCanSaveRow(R.dissoc(id))
+  //   },
+  //   []
+  // )
 
   const processRowUpdate = (newRow) => {
     const updatedRow = R.dissoc('isNew')(newRow)
-    setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
+    const newRows = R.map(
+      R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))
+    )(rows)
+    setRows(newRows)
+    const newFilters = R.map(
+      R.pipe(
+        updateActiveStateForSelectedRow,
+        R.dissoc('id'),
+        renameKeys({ relation: 'option', source: 'prop' })
+      )
+    )(newRows)
+    onSave(newFilters)
+    console.log('new filters', newFilters)
     return updatedRow
   }
 
-  const handleRowEditStop = ({ reason }, event) => {
-    if (reason === GridRowEditStopReasons.rowFocusOut) {
-      event.defaultMuiPrevented = true
-    }
-  }
+  // const handleRowEditStop = ({ reason }, event) => {
+  //   if (reason === GridRowEditStopReasons.rowFocusOut) {
+  //     event.defaultMuiPrevented = true
+  //   }
+  // }
 
   const updateActiveStateForSelectedRow = useCallback(
     (row) => {
@@ -427,26 +452,30 @@ const GridFilter = ({
     [apiRef]
   )
 
-  const canDiscardOrSaveAll = useMemo(() => {
-    const unsavedChanges = !R.equals(rows)(initialRows)
-    const isEditing = R.pipe(
-      R.values,
-      R.any(R.propEq(GridRowModes.Edit, 'mode'))
-    )(rowModesModel)
-    return !isEditing && unsavedChanges
-  }, [initialRows, rowModesModel, rows])
+  // const canDiscardOrSaveAll = useMemo(() => {
+  //   const unsavedChanges = !R.equals(rows)(initialRows)
+  //   const isEditing = R.pipe(
+  //     R.values,
+  //     R.any(R.propEq(GridRowModes.Edit, 'mode'))
+  //   )(rowModesModel)
+  //   return !isEditing && unsavedChanges
+  // }, [initialRows, rowModesModel, rows])
+
+  const handleClickEditAll = useCallback(() => {
+    const updatedModel = {}
+    rows.forEach((row) => {
+      updatedModel[row.id] = { mode: GridRowModes.Edit }
+    })
+    setRowModesModel(updatedModel)
+  }, [rows])
 
   const handleClickSaveAll = useCallback(() => {
-    const newFilters = R.map(
-      R.pipe(
-        updateActiveStateForSelectedRow,
-        R.dissoc('id'),
-        renameKeys({ relation: 'option', source: 'prop' })
-      )
-    )(rows)
-    setFilters(newFilters)
-    onSave(newFilters)
-  }, [onSave, rows, updateActiveStateForSelectedRow])
+    const updatedModel = {}
+    rows.forEach((row) => {
+      updatedModel[row.id] = { mode: GridRowModes.View }
+    })
+    setRowModesModel(updatedModel)
+  }, [rows])
 
   const handleRowSelectionCheckboxChange = useCallback(() => {
     setRows(R.map(updateActiveStateForSelectedRow))
@@ -466,19 +495,21 @@ const GridFilter = ({
         width: 90,
         editable: true,
         type: 'singleSelect',
-        renderCell: ({ row }) => {
-          return row.id === 0 ? (
-            <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
-          ) : row.type === 'rule' ? (
-            ''
-          ) : (
-            <Box sx={{ paddingLeft: `${row.depth * 8}px`, display: 'flex' }}>
-              <PiArrowElbowDownRight style={{ marginRight: '3px' }} />
-              {row.logic.toUpperCase()}
-            </Box>
-          )
-        },
-        preProcessEditCellProps,
+        valueOptions: ['and', 'or'],
+        getOptionLabel: (option) => option.toUpperCase(),
+        // renderCell: ({ row }) => {
+        //   return row.id === 0 ? (
+        //     <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
+        //   ) : row.type === 'rule' ? (
+        //     ''
+        //   ) : (
+        //     <Box sx={{ paddingLeft: `${row.depth * 8}px`, display: 'flex' }}>
+        //       <PiArrowElbowDownRight style={{ marginRight: '3px' }} />
+        //       {row.logic.toUpperCase()}
+        //     </Box>
+        //   )
+        // },
+        // preProcessEditCellProps,
       },
       GRID_CHECKBOX_SELECTION_COL_DEF,
       {
@@ -498,7 +529,7 @@ const GridFilter = ({
             {...params}
           />
         ),
-        preProcessEditCellProps,
+        // preProcessEditCellProps,
       },
       {
         field: 'relation',
@@ -517,7 +548,7 @@ const GridFilter = ({
             value && value !== '' ? sourceValueTypes[value] : 'number'
           return getRelationValueOptsByType(valueType)
         },
-        preProcessEditCellProps,
+        // preProcessEditCellProps,
       },
       {
         field: 'value',
@@ -610,7 +641,7 @@ const GridFilter = ({
                 }
           return <Component {...params} {...props} />
         },
-        preProcessEditCellProps,
+        // preProcessEditCellProps,
       },
       {
         field: 'actions',
@@ -653,24 +684,24 @@ const GridFilter = ({
               ]
             : R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
               ? [
+                  // <GridActionsCellItem
+                  //   disabled={!canSaveRow[id]}
+                  //   icon={<MdSave size="20px" />}
+                  //   label="Save"
+                  //   onClick={handleClickSave(id)}
+                  // />,
                   <GridActionsCellItem
-                    disabled={!canSaveRow[id]}
-                    icon={<MdSave size="20px" />}
-                    label="Save"
-                    onClick={handleClickSave(id)}
-                  />,
-                  <GridActionsCellItem
-                    icon={<MdRestore size="20px" />}
+                    icon={<MdDelete size="20px" />}
                     label="Discard"
                     onClick={handleClickDiscard(id)}
                   />,
                 ]
               : [
-                  <GridActionsCellItem
-                    icon={<MdEdit size="20px" />}
-                    label="Edit"
-                    onClick={handleClickEdit(id)}
-                  />,
+                  // <GridActionsCellItem
+                  //   icon={<MdEdit size="20px" />}
+                  //   label="Edit"
+                  //   onClick={handleClickEdit(id)}
+                  // />,
                   <GridActionsCellItem
                     icon={<MdDelete size="20px" />}
                     label="Delete"
@@ -678,23 +709,23 @@ const GridFilter = ({
                   />,
                 ]
         },
-        preProcessEditCellProps,
+        // preProcessEditCellProps,
       },
     ],
     [
       apiRef,
-      canSaveRow,
+      // canSaveRow,
       filterableExtraProps,
       filterables,
       handleClickDiscard,
-      handleClickEdit,
-      handleClickSave,
+      // handleClickEdit,
+      // handleClickSave,
       handleAddRow,
       handleAddGroup,
       handleDeleteRow,
       handleDeleteGroup,
       numberFormatProps,
-      preProcessEditCellProps,
+      // preProcessEditCellProps,
       rowModesModel,
       sourceHeaderName,
       sourceValueOpts,
@@ -725,7 +756,7 @@ const GridFilter = ({
           disableColumnResize
           disableColumnSorting
           disableRowSelectionOnClick
-          onRowEditStop={handleRowEditStop}
+          // onRowEditStop={handleRowEditStop}
           onCellDoubleClick={handleCellDoubleClick}
           onRowSelectionModelChange={handleRowSelectionCheckboxChange}
           maxDepth={maxDepth}
@@ -743,7 +774,7 @@ const GridFilter = ({
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
-        <Button
+        {/* <Button
           disabled={!canDiscardOrSaveAll}
           color="error"
           variant="contained"
@@ -751,9 +782,18 @@ const GridFilter = ({
           onClick={restoreFilters}
         >
           Discard Changes
+        </Button> */}
+        <Button
+          // disabled={!canDiscardOrSaveAll}
+          color="primary"
+          variant="contained"
+          startIcon={<MdEdit />}
+          onClick={handleClickEditAll}
+        >
+          Edit
         </Button>
         <Button
-          disabled={!canDiscardOrSaveAll}
+          // disabled={!canDiscardOrSaveAll}
           color="primary"
           variant="contained"
           startIcon={<MdCheck />}

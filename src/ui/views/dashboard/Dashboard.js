@@ -72,7 +72,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const defaultFilters = R.propOr(
     [
       {
-        isNew: true,
         id: 0,
         type: 'group',
         groupId: 0,

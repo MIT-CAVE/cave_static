@@ -194,7 +194,7 @@ const doesFeatureSatisfyGroup = (groupId, logic, filters, featureObj) => {
 }
 
 export const filterMapFeature = (filters, featureObj) => {
-  return doesFeatureSatisfyGroup(0, 'or', filters, featureObj)
+  return doesFeatureSatisfyGroup(0, 'and', filters, featureObj) // TODO: change 'and' to root group's logic
 }
 
 export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {

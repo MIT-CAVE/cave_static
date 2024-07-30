@@ -349,7 +349,6 @@ const MapLegendGroupRowToggleLayer = ({
   toggleGroupLabel,
   filters = [
     {
-      isNew: true,
       id: 0,
       type: 'group',
       groupId: 0,
