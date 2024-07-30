@@ -20,8 +20,16 @@ const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   return { leftMin, leftMax, rightMin, rightMax }
 }
 
+const isCumulative = (variant, data) => {
+  return variant === 'cumulative line' && R.all(R.complement(R.isNil))(data)
+}
+
+const accumulate = (data) => {
+  return R.compose(R.tail, R.scan(R.add, 0))(data)
+}
+
 const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
-  const [syncAxes, setSyncAxes] = useState(false)
+  const [syncAxes, setSyncAxes] = useState(true)
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
   const labels = R.pluck('label')(labelProps)
@@ -71,29 +79,17 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             (child) => child.name === subgroup.name,
             item.children
           )
-          subgroup.leftData.push(child ? child.value[0] : null)
-          subgroup.rightData.push(child ? child.value[1] : null)
+          subgroup.leftData.push(child ? child.value[0] : undefined)
+          subgroup.rightData.push(child ? child.value[1] : undefined)
         }, subGroups)
       }, data)
 
       R.forEach((subgroup) => {
-        if (
-          leftVariant === 'cumulative line' &&
-          R.all(R.complement(R.isNil))(subgroup.leftData)
-        ) {
-          subgroup.leftData = R.compose(
-            R.tail,
-            R.scan(R.add, 0)
-          )(subgroup.leftData)
+        if (isCumulative(leftVariant, subgroup.leftData)) {
+          subgroup.leftData = accumulate(subgroup.leftData)
         }
-        if (
-          rightVariant === 'cumulative line' &&
-          R.all(R.complement(R.isNil))(subgroup.rightData)
-        ) {
-          subgroup.rightData = R.compose(
-            R.tail,
-            R.scan(R.add, 0)
-          )(subgroup.rightData)
+        if (isCumulative(rightVariant, subgroup.rightData)) {
+          subgroup.rightData = accumulate(subgroup.rightData)
         }
       }, subGroups)
 
@@ -128,20 +124,17 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
         rightMax,
       }
     } else {
-      const [leftData, rightData] = R.pipe(R.pluck('value'), R.transpose)(data)
-      const finalLeftData =
-        leftVariant === 'cumulative line' &&
-        R.all(R.complement(R.isNil))(leftData)
-          ? R.compose(R.tail, R.scan(R.add, 0))(leftData)
-          : leftData
-      const finalRightData =
-        rightVariant === 'cumulative line' &&
-        R.all(R.complement(R.isNil))(rightData)
-          ? R.compose(R.tail, R.scan(R.add, 0))(rightData)
-          : rightData
+      const leftValues = R.pipe(R.pluck('value'), R.map(R.head))(data)
+      const leftData = isCumulative(leftVariant, leftValues)
+        ? accumulate(leftValues)
+        : leftValues
+      const rightValues = R.pipe(R.pluck('value'), R.pluck(1))(data)
+      const rightData = isCumulative(rightVariant, rightValues)
+        ? accumulate(rightValues)
+        : rightValues
       const { leftMin, leftMax, rightMin, rightMax } = calculateAxesBounds(
-        finalLeftData,
-        finalRightData,
+        leftData,
+        rightData,
         syncAxes
       )
       return {
@@ -149,14 +142,14 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
           {
             name: leftLabelWithoutUnits,
             type: variantType[leftVariant],
-            data: finalLeftData,
+            data: leftData,
             yAxisIndex: 0,
             smooth: variantType[leftVariant] === 'line' ? true : undefined,
           },
           {
             name: rightLabelWithoutUnits,
             type: variantType[rightVariant],
-            data: finalRightData,
+            data: rightData,
             yAxisIndex: 1,
             smooth: variantType[rightVariant] === 'line' ? true : undefined,
           },
@@ -214,7 +207,10 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       <FormControlLabel
         sx={{ position: 'absolute', right: 65, top: 10 }}
         control={
-          <Switch value={syncAxes} onChange={() => setSyncAxes(!syncAxes)} />
+          <Switch
+            checked={syncAxes}
+            onChange={(e) => setSyncAxes(e.target.checked)}
+          />
         }
         label="Sync axes?"
         labelPlacement="start"
