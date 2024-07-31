@@ -13,7 +13,7 @@ import { HIGHLIGHT_COLOR, ICON_RESOLUTION } from '../../../utils/constants'
 
 import { rgbStrToArray, fetchIcon } from '../../../utils'
 
-const DEFAULT_Z = 100000
+const MAX_HEIGHT = 0.00325
 // Generate custom cylinder segments to allow for size scaling
 const generateSegments = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
@@ -89,12 +89,17 @@ const geoJsonToSegments = (features) =>
         // convert coordinates to MercatorCoordinates on map
         const arcOrigin = MercatorCoordinate.fromLngLat(
           R.path(['geometry', 'coordinates', i], feature),
-          R.pathOr(0, ['geometry', 'coordinates', i, 2], feature)
+          0
         )
+        arcOrigin.z =
+          R.pathOr(0, ['geometry', 'coordinates', i, 2], feature) * MAX_HEIGHT
         const arcDestination = MercatorCoordinate.fromLngLat(
           R.path(['geometry', 'coordinates', i + 1], feature),
-          R.pathOr(0, ['geometry', 'coordinates', i + 1, 2], feature)
+          0
         )
+        arcDestination.z =
+          R.pathOr(0, ['geometry', 'coordinates', i + 1, 2], feature) *
+          MAX_HEIGHT
 
         const distance = Math.sqrt(
           Math.pow(arcOrigin.x - arcDestination.x, 2) +
@@ -288,7 +293,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   return <Layer {...customLayer} />
 })
 
-export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
+export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const [nodesMemo, setNodesMemo] = useState(nodes)
   const [iconData, setIconData] = useState({})
@@ -302,8 +307,10 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
             R.path(['geometry', 'coordinates', 0], node),
             R.path(['geometry', 'coordinates', 1], node),
           ],
-          R.pathOr(DEFAULT_Z, ['geometry', 'coordinates', 2], node)
+          0
         )
+        nodeXYZ.z =
+          R.pathOr(0, ['geometry', 'coordinates', 2], node) * MAX_HEIGHT
 
         const iconSrc = iconData[R.path(['properties', 'icon'], node)]
         const texture = new THREE.TextureLoader().load(iconSrc, (texture) => {
@@ -393,162 +400,168 @@ export const NodesWithZ = memo(({ id, nodes, onClick = () => {} }) => {
   )
 })
 
-export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
+export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
   const [geosMemo, setGeosMemo] = useState(geos)
 
   // Converts geoJson geos into Three.js geos with height
-  const createGeosObjects = (geos) =>
-    R.pipe(
-      R.map((geo) => {
-        if (!R.path(['geometry', 'coordinates', 0], geo)) return []
+  const createGeosObjects = (geos) => {
+    const geoObjects = []
 
-        const geoType = R.path(['geometry', 'type'], geo)
-        const polygons =
-          geoType === 'Polygon'
-            ? [R.path(['geometry', 'coordinates'], geo)]
-            : R.path(['geometry', 'coordinates'], geo)
+    R.forEach((geo) => {
+      if (!R.path(['geometry', 'coordinates', 0], geo)) return
 
-        return R.map((polygon) => {
-          // Outer ring
-          const outerRing = R.pipe(
-            R.map((point) => {
+      const geoType = R.path(['geometry', 'type'], geo)
+      const polygons =
+        geoType === 'Polygon'
+          ? [R.path(['geometry', 'coordinates'], geo)]
+          : R.path(['geometry', 'coordinates'], geo)
+
+      R.forEach((polygon) => {
+        // Outer Ring
+        const outerRing = []
+
+        R.forEach(
+          (point) => {
+            const pointXYZ = MercatorCoordinate.fromLngLat(
+              [R.path([0], point), R.path([1], point)],
+              0
+            )
+            pointXYZ.z = R.pathOr(0, [2], point) * MAX_HEIGHT
+            outerRing.push(pointXYZ.x, -pointXYZ.y, pointXYZ.z)
+          },
+          R.slice(0, -1, polygon[0])
+        )
+
+        // Holes
+        const holes = R.map((hole) => {
+          const holeVertices = []
+
+          R.forEach(
+            (point) => {
               const pointXYZ = MercatorCoordinate.fromLngLat(
                 [R.path([0], point), R.path([1], point)],
-                R.pathOr(DEFAULT_Z, [2], point)
+                0
               )
+              pointXYZ.z = R.pathOr(0, [2], point) * MAX_HEIGHT
+              holeVertices.push(pointXYZ.x, -pointXYZ.y, pointXYZ.z)
+            },
+            R.slice(0, -1, hole)
+          )
 
-              return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
-            }),
-            R.flatten
-          )(R.slice(0, -1, polygon[0]))
+          return holeVertices
+        })(R.slice(1, polygon.length, polygon))
+        const allVertices = [...outerRing, ...R.unnest(holes)]
 
-          // Holes
-          const holes = R.pipe(
-            R.map(
-              R.pipe(
-                R.map((point) => {
-                  const pointXYZ = MercatorCoordinate.fromLngLat(
-                    [R.path([0], point), R.path([1], point)],
-                    R.pathOr(DEFAULT_Z, [2], point)
-                  )
-                  return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
-                }),
-                R.flatten
-              )
-            ),
-            R.flatten
-          )(R.slice(1, polygon.length, polygon))
-          const allVertices = [...outerRing, ...holes]
+        const holeIndices = []
+        let holeOffset = outerRing.length / 3 // Each vertex has 3 components (x, y, z)
+        R.forEach((hole) => {
+          holeIndices.push(holeOffset)
+          holeOffset += hole.length / 3
+        }, holes)
 
-          const holeIndices = []
-          let holeOffset = outerRing.length / 3 // Each vertex has 3 components (x, y, z)
-          R.forEach((hole) => {
-            holeIndices.push(holeOffset)
-            holeOffset += hole.length / 3
-          }, holes)
+        // Create the side faces
+        const sideVertices = []
+        const sideTriangles = []
+        let vertexOffset = 0
 
-          // Create the side faces
-          const sideVertices = []
-          const sideTriangles = []
-          let vertexOffset = 0
+        // Function to create side faces for a ring (outer or hole)
+        const createSideFaces = (ring) => {
+          const numPoints = ring.length / 3
+          for (let i = 0; i < numPoints; i++) {
+            const x = ring[i * 3]
+            const y = ring[i * 3 + 1]
+            const z = ring[i * 3 + 2]
 
-          // Function to create side faces for a ring (outer or hole)
-          const createSideFaces = (ring) => {
-            const numPoints = ring.length / 3
-            for (let i = 0; i < numPoints; i++) {
-              const x = ring[i * 3]
-              const y = ring[i * 3 + 1]
-              const z = ring[i * 3 + 2]
+            // Top vertex
+            sideVertices.push(x, y, z)
+            // Corresponding bottom vertex (z = 0)
+            sideVertices.push(x, y, 0)
+          }
 
-              // Top vertex
-              sideVertices.push(x, y, z)
-              // Corresponding bottom vertex (z = 0)
-              sideVertices.push(x, y, 0)
-            }
-
-            for (let i = 0; i < numPoints - 1; i++) {
-              sideTriangles.push(
-                vertexOffset + i * 2,
-                vertexOffset + i * 2 + 1,
-                vertexOffset + i * 2 + 2,
-                vertexOffset + i * 2 + 1,
-                vertexOffset + i * 2 + 3,
-                vertexOffset + i * 2 + 2
-              )
-            }
-            // Close the last face
+          for (let i = 0; i < numPoints - 1; i++) {
             sideTriangles.push(
-              vertexOffset + (numPoints - 1) * 2,
-              vertexOffset + (numPoints - 1) * 2 + 1,
-              vertexOffset,
-              vertexOffset + (numPoints - 1) * 2 + 1,
-              vertexOffset + 1,
-              vertexOffset
+              vertexOffset + i * 2,
+              vertexOffset + i * 2 + 1,
+              vertexOffset + i * 2 + 2,
+              vertexOffset + i * 2 + 1,
+              vertexOffset + i * 2 + 3,
+              vertexOffset + i * 2 + 2
             )
-
-            vertexOffset += numPoints * 2
           }
-
-          // Generate side faces for the outer ring
-          createSideFaces(outerRing)
-
-          // Generate side faces for each hole
-          holes.forEach(createSideFaces)
-
-          const color = R.pathOr(
-            'rgba(0, 0, 0, 255)',
-            ['properties', 'color'],
-            geo
+          // Close the last face
+          sideTriangles.push(
+            vertexOffset + (numPoints - 1) * 2,
+            vertexOffset + (numPoints - 1) * 2 + 1,
+            vertexOffset,
+            vertexOffset + (numPoints - 1) * 2 + 1,
+            vertexOffset + 1,
+            vertexOffset
           )
 
-          const sideGeometry = new THREE.BufferGeometry()
-          const sideVerticesFloat32Array = new Float32Array(sideVertices)
-          sideGeometry.setAttribute(
-            'position',
-            new THREE.BufferAttribute(sideVerticesFloat32Array, 3)
-          )
-          sideGeometry.setIndex(sideTriangles)
+          vertexOffset += numPoints * 2
+        }
 
-          const sideMaterial = new THREE.MeshBasicMaterial({
-            color,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: parseInt(rgbStrToArray(color)[3]) * 0.2,
-          })
+        // Generate side faces for the outer ring
+        createSideFaces(outerRing)
 
-          const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial)
+        // Generate side faces for each hole
+        holes.forEach(createSideFaces)
 
-          // Create the top face
-          const topTriangles = earcut(allVertices, holeIndices, 3)
-          const topGeometry = new THREE.BufferGeometry()
-          const verticesFloat32Array = new Float32Array(allVertices)
-          topGeometry.setAttribute(
-            'position',
-            new THREE.BufferAttribute(verticesFloat32Array, 3)
-          )
-          topGeometry.setIndex(topTriangles)
+        const color = R.pathOr(
+          'rgba(0, 0, 0, 255)',
+          ['properties', 'color'],
+          geo
+        )
 
-          const topMaterial = new THREE.MeshBasicMaterial({
-            color,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: parseInt(rgbStrToArray(color)[3]) * 0.4,
-          })
-          const topMesh = new THREE.Mesh(topGeometry, topMaterial)
+        const sideGeometry = new THREE.BufferGeometry()
+        const sideVerticesFloat32Array = new Float32Array(sideVertices)
+        sideGeometry.setAttribute(
+          'position',
+          new THREE.BufferAttribute(sideVerticesFloat32Array, 3)
+        )
+        sideGeometry.setIndex(sideTriangles)
 
-          const userData = {
-            cave_name: R.path(['properties', 'cave_name'], geo),
-            cave_obj: R.path(['properties', 'cave_obj'], geo),
-          }
+        const sideMaterial = new THREE.MeshBasicMaterial({
+          color,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: parseInt(rgbStrToArray(color)[3]) * 0.2,
+        })
 
-          topMesh.userData = userData
-          sideMesh.userData = userData
+        const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial)
 
-          return [topMesh, sideMesh]
-        })(polygons)
-      }),
-      R.flatten
-    )(geos)
+        // Create the top face
+        const topTriangles = earcut(allVertices, holeIndices, 3)
+        const topGeometry = new THREE.BufferGeometry()
+        const verticesFloat32Array = new Float32Array(allVertices)
+        topGeometry.setAttribute(
+          'position',
+          new THREE.BufferAttribute(verticesFloat32Array, 3)
+        )
+        topGeometry.setIndex(topTriangles)
+
+        const topMaterial = new THREE.MeshBasicMaterial({
+          color,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: parseInt(rgbStrToArray(color)[3]) * 0.4,
+        })
+
+        const topMesh = new THREE.Mesh(topGeometry, topMaterial)
+
+        const userData = {
+          cave_name: R.path(['properties', 'cave_name'], geo),
+          cave_obj: R.path(['properties', 'cave_obj'], geo),
+        }
+        topMesh.userData = userData
+        sideMesh.userData = userData
+
+        geoObjects.push(topMesh, sideMesh)
+      })(polygons)
+    })(geos)
+
+    return geoObjects
+  }
 
   useEffect(() => {
     if (!R.equals(geos, geosMemo)) setGeosMemo(geos)
@@ -564,21 +577,8 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
   )
 })
 
-export const ArcsWithZ = memo(({ id, geos: arcs, onClick = () => {} }) => {
+export const ArcsWithHeight = memo(({ id, geos: arcs, onClick = () => {} }) => {
   const [arcsMemo, setArcsMemo] = useState(arcs)
-
-  const convertArcs = (arcs) =>
-    R.map((arc) =>
-      !R.path(['geometry', 'coordinates', 0], arc)
-        ? arc
-        : R.assocPath(
-            ['geometry', 'coordinates'],
-            R.map((point) =>
-              R.path([2], point) ? point : R.assocPath([2], DEFAULT_Z, point)
-            )(R.path(['geometry', 'coordinates'], arc)),
-            arc
-          )
-    )(arcs)
 
   useEffect(() => {
     if (!R.equals(arcs, arcsMemo)) setArcsMemo(arcs)
@@ -588,7 +588,7 @@ export const ArcsWithZ = memo(({ id, geos: arcs, onClick = () => {} }) => {
     <CustomLayer
       id={id}
       convertFeaturesToObjects={geoJsonToSegments}
-      features={convertArcs(arcsMemo)}
+      features={arcsMemo}
       onClick={onClick}
       getScale={(arc, zoom) => [1, 1, 1 / Math.pow(2, zoom)]}
     />

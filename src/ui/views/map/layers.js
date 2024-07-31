@@ -3,7 +3,12 @@ import { useMemo, useEffect, useState, memo, useCallback } from 'react'
 import { Layer, Source, useMap } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { ArcLayer3D, NodesWithZ, GeosWithZ, ArcsWithZ } from './CustomLayers'
+import {
+  ArcLayer3D,
+  NodesWithHeight,
+  GeosWithHeight,
+  ArcsWithHeight,
+} from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -364,7 +369,7 @@ export const Geos = memo(({ mapId }) => {
 
   if (!isGlobe)
     return [
-      <GeosWithZ
+      <GeosWithHeight
         id="geos-with-altitude"
         key="geos-with-altitude"
         geos={geoJsonObject}
@@ -372,7 +377,7 @@ export const Geos = memo(({ mapId }) => {
           handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
         }
       />,
-      <ArcsWithZ
+      <ArcsWithHeight
         id="geos-arcs-with-altitude"
         key="geos-arcs-with-altitude"
         geos={R.unnest(R.values(lineGeoJsonObject))}
@@ -526,7 +531,7 @@ export const Nodes = memo(({ mapId }) => {
 
   if (!isGlobe)
     return (
-      <NodesWithZ
+      <NodesWithHeight
         id="nodes-with-altitude"
         nodes={nodeGeoJson}
         onClick={({ cave_name, cave_obj }) =>
@@ -597,7 +602,7 @@ export const Arcs = memo(({ mapId }) => {
 
   if (!isGlobe)
     return (
-      <ArcsWithZ
+      <ArcsWithHeight
         id="arcs-with-altitude"
         geos={R.unnest(R.values(arcLayerGeoJson))}
         onClick={({ cave_name, cave_obj }) =>
