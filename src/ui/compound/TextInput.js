@@ -28,6 +28,7 @@ const TextInput = ({
   sx,
   color = 'default',
   enabled,
+  multiline,
   label,
   placeholder,
   help,
@@ -116,9 +117,8 @@ const TextInput = ({
 
   return (
     <TextField
-      {...{ label, placeholder, sx, ...props }}
+      {...{ label, placeholder, multiline, sx, ...props }}
       disabled={!enabled}
-      id="standard-basic"
       fullWidth
       value={controlled ? valueParent : value}
       color={color === 'default' ? 'primary' : color}
@@ -184,6 +184,7 @@ const TextInput = ({
       helperText={help}
       inputRef={inputRef}
       InputProps={{
+        name: multiline ? 'cave-textarea-input' : 'cave-text-input',
         readOnly: !enabled,
         endAdornment: (
           <InputAdornment position="end">

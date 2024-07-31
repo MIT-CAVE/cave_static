@@ -183,6 +183,7 @@ const PropNestedHelper = ({
               sx={{ pl: 1, ml: depth * 5 }}
               control={
                 <Checkbox
+                  name="cave-nested-checkbox"
                   checked={R.equals(checked.get(key), box.CHECKED)}
                   indeterminate={R.equals(checked.get(key), box.PARTIAL)}
                   onClick={() => handleClick(key)}

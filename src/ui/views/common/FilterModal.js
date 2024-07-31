@@ -438,6 +438,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                       label={getLabelFn(statGroupings)(grouping)}
                       control={
                         <Checkbox
+                          name="grid-filter-groups-grouping"
                           {...{ checked }}
                           indeterminate={checked == null}
                           color="primary"
@@ -463,6 +464,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                               )(level)}
                               control={
                                 <Checkbox
+                                  name="grid-filter-groups-level"
                                   {...{ checked }}
                                   indeterminate={checked == null}
                                   value={level}
@@ -478,6 +480,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                                   label={value}
                                   control={
                                     <Checkbox
+                                      name="grid-filter-groups-value"
                                       {...{ value }}
                                       size="small"
                                       color="primary"

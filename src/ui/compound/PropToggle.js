@@ -17,6 +17,7 @@ const PropToggle = ({ prop, currentVal, onChange, sx = [], ...props }) => {
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <Switch
+        name="cave-toggle"
         checked={R.defaultTo(R.prop('value', prop), currentVal)}
         onChange={(event) => (enabled ? onChange(event.target.checked) : null)}
       />

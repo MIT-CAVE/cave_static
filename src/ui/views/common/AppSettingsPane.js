@@ -97,7 +97,7 @@ FieldContainer.propTypes = {
 const ColumnSwitch = ({ name, checked, onChange }) => (
   <FormControlLabel
     sx={{ pl: 2 }}
-    control={<Switch {...{ checked, onChange }} />}
+    control={<Switch name="cave-toggle-column" {...{ checked, onChange }} />}
     label={<OverflowText sx={styles.overflowAlignLeft} text={name} />}
   />
 )
@@ -188,6 +188,7 @@ const DemoSwitch = () => {
           value="start"
           control={
             <Switch
+              name="cave-toggle-demo"
               checked={demoMode}
               onChange={() => {
                 dispatch(
@@ -226,7 +227,13 @@ const ToolbarSwitch = () => {
       <FormGroup row>
         <FormControlLabel
           value="start"
-          control={<Switch checked={showToolbar} onChange={handleChange} />}
+          control={
+            <Switch
+              name="cave-toggle-chart-toolbar"
+              checked={showToolbar}
+              onChange={handleChange}
+            />
+          }
           label="Show Chart Toolbar"
           labelPlacement="start"
         />
