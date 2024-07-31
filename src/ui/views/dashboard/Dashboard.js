@@ -290,29 +290,21 @@ const Dashboard = () => {
     }
   }, [pageLayout, layoutPath, sync])
 
-  // const handleLayoutChange = useMutateState(
-  //   (layout) => {
-  //     const order = R.map(({ x, y }) => x + 2 * y)(layout)
-  //     const orderByIndex = R.zipObj(order)(R.range(0, order.length))
-  //     const value = R.map(
-  //       R.pipe(R.flip(R.prop)(orderByIndex), R.flip(R.nth)(pageLayout))
-  //     )(order)
-  //     console.log({ order, value, orderByIndex })
-  //     return {
-  //       path: layoutPath,
-  //       value,
-  //       sync: !includesPath(R.values(sync), layoutPath),
-  //     }
-  //   },
-  //   [pageLayout]
-  // )
-
   const handleResizeStop = useCallback(
     (layout) => {
       console.log({ layout })
       setLayouts(R.assoc(currentPage, layout))
     },
     [currentPage]
+  )
+
+  const swapXY = useCallback(
+    (index1, index2, arr) =>
+      R.pipe(
+        R.adjust(index1, R.mergeLeft(R.pick(['x', 'y'])(arr[index2]))),
+        R.adjust(index2, R.mergeLeft(R.pick(['x', 'y'])(arr[index1])))
+      )(arr),
+    []
   )
 
   const handleDragStop = useCallback(
@@ -324,143 +316,24 @@ const Dashboard = () => {
       )
         return
 
-      const newLayout = R.converge(R.swap, [
-        R.findIndex(R.whereEq(R.pick(['x', 'y'])(oldItem))),
-        R.findIndex(R.whereEq(R.pick(['x', 'y'])(newItem))),
-        R.identity,
-      ])(layouts[currentPage])
+      const index1 = R.findIndex(R.whereEq(R.pick(['x', 'y'])(oldItem)))(
+        layouts[currentPage]
+      )
+      const index2 = R.findIndex(R.whereEq(R.pick(['x', 'y'])(newItem)))(
+        layouts[currentPage]
+      )
+
+      const newLayout = swapXY(index1, index2, layouts[currentPage])
       setLayouts(R.assoc(currentPage, newLayout))
     },
-    [currentPage, layouts]
+    [currentPage, layouts, swapXY]
   )
 
-  // const getChartObjFromLayout = useCallback(
-  //   (x, y) => {
-  //     const layoutKey = R.pipe(
-  //       R.whereEq({ x, y }),
-  //       R.prop('i')
-  //     )(layouts[currentPage])
-  //     return pageLayout[+layoutKey]
-  //   },
-  //   [currentPage, layouts, pageLayout]
-  // )
-
-  const orderByIndex = useMemo(() => {
-    const layout = layouts[currentPage]
-    if (layout == null) return {}
-
-    const order = R.map(({ x, y }) => x + 2 * y)(layout)
-    return R.zipObj(order)(R.range(0, order.length))
-  }, [currentPage, layouts])
-
-  const getResizeHandles = useCallback(
-    (gridLayout, index) => {
-      if (R.isEmpty(orderByIndex)) return []
-
-      const indexByOrder = R.invertObj(orderByIndex)
-      const gridIndex = +indexByOrder[index]
-
-      const resizeConstraints =
-        gridIndex === 0
-          ? [
-              { gridMustBeEmptyAt: [1], handle: 'e' },
-              { gridMustBeEmptyAt: [2], handle: 's' },
-              { gridMustBeEmptyAt: [1, 2, 3], handle: 'se' },
-            ]
-          : gridIndex === 1
-            ? [
-                { gridMustBeEmptyAt: [0], handle: 'w' },
-                { gridMustBeEmptyAt: [3], handle: 's' },
-                { gridMustBeEmptyAt: [0, 2, 3], handle: 'sw' },
-              ]
-            : gridIndex === 2
-              ? [
-                  { gridMustBeEmptyAt: [0], handle: 'n' },
-                  { gridMustBeEmptyAt: [3], handle: 'e' },
-                  { gridMustBeEmptyAt: [0, 1, 3], handle: 'ne' },
-                ]
-              : [
-                  { gridMustBeEmptyAt: [1], handle: 'n' },
-                  { gridMustBeEmptyAt: [2], handle: 'w' },
-                  { gridMustBeEmptyAt: [0, 1, 2], handle: 'nw' },
-                ]
-
-      const overlappingItem = gridLayout[+indexByOrder[3 - gridIndex]]
-      console.log(gridIndex, index, {
-        overlappingItem,
-        gridLayout,
-        indexByOrder,
-        orderByIndex,
-        pageLayout,
-      })
-      const gridItem = gridLayout[gridIndex]
-      if (gridItem != null && gridItem.h === 2 && gridItem.w === 2) {
-        return ['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']
-      }
-
-      if (gridItem == null) {
-        const pruebita = R.reduce((acc, { gridMustBeEmptyAt, handle }) => {
-          console.log({ gridItem })
-          if (gridItem != null) {
-            if (gridItem.w === 2 && (handle === 'e' || handle === 'w')) {
-              return [...acc, 'e', 'w']
-            }
-            if (gridItem.h === 2 && (handle === 'n' || handle === 's')) {
-              return [...acc, 'n', 's']
-            }
-          }
-
-          const allowResizing =
-            R.all((idx) => pageLayout[orderByIndex[idx]] == null)(
-              gridMustBeEmptyAt
-            ) &&
-            // Check if the free slot is not already ocuppied by another resized item
-            (overlappingItem == null ||
-              !(
-                (overlappingItem.w === 2 &&
-                  (handle === 'n' || handle === 's')) ||
-                (overlappingItem.h === 2 && (handle === 'e' || handle === 'w'))
-              ))
-          // Include additional handle in the appropriate direction for resized items
-
-          return allowResizing ? R.append(handle)(acc) : acc
-        }, [])(resizeConstraints)
-        console.log(gridItem, { resizeConstraints, pruebita })
-      }
-
-      return R.reduce((acc, { gridMustBeEmptyAt, handle }) => {
-        console.log({ gridItem })
-        if (gridItem != null) {
-          if (gridItem.w === 2 && (handle === 'e' || handle === 'w')) {
-            return [...acc, 'e', 'w']
-          }
-          if (gridItem.h === 2 && (handle === 'n' || handle === 's')) {
-            return [...acc, 'n', 's']
-          }
-        }
-
-        const allowResizing =
-          R.all((idx) => pageLayout[orderByIndex[idx]] == null)(
-            gridMustBeEmptyAt
-          ) &&
-          // Check if the free slot is not already ocuppied by another resized item
-          (overlappingItem == null ||
-            !(
-              (overlappingItem.w === 2 && (handle === 'n' || handle === 's')) ||
-              (overlappingItem.h === 2 && (handle === 'e' || handle === 'w'))
-            ))
-        // Include additional handle in the appropriate direction for resized items
-
-        return allowResizing ? R.append(handle)(acc) : acc
-      }, [])(resizeConstraints)
-    },
-    [orderByIndex, pageLayout]
+  const gridLayout = useMemo(
+    () => R.propOr(gridLayoutDefault, currentPage)(layouts),
+    [currentPage, gridLayoutDefault, layouts]
   )
 
-  const emptyGridCells = R.pipe(
-    R.length,
-    R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
-  )(pageLayout)
   return (
     <Container
       maxWidth={false}
@@ -492,33 +365,23 @@ const Dashboard = () => {
                 }}
                 onDragStop={handleDragStop}
                 onResizeStop={handleResizeStop}
-                // onLayoutChange={handleLayoutChange}
               >
-                {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
+                {gridLayout.map((gridItem, index) => {
                   if (maximizedIndex > -1 && index !== maximizedIndex)
                     return null
 
-                  const gridLayout = R.propOr(
-                    gridLayoutDefault,
-                    currentPage
-                  )(layouts)
-                  const resizeHandles = getResizeHandles(gridLayout, index)
+                  const firstIndex = R.findIndex(
+                    R.whereEq(R.pick(['x', 'y'])(gridItem))
+                  )(gridLayout)
+                  const chartObj =
+                    index === firstIndex ? pageLayout[index] : null
 
                   const dataGrid =
                     maximizedIndex < 0
-                      ? R.pipe(
-                          R.nth(index),
-                          R.mergeLeft({
-                            isDraggable: editLayoutMode,
-                            isResizable:
-                              editLayoutMode && R.isNotEmpty(resizeHandles),
-                            resizeHandles: resizeHandles,
-                          }),
-                          R.when(
-                            R.always(chartObj == null),
-                            R.assoc('resizeHandles', [])
-                          )
-                        )(gridLayout)
+                      ? R.mergeLeft({
+                          isDraggable: editLayoutMode,
+                          isResizable: false,
+                        })(gridItem)
                       : {
                           x: 0,
                           y: 0,
