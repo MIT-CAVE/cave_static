@@ -481,17 +481,17 @@ const VirtualKeyboard = () => {
           lock: [
             '{drag}',
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
-            '{tab} Q W E R T Y U I O P { } |',
-            `{lock} A S D F G H J K L : " ${enterKeys}`,
-            '{shift} Z X C V B N M < > ? {shift}',
+            '{tab} Q W E R T Y U I O P [ ] \\',
+            `{lock} A S D F G H J K L ; ' ${enterKeys}`,
+            '{shift} Z X C V B N M , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
           ],
           shiftAndLock: [
             '{drag}',
             '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
-            '{tab} q w e r t y u i o p [ ] \\',
-            `{lock} a s d f g h j k l ; ' ${enterKeys}`,
-            '{shift} z x c v b n m , . / {shift}',
+            '{tab} q w e r t y u i o p { } |',
+            `{lock} a s d f g h j k l : " ${enterKeys}`,
+            '{shift} z x c v b n m < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
           ],
           numPad: [
