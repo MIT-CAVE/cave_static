@@ -16,7 +16,9 @@ import {
   MdFullscreenExit,
   MdMoreVert,
 } from 'react-icons/md'
+import { useSelector } from 'react-redux'
 
+import { selectEditLayoutMode } from '../../../data/selectors'
 import { useMenu } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
@@ -84,6 +86,7 @@ const ChartMenu = ({
   onRemoveChart,
   onToggleMaximize,
 }) => {
+  const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const handleEventAndCloseMenu = (onEvent) => (e) => {
@@ -98,7 +101,11 @@ const ChartMenu = ({
   return (
     <Grid
       container
-      sx={[styles.root, !showToolbar && { top: isMaximized ? '4px' : '8px' }]}
+      sx={[
+        styles.root,
+        !showToolbar && { top: isMaximized ? '4px' : '8px' },
+        !isMaximized && editLayoutMode && { top: '20px', right: '8px' },
+      ]}
     >
       <ButtonGroup
         variant="contained"
