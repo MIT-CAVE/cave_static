@@ -409,7 +409,8 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             : R.path(['geometry', 'coordinates'], geo)
 
         return R.map((polygon) => {
-          const vertices = R.pipe(
+          // Outer ring
+          const outerRing = R.pipe(
             R.map((point) => {
               const pointXYZ = MercatorCoordinate.fromLngLat(
                 [R.path([0], point), R.path([1], point)],
@@ -421,45 +422,83 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
             R.flatten
           )(R.slice(0, -1, polygon[0]))
 
+          // Holes
+          const holes = R.pipe(
+            R.map(
+              R.pipe(
+                R.map((point) => {
+                  const pointXYZ = MercatorCoordinate.fromLngLat(
+                    [R.path([0], point), R.path([1], point)],
+                    R.pathOr(DEFAULT_Z, [2], point)
+                  )
+                  return [pointXYZ.x, -pointXYZ.y, pointXYZ.z]
+                }),
+                R.flatten
+              )
+            ),
+            R.flatten
+          )(R.slice(1, polygon.length, polygon))
+          const allVertices = [...outerRing, ...holes]
+
+          const holeIndices = []
+          let holeOffset = outerRing.length / 3 // Each vertex has 3 components (x, y, z)
+          R.forEach((hole) => {
+            holeIndices.push(holeOffset)
+            holeOffset += hole.length / 3
+          }, holes)
+
+          // Create the side faces
+          const sideVertices = []
+          const sideTriangles = []
+          let vertexOffset = 0
+
+          // Function to create side faces for a ring (outer or hole)
+          const createSideFaces = (ring) => {
+            const numPoints = ring.length / 3
+            for (let i = 0; i < numPoints; i++) {
+              const x = ring[i * 3]
+              const y = ring[i * 3 + 1]
+              const z = ring[i * 3 + 2]
+
+              // Top vertex
+              sideVertices.push(x, y, z)
+              // Corresponding bottom vertex (z = 0)
+              sideVertices.push(x, y, 0)
+            }
+
+            for (let i = 0; i < numPoints - 1; i++) {
+              sideTriangles.push(
+                vertexOffset + i * 2,
+                vertexOffset + i * 2 + 1,
+                vertexOffset + i * 2 + 2,
+                vertexOffset + i * 2 + 1,
+                vertexOffset + i * 2 + 3,
+                vertexOffset + i * 2 + 2
+              )
+            }
+            // Close the last face
+            sideTriangles.push(
+              vertexOffset + (numPoints - 1) * 2,
+              vertexOffset + (numPoints - 1) * 2 + 1,
+              vertexOffset,
+              vertexOffset + (numPoints - 1) * 2 + 1,
+              vertexOffset + 1,
+              vertexOffset
+            )
+
+            vertexOffset += numPoints * 2
+          }
+
+          // Generate side faces for the outer ring
+          createSideFaces(outerRing)
+
+          // Generate side faces for each hole
+          holes.forEach(createSideFaces)
+
           const color = R.pathOr(
             'rgba(0, 0, 0, 255)',
             ['properties', 'color'],
             geo
-          )
-
-          // Create the side faces
-          const sideVertices = []
-          const numPoints = vertices.length / 3
-          for (let i = 0; i < numPoints; i++) {
-            const x = vertices[i * 3]
-            const y = vertices[i * 3 + 1]
-            const z = vertices[i * 3 + 2]
-
-            // Top vertex
-            sideVertices.push(x, y, z)
-            // Corresponding bottom vertex (z = 0)
-            sideVertices.push(x, y, 0)
-          }
-
-          const sideTriangles = []
-          for (let i = 0; i < numPoints - 1; i++) {
-            sideTriangles.push(
-              i * 2,
-              i * 2 + 1,
-              i * 2 + 2,
-              i * 2 + 1,
-              i * 2 + 3,
-              i * 2 + 2
-            )
-          }
-          // Close the last face
-          sideTriangles.push(
-            (numPoints - 1) * 2,
-            (numPoints - 1) * 2 + 1,
-            0,
-            (numPoints - 1) * 2 + 1,
-            1,
-            0
           )
 
           const sideGeometry = new THREE.BufferGeometry()
@@ -480,9 +519,9 @@ export const GeosWithZ = memo(({ id, geos, onClick = () => {} }) => {
           const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial)
 
           // Create the top face
-          const topTriangles = earcut(vertices, null, 3)
+          const topTriangles = earcut(allVertices, holeIndices, 3)
           const topGeometry = new THREE.BufferGeometry()
-          const verticesFloat32Array = new Float32Array(vertices)
+          const verticesFloat32Array = new Float32Array(allVertices)
           topGeometry.setAttribute(
             'position',
             new THREE.BufferAttribute(verticesFloat32Array, 3)
@@ -662,7 +701,6 @@ const CustomLayer = memo(
         const layer = map.getLayer(id) && map.getLayer(id).implementation
         if (layer) {
           const dpr = window.devicePixelRatio || 1
-
           const point = { x: e.layerX * dpr, y: e.layerY * dpr }
           const mouse = new THREE.Vector2()
           mouse.x = (point.x / e.srcElement.width) * 2 - 1
