@@ -2006,7 +2006,11 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               },
               geometry: {
                 type: 'Point',
-                coordinates: [node.longitude, node.latitude],
+                coordinates: [
+                  node.longitude,
+                  node.latitude,
+                  R.pathOr(0, ['height'], node),
+                ],
               },
             }
           }),
@@ -2208,8 +2212,16 @@ export const selectArcLayerGeoJsonFunc = createSelector(
                 coordinates: arc.path
                   ? adjustArcPath(arc.path)
                   : [
-                      [arc.startLongitude, arc.startLatitude],
-                      [finalEndLong, arc.endLatitude],
+                      [
+                        arc.startLongitude,
+                        arc.startLatitude,
+                        R.pathOr(0, ['startHeight'], arc),
+                      ],
+                      [
+                        finalEndLong,
+                        arc.endLatitude,
+                        R.pathOr(0, ['endHeight'], arc),
+                      ],
                     ],
               },
             }
