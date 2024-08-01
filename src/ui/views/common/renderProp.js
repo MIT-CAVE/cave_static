@@ -158,7 +158,7 @@ const renderProp = ({ ...props }) => {
   // default enabled to true
   const enabled = R.propOr(true, 'enabled', prop)
   return (
-    <PropBase {...{ prop }} key={R.prop('id', prop)}>
+    <PropBase {...{ prop }} key={prop.key}>
       <PropComponent
         sx={{ boxSizing: 'border-box' }}
         {...R.assocPath(['prop', 'enabled'], enabled, props)}
