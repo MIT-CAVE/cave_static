@@ -267,8 +267,20 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         sync: !includesPath(R.values(sync), path),
         value:
           index === 0
-            ? R.assoc('leftVariant', value.toLowerCase(), chartObj)
-            : R.assoc('rightVariant', value.toLowerCase(), chartObj),
+            ? R.assoc(
+                'leftVariant',
+                value === 'Cumulative Line'
+                  ? 'cumulative_line'
+                  : value.toLowerCase(),
+                chartObj
+              )
+            : R.assoc(
+                'rightVariant',
+                value === 'Cumulative Line'
+                  ? 'cumulative_line'
+                  : value.toLowerCase(),
+                chartObj
+              ),
       })
     )
   }
@@ -547,7 +559,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                 bar: 'Bar',
                 'stacked bar': 'Stacked Bar',
                 line: 'Line',
-                'cumulative line': 'Cumulative Line',
+                cumulative_line: 'Cumulative Line',
               }
               return currentVariants
                 ? `${use}: ${capitalizedVariants[currentVariants[idx]]}`

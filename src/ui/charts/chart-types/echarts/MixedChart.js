@@ -20,7 +20,7 @@ const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   return { leftMin, leftMax, rightMin, rightMax }
 }
 const isCumulative = (variant, data) => {
-  return variant === 'cumulative line' && R.all(R.complement(R.isNil))(data)
+  return variant === 'cumulative_line' && R.all(R.complement(R.isNil))(data)
 }
 const accumulate = (data) => {
   return R.compose(R.tail, R.scan(R.add, 0))(data)
@@ -56,7 +56,7 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
     }
     const variantType = {
       line: 'line',
-      'cumulative line': 'line',
+      cumulative_line: 'line',
       bar: 'bar',
     }
     const smooth = variantType[rightVariant] === 'line' ? true : undefined
