@@ -84,6 +84,7 @@ const geoJsonToSegments = (features) =>
     R.map((feature) => {
       if (!R.path(['geometry', 'coordinates', 0], feature)) return []
 
+      const height = R.pathOr(0, ['properties', 'height'], feature) / 100
       const arcs = []
       for (let i = 0; i < feature.geometry.coordinates.length - 1; i++) {
         // convert coordinates to MercatorCoordinates on map
@@ -101,22 +102,18 @@ const geoJsonToSegments = (features) =>
           R.pathOr(0, ['geometry', 'coordinates', i + 1, 2], feature) *
           MAX_HEIGHT
 
-        const distance = Math.sqrt(
-          Math.pow(arcOrigin.x - arcDestination.x, 2) +
-            Math.pow(arcOrigin.y - arcDestination.y, 2)
-        )
-        // create a bezier curve with height scaling on distance in range 0.01 - 0.06
+        // create a bezier curve with height scaling with heightBy
         const curve = new THREE.CubicBezierCurve3(
           new THREE.Vector3(arcOrigin.x, -arcOrigin.y, arcOrigin.z),
           new THREE.Vector3(
             arcOrigin.x,
             -arcOrigin.y,
-            arcOrigin.z + distance * 0.05 + 0.01
+            arcOrigin.z + height * 0.015
           ),
           new THREE.Vector3(
             arcDestination.x,
             -arcDestination.y,
-            arcDestination.z + distance * 0.05 + 0.01
+            arcDestination.z + height * 0.015
           ),
           new THREE.Vector3(
             arcDestination.x,

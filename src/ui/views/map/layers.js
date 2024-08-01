@@ -184,7 +184,7 @@ export const Geos = memo(({ mapId }) => {
       },
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const sizeRange = arcRange(d.type, sizeProp, true, mapId)
+        const sizeRange = arcRange(d.type, sizeProp, 'sizeByOptions', mapId)
         const propVal = parseFloat(R.path(['values', sizeProp], d))
         return isNaN(propVal)
           ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
@@ -210,7 +210,7 @@ export const Geos = memo(({ mapId }) => {
       },
       (d) => {
         const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const colorRange = arcRange(d.type, colorProp, false, mapId)
+        const colorRange = arcRange(d.type, colorProp, 'colorByOptions', mapId)
         const isCategorical = !R.has('min', colorRange)
         const propVal = R.pipe(
           R.path(['values', colorProp]),

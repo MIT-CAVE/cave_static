@@ -1521,10 +1521,11 @@ export const selectArcRange = createSelector(
   [selectMergedArcs, selectLegendTypesFn],
   (arcsByType, legendObjectsFunc) =>
     R.memoizeWith(
-      (type, prop, size, mapId) => JSON.stringify([type, prop, size, mapId]),
-      (type, prop, size, mapId) =>
+      (type, prop, dimensionOptions, mapId) =>
+        JSON.stringify([type, prop, dimensionOptions, mapId]),
+      (type, prop, dimensionOptions, mapId) =>
         R.pipe(
-          R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1609,10 +1610,11 @@ export const selectNodeRange = createSelector(
   [selectLegendTypesFn, selectMergedNodes],
   (legendObjectsFunc, nodesByType) =>
     R.memoizeWith(
-      (type, prop, size, mapId) => JSON.stringify([type, prop, size, mapId]),
-      (type, prop, size, mapId) =>
+      (type, prop, dimensionOptions, mapId) =>
+        JSON.stringify([type, prop, dimensionOptions, mapId]),
+      (type, prop, dimensionOptions, mapId) =>
         R.pipe(
-          R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1676,7 +1678,7 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
               [d.type, 'colorBy'],
               enabledArcsFunc(mapId)
             )
-            const statRange = arcRange(d.type, colorProp, false)
+            const statRange = arcRange(d.type, colorProp, 'colorByOptions')
 
             return !(
               R.has('nullColor', statRange) &&
@@ -1942,7 +1944,12 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             )(legendObj)
             if (!filterMapFeature(filters, node)) return false
             const sizeProp = legendObj.sizeBy
-            const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
+            const sizeRange = nodeRange(
+              node.type,
+              sizeProp,
+              'sizeByOptions',
+              mapId
+            )
             const sizePropVal = R.path(['values', sizeProp], node)
             const isSizeCategorical = !R.has('min', sizeRange)
             const size = R.isNil(sizePropVal)
@@ -1962,7 +1969,12 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               R.when(R.isNil, R.always('')),
               (s) => s.toString()
             )(node)
-            const colorRange = nodeRange(node.type, colorProp, false, mapId)
+            const colorRange = nodeRange(
+              node.type,
+              colorProp,
+              'colorByOptions',
+              mapId
+            )
 
             const nullColor = R.propOr(
               'rgba(0,0,0,255)',
@@ -2119,18 +2131,24 @@ export const selectArcLayerGeoJsonFunc = createSelector(
           R.values,
           R.unnest,
           R.map(([id, arc]) => {
-            const sizeProp = R.path(
-              [arc.type, 'sizeBy'],
-              legendObjectsFunc(mapId)
-            )
             const legendObj = legendObjectsFunc(mapId)[arc.type]
             const filters = R.pipe(
               R.propOr([], 'filters'),
               R.reject(R.propEq(false, 'active'))
             )(legendObj)
+
             if (!filterMapFeature(filters, arc)) return false
 
-            const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
+            const sizeProp = R.path(
+              [arc.type, 'sizeBy'],
+              legendObjectsFunc(mapId)
+            )
+            const sizeRange = arcRange(
+              arc.type,
+              sizeProp,
+              'sizeByOptions',
+              mapId
+            )
             const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
             const size = isNaN(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
@@ -2141,14 +2159,20 @@ export const selectArcLayerGeoJsonFunc = createSelector(
                   parseFloat(R.prop('endSize', sizeRange)),
                   sizePropVal
                 )
+
             const colorProp = legendObj.colorBy
-            const colorRange = arcRange(arc.type, colorProp, false, mapId)
-            const isCategorical = !R.has('min', colorRange)
+            const colorRange = arcRange(
+              arc.type,
+              colorProp,
+              'colorByOptions',
+              mapId
+            )
             const colorPropVal = R.pipe(
               R.path(['values', colorProp]),
               R.when(R.isNil, R.always('')),
               (s) => s.toString()
             )(arc)
+            const isCategorical = !R.has('min', colorRange)
 
             if (
               R.has('nullColor', colorRange) &&
@@ -2190,6 +2214,31 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
               return false
             const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
+
+            const heightProp = R.path(
+              [arc.type, 'heightBy'],
+              legendObjectsFunc(mapId)
+            )
+            const heightRange = arcRange(
+              arc.type,
+              heightProp,
+              'heightByOptions',
+              mapId
+            )
+            const heightPropVal = parseFloat(
+              R.path(['values', heightProp], arc)
+            )
+
+            const height = isNaN(heightPropVal)
+              ? parseFloat(R.propOr('0', 'nullSize', heightRange))
+              : getScaledValue(
+                  R.prop('min', heightRange),
+                  R.prop('max', heightRange),
+                  parseFloat(R.prop('startHeight', heightRange)),
+                  parseFloat(R.prop('endHeight', heightRange)),
+                  heightPropVal
+                )
+
             // If the arc crosses the antimeridian, adjust the coordinates to be continuous
             const finalEndLong =
               arc.endLongitude - arc.startLongitude >= 180
@@ -2204,7 +2253,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
                 cave_obj: arc,
                 cave_name: JSON.stringify([arc.type, id]),
                 color: colorString,
-                size: size,
+                height,
+                size,
                 dash: dashPattern,
               },
               geometry: {
@@ -2251,7 +2301,12 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
             if (!filterMapFeature(filters, arc)) return false
 
             const sizeProp = legendObj.sizeBy
-            const sizeRange = arcRange(arc.type, sizeProp, true, mapId)
+            const sizeRange = arcRange(
+              arc.type,
+              sizeProp,
+              'sizeByOptions',
+              mapId
+            )
             const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
             const size = isNaN(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
@@ -2263,7 +2318,12 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
                   sizePropVal
                 )
             const colorProp = legendObj.colorBy
-            const colorRange = arcRange(arc.type, colorProp, false, mapId)
+            const colorRange = arcRange(
+              arc.type,
+              colorProp,
+              'colorByOptions',
+              mapId
+            )
             const isCategorical = !R.has('min', colorRange)
             const colorPropVal = R.pipe(
               R.path(['values', colorProp]),
