@@ -59,7 +59,8 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
       cumulative_line: 'line',
       bar: 'bar',
     }
-    const smooth = variantType[rightVariant] === 'line' ? true : undefined
+    const smoothLeft = variantType[leftVariant] === 'line' ? true : undefined
+    const smoothRight = variantType[rightVariant] === 'line' ? true : undefined
 
     if (hasSubgroups) {
       const subGroups = R.reduce(
@@ -110,14 +111,14 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             type: variantType[leftVariant],
             data: sg.leftData,
             yAxisIndex: 0,
-            smooth,
+            smooth: smoothLeft,
           })),
           subGroups.map((sg) => ({
             name: `${rightLabelWithoutUnits}: ${sg.name}`,
             type: variantType[rightVariant],
             data: sg.rightData,
             yAxisIndex: 1,
-            smooth,
+            smooth: smoothRight,
           })),
         ]),
         leftMin,
@@ -140,14 +141,14 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
             type: variantType[leftVariant],
             data: leftData,
             yAxisIndex: 0,
-            smooth,
+            smooth: smoothLeft,
           },
           {
             name: rightLabelWithoutUnits,
             type: variantType[rightVariant],
             data: rightData,
             yAxisIndex: 1,
-            smooth,
+            smooth: smoothRight,
           },
         ],
         leftMin,
