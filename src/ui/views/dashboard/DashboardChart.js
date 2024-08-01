@@ -192,6 +192,19 @@ const DashboardChart = ({ chartObj }) => {
     R.omit(['unit', 'unitPlacement'])
   )
 
+  const loadingComponent = (
+    <CircularProgress
+      sx={{
+        mx: 'auto',
+        mt: '25%',
+      }}
+    />
+  )
+
+  if (R.isEmpty(statisticTypes)) {
+    return loadingComponent
+  }
+
   const numberFormat = R.is(Array)(cleanedChartObj.statId)
     ? // Multi-stat charts
       R.reduce(
@@ -207,15 +220,7 @@ const DashboardChart = ({ chartObj }) => {
       )(statPaths)
     : getNumberFormat(stat)
 
-  if (loading)
-    return (
-      <CircularProgress
-        sx={{
-          mx: 'auto',
-          mt: '25%',
-        }}
-      />
-    )
+  if (loading) return loadingComponent
   if (R.isEmpty(formattedData))
     return (
       <Box
