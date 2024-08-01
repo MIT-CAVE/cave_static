@@ -31,6 +31,7 @@ import {
   ScatterPlot,
   BubblePlot,
   DistributionChart,
+  MixedChart,
 } from '../../charts'
 
 import {
@@ -68,6 +69,8 @@ const DashboardChart = ({ chartObj }) => {
     'distributionVariant',
     cleanedChartObj
   )
+  const leftVariant = R.propOr('line', 'leftVariant', cleanedChartObj)
+  const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
 
   useEffect(() => {
@@ -189,6 +192,19 @@ const DashboardChart = ({ chartObj }) => {
     R.omit(['unit', 'unitPlacement'])
   )
 
+  const loadingComponent = (
+    <CircularProgress
+      sx={{
+        mx: 'auto',
+        mt: '25%',
+      }}
+    />
+  )
+
+  if (R.isEmpty(statisticTypes)) {
+    return loadingComponent
+  }
+
   const numberFormat = R.is(Array)(cleanedChartObj.statId)
     ? // Multi-stat charts
       R.reduce(
@@ -204,15 +220,7 @@ const DashboardChart = ({ chartObj }) => {
       )(statPaths)
     : getNumberFormat(stat)
 
-  if (loading)
-    return (
-      <CircularProgress
-        sx={{
-          mx: 'auto',
-          mt: '25%',
-        }}
-      />
-    )
+  if (loading) return loadingComponent
   if (R.isEmpty(formattedData))
     return (
       <Box
@@ -336,6 +344,13 @@ const DashboardChart = ({ chartObj }) => {
           }
           xAxisTitle={yAxisTitle}
           {...{ colors, numberFormat }}
+        />
+      ) : cleanedChartObj.variant === chartVariant.MIXED ? (
+        <MixedChart
+          data={formattedData}
+          {...{ labelProps }}
+          leftVariant={leftVariant}
+          rightVariant={rightVariant}
         />
       ) : cleanedChartObj.variant === chartVariant.SCATTER ? (
         <BubblePlot
