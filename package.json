@@ -40,12 +40,12 @@
     "react-mui-color": "^1.0.1",
     "react-redux": "^9.1.2",
     "react-scripts": "^5.0.1",
-    "react-simple-keyboard": "^3.7.139",
+    "react-simple-keyboard": "^3.7.140",
     "react-transition-group": "^4.4.5",
     "react-virtualized": "^9.22.5",
     "react-virtualized-auto-sizer": "^1.0.24",
     "react-window": "^1.8.10",
-    "three": "^0.167.0"
+    "three": "^0.167.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
