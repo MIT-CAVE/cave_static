@@ -2,7 +2,6 @@ import { Box, Button, Paper, Stack } from '@mui/material'
 import { darken, lighten, styled } from '@mui/material/styles'
 import {
   DataGrid,
-  GRID_CHECKBOX_SELECTION_COL_DEF,
   GridActionsCellItem,
   GridBooleanCell,
   GridEditBooleanCell,
@@ -448,10 +447,6 @@ const GridFilter = ({
     onSave(newFilters)
   }, [onSave, rows, updateActiveStateForSelectedRow])
 
-  const handleRowSelectionCheckboxChange = useCallback(() => {
-    setRows(R.map(updateActiveStateForSelectedRow))
-  }, [updateActiveStateForSelectedRow])
-
   const handleCellDoubleClick = (params, event) => {
     event.defaultMuiPrevented = true
   }
@@ -482,7 +477,6 @@ const GridFilter = ({
         // },
         preProcessEditCellProps,
       },
-      GRID_CHECKBOX_SELECTION_COL_DEF,
       {
         field: 'source',
         headerName: sourceHeaderName,
@@ -757,14 +751,12 @@ const GridFilter = ({
           editMode="row"
           getRowHeight={R.always('auto')}
           hideFooter
-          checkboxSelection
           disableColumnMenu
           disableColumnResize
           disableColumnSorting
           disableRowSelectionOnClick
           onRowEditStop={handleRowEditStop}
           onCellDoubleClick={handleCellDoubleClick}
-          onRowSelectionModelChange={handleRowSelectionCheckboxChange}
           maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
           isCellEditable={(params) => isCellEditable(params.row, params.field)}
