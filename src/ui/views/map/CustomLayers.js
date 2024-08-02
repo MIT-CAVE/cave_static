@@ -412,6 +412,8 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         geoType === 'Polygon'
           ? [R.path(['geometry', 'coordinates'], geo)]
           : R.path(['geometry', 'coordinates'], geo)
+      const height =
+        (MAX_HEIGHT * R.pathOr(0, ['properties', 'height'], geo)) / 100
 
       R.forEach((polygon) => {
         // Outer Ring
@@ -423,8 +425,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
               [R.path([0], point), R.path([1], point)],
               0
             )
-            pointXYZ.z = R.pathOr(0, [2], point) * MAX_HEIGHT
-            outerRing.push(pointXYZ.x, -pointXYZ.y, pointXYZ.z)
+            outerRing.push(pointXYZ.x, -pointXYZ.y, height)
           },
           R.slice(0, -1, polygon[0])
         )
@@ -439,8 +440,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
                 [R.path([0], point), R.path([1], point)],
                 0
               )
-              pointXYZ.z = R.pathOr(0, [2], point) * MAX_HEIGHT
-              holeVertices.push(pointXYZ.x, -pointXYZ.y, pointXYZ.z)
+              holeVertices.push(pointXYZ.x, -pointXYZ.y, height)
             },
             R.slice(0, -1, hole)
           )

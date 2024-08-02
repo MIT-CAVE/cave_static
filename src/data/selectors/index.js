@@ -1635,14 +1635,15 @@ export const selectNodeRange = createSelector(
         )(legendObjectsFunc({ mapId, layerKey: 'node' }))
     )
 )
-export const selectGeoColorRange = createSelector(
+export const selectGeoRange = createSelector(
   [selectLegendTypesFn, selectMergedGeos],
   (legendObjectsFunc, geosByType) =>
     R.memoizeWith(
-      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
-      (type, prop, mapId) =>
+      (type, prop, dimensionOptions, mapId) =>
+        JSON.stringify([type, prop, dimensionOptions, mapId]),
+      (type, prop, dimensionOptions, mapId) =>
         R.pipe(
-          R.path([type, 'colorByOptions', prop]),
+          R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||

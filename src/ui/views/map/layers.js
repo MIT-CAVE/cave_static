@@ -15,7 +15,7 @@ import {
   selectEnabledArcsFunc,
   selectArcRange,
   selectEnabledGeosFunc,
-  selectGeoColorRange,
+  selectGeoRange,
   selectMatchingKeysByTypeFunc,
   selectGeoTypes,
   selectArcTypes,
@@ -71,7 +71,7 @@ export const Geos = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
-  const geoColorRange = useSelector(selectGeoColorRange)
+  const geometryRange = useSelector(selectGeoRange)
   const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
   const geoTypes = useSelector(selectGeoTypes)
   const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
@@ -146,7 +146,12 @@ export const Geos = memo(({ mapId }) => {
       },
       (geoObj) => {
         const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geoColorRange(geoObj.type, colorProp, mapId)
+        const statRange = geometryRange(
+          geoObj.type,
+          colorProp,
+          'colorByOptions',
+          mapId
+        )
         const colorRange = R.map((prop) => R.pathOr(0, [prop])(statRange))([
           'startGradientColor',
           'endGradientColor',
@@ -171,7 +176,43 @@ export const Geos = memo(({ mapId }) => {
               ).join(',')})`
       }
     ),
-    [enabledGeos, geoColorRange]
+    [enabledGeos, geometryRange]
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findHeight = useCallback(
+    R.memoizeWith(
+      (geoObj) => {
+        const heightProp = R.path([geoObj.type, 'heightBy'], enabledGeos)
+        const value = R.path(['values', heightProp], geoObj)
+        return `${geoObj.geoJsonValue}${value}${geoObj.type}`
+      },
+      (geoObj) => {
+        const heightProp = R.path([geoObj.type, 'heightBy'], enabledGeos)
+        const heightRange = geometryRange(
+          geoObj.type,
+          heightProp,
+          'heightByOptions',
+          mapId
+        )
+        const value = R.pipe(
+          R.path(['values', heightProp]),
+          R.when(R.isNil, R.always('')),
+          (s) => s.toString()
+        )(geoObj)
+
+        return R.equals('', value)
+          ? 0
+          : getScaledValue(
+              R.prop('min', heightRange),
+              R.prop('max', heightRange),
+              parseFloat(R.prop('startHeight', heightRange)),
+              parseFloat(R.prop('endHeight', heightRange)),
+              value
+            )
+      }
+    ),
+    [enabledGeos, geometryRange]
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,13 +305,15 @@ export const Geos = memo(({ mapId }) => {
                   R.path(['properties', geoJsonProp])(feature) === geoJsonValue
               )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
               const color = findColor(geoObj)
+              const height = findHeight(geoObj)
 
               const id = R.prop('data_key')(geoObj)
               return R.mergeRight(filteredFeature, {
                 properties: {
                   cave_name: JSON.stringify([geoType, id]),
                   cave_obj: geoObj,
-                  color: color,
+                  color,
+                  height,
                 },
               })
             }),
@@ -281,7 +324,7 @@ export const Geos = memo(({ mapId }) => {
         R.values,
         R.unnest
       )(matchingKeysByType),
-    [enabledGeos, findColor, matchingKeysByType, selectedGeos]
+    [enabledGeos, findColor, findHeight, matchingKeysByType, selectedGeos]
   )
 
   const lineGeoJsonObject = useMemo(
