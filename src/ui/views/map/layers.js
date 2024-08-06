@@ -225,15 +225,15 @@ export const Geos = memo(({ mapId }) => {
       },
       (d) => {
         const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const sizeRange = arcRange(d.type, sizeProp, 'sizeByOptions', mapId)
+        const heightRange = arcRange(d.type, sizeProp, 'sizeByOptions', mapId)
         const propVal = parseFloat(R.path(['values', sizeProp], d))
         return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          ? parseFloat(R.propOr('0', 'nullSize', heightRange))
           : getScaledValue(
-              R.prop('min', sizeRange),
-              R.prop('max', sizeRange),
-              parseFloat(R.prop('startSize', sizeRange)),
-              parseFloat(R.prop('endSize', sizeRange)),
+              R.prop('min', heightRange),
+              R.prop('max', heightRange),
+              parseFloat(R.prop('startSize', heightRange)),
+              parseFloat(R.prop('endSize', heightRange)),
               propVal
             )
       }
@@ -285,14 +285,40 @@ export const Geos = memo(({ mapId }) => {
     [enabledArcs, arcRange]
   )
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const findLineHeight = useCallback(
+    R.memoizeWith(
+      (d) => {
+        const heightProp = R.path([d.type, 'heightBy'], enabledArcs)
+        const propVal = R.path(['values', heightProp], d)
+        return `${R.prop('data_key', d)}${propVal}${d.type}`
+      },
+      (d) => {
+        const heightProp = R.path([d.type, 'heightBy'], enabledArcs)
+        const sizeRange = arcRange(d.type, heightProp, 'heightByOptions', mapId)
+        const propVal = parseFloat(R.path(['values', heightProp], d))
+        return isNaN(propVal)
+          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+          : getScaledValue(
+              R.prop('min', sizeRange),
+              R.prop('max', sizeRange),
+              parseFloat(R.prop('startHeight', sizeRange)),
+              parseFloat(R.prop('endHeight', sizeRange)),
+              propVal
+            )
+      }
+    ),
+    [enabledArcs, arcRange]
+  )
+
   const geoJsonObject = useMemo(
     () =>
       R.pipe(
         R.map(
           R.pipe(
             R.mapObjIndexed((geoObj, geoJsonValue) => {
-              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-              const geoType = R.prop('type')(geoObj)
+              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'], geoObj)
+              const geoType = R.prop('type', geoObj)
 
               const filters = R.pipe(
                 R.pathOr([], [geoObj.type, 'filters']),
@@ -307,7 +333,7 @@ export const Geos = memo(({ mapId }) => {
               const color = findColor(geoObj)
               const height = findHeight(geoObj)
 
-              const id = R.prop('data_key')(geoObj)
+              const id = R.prop('data_key', geoObj)
               return R.mergeRight(filteredFeature, {
                 properties: {
                   cave_name: JSON.stringify([geoType, id]),
@@ -333,12 +359,12 @@ export const Geos = memo(({ mapId }) => {
         R.map(
           R.pipe(
             R.mapObjIndexed((geoObj, geoJsonValue) => {
-              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-              const geoType = R.prop('type')(geoObj)
+              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'], geoObj)
+              const geoType = R.prop('type', geoObj)
               const filteredFeature = R.find(
                 (feature) =>
-                  R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-              )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+                  R.path(['properties', geoJsonProp], feature) === geoJsonValue
+              )(R.pathOr({}, [geoType, 'features'], selectedArcs))
 
               const filters = R.pipe(
                 R.pathOr([], [geoObj.type, 'filters']),
@@ -346,7 +372,7 @@ export const Geos = memo(({ mapId }) => {
               )(enabledArcs)
               if (
                 R.isNil(filteredFeature) &&
-                R.isNotEmpty(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+                R.isNotEmpty(R.pathOr({}, [geoType, 'features'], selectedArcs))
               ) {
                 console.warn(
                   `No feature with ${geoJsonValue} for property ${geoJsonProp}`
@@ -356,28 +382,33 @@ export const Geos = memo(({ mapId }) => {
 
               const color = findLineColor(geoObj)
               const size = findLineSize(geoObj)
-              const id = R.prop('data_key')(geoObj)
+              const height = findLineHeight(geoObj)
+              const id = R.prop('data_key', geoObj)
               const dashPattern = R.propOr(
                 'solid',
-                'lineBy'
-              )(R.path([geoType, 'colorBy'], enabledArcs))
+                'lineBy',
+                R.path([geoType, 'colorBy'], enabledArcs)
+              )
 
-              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1) {
+              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1)
                 return false
-              }
+
               const adjustedFeature = R.assocPath(
                 ['geometry', 'coordinates'],
                 adjustArcPath(
-                  R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
-                )
-              )(filteredFeature)
+                  R.pathOr([], ['geometry', 'coordinates'], filteredFeature)
+                ),
+                filteredFeature
+              )
+
               return R.mergeRight(adjustedFeature, {
                 properties: {
                   cave_name: JSON.stringify([geoType, id]),
                   cave_obj: geoObj,
-                  color: color,
                   dash: dashPattern,
-                  size: size,
+                  size,
+                  color,
+                  height,
                 },
               })
             }),
@@ -391,8 +422,9 @@ export const Geos = memo(({ mapId }) => {
       )(lineMatchingKeysByType),
     [
       enabledArcs,
-      findLineColor,
       findLineSize,
+      findLineColor,
+      findLineHeight,
       lineMatchingKeysByType,
       selectedArcs,
     ]

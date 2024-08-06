@@ -1064,6 +1064,7 @@ const MapLegendArcToggle = ({
         : legendObj.lineBy === '3d'
           ? 'vsc/VscLoading'
           : 'ai/AiOutlineLine'
+
   return (
     <LegendCard
       geometryType={arcType}
