@@ -1204,6 +1204,13 @@ const LegendCard = memo(
       mapId
     )
 
+    const numSections = [sizeRange, colorRange, heightRange].filter(
+      (property) => property !== undefined
+    ).length
+    const numDividers = numSections - 1
+    const percentagePerSection = (100 - 3 * numDividers) / numSections
+    const gridTemplateColumns = `${new Array(numSections).fill(`${percentagePerSection}%`).join(' 1% ')}`
+
     const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
     const handleSaveFilters = (newFilters) => {
       dispatch(
@@ -1282,7 +1289,7 @@ const LegendCard = memo(
         <hr />
         <Box
           display="grid"
-          gridTemplateColumns="32% 1% 32% 1% 32%"
+          gridTemplateColumns={gridTemplateColumns}
           gridTemplateRows={`repeat(${group ? 3 : 2}, auto)`}
           gridAutoFlow="column"
           pr={2}
@@ -1306,7 +1313,7 @@ const LegendCard = memo(
                 icon={<FetchedIcon iconName={icon} />}
                 getPropName={getGeometryPropName}
                 getCategoryName={getGeometryCategoryName}
-                syncPath={R.append('sizeBy')(basePath)}
+                syncPath={R.append('sizeBy', basePath)}
                 propValue={groupCalcBySize}
                 onSelectProp={(value) => {
                   dispatch(
@@ -1319,14 +1326,16 @@ const LegendCard = memo(
                 }}
               />
 
-              <Divider
-                orientation="vertical"
-                sx={{
-                  gridRow: 'span 3',
-                  borderColor: 'rgba(255, 255, 255, 0.6)',
-                  borderStyle: 'dotted',
-                }}
-              />
+              {numSections > 1 && (
+                <Divider
+                  orientation="vertical"
+                  sx={{
+                    gridRow: 'span 3',
+                    borderColor: 'rgba(255, 255, 255, 0.6)',
+                    borderStyle: 'dotted',
+                  }}
+                />
+              )}
             </>
           )}
 
@@ -1346,7 +1355,7 @@ const LegendCard = memo(
                 valueRange={group && colorDomain ? colorDomain : colorRange}
                 getPropName={getGeometryPropName}
                 getCategoryName={getGeometryCategoryName}
-                syncPath={R.append('colorBy')(basePath)}
+                syncPath={R.append('colorBy', basePath)}
                 propValue={groupCalcByColor}
                 onSelectProp={(value) => {
                   dispatch(
@@ -1359,18 +1368,20 @@ const LegendCard = memo(
                 }}
               />
 
-              <Divider
-                orientation="vertical"
-                sx={{
-                  gridRow: 'span 3',
-                  borderColor: 'rgba(255, 255, 255, 0.6)',
-                  borderStyle: 'dotted',
-                }}
-              />
+              {R.has('heightByOptions', legendObj) && (
+                <Divider
+                  orientation="vertical"
+                  sx={{
+                    gridRow: 'span 3',
+                    borderColor: 'rgba(255, 255, 255, 0.6)',
+                    borderStyle: 'dotted',
+                  }}
+                />
+              )}
             </>
           )}
 
-          {R.has('heightBy', legendObj) && (
+          {R.has('heightByOptions', legendObj) && (
             <MapLegendHeightBySection
               {...{
                 heightProp,
@@ -1387,7 +1398,7 @@ const LegendCard = memo(
               icon={<FetchedIcon iconName={icon} />}
               getPropName={getGeometryPropName}
               getCategoryName={getGeometryCategoryName}
-              syncPath={R.append('heightBy')(basePath)}
+              syncPath={R.append('heightBy', basePath)}
               propValue={groupCalcByHeight}
               onSelectProp={(value) => {
                 dispatch(
