@@ -681,16 +681,26 @@ export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) => R.propOr({}, 'mapControls')(dataObj)
 )
-export const selectMapModal = createSelector(selectLocalMap, (data) =>
-  R.propOr(
-    {
-      isOpen: false,
-      data: {
-        feature: '',
+export const selectMapModal = createSelector(
+  selectLocalMap,
+  (data) =>
+    R.propOr(
+      {
+        isOpen: false,
+        data: {
+          feature: '',
+        },
+      },
+      'mapModal'
+    )(data),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: (a, b) => {
+        return R.prop('isOpen', a) === false || a === b
       },
     },
-    'mapModal'
-  )(data)
+  }
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
