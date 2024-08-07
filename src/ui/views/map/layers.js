@@ -427,27 +427,23 @@ export const Geos = memo(({ mapId }) => {
     ]
   )
 
-  if (!isGlobe)
-    return [
-      <GeosWithHeight
-        id="geos-with-altitude"
-        key="geos-with-altitude"
-        geos={geoJsonObject}
-        onClick={({ cave_name, cave_obj }) =>
-          handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
-        }
-      />,
-      <ArcsWithHeight
-        id="geos-arcs-with-altitude"
-        key="geos-arcs-with-altitude"
-        geos={R.unnest(R.values(lineGeoJsonObject))}
-        onClick={({ cave_name, cave_obj }) =>
-          handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
-        }
-      />,
-    ]
-
   return [
+    <GeosWithHeight
+      id="geos-with-altitude"
+      key="geos-with-altitude"
+      geos={!isGlobe ? geoJsonObject : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
+      }
+    />,
+    <ArcsWithHeight
+      id="geos-arcs-with-altitude"
+      key="geos-arcs-with-altitude"
+      geos={!isGlobe ? R.unnest(R.values(lineGeoJsonObject)) : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+      }
+    />,
     <Source
       type="geojson"
       key={layerId.GEOGRAPHY_LAYER}
@@ -463,6 +459,9 @@ export const Geos = memo(({ mapId }) => {
         key={layerId.GEOGRAPHY_LAYER}
         react
         type="fill"
+        layout={{
+          visibility: isGlobe ? 'visible' : 'none',
+        }}
         paint={{
           'fill-color': [
             'case',
@@ -491,6 +490,7 @@ export const Geos = memo(({ mapId }) => {
         layout={{
           'line-cap': 'round',
           'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
           'line-color': [
@@ -521,6 +521,7 @@ export const Geos = memo(({ mapId }) => {
         layout={{
           'line-cap': 'round',
           'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
           'line-color': [
@@ -552,6 +553,7 @@ export const Geos = memo(({ mapId }) => {
         layout={{
           'line-cap': 'round',
           'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
           'line-color': [
@@ -575,25 +577,14 @@ export const Nodes = memo(({ mapId }) => {
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const isGlobe = useSelector(selectIsGlobe)(mapId)
 
-  if (!isGlobe)
-    return (
-      <NodesWithHeight
-        id="nodes-with-altitude"
-        nodes={nodeGeoJson}
-        onClick={({ cave_name, cave_obj }) =>
-          handleFeatureClick(
-            dispatch,
-            sync,
-            mapId,
-            cave_name,
-            cave_obj,
-            'nodes'
-          )
-        }
-      />
-    )
-
-  return (
+  return [
+    <NodesWithHeight
+      id="nodes-with-altitude"
+      nodes={!isGlobe ? nodeGeoJson : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'nodes')
+      }
+    />,
     <Source
       id={layerId.NODE_ICON_LAYER}
       key={layerId.NODE_ICON_LAYER}
@@ -612,6 +603,7 @@ export const Nodes = memo(({ mapId }) => {
           'icon-image': ['get', 'icon'],
           'icon-size': ['get', 'size'],
           'icon-allow-overlap': true,
+          visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
           'icon-color': [
@@ -622,8 +614,8 @@ export const Nodes = memo(({ mapId }) => {
           ],
         }}
       />
-    </Source>
-  )
+    </Source>,
+  ]
 })
 
 export const Arcs = memo(({ mapId }) => {
@@ -632,18 +624,14 @@ export const Arcs = memo(({ mapId }) => {
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   const isGlobe = useSelector(selectIsGlobe)(mapId)
 
-  if (!isGlobe)
-    return (
-      <ArcsWithHeight
-        id="arcs-with-altitude"
-        geos={R.unnest(R.values(arcLayerGeoJson))}
-        onClick={({ cave_name, cave_obj }) =>
-          handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
-        }
-      />
-    )
-
   return [
+    <ArcsWithHeight
+      id="arcs-with-altitude"
+      geos={!isGlobe ? R.unnest(R.values(arcLayerGeoJson)) : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+      }
+    />,
     <Source
       id={layerId.ARC_LAYER_SOLID}
       key={layerId.ARC_LAYER_SOLID}
@@ -658,6 +646,11 @@ export const Arcs = memo(({ mapId }) => {
         id={layerId.ARC_LAYER_SOLID}
         key={layerId.ARC_LAYER_SOLID}
         type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
+        }}
         paint={{
           'line-color': [
             'case',
@@ -667,10 +660,6 @@ export const Arcs = memo(({ mapId }) => {
           ],
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
-        }}
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
         }}
       />
     </Source>,
@@ -688,6 +677,11 @@ export const Arcs = memo(({ mapId }) => {
         id={layerId.ARC_LAYER_DASH}
         key={layerId.ARC_LAYER_DASH}
         type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
+        }}
         paint={{
           'line-color': [
             'case',
@@ -698,10 +692,6 @@ export const Arcs = memo(({ mapId }) => {
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
           'line-dasharray': LINE_TYPES['dashed'],
-        }}
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
         }}
       />
     </Source>,
@@ -719,6 +709,11 @@ export const Arcs = memo(({ mapId }) => {
         id={layerId.ARC_LAYER_DOT}
         key={layerId.ARC_LAYER_DOT}
         type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
+        }}
         paint={{
           'line-color': [
             'case',
@@ -729,10 +724,6 @@ export const Arcs = memo(({ mapId }) => {
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
           'line-dasharray': LINE_TYPES['dotted'],
-        }}
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
         }}
       />
     </Source>,
