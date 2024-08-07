@@ -14,68 +14,68 @@ import { HIGHLIGHT_COLOR, ICON_RESOLUTION } from '../../../utils/constants'
 import { rgbStrToArray, fetchIcon } from '../../../utils'
 
 const MAX_HEIGHT = 0.00325
-// Generate custom cylinder segments to allow for size scaling
-const generateSegments = (curve, feature, segments = 80) => {
+// Generate line segment
+const generateSegment = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
   const color = R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], feature)
   const size = R.pathOr(30, ['properties', 'size'], feature)
 
   const points = curve.getPoints(segments)
-  return R.reduce((acc, idx) => {
-    // Skip every other segment for dashed line
-    if (lineType === 'dashed' && idx % 2 === 0) return acc
+  return R.reduce(
+    (acc, idx) => {
+      // Skip every other segment for dashed line
+      if (lineType === 'dashed' && idx % 2 === 0) return acc
 
-    // Generate midpoint to place cylinder center
-    const midpoint = new THREE.Vector3(
-      (points[idx].x + points[idx + 1].x) / 2,
-      (points[idx].y + points[idx + 1].y) / 2,
-      (points[idx].z + points[idx + 1].z) / 2
-    )
-    // find distance between 2 points
-    const hypotenuse = Math.sqrt(
-      Math.pow(points[idx].x - points[idx + 1].x, 2) +
-        Math.pow(points[idx].y - points[idx + 1].y, 2) +
-        Math.pow(points[idx].z - points[idx + 1].z, 2)
-    )
-    // find vertical angle between 2 points (uses iso names)
-    const theta = Math.asin((points[idx].z - points[idx + 1].z) / hypotenuse)
-    // find horizontal angle between 2 points
-    const phi =
-      Math.atan2(
-        points[idx].y - points[idx + 1].y,
-        points[idx].x - points[idx + 1].x
-      ) +
-      Math.PI / 2
-    // generate new cylinder using calculated size
-    const geometry = new THREE.CylinderGeometry(
-      0.001 * size,
-      0.001 * size,
-      lineType !== 'dotted' ? hypotenuse : hypotenuse / 3,
-      2
-    )
-    // set cylinder color, position, and angle
-    const colorArr = rgbStrToArray(color)
-    const colorObj = new THREE.Color(
-      colorArr[0] / 255,
-      colorArr[1] / 255,
-      colorArr[2] / 255
-    )
-    const material = new THREE.MeshBasicMaterial()
-    const cylinder = new THREE.Mesh(geometry, material)
-    cylinder.material.color.set(colorObj)
-    cylinder.position.x = midpoint.x
-    cylinder.position.y = midpoint.y
-    cylinder.position.z = midpoint.z
-    cylinder.rotateY(Math.PI / 2)
-    cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
-    cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
-    // Add data from feature for highlighting/clicking
-    cylinder.userData = {
-      cave_name: R.path(['properties', 'cave_name'], feature),
-      cave_obj: R.path(['properties', 'cave_obj'], feature),
-    }
-    return R.append(cylinder, acc)
-  }, [])(R.range(0, R.length(points) - 1))
+      // Generate midpoint to place cylinder center
+      const midpoint = new THREE.Vector3(
+        (points[idx].x + points[idx + 1].x) / 2,
+        (points[idx].y + points[idx + 1].y) / 2,
+        (points[idx].z + points[idx + 1].z) / 2
+      )
+      // find distance between 2 points
+      const hypotenuse = Math.sqrt(
+        Math.pow(points[idx].x - points[idx + 1].x, 2) +
+          Math.pow(points[idx].y - points[idx + 1].y, 2) +
+          Math.pow(points[idx].z - points[idx + 1].z, 2)
+      )
+      // find vertical angle between 2 points (uses iso names)
+      const theta = Math.asin((points[idx].z - points[idx + 1].z) / hypotenuse)
+      // find horizontal angle between 2 points
+      const phi =
+        Math.atan2(
+          points[idx].y - points[idx + 1].y,
+          points[idx].x - points[idx + 1].x
+        ) +
+        Math.PI / 2
+
+      const geometry = new THREE.BoxGeometry(
+        0.00003 * size, // width
+        lineType === 'dotted' ? hypotenuse / 3 : hypotenuse, // length
+        0 // thickness
+      )
+      // set cylinder color, position, and angle
+      const colorArr = rgbStrToArray(color)
+      const colorObj = new THREE.Color(
+        colorArr[0] / 255,
+        colorArr[1] / 255,
+        colorArr[2] / 255
+      )
+      const material = new THREE.MeshBasicMaterial()
+      const rect = new THREE.Mesh(geometry, material)
+      rect.material.color.set(colorObj)
+      rect.position.set(midpoint.x, midpoint.y, midpoint.z)
+      rect.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
+      rect.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
+      // Add data from feature for highlighting/clicking
+      rect.userData = {
+        cave_name: R.path(['properties', 'cave_name'], feature),
+        cave_obj: R.path(['properties', 'cave_obj'], feature),
+      }
+      return R.append(rect, acc)
+    },
+    [],
+    R.range(0, R.length(points) - 1)
+  )
 }
 
 // Converts array of geoJson features to array of Meshes to be added to scene
@@ -121,7 +121,7 @@ const geoJsonToSegments = (features) =>
             arcDestination.z
           )
         )
-        arcs.push(generateSegments(curve, feature))
+        arcs.push(generateSegment(curve, feature))
       }
 
       return arcs
