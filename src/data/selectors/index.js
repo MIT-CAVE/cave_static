@@ -1,4 +1,4 @@
-import { createSelector } from '@reduxjs/toolkit'
+import { createSelector, lruMemoize } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import {
@@ -642,41 +642,34 @@ export const selectCurrentLocalMapDataByMap = createSelector(
     )(itemKeys.values())
   }
 )
+export const selectAllLegendGroups = createSelector(
+  selectCurrentMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+)
+export const selectAllLocalLegendGroups = createSelector(
+  selectCurrentLocalMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)
+
 export const selectLegendDataFunc = createSelector(
-  [selectCurrentMapDataByMap, selectCurrentLocalMapDataByMap],
+  [selectAllLegendGroups, selectAllLocalLegendGroups],
   (mapDataObj, localMapDataObj) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        R.pathOr(
-          R.pathOr({}, ['legendGroups', mapId], mapDataObj),
-          ['legendGroups', mapId],
-          localMapDataObj
-        ),
+        R.propOr(R.propOr({}, mapId, mapDataObj), mapId, localMapDataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'legendGroups', a),
-          R.propOr({}, 'legendGroups', b)
-        ),
-    },
-  }
+    )
 )
 export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
-  (dataObj) => R.propOr({}, 'mapControls')(dataObj),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'mapControls', a),
-          R.propOr({}, 'mapControls', b)
-        ),
-    },
-  }
+  (dataObj) => R.propOr({}, 'mapControls')(dataObj)
 )
 export const selectMapModal = createSelector(selectLocalMap, (data) =>
   R.propOr(
@@ -752,6 +745,7 @@ export const selectBearingFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('bearing', a), R.pluck('bearing', b)),
@@ -767,6 +761,7 @@ export const selectPitchFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('pitch', a), R.pluck('pitch', b)),
@@ -782,6 +777,7 @@ export const selectZoomFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('zoom', R.values(a)), R.pluck('zoom', R.values(b))),
@@ -856,11 +852,12 @@ export const selectPitchSliderToggleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
-          R.pluck('showPitchSlider', R.values(a)),
-          R.pluck('showPitchSlider', R.values(b))
+          R.map(R.dissoc('viewport'), a),
+          R.map(R.dissoc('viewport'), b)
         ),
     },
   }
@@ -874,12 +871,14 @@ export const selectBearingSliderToggleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.pluck('showBearingSlider', R.values(a)),
-          R.pluck('showBearingSlider', R.values(b))
-        ),
+      equalityCheck: (a, b) => {
+        return R.equals(
+          R.map(R.dissoc('viewport'), b),
+          R.map(R.dissoc('viewport'), a)
+        )
+      },
     },
   }
 )
