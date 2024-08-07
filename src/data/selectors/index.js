@@ -496,6 +496,7 @@ export const selectDefaultViewportFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -600,7 +601,10 @@ export const selectLeftOpenPanesData = createSelector(
       R.propOr({}, leftOpenPane, panesData),
       R.propOr({}, leftOpenPane, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectRightOpenPanesData = createSelector(
   [selectRightOpenPane, selectPanesData, selectLocalPanesData],
@@ -609,7 +613,10 @@ export const selectRightOpenPanesData = createSelector(
       R.propOr({}, rightOpenPane, panesData),
       R.propOr({}, rightOpenPane, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectOpenModalData = createSelector(
   [selectOpenModal, selectPanesData, selectLocalPanesData],
@@ -618,7 +625,10 @@ export const selectOpenModalData = createSelector(
       R.propOr({}, openModal, panesData),
       R.propOr({}, openModal, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 
 // Local -> Map
@@ -694,6 +704,7 @@ export const selectMapLegendFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
@@ -793,6 +804,7 @@ export const selectCurrentMapStyleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -815,6 +827,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -891,6 +904,7 @@ export const selectOptionalViewportsFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -932,6 +946,7 @@ const selectLegendTypesFn = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -1019,6 +1034,7 @@ export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
   (nodeTypes, localNodes) => R.mergeDeepRight(nodeTypes, localNodes),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1028,6 +1044,7 @@ export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
   (arcTypes, localArcs) => R.mergeDeepRight(arcTypes, localArcs),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1037,6 +1054,7 @@ export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
   (geoTypes, localGeos) => R.mergeDeepRight(geoTypes, localGeos),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1046,6 +1064,7 @@ export const selectArcTypeKeys = createSelector(
   selectLocalizedArcTypes,
   (data) => R.keys(data),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1055,6 +1074,7 @@ export const selectNodeTypeKeys = createSelector(
   selectLocalizedNodeTypes,
   (data) => R.keys(data),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
