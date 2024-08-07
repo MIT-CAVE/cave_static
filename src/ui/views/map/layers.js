@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import { useMemo, useEffect, useState, memo, useCallback } from 'react'
-import { Layer, Source, useMap } from 'react-map-gl'
+import { Layer, Source } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
 import {
@@ -24,6 +24,7 @@ import {
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
+  selectIsGlobe,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -36,9 +37,6 @@ import {
   filterMapFeature,
   adjustArcPath,
 } from '../../../utils'
-
-const getIsGlobe = (map) =>
-  map.getProjection().name === 'globe' && map.getZoom() < 6
 
 const handleFeatureClick = (
   dispatch,
@@ -80,11 +78,10 @@ export const Geos = memo(({ mapId }) => {
     mapId
   )
   const arcRange = useSelector(selectArcRange)
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
 
-  const { current: map } = useMap()
   const [selectedGeos, setSelectedGeos] = useState({})
   const [selectedArcs, setSelectedArcs] = useState({})
-  const [isGlobe, setIsGlobe] = useState(getIsGlobe(map))
 
   useEffect(() => {
     const geoNames = R.keys(R.filter(R.identity, enabledGeos))
@@ -430,18 +427,6 @@ export const Geos = memo(({ mapId }) => {
     ]
   )
 
-  useEffect(() => {
-    const handleRender = () => {
-      if (isGlobe !== getIsGlobe(map)) setIsGlobe(getIsGlobe(map))
-    }
-
-    map.on('render', handleRender)
-
-    return () => {
-      map.off('render', handleRender)
-    }
-  }, [map, isGlobe])
-
   if (!isGlobe)
     return [
       <GeosWithHeight
@@ -588,21 +573,7 @@ export const Nodes = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-
-  const { current: map } = useMap()
-  const [isGlobe, setIsGlobe] = useState(getIsGlobe(map))
-
-  useEffect(() => {
-    const handleRender = () => {
-      if (isGlobe !== getIsGlobe(map)) setIsGlobe(getIsGlobe(map))
-    }
-
-    map.on('render', handleRender)
-
-    return () => {
-      map.off('render', handleRender)
-    }
-  }, [map, isGlobe])
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
 
   if (!isGlobe)
     return (
@@ -659,21 +630,7 @@ export const Arcs = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
-
-  const { current: map } = useMap()
-  const [isGlobe, setIsGlobe] = useState(getIsGlobe(map))
-
-  useEffect(() => {
-    const handleRender = () => {
-      if (isGlobe !== getIsGlobe(map)) setIsGlobe(getIsGlobe(map))
-    }
-
-    map.on('render', handleRender)
-
-    return () => {
-      map.off('render', handleRender)
-    }
-  }, [map, isGlobe])
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
 
   if (!isGlobe)
     return (

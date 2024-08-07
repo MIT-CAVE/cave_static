@@ -819,6 +819,46 @@ export const selectCurrentMapProjectionFunc = createSelector(
     },
   }
 )
+export const selectIsGlobeNotMemoized = createSelector(
+  [selectViewportsByMap, selectCurrentMapDataByMap, selectMapboxToken],
+  (viewportsByMap, dataObj, token) =>
+    R.pipe(
+      R.toPairs,
+      R.map(([mapId]) => {
+        const mapProjection =
+          token !== ''
+            ? R.pathOr('mercator', ['currentProjection', mapId], dataObj)
+            : 'mercator'
+        const zoom = R.path([mapId, 'zoom'], viewportsByMap)
+        return [mapId, mapProjection === 'globe' && zoom < 6]
+      }),
+      R.fromPairs
+    )(viewportsByMap),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) => {
+        // token
+        if (typeof a === 'string') return R.equals(a, b)
+        // dataObj
+        const getProjection = R.prop('currentProjection')
+        if (getProjection(a) !== undefined)
+          return R.equals(getProjection(a), getProjection(b))
+        // viewportsByMap
+        const getZoomLevels = R.map((data) => R.prop('zoom', data) < 6)
+        return R.equals(getZoomLevels(a), getZoomLevels(b))
+      },
+    },
+  }
+)
+export const selectIsGlobe = createSelector(
+  [selectIsGlobeNotMemoized],
+  (isGlobeData) => (mapId) => R.prop(mapId, isGlobeData),
+  {
+    memoizeOptions: {
+      equalityCheck: (a, b) => R.equals(a, b),
+    },
+  }
+)
 export const selectIsMapboxTokenProvided = createSelector(
   selectMapboxToken,
   R.both(R.isNotNil, R.isNotEmpty)

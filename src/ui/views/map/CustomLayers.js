@@ -357,7 +357,7 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
           size: R.pathOr(1, ['properties', 'size'], node),
         }
         return nodeWithHeight
-      })(nodes),
+      }, nodes),
     [iconData]
   )
 
@@ -431,22 +431,25 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         )
 
         // Holes
-        const holes = R.map((hole) => {
-          const holeVertices = []
+        const holes = R.map(
+          (hole) => {
+            const holeVertices = []
 
-          R.forEach(
-            (point) => {
-              const pointXYZ = MercatorCoordinate.fromLngLat(
-                [R.path([0], point), R.path([1], point)],
-                0
-              )
-              holeVertices.push(pointXYZ.x, -pointXYZ.y, height)
-            },
-            R.slice(0, -1, hole)
-          )
+            R.forEach(
+              (point) => {
+                const pointXYZ = MercatorCoordinate.fromLngLat(
+                  [R.path([0], point), R.path([1], point)],
+                  0
+                )
+                holeVertices.push(pointXYZ.x, -pointXYZ.y, height)
+              },
+              R.slice(0, -1, hole)
+            )
 
-          return holeVertices
-        })(R.slice(1, polygon.length, polygon))
+            return holeVertices
+          },
+          R.slice(1, polygon.length, polygon)
+        )
         const allVertices = [...outerRing, ...R.unnest(holes)]
 
         const holeIndices = []

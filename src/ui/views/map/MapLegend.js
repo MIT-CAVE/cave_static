@@ -40,6 +40,7 @@ import {
   selectNumberFormatPropsFn,
   selectPageLayout,
   selectMapData,
+  selectIsGlobe,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { useFilter } from '../../../utils/hooks'
@@ -804,6 +805,7 @@ const MapLegendHeightBySection = ({
 }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
 
   const prop = typeObj.props[heightProp]
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
@@ -825,6 +827,22 @@ const MapLegendHeightBySection = ({
   const endHeightPath = R.append('endHeight', propHeightPath)
 
   const isCategorical = !R.has('min', heightRange)
+
+  if (isGlobe)
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gridRow: `1 / span ${group ? 3 : 2}`,
+          padding: 1,
+          fontWeight: 'bold',
+        }}
+      >
+        Zoom in or switch to Mercator map to set heightBy.
+      </Box>
+    )
 
   return (
     <>
