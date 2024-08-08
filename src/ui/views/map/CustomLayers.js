@@ -66,11 +66,7 @@ const generateSegment = (curve, feature, segments = 80) => {
       rect.position.set(midpoint.x, midpoint.y, midpoint.z)
       rect.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
       rect.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
-      // Add data from feature for highlighting/clicking
-      rect.userData = {
-        cave_name: R.path(['properties', 'cave_name'], feature),
-        cave_obj: R.path(['properties', 'cave_obj'], feature),
-      }
+
       return R.append(rect, acc)
     },
     [],
@@ -79,55 +75,60 @@ const generateSegment = (curve, feature, segments = 80) => {
 }
 
 // Converts array of geoJson features to array of Meshes to be added to scene
-const geoJsonToSegments = (features) =>
-  R.pipe(
-    R.map((feature) => {
-      if (!R.path(['geometry', 'coordinates', 0], feature)) return []
+const geoJsonToSegments = (features) => {
+  const allArcs = []
 
-      const height = R.pathOr(0, ['properties', 'height'], feature) / 100
-      const arcs = []
-      for (let i = 0; i < feature.geometry.coordinates.length - 1; i++) {
-        // convert coordinates to MercatorCoordinates on map
-        const arcOrigin = MercatorCoordinate.fromLngLat(
-          R.path(['geometry', 'coordinates', i], feature),
-          0
-        )
-        arcOrigin.z =
-          R.pathOr(0, ['geometry', 'coordinates', i, 2], feature) * MAX_HEIGHT
-        const arcDestination = MercatorCoordinate.fromLngLat(
-          R.path(['geometry', 'coordinates', i + 1], feature),
-          0
-        )
-        arcDestination.z =
-          R.pathOr(0, ['geometry', 'coordinates', i + 1, 2], feature) *
-          MAX_HEIGHT
+  R.forEach((feature) => {
+    if (!R.path(['geometry', 'coordinates', 0], feature)) return
 
-        // create a bezier curve with height scaling with heightBy
-        const curve = new THREE.CubicBezierCurve3(
-          new THREE.Vector3(arcOrigin.x, -arcOrigin.y, arcOrigin.z),
-          new THREE.Vector3(
-            arcOrigin.x,
-            -arcOrigin.y,
-            arcOrigin.z + height * 0.015
-          ),
-          new THREE.Vector3(
-            arcDestination.x,
-            -arcDestination.y,
-            arcDestination.z + height * 0.015
-          ),
-          new THREE.Vector3(
-            arcDestination.x,
-            -arcDestination.y,
-            arcDestination.z
-          )
-        )
-        arcs.push(generateSegment(curve, feature))
-      }
+    const height = R.pathOr(0, ['properties', 'height'], feature) / 100
+    const arcs = []
+    for (let i = 0; i < feature.geometry.coordinates.length - 1; i++) {
+      // convert coordinates to MercatorCoordinates on map
+      const arcOrigin = MercatorCoordinate.fromLngLat(
+        R.path(['geometry', 'coordinates', i], feature),
+        0
+      )
+      arcOrigin.z =
+        R.pathOr(0, ['geometry', 'coordinates', i, 2], feature) * MAX_HEIGHT
+      const arcDestination = MercatorCoordinate.fromLngLat(
+        R.path(['geometry', 'coordinates', i + 1], feature),
+        0
+      )
+      arcDestination.z =
+        R.pathOr(0, ['geometry', 'coordinates', i + 1, 2], feature) * MAX_HEIGHT
 
-      return arcs
-    }),
-    R.flatten
-  )(features)
+      // create a bezier curve with height scaling with heightBy
+      const curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3(arcOrigin.x, -arcOrigin.y, arcOrigin.z),
+        new THREE.Vector3(
+          arcOrigin.x,
+          -arcOrigin.y,
+          arcOrigin.z + height * 0.015
+        ),
+        new THREE.Vector3(
+          arcDestination.x,
+          -arcDestination.y,
+          arcDestination.z + height * 0.015
+        ),
+        new THREE.Vector3(arcDestination.x, -arcDestination.y, arcDestination.z)
+      )
+      arcs.push(generateSegment(curve, feature))
+    }
+
+    const arcGroup = new THREE.Group()
+    R.forEach((arc) => R.forEach((rect) => arcGroup.add(rect), arc), arcs)
+    // Add data from feature for highlighting/clicking
+    arcGroup.userData = {
+      cave_name: R.path(['properties', 'cave_name'], feature),
+      cave_obj: R.path(['properties', 'cave_obj'], feature),
+    }
+
+    allArcs.push(arcGroup)
+  }, features)
+
+  return allArcs
+}
 
 export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   const { current: map } = useMap()
@@ -402,7 +403,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
 
   // Converts geoJson geos into Three.js geos with height
   const createGeosObjects = (geos) => {
-    const geoObjects = []
+    const geoGroups = []
 
     R.forEach((geo) => {
       if (!R.path(['geometry', 'coordinates', 0], geo)) return
@@ -414,6 +415,12 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
           : R.path(['geometry', 'coordinates'], geo)
       const height =
         (MAX_HEIGHT * R.pathOr(0, ['properties', 'height'], geo)) / 100
+
+      const geoGroup = new THREE.Group()
+      geoGroup.userData = {
+        cave_name: R.path(['properties', 'cave_name'], geo),
+        cave_obj: R.path(['properties', 'cave_obj'], geo),
+      }
 
       R.forEach((polygon) => {
         // Outer Ring
@@ -549,18 +556,13 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
 
         const topMesh = new THREE.Mesh(topGeometry, topMaterial)
 
-        const userData = {
-          cave_name: R.path(['properties', 'cave_name'], geo),
-          cave_obj: R.path(['properties', 'cave_obj'], geo),
-        }
-        topMesh.userData = userData
-        sideMesh.userData = userData
+        geoGroup.add(topMesh, sideMesh)
+      }, polygons)
 
-        geoObjects.push(topMesh, sideMesh)
-      })(polygons)
-    })(geos)
+      geoGroups.push(geoGroup)
+    }, geos)
 
-    return geoObjects
+    return geoGroups
   }
 
   useEffect(() => {
@@ -612,15 +614,42 @@ const CustomLayer = memo(
 
     const createDuplicates = (objects) => {
       const duplicates = []
+
       R.forEach((object) => {
-        const leftDuplicate = object.clone(true)
+        const leftDuplicate = object.clone()
         leftDuplicate.position.x -= 1
-        const rightDuplicate = object.clone(true)
+
+        const rightDuplicate = object.clone()
         rightDuplicate.position.x += 1
+
         duplicates.push(leftDuplicate, rightDuplicate)
-      })(objects)
+      }, objects)
+
       return duplicates
     }
+
+    const getUserData = (object) => {
+      if (R.isNotEmpty(R.prop('userData', object)))
+        return R.prop('userData', object)
+      return R.path(['parent', 'userData'], object)
+    }
+
+    const setColor = (object, color) => {
+      if (object.isGroup)
+        R.forEach((child) => child.material.color.set(color), object.children)
+      else if (object.parent.isGroup)
+        R.forEach(
+          (child) => child.material.color.set(color),
+          object.parent.children
+        )
+      else object.material.color.set(color)
+    }
+
+    const clearHighlights = (layer) =>
+      R.forEach((object) => {
+        if (getUserData(object).cave_name === layer.highlightedId)
+          setColor(object, layer.oldColor)
+      }, layer.objects)
 
     useEffect(() => {
       if (layer)
@@ -655,7 +684,7 @@ const CustomLayer = memo(
         this.map = map
         const objects = convertFeaturesToObjects(features)
         this.objects = R.concat(objects, createDuplicates(objects))
-        R.forEach((object) => this.scene.add(object))(this.objects)
+        R.forEach((object) => this.scene.add(object), this.objects)
         this.renderer = new THREE.WebGLRenderer({
           canvas: map.getCanvas(),
           context: gl,
@@ -694,90 +723,86 @@ const CustomLayer = memo(
       updateObjects: function (newObjects) {
         this.scene.remove.apply(this.scene, this.scene.children)
         const allObjects = R.concat(newObjects, createDuplicates(newObjects))
-        R.forEach((object) => this.scene.add(object))(allObjects)
+        R.forEach((object) => this.scene.add(object), allObjects)
         this.objects = allObjects
       },
       raycast: (e, click) => {
         const layer = map.getLayer(id) && map.getLayer(id).implementation
-        if (layer) {
-          const dpr = window.devicePixelRatio || 1
-          const point = { x: e.layerX * dpr, y: e.layerY * dpr }
-          const mouse = new THREE.Vector2()
-          mouse.x = (point.x / e.srcElement.width) * 2 - 1
-          mouse.y = 1 - (point.y / e.srcElement.height) * 2
-          const camInverseProjection = new THREE.Matrix4()
-            .copy(layer.camera.projectionMatrix)
-            .invert()
-          const cameraPosition = new THREE.Vector3().applyMatrix4(
-            camInverseProjection
-          )
-          const mousePosition = new THREE.Vector3(
-            mouse.x,
-            mouse.y,
-            1
-          ).applyMatrix4(camInverseProjection)
-          const viewDirection = mousePosition
-            .clone()
-            .sub(cameraPosition)
-            .normalize()
+        if (!layer) return
 
-          layer.raycaster.camera = layer.camera
-          layer.raycaster.set(cameraPosition, viewDirection)
+        const dpr = window.devicePixelRatio || 1
+        const point = { x: e.layerX * dpr, y: e.layerY * dpr }
+        const mouse = new THREE.Vector2()
+        mouse.x = (point.x / e.srcElement.width) * 2 - 1
+        mouse.y = 1 - (point.y / e.srcElement.height) * 2
+        const camInverseProjection = new THREE.Matrix4()
+          .copy(layer.camera.projectionMatrix)
+          .invert()
+        const cameraPosition = new THREE.Vector3().applyMatrix4(
+          camInverseProjection
+        )
+        const mousePosition = new THREE.Vector3(
+          mouse.x,
+          mouse.y,
+          1
+        ).applyMatrix4(camInverseProjection)
+        const viewDirection = mousePosition
+          .clone()
+          .sub(cameraPosition)
+          .normalize()
 
-          const intersects = layer.raycaster.intersectObjects(
-            layer.objects,
-            true
-          )
+        layer.raycaster.camera = layer.camera
+        layer.raycaster.set(cameraPosition, viewDirection)
 
-          if (intersects.length) {
-            e.stopImmediatePropagation()
-            const event = new CustomEvent('clearHighlight')
-            document.dispatchEvent(event)
-            if (click) layer.onClick(intersects[0].object.userData)
+        const intersects = layer.raycaster.intersectObjects(layer.objects, true)
+        const hovering = intersects.length !== 0
+        const wasPreviousHighlight = layer.highlightedId !== -1
+
+        if (hovering) {
+          // Prevent other layers under this one from being clicked/highlighted
+          e.stopImmediatePropagation()
+          // Clear highlights from other layers
+          const event = new CustomEvent('clearHighlight')
+          document.dispatchEvent(event)
+
+          const hoveredObject = R.path([0, 'object'], intersects) // closest object to camera
+          const hoveredUserData = getUserData(hoveredObject)
+          const hoveredCaveName = R.prop('cave_name', hoveredUserData)
+
+          if (click) {
+            layer.onClick(hoveredUserData)
+          } else if (
+            // if hovering over new object
+            layer.highlightedId !== hoveredCaveName
+          ) {
+            clearHighlights(layer)
+            map.getCanvas().style.cursor = 'pointer'
+            layer.highlightedId = hoveredCaveName
+            layer.oldColor = hoveredObject.material.color.clone()
+            const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
+            const colorObj = new THREE.Color(
+              colorArr[0] / 255,
+              colorArr[1] / 255,
+              colorArr[2] / 255
+            )
+            setColor(hoveredObject, colorObj)
           }
-
-          if (!click) {
-            if (intersects.length) {
-              if (
-                layer.highlightedId !== intersects[0].object.userData.cave_name
-              ) {
-                if (layer.highlightedId !== -1) {
-                  R.forEach((object) => {
-                    if (object.userData.cave_name === layer.highlightedId)
-                      object.material.color.set(layer.oldColor)
-                  })(layer.objects)
-                }
-                map.getCanvas().style.cursor = 'pointer'
-                layer.highlightedId = intersects[0].object.userData.cave_name
-                layer.oldColor = intersects[0].object.material.color.clone()
-                const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
-                const colorObj = new THREE.Color(
-                  colorArr[0] / 255,
-                  colorArr[1] / 255,
-                  colorArr[2] / 255
-                )
-                R.forEach((object) => {
-                  if (object.userData.cave_name === layer.highlightedId)
-                    object.material.color.set(colorObj)
-                })(layer.objects)
-              }
-            } else if (layer.highlightedId !== -1) {
-              R.forEach((object) => {
-                if (object.userData.cave_name === layer.highlightedId)
-                  object.material.color.set(layer.oldColor)
-              })(layer.objects)
-              layer.highlightedId = -1
-            }
-          }
+        } else if (wasPreviousHighlight && !click) {
+          clearHighlights(layer)
+          layer.highlightedId = -1
         }
       },
       render: function (gl, matrix) {
         const m = new THREE.Matrix4().fromArray(matrix)
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
         const zoom = this.map.transform._zoom
-        R.forEach((object) => object.scale.set(...getScale(object, zoom)))(
-          this.objects
-        )
+        R.forEach((object) => {
+          if (object.isGroup)
+            R.forEach((child) => {
+              child.scale.set(...getScale(child, zoom))
+            }, object.children)
+          else object.scale.set(...getScale(object, zoom))
+        }, this.objects)
         this.camera.projectionMatrix = m.multiply(l)
         this.renderer.resetState()
         this.renderer.render(this.scene, this.camera)
