@@ -354,7 +354,7 @@ const MapLegendGroupRowToggleLayer = ({
       groupId: 0,
       logic: 'and',
       depth: 0,
-      edit: true,
+      edit: false,
     },
   ],
   filterableProps: filterables,

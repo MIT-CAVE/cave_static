@@ -12,24 +12,19 @@ import {
   DataGrid,
   GridActionsCellItem,
   GridBooleanCell,
-  GridEditBooleanCell,
-  GridEditDateCell,
-  GridEditInputCell,
-  GridEditSingleSelectCell,
   GridRowEditStopReasons,
-  // GridRowModes,
   useGridApiRef,
 } from '@mui/x-data-grid'
 import dayjs from 'dayjs'
 import * as R from 'ramda'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { BiBracket } from 'react-icons/bi'
 import {
   MdAddCircleOutline,
   MdCheck,
   MdDelete,
   MdEdit,
-  // MdRestore,
+  MdRestore,
   // MdSave,
 } from 'react-icons/md'
 // import { PiArrowElbowDownRight } from 'react-icons/pi'
@@ -39,13 +34,12 @@ import { useSelector } from 'react-redux'
 import GridEditMultiSelectCell, {
   GridMultiSelectCell,
 } from './GridEditMultiSelectCell'
-import GridEditTimeCell from './GridEditTimeCell'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
 import { OverflowText } from '../../compound'
 
-import { NumberFormat, mapIndexed, renameKeys } from '../../../utils'
+import { NumberFormat, renameKeys } from '../../../utils'
 
 const StyledDataGrid = styled(DataGrid)(({ theme, maxDepth }) => {
   return R.pipe(
@@ -162,16 +156,6 @@ const getRelationValueOptsByType = R.cond([
   ],
 ])
 
-const getCellComponentByType = R.cond([
-  [R.equals('boolean'), R.always(GridEditBooleanCell)],
-  [R.equals('singleSelect'), R.always(GridEditSingleSelectCell)],
-  [R.equals('multiSelect'), R.always(GridEditMultiSelectCell)],
-  [R.equals('time'), R.always(GridEditTimeCell)],
-  [R.flip(R.includes)(['date', 'dateTime']), R.always(GridEditDateCell)],
-  [R.flip(R.includes)(['string', 'number']), R.always(GridEditInputCell)],
-  [R.T, R.always(GridEditInputCell)],
-])
-
 // TODO: This should also depend on the Relation chosen
 const getValueCellType = R.curry((type, variant) =>
   R.cond([
@@ -200,15 +184,15 @@ const GridFilter = ({
   sourceHeaderName = 'Source',
   filterables,
   filterableExtraProps,
-  // onSave,
+  onSave,
 }) => {
   // eslint-disable-next-line
   const [filters, setFilters] = useState(defaultFilters)
-  const [idCount, setIdCount] = useState(0)
+  const [idCount, setIdCount] = useState(1)
   const [groupIdCount, setGroupIdCount] = useState(1)
-  const [rows, setRows] = useState([])
+  const [rows, setRows] = useState(defaultFilters)
   // eslint-disable-next-line
-  const [initialRows, setInitialRows] = useState([])
+  const [initialRows, setInitialRows] = useState(defaultFilters)
   // const [rowModesModel, setRowModesModel] = useState({})
   // const [canSaveRow, setCanSaveRow] = useState({})
 
@@ -237,68 +221,32 @@ const GridFilter = ({
 
   // const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
 
-  const restoreFilters = useCallback(() => {
-    const filterCriteria = R.filter(
-      R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
-    )(filters)
-    const initRows = mapIndexed(
-      R.pipe(
-        R.flip(R.assoc('id')),
-        // Drop truthy `active` values
-        R.when(R.propEq(true, 'active'), R.dissoc('active')),
-        renameKeys({ option: 'relation', prop: 'source' })
-      )
-    )(filterCriteria)
+  // const restoreFilters = useCallback(() => {
+  //   const filterCriteria = R.filter(
+  //     R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
+  //   )(filters)
+  //   const initRows = mapIndexed(
+  //     R.pipe(
+  //       R.flip(R.assoc('id')),
+  //       // Drop truthy `active` values
+  //       R.when(R.propEq(true, 'active'), R.dissoc('active')),
+  //       renameKeys({ option: 'relation', prop: 'source' })
+  //     )
+  //   )(filterCriteria)
 
-    setInitialRows(initRows)
-    setRows(initRows)
-    setIdCount(initRows.length)
-  }, [filters])
-
-  useEffect(() => {
-    restoreFilters()
-  }, [restoreFilters])
+  //   setInitialRows(initRows)
+  //   setRows(initRows)
+  //   setIdCount(initRows.length)
+  // }, [filters])
 
   // useEffect(() => {
-  //   if (!isApiRefValid) return
-
-  //   const newSelectedRowIds = R.pipe(
-  //     R.filter(R.propOr(true, 'active')),
-  //     R.pluck('id')
-  //   )(initialRows)
-  //   apiRef.current.setRowSelectionModel(newSelectedRowIds)
-  // }, [apiRef, initialRows, isApiRefValid])
-
-  // const preProcessEditCellProps = useCallback(
-  //   ({ id, props, hasChanged, otherFieldsProps }) => {
-  //     const isValueInvalid = R.propSatisfies(
-  //       R.either(R.isNil, R.isEmpty),
-  //       'value'
-  //     )
-  //     const newCellProps = R.pipe(
-  //       R.ifElse(isValueInvalid, R.assoc('error', true), R.dissoc('error'))
-  //     )(props)
-
-  //     if (hasChanged) {
-  //       const hasError =
-  //         newCellProps.error ||
-  //         R.pipe(
-  //           R.dissoc('logic'),
-  //           R.values,
-  //           R.any(isValueInvalid)
-  //         )(otherFieldsProps)
-  //       // setCanSaveRow(R.assoc(id, !hasError))
-  //     }
-  //     return newCellProps
-  //   },
-  //   []
-  // )
+  //   restoreFilters()
+  // }, [restoreFilters])
 
   const handleAddRow = useCallback(
     (groupId, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
-        isNew: true,
         id: idCount,
         type: 'rule',
         parentGroupId: groupId,
@@ -308,12 +256,6 @@ const GridFilter = ({
         depth: depth,
         edit: true,
       }
-      // setRowModesModel(
-      //   R.assoc(idCount, {
-      //     mode: GridRowModes.Edit,
-      //     fieldToFocus: 'source',
-      //   })
-      // )
       const newRows = [
         ...rows.slice(0, index + 1),
         newRow,
@@ -330,7 +272,6 @@ const GridFilter = ({
     (groupId, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
-        isNew: true,
         id: idCount,
         type: 'group',
         groupId: groupIdCount,
@@ -339,12 +280,6 @@ const GridFilter = ({
         depth: depth + 1,
         edit: true,
       }
-      // setRowModesModel(
-      //   R.assoc(idCount, {
-      //     mode: GridRowModes.Edit,
-      //     fieldToFocus: 'logic',
-      //   })
-      // )
       const newRows = [
         ...rows.slice(0, index + 1),
         newRow,
@@ -389,36 +324,6 @@ const GridFilter = ({
     [deleteRow, rows]
   )
 
-  // const handleClickDiscard = useCallback(
-  //   (id) => () => {
-  //     const row = apiRef.current.getRow(id)
-  //     // setRowModesModel(
-  //     //   R.assoc(id, { mode: GridRowModes.View, ignoreModifications: true })
-  //     // )
-  //     if (row.isNew) deleteRow(id)
-  //   },
-  //   [apiRef, deleteRow]
-  // )
-  // const handleClickEdit = useCallback(
-  //   (id) => () => {
-  //     // setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
-  //   },
-  //   []
-  // )
-  // const handleClickSave = useCallback(
-  //   (id) => () => {
-  //     // setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
-  //     setCanSaveRow(R.dissoc(id))
-  //   },
-  //   []
-  // )
-
-  // const processRowUpdate = (newRow) => {
-  //   const updatedRow = R.dissoc('isNew')(newRow)
-  //   setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
-  //   return updatedRow
-  // }
-
   const handleRowEditStop = ({ reason }, event) => {
     if (reason === GridRowEditStopReasons.rowFocusOut) {
       event.defaultMuiPrevented = true
@@ -437,26 +342,33 @@ const GridFilter = ({
   //   [apiRef]
   // )
 
-  // const canDiscardOrSaveAll = useMemo(() => {
-  //   const unsavedChanges = !R.equals(rows)(initialRows)
-  //   const isEditing = R.pipe(
-  //     R.values,
-  //     R.any(R.propEq(GridRowModes.Edit, 'mode'))
-  //   )(rowModesModel)
-  //   return !isEditing && unsavedChanges
-  // }, [initialRows, rowModesModel, rows])
+  const canCancel = useMemo(() => {
+    return rows.some((row) => row.edit)
+  }, [rows])
 
-  // const handleClickSaveAll = useCallback(() => {
-  //   const newFilters = R.map(
-  //     R.pipe(
-  //       updateActiveStateForSelectedRow,
-  //       R.dissoc('id'),
-  //       renameKeys({ relation: 'option', source: 'prop' })
-  //     )
-  //   )(rows)
-  //   setFilters(newFilters)
-  //   onSave(newFilters)
-  // }, [onSave, rows, updateActiveStateForSelectedRow])
+  const canSaveAll = useMemo(() => {
+    const removeEditProp = R.map(R.dissoc('edit'))
+    const cleanedRows = removeEditProp(rows)
+    const cleanedInitialRows = removeEditProp(initialRows)
+    const unsavedChanges = !R.equals(cleanedRows)(cleanedInitialRows)
+    return unsavedChanges
+  }, [initialRows, rows])
+
+  const handleClickSaveAll = useCallback(
+    (newRows) => {
+      const newFilters = R.map(
+        R.pipe(
+          R.dissoc('id'),
+          R.dissoc('edit'),
+          R.dissoc('depth'),
+          renameKeys({ relation: 'option', source: 'prop' })
+        )
+      )(newRows)
+      console.log('new filters', newFilters)
+      onSave(newFilters)
+    },
+    [onSave]
+  )
 
   const handleCellDoubleClick = (params, event) => {
     event.defaultMuiPrevented = true
@@ -489,13 +401,10 @@ const GridFilter = ({
 
   const handleValueChange = (id, event) => {
     const newValue = event.target.value
-    console.log(`Row ID: ${id}, New Value: ${newValue}`)
     setRows((prevRows) =>
       prevRows.map((row) => (row.id === id ? { ...row, value: newValue } : row))
     )
   }
-
-  // console.log('rows', rows)
 
   const columns = useMemo(
     () => [
@@ -506,21 +415,6 @@ const GridFilter = ({
         display: 'flex',
         width: 90,
         editable: false,
-        // type: 'singleSelect',
-        // valueOptions: ['and', 'or'],
-        // getOptionLabel: (option) => option.toUpperCase(),
-        // renderCell: ({ row }) => {
-        //   return row.id === 0 ? (
-        //     <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
-        //   ) : row.type === 'rule' ? (
-        //     ''
-        //   ) : (
-        //     <Box sx={{ paddingLeft: `${row.depth * 8}px`, display: 'flex' }}>
-        //       <PiArrowElbowDownRight style={{ marginRight: '3px' }} />
-        //       {row.logic.toUpperCase()}
-        //     </Box>
-        //   )
-        // },
         renderCell: ({ row }) =>
           row.type === 'group' ? (
             row.edit ? (
@@ -537,7 +431,6 @@ const GridFilter = ({
           ) : (
             ''
           ),
-        // preProcessEditCellProps,
       },
       {
         field: 'source',
@@ -546,7 +439,6 @@ const GridFilter = ({
         display: 'flex',
         flex: 1,
         editable: false,
-        // valueOptions: sourceValueOpts,
         renderCell: ({ row }) => {
           return row.type === 'rule' ? (
             row.edit ? (
@@ -568,13 +460,6 @@ const GridFilter = ({
             ''
           )
         },
-        // renderEditCell: (params) => (
-        //   <EnhancedEditSingleSelect
-        //     fieldsToClear={['value', 'relation']}
-        //     {...params}
-        //   />
-        // ),
-        // preProcessEditCellProps,
       },
       {
         field: 'relation',
@@ -583,7 +468,6 @@ const GridFilter = ({
         display: 'flex',
         align: 'center',
         width: 90,
-        // type: 'singleSelect',
         editable: false,
         renderCell: ({ row, id }) => {
           if (row.type === 'group') return ''
@@ -609,15 +493,6 @@ const GridFilter = ({
             row.relation
           )
         },
-        // valueOptions: ({ row, id }) => {
-        //   const rowAlt = apiRef.current.getRow(id)
-        //   const valueAlt = rowAlt.source
-        //   const value = R.propOr(valueAlt, 'source')(row)
-        //   const valueType =
-        //     value && value !== '' ? sourceValueTypes[value] : 'number'
-        //   return getRelationValueOptsByType(valueType)
-        // },
-        // preProcessEditCellProps,
       },
       {
         field: 'value',
@@ -627,37 +502,10 @@ const GridFilter = ({
         align: 'right',
         width: 150,
         editable: false,
-        // valueParser: (value, params) => {
-        //   const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
-        //   const valueType = sourceValueTypes[editRow.source]
-
-        //   const getParsedDate = (dateTimeStr, parseFormat) => {
-        //     const newValue = dayjs(dateTimeStr, parseFormat)
-        //     return newValue.isValid()
-        //       ? newValue.format(getDateFormat(valueType))
-        //       : ''
-        //   }
-
-        //   return R.cond([
-        //     [R.equals('boolean'), R.always(Boolean(value))],
-        //     [R.equals('number'), R.always(value === '' ? '' : +value)],
-        //     [R.equals('time'), R.always(getParsedDate(value, 'HH:mm:ss'))],
-        //     [
-        //       R.flip(R.includes)(['date', 'dateTime']),
-        //       R.always(getParsedDate(value)),
-        //     ],
-        //     [
-        //       R.equals('multiSelect'),
-        //       R.always(Array.isArray(value) ? value : ''),
-        //     ],
-        //     [R.T, R.always(value)],
-        //   ])(valueType)
-        // },
         renderCell: (params) => {
           if (params.row.type === 'group') return ''
           if (params.row.edit) {
             const valueType = sourceValueTypes[params.row.source]
-            const Component = getCellComponentByType(valueType)
             if (valueType === 'multiSelect') {
               return (
                 <GridEditMultiSelectCell
@@ -684,23 +532,6 @@ const GridFilter = ({
                 />
               )
             }
-            // eslint-disable-next-line
-            const props =
-              valueType === 'multiSelect'
-                ? // Custom component required props
-                  {
-                    options: filterables[params.row.source].options,
-                    colorByOptions:
-                      filterableExtraProps[params.row.source].colorByOptions,
-                  }
-                : // MUI props for built-in EditCell components
-                  {
-                    colDef: { type: valueType }, // Ensures the expected type by MUI
-                    ...((valueType === 'date' || valueType === 'dateTime') && {
-                      inputProps: { style: { colorScheme: 'dark' } },
-                    }),
-                  }
-            return <Component {...params} {...props} />
           } else {
             const { value, row } = params
             const valueType = sourceValueTypes[row.source]
@@ -715,7 +546,6 @@ const GridFilter = ({
                       valueType === 'time' ? 'HH:mm:ss' : undefined
                     ).format(getDateFormat(valueType))
                   : value
-            // console.log(row, value, formattedValue)
             return R.cond([
               [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
               [
@@ -734,8 +564,6 @@ const GridFilter = ({
             ])(valueType)
           }
         },
-        // renderEditCell: (params) => {},
-        // preProcessEditCellProps,
       },
       {
         field: 'actions',
@@ -773,7 +601,6 @@ const GridFilter = ({
                 />,
               ]
         },
-        // preProcessEditCellProps,
       },
     ],
     [
@@ -802,30 +629,6 @@ const GridFilter = ({
     [rows]
   )
 
-  const handleCellEditCommit = (params) => {
-    const { id, field, value } = params
-    console.log('field', field)
-    // Update the corresponding row with the new value
-    if (field === 'value') {
-      setRows((prevRows) =>
-        prevRows.map((row) =>
-          row.id === id ? { ...row, [field]: value } : row
-        )
-      )
-      console.log(`Cell at row ${id} and field ${field} changed to ${value}`)
-    }
-    // Additional custom logic can be added here
-  }
-
-  // const isCellEditable = (row, field) => {
-  //   const nonEditableFields = R.cond([
-  //     [R.equals('group'), R.always(['source', 'relation', 'value'])],
-  //     [R.equals('rule'), R.always(['logic'])],
-  //     [R.T, R.always([])],
-  //   ])(row.type)
-  //   return !R.includes(field, nonEditableFields)
-  // }
-
   return (
     <>
       <Paper sx={styles.content}>
@@ -836,7 +639,6 @@ const GridFilter = ({
               <Box sx={styles.emptyContent}>No constraints added</Box>
             ),
           }}
-          // editMode="row"
           getRowHeight={R.always('auto')}
           hideFooter
           disableColumnMenu
@@ -847,8 +649,6 @@ const GridFilter = ({
           onCellDoubleClick={handleCellDoubleClick}
           maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
-          onCellEditCommit={handleCellEditCommit}
-          // isCellEditable={(params) => isCellEditable(params.row, params.field)}
         />
       </Paper>
 
@@ -872,14 +672,29 @@ const GridFilter = ({
         >
           Discard Changes
         </Button> */}
+        {canCancel && (
+          <Button
+            disabled={!canCancel}
+            color="error"
+            variant="contained"
+            startIcon={<MdRestore />}
+            onClick={() => {
+              setRows(initialRows)
+            }}
+          >
+            Cancel
+          </Button>
+        )}
         <Button
-          // disabled={!canDiscardOrSaveAll}
+          disabled={!canSaveAll}
           color="primary"
           variant="contained"
           startIcon={<MdCheck />}
-          // onClick={handleClickSaveAll}
           onClick={() => {
-            setRows(rows.map((row) => ({ ...row, edit: false })))
+            const newRows = rows.map((row) => ({ ...row, edit: false }))
+            setRows(newRows)
+            handleClickSaveAll(newRows)
+            setInitialRows(newRows)
           }}
         >
           Save Constraints
