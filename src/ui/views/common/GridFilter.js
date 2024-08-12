@@ -1,4 +1,12 @@
-import { Box, Button, Paper, Stack } from '@mui/material'
+import {
+  Box,
+  Button,
+  Paper,
+  Stack,
+  Select,
+  MenuItem,
+  TextField,
+} from '@mui/material'
 import { darken, lighten, styled } from '@mui/material/styles'
 import {
   DataGrid,
@@ -9,7 +17,7 @@ import {
   GridEditInputCell,
   GridEditSingleSelectCell,
   GridRowEditStopReasons,
-  GridRowModes,
+  // GridRowModes,
   useGridApiRef,
 } from '@mui/x-data-grid'
 import dayjs from 'dayjs'
@@ -21,14 +29,13 @@ import {
   MdCheck,
   MdDelete,
   MdEdit,
-  MdRestore,
-  MdSave,
+  // MdRestore,
+  // MdSave,
 } from 'react-icons/md'
-// eslint-disable-next-line
-import { PiArrowElbowDownRight } from 'react-icons/pi'
+// import { PiArrowElbowDownRight } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
-import EnhancedEditSingleSelect from './EnhancedEditSingleSelect'
+// import EnhancedEditSingleSelect from './EnhancedEditSingleSelect'
 import GridEditMultiSelectCell, {
   GridMultiSelectCell,
 } from './GridEditMultiSelectCell'
@@ -193,15 +200,17 @@ const GridFilter = ({
   sourceHeaderName = 'Source',
   filterables,
   filterableExtraProps,
-  onSave,
+  // onSave,
 }) => {
+  // eslint-disable-next-line
   const [filters, setFilters] = useState(defaultFilters)
   const [idCount, setIdCount] = useState(0)
   const [groupIdCount, setGroupIdCount] = useState(1)
   const [rows, setRows] = useState([])
+  // eslint-disable-next-line
   const [initialRows, setInitialRows] = useState([])
-  const [rowModesModel, setRowModesModel] = useState({})
-  const [canSaveRow, setCanSaveRow] = useState({})
+  // const [rowModesModel, setRowModesModel] = useState({})
+  // const [canSaveRow, setCanSaveRow] = useState({})
 
   const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
@@ -226,7 +235,7 @@ const GridFilter = ({
     [filterables, getNumberFormat]
   )
 
-  const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
+  // const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
 
   const restoreFilters = useCallback(() => {
     const filterCriteria = R.filter(
@@ -250,40 +259,40 @@ const GridFilter = ({
     restoreFilters()
   }, [restoreFilters])
 
-  useEffect(() => {
-    if (!isApiRefValid) return
+  // useEffect(() => {
+  //   if (!isApiRefValid) return
 
-    const newSelectedRowIds = R.pipe(
-      R.filter(R.propOr(true, 'active')),
-      R.pluck('id')
-    )(initialRows)
-    apiRef.current.setRowSelectionModel(newSelectedRowIds)
-  }, [apiRef, initialRows, isApiRefValid])
+  //   const newSelectedRowIds = R.pipe(
+  //     R.filter(R.propOr(true, 'active')),
+  //     R.pluck('id')
+  //   )(initialRows)
+  //   apiRef.current.setRowSelectionModel(newSelectedRowIds)
+  // }, [apiRef, initialRows, isApiRefValid])
 
-  const preProcessEditCellProps = useCallback(
-    ({ id, props, hasChanged, otherFieldsProps }) => {
-      const isValueInvalid = R.propSatisfies(
-        R.either(R.isNil, R.isEmpty),
-        'value'
-      )
-      const newCellProps = R.pipe(
-        R.ifElse(isValueInvalid, R.assoc('error', true), R.dissoc('error'))
-      )(props)
+  // const preProcessEditCellProps = useCallback(
+  //   ({ id, props, hasChanged, otherFieldsProps }) => {
+  //     const isValueInvalid = R.propSatisfies(
+  //       R.either(R.isNil, R.isEmpty),
+  //       'value'
+  //     )
+  //     const newCellProps = R.pipe(
+  //       R.ifElse(isValueInvalid, R.assoc('error', true), R.dissoc('error'))
+  //     )(props)
 
-      if (hasChanged) {
-        const hasError =
-          newCellProps.error ||
-          R.pipe(
-            R.dissoc('logic'),
-            R.values,
-            R.any(isValueInvalid)
-          )(otherFieldsProps)
-        setCanSaveRow(R.assoc(id, !hasError))
-      }
-      return newCellProps
-    },
-    []
-  )
+  //     if (hasChanged) {
+  //       const hasError =
+  //         newCellProps.error ||
+  //         R.pipe(
+  //           R.dissoc('logic'),
+  //           R.values,
+  //           R.any(isValueInvalid)
+  //         )(otherFieldsProps)
+  //       // setCanSaveRow(R.assoc(id, !hasError))
+  //     }
+  //     return newCellProps
+  //   },
+  //   []
+  // )
 
   const handleAddRow = useCallback(
     (groupId, depth) => {
@@ -297,13 +306,14 @@ const GridFilter = ({
         relation: '',
         value: '',
         depth: depth,
+        edit: true,
       }
-      setRowModesModel(
-        R.assoc(idCount, {
-          mode: GridRowModes.Edit,
-          fieldToFocus: 'source',
-        })
-      )
+      // setRowModesModel(
+      //   R.assoc(idCount, {
+      //     mode: GridRowModes.Edit,
+      //     fieldToFocus: 'source',
+      //   })
+      // )
       const newRows = [
         ...rows.slice(0, index + 1),
         newRow,
@@ -327,13 +337,14 @@ const GridFilter = ({
         parentGroupId: groupId,
         logic: 'and',
         depth: depth + 1,
+        edit: true,
       }
-      setRowModesModel(
-        R.assoc(idCount, {
-          mode: GridRowModes.Edit,
-          fieldToFocus: 'logic',
-        })
-      )
+      // setRowModesModel(
+      //   R.assoc(idCount, {
+      //     mode: GridRowModes.Edit,
+      //     fieldToFocus: 'logic',
+      //   })
+      // )
       const newRows = [
         ...rows.slice(0, index + 1),
         newRow,
@@ -378,35 +389,35 @@ const GridFilter = ({
     [deleteRow, rows]
   )
 
-  const handleClickDiscard = useCallback(
-    (id) => () => {
-      const row = apiRef.current.getRow(id)
-      setRowModesModel(
-        R.assoc(id, { mode: GridRowModes.View, ignoreModifications: true })
-      )
-      if (row.isNew) deleteRow(id)
-    },
-    [apiRef, deleteRow]
-  )
-  const handleClickEdit = useCallback(
-    (id) => () => {
-      setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
-    },
-    []
-  )
-  const handleClickSave = useCallback(
-    (id) => () => {
-      setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
-      setCanSaveRow(R.dissoc(id))
-    },
-    []
-  )
+  // const handleClickDiscard = useCallback(
+  //   (id) => () => {
+  //     const row = apiRef.current.getRow(id)
+  //     // setRowModesModel(
+  //     //   R.assoc(id, { mode: GridRowModes.View, ignoreModifications: true })
+  //     // )
+  //     if (row.isNew) deleteRow(id)
+  //   },
+  //   [apiRef, deleteRow]
+  // )
+  // const handleClickEdit = useCallback(
+  //   (id) => () => {
+  //     // setRowModesModel(R.assoc(id, { mode: GridRowModes.Edit }))
+  //   },
+  //   []
+  // )
+  // const handleClickSave = useCallback(
+  //   (id) => () => {
+  //     // setRowModesModel(R.assoc(id, { mode: GridRowModes.View }))
+  //     setCanSaveRow(R.dissoc(id))
+  //   },
+  //   []
+  // )
 
-  const processRowUpdate = (newRow) => {
-    const updatedRow = R.dissoc('isNew')(newRow)
-    setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
-    return updatedRow
-  }
+  // const processRowUpdate = (newRow) => {
+  //   const updatedRow = R.dissoc('isNew')(newRow)
+  //   setRows(R.map(R.when(R.propEq(newRow.id, 'id'), R.always(updatedRow))))
+  //   return updatedRow
+  // }
 
   const handleRowEditStop = ({ reason }, event) => {
     if (reason === GridRowEditStopReasons.rowFocusOut) {
@@ -414,42 +425,77 @@ const GridFilter = ({
     }
   }
 
-  const updateActiveStateForSelectedRow = useCallback(
-    (row) => {
-      const selectedRowIdsSet = new Set(apiRef.current.getSelectedRows().keys())
-      return R.ifElse(
-        (row) => selectedRowIdsSet.has(row.id),
-        R.dissoc('active'),
-        R.assoc('active', false)
-      )(row)
-    },
-    [apiRef]
-  )
+  // const updateActiveStateForSelectedRow = useCallback(
+  //   (row) => {
+  //     const selectedRowIdsSet = new Set(apiRef.current.getSelectedRows().keys())
+  //     return R.ifElse(
+  //       (row) => selectedRowIdsSet.has(row.id),
+  //       R.dissoc('active'),
+  //       R.assoc('active', false)
+  //     )(row)
+  //   },
+  //   [apiRef]
+  // )
 
-  const canDiscardOrSaveAll = useMemo(() => {
-    const unsavedChanges = !R.equals(rows)(initialRows)
-    const isEditing = R.pipe(
-      R.values,
-      R.any(R.propEq(GridRowModes.Edit, 'mode'))
-    )(rowModesModel)
-    return !isEditing && unsavedChanges
-  }, [initialRows, rowModesModel, rows])
+  // const canDiscardOrSaveAll = useMemo(() => {
+  //   const unsavedChanges = !R.equals(rows)(initialRows)
+  //   const isEditing = R.pipe(
+  //     R.values,
+  //     R.any(R.propEq(GridRowModes.Edit, 'mode'))
+  //   )(rowModesModel)
+  //   return !isEditing && unsavedChanges
+  // }, [initialRows, rowModesModel, rows])
 
-  const handleClickSaveAll = useCallback(() => {
-    const newFilters = R.map(
-      R.pipe(
-        updateActiveStateForSelectedRow,
-        R.dissoc('id'),
-        renameKeys({ relation: 'option', source: 'prop' })
-      )
-    )(rows)
-    setFilters(newFilters)
-    onSave(newFilters)
-  }, [onSave, rows, updateActiveStateForSelectedRow])
+  // const handleClickSaveAll = useCallback(() => {
+  //   const newFilters = R.map(
+  //     R.pipe(
+  //       updateActiveStateForSelectedRow,
+  //       R.dissoc('id'),
+  //       renameKeys({ relation: 'option', source: 'prop' })
+  //     )
+  //   )(rows)
+  //   setFilters(newFilters)
+  //   onSave(newFilters)
+  // }, [onSave, rows, updateActiveStateForSelectedRow])
 
   const handleCellDoubleClick = (params, event) => {
     event.defaultMuiPrevented = true
   }
+
+  const handleLogicChange = (id, event) => {
+    const newLogic = event.target.value
+    setRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, logic: newLogic } : row))
+    )
+  }
+
+  const handleSourceChange = (id, event) => {
+    const newSource = event.target.value
+    setRows((prevRows) =>
+      prevRows.map((row) =>
+        row.id === id ? { ...row, source: newSource } : row
+      )
+    )
+  }
+
+  const handleRelationChange = (id, event) => {
+    const newRelation = event.target.value
+    setRows((prevRows) =>
+      prevRows.map((row) =>
+        row.id === id ? { ...row, relation: newRelation } : row
+      )
+    )
+  }
+
+  const handleValueChange = (id, event) => {
+    const newValue = event.target.value
+    console.log(`Row ID: ${id}, New Value: ${newValue}`)
+    setRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, value: newValue } : row))
+    )
+  }
+
+  // console.log('rows', rows)
 
   const columns = useMemo(
     () => [
@@ -459,10 +505,10 @@ const GridFilter = ({
         headerAlign: 'center',
         display: 'flex',
         width: 90,
-        editable: true,
-        type: 'singleSelect',
-        valueOptions: ['and', 'or'],
-        getOptionLabel: (option) => option.toUpperCase(),
+        editable: false,
+        // type: 'singleSelect',
+        // valueOptions: ['and', 'or'],
+        // getOptionLabel: (option) => option.toUpperCase(),
         // renderCell: ({ row }) => {
         //   return row.id === 0 ? (
         //     <Box sx={{ paddingLeft: '5px' }}>{row.logic.toUpperCase()}</Box>
@@ -475,7 +521,23 @@ const GridFilter = ({
         //     </Box>
         //   )
         // },
-        preProcessEditCellProps,
+        renderCell: ({ row }) =>
+          row.type === 'group' ? (
+            row.edit ? (
+              <Select
+                value={row.logic}
+                onChange={(event) => handleLogicChange(row.id, event)}
+              >
+                <MenuItem value={'and'}>AND</MenuItem>
+                <MenuItem value={'or'}>OR</MenuItem>
+              </Select>
+            ) : (
+              row.logic.toUpperCase()
+            )
+          ) : (
+            ''
+          ),
+        // preProcessEditCellProps,
       },
       {
         field: 'source',
@@ -483,18 +545,36 @@ const GridFilter = ({
         type: 'singleSelect',
         display: 'flex',
         flex: 1,
-        editable: true,
-        valueOptions: sourceValueOpts,
-        renderCell: ({ formattedValue }) => (
-          <OverflowText text={formattedValue} />
-        ),
-        renderEditCell: (params) => (
-          <EnhancedEditSingleSelect
-            fieldsToClear={['value', 'relation']}
-            {...params}
-          />
-        ),
-        preProcessEditCellProps,
+        editable: false,
+        // valueOptions: sourceValueOpts,
+        renderCell: ({ row }) => {
+          return row.type === 'rule' ? (
+            row.edit ? (
+              <Select
+                value={row.source}
+                onChange={(event) => handleSourceChange(row.id, event)}
+                sx={{ flex: 1 }}
+              >
+                {sourceValueOpts.map((option, index) => (
+                  <MenuItem key={index} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              row.source // replaced original Overflowtext component
+            )
+          ) : (
+            ''
+          )
+        },
+        // renderEditCell: (params) => (
+        //   <EnhancedEditSingleSelect
+        //     fieldsToClear={['value', 'relation']}
+        //     {...params}
+        //   />
+        // ),
+        // preProcessEditCellProps,
       },
       {
         field: 'relation',
@@ -503,17 +583,41 @@ const GridFilter = ({
         display: 'flex',
         align: 'center',
         width: 90,
-        type: 'singleSelect',
-        editable: true,
-        valueOptions: ({ row, id }) => {
+        // type: 'singleSelect',
+        editable: false,
+        renderCell: ({ row, id }) => {
+          if (row.type === 'group') return ''
           const rowAlt = apiRef.current.getRow(id)
           const valueAlt = rowAlt.source
           const value = R.propOr(valueAlt, 'source')(row)
           const valueType =
             value && value !== '' ? sourceValueTypes[value] : 'number'
-          return getRelationValueOptsByType(valueType)
+          const relationValueOpts = getRelationValueOptsByType(valueType)
+          return row.edit ? (
+            <Select
+              value={row.relation}
+              onChange={(event) => handleRelationChange(row.id, event)}
+              sx={{ flex: 1 }}
+            >
+              {relationValueOpts.map((option, index) => (
+                <MenuItem key={index} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            row.relation
+          )
         },
-        preProcessEditCellProps,
+        // valueOptions: ({ row, id }) => {
+        //   const rowAlt = apiRef.current.getRow(id)
+        //   const valueAlt = rowAlt.source
+        //   const value = R.propOr(valueAlt, 'source')(row)
+        //   const valueType =
+        //     value && value !== '' ? sourceValueTypes[value] : 'number'
+        //   return getRelationValueOptsByType(valueType)
+        // },
+        // preProcessEditCellProps,
       },
       {
         field: 'value',
@@ -522,91 +626,116 @@ const GridFilter = ({
         display: 'flex',
         align: 'right',
         width: 150,
-        editable: true,
-        valueParser: (value, params) => {
-          const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
-          const valueType = sourceValueTypes[editRow.source]
+        editable: false,
+        // valueParser: (value, params) => {
+        //   const editRow = apiRef.current.getRowWithUpdatedValues(params.id)
+        //   const valueType = sourceValueTypes[editRow.source]
 
-          const getParsedDate = (dateTimeStr, parseFormat) => {
-            const newValue = dayjs(dateTimeStr, parseFormat)
-            return newValue.isValid()
-              ? newValue.format(getDateFormat(valueType))
-              : ''
-          }
+        //   const getParsedDate = (dateTimeStr, parseFormat) => {
+        //     const newValue = dayjs(dateTimeStr, parseFormat)
+        //     return newValue.isValid()
+        //       ? newValue.format(getDateFormat(valueType))
+        //       : ''
+        //   }
 
-          return R.cond([
-            [R.equals('boolean'), R.always(Boolean(value))],
-            [R.equals('number'), R.always(value === '' ? '' : +value)],
-            [R.equals('time'), R.always(getParsedDate(value, 'HH:mm:ss'))],
-            [
-              R.flip(R.includes)(['date', 'dateTime']),
-              R.always(getParsedDate(value)),
-            ],
-            [
-              R.equals('multiSelect'),
-              R.always(Array.isArray(value) ? value : ''),
-            ],
-            [R.T, R.always(value)],
-          ])(valueType)
-        },
+        //   return R.cond([
+        //     [R.equals('boolean'), R.always(Boolean(value))],
+        //     [R.equals('number'), R.always(value === '' ? '' : +value)],
+        //     [R.equals('time'), R.always(getParsedDate(value, 'HH:mm:ss'))],
+        //     [
+        //       R.flip(R.includes)(['date', 'dateTime']),
+        //       R.always(getParsedDate(value)),
+        //     ],
+        //     [
+        //       R.equals('multiSelect'),
+        //       R.always(Array.isArray(value) ? value : ''),
+        //     ],
+        //     [R.T, R.always(value)],
+        //   ])(valueType)
+        // },
         renderCell: (params) => {
-          const { value, row } = params
-          const valueType = sourceValueTypes[row.source]
-          const formattedValue =
-            valueType === 'number'
-              ? NumberFormat.format(+value, numberFormatProps[row.source])
-              : valueType === 'date' ||
-                  valueType === 'time' ||
-                  valueType === 'dateTime'
-                ? dayjs(
-                    value,
-                    valueType === 'time' ? 'HH:mm:ss' : undefined
-                  ).format(getDateFormat(valueType))
-                : value
-
-          return row.type === 'group'
-            ? ''
-            : R.cond([
-                [
-                  R.equals('boolean'),
-                  R.always(<GridBooleanCell {...params} />),
-                ],
-                [
-                  R.equals('multiSelect'),
-                  R.always(
-                    <GridMultiSelectCell
-                      options={R.path([row.source, 'options'])(filterables)}
-                      colorByOptions={R.path([row.source, 'colorByOptions'])(
-                        filterableExtraProps
-                      )}
-                      {...params}
-                    />
-                  ),
-                ],
-                [R.T, R.always(<OverflowText text={`${formattedValue}`} />)],
-              ])(valueType)
+          if (params.row.type === 'group') return ''
+          if (params.row.edit) {
+            const valueType = sourceValueTypes[params.row.source]
+            const Component = getCellComponentByType(valueType)
+            if (valueType === 'multiSelect') {
+              return (
+                <GridEditMultiSelectCell
+                  options={filterables[params.row.source].options}
+                  colorByOptions={R.path([params.row.source, 'colorByOptions'])(
+                    filterableExtraProps
+                  )}
+                  onChange={(event, newValue) => {
+                    setRows((prevRows) =>
+                      prevRows.map((prevRow) =>
+                        prevRow.id === params.row.id
+                          ? { ...prevRow, value: newValue }
+                          : prevRow
+                      )
+                    )
+                  }}
+                />
+              )
+            } else {
+              return (
+                <TextField
+                  value={params.row.value || ''}
+                  onChange={(event) => handleValueChange(params.row.id, event)}
+                />
+              )
+            }
+            // eslint-disable-next-line
+            const props =
+              valueType === 'multiSelect'
+                ? // Custom component required props
+                  {
+                    options: filterables[params.row.source].options,
+                    colorByOptions:
+                      filterableExtraProps[params.row.source].colorByOptions,
+                  }
+                : // MUI props for built-in EditCell components
+                  {
+                    colDef: { type: valueType }, // Ensures the expected type by MUI
+                    ...((valueType === 'date' || valueType === 'dateTime') && {
+                      inputProps: { style: { colorScheme: 'dark' } },
+                    }),
+                  }
+            return <Component {...params} {...props} />
+          } else {
+            const { value, row } = params
+            const valueType = sourceValueTypes[row.source]
+            const formattedValue =
+              valueType === 'number'
+                ? NumberFormat.format(+value, numberFormatProps[row.source])
+                : valueType === 'date' ||
+                    valueType === 'time' ||
+                    valueType === 'dateTime'
+                  ? dayjs(
+                      value,
+                      valueType === 'time' ? 'HH:mm:ss' : undefined
+                    ).format(getDateFormat(valueType))
+                  : value
+            // console.log(row, value, formattedValue)
+            return R.cond([
+              [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
+              [
+                R.equals('multiSelect'),
+                R.always(
+                  <GridMultiSelectCell
+                    options={R.path([row.source, 'options'])(filterables)}
+                    colorByOptions={R.path([row.source, 'colorByOptions'])(
+                      filterableExtraProps
+                    )}
+                    {...params}
+                  />
+                ),
+              ],
+              [R.T, R.always(<OverflowText text={`${formattedValue}`} />)],
+            ])(valueType)
+          }
         },
-        renderEditCell: (params) => {
-          const valueType = sourceValueTypes[params.row.source]
-          const Component = getCellComponentByType(valueType)
-          const props =
-            valueType === 'multiSelect'
-              ? // Custom component required props
-                {
-                  options: filterables[params.row.source].options,
-                  colorByOptions:
-                    filterableExtraProps[params.row.source].colorByOptions,
-                }
-              : // MUI props for built-in EditCell components
-                {
-                  colDef: { type: valueType }, // Ensures the expected type by MUI
-                  ...((valueType === 'date' || valueType === 'dateTime') && {
-                    inputProps: { style: { colorScheme: 'dark' } },
-                  }),
-                }
-          return <Component {...params} {...props} />
-        },
-        preProcessEditCellProps,
+        // renderEditCell: (params) => {},
+        // preProcessEditCellProps,
       },
       {
         field: 'actions',
@@ -618,106 +747,50 @@ const GridFilter = ({
         type: 'actions',
         getActions: ({ id, row }) => {
           return row.type === 'group'
-            ? R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
-              ? [
-                  <GridActionsCellItem
-                    icon={<MdAddCircleOutline size="20px" />}
-                    label="Add Rule"
-                    onClick={() => handleAddRow(row.groupId, row.depth)}
-                  />,
-                  <GridActionsCellItem
-                    icon={<BiBracket size="20px" />}
-                    label="Add Group"
-                    onClick={() =>
-                      handleAddGroup(row.groupId, row.logic, row.depth)
-                    }
-                    sx={{ margin: '-10px' }}
-                  />,
-                  <GridActionsCellItem
-                    icon={<MdSave size="20px" />}
-                    label="Save"
-                    onClick={handleClickSave(id)}
-                    sx={{ marginRight: '-10px' }}
-                  />,
-                  <GridActionsCellItem
-                    icon={<MdRestore size="20px" />}
-                    label="Discard"
-                    onClick={handleClickDiscard(id)}
-                  />,
-                ]
-              : [
-                  <GridActionsCellItem
-                    icon={<MdAddCircleOutline size="20px" />}
-                    label="Add Rule"
-                    onClick={() => handleAddRow(row.groupId, row.depth)}
-                  />,
-                  <GridActionsCellItem
-                    icon={<BiBracket size="20px" />}
-                    label="Add Group"
-                    onClick={() => handleAddGroup(row.groupId, row.depth)}
-                    sx={{ margin: '-10px' }}
-                  />,
-                  <GridActionsCellItem
-                    icon={<MdEdit size="20px" />}
-                    label="Edit"
-                    onClick={handleClickEdit(id)}
-                    sx={id === 0 ? {} : { marginRight: '-10px' }}
-                  />,
-                  id === 0 ? (
-                    <></>
-                  ) : (
-                    <GridActionsCellItem
-                      icon={<MdDelete size="20px" />}
-                      label="Remove Group"
-                      onClick={() => handleDeleteGroup(id, row.groupId)}
-                    />
-                  ),
-                ]
-            : R.path([id, 'mode'])(rowModesModel) === GridRowModes.Edit
-              ? [
-                  <GridActionsCellItem
-                    disabled={!canSaveRow[id]}
-                    icon={<MdSave size="20px" />}
-                    label="Save"
-                    onClick={handleClickSave(id)}
-                  />,
-                  <GridActionsCellItem
-                    icon={<MdRestore size="20px" />}
-                    label="Discard"
-                    onClick={handleClickDiscard(id)}
-                  />,
-                ]
-              : [
-                  <GridActionsCellItem
-                    icon={<MdEdit size="20px" />}
-                    label="Edit"
-                    onClick={handleClickEdit(id)}
-                  />,
-                  <GridActionsCellItem
-                    icon={<MdDelete size="20px" />}
-                    label="Delete"
-                    onClick={handleDeleteRow(id)}
-                  />,
-                ]
+            ? [
+                <GridActionsCellItem
+                  icon={<MdAddCircleOutline size="20px" />}
+                  label="Add Rule"
+                  onClick={() => handleAddRow(row.groupId, row.depth)}
+                />,
+                <GridActionsCellItem
+                  icon={<BiBracket size="20px" />}
+                  label="Add Group"
+                  onClick={() => handleAddGroup(row.groupId, row.depth)}
+                  sx={{ margin: '-10px' }}
+                />,
+                <GridActionsCellItem
+                  icon={<MdDelete size="20px" />}
+                  label="Remove Group"
+                  onClick={() => handleDeleteGroup(id, row.groupId)}
+                />,
+              ]
+            : [
+                <GridActionsCellItem
+                  icon={<MdDelete size="20px" />}
+                  label="Delete"
+                  onClick={handleDeleteRow(id)}
+                />,
+              ]
         },
-        preProcessEditCellProps,
+        // preProcessEditCellProps,
       },
     ],
     [
       apiRef,
-      canSaveRow,
+      // canSaveRow,
       filterableExtraProps,
       filterables,
-      handleClickDiscard,
-      handleClickEdit,
-      handleClickSave,
+      // handleClickDiscard,
+      // handleClickEdit,
+      // handleClickSave,
       handleAddRow,
       handleAddGroup,
       handleDeleteRow,
       handleDeleteGroup,
       numberFormatProps,
-      preProcessEditCellProps,
-      rowModesModel,
+      // preProcessEditCellProps,
+      // rowModesModel,
       sourceHeaderName,
       sourceValueOpts,
       sourceValueTypes,
@@ -729,26 +802,41 @@ const GridFilter = ({
     [rows]
   )
 
-  const isCellEditable = (row, field) => {
-    const nonEditableFields = R.cond([
-      [R.equals('group'), R.always(['source', 'relation', 'value'])],
-      [R.equals('rule'), R.always(['logic'])],
-      [R.T, R.always([])],
-    ])(row.type)
-    return !R.includes(field, nonEditableFields)
+  const handleCellEditCommit = (params) => {
+    const { id, field, value } = params
+    console.log('field', field)
+    // Update the corresponding row with the new value
+    if (field === 'value') {
+      setRows((prevRows) =>
+        prevRows.map((row) =>
+          row.id === id ? { ...row, [field]: value } : row
+        )
+      )
+      console.log(`Cell at row ${id} and field ${field} changed to ${value}`)
+    }
+    // Additional custom logic can be added here
   }
+
+  // const isCellEditable = (row, field) => {
+  //   const nonEditableFields = R.cond([
+  //     [R.equals('group'), R.always(['source', 'relation', 'value'])],
+  //     [R.equals('rule'), R.always(['logic'])],
+  //     [R.T, R.always([])],
+  //   ])(row.type)
+  //   return !R.includes(field, nonEditableFields)
+  // }
 
   return (
     <>
       <Paper sx={styles.content}>
         <StyledDataGrid
-          {...{ apiRef, columns, rows, rowModesModel, processRowUpdate }}
+          {...{ apiRef, columns, rows }}
           slots={{
             noRowsOverlay: () => (
               <Box sx={styles.emptyContent}>No constraints added</Box>
             ),
           }}
-          editMode="row"
+          // editMode="row"
           getRowHeight={R.always('auto')}
           hideFooter
           disableColumnMenu
@@ -759,26 +847,40 @@ const GridFilter = ({
           onCellDoubleClick={handleCellDoubleClick}
           maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
-          isCellEditable={(params) => isCellEditable(params.row, params.field)}
+          onCellEditCommit={handleCellEditCommit}
+          // isCellEditable={(params) => isCellEditable(params.row, params.field)}
         />
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
         <Button
-          disabled={!canDiscardOrSaveAll}
+          color="primary"
+          variant="contained"
+          startIcon={<MdEdit />}
+          onClick={() => {
+            setRows(rows.map((row) => ({ ...row, edit: true })))
+          }}
+        >
+          Edit
+        </Button>
+        {/* <Button
+          // disabled={!canDiscardOrSaveAll}
           color="error"
           variant="contained"
           startIcon={<MdRestore />}
           onClick={restoreFilters}
         >
           Discard Changes
-        </Button>
+        </Button> */}
         <Button
-          disabled={!canDiscardOrSaveAll}
+          // disabled={!canDiscardOrSaveAll}
           color="primary"
           variant="contained"
           startIcon={<MdCheck />}
-          onClick={handleClickSaveAll}
+          // onClick={handleClickSaveAll}
+          onClick={() => {
+            setRows(rows.map((row) => ({ ...row, edit: false })))
+          }}
         >
           Save Constraints
         </Button>
