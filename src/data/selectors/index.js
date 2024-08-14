@@ -697,7 +697,7 @@ export const selectMapModal = createSelector(
     memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: (a, b) => {
-        return R.prop('isOpen', a) === false || a === b
+        return (b.isOpen === false && b.isOpen === a.isOpen) || a === b
       },
     },
   }
