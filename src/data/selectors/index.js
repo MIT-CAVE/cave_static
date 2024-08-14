@@ -2271,7 +2271,7 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             )
 
             const height = isNaN(heightPropVal)
-              ? parseFloat(R.propOr('0', 'nullSize', heightRange))
+              ? parseFloat(R.propOr('100', 'nullSize', heightRange))
               : getScaledValue(
                   R.prop('min', heightRange),
                   R.prop('max', heightRange),

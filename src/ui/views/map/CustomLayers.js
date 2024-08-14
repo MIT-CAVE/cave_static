@@ -81,7 +81,7 @@ const geoJsonToSegments = (features) => {
   R.forEach((feature) => {
     if (!R.path(['geometry', 'coordinates', 0], feature)) return
 
-    const height = R.pathOr(0, ['properties', 'height'], feature) / 100
+    const height = R.pathOr(100, ['properties', 'height'], feature) / 100
     const arcs = []
     for (let i = 0; i < feature.geometry.coordinates.length - 1; i++) {
       // convert coordinates to MercatorCoordinates on map
