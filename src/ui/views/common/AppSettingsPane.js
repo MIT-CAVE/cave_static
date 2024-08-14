@@ -10,15 +10,19 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React from 'react'
+import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal, deleteLocal } from '../../../data/local'
-import { toggleMirror } from '../../../data/local/settingsSlice'
+import {
+  toggleMirror,
+  toggleEditLayout,
+} from '../../../data/local/settingsSlice'
 import {
   selectCurrentTimeLength,
   selectData,
   selectDemoMode,
+  selectEditLayoutMode,
   selectGlobalOutputProps,
   selectGlobalOutputsDraggable,
   selectLocalDraggables,
@@ -90,65 +94,84 @@ FieldContainer.propTypes = {
   children: PropTypes.node,
 }
 
-const MirrorSwitch = () => {
+const ColumnSwitch = ({ name, checked, onChange }) => (
+  <FormControlLabel
+    sx={{ pl: 2 }}
+    control={<Switch name="cave-toggle-column" {...{ checked, onChange }} />}
+    label={<OverflowText sx={styles.overflowAlignLeft} text={name} />}
+  />
+)
+ColumnSwitch.propTypes = {
+  name: PropTypes.string,
+  checked: PropTypes.bool,
+  onChange: PropTypes.func,
+}
+
+const LayoutGroup = () => {
+  const editLayoutMode = useSelector(selectEditLayoutMode)
   const mirrorMode = useSelector(selectMirrorMode)
   const paneState = useSelector(selectPaneState)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+
+  const handleToggleEditMode = useCallback(() => {
+    dispatch(toggleEditLayout())
+  }, [dispatch])
+
+  const handleToggleMirrorMode = useCallback(() => {
+    const previousLeft = R.propOr({}, 'left', paneState)
+    const previousRight = R.propOr({}, 'right', paneState)
+    const syncLeft = !includesPath(R.values(sync), [
+      'panes',
+      'paneState',
+      'left',
+    ])
+    const syncRight = !includesPath(R.values(sync), [
+      'panes',
+      'paneState',
+      'right',
+    ])
+    const syncedObject = R.pipe(
+      syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
+      syncRight ? R.assoc('right', previousLeft) : R.dissoc('right')
+    )(paneState)
+
+    const desyncedObject = R.pipe(
+      !syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
+      !syncRight ? R.assoc('right', previousLeft) : R.dissoc('right')
+    )(paneState)
+
+    dispatch(toggleMirror())
+    if (syncLeft || syncRight)
+      dispatch(
+        mutateLocal({
+          path: ['panes', 'paneState'],
+          value: syncedObject,
+          sync: true,
+        })
+      )
+    if (!syncLeft || !syncRight)
+      dispatch(
+        mutateLocal({
+          path: ['panes', 'paneState'],
+          value: desyncedObject,
+          sync: false,
+        })
+      )
+  }, [dispatch, paneState, sync])
+
   return (
     <FormControl component="fieldset">
-      <FormGroup aria-label="position" row>
-        <FormControlLabel
-          value="start"
-          control={
-            <Switch
-              checked={mirrorMode}
-              onChange={() => {
-                const previousLeft = R.propOr({}, 'left', paneState)
-                const previousRight = R.propOr({}, 'right', paneState)
-                const syncLeft = !includesPath(R.values(sync), [
-                  'panes',
-                  'paneState',
-                  'left',
-                ])
-                const syncRight = !includesPath(R.values(sync), [
-                  'panes',
-                  'paneState',
-                  'right',
-                ])
-                const syncedObject = R.pipe(
-                  syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
-                  syncRight ? R.assoc('right', previousLeft) : R.dissoc('right')
-                )(paneState)
-
-                const desyncedObject = R.pipe(
-                  !syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
-                  !syncRight
-                    ? R.assoc('right', previousLeft)
-                    : R.dissoc('right')
-                )(paneState)
-                dispatch(toggleMirror())
-                if (syncLeft || syncRight)
-                  dispatch(
-                    mutateLocal({
-                      path: ['panes', 'paneState'],
-                      value: syncedObject,
-                      sync: true,
-                    })
-                  )
-                if (!syncLeft || !syncRight)
-                  dispatch(
-                    mutateLocal({
-                      path: ['panes', 'paneState'],
-                      value: desyncedObject,
-                      sync: false,
-                    })
-                  )
-              }}
-            />
-          }
-          label={`Mirror mode`}
-          labelPlacement="start"
+      <FormGroup>
+        <ColumnSwitch
+          name="Mirror mode"
+          checked={mirrorMode}
+          onChange={handleToggleMirrorMode}
+        />
+        <ColumnSwitch
+          name="Edit mode"
+          checked={editLayoutMode}
+          onChange={handleToggleEditMode}
         />
       </FormGroup>
     </FormControl>
@@ -165,6 +188,7 @@ const DemoSwitch = () => {
           value="start"
           control={
             <Switch
+              name="cave-toggle-demo"
               checked={demoMode}
               onChange={() => {
                 dispatch(
@@ -185,19 +209,6 @@ const DemoSwitch = () => {
   )
 }
 
-const ColumnSwitch = ({ name, checked, onChange }) => (
-  <FormControlLabel
-    sx={{ pl: 2 }}
-    control={<Switch {...{ checked, onChange }} />}
-    label={<OverflowText sx={styles.overflowAlignLeft} text={name} />}
-  />
-)
-ColumnSwitch.propTypes = {
-  name: PropTypes.string,
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-}
-
 const ToolbarSwitch = () => {
   const showToolbar = useSelector(selectShowToolbar)
   const dispatch = useDispatch()
@@ -216,7 +227,13 @@ const ToolbarSwitch = () => {
       <FormGroup row>
         <FormControlLabel
           value="start"
-          control={<Switch checked={showToolbar} onChange={handleChange} />}
+          control={
+            <Switch
+              name="cave-toggle-chart-toolbar"
+              checked={showToolbar}
+              onChange={handleChange}
+            />
+          }
           label="Show Chart Toolbar"
           labelPlacement="start"
         />
@@ -291,8 +308,8 @@ const AppSettingsPane = () => {
 
   return (
     <>
-      <FieldContainer title="Mirror">
-        <MirrorSwitch />
+      <FieldContainer title="Layout">
+        <LayoutGroup />
       </FieldContainer>
       <FieldContainer title="Demo">
         <DemoSwitch />

@@ -112,6 +112,8 @@ const Map = ({ mapboxToken, mapId }) => {
   }, [iconUrl, iconData, nodeIcons, mapId])
 
   const loadFog = useCallback(() => {
+    if (!isMapboxTokenProvided) return
+
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
       const map = mapRef.current.getMap()
       map.setFog(

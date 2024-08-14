@@ -1,8 +1,17 @@
-import { Container, Grid, Paper, Fab, CircularProgress } from '@mui/material'
+import { Container, Paper, Fab, CircularProgress, Box } from '@mui/material'
 import * as R from 'ramda'
-import { lazy, Suspense, useMemo } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import ReactGridLayout from 'react-grid-layout'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
+import { AutoSizer } from 'react-virtualized'
 
 import ChartMenu from './ChartMenu'
 import ChartToolbar from './ChartToolbar'
@@ -17,6 +26,7 @@ import {
   selectRightAppBarDisplay,
   selectMapboxToken,
   selectShowToolbar,
+  selectEditLayoutMode,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import { useFilter, useMutateState } from '../../../utils/hooks'
@@ -24,6 +34,10 @@ import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
 import { includesPath } from '../../../utils'
+
+import 'react-grid-layout/css/styles.css'
+// eslint-disable-next-line import/no-extraneous-dependencies
+import 'react-resizable/css/styles.css'
 
 const DashboardChart = lazy(() => import('./DashboardChart'))
 
@@ -41,7 +55,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
-    width: (theme) => `calc(100% - ${theme.spacing(4)})`,
+    width: (theme) => `calc(100% - ${theme.spacing(3)})`,
     p: 0.5,
     color: 'text.secondary',
     textAlign: 'center',
@@ -63,6 +77,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
+  const editLayoutMode = useSelector(selectEditLayoutMode)
   const sync = useSelector(selectSync)
 
   const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
@@ -96,7 +111,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const handleRemoveChart = useMutateState(
     () => ({
       path: R.init(path),
-      value: R.remove(index, 1)(pageLayout),
+      value: R.assoc(index, null)(pageLayout),
       sync: !includesPath(R.values(sync), R.init(path)),
     }),
     [pageLayout, sync, index, path]
@@ -153,79 +168,101 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   return (
-    <Grid
-      item
-      container
-      xs={isMaximized ? 12 : 6}
-      height={isMaximized ? '100%' : '50%'}
+    <Paper
+      sx={[
+        styles.paper,
+        isMaximized && !showToolbar && { p: 0 },
+        editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
+      ]}
+      elevation={editLayoutMode && !isMaximized ? 24 : 5}
     >
-      {chartObj != null && (
-        <Paper
-          sx={[styles.paper, isMaximized && !showToolbar && { p: 0 }]}
-          elevation={5}
-        >
-          <FilterModal
-            {...{
-              statFilters,
-              groupingFilters,
-              numActiveStatFilters,
-              numGroupingFilters,
-            }}
-            label="Chart Data Filter"
-            labelExtra={
-              isMaximized
-                ? null
-                : `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][index]} Chart)`
-            }
-            open={filterOpen}
-            onSave={handleSaveFilters}
-            onClose={handleCloseFilter}
-          />
-          {showToolbar && (
-            <ChartToolbar
-              numFilters={numActiveStatFilters + numGroupingFilters}
-              showFilter={vizType === 'groupedOutput'}
-              onOpenFilter={handleOpenFilter}
-              {...{ chartObj, index, path }}
-            />
-          )}
-          {!lockedLayout && !chartObj.lockedLayout && (
-            <ChartMenu
-              {...{ isMaximized, showToolbar }}
-              onRemoveChart={handleRemoveChart}
-              onToggleMaximize={handleToggleMaximize}
-              onShowToolbar={handleShowToolbar}
-              defaultToZero={defaultToZero}
-              onToggleDefaultToZero={handleDefaultToZero}
-              showNA={showNA}
-              onToggleShowNA={handleToggleShowNA}
-              isGroupedOutput={vizType === 'groupedOutput'}
-            />
-          )}
-          {vizType === 'groupedOutput' ? (
-            chartObj.statId && (
-              <Suspense fallback={<CircularProgress sx={styles.loader} />}>
-                <DashboardChart {...{ chartObj }} />
-              </Suspense>
-            )
-          ) : vizType === 'map' && chartObj.mapId ? (
-            <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
-          ) : vizType === 'globalOutput' ? (
-            <DashboardGlobalOutput {...{ chartObj }} />
-          ) : null}
-        </Paper>
+      <FilterModal
+        {...{
+          statFilters,
+          groupingFilters,
+          numActiveStatFilters,
+          numGroupingFilters,
+        }}
+        label="Chart Data Filter"
+        labelExtra={
+          isMaximized
+            ? null
+            : `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][index]} Chart)`
+        }
+        open={filterOpen}
+        onSave={handleSaveFilters}
+        onClose={handleCloseFilter}
+      />
+      {showToolbar && (
+        <ChartToolbar
+          numFilters={numActiveStatFilters + numGroupingFilters}
+          showFilter={vizType === 'groupedOutput'}
+          onOpenFilter={handleOpenFilter}
+          {...{ chartObj, index, path }}
+        />
       )}
-    </Grid>
+      {!lockedLayout && !chartObj.lockedLayout && (
+        <ChartMenu
+          {...{ isMaximized, showToolbar }}
+          onRemoveChart={handleRemoveChart}
+          onToggleMaximize={handleToggleMaximize}
+          onShowToolbar={handleShowToolbar}
+          defaultToZero={defaultToZero}
+          onToggleDefaultToZero={handleDefaultToZero}
+          showNA={showNA}
+          onToggleShowNA={handleToggleShowNA}
+          isGroupedOutput={vizType === 'groupedOutput'}
+        />
+      )}
+      {vizType === 'groupedOutput' ? (
+        chartObj.statId && (
+          <Suspense fallback={<CircularProgress sx={styles.loader} />}>
+            <DashboardChart {...{ chartObj }} />
+          </Suspense>
+        )
+      ) : vizType === 'map' && chartObj.mapId ? (
+        <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
+      ) : vizType === 'globalOutput' ? (
+        <DashboardGlobalOutput {...{ chartObj }} />
+      ) : null}
+    </Paper>
   )
 }
 
 const Dashboard = () => {
+  const [cursor, setCursor] = useState()
+  const [layouts, setLayouts] = useState({})
+
   const pageLayout = useSelector(selectPageLayout)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
+  const editLayoutMode = useSelector(selectEditLayoutMode)
   const currentPage = useSelector(selectCurrentPage)
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const rightBar = useSelector(selectRightAppBarDisplay)
   const sync = useSelector(selectSync)
+
+  const gridLayoutDefault = useMemo(
+    () =>
+      R.range(0, 4).map((i) => ({
+        i: `${i}`,
+        x: i % 2,
+        y: Math.floor(i / 2),
+        h: 1,
+        w: 1,
+        maxH: 2,
+        maxW: 2,
+      })),
+    []
+  )
+
+  useEffect(() => {
+    setCursor(editLayoutMode ? 'grab' : 'auto')
+  }, [editLayoutMode])
+
+  useEffect(() => {
+    if (R.has(currentPage)(layouts)) return
+    setLayouts(R.assoc(currentPage, gridLayoutDefault))
+  }, [currentPage, gridLayoutDefault, layouts])
 
   const layoutPath = useMemo(
     () => ['pages', 'data', currentPage, 'pageLayout'],
@@ -233,60 +270,162 @@ const Dashboard = () => {
   )
 
   const maximizedIndex = useMemo(
-    () => R.findIndex(R.propEq(true)('maximized'))(pageLayout),
+    () => R.findIndex(R.propEq(true, 'maximized'))(pageLayout),
     [pageLayout]
   )
 
-  const handleAddChart = useMutateState(
-    () => ({
+  const handleAddChart = useMutateState(() => {
+    const index = R.pipe(
+      R.findIndex(R.isNil),
+      R.when(R.equals(-1), R.always(pageLayout.length))
+    )(pageLayout)
+    return {
       path: layoutPath,
-      value: R.append(CHART_DEFAULTS)(pageLayout),
+      value: R.ifElse(
+        R.pipe(R.length, R.equals(index)),
+        R.append(CHART_DEFAULTS),
+        R.update(index, CHART_DEFAULTS)
+      )(pageLayout),
       sync: !includesPath(R.values(sync), layoutPath),
-    }),
-    [pageLayout, layoutPath, sync]
+    }
+  }, [pageLayout, layoutPath, sync])
+
+  const handleResizeStop = useCallback(
+    (layout) => {
+      console.log({ layout })
+      setLayouts(R.assoc(currentPage, layout))
+    },
+    [currentPage]
   )
 
-  const emptyGridCells = R.pipe(
-    R.length,
-    R.ifElse(R.lt(1), R.pipe(R.subtract(4), R.repeat(null)), R.always([]))
-  )(pageLayout)
+  const swapXY = useCallback(
+    (index1, index2, arr) =>
+      R.pipe(
+        R.adjust(index1, R.mergeLeft(R.pick(['x', 'y'])(arr[index2]))),
+        R.adjust(index2, R.mergeLeft(R.pick(['x', 'y'])(arr[index1])))
+      )(arr),
+    []
+  )
+
+  const handleDragStop = useCallback(
+    (layout, oldItem, newItem, placeholder, event, element) => {
+      setCursor('grab')
+      if (
+        (oldItem.x === newItem.x && oldItem.y === newItem.y) ||
+        element.firstChild == null // Prevent ghost-dragging of an empty grid item
+      )
+        return
+
+      const index1 = R.findIndex(R.whereEq(R.pick(['x', 'y'])(oldItem)))(
+        layouts[currentPage]
+      )
+      const index2 = R.findIndex(R.whereEq(R.pick(['x', 'y'])(newItem)))(
+        layouts[currentPage]
+      )
+
+      const newLayout = swapXY(index1, index2, layouts[currentPage])
+      setLayouts(R.assoc(currentPage, newLayout))
+    },
+    [currentPage, layouts, swapXY]
+  )
+
+  const gridLayout = useMemo(
+    () => R.propOr(gridLayoutDefault, currentPage)(layouts),
+    [currentPage, gridLayoutDefault, layouts]
+  )
+
   return (
     <Container
       maxWidth={false}
       sx={[
         styles.root,
         maximizedIndex > -1 && { p: 0 },
+        { p: 0 },
         leftBar && rightBar
           ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
           : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
       ]}
       disableGutters
     >
-      {R.isNotEmpty(pageLayout) && (
-        <Grid container spacing={1}>
-          {R.concat(pageLayout)(emptyGridCells).map((chartObj, index) => {
-            if (maximizedIndex > -1 && index !== maximizedIndex) return null
-            return (
-              <DashboardItem
-                key={index}
-                {...{ chartObj, index }}
-                path={[...layoutPath, index]}
-              />
+      <div style={{ flex: '1 1 auto' }}>
+        <AutoSizer>
+          {({ height, width }) =>
+            R.isNotEmpty(pageLayout) && (
+              <ReactGridLayout
+                className="layout"
+                {...{ width }}
+                margin={maximizedIndex < 0 ? [8, 8] : [0, 0]}
+                cols={2}
+                maxRows={2}
+                rowHeight={height / 2 - (maximizedIndex < 0 ? 12 : 0)}
+                allowOverlap
+                draggableCancel=".MuiButtonGroup-root .react-resizable-handle"
+                onDragStart={() => {
+                  setCursor('grabbing')
+                }}
+                onDragStop={handleDragStop}
+                onResizeStop={handleResizeStop}
+              >
+                {gridLayout.map((gridItem, index) => {
+                  if (maximizedIndex > -1 && index !== maximizedIndex)
+                    return null
+
+                  const firstIndex = R.findIndex(
+                    R.whereEq(R.pick(['x', 'y'])(gridItem))
+                  )(gridLayout)
+                  const chartObj =
+                    index === firstIndex ? pageLayout[index] : null
+
+                  const dataGrid =
+                    maximizedIndex < 0
+                      ? R.mergeLeft({
+                          isDraggable: editLayoutMode,
+                          isResizable: false,
+                        })(gridItem)
+                      : {
+                          x: 0,
+                          y: 0,
+                          w: 2,
+                          h: 2,
+                          static: true,
+                        }
+
+                  return (
+                    <Box
+                      key={`${index}`}
+                      display="flex"
+                      data-grid={dataGrid}
+                      sx={{
+                        cursor: `${cursor} !important`,
+                      }}
+                    >
+                      {chartObj != null && (
+                        <DashboardItem
+                          {...{ chartObj, index }}
+                          path={[...layoutPath, index]}
+                        />
+                      )}
+                    </Box>
+                  )
+                })}
+              </ReactGridLayout>
             )
-          })}
-        </Grid>
-      )}
-      {!lockedLayout && maximizedIndex < 0 && pageLayout.length < 4 && (
-        <Fab
-          color="primary"
-          variant="extended"
-          sx={styles.addChart}
-          onClick={handleAddChart}
-        >
-          <MdAdd size={24} style={{ marginRight: '4px' }} />
-          Add Chart
-        </Fab>
-      )}
+          }
+        </AutoSizer>
+      </div>
+      {!lockedLayout &&
+        maximizedIndex < 0 &&
+        R.count(R.isNotNil)(pageLayout) < 4 && (
+          <Fab
+            color="primary"
+            variant="extended"
+            sx={styles.addChart}
+            onClick={handleAddChart}
+          >
+            <MdAdd size={24} style={{ marginRight: '4px' }} />
+            Add Chart
+          </Fab>
+        )}
     </Container>
   )
 }

@@ -905,6 +905,7 @@ const MapLegendGeoToggle = ({
           legendName={R.propOr(geoType, 'name')(typeObj)}
           toggle={
             <Switch
+              name="cave-toggle-map-legend-row"
               checked={eitherBoolOrNotNull(displayedGeos[geoType])}
               onChange={(event) => {
                 event.target.checked
@@ -1175,6 +1176,7 @@ const LegendCard = memo(
             legendName={R.propOr(geometryType, 'name')(typeObj)}
             toggle={
               <Switch
+                name={`cave-toggle-map-${geometryName}`}
                 checked={isOpen}
                 onChange={(event) => {
                   event.target.checked

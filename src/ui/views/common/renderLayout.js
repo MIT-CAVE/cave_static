@@ -33,6 +33,7 @@ const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
   const item = R.pipe(
     R.prop(itemId),
     R.assoc('id', itemId),
+    R.assoc('key', layoutItem.id),
     R.assoc('style')({
       gridColumnStart: column,
       gridRowStart: row,
