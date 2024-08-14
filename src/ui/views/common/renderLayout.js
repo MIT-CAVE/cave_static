@@ -67,8 +67,21 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     column,
     row,
     data,
+    maxWidthBy = 'grid',
     maxHeightBy = 'row',
+    style,
   } = layout
+  const maxColWidth = R.cond([
+    [R.equals('column'), R.always('auto')],
+    [R.equals('grid'), R.always('1fr')],
+    [
+      R.T,
+      () => {
+        throw Error(`Unknown value "${maxWidthBy}" for \`maxWidthBy\`.`)
+      },
+    ],
+  ])(maxWidthBy)
+
   const maxRowHeight = R.cond([
     [R.equals('row'), R.always('auto')],
     [R.equals('grid'), R.always('1fr')],
@@ -121,7 +134,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(max-content,1fr))`,
+          gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(max-content,${maxColWidth}))`,
           gridTemplateRows: `repeat(${numRowsOptimal},minmax(min-content,${maxRowHeight}))`,
           gridColumnStart: column,
           gridRowStart: row,
@@ -129,6 +142,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
           gap: 1.5,
           height,
           width,
+          ...style,
         }}
       >
         {getLayoutItems({ data, fillerItems, unusedItems, ...other })}
