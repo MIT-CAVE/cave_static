@@ -19,6 +19,8 @@ import {
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
+  selectFetchedGeoDataFunc,
+  selectIncludedGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -34,6 +36,7 @@ import {
 
 export const Geos = memo(({ mapId }) => {
   const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
+  const fetchedGeos = useSelector(selectFetchedGeoDataFunc)(mapId)
   const geoColorRange = useSelector(selectGeoColorRange)
   const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
   const geoTypes = useSelector(selectGeoTypes)
@@ -46,9 +49,12 @@ export const Geos = memo(({ mapId }) => {
 
   const [selectedGeos, setSelectedGeos] = useState({})
   const [selectedArcs, setSelectedArcs] = useState({})
-
   useEffect(() => {
-    const geoNames = R.keys(R.filter(R.identity, enabledGeos))
+    const geoNames = R.pipe(
+      R.filter(R.identity),
+      R.keys,
+      R.filter(R.has(R.__, fetchedGeos))
+    )(enabledGeos)
 
     const fetchCache = async () => {
       const cache = await caches.open('geos')
@@ -70,7 +76,7 @@ export const Geos = memo(({ mapId }) => {
       setSelectedGeos(geos)
     }
     fetchCache()
-  }, [geoTypes, enabledGeos, matchingKeysByType])
+  }, [geoTypes, enabledGeos, matchingKeysByType, fetchedGeos])
 
   useEffect(() => {
     const arcNames = R.keys(R.filter(R.identity, enabledArcs))
@@ -313,6 +319,7 @@ export const Geos = memo(({ mapId }) => {
       selectedArcs,
     ]
   )
+
   return [
     <Source
       type="geojson"
@@ -432,6 +439,38 @@ export const Geos = memo(({ mapId }) => {
       />
     </Source>,
   ]
+})
+
+export const IncludedGeos = memo(({ mapId }) => {
+  const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
+
+  return (
+    <Source
+      type="geojson"
+      key={layerId.INCLUDED_GEOGRAPHY_LAYER}
+      id={layerId.INCLUDED_GEOGRAPHY_LAYER}
+      generateId={true}
+      data={{
+        type: 'FeatureCollection',
+        features: geoObjs,
+      }}
+    >
+      <Layer
+        id={layerId.INCLUDED_GEOGRAPHY_LAYER}
+        key={layerId.INCLUDED_GEOGRAPHY_LAYER}
+        type="fill"
+        paint={{
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'fill-opacity': 0.4,
+        }}
+      />
+    </Source>
+  )
 })
 
 export const Nodes = memo(({ mapId }) => {

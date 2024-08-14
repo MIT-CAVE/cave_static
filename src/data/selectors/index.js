@@ -1151,24 +1151,6 @@ export const selectNodeDataFunc = createSelector(
     )
 )
 
-export const selectMatchingKeysByTypeFunc = createSelector(
-  [selectEnabledGeosFunc, selectMergedGeos],
-  (enabledGeosFunc, geosByType) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(
-            R.pipe(
-              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
-              R.indexBy(R.prop('geoJsonValue'))
-            )
-          )
-        )(geosByType),
-      MAX_MEMOIZED_CHARTS
-    )
-)
 // outputs derived
 export const selectStatGroupings = createSelector(
   selectOrderedGroupedOutputs,
@@ -1581,6 +1563,60 @@ export const selectArcRange = createSelector(
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(legendObjectsFunc({ mapId, layerKey: 'arc' }))
+    )
+)
+export const selectGroupedEnabledGeosFunc = createSelector(
+  [selectEnabledGeosFunc, selectMergedGeos],
+  (enabledGeosFunc, mergedGeos) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.toPairs,
+          R.filter((d) => R.propOr(false, d[0], enabledGeosFunc(mapId))),
+          R.groupBy(R.hasPath([1, 0, 'geoJson'])),
+          R.map(R.fromPairs)
+        )(mergedGeos),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectFetchedGeoDataFunc = createSelector(
+  selectGroupedEnabledGeosFunc,
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.propOr({}, 'true', dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectIncludedGeoDataFunc = createSelector(
+  selectGroupedEnabledGeosFunc,
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(R.propOr({}, 'false'), R.map(R.toPairs))(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectMatchingKeysByTypeFunc = createSelector(
+  [selectFetchedGeoDataFunc],
+  (geosByType) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.map(
+            R.pipe(
+              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
+              R.indexBy(R.prop('geoJsonValue'))
+            )
+          )
+        )(geosByType(mapId)),
+      MAX_MEMOIZED_CHARTS
     )
 )
 
@@ -2365,6 +2401,82 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
           }),
           R.filter(R.identity)
         )(arcDataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectIncludedGeoJsonFunc = createSelector(
+  [selectIncludedGeoDataFunc, selectGeoColorRange, selectEnabledGeosFunc],
+  (includedGeoDataFunc, geoColorRange, legendObjectsFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.values,
+          R.unnest,
+          R.mapObjIndexed((obj) => {
+            const [id, geo] = obj
+            const legendObj = legendObjectsFunc(mapId)[geo.type]
+            const filters = R.pipe(
+              R.propOr([], 'filters'),
+              R.reject(R.propEq(false, 'active'))
+            )(legendObj)
+            if (!filterMapFeature(filters, geo)) return false
+            const colorProp = legendObj.colorBy
+            const colorPropVal = R.pipe(
+              R.path(['values', colorProp]),
+              R.when(R.isNil, R.always('')),
+              (s) => s.toString()
+            )(geo)
+            const colorRange = geoColorRange(geo.type, colorProp, mapId)
+
+            const nullColor = R.propOr(
+              'rgba(0,0,0,255)',
+              'nullColor',
+              colorRange
+            )
+
+            const isColorCategorical = !R.has('min', colorRange)
+            const color = isColorCategorical
+              ? R.map((val) => parseFloat(val))(
+                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                )
+              : getScaledArray(
+                  R.prop('min', colorRange),
+                  R.prop('max', colorRange),
+                  R.map((val) => parseFloat(val))(
+                    R.prop('startGradientColor', colorRange)
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  R.map((val) => parseFloat(val))(
+                    R.prop('endGradientColor', colorRange)
+                      .replace(/[^\d,.]/g, '')
+                      .split(',')
+                  ),
+                  parseFloat(colorPropVal)
+                )
+            const colorString = R.equals('', colorPropVal)
+              ? nullColor
+              : `rgba(${color.join(',')})`
+
+            return {
+              type: 'Feature',
+              properties: {
+                cave_obj: geo,
+                cave_name: JSON.stringify([geo.type, id]),
+                color: colorString,
+              },
+              geometry: {
+                type: 'Polygon',
+                coordinates: [geo.path],
+              },
+            }
+          }),
+          R.values
+        )(includedGeoDataFunc(mapId)),
       MAX_MEMOIZED_CHARTS
     )
 )

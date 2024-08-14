@@ -7,6 +7,7 @@ export const layerId = {
   MULTI_ARC_LAYER_DOT: 'multiArcLayerDot',
   GEOGRAPHY_LAYER: 'geographyLayer',
   NODE_ICON_LAYER: 'nodeIconLayer',
+  INCLUDED_GEOGRAPHY_LAYER: 'includedGeographyLayer',
 }
 
 export const asyncStatus = {
