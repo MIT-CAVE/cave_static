@@ -77,6 +77,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
         groupId: 0,
         logic: 'and',
         depth: 0,
+        edit: false,
       },
     ],
     'filters'
@@ -149,10 +150,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const numActiveStatFilters = useMemo(
-    () =>
-      R.count(R.both(R.propOr(true, 'active'), R.propEq('rule', 'type')))(
-        statFilters
-      ),
+    () => R.count(R.propEq('rule', 'type'))(statFilters),
     [statFilters]
   )
 

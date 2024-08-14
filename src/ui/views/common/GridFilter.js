@@ -180,10 +180,19 @@ const GridFilter = ({
   filterableExtraProps,
   onSave,
 }) => {
-  const [idCount, setIdCount] = useState(1)
-  const [groupIdCount, setGroupIdCount] = useState(1)
-  const [rows, setRows] = useState(defaultFilters)
-  const [initialRows, setInitialRows] = useState(defaultFilters)
+  const renamedFilters = R.map(
+    renameKeys({ option: 'relation', prop: 'source' })
+  )(defaultFilters)
+  const maxId = renamedFilters.reduce((max, row) => {
+    return row.id > max ? row.id : max
+  }, 0)
+  const maxGroupId = renamedFilters.reduce((max, row) => {
+    return row.groupId > max ? row.groupId : max
+  }, 0)
+  const [idCount, setIdCount] = useState(maxId + 1)
+  const [groupIdCount, setGroupIdCount] = useState(maxGroupId + 1)
+  const [rows, setRows] = useState(renamedFilters)
+  const [initialRows, setInitialRows] = useState(renamedFilters)
 
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
@@ -310,7 +319,7 @@ const GridFilter = ({
     (newRows) => {
       const newFilters = R.map(
         R.pipe(
-          R.dissoc('id'),
+          // R.dissoc('id'),
           R.dissoc('edit'),
           R.dissoc('depth'),
           renameKeys({ relation: 'option', source: 'prop' })
