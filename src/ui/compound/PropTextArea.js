@@ -21,16 +21,16 @@ const styles = {
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const dispatch = useDispatch()
-  const { enabled = false, rows = 4 } = prop
+  const { enabled = false, rows = 4, placeholder } = prop
   return (
     <Box
       sx={[styles.root, ...forceArray(sx)]}
-      {...props}
       onFocus={() => dispatch(setIsTextArea(true))}
+      {...props}
     >
       <TextInput
         multiline
-        {...{ enabled, rows }}
+        {...{ enabled, rows, placeholder }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return
