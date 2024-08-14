@@ -215,8 +215,8 @@ export const Geos = memo(({ mapId }) => {
               const geoType = R.prop('type')(geoObj)
 
               const filters = R.pipe(
-                R.pathOr([], [geoObj.type, 'filters']),
-                R.reject(R.propEq(false, 'active'))
+                R.pathOr([], [geoObj.type, 'filters'])
+                // R.reject(R.propEq(false, 'active'))
               )(enabledGeos)
               if (!filterMapFeature(filters, geoObj)) return false
 
@@ -258,8 +258,8 @@ export const Geos = memo(({ mapId }) => {
               )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
 
               const filters = R.pipe(
-                R.pathOr([], [geoObj.type, 'filters']),
-                R.reject(R.propEq(false, 'active'))
+                R.pathOr([], [geoObj.type, 'filters'])
+                // R.reject(R.propEq(false, 'active'))
               )(enabledArcs)
               if (
                 R.isNil(filteredFeature) &&

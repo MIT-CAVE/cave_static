@@ -1255,8 +1255,8 @@ export const selectMemoizedChartFunc = createSelector(
               filterGroupedOutputs(
                 groupedOutputs[stat[0]],
                 R.pipe(
-                  R.propOr([], 'filters'),
-                  R.reject(R.propEq(false, 'active'))
+                  R.propOr([], 'filters')
+                  // R.reject(R.propEq(false, 'active'))
                 )(obj),
                 groupingIndicies
               ),
@@ -1935,8 +1935,8 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             const [id, node] = obj
             const legendObj = legendObjectsFunc(mapId)[node.type]
             const filters = R.pipe(
-              R.propOr([], 'filters'),
-              R.reject(R.propEq(false, 'active'))
+              R.propOr([], 'filters')
+              // R.reject(R.propEq(false, 'active'))
             )(legendObj)
             if (!filterMapFeature(filters, node)) return false
             const sizeProp = legendObj.sizeBy
@@ -2119,8 +2119,8 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             )
             const legendObj = legendObjectsFunc(mapId)[arc.type]
             const filters = R.pipe(
-              R.propOr([], 'filters'),
-              R.reject(R.propEq(false, 'active'))
+              R.propOr([], 'filters')
+              // R.reject(R.propEq(false, 'active'))
             )(legendObj)
             if (!filterMapFeature(filters, arc)) return false
 
@@ -2231,8 +2231,8 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
           R.map(([id, arc]) => {
             const legendObj = legendObjectsFunc(mapId)[arc.type]
             const filters = R.pipe(
-              R.propOr([], 'filters'),
-              R.reject(R.propEq(false, 'active'))
+              R.propOr([], 'filters')
+              // R.reject(R.propEq(false, 'active'))
             )(legendObj)
             if (!filterMapFeature(filters, arc)) return false
 
