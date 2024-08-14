@@ -2269,9 +2269,11 @@ export const selectArcLayerGeoJsonFunc = createSelector(
             const heightPropVal = parseFloat(
               R.path(['values', heightProp], arc)
             )
+            const defaultHeight =
+              R.has('startHeight', arc) && R.has('endHeight', arc) ? '100' : '0'
 
             const height = isNaN(heightPropVal)
-              ? parseFloat(R.propOr('100', 'nullSize', heightRange))
+              ? parseFloat(R.propOr(defaultHeight, 'nullSize', heightRange))
               : getScaledValue(
                   R.prop('min', heightRange),
                   R.prop('max', heightRange),
