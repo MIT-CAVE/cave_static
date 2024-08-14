@@ -1,5 +1,4 @@
 import {
-  Box,
   Button,
   Paper,
   Stack,
@@ -303,7 +302,12 @@ const GridFilter = ({
     const cleanedRows = removeEditProp(rows)
     const cleanedInitialRows = removeEditProp(initialRows)
     const unsavedChanges = !R.equals(cleanedRows)(cleanedInitialRows)
-    return unsavedChanges
+    const hasBlanks = rows
+      .filter((row) => row.type === 'rule')
+      .some(
+        (row) => row.source === '' || row.relation === '' || row.value === ''
+      )
+    return unsavedChanges && !hasBlanks
   }, [initialRows, rows])
 
   const handleClickSaveAll = useCallback(
@@ -316,7 +320,6 @@ const GridFilter = ({
           renameKeys({ relation: 'option', source: 'prop' })
         )
       )(newRows)
-      console.log('new filters', newFilters)
       onSave(newFilters)
     },
     [onSave]
@@ -406,7 +409,12 @@ const GridFilter = ({
                 ))}
               </Select>
             ) : (
-              sourceValueOpts.find((opts) => opts.value === row.source).label
+              <OverflowText
+                text={
+                  sourceValueOpts.find((opts) => opts.value === row.source)
+                    .label
+                }
+              />
             )
           ) : (
             ''
@@ -521,9 +529,24 @@ const GridFilter = ({
         headerAlign: 'right',
         display: 'flex',
         align: 'right',
-        width: 130,
+        width: 105,
         type: 'actions',
         getActions: ({ id, row }) => {
+          if (id === 0) {
+            return [
+              <GridActionsCellItem
+                icon={<MdAddCircleOutline size="20px" />}
+                label="Add Rule"
+                onClick={() => handleAddRow(row.groupId, row.depth)}
+              />,
+              <GridActionsCellItem
+                icon={<BiBracket size="20px" />}
+                label="Add Group"
+                onClick={() => handleAddGroup(row.groupId, row.depth)}
+                sx={{ marginLeft: '-10px', paddingY: '10px' }}
+              />,
+            ]
+          }
           return row.type === 'group'
             ? [
                 <GridActionsCellItem
@@ -541,6 +564,7 @@ const GridFilter = ({
                   icon={<MdDelete size="20px" />}
                   label="Remove Group"
                   onClick={() => handleDeleteGroup(id, row.groupId)}
+                  sx={{ paddingY: '10px' }}
                 />,
               ]
             : [
@@ -548,6 +572,7 @@ const GridFilter = ({
                   icon={<MdDelete size="20px" />}
                   label="Delete"
                   onClick={handleDeleteRow(id)}
+                  sx={{ paddingY: '10px' }}
                 />,
               ]
         },
@@ -577,11 +602,6 @@ const GridFilter = ({
       <Paper sx={styles.content}>
         <StyledDataGrid
           {...{ columns, rows }}
-          slots={{
-            noRowsOverlay: () => (
-              <Box sx={styles.emptyContent}>No constraints added</Box>
-            ),
-          }}
           getRowHeight={R.always('auto')}
           hideFooter
           disableColumnMenu
