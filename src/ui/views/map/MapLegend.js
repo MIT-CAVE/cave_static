@@ -952,7 +952,7 @@ const MapLegendGeoToggle = ({
               geometryName="geos"
               geometryType={geoType}
               propId={colorProp}
-              {...{ colorRange }}
+              {...{ colorRange, mapId, legendGroupId }}
             />
           ) : (
             <GradientBox
