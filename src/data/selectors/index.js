@@ -2406,6 +2406,171 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
     )
 )
 
+export const selectFetchedArcGeoJsonFunc = createSelector(
+  [
+    selectLineMatchingKeysByTypeFunc,
+    selectArcRange,
+    selectEnabledArcsFunc,
+    selectArcTypes,
+  ],
+  (lineMatchingKeysByTypeFunc, arcRange, enabledArcsFunc, arcTypes) =>
+    maxSizedMemoization(
+      R.identity,
+      async (mapId) => {
+        const enabledArcs = enabledArcsFunc(mapId)
+        const arcNames = R.keys(R.filter(R.identity, enabledArcs))
+
+        const fetchCache = async () => {
+          const cache = await caches.open('arcs')
+          const arcs = {}
+          for (let arcName of arcNames) {
+            const url = R.pathOr(
+              '',
+              [arcName, 'geoJson', 'geoJsonLayer'],
+              arcTypes
+            )
+            // Special catch for empty urls on initial call
+            if (url === '') {
+              continue
+            }
+            let response = await cache.match(url)
+            // add to cache if not found
+            if (R.isNil(response)) {
+              await cache.add(url)
+              response = await cache.match(url)
+            }
+            arcs[arcName] = await response.json()
+          }
+          return arcs
+        }
+        return fetchCache().then((selectedArcs) =>
+          R.pipe(
+            R.map(
+              R.pipe(
+                R.mapObjIndexed((geoObj, geoJsonValue) => {
+                  const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+                  const geoType = R.prop('type')(geoObj)
+                  const filteredFeature = R.find(
+                    (feature) =>
+                      R.path(['properties', geoJsonProp])(feature) ===
+                      geoJsonValue
+                  )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
+
+                  const filters = R.pipe(
+                    R.pathOr([], [geoObj.type, 'filters']),
+                    R.reject(R.propEq(false, 'active'))
+                  )(enabledArcs)
+                  if (
+                    R.isNil(filteredFeature) &&
+                    R.isNotEmpty(
+                      R.pathOr({}, [geoType, 'features'])(selectedArcs)
+                    )
+                  ) {
+                    console.warn(
+                      `No feature with ${geoJsonValue} for property ${geoJsonProp}`
+                    )
+                    return false
+                  } else if (!filterMapFeature(filters, geoObj)) return false
+
+                  const colorProp = R.path(
+                    [geoObj.type, 'colorBy'],
+                    enabledArcs
+                  )
+                  const colorRange = arcRange(
+                    geoObj.type,
+                    colorProp,
+                    false,
+                    mapId
+                  )
+                  const isCategorical = !R.has('min', colorRange)
+                  const propVal = R.pipe(
+                    R.path(['values', colorProp]),
+                    R.when(R.isNil, R.always('')),
+                    (s) => s.toString()
+                  )(geoObj)
+
+                  const nullColor = R.propOr(
+                    'rgba(0,0,0,255)',
+                    'nullColor',
+                    colorRange
+                  )
+
+                  const color = R.equals('', propVal)
+                    ? nullColor
+                    : isCategorical
+                      ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
+                      : `rgba(${getScaledArray(
+                          R.prop('min', colorRange),
+                          R.prop('max', colorRange),
+                          R.map((val) => parseFloat(val))(
+                            R.prop('startGradientColor', colorRange)
+                              .replace(/[^\d,.]/g, '')
+                              .split(',')
+                          ),
+                          R.map((val) => parseFloat(val))(
+                            R.prop('endGradientColor', colorRange)
+                              .replace(/[^\d,.]/g, '')
+                              .split(',')
+                          ),
+                          parseFloat(R.path(['values', colorProp], geoObj))
+                        ).join(',')})`
+
+                  const sizeProp = R.path([geoObj.type, 'sizeBy'], enabledArcs)
+                  const sizeRange = arcRange(geoObj.type, sizeProp, true, mapId)
+                  const sizePropVal = parseFloat(
+                    R.path(['values', sizeProp], geoObj)
+                  )
+                  const size = isNaN(sizePropVal)
+                    ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+                    : getScaledValue(
+                        R.prop('min', sizeRange),
+                        R.prop('max', sizeRange),
+                        parseFloat(R.prop('startSize', sizeRange)),
+                        parseFloat(R.prop('endSize', sizeRange)),
+                        sizePropVal
+                      )
+
+                  const id = R.prop('data_key')(geoObj)
+                  const dashPattern = R.propOr(
+                    'solid',
+                    'lineBy'
+                  )(R.path([geoType, 'colorBy'], enabledArcs))
+
+                  if (
+                    size === 0 ||
+                    parseFloat(R.last(R.split(',', color))) < 1
+                  ) {
+                    return false
+                  }
+                  const adjustedFeature = R.assocPath(
+                    ['geometry', 'coordinates'],
+                    adjustArcPath(
+                      R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
+                    )
+                  )(filteredFeature)
+                  return R.mergeRight(adjustedFeature, {
+                    properties: {
+                      cave_name: JSON.stringify([geoType, id]),
+                      color: color,
+                      dash: dashPattern,
+                      size: size,
+                    },
+                  })
+                }),
+                R.values,
+                R.filter(R.identity)
+              )
+            ),
+            R.values,
+            R.unnest,
+            R.groupBy(R.path(['properties', 'dash']))
+          )(lineMatchingKeysByTypeFunc(mapId))
+        )
+      },
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
 export const selectIncludedGeoJsonFunc = createSelector(
   [selectIncludedGeoDataFunc, selectGeoColorRange, selectEnabledGeosFunc],
   (includedGeoDataFunc, geoColorRange, legendObjectsFunc) =>

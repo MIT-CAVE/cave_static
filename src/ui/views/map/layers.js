@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { useMemo, useEffect, useState, memo, useCallback } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -7,37 +7,25 @@ import { ArcLayer3D } from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectEnabledArcsFunc,
-  selectArcRange,
-  selectArcTypes,
-  selectLineMatchingKeysByTypeFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
+  selectFetchedArcGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
-import {
-  getScaledArray,
-  getScaledValue,
-  includesPath,
-  filterMapFeature,
-  adjustArcPath,
-} from '../../../utils'
+import { includesPath } from '../../../utils'
 
 export const Geos = memo(({ mapId }) => {
   const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
-  const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
-  const arcTypes = useSelector(selectArcTypes)
-  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByTypeFunc)(
-    mapId
-  )
+  const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
+  const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,174 +36,14 @@ export const Geos = memo(({ mapId }) => {
     loadData()
   }, [geoJsonObjectFunc, mapId])
 
-  const arcRange = useSelector(selectArcRange)
-
-  const [selectedArcs, setSelectedArcs] = useState({})
-
   useEffect(() => {
-    const arcNames = R.keys(R.filter(R.identity, enabledArcs))
-
-    const fetchCache = async () => {
-      const cache = await caches.open('arcs')
-      const arcs = {}
-      for (let arcName of arcNames) {
-        const url = R.pathOr('', [arcName, 'geoJson', 'geoJsonLayer'], arcTypes)
-        // Special catch for empty urls on initial call
-        if (url === '') {
-          continue
-        }
-        let response = await cache.match(url)
-        // add to cache if not found
-        if (R.isNil(response)) {
-          await cache.add(url)
-          response = await cache.match(url)
-        }
-        arcs[arcName] = await response.json()
-      }
-      setSelectedArcs(arcs)
+    const loadData = async () => {
+      lineObjFunc(mapId).then((loadedData) => {
+        setLineGeoJsonObject(loadedData)
+      })
     }
-    fetchCache()
-  }, [arcTypes, enabledArcs, lineMatchingKeysByType])
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findLineSize = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const propVal = R.path(['values', sizeProp], d)
-        return `${R.prop('data_key', d)}${propVal}${d.type}`
-      },
-      (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const sizeRange = arcRange(d.type, sizeProp, true, mapId)
-        const propVal = parseFloat(R.path(['values', sizeProp], d))
-        return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              R.prop('min', sizeRange),
-              R.prop('max', sizeRange),
-              parseFloat(R.prop('startSize', sizeRange)),
-              parseFloat(R.prop('endSize', sizeRange)),
-              propVal
-            )
-      }
-    ),
-    [enabledArcs, arcRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findLineColor = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const propVal = R.path(['values', colorProp], d[1])
-        return `${R.prop('data_key', d)}${propVal}${d.type}`
-      },
-      (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const colorRange = arcRange(d.type, colorProp, false, mapId)
-        const isCategorical = !R.has('min', colorRange)
-        const propVal = R.pipe(
-          R.path(['values', colorProp]),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(d)
-
-        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
-
-        return R.equals('', propVal)
-          ? nullColor
-          : isCategorical
-            ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
-            : `rgba(${getScaledArray(
-                R.prop('min', colorRange),
-                R.prop('max', colorRange),
-                R.map((val) => parseFloat(val))(
-                  R.prop('startGradientColor', colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                R.map((val) => parseFloat(val))(
-                  R.prop('endGradientColor', colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                parseFloat(R.path(['values', colorProp], d))
-              ).join(',')})`
-      }
-    ),
-    [enabledArcs, arcRange]
-  )
-
-  const lineGeoJsonObject = useMemo(
-    () =>
-      R.pipe(
-        R.map(
-          R.pipe(
-            R.mapObjIndexed((geoObj, geoJsonValue) => {
-              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-              const geoType = R.prop('type')(geoObj)
-              const filteredFeature = R.find(
-                (feature) =>
-                  R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-              )(R.pathOr({}, [geoType, 'features'])(selectedArcs))
-
-              const filters = R.pipe(
-                R.pathOr([], [geoObj.type, 'filters']),
-                R.reject(R.propEq(false, 'active'))
-              )(enabledArcs)
-              if (
-                R.isNil(filteredFeature) &&
-                R.isNotEmpty(R.pathOr({}, [geoType, 'features'])(selectedArcs))
-              ) {
-                console.warn(
-                  `No feature with ${geoJsonValue} for property ${geoJsonProp}`
-                )
-                return false
-              } else if (!filterMapFeature(filters, geoObj)) return false
-
-              const color = findLineColor(geoObj)
-              const size = findLineSize(geoObj)
-              const id = R.prop('data_key')(geoObj)
-              const dashPattern = R.propOr(
-                'solid',
-                'lineBy'
-              )(R.path([geoType, 'colorBy'], enabledArcs))
-
-              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1) {
-                return false
-              }
-              const adjustedFeature = R.assocPath(
-                ['geometry', 'coordinates'],
-                adjustArcPath(
-                  R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
-                )
-              )(filteredFeature)
-              return R.mergeRight(adjustedFeature, {
-                properties: {
-                  cave_name: JSON.stringify([geoType, id]),
-                  color: color,
-                  dash: dashPattern,
-                  size: size,
-                },
-              })
-            }),
-            R.values,
-            R.filter(R.identity)
-          )
-        ),
-        R.values,
-        R.unnest,
-        R.groupBy(R.path(['properties', 'dash']))
-      )(lineMatchingKeysByType),
-    [
-      enabledArcs,
-      findLineColor,
-      findLineSize,
-      lineMatchingKeysByType,
-      selectedArcs,
-    ]
-  )
+    loadData()
+  }, [lineObjFunc, mapId])
 
   return [
     <Source
