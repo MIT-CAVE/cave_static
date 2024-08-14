@@ -13,7 +13,6 @@ import {
   GridActionsCellItem,
   GridBooleanCell,
   GridRowEditStopReasons,
-  useGridApiRef,
 } from '@mui/x-data-grid'
 import dayjs from 'dayjs'
 import * as R from 'ramda'
@@ -25,12 +24,9 @@ import {
   MdDelete,
   MdEdit,
   MdRestore,
-  // MdSave,
 } from 'react-icons/md'
-// import { PiArrowElbowDownRight } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
-// import EnhancedEditSingleSelect from './EnhancedEditSingleSelect'
 import GridEditMultiSelectCell, {
   GridMultiSelectCell,
 } from './GridEditMultiSelectCell'
@@ -186,17 +182,11 @@ const GridFilter = ({
   filterableExtraProps,
   onSave,
 }) => {
-  // eslint-disable-next-line
-  const [filters, setFilters] = useState(defaultFilters)
   const [idCount, setIdCount] = useState(1)
   const [groupIdCount, setGroupIdCount] = useState(1)
   const [rows, setRows] = useState(defaultFilters)
-  // eslint-disable-next-line
   const [initialRows, setInitialRows] = useState(defaultFilters)
-  // const [rowModesModel, setRowModesModel] = useState({})
-  // const [canSaveRow, setCanSaveRow] = useState({})
 
-  const apiRef = useGridApiRef()
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
   const sourceValueOpts = useMemo(
@@ -219,30 +209,6 @@ const GridFilter = ({
     [filterables, getNumberFormat]
   )
 
-  // const isApiRefValid = !R.either(R.isNil, R.isEmpty)(apiRef.current)
-
-  // const restoreFilters = useCallback(() => {
-  //   const filterCriteria = R.filter(
-  //     R.pipe(R.propOr('stat', 'format'), R.equals('stat'))
-  //   )(filters)
-  //   const initRows = mapIndexed(
-  //     R.pipe(
-  //       R.flip(R.assoc('id')),
-  //       // Drop truthy `active` values
-  //       R.when(R.propEq(true, 'active'), R.dissoc('active')),
-  //       renameKeys({ option: 'relation', prop: 'source' })
-  //     )
-  //   )(filterCriteria)
-
-  //   setInitialRows(initRows)
-  //   setRows(initRows)
-  //   setIdCount(initRows.length)
-  // }, [filters])
-
-  // useEffect(() => {
-  //   restoreFilters()
-  // }, [restoreFilters])
-
   const handleAddRow = useCallback(
     (groupId, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
@@ -262,10 +228,9 @@ const GridFilter = ({
         ...rows.slice(index + 1),
       ]
       setRows(newRows)
-      apiRef.current.selectRow(idCount)
       setIdCount(idCount + 1)
     },
-    [apiRef, idCount, rows]
+    [idCount, rows]
   )
 
   const handleAddGroup = useCallback(
@@ -286,11 +251,10 @@ const GridFilter = ({
         ...rows.slice(index + 1),
       ]
       setRows(newRows)
-      apiRef.current.selectRow(idCount)
       setIdCount(idCount + 1)
       setGroupIdCount(groupIdCount + 1)
     },
-    [groupIdCount, idCount, rows, apiRef]
+    [groupIdCount, idCount, rows]
   )
 
   const deleteRow = useCallback((id) => {
@@ -329,18 +293,6 @@ const GridFilter = ({
       event.defaultMuiPrevented = true
     }
   }
-
-  // const updateActiveStateForSelectedRow = useCallback(
-  //   (row) => {
-  //     const selectedRowIdsSet = new Set(apiRef.current.getSelectedRows().keys())
-  //     return R.ifElse(
-  //       (row) => selectedRowIdsSet.has(row.id),
-  //       R.dissoc('active'),
-  //       R.assoc('active', false)
-  //     )(row)
-  //   },
-  //   [apiRef]
-  // )
 
   const canCancel = useMemo(() => {
     return rows.some((row) => row.edit)
@@ -469,11 +421,9 @@ const GridFilter = ({
         align: 'center',
         width: 90,
         editable: false,
-        renderCell: ({ row, id }) => {
+        renderCell: ({ row }) => {
           if (row.type === 'group') return ''
-          const rowAlt = apiRef.current.getRow(id)
-          const valueAlt = rowAlt.source
-          const value = R.propOr(valueAlt, 'source')(row)
+          const value = row.source
           const valueType =
             value && value !== '' ? sourceValueTypes[value] : 'number'
           const relationValueOpts = getRelationValueOptsByType(valueType)
@@ -604,20 +554,13 @@ const GridFilter = ({
       },
     ],
     [
-      apiRef,
-      // canSaveRow,
       filterableExtraProps,
       filterables,
-      // handleClickDiscard,
-      // handleClickEdit,
-      // handleClickSave,
       handleAddRow,
       handleAddGroup,
       handleDeleteRow,
       handleDeleteGroup,
       numberFormatProps,
-      // preProcessEditCellProps,
-      // rowModesModel,
       sourceHeaderName,
       sourceValueOpts,
       sourceValueTypes,
@@ -633,7 +576,7 @@ const GridFilter = ({
     <>
       <Paper sx={styles.content}>
         <StyledDataGrid
-          {...{ apiRef, columns, rows }}
+          {...{ columns, rows }}
           slots={{
             noRowsOverlay: () => (
               <Box sx={styles.emptyContent}>No constraints added</Box>
@@ -663,15 +606,6 @@ const GridFilter = ({
         >
           Edit
         </Button>
-        {/* <Button
-          // disabled={!canDiscardOrSaveAll}
-          color="error"
-          variant="contained"
-          startIcon={<MdRestore />}
-          onClick={restoreFilters}
-        >
-          Discard Changes
-        </Button> */}
         {canCancel && (
           <Button
             disabled={!canCancel}
