@@ -406,7 +406,7 @@ const GridFilter = ({
                 ))}
               </Select>
             ) : (
-              row.source // replaced original Overflowtext component
+              sourceValueOpts.find((opts) => opts.value === row.source).label
             )
           ) : (
             ''
@@ -440,7 +440,7 @@ const GridFilter = ({
               ))}
             </Select>
           ) : (
-            row.relation
+            relationValueOpts.find((opts) => opts.value === row.relation).label
           )
         },
       },
