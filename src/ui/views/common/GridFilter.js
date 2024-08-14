@@ -11,7 +11,6 @@ import {
   DataGrid,
   GridActionsCellItem,
   GridBooleanCell,
-  GridRowEditStopReasons,
 } from '@mui/x-data-grid'
 import dayjs from 'dayjs'
 import * as R from 'ramda'
@@ -287,28 +286,25 @@ const GridFilter = ({
     [deleteRow, rows]
   )
 
-  const handleRowEditStop = ({ reason }, event) => {
-    if (reason === GridRowEditStopReasons.rowFocusOut) {
-      event.defaultMuiPrevented = true
-    }
-  }
-
-  const canCancel = useMemo(() => {
-    return rows.some((row) => row.edit)
-  }, [rows])
-
-  const canSaveAll = useMemo(() => {
+  const unsavedChanges = useMemo(() => {
     const removeEditProp = R.map(R.dissoc('edit'))
     const cleanedRows = removeEditProp(rows)
     const cleanedInitialRows = removeEditProp(initialRows)
-    const unsavedChanges = !R.equals(cleanedRows)(cleanedInitialRows)
+    return !R.equals(cleanedRows)(cleanedInitialRows)
+  }, [rows, initialRows])
+
+  const canCancel = useMemo(() => {
+    return rows.some((row) => row.edit) || unsavedChanges
+  }, [rows, unsavedChanges])
+
+  const canSaveAll = useMemo(() => {
     const hasBlanks = rows
       .filter((row) => row.type === 'rule')
       .some(
         (row) => row.source === '' || row.relation === '' || row.value === ''
       )
     return unsavedChanges && !hasBlanks
-  }, [initialRows, rows])
+  }, [rows, unsavedChanges])
 
   const handleClickSaveAll = useCallback(
     (newRows) => {
@@ -325,39 +321,9 @@ const GridFilter = ({
     [onSave]
   )
 
-  const handleCellDoubleClick = (params, event) => {
-    event.defaultMuiPrevented = true
-  }
-
-  const handleLogicChange = (id, event) => {
-    const newLogic = event.target.value
+  const handleRowChange = (id, field, value) => {
     setRows((prevRows) =>
-      prevRows.map((row) => (row.id === id ? { ...row, logic: newLogic } : row))
-    )
-  }
-
-  const handleSourceChange = (id, event) => {
-    const newSource = event.target.value
-    setRows((prevRows) =>
-      prevRows.map((row) =>
-        row.id === id ? { ...row, source: newSource } : row
-      )
-    )
-  }
-
-  const handleRelationChange = (id, event) => {
-    const newRelation = event.target.value
-    setRows((prevRows) =>
-      prevRows.map((row) =>
-        row.id === id ? { ...row, relation: newRelation } : row
-      )
-    )
-  }
-
-  const handleValueChange = (id, event) => {
-    const newValue = event.target.value
-    setRows((prevRows) =>
-      prevRows.map((row) => (row.id === id ? { ...row, value: newValue } : row))
+      prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
     )
   }
 
@@ -375,7 +341,9 @@ const GridFilter = ({
             row.edit ? (
               <Select
                 value={row.logic}
-                onChange={(event) => handleLogicChange(row.id, event)}
+                onChange={(event) =>
+                  handleRowChange(row.id, 'logic', event.target.value)
+                }
               >
                 <MenuItem value={'and'}>AND</MenuItem>
                 <MenuItem value={'or'}>OR</MenuItem>
@@ -399,7 +367,9 @@ const GridFilter = ({
             row.edit ? (
               <Select
                 value={row.source}
-                onChange={(event) => handleSourceChange(row.id, event)}
+                onChange={(event) =>
+                  handleRowChange(row.id, 'source', event.target.value)
+                }
                 sx={{ flex: 1 }}
               >
                 {sourceValueOpts.map((option, index) => (
@@ -438,7 +408,9 @@ const GridFilter = ({
           return row.edit ? (
             <Select
               value={row.relation}
-              onChange={(event) => handleRelationChange(row.id, event)}
+              onChange={(event) =>
+                handleRowChange(row.id, 'relation', event.target.value)
+              }
               sx={{ flex: 1 }}
             >
               {relationValueOpts.map((option, index) => (
@@ -461,37 +433,33 @@ const GridFilter = ({
         width: 150,
         editable: false,
         renderCell: (params) => {
-          if (params.row.type === 'group') return ''
-          if (params.row.edit) {
+          const { value, row } = params
+          if (row.type === 'group') return ''
+          if (row.edit) {
             const valueType = sourceValueTypes[params.row.source]
             if (valueType === 'multiSelect') {
               return (
                 <GridEditMultiSelectCell
-                  options={filterables[params.row.source].options}
-                  colorByOptions={R.path([params.row.source, 'colorByOptions'])(
+                  options={filterables[row.source].options}
+                  colorByOptions={R.path([row.source, 'colorByOptions'])(
                     filterableExtraProps
                   )}
-                  onChange={(event, newValue) => {
-                    setRows((prevRows) =>
-                      prevRows.map((prevRow) =>
-                        prevRow.id === params.row.id
-                          ? { ...prevRow, value: newValue }
-                          : prevRow
-                      )
-                    )
-                  }}
+                  onChange={(event, newValue) =>
+                    handleRowChange(row.id, 'value', newValue)
+                  }
                 />
               )
             } else {
               return (
                 <TextField
-                  value={params.row.value || ''}
-                  onChange={(event) => handleValueChange(params.row.id, event)}
+                  value={row.value || ''}
+                  onChange={(event) =>
+                    handleRowChange(row.id, 'value', event.target.value)
+                  }
                 />
               )
             }
           } else {
-            const { value, row } = params
             const valueType = sourceValueTypes[row.source]
             const formattedValue =
               valueType === 'number'
@@ -543,7 +511,7 @@ const GridFilter = ({
                 icon={<BiBracket size="20px" />}
                 label="Add Group"
                 onClick={() => handleAddGroup(row.groupId, row.depth)}
-                sx={{ marginLeft: '-10px', paddingY: '10px' }}
+                sx={{ marginLeft: '-10px', paddingY: '12px' }}
               />,
             ]
           }
@@ -564,7 +532,7 @@ const GridFilter = ({
                   icon={<MdDelete size="20px" />}
                   label="Remove Group"
                   onClick={() => handleDeleteGroup(id, row.groupId)}
-                  sx={{ paddingY: '10px' }}
+                  sx={{ paddingY: '12px' }}
                 />,
               ]
             : [
@@ -572,7 +540,7 @@ const GridFilter = ({
                   icon={<MdDelete size="20px" />}
                   label="Delete"
                   onClick={handleDeleteRow(id)}
-                  sx={{ paddingY: '10px' }}
+                  sx={{ paddingY: '12px' }}
                 />,
               ]
         },
@@ -607,9 +575,6 @@ const GridFilter = ({
           disableColumnMenu
           disableColumnResize
           disableColumnSorting
-          disableRowSelectionOnClick
-          onRowEditStop={handleRowEditStop}
-          onCellDoubleClick={handleCellDoubleClick}
           maxDepth={maxDepth}
           getRowClassName={(params) => `row-color-${params.row.depth}`}
         />
