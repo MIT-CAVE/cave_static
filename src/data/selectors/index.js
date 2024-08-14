@@ -44,6 +44,7 @@ import {
   filterGroupedOutputs,
   calculateStatAnyDepth,
   adjustArcPath,
+  getScaledColor,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -2477,6 +2478,125 @@ export const selectIncludedGeoJsonFunc = createSelector(
           }),
           R.values
         )(includedGeoDataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectFetchedGeoJsonFunc = createSelector(
+  [
+    selectFetchedGeoDataFunc,
+    selectGeoColorRange,
+    selectEnabledGeosFunc,
+    selectGeoTypes,
+    selectMatchingKeysByTypeFunc,
+  ],
+  (
+    fetchedGeos,
+    geoColorRange,
+    enabledGeosFunc,
+    geoTypes,
+    matchingKeysByTypeFunc
+  ) =>
+    maxSizedMemoization(
+      R.identity,
+      async (mapId) => {
+        const enabledGeos = enabledGeosFunc(mapId)
+        const geoNames = R.pipe(
+          R.filter(R.identity),
+          R.keys,
+          R.filter(R.has(R.__, fetchedGeos(mapId)))
+        )(enabledGeos)
+        const fetchCache = async () => {
+          const cache = await caches.open('geos')
+          const geos = {}
+          for (let geoName of geoNames) {
+            const url = R.pathOr(
+              '',
+              [geoName, 'geoJson', 'geoJsonLayer'],
+              geoTypes
+            )
+            // Special catch for empty urls on initial call
+            if (url === '') {
+              break
+            }
+            let response = await cache.match(url)
+            // add to cache if not found
+            if (R.isNil(response)) {
+              await cache.add(url)
+              response = await cache.match(url)
+            }
+            geos[geoName] = await response.json()
+          }
+          return geos
+        }
+        return fetchCache().then((selectedGeos) =>
+          R.pipe(
+            R.map(
+              R.pipe(
+                R.mapObjIndexed((geoObj, geoJsonValue) => {
+                  const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+                  const geoType = R.prop('type')(geoObj)
+
+                  const filters = R.pipe(
+                    R.pathOr([], [geoObj.type, 'filters']),
+                    R.reject(R.propEq(false, 'active'))
+                  )(enabledGeos)
+                  if (!filterMapFeature(filters, geoObj)) return false
+
+                  const filteredFeature = R.find(
+                    (feature) =>
+                      R.path(['properties', geoJsonProp])(feature) ===
+                      geoJsonValue
+                  )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
+
+                  const colorProp = R.path(
+                    [geoObj.type, 'colorBy'],
+                    enabledGeos
+                  )
+                  const statRange = geoColorRange(geoObj.type, colorProp, mapId)
+                  const colorRange = R.map((prop) =>
+                    R.pathOr(0, [prop])(statRange)
+                  )(['startGradientColor', 'endGradientColor'])
+                  const value = R.pipe(
+                    R.path(['values', colorProp]),
+                    R.when(R.isNil, R.always('')),
+                    (s) => s.toString()
+                  )(geoObj)
+                  const isCategorical = !R.has('min', statRange)
+
+                  const nullColor = R.propOr(
+                    'rgba(0,0,0,255)',
+                    'nullColor',
+                    colorRange
+                  )
+
+                  const color = R.equals('', value)
+                    ? nullColor
+                    : isCategorical
+                      ? R.propOr('rgba(0,0,0,5)', value, statRange)
+                      : `rgba(${getScaledColor(
+                          [R.prop('min', statRange), R.prop('max', statRange)],
+                          colorRange,
+                          value
+                        ).join(',')})`
+
+                  const id = R.prop('data_key')(geoObj)
+                  return R.mergeRight(filteredFeature, {
+                    properties: {
+                      cave_name: JSON.stringify([geoType, id]),
+                      color: color,
+                    },
+                  })
+                }),
+                R.values,
+                R.filter(R.identity)
+              )
+            ),
+            R.values,
+            R.unnest
+          )(matchingKeysByTypeFunc(mapId))
+        )
+      },
       MAX_MEMOIZED_CHARTS
     )
 )

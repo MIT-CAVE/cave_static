@@ -9,24 +9,19 @@ import { mutateLocal } from '../../../data/local'
 import {
   selectEnabledArcsFunc,
   selectArcRange,
-  selectEnabledGeosFunc,
-  selectGeoColorRange,
-  selectMatchingKeysByTypeFunc,
-  selectGeoTypes,
   selectArcTypes,
   selectLineMatchingKeysByTypeFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
-  selectFetchedGeoDataFunc,
   selectIncludedGeoJsonFunc,
+  selectFetchedGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 import {
-  getScaledColor,
   getScaledArray,
   getScaledValue,
   includesPath,
@@ -35,48 +30,27 @@ import {
 } from '../../../utils'
 
 export const Geos = memo(({ mapId }) => {
-  const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
-  const fetchedGeos = useSelector(selectFetchedGeoDataFunc)(mapId)
-  const geoColorRange = useSelector(selectGeoColorRange)
-  const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
-  const geoTypes = useSelector(selectGeoTypes)
+  const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
   const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
   const arcTypes = useSelector(selectArcTypes)
   const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByTypeFunc)(
     mapId
   )
+
+  const [loadedGeoJson, setLoadedGeoJson] = useState({})
+
+  useEffect(() => {
+    const loadData = async () => {
+      geoJsonObjectFunc(mapId).then((loadedData) => {
+        setLoadedGeoJson(loadedData)
+      })
+    }
+    loadData()
+  }, [geoJsonObjectFunc, mapId])
+
   const arcRange = useSelector(selectArcRange)
 
-  const [selectedGeos, setSelectedGeos] = useState({})
   const [selectedArcs, setSelectedArcs] = useState({})
-  useEffect(() => {
-    const geoNames = R.pipe(
-      R.filter(R.identity),
-      R.keys,
-      R.filter(R.has(R.__, fetchedGeos))
-    )(enabledGeos)
-
-    const fetchCache = async () => {
-      const cache = await caches.open('geos')
-      const geos = {}
-      for (let geoName of geoNames) {
-        const url = R.pathOr('', [geoName, 'geoJson', 'geoJsonLayer'], geoTypes)
-        // Special catch for empty urls on initial call
-        if (url === '') {
-          break
-        }
-        let response = await cache.match(url)
-        // add to cache if not found
-        if (R.isNil(response)) {
-          await cache.add(url)
-          response = await cache.match(url)
-        }
-        geos[geoName] = await response.json()
-      }
-      setSelectedGeos(geos)
-    }
-    fetchCache()
-  }, [geoTypes, enabledGeos, matchingKeysByType, fetchedGeos])
 
   useEffect(() => {
     const arcNames = R.keys(R.filter(R.identity, enabledArcs))
@@ -102,44 +76,6 @@ export const Geos = memo(({ mapId }) => {
     }
     fetchCache()
   }, [arcTypes, enabledArcs, lineMatchingKeysByType])
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findColor = useCallback(
-    R.memoizeWith(
-      (geoObj) => {
-        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const value = R.path(['values', colorProp], geoObj)
-        return `${geoObj.geoJsonValue}${value}${geoObj.type}`
-      },
-      (geoObj) => {
-        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geoColorRange(geoObj.type, colorProp, mapId)
-        const colorRange = R.map((prop) => R.pathOr(0, [prop])(statRange))([
-          'startGradientColor',
-          'endGradientColor',
-        ])
-        const value = R.pipe(
-          R.path(['values', colorProp]),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(geoObj)
-        const isCategorical = !R.has('min', statRange)
-
-        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
-
-        return R.equals('', value)
-          ? nullColor
-          : isCategorical
-            ? R.propOr('rgba(0,0,0,5)', value, statRange)
-            : `rgba(${getScaledColor(
-                [R.prop('min', statRange), R.prop('max', statRange)],
-                colorRange,
-                value
-              ).join(',')})`
-      }
-    ),
-    [enabledGeos, geoColorRange]
-  )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const findLineSize = useCallback(
@@ -209,45 +145,6 @@ export const Geos = memo(({ mapId }) => {
       }
     ),
     [enabledArcs, arcRange]
-  )
-
-  const geoJsonObject = useMemo(
-    () =>
-      R.pipe(
-        R.map(
-          R.pipe(
-            R.mapObjIndexed((geoObj, geoJsonValue) => {
-              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-              const geoType = R.prop('type')(geoObj)
-
-              const filters = R.pipe(
-                R.pathOr([], [geoObj.type, 'filters']),
-                R.reject(R.propEq(false, 'active'))
-              )(enabledGeos)
-              if (!filterMapFeature(filters, geoObj)) return false
-
-              const filteredFeature = R.find(
-                (feature) =>
-                  R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-              )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
-              const color = findColor(geoObj)
-
-              const id = R.prop('data_key')(geoObj)
-              return R.mergeRight(filteredFeature, {
-                properties: {
-                  cave_name: JSON.stringify([geoType, id]),
-                  color: color,
-                },
-              })
-            }),
-            R.values,
-            R.filter(R.identity)
-          )
-        ),
-        R.values,
-        R.unnest
-      )(matchingKeysByType),
-    [enabledGeos, findColor, matchingKeysByType, selectedGeos]
   )
 
   const lineGeoJsonObject = useMemo(
@@ -328,7 +225,7 @@ export const Geos = memo(({ mapId }) => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: geoJsonObject,
+        features: loadedGeoJson,
       }}
     >
       <Layer
