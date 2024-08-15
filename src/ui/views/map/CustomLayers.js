@@ -601,7 +601,7 @@ export const ArcsWithHeight = memo(({ id, arcs, onClick = () => {} }) => {
       convertFeaturesToObjects={geoJsonToSegments}
       features={arcsMemo}
       onClick={onClick}
-      getScale={(arc, zoom) => [1, 1, 1 / Math.pow(2, zoom)]}
+      getScale={(arc, zoom) => [50 / Math.pow(2, zoom), 1, 1]}
     />
   )
 })
@@ -649,25 +649,21 @@ const CustomLayer = memo(
     const getObjectContainer = (object) =>
       R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object
 
-    const getUserData = (object) => {
-      if (R.isNotEmpty(R.prop('userData', object)))
-        return R.prop('userData', object)
-      return R.path(['parent', 'userData'], object)
-    }
-
-    const setColor = (object, color) => {
+    const setObjectColor = (object, color) => {
       const container = getObjectContainer(object)
 
-      if (container.isGroup)
-        R.forEach(
-          (child) => child.material.color.set(color),
-          container.children
-        )
-      else container.material.color.set(color)
+      const setChildrenColor = (object, color) => {
+        if (object.isGroup)
+          R.forEach((child) => setChildrenColor(child, color), object.children)
+        else object.material.color.set(color)
+      }
+
+      setChildrenColor(container, color)
     }
 
     const clearHighlight = () => {
-      if (R.isNotNil(highlightedObject)) setColor(highlightedObject, oldColor)
+      if (R.isNotNil(highlightedObject))
+        setObjectColor(highlightedObject, oldColor)
     }
 
     const setZoom = (object, zoom) => {
@@ -798,7 +794,10 @@ const CustomLayer = memo(
 
         if (hovering) {
           const hoveredObject = R.path([0, 'object'], intersects)
-          const hoveredUserData = getUserData(hoveredObject)
+          const hoveredUserData = R.prop(
+            'userData',
+            getObjectContainer(hoveredObject)
+          )
 
           if (hoveredUserData.layerId !== id) return
 
@@ -824,7 +823,7 @@ const CustomLayer = memo(
               colorArr[1] / 255,
               colorArr[2] / 255
             )
-            setColor(hoveredObject, colorObj)
+            setObjectColor(hoveredObject, colorObj)
           }
         } else if (wasPreviousHighlight && !click) {
           clearHighlight()
