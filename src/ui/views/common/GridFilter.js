@@ -5,6 +5,7 @@ import {
   Select,
   MenuItem,
   TextField,
+  Box,
 } from '@mui/material'
 import { darken, lighten, styled } from '@mui/material/styles'
 import {
@@ -358,7 +359,24 @@ const GridFilter = ({
                 <MenuItem value={'or'}>OR</MenuItem>
               </Select>
             ) : (
-              row.logic.toUpperCase()
+              <Box sx={{ display: 'flex' }}>
+                <Box sx={{ marginRight: '3px', display: 'flex' }}>
+                  {Array.from({ length: row.depth }).map((_, index) => {
+                    const colors = ['green', 'red', 'blue']
+                    const color = colors[index % colors.length]
+
+                    return (
+                      <Box
+                        key={index}
+                        sx={{ marginRight: '2px', color: color }}
+                      >
+                        |
+                      </Box>
+                    )
+                  })}
+                </Box>
+                <Box>{row.logic.toUpperCase()}</Box>
+              </Box>
             )
           ) : (
             ''
