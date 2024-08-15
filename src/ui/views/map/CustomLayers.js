@@ -21,10 +21,11 @@ const generateSegment = (curve, feature, segments = 80) => {
   const size = R.pathOr(30, ['properties', 'size'], feature)
 
   const points = curve.getPoints(segments)
-  return R.reduce(
-    (acc, idx) => {
+  const lineSegmentRects = []
+  R.forEach(
+    (idx) => {
       // Skip every other segment for dashed line
-      if (lineType === 'dashed' && idx % 2 === 0) return acc
+      if (lineType === 'dashed' && idx % 2 === 0) return
 
       // Generate midpoint to place cylinder center
       const midpoint = new THREE.Vector3(
@@ -67,11 +68,12 @@ const generateSegment = (curve, feature, segments = 80) => {
       rect.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
       rect.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
 
-      return R.append(rect, acc)
+      lineSegmentRects.push(rect)
     },
-    [],
     R.range(0, R.length(points) - 1)
   )
+
+  return lineSegmentRects
 }
 
 // Converts array of geoJson features to array of Meshes to be added to scene
@@ -606,6 +608,7 @@ export const ArcsWithHeight = memo(({ id, arcs, onClick = () => {} }) => {
   )
 })
 
+// All custom layers use the same scene and renderer
 const scene = new THREE.Scene()
 let renderer = null
 const raycaster = new THREE.Raycaster()
