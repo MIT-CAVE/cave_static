@@ -6,7 +6,12 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { CHART_PALETTE, DEFAULT_ICON_URL } from './constants'
+import {
+  CHART_PALETTE,
+  DEFAULT_ICON_URL,
+  ICON_RESOLUTION,
+  MAX_MEMOIZED_CHARTS,
+} from './constants'
 
 export { default as NumberFormat } from './NumberFormat'
 
@@ -797,3 +802,271 @@ export const cleanUndefinedStats = (chartObj) => {
       )(reduced_chart)
     : reduced_chart
 }
+
+export const constructFetchedGeoJson = (
+  matchingKeysByTypeFunc,
+  itemRange,
+  enabledItemsFunc,
+  types,
+  cacheName
+) =>
+  maxSizedMemoization(
+    R.identity,
+    async (mapId) => {
+      const enabledItems = enabledItemsFunc(mapId)
+      const itemNames = R.keys(R.filter(R.identity, enabledItems))
+
+      const fetchCache = async () => {
+        const cache = await caches.open(cacheName)
+        const items = {}
+        for (let itemName of itemNames) {
+          const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'], types)
+          // Special catch for empty urls on initial call
+          if (url === '') {
+            continue
+          }
+          let response = await cache.match(url)
+          // add to cache if not found
+          if (R.isNil(response)) {
+            await cache.add(url)
+            response = await cache.match(url)
+          }
+          items[itemName] = await response.json()
+        }
+        return items
+      }
+      return fetchCache().then((selecteditems) =>
+        R.pipe(
+          R.map(
+            R.pipe(
+              R.mapObjIndexed((geoObj, geoJsonValue) => {
+                const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+                const geoType = R.prop('type')(geoObj)
+                const filteredFeature = R.find(
+                  (feature) =>
+                    R.path(['properties', geoJsonProp])(feature) ===
+                    geoJsonValue
+                )(R.pathOr({}, [geoType, 'features'])(selecteditems))
+
+                const filters = R.pipe(
+                  R.pathOr([], [geoObj.type, 'filters']),
+                  R.reject(R.propEq(false, 'active'))
+                )(enabledItems)
+                if (
+                  R.isNil(filteredFeature) &&
+                  R.isNotEmpty(
+                    R.pathOr({}, [geoType, 'features'])(selecteditems)
+                  )
+                ) {
+                  console.warn(
+                    `No feature with ${geoJsonValue} for property ${geoJsonProp}`
+                  )
+                  return false
+                } else if (!filterMapFeature(filters, geoObj)) return false
+
+                const colorProp = R.path([geoObj.type, 'colorBy'], enabledItems)
+                const colorRange = itemRange(
+                  geoObj.type,
+                  colorProp,
+                  mapId,
+                  false
+                )
+                const isCategorical = !R.has('min', colorRange)
+                const propVal = R.pipe(
+                  R.path(['values', colorProp]),
+                  R.when(R.isNil, R.always('')),
+                  (s) => s.toString()
+                )(geoObj)
+
+                const nullColor = R.propOr(
+                  'rgba(0,0,0,255)',
+                  'nullColor',
+                  colorRange
+                )
+
+                const color = R.equals('', propVal)
+                  ? nullColor
+                  : isCategorical
+                    ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
+                    : `rgba(${getScaledArray(
+                        R.prop('min', colorRange),
+                        R.prop('max', colorRange),
+                        R.map((val) => parseFloat(val))(
+                          R.prop('startGradientColor', colorRange)
+                            .replace(/[^\d,.]/g, '')
+                            .split(',')
+                        ),
+                        R.map((val) => parseFloat(val))(
+                          R.prop('endGradientColor', colorRange)
+                            .replace(/[^\d,.]/g, '')
+                            .split(',')
+                        ),
+                        parseFloat(R.path(['values', colorProp], geoObj))
+                      ).join(',')})`
+
+                const id = R.prop('data_key')(geoObj)
+
+                // don't calculate size, dash, or adjust path for geos
+                if (cacheName === 'geo')
+                  return R.mergeRight(filteredFeature, {
+                    properties: {
+                      cave_name: JSON.stringify([geoType, id]),
+                      color: color,
+                    },
+                  })
+
+                const sizeProp = R.path([geoObj.type, 'sizeBy'], enabledItems)
+                const sizeRange = itemRange(geoObj.type, sizeProp, mapId, true)
+                const sizePropVal = parseFloat(
+                  R.path(['values', sizeProp], geoObj)
+                )
+                const size = isNaN(sizePropVal)
+                  ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+                  : getScaledValue(
+                      R.prop('min', sizeRange),
+                      R.prop('max', sizeRange),
+                      parseFloat(R.prop('startSize', sizeRange)),
+                      parseFloat(R.prop('endSize', sizeRange)),
+                      sizePropVal
+                    )
+
+                const dashPattern = R.propOr(
+                  'solid',
+                  'lineBy'
+                )(R.path([geoType, 'colorBy'], enabledItems))
+
+                if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1) {
+                  return false
+                }
+                const adjustedFeature = R.assocPath(
+                  ['geometry', 'coordinates'],
+                  adjustArcPath(
+                    R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
+                  )
+                )(filteredFeature)
+                return R.mergeRight(adjustedFeature, {
+                  properties: {
+                    cave_name: JSON.stringify([geoType, id]),
+                    color: color,
+                    dash: dashPattern,
+                    size: size,
+                  },
+                })
+              }),
+              R.values,
+              R.filter(R.identity)
+            )
+          ),
+          R.values,
+          R.unnest
+        )(matchingKeysByTypeFunc(mapId))
+      )
+    },
+    MAX_MEMOIZED_CHARTS
+  )
+
+export const constructGeoJson = (
+  itemRange,
+  itemDataFunc,
+  legendObjectsFunc,
+  geometryFunc,
+  type
+) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) =>
+      R.pipe(
+        R.map((obj) => {
+          const [id, item] = obj
+          const legendObj = legendObjectsFunc(mapId)[item.type]
+          const filters = R.pipe(
+            R.propOr([], 'filters'),
+            R.reject(R.propEq(false, 'active'))
+          )(legendObj)
+          if (!filterMapFeature(filters, item)) return false
+
+          const colorProp = legendObj.colorBy
+          const colorPropVal = R.pipe(
+            R.path(['values', colorProp]),
+            R.when(R.isNil, R.always('')),
+            (s) => s.toString()
+          )(item)
+          const colorRange = itemRange(item.type, colorProp, mapId, false)
+
+          const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
+
+          const isColorCategorical = !R.has('min', colorRange)
+          const color = isColorCategorical
+            ? R.map((val) => parseFloat(val))(
+                R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
+                  .replace(/[^\d,.]/g, '')
+                  .split(',')
+              )
+            : getScaledArray(
+                R.prop('min', colorRange),
+                R.prop('max', colorRange),
+                R.map((val) => parseFloat(val))(
+                  R.prop('startGradientColor', colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                ),
+                R.map((val) => parseFloat(val))(
+                  R.prop('endGradientColor', colorRange)
+                    .replace(/[^\d,.]/g, '')
+                    .split(',')
+                ),
+                parseFloat(colorPropVal)
+              )
+          const colorString = R.equals('', colorPropVal)
+            ? nullColor
+            : `rgba(${color.join(',')})`
+
+          if (type === 'geo')
+            return {
+              type: 'Feature',
+              properties: {
+                cave_obj: item,
+                cave_name: JSON.stringify([item.type, id]),
+                color: colorString,
+              },
+              geometry: geometryFunc(item),
+            }
+
+          const sizeProp = legendObj.sizeBy
+          const sizeRange = itemRange(item.type, sizeProp, mapId, true)
+          const sizePropVal = R.path(['values', sizeProp], item)
+          const isSizeCategorical = !R.has('min', sizeRange)
+          const size = R.isNil(sizePropVal)
+            ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+            : isSizeCategorical
+              ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
+              : getScaledValue(
+                  R.prop('min', sizeRange),
+                  R.prop('max', sizeRange),
+                  parseFloat(R.prop('startSize', sizeRange)),
+                  parseFloat(R.prop('endSize', sizeRange)),
+                  parseFloat(sizePropVal)
+                )
+
+          if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
+            return false
+          return {
+            type: 'Feature',
+            properties: {
+              cave_obj: item,
+              cave_name: JSON.stringify([item.type, id]),
+              color: colorString,
+              size: type === 'node' ? size / ICON_RESOLUTION : size,
+              ...(type === 'node' && { icon: legendObj.icon }),
+              ...(type === 'arc' && {
+                dash: R.propOr('solid', 'lineBy')(legendObj),
+              }),
+            },
+            geometry: geometryFunc(item),
+          }
+        }),
+        R.values,
+        R.filter(R.identity)
+      )(itemDataFunc(mapId)),
+    MAX_MEMOIZED_CHARTS
+  )

@@ -1143,8 +1143,8 @@ const LegendCard = memo(
       clusterRange
     )
 
-    const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
-    const colorRange = geometryRange(geometryType, colorProp, false, mapId)
+    const sizeRange = geometryRange(geometryType, sizeProp, mapId, true)
+    const colorRange = geometryRange(geometryType, colorProp, mapId, false)
 
     const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
     const handleSaveFilters = (newFilters) => {
