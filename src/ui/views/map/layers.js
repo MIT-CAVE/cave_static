@@ -439,7 +439,7 @@ export const Geos = memo(({ mapId }) => {
     <ArcsWithHeight
       id="geos-arcs-with-altitude"
       key="geos-arcs-with-altitude"
-      geos={!isGlobe ? R.unnest(R.values(lineGeoJsonObject)) : []}
+      arcs={!isGlobe ? R.unnest(R.values(lineGeoJsonObject)) : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
       }
@@ -627,7 +627,7 @@ export const Arcs = memo(({ mapId }) => {
   return [
     <ArcsWithHeight
       id="arcs-with-altitude"
-      geos={!isGlobe ? R.unnest(R.values(arcLayerGeoJson)) : []}
+      arcs={!isGlobe ? R.unnest(R.values(arcLayerGeoJson)) : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
       }

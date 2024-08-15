@@ -75,7 +75,7 @@ const generateSegment = (curve, feature, segments = 80) => {
 }
 
 // Converts array of geoJson features to array of Meshes to be added to scene
-const geoJsonToSegments = (features) => {
+const geoJsonToSegments = (features, layerId) => {
   const allArcs = []
 
   R.forEach((feature) => {
@@ -122,6 +122,7 @@ const geoJsonToSegments = (features) => {
     arcGroup.userData = {
       cave_name: R.path(['properties', 'cave_name'], feature),
       cave_obj: R.path(['properties', 'cave_obj'], feature),
+      layerId,
     }
 
     allArcs.push(arcGroup)
@@ -134,17 +135,23 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
   const { current: map } = useMap()
   const layer = map.getLayer('3d-model')
   const canvas = map.getCanvas()
+
   const clickHandler = useRef()
   const hoverHandler = useRef()
+
+  const id = '3d-model'
+
   useEffect(() => {
     // Generate meshes from array of geoJson features
     if (layer)
-      layer.implementation.updateMeshes(geoJsonToSegments(features || []))
+      layer.implementation.updateMeshes(geoJsonToSegments(features || [], id))
   }, [features, layer])
+
   useEffect(() => {
     // Update onClick if changed
     if (layer) layer.implementation.onClick = onClick
   }, [onClick, layer])
+
   // Cleans up event listeners
   useEffect(
     () => () => {
@@ -160,7 +167,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
 
   // configuration of the custom layer per the CustomLayerInterface
   const customLayer = {
-    id: '3d-model',
+    id,
     type: 'custom',
     renderingMode: '3d',
     highlightedId: -1,
@@ -170,7 +177,7 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
       this.camera = new THREE.PerspectiveCamera()
       this.scene = new THREE.Scene()
       this.map = map
-      this.lines = geoJsonToSegments(features || [])
+      this.lines = geoJsonToSegments(features || [], id)
       // add all generated cylinders to scene
       R.forEach((line) => this.scene.add(line))(this.lines)
       // use the Mapbox GL JS map canvas for three.js
@@ -356,10 +363,11 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
           cave_name: R.path(['properties', 'cave_name'], node),
           cave_obj: R.path(['properties', 'cave_obj'], node),
           size: R.pathOr(1, ['properties', 'size'], node),
+          layerId: id,
         }
         return nodeWithHeight
       }, nodes),
-    [iconData]
+    [iconData, id]
   )
 
   useEffect(() => {
@@ -420,6 +428,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
       geoGroup.userData = {
         cave_name: R.path(['properties', 'cave_name'], geo),
         cave_obj: R.path(['properties', 'cave_obj'], geo),
+        layerId: id,
       }
 
       R.forEach((polygon) => {
@@ -579,7 +588,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
   )
 })
 
-export const ArcsWithHeight = memo(({ id, geos: arcs, onClick = () => {} }) => {
+export const ArcsWithHeight = memo(({ id, arcs, onClick = () => {} }) => {
   const [arcsMemo, setArcsMemo] = useState(arcs)
 
   useEffect(() => {
@@ -638,7 +647,7 @@ const CustomLayer = memo(
     }
 
     const getObjectContainer = (object) =>
-      object.isGroup ? object : object.parent
+      R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object
 
     const getUserData = (object) => {
       if (R.isNotEmpty(R.prop('userData', object)))
@@ -671,8 +680,10 @@ const CustomLayer = memo(
 
     useEffect(() => {
       if (layer)
-        layer.implementation.updateObjects(convertFeaturesToObjects(features))
-    }, [features, layer, convertFeaturesToObjects])
+        layer.implementation.updateObjects(
+          convertFeaturesToObjects(features, id)
+        )
+    }, [features, id, layer, convertFeaturesToObjects])
 
     useEffect(() => {
       if (layer) layer.implementation.onClick = onClick
@@ -700,7 +711,7 @@ const CustomLayer = memo(
 
         this.camera = new THREE.PerspectiveCamera()
         this.map = map
-        const objects = convertFeaturesToObjects(features)
+        const objects = convertFeaturesToObjects(features, id)
         this.objects = new THREE.Group()
         R.forEach(
           (object) => this.objects.add(object),
@@ -786,14 +797,16 @@ const CustomLayer = memo(
         const wasPreviousHighlight = R.isNotNil(highlightedObject)
 
         if (hovering) {
-          // Prevent non-custom layers from being clicked/highlighted
+          const hoveredObject = R.path([0, 'object'], intersects)
+          const hoveredUserData = getUserData(hoveredObject)
+
+          if (hoveredUserData.layerId !== id) return
+
+          // Prevent other layers from being clicked/highlighted
           e.stopImmediatePropagation()
           // Clear highlight from non-custom layers
           const event = new CustomEvent('clearHighlight')
           document.dispatchEvent(event)
-
-          const hoveredObject = R.path([0, 'object'], intersects)
-          const hoveredUserData = getUserData(hoveredObject)
 
           if (click) {
             layer.onClick(hoveredUserData)
