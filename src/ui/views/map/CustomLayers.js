@@ -597,6 +597,14 @@ export const ArcsWithHeight = memo(({ id, geos: arcs, onClick = () => {} }) => {
   )
 })
 
+const scene = new THREE.Scene()
+let renderer = null
+const raycaster = new THREE.Raycaster()
+raycaster.near = -1
+raycaster.far = 1e6
+let highlightedObject = null
+let oldColor = null
+
 const CustomLayer = memo(
   ({
     id,
@@ -611,6 +619,7 @@ const CustomLayer = memo(
 
     const clickHandler = useRef()
     const hoverHandler = useRef()
+    const prevObjects = useRef()
 
     const createDuplicates = (objects) => {
       const duplicates = []
@@ -628,6 +637,9 @@ const CustomLayer = memo(
       return duplicates
     }
 
+    const getObjectContainer = (object) =>
+      object.isGroup ? object : object.parent
+
     const getUserData = (object) => {
       if (R.isNotEmpty(R.prop('userData', object)))
         return R.prop('userData', object)
@@ -635,21 +647,27 @@ const CustomLayer = memo(
     }
 
     const setColor = (object, color) => {
-      if (object.isGroup)
-        R.forEach((child) => child.material.color.set(color), object.children)
-      else if (object.parent.isGroup)
+      const container = getObjectContainer(object)
+
+      if (container.isGroup)
         R.forEach(
           (child) => child.material.color.set(color),
-          object.parent.children
+          container.children
         )
-      else object.material.color.set(color)
+      else container.material.color.set(color)
     }
 
-    const clearHighlights = (layer) =>
-      R.forEach((object) => {
-        if (getUserData(object).cave_name === layer.highlightedId)
-          setColor(object, layer.oldColor)
-      }, layer.objects)
+    const clearHighlight = () => {
+      if (R.isNotNil(highlightedObject)) setColor(highlightedObject, oldColor)
+    }
+
+    const setZoom = (object, zoom) => {
+      if (object.isGroup)
+        R.forEach((child) => {
+          setZoom(child, zoom)
+        }, object.children)
+      else object.scale.set(...getScale(object, zoom))
+    }
 
     useEffect(() => {
       if (layer)
@@ -675,25 +693,32 @@ const CustomLayer = memo(
     const customLayer = {
       id,
       type: 'custom',
-      highlightedId: -1,
-      oldColor: -1,
       onClick,
       onAdd: function (map, gl) {
+        // onAdd is called twice without onRemove in between for some reason
+        if (prevObjects.current) scene.remove(prevObjects.current)
+
         this.camera = new THREE.PerspectiveCamera()
-        this.scene = new THREE.Scene()
         this.map = map
         const objects = convertFeaturesToObjects(features)
-        this.objects = R.concat(objects, createDuplicates(objects))
-        R.forEach((object) => this.scene.add(object), this.objects)
-        this.renderer = new THREE.WebGLRenderer({
-          canvas: map.getCanvas(),
-          context: gl,
-          antialias: true,
-        })
-        this.renderer.autoClear = false
-        this.raycaster = new THREE.Raycaster()
-        this.raycaster.near = -1
-        this.raycaster.far = 1e6
+        this.objects = new THREE.Group()
+        R.forEach(
+          (object) => this.objects.add(object),
+          R.concat(objects, createDuplicates(objects))
+        )
+        prevObjects.current = this.objects
+        scene.add(this.objects)
+
+        if (R.isNil(renderer)) {
+          renderer = new THREE.WebGLRenderer({
+            canvas: map.getCanvas(),
+            context: gl,
+            antialias: true,
+          })
+          renderer.autoClear = false
+        }
+
+        this.raycaster = raycaster
 
         clickHandler.current = (e) => this.raycast(e, true)
         hoverHandler.current = (e) => this.raycast(e, false)
@@ -702,29 +727,28 @@ const CustomLayer = memo(
           .addEventListener('mousemove', hoverHandler.current, false)
         map.getCanvas().addEventListener('click', clickHandler.current, false)
 
-        let firstSymbolLayer
-
-        for (const layer of map.getStyle().layers) {
-          if (layer.type === 'symbol') {
-            firstSymbolLayer = layer.id
+        // Move layer behind first symbol layer
+        for (const mapLayer of map.getStyle().layers) {
+          if (mapLayer.type === 'symbol') {
+            map.moveLayer(id, mapLayer.id)
             break
           }
         }
-
-        if (firstSymbolLayer) map.moveLayer(id, firstSymbolLayer)
-        else map.moveLayer(id)
       },
       onRemove: function () {
         this.map
           .getCanvas()
           .removeEventListener('mousemove', hoverHandler.current)
         this.map.getCanvas().removeEventListener('click', clickHandler.current)
+        scene.remove(this.objects)
       },
       updateObjects: function (newObjects) {
-        this.scene.remove.apply(this.scene, this.scene.children)
+        scene.remove(this.objects)
         const allObjects = R.concat(newObjects, createDuplicates(newObjects))
-        R.forEach((object) => this.scene.add(object), allObjects)
-        this.objects = allObjects
+        const objects = new THREE.Group()
+        R.forEach((object) => objects.add(object), allObjects)
+        scene.add(objects)
+        this.objects = objects
       },
       raycast: (e, click) => {
         const layer = map.getLayer(id) && map.getLayer(id).implementation
@@ -754,31 +778,33 @@ const CustomLayer = memo(
         layer.raycaster.camera = layer.camera
         layer.raycaster.set(cameraPosition, viewDirection)
 
-        const intersects = layer.raycaster.intersectObjects(layer.objects, true)
+        const intersects = layer.raycaster.intersectObjects(
+          scene.children,
+          true
+        )
         const hovering = intersects.length !== 0
-        const wasPreviousHighlight = layer.highlightedId !== -1
+        const wasPreviousHighlight = R.isNotNil(highlightedObject)
 
         if (hovering) {
-          // Prevent other layers under this one from being clicked/highlighted
+          // Prevent non-custom layers from being clicked/highlighted
           e.stopImmediatePropagation()
-          // Clear highlights from other layers
+          // Clear highlight from non-custom layers
           const event = new CustomEvent('clearHighlight')
           document.dispatchEvent(event)
 
-          const hoveredObject = R.path([0, 'object'], intersects) // closest object to camera
+          const hoveredObject = R.path([0, 'object'], intersects)
           const hoveredUserData = getUserData(hoveredObject)
-          const hoveredCaveName = R.prop('cave_name', hoveredUserData)
 
           if (click) {
             layer.onClick(hoveredUserData)
           } else if (
             // if hovering over new object
-            layer.highlightedId !== hoveredCaveName
+            highlightedObject !== hoveredObject
           ) {
-            clearHighlights(layer)
+            clearHighlight()
             map.getCanvas().style.cursor = 'pointer'
-            layer.highlightedId = hoveredCaveName
-            layer.oldColor = hoveredObject.material.color.clone()
+            highlightedObject = hoveredObject
+            oldColor = highlightedObject.material.color.clone()
             const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
             const colorObj = new THREE.Color(
               colorArr[0] / 255,
@@ -788,28 +814,22 @@ const CustomLayer = memo(
             setColor(hoveredObject, colorObj)
           }
         } else if (wasPreviousHighlight && !click) {
-          clearHighlights(layer)
-          layer.highlightedId = -1
+          clearHighlight()
+          highlightedObject = null
         }
       },
       render: function (gl, matrix) {
         const m = new THREE.Matrix4().fromArray(matrix)
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
         const zoom = this.map.transform._zoom
-        R.forEach((object) => {
-          if (object.isGroup)
-            R.forEach((child) => {
-              child.scale.set(...getScale(child, zoom))
-            }, object.children)
-          else object.scale.set(...getScale(object, zoom))
-        }, this.objects)
+        setZoom(this.objects, zoom)
         this.camera.projectionMatrix = m.multiply(l)
-        this.renderer.resetState()
-        this.renderer.render(this.scene, this.camera)
+        renderer.resetState()
+        renderer.render(scene, this.camera)
         this.map.triggerRepaint()
       },
     }
 
-    return <Layer {...customLayer} text-allow-overlap={true} />
+    return <Layer {...customLayer} />
   }
 )
