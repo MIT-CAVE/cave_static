@@ -299,7 +299,8 @@ const EchartsPlot = ({
   const multiNumberFormat = R.pipe(
     R.values,
     R.propOr([], 0),
-    R.is(Object)
+    R.type,
+    R.equals('Object')
   )(numberFormat)
 
   const getNumberFormat = (labelKey, value) =>
