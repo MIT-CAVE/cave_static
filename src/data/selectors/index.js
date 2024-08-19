@@ -1,4 +1,4 @@
-import { createSelector } from '@reduxjs/toolkit'
+import { createSelector, lruMemoize } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import {
@@ -49,6 +49,11 @@ import {
 const workerManager = new ThreadMaxWorkers()
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
+
+// Virtual Keyboard
+export const selectVirtualKeyboard = createSelector(selectUtilities, (data) =>
+  R.prop('virtualKeyboard')(data)
+)
 
 // Loading
 export const selectLoading = createSelector(selectUtilities, (data) =>
@@ -122,6 +127,10 @@ export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
+)
+export const selectEditLayoutMode = createSelector(
+  selectLocalSettings,
+  R.propOr(false, 'editLayout')
 )
 export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'mirror', data)
@@ -280,6 +289,12 @@ export const selectCurrentTimeUnits = createSelector(
   selectTimeSettings,
   (data) => R.propOr('unit', 'timeUnits')(data)
 )
+export const selectCurrentLooping = createSelector(selectTimeSettings, (data) =>
+  R.propOr(false, 'looping')(data)
+)
+export const selectCurrentSpeed = createSelector(selectTimeSettings, (data) =>
+  R.propOr(1, 'speed')(data)
+)
 export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )
@@ -430,7 +445,7 @@ export const selectPageLayout = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr({}, [currentPage, 'pageLayout'], dashboardData),
+      R.pathOr([], [currentPage, 'pageLayout'], dashboardData),
       [currentPage, 'pageLayout'],
       localDashboardData
     )
@@ -481,6 +496,7 @@ export const selectDefaultViewportFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -585,7 +601,10 @@ export const selectLeftOpenPanesData = createSelector(
       R.propOr({}, leftOpenPane, panesData),
       R.propOr({}, leftOpenPane, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectRightOpenPanesData = createSelector(
   [selectRightOpenPane, selectPanesData, selectLocalPanesData],
@@ -594,7 +613,10 @@ export const selectRightOpenPanesData = createSelector(
       R.propOr({}, rightOpenPane, panesData),
       R.propOr({}, rightOpenPane, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectOpenModalData = createSelector(
   [selectOpenModal, selectPanesData, selectLocalPanesData],
@@ -603,7 +625,10 @@ export const selectOpenModalData = createSelector(
       R.propOr({}, openModal, panesData),
       R.propOr({}, openModal, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 
 // Local -> Map
@@ -627,52 +652,55 @@ export const selectCurrentLocalMapDataByMap = createSelector(
     )(itemKeys.values())
   }
 )
+export const selectAllLegendGroups = createSelector(
+  selectCurrentMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+)
+export const selectAllLocalLegendGroups = createSelector(
+  selectCurrentLocalMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)
+
 export const selectLegendDataFunc = createSelector(
-  [selectCurrentMapDataByMap, selectCurrentLocalMapDataByMap],
+  [selectAllLegendGroups, selectAllLocalLegendGroups],
   (mapDataObj, localMapDataObj) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        R.pathOr(
-          R.pathOr({}, ['legendGroups', mapId], mapDataObj),
-          ['legendGroups', mapId],
-          localMapDataObj
-        ),
+        R.propOr(R.propOr({}, mapId, mapDataObj), mapId, localMapDataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'legendGroups', a),
-          R.propOr({}, 'legendGroups', b)
-        ),
-    },
-  }
+    )
 )
 export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
-  (dataObj) => R.propOr({}, 'mapControls')(dataObj),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'mapControls', a),
-          R.propOr({}, 'mapControls', b)
-        ),
-    },
-  }
+  (dataObj) => R.propOr({}, 'mapControls')(dataObj)
 )
-export const selectMapModal = createSelector(selectLocalMap, (data) =>
-  R.propOr(
-    {
-      isOpen: false,
-      data: {
-        feature: '',
+export const selectMapModal = createSelector(
+  selectLocalMap,
+  (data) =>
+    R.propOr(
+      {
+        isOpen: false,
+        data: {
+          feature: '',
+        },
+      },
+      'mapModal'
+    )(data),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: (a, b) => {
+        return (b.isOpen === false && b.isOpen === a.isOpen) || a === b
       },
     },
-    'mapModal'
-  )(data)
+  }
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
@@ -686,6 +714,7 @@ export const selectMapLegendFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
@@ -737,6 +766,7 @@ export const selectBearingFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('bearing', a), R.pluck('bearing', b)),
@@ -752,6 +782,7 @@ export const selectPitchFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('pitch', a), R.pluck('pitch', b)),
@@ -767,6 +798,7 @@ export const selectZoomFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('zoom', R.values(a)), R.pluck('zoom', R.values(b))),
@@ -782,6 +814,7 @@ export const selectCurrentMapStyleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -804,6 +837,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -841,11 +875,12 @@ export const selectPitchSliderToggleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
-          R.pluck('showPitchSlider', R.values(a)),
-          R.pluck('showPitchSlider', R.values(b))
+          R.map(R.dissoc('viewport'), a),
+          R.map(R.dissoc('viewport'), b)
         ),
     },
   }
@@ -859,12 +894,14 @@ export const selectBearingSliderToggleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.pluck('showBearingSlider', R.values(a)),
-          R.pluck('showBearingSlider', R.values(b))
-        ),
+      equalityCheck: (a, b) => {
+        return R.equals(
+          R.map(R.dissoc('viewport'), b),
+          R.map(R.dissoc('viewport'), a)
+        )
+      },
     },
   }
 )
@@ -877,6 +914,7 @@ export const selectOptionalViewportsFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -918,6 +956,7 @@ const selectLegendTypesFn = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -1005,6 +1044,7 @@ export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
   (nodeTypes, localNodes) => R.mergeDeepRight(nodeTypes, localNodes),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1014,6 +1054,7 @@ export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
   (arcTypes, localArcs) => R.mergeDeepRight(arcTypes, localArcs),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1023,6 +1064,7 @@ export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
   (geoTypes, localGeos) => R.mergeDeepRight(geoTypes, localGeos),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1032,6 +1074,7 @@ export const selectArcTypeKeys = createSelector(
   selectLocalizedArcTypes,
   (data) => R.keys(data),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1041,6 +1084,7 @@ export const selectNodeTypeKeys = createSelector(
   selectLocalizedNodeTypes,
   (data) => R.keys(data),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1533,13 +1577,6 @@ export const selectArcRange = createSelector(
               )(R.propOr([], type, arcsByType))
             )
           ),
-          R.when(
-            (range) => size && (!R.has('min', range) || !R.has('max', range)),
-            () => {
-              console.warn('sizeBy does not support categorical variables.')
-              return { min: 0, max: 0 }
-            }
-          ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(legendObjectsFunc({ mapId, layerKey: 'arc' }))
     )
@@ -1627,13 +1664,6 @@ export const selectNodeRange = createSelector(
                 { min: Infinity, max: -Infinity }
               )(R.propOr([], type, nodesByType))
             )
-          ),
-          R.when(
-            (range) => size && (!R.has('min', range) || !R.has('max', range)),
-            () => {
-              console.warn('sizeBy does not support categorical variables.')
-              return { min: 0, max: 0 }
-            }
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(legendObjectsFunc({ mapId, layerKey: 'node' }))
@@ -1949,16 +1979,19 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
             if (!filterMapFeature(filters, node)) return false
             const sizeProp = legendObj.sizeBy
             const sizeRange = nodeRange(node.type, sizeProp, true, mapId)
-            const sizePropVal = parseFloat(R.path(['values', sizeProp], node))
-            const size = isNaN(sizePropVal)
+            const sizePropVal = R.path(['values', sizeProp], node)
+            const isSizeCategorical = !R.has('min', sizeRange)
+            const size = R.isNil(sizePropVal)
               ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-              : getScaledValue(
-                  R.prop('min', sizeRange),
-                  R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', sizeRange)),
-                  parseFloat(R.prop('endSize', sizeRange)),
-                  sizePropVal
-                )
+              : isSizeCategorical
+                ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
+                : getScaledValue(
+                    R.prop('min', sizeRange),
+                    R.prop('max', sizeRange),
+                    parseFloat(R.prop('startSize', sizeRange)),
+                    parseFloat(R.prop('endSize', sizeRange)),
+                    parseFloat(sizePropVal)
+                  )
             const colorProp = legendObj.colorBy
             const colorPropVal = R.pipe(
               R.path(['values', colorProp]),
@@ -1973,8 +2006,8 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
               colorRange
             )
 
-            const isCategorical = !R.has('min', colorRange)
-            const color = isCategorical
+            const isColorCategorical = !R.has('min', colorRange)
+            const color = isColorCategorical
               ? R.map((val) => parseFloat(val))(
                   R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
                     .replace(/[^\d,.]/g, '')
@@ -2027,32 +2060,42 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
         R.map((group) => {
           const nodeType = group.properties.type
           const legendObj = legendObjectsFunc(mapId)[nodeType]
-          const sizeRange =
-            nodeClustersFunc(mapId).range[group.properties.type].size
           const sizePropObj = R.path(['properties', 'sizeProp'], group)
           const sizeProp = legendObj.sizeBy
-          const size = getScaledValue(
-            R.prop('min', sizeRange),
-            R.prop('max', sizeRange),
-            parseFloat(R.prop('startSize', legendObj.sizeByOptions[sizeProp])),
-            parseFloat(R.prop('endSize', legendObj.sizeByOptions[sizeProp])),
-            parseFloat(sizePropObj.value)
+          const isSizeCategorical = !R.has('min')(
+            legendObj.sizeByOptions[sizeProp]
           )
+          const sizeRange = isSizeCategorical
+            ? legendObj.sizeByOptions[sizeProp]
+            : nodeClustersFunc(mapId).range[group.properties.type].size
+          const size = isSizeCategorical
+            ? parseFloat(R.propOr('0', sizePropObj.value, sizeRange))
+            : getScaledValue(
+                R.prop('min', sizeRange),
+                R.prop('max', sizeRange),
+                parseFloat(
+                  R.prop('startSize', legendObj.sizeByOptions[sizeProp])
+                ),
+                parseFloat(
+                  R.prop('endSize', legendObj.sizeByOptions[sizeProp])
+                ),
+                parseFloat(sizePropObj.value)
+              )
 
           const colorProp = legendObj.colorBy
           const colorObj = group.properties.colorProp
           const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const isCategorical = !R.has('min')(
+          const isColorCategorical = !R.has('min')(
             legendObj.colorByOptions[colorProp]
           )
           const value = R.prop('value', colorObj)
-          const colorRange = isCategorical
+          const colorRange = isColorCategorical
             ? legendObj.colorByOptions[colorProp]
             : R.map((prop) => legendObj.colorByOptions[colorProp][prop])([
                 'startGradientColor',
                 'endGradientColor',
               ])
-          const color = isCategorical
+          const color = isColorCategorical
             ? R.propOr('', value, colorRange)
                 .replace(/[^\d,.]/g, '')
                 .split(',')

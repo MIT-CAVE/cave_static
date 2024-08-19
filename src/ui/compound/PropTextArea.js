@@ -1,8 +1,11 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useDispatch } from 'react-redux'
 
 import TextInput from './TextInput'
+
+import { setIsTextArea } from '../../data/utilities/virtualKeyboardSlice'
 
 import { forceArray } from '../../utils'
 
@@ -17,12 +20,17 @@ const styles = {
 }
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, rows = 4 } = prop
+  const dispatch = useDispatch()
+  const { enabled = false, rows = 4, placeholder } = prop
   return (
-    <Box sx={[styles.root, ...forceArray(sx)]} {...props}>
+    <Box
+      sx={[styles.root, ...forceArray(sx)]}
+      onFocus={() => dispatch(setIsTextArea(true))}
+      {...props}
+    >
       <TextInput
         multiline
-        {...{ enabled, rows }}
+        {...{ enabled, rows, placeholder }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return

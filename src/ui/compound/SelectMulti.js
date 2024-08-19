@@ -60,6 +60,7 @@ const SelectMulti = ({
     <Select
       {...{ disabled, open, ...props }}
       sx={[styles.select, ...forceArray(sx)]}
+      name="cave-select-multi"
       multiple
       value={selected.length > 0 ? selected : [header]}
       onOpen={() => {
