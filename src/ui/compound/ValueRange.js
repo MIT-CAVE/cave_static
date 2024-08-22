@@ -66,7 +66,7 @@ export const ValueRange = ({
           {...sliderProps}
         />
       </Grid>
-      <Grid container item xs sx={getStyles()}>
+      <Grid container item xs sx={getStyles(enabled)}>
         <NumberInput
           {...{ enabled, max, min, numberFormat }}
           value={valueCurrent}
