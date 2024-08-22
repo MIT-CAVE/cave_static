@@ -5,14 +5,14 @@ import NumberInput from './NumberInput'
 
 import { NumberFormat, getSliderMarks } from '../../utils'
 
-const styles = {
-  inputWrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    maxWidth: '50%',
-    mx: 1,
-  },
-}
+const getStyles = (enabled) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  maxWidth: '50%',
+  mx: 1,
+  pointerEvents: enabled ? '' : 'none',
+  opacity: enabled ? '' : 0.7,
+})
 
 const adjustRangeMax = ([min, max], delta = 1) =>
   min === max ? min + delta : max
@@ -66,7 +66,7 @@ export const ValueRange = ({
           {...sliderProps}
         />
       </Grid>
-      <Grid container item xs sx={styles.inputWrapper}>
+      <Grid container item xs sx={getStyles()}>
         <NumberInput
           {...{ enabled, max, min, numberFormat }}
           value={valueCurrent}

@@ -6,16 +6,18 @@ import TextInput from './TextInput'
 
 import { forceArray } from '../../utils'
 
-const style = {
+const getStyles = (enabled) => ({
   p: 1,
   width: '100%',
-  minHeight: (theme) => theme.spacing(5),
-}
+  // minHeight: (theme) => theme.spacing(5),
+  pointerEvents: enabled ? '' : 'none',
+  opacity: enabled ? '' : 0.7,
+})
 
 const PropText = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const { enabled = false, placeholder, label } = prop
   return (
-    <Box sx={[style, ...forceArray(sx)]} {...props}>
+    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <TextInput
         {...{ enabled, placeholder, label }}
         value={R.defaultTo(prop.value, currentVal)}
