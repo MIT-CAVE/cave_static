@@ -19,7 +19,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     trailingZeros: true,
     unitPlacement: 'afterWithSpace',
   }
-  const enabled = prop.enabled || false
+  const { enabled = false, placeholder, label } = prop
   const value = R.defaultTo(R.prop('value', prop), currentVal)[0]
 
   return (
@@ -27,7 +27,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
         <Typography> Latitude </Typography>
         <NumberInput
-          {...{ enabled, max: 90, min: -90 }}
+          {...{ enabled, placeholder, label, max: 90, min: -90 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-90, 90, value[1])}
           onClickAway={(lat) => {
@@ -38,7 +38,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
         <Typography> Longitude </Typography>
         <NumberInput
-          {...{ enabled, max: 180, min: -180 }}
+          {...{ enabled, placeholder, label, max: 180, min: -180 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-180, 180, value[0])}
           onClickAway={(lng) => {
