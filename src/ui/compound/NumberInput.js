@@ -51,6 +51,7 @@ const NumberInput = ({
   help,
   min,
   max,
+  label,
   placeholder,
   value: defaultValue,
   numberFormat,
@@ -230,7 +231,7 @@ const NumberInput = ({
   return (
     <TextField
       sx={{ width: '100%' }}
-      {...{ placeholder }}
+      {...{ placeholder, label }}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
       value={valueText}

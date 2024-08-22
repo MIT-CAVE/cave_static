@@ -9,28 +9,28 @@ import { setIsTextArea } from '../../data/utilities/virtualKeyboardSlice'
 
 import { forceArray } from '../../utils'
 
-const styles = {
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-    p: 1,
-    minHeight: (theme) => theme.spacing(5),
-  },
-}
+const getStyles = (enabled) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  p: 1,
+  width: '100%',
+  // minHeight: (theme) => theme.spacing(5),
+  pointerEvents: enabled ? '' : 'none',
+  opacity: enabled ? '' : 0.7,
+})
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const dispatch = useDispatch()
-  const { enabled = false, rows = 4, placeholder } = prop
+  const { enabled = false, rows = 4, placeholder, label } = prop
   return (
     <Box
-      sx={[styles.root, ...forceArray(sx)]}
+      sx={[getStyles(enabled), ...forceArray(sx)]}
       onFocus={() => dispatch(setIsTextArea(true))}
       {...props}
     >
       <TextInput
         multiline
-        {...{ enabled, rows, placeholder }}
+        {...{ enabled, rows, placeholder, label }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return
