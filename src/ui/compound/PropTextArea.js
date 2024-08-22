@@ -9,22 +9,22 @@ import { setIsTextArea } from '../../data/utilities/virtualKeyboardSlice'
 
 import { forceArray } from '../../utils'
 
-const getStyles = (enabled) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  p: 1,
-  width: '100%',
-  // minHeight: (theme) => theme.spacing(5),
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
+const styles = {
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    p: 1,
+    minHeight: (theme) => theme.spacing(5),
+  },
+}
 
 const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const dispatch = useDispatch()
   const { enabled = false, rows = 4, placeholder, label } = prop
   return (
     <Box
-      sx={[getStyles(enabled), ...forceArray(sx)]}
+      sx={[styles.root, ...forceArray(sx)]}
       onFocus={() => dispatch(setIsTextArea(true))}
       {...props}
     >

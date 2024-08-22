@@ -296,29 +296,34 @@ const NumberInput = ({
       inputRef={inputRef}
       InputProps={{
         readOnly: !enabled,
-        endAdornment: (
-          <InputAdornment position="end">
-            <Box
-              sx={{ cursor: 'pointer' }}
-              onClick={() => {
-                if (!focused.current) {
-                  inputRef.current.focus()
-                  inputRef.current.setSelectionRange(value.length, value.length)
-                }
+        ...(enabled && {
+          endAdornment: (
+            <InputAdornment position="end">
+              <Box
+                sx={{ cursor: 'pointer' }}
+                onClick={() => {
+                  if (!focused.current) {
+                    inputRef.current.focus()
+                    inputRef.current.setSelectionRange(
+                      value.length,
+                      value.length
+                    )
+                  }
 
-                dispatch(setIsOpen(!virtualKeyboard.isOpen))
-                dispatch(setLayout(KEYBOARD_LAYOUT))
-                syncCaretPosition()
-              }}
-              onMouseDown={(event) => {
-                if (focused.current) event.preventDefault()
-              }}
-            >
-              <BiSolidKeyboard />
-            </Box>
-            {color !== 'default' && getStatusIcon(color)}
-          </InputAdornment>
-        ),
+                  dispatch(setIsOpen(!virtualKeyboard.isOpen))
+                  dispatch(setLayout(KEYBOARD_LAYOUT))
+                  syncCaretPosition()
+                }}
+                onMouseDown={(event) => {
+                  if (focused.current) event.preventDefault()
+                }}
+              >
+                <BiSolidKeyboard />
+              </Box>
+              {color !== 'default' && getStatusIcon(color)}
+            </InputAdornment>
+          ),
+        }),
       }}
     />
   )
