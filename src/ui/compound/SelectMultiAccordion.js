@@ -146,6 +146,7 @@ const SelectMultiAccordion = ({
     <Select
       {...{ disabled, open, ...props }}
       sx={styles.select}
+      name="cave-select-multi-accordion"
       displayEmpty
       value={values}
       onOpen={() => {

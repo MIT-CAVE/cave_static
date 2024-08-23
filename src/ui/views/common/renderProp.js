@@ -17,6 +17,10 @@ import {
   PropHStepper,
   PropHeadColumn,
   PropHeadRow,
+  PropIncSlider,
+  PropLatLngInput,
+  PropLatLngMap,
+  PropLatLngPath,
   PropNested,
   PropNumberField,
   PropNumberSlider,
@@ -65,6 +69,7 @@ const getNumberPropRenderFn = R.cond([
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
   [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.equals(propVariant.ICON_COMPACT), R.always(PropNumberIconCompact)],
+  [R.equals(propVariant.INCSLIDER), R.always(PropIncSlider)],
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
@@ -91,7 +96,15 @@ const getHeaderPropRenderFn = R.cond([
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
   [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
   [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
+
   [R.T, invalidVariant('head')],
+])
+const getCoordinatePropRenderFn = R.cond([
+  [R.isNil, R.always(PropLatLngInput)],
+  [R.equals(propVariant.LATLNG_INPUT), R.always(PropLatLngInput)],
+  [R.equals(propVariant.LATLNG_MAP), R.always(PropLatLngMap)],
+  [R.equals(propVariant.LATLNG_PATH), R.always(PropLatLngPath)],
+  [R.T, invalidVariant('coordinate')],
 ])
 
 const getRendererFn = R.cond([
@@ -103,6 +116,7 @@ const getRendererFn = R.cond([
   [R.equals(propId.SELECTOR), R.always(getSelectorPropRenderFn)],
   [R.equals(propId.DATE), R.always(getDatePropRenderFn)],
   [R.equals(propId.HEAD), R.always(getHeaderPropRenderFn)],
+  [R.equals(propId.COORDINATE), R.always(getCoordinatePropRenderFn)],
   [
     R.T,
     (type) => {
@@ -146,7 +160,7 @@ const renderProp = ({ ...props }) => {
   // default enabled to true
   const enabled = R.propOr(true, 'enabled', prop)
   return (
-    <PropBase {...{ prop }} key={R.prop('id', prop)}>
+    <PropBase {...{ prop }} key={prop.key}>
       <PropComponent
         sx={{ boxSizing: 'border-box' }}
         {...R.assocPath(['prop', 'enabled'], enabled, props)}

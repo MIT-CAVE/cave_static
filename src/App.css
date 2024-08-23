@@ -50,3 +50,13 @@ body {
   left: 0;
   bottom: 0;
 }
+
+.react-resizable-handle {
+  /* filter: invert(100%) brightness(1000%); */
+  filter: invert(54%) sepia(74%) saturate(3013%) hue-rotate(178deg)
+    brightness(750%) contrast(101%);
+}
+
+.react-grid-item.react-grid-placeholder {
+  background-color: transparent !important;
+}

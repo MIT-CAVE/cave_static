@@ -42,6 +42,7 @@ const EchartsBoxPlot = ({
   yAxisTitle,
   numberFormat,
   colors,
+  showNA,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -114,6 +115,18 @@ const EchartsBoxPlot = ({
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
 
+  const tooltipOrder = ['Drop', 'Min: ', 'Q1: ', 'Median: ', 'Q3: ', 'Max: ']
+
+  const mapValuesForTooltip = (value) => {
+    return value
+      .map(
+        (val, idx) =>
+          `<div>${tooltipOrder[idx]}${NumberFormat.format(val, numberFormat)}</div>`
+      )
+      .slice(1)
+      .join('')
+  }
+
   const options = {
     xAxis: {
       name: xAxisTitle,
@@ -129,10 +142,29 @@ const EchartsBoxPlot = ({
     series,
     legend,
     tooltip: {
-      valueFormatter: (value) =>
-        R.equals([])(value) // Skip extraneous value (EChart's bug?)
-          ? null
-          : NumberFormat.format(value, numberFormat),
+      formatter: (params) => {
+        return params.length === 1
+          ? `<div style="margin-bottom: 3px">${params[0].marker}<strong>${params[0].name}</strong></div>
+          ${params
+            .map(({ value }) =>
+              R.any(isNaN)(value) && !showNA
+                ? false
+                : `${mapValuesForTooltip(value)}`
+            )
+            .filter(R.identity)
+            .join('')}`
+          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ${params
+            .map(({ marker, seriesName, value }) =>
+              R.any(isNaN)(value) && !showNA
+                ? false
+                : `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} <strong>${seriesName}</strong></div>
+                  ${mapValuesForTooltip(value)}
+                `
+            )
+            .filter(R.identity)
+            .join('')}`
+      },
     },
   }
 

@@ -64,6 +64,7 @@ const Map = ({ mapboxToken, mapId }) => {
 
   const mapRef = useRef(false)
   const highlight = useRef(null)
+  const fogTimeout = useRef(null)
 
   const demoInterval = useRef(-1)
   useEffect(() => {
@@ -110,27 +111,38 @@ const Map = ({ mapboxToken, mapId }) => {
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 
-  const loadIconsToStyle = useCallback(() => {
-    if (mapRef.current) {
+  const loadFog = useCallback(() => {
+    if (!isMapboxTokenProvided) return
+
+    if (mapRef.current && mapRef.current.isStyleLoaded()) {
       const map = mapRef.current.getMap()
-      map.setFog &&
-        map.setFog(
-          R.pathOr(getDefaultFog(), [
-            mapStyle || getDefaultStyleId(isMapboxTokenProvided),
-            'fog',
-          ])(mapStyleOptions)
-        )
+      map.setFog(
+        R.pathOr(getDefaultFog(), [
+          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+          'fog',
+        ])(mapStyleOptions)
+      )
+      fogTimeout.current = null
+    } else {
+      fogTimeout.current = setTimeout(loadFog, 100)
     }
+  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions])
+
+  const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     })(iconData)
-  }, [iconData, isMapboxTokenProvided, mapStyle, mapStyleOptions])
+  }, [iconData])
 
   useEffect(() => {
     loadIconsToStyle()
-  }, [iconData, loadIconsToStyle])
+    loadFog()
+    return () => {
+      if (fogTimeout.current) clearTimeout(fogTimeout.current)
+    }
+  }, [iconData, loadFog, loadIconsToStyle])
 
   const getFeatureFromEvent = useCallback(
     (e) => {
@@ -308,11 +320,11 @@ const Map = ({ mapboxToken, mapId }) => {
         ref={mapRef}
         onMouseOver={onMouseOver}
         interactiveLayerIds={R.values(layerId)}
-        // The handler below causes `onMove` to fire endlessly when `isMapboxTokenProvided` is `false`.
-        // The built-in `trackResize` prop which defaults to `True` should already handle the resizing.
-        // onRender={() => {
-        //   mapRef.current && mapRef.current.resize()
-        // }}
+        // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
+        // Checking if token is provided to prevents both issues
+        onRender={() => {
+          isMapboxTokenProvided && mapRef.current && mapRef.current.resize()
+        }}
       >
         <Geos mapId={mapId} />
         <Arcs mapId={mapId} />

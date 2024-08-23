@@ -16,7 +16,9 @@ import {
   MdFullscreenExit,
   MdMoreVert,
 } from 'react-icons/md'
+import { useSelector } from 'react-redux'
 
+import { selectEditLayoutMode } from '../../../data/selectors'
 import { useMenu } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
@@ -77,11 +79,14 @@ const ChartMenu = ({
   isGroupedOutput,
   defaultToZero,
   onToggleDefaultToZero,
+  showNA,
+  onToggleShowNA,
   showToolbar,
   onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
 }) => {
+  const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const handleEventAndCloseMenu = (onEvent) => (e) => {
@@ -96,7 +101,11 @@ const ChartMenu = ({
   return (
     <Grid
       container
-      sx={[styles.root, !showToolbar && { top: isMaximized ? '4px' : '8px' }]}
+      sx={[
+        styles.root,
+        !showToolbar && { top: isMaximized ? '4px' : '8px' },
+        !isMaximized && editLayoutMode && { top: '20px', right: '8px' },
+      ]}
     >
       <ButtonGroup
         variant="contained"
@@ -130,13 +139,20 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        {isGroupedOutput && (
+        {isGroupedOutput && [
           <ToggleMenuItem
+            key="defaultToZero"
             label="0 NA Values"
             value={defaultToZero}
             onClick={onToggleDefaultToZero}
-          />
-        )}
+          />,
+          <ToggleMenuItem
+            key="showNA"
+            label="NA Groupings"
+            value={showNA}
+            onClick={onToggleShowNA}
+          />,
+        ]}
         {isGroupedOutput && <Divider />}
         <BaseMenuItem
           label="Remove Chart"

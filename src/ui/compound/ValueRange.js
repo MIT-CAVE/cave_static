@@ -1,23 +1,18 @@
-import { Grid, Input, Slider } from '@mui/material'
-import * as R from 'ramda'
+import { Grid, Slider } from '@mui/material'
 import { useEffect, useState } from 'react'
+
+import NumberInput from './NumberInput'
 
 import { NumberFormat, getSliderMarks } from '../../utils'
 
-const styles = {
-  inputWrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    maxWidth: '50%',
-    mx: 1,
-  },
-  input: {
-    '.MuiInput-input': {
-      textAlign: 'center',
-      ml: 1.5,
-    },
-  },
-}
+const getStyles = (enabled) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  maxWidth: '50%',
+  mx: 1,
+  pointerEvents: enabled ? '' : 'none',
+  opacity: enabled ? '' : 0.7,
+})
 
 const adjustRangeMax = ([min, max], delta = 1) =>
   min === max ? min + delta : max
@@ -71,32 +66,11 @@ export const ValueRange = ({
           {...sliderProps}
         />
       </Grid>
-      <Grid container item xs sx={styles.inputWrapper}>
-        <Input
-          disabled={!enabled}
-          sx={styles.input}
+      <Grid container item xs sx={getStyles(enabled)}>
+        <NumberInput
+          {...{ enabled, max, min, numberFormat }}
           value={valueCurrent}
-          onChange={(event) => {
-            setValueCurrent(event.target.value)
-          }}
-          onBlur={() => {
-            if (!enabled) return
-
-            let value = valueCurrent
-            if (Object.is(value, -0)) setValueCurrent(0)
-            // If the number is not valid revert to the original value
-            if (isNaN(value)) setValueCurrent(valueStart)
-
-            value = Number(valueCurrent)
-            setValueCurrent(value)
-            onClickAwayHandler(R.clamp(min, max, value))
-          }}
-          inputProps={{
-            step,
-            min,
-            max: NumberFormat.format(max, numberFormat),
-            type: 'number',
-          }}
+          onClickAway={onClickAwayHandler}
         />
       </Grid>
     </Grid>
