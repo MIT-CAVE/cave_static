@@ -113,7 +113,6 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
         resultGroupings[grouping] = R.dissocPath(['data', 'id'])(groupingProps)
         return
       }
-
       resultGroupings[grouping] = { data: {} }
       const levels = R.dissoc('id')(groupingProps.data)
       const getLevelLabel = getSubLabelFn(statGroupings, grouping)
@@ -451,7 +450,19 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                   <AccordionDetails sx={styles.accordDetails}>
                     {R.pipe(
                       R.mapObjIndexed((levelValues, level) => {
-                        const values = R.uniq(levelValues)
+                        const values = R.pipe(
+                          R.uniq,
+                          R.sortBy(
+                            R.indexOf(
+                              R.__,
+                              R.propOr(
+                                [],
+                                'ordering',
+                                groupingProps.levels[level]
+                              )
+                            )
+                          )
+                        )(levelValues)
                         const checked = negateIfExcLogic(
                           getLevelChecked(grouping, level)
                         )
