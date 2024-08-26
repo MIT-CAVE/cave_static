@@ -23,11 +23,12 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     maxValue = Infinity,
     minValue = -Infinity,
     placeholder,
+    label,
   } = prop
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <NumberInput
-        {...{ enabled, placeholder }}
+        {...{ enabled, placeholder, label }}
         min={minValue}
         max={maxValue}
         value={R.pipe(
