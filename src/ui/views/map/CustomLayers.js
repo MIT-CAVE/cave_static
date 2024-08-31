@@ -49,10 +49,10 @@ const generateSegment = (curve, feature, segments = 80) => {
         ) +
         Math.PI / 2
 
-      const geometry = new THREE.BoxGeometry(
-        0.00003 * size, // width
-        lineType === 'dotted' ? hypotenuse / 3 : hypotenuse, // length
-        0 // thickness
+      const geometry = new THREE.CylinderGeometry(
+        0.00001 * size, // width
+        0.00001 * size, // width
+        lineType === 'dotted' ? hypotenuse / 3 : hypotenuse * 1.5 // length
       )
       // set cylinder color, position, and angle
       const colorArr = rgbStrToArray(color)
@@ -603,7 +603,11 @@ export const ArcsWithHeight = memo(({ id, arcs, onClick = () => {} }) => {
       convertFeaturesToObjects={geoJsonToSegments}
       features={arcsMemo}
       onClick={onClick}
-      getScale={(arc, zoom) => [50 / Math.pow(2, zoom), 1, 1]}
+      getScale={(arc, zoom) => [
+        50 / Math.pow(2, zoom),
+        1,
+        50 / Math.pow(2, zoom),
+      ]}
     />
   )
 })
