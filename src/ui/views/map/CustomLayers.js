@@ -649,6 +649,37 @@ const CustomLayer = memo(
       return duplicates
     }
 
+    const setRenderOrder = (object, camera) => {
+      const cameraPosition = new THREE.Vector3()
+      camera.getWorldPosition(cameraPosition)
+
+      const cameraDirection = new THREE.Vector3()
+      camera.getWorldDirection(cameraDirection)
+
+      const setChildrenRenderOrder = (object) => {
+        if (object.isGroup)
+          R.forEach((child) => setChildrenRenderOrder(child), object.children)
+        else {
+          const objectPosition = new THREE.Vector3()
+          object.getWorldPosition(objectPosition)
+
+          // Calculate direction from camera to object
+          const directionToObject = objectPosition
+            .clone()
+            .sub(cameraPosition)
+            .normalize()
+
+          // Calculate the dot product for the depth value
+          const depth = cameraDirection.dot(directionToObject)
+
+          // Set renderOrder based on depth value (inverse if needed)
+          object.renderOrder = -depth // use `-depth` if smaller depths should render first
+        }
+      }
+
+      setChildrenRenderOrder(object)
+    }
+
     const getObjectContainer = (object) =>
       R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object
 
@@ -838,6 +869,7 @@ const CustomLayer = memo(
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
         const zoom = this.map.transform._zoom
         setZoom(this.objects, zoom)
+        setRenderOrder(this.objects, this.camera)
         this.camera.projectionMatrix = m.multiply(l)
         renderer.resetState()
         renderer.render(scene, this.camera)
