@@ -536,11 +536,14 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         )
         sideGeometry.setIndex(sideTriangles)
 
+        const opacity = parseInt(rgbStrToArray(color)[3])
         const sideMaterial = new THREE.MeshBasicMaterial({
           color,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: parseInt(rgbStrToArray(color)[3]) * 0.2,
+          // if opacity > 1, it is on a 0-255 scale, which happens for colorBy options
+          // so we need to convert it to a 0-1 scale
+          opacity: (opacity > 1 ? opacity / 255 : opacity) * 0.2,
         })
 
         const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial)
