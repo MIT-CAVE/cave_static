@@ -14,31 +14,27 @@ import { HIGHLIGHT_COLOR, ICON_RESOLUTION } from '../../../utils/constants'
 import { rgbStrToArray, fetchIcon } from '../../../utils'
 
 const MAX_HEIGHT = 0.00325
-// Generate line segment
+// Generate line segment by creating cylinders between adjacent points on the curve
 const generateSegment = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
   const color = R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], feature)
   const size = R.pathOr(30, ['properties', 'size'], feature)
 
   const points = curve.getPoints(segments)
-  const lineSegmentRects = []
+  const lineSegmentCylinders = []
   R.forEach(
     (idx) => {
       // Skip every other segment for dashed line
       if (lineType === 'dashed' && idx % 2 === 0) return
 
       // Generate midpoint to place cylinder center
-      const midpoint = new THREE.Vector3(
-        (points[idx].x + points[idx + 1].x) / 2,
-        (points[idx].y + points[idx + 1].y) / 2,
-        (points[idx].z + points[idx + 1].z) / 2
-      )
+      const midpoint = new THREE.Vector3()
+        .addVectors(points[idx], points[idx + 1])
+        .multiplyScalar(0.5)
       // find distance between 2 points
-      const hypotenuse = Math.sqrt(
-        Math.pow(points[idx].x - points[idx + 1].x, 2) +
-          Math.pow(points[idx].y - points[idx + 1].y, 2) +
-          Math.pow(points[idx].z - points[idx + 1].z, 2)
-      )
+      const hypotenuse = new THREE.Vector3()
+        .subVectors(points[idx], points[idx + 1])
+        .length()
       // find vertical angle between 2 points (uses iso names)
       const theta = Math.asin((points[idx].z - points[idx + 1].z) / hypotenuse)
       // find horizontal angle between 2 points
@@ -61,19 +57,20 @@ const generateSegment = (curve, feature, segments = 80) => {
         colorArr[1] / 255,
         colorArr[2] / 255
       )
-      const material = new THREE.MeshBasicMaterial()
-      const rect = new THREE.Mesh(geometry, material)
-      rect.material.color.set(colorObj)
-      rect.position.set(midpoint.x, midpoint.y, midpoint.z)
-      rect.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
-      rect.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
+      const material = new THREE.MeshBasicMaterial({
+        color: colorObj,
+      })
+      const cylinder = new THREE.Mesh(geometry, material)
+      cylinder.position.set(midpoint.x, midpoint.y, midpoint.z)
+      cylinder.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), -theta)
+      cylinder.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), phi)
 
-      lineSegmentRects.push(rect)
+      lineSegmentCylinders.push(cylinder)
     },
     R.range(0, R.length(points) - 1)
   )
 
-  return lineSegmentRects
+  return lineSegmentCylinders
 }
 
 // Converts array of geoJson features to array of Meshes to be added to scene
