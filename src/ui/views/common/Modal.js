@@ -106,7 +106,7 @@ const MapFeatureModal = () => {
     R.path([...key, 'values', propId])(featureData)
   const onChangeProp = (prop, propId) => (value) => {
     const usesTime = R.hasPath(
-      [...key, 'valueLists', 'timeValues', currentTime, propId],
+      [...key, 'values', 'timeValues', currentTime, propId, parseInt(key[1])],
       featureData
     )
     const dataPath = usesTime
@@ -116,7 +116,7 @@ const MapFeatureModal = () => {
           'data',
           'valueLists',
           'timeValues',
-          `${currentTime}`,
+          currentTime,
           propId,
           parseInt(key[1]),
         ]
