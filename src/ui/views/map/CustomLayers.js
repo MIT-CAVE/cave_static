@@ -613,7 +613,7 @@ export const ArcsWithHeight = memo(({ id, arcs, onClick = () => {} }) => {
   )
 })
 
-// All custom layers use the same scene and renderer
+// All custom layers use the same scene
 const scene = new THREE.Scene()
 let renderer = null
 const raycaster = new THREE.Raycaster()
@@ -621,6 +621,7 @@ raycaster.near = -1
 raycaster.far = 1e6
 let highlightedObject = null
 let oldColor = null
+const camera = new THREE.PerspectiveCamera()
 
 const CustomLayer = memo(
   ({
@@ -638,6 +639,13 @@ const CustomLayer = memo(
     const hoverHandler = useRef()
     const prevObjects = useRef()
 
+    /**
+     * Recursively traverse up the scene tree to find the encompassing Three.js
+     * object that represents the map feature which contains the given object.
+     */
+    const getObjectContainer = (object) =>
+      R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object
+
     const createDuplicates = (objects) => {
       const duplicates = []
 
@@ -654,7 +662,13 @@ const CustomLayer = memo(
       return duplicates
     }
 
-    const setRenderOrder = (object, camera) => {
+    /**
+     * Sets the renderOrder property of the map features based on its distance from the camera.
+     * This is used to ensure that objects closer to the camera are rendered on top of objects that are farther away.
+     *
+     * @param {THREE.Object3D} object The Three.js Group object that contains all the map features.
+     */
+    const setRenderOrder = (object) => {
       const cameraPosition = new THREE.Vector3()
       camera.getWorldPosition(cameraPosition)
 
@@ -685,12 +699,16 @@ const CustomLayer = memo(
       setChildrenRenderOrder(object)
     }
 
-    const getObjectContainer = (object) =>
-      R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object
+    const setZoom = (object, zoom) => {
+      if (object.isGroup)
+        R.forEach((child) => {
+          setZoom(child, zoom)
+        }, object.children)
+      else object.scale.set(...getScale(object, zoom))
+    }
 
     const setObjectColor = (object, color) => {
       const container = getObjectContainer(object)
-
       const setChildrenColor = (object, color) => {
         if (object.isGroup)
           R.forEach((child) => setChildrenColor(child, color), object.children)
@@ -703,14 +721,6 @@ const CustomLayer = memo(
     const clearHighlight = () => {
       if (R.isNotNil(highlightedObject))
         setObjectColor(highlightedObject, oldColor)
-    }
-
-    const setZoom = (object, zoom) => {
-      if (object.isGroup)
-        R.forEach((child) => {
-          setZoom(child, zoom)
-        }, object.children)
-      else object.scale.set(...getScale(object, zoom))
     }
 
     useEffect(() => {
@@ -744,7 +754,6 @@ const CustomLayer = memo(
         // onAdd is called twice without onRemove in between for some reason
         if (prevObjects.current) scene.remove(prevObjects.current)
 
-        this.camera = new THREE.PerspectiveCamera()
         this.map = map
         const objects = convertFeaturesToObjects(features, id)
         this.objects = new THREE.Group()
@@ -754,6 +763,7 @@ const CustomLayer = memo(
         )
         prevObjects.current = this.objects
         scene.add(this.objects)
+        setRenderOrder(this.objects)
 
         if (R.isNil(renderer)) {
           renderer = new THREE.WebGLRenderer({
@@ -763,8 +773,6 @@ const CustomLayer = memo(
           })
           renderer.autoClear = false
         }
-
-        this.raycaster = raycaster
 
         clickHandler.current = (e) => this.raycast(e, true)
         hoverHandler.current = (e) => this.raycast(e, false)
@@ -794,6 +802,7 @@ const CustomLayer = memo(
         const objects = new THREE.Group()
         R.forEach((object) => objects.add(object), allObjects)
         scene.add(objects)
+        setRenderOrder(objects)
         this.objects = objects
       },
       raycast: (e, click) => {
@@ -806,7 +815,7 @@ const CustomLayer = memo(
         mouse.x = (point.x / e.srcElement.width) * 2 - 1
         mouse.y = 1 - (point.y / e.srcElement.height) * 2
         const camInverseProjection = new THREE.Matrix4()
-          .copy(layer.camera.projectionMatrix)
+          .copy(camera.projectionMatrix)
           .invert()
         const cameraPosition = new THREE.Vector3().applyMatrix4(
           camInverseProjection
@@ -821,13 +830,10 @@ const CustomLayer = memo(
           .sub(cameraPosition)
           .normalize()
 
-        layer.raycaster.camera = layer.camera
-        layer.raycaster.set(cameraPosition, viewDirection)
+        raycaster.camera = camera
+        raycaster.set(cameraPosition, viewDirection)
 
-        const intersects = layer.raycaster.intersectObjects(
-          scene.children,
-          true
-        )
+        const intersects = raycaster.intersectObjects(scene.children, true)
         const hovering = intersects.length !== 0
         const wasPreviousHighlight = R.isNotNil(highlightedObject)
 
@@ -871,13 +877,14 @@ const CustomLayer = memo(
       },
       render: function (gl, matrix) {
         const m = new THREE.Matrix4().fromArray(matrix)
+
+        const projectionMatrix = m.clone()
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
-        const zoom = this.map.transform._zoom
-        setZoom(this.objects, zoom)
-        setRenderOrder(this.objects, this.camera)
-        this.camera.projectionMatrix = m.multiply(l)
+        camera.projectionMatrix = projectionMatrix.multiply(l)
+
+        setZoom(this.objects, this.map.transform._zoom)
         renderer.resetState()
-        renderer.render(scene, this.camera)
+        renderer.render(scene, camera)
         this.map.triggerRepaint()
       },
     }
