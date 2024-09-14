@@ -127,6 +127,7 @@ const SelectAccordion = ({
     <Select
       {...{ disabled, ...props }}
       sx={styles.select}
+      name="cave-select-accordion"
       displayEmpty
       value={values}
       open={controlled ? open : openState}

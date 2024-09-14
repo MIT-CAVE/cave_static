@@ -23,6 +23,7 @@ import {
   selectRightOpenPanesData,
   selectRightPinPane,
   selectSync,
+  selectVirtualKeyboard,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
@@ -95,6 +96,7 @@ const Panes = () => {
   const rightPin = useSelector(selectRightPinPane)
   const mirrorMode = useSelector(selectMirrorMode)
   const sync = useSelector(selectSync)
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
   const dispatch = useDispatch()
 
   const leftPane = R.assoc(
@@ -130,12 +132,32 @@ const Panes = () => {
           }
         },
         [
-          ['left', leftOpen, leftPin, overMin && (!rightBar || underMax)],
-          ['right', rightOpen, rightPin, (!leftBar || overMin) && underMax],
+          [
+            'left',
+            leftOpen,
+            leftPin,
+            overMin && (!rightBar || underMax) && !virtualKeyboard.isOpen,
+          ],
+          [
+            'right',
+            rightOpen,
+            rightPin,
+            (!leftBar || overMin) && underMax && !virtualKeyboard.isOpen,
+          ],
         ]
       )
     },
-    [dispatch, sync, leftBar, leftOpen, leftPin, rightBar, rightOpen, rightPin]
+    [
+      dispatch,
+      sync,
+      leftBar,
+      leftOpen,
+      leftPin,
+      rightBar,
+      rightOpen,
+      rightPin,
+      virtualKeyboard.isOpen,
+    ]
   )
 
   const getPinObj = (side) => {

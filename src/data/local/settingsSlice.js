@@ -23,6 +23,9 @@ export const settingsSlice = createSlice({
     toggleMirror: (state) => {
       state.mirror = !state.mirror
     },
+    toggleEditLayout: (state) => {
+      state.editLayout = !state.editLayout
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(overrideState, (state, action) => {
@@ -31,7 +34,7 @@ export const settingsSlice = createSlice({
   },
 })
 
-export const { timeSelection, timeAdvance, toggleTouch, toggleMirror } =
+export const { timeSelection, timeAdvance, toggleMirror, toggleEditLayout } =
   settingsSlice.actions
 
 export default settingsSlice.reducer

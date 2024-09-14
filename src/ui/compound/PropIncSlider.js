@@ -20,7 +20,7 @@ const getStyles = (enabled) => ({
   },
 })
 
-const PropIncSlider = ({ prop, sx = [], ...props }) => {
+const PropIncSlider = ({ prop, sx = [] }) => {
   const { enabled = false, valueOptions } = prop
   const [value, setValue] = useState(prop.value)
   const marks = R.map(
@@ -31,7 +31,7 @@ const PropIncSlider = ({ prop, sx = [], ...props }) => {
     R.range(0, R.length(valueOptions))
   )
   return (
-    <Box sx={[getStyles(enabled).box, ...forceArray(sx)]} {...props}>
+    <Box sx={[getStyles(enabled).box, ...forceArray(sx)]}>
       <Slider
         style={getStyles(enabled).slider}
         min={0}

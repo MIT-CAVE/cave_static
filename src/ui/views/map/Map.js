@@ -9,7 +9,7 @@ import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { getDefaultFog, getDefaultStyleId } from '.'
-import { Geos, Arcs, Nodes, Arcs3D } from './layers'
+import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
@@ -112,6 +112,8 @@ const Map = ({ mapboxToken, mapId }) => {
   }, [iconUrl, iconData, nodeIcons, mapId])
 
   const loadFog = useCallback(() => {
+    if (!isMapboxTokenProvided) return
+
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
       const map = mapRef.current.getMap()
       map.setFog(
@@ -325,6 +327,7 @@ const Map = ({ mapboxToken, mapId }) => {
         }}
       >
         <Geos mapId={mapId} />
+        <IncludedGeos mapId={mapId} />
         <Arcs mapId={mapId} />
         <Nodes mapId={mapId} />
         <Arcs3D mapId={mapId} />

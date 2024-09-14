@@ -68,6 +68,7 @@ const Select = ({
     <MuiSelect
       {...{ disabled, open, ...props }}
       sx={styles.select}
+      name="cave-select"
       displayEmpty
       value={selectedValue}
       onOpen={() => {

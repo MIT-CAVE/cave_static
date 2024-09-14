@@ -757,6 +757,7 @@ const CustomLayer = memo(
         this.map = map
         const objects = convertFeaturesToObjects(features, id)
         this.objects = new THREE.Group()
+        this.objects.name = id
         R.forEach(
           (object) => this.objects.add(object),
           R.concat(objects, createDuplicates(objects))
@@ -799,11 +800,11 @@ const CustomLayer = memo(
       updateObjects: function (newObjects) {
         scene.remove(this.objects)
         const allObjects = R.concat(newObjects, createDuplicates(newObjects))
-        const objects = new THREE.Group()
-        R.forEach((object) => objects.add(object), allObjects)
-        scene.add(objects)
-        setRenderOrder(objects)
-        this.objects = objects
+        this.objects = new THREE.Group()
+        R.forEach((object) => this.objects.add(object), allObjects)
+        scene.add(this.objects)
+        prevObjects.current = this.objects
+        setRenderOrder(this.objects)
       },
       raycast: (e, click) => {
         const layer = map.getLayer(id) && map.getLayer(id).implementation
@@ -877,11 +878,8 @@ const CustomLayer = memo(
       },
       render: function (gl, matrix) {
         const m = new THREE.Matrix4().fromArray(matrix)
-
-        const projectionMatrix = m.clone()
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
-        camera.projectionMatrix = projectionMatrix.multiply(l)
-
+        camera.projectionMatrix = m.multiply(l)
         setZoom(this.objects, this.map.transform._zoom)
         renderer.resetState()
         renderer.render(scene, camera)

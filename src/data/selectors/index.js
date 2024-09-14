@@ -1,4 +1,4 @@
-import { createSelector } from '@reduxjs/toolkit'
+import { createSelector, lruMemoize } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import {
@@ -35,20 +35,25 @@ import {
   recursiveMap,
   maxSizedMemoization,
   getScaledValue,
-  getScaledArray,
   getScaledRgbObj,
   orderEntireDict,
   addValuesToProps,
   recursiveBubbleMap,
-  filterMapFeature,
   filterGroupedOutputs,
   calculateStatAnyDepth,
   adjustArcPath,
+  constructFetchedGeoJson,
+  constructGeoJson,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
 
 export const selectUtilities = (state) => R.prop('utilities')(state)
+
+// Virtual Keyboard
+export const selectVirtualKeyboard = createSelector(selectUtilities, (data) =>
+  R.prop('virtualKeyboard')(data)
+)
 
 // Loading
 export const selectLoading = createSelector(selectUtilities, (data) =>
@@ -122,6 +127,10 @@ export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
+)
+export const selectEditLayoutMode = createSelector(
+  selectLocalSettings,
+  R.propOr(false, 'editLayout')
 )
 export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'mirror', data)
@@ -436,7 +445,7 @@ export const selectPageLayout = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr({}, [currentPage, 'pageLayout'], dashboardData),
+      R.pathOr([], [currentPage, 'pageLayout'], dashboardData),
       [currentPage, 'pageLayout'],
       localDashboardData
     )
@@ -487,6 +496,7 @@ export const selectDefaultViewportFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -591,7 +601,10 @@ export const selectLeftOpenPanesData = createSelector(
       R.propOr({}, leftOpenPane, panesData),
       R.propOr({}, leftOpenPane, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectRightOpenPanesData = createSelector(
   [selectRightOpenPane, selectPanesData, selectLocalPanesData],
@@ -600,7 +613,10 @@ export const selectRightOpenPanesData = createSelector(
       R.propOr({}, rightOpenPane, panesData),
       R.propOr({}, rightOpenPane, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectOpenModalData = createSelector(
   [selectOpenModal, selectPanesData, selectLocalPanesData],
@@ -609,7 +625,10 @@ export const selectOpenModalData = createSelector(
       R.propOr({}, openModal, panesData),
       R.propOr({}, openModal, localPanesData)
     ),
-  { memoizeOptions: { resultEqualityCheck: R.equals } }
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 
 // Local -> Map
@@ -633,52 +652,55 @@ export const selectCurrentLocalMapDataByMap = createSelector(
     )(itemKeys.values())
   }
 )
+export const selectAllLegendGroups = createSelector(
+  selectCurrentMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+)
+export const selectAllLocalLegendGroups = createSelector(
+  selectCurrentLocalMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)
+
 export const selectLegendDataFunc = createSelector(
-  [selectCurrentMapDataByMap, selectCurrentLocalMapDataByMap],
+  [selectAllLegendGroups, selectAllLocalLegendGroups],
   (mapDataObj, localMapDataObj) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        R.pathOr(
-          R.pathOr({}, ['legendGroups', mapId], mapDataObj),
-          ['legendGroups', mapId],
-          localMapDataObj
-        ),
+        R.propOr(R.propOr({}, mapId, mapDataObj), mapId, localMapDataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'legendGroups', a),
-          R.propOr({}, 'legendGroups', b)
-        ),
-    },
-  }
+    )
 )
 export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
-  (dataObj) => R.propOr({}, 'mapControls')(dataObj),
-  {
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'mapControls', a),
-          R.propOr({}, 'mapControls', b)
-        ),
-    },
-  }
+  (dataObj) => R.propOr({}, 'mapControls')(dataObj)
 )
-export const selectMapModal = createSelector(selectLocalMap, (data) =>
-  R.propOr(
-    {
-      isOpen: false,
-      data: {
-        feature: '',
+export const selectMapModal = createSelector(
+  selectLocalMap,
+  (data) =>
+    R.propOr(
+      {
+        isOpen: false,
+        data: {
+          feature: '',
+        },
+      },
+      'mapModal'
+    )(data),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: (a, b) => {
+        return (b.isOpen === false && b.isOpen === a.isOpen) || a === b
       },
     },
-    'mapModal'
-  )(data)
+  }
 )
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
@@ -692,6 +714,7 @@ export const selectMapLegendFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
@@ -743,6 +766,7 @@ export const selectBearingFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('bearing', a), R.pluck('bearing', b)),
@@ -758,6 +782,7 @@ export const selectPitchFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('pitch', a), R.pluck('pitch', b)),
@@ -773,6 +798,7 @@ export const selectZoomFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(R.pluck('zoom', R.values(a)), R.pluck('zoom', R.values(b))),
@@ -788,6 +814,7 @@ export const selectCurrentMapStyleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -810,6 +837,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -887,11 +915,12 @@ export const selectPitchSliderToggleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
-          R.pluck('showPitchSlider', R.values(a)),
-          R.pluck('showPitchSlider', R.values(b))
+          R.map(R.dissoc('viewport'), a),
+          R.map(R.dissoc('viewport'), b)
         ),
     },
   }
@@ -905,12 +934,14 @@ export const selectBearingSliderToggleFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.pluck('showBearingSlider', R.values(a)),
-          R.pluck('showBearingSlider', R.values(b))
-        ),
+      equalityCheck: (a, b) => {
+        return R.equals(
+          R.map(R.dissoc('viewport'), b),
+          R.map(R.dissoc('viewport'), a)
+        )
+      },
     },
   }
 )
@@ -923,6 +954,7 @@ export const selectOptionalViewportsFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -964,6 +996,7 @@ const selectLegendTypesFn = createSelector(
       MAX_MEMOIZED_CHARTS
     ),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) =>
         R.equals(
@@ -1051,6 +1084,7 @@ export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
   (nodeTypes, localNodes) => R.mergeDeepRight(nodeTypes, localNodes),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1060,6 +1094,7 @@ export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
   (arcTypes, localArcs) => R.mergeDeepRight(arcTypes, localArcs),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1069,6 +1104,7 @@ export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
   (geoTypes, localGeos) => R.mergeDeepRight(geoTypes, localGeos),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1078,6 +1114,7 @@ export const selectArcTypeKeys = createSelector(
   selectLocalizedArcTypes,
   (data) => R.keys(data),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1087,6 +1124,7 @@ export const selectNodeTypeKeys = createSelector(
   selectLocalizedNodeTypes,
   (data) => R.keys(data),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       resultEqualityCheck: R.equals,
     },
@@ -1153,24 +1191,6 @@ export const selectNodeDataFunc = createSelector(
     )
 )
 
-export const selectMatchingKeysByTypeFunc = createSelector(
-  [selectEnabledGeosFunc, selectMergedGeos],
-  (enabledGeosFunc, geosByType) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pick(R.keys(R.filter(R.identity, enabledGeosFunc(mapId)))),
-          R.map(
-            R.pipe(
-              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
-              R.indexBy(R.prop('geoJsonValue'))
-            )
-          )
-        )(geosByType),
-      MAX_MEMOIZED_CHARTS
-    )
-)
 // outputs derived
 export const selectStatGroupings = createSelector(
   selectOrderedGroupedOutputs,
@@ -1561,16 +1581,17 @@ export const selectArcRange = createSelector(
   [selectMergedArcs, selectLegendTypesFn],
   (arcsByType, legendObjectsFunc) =>
     R.memoizeWith(
-      (type, prop, dimensionOptions, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
         JSON.stringify([type, prop, dimensionOptions, mapId]),
-      (type, prop, dimensionOptions, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
         R.pipe(
           R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
               ((R.has('startGradientColor', range) ||
-                R.has('startSize', range)) &&
+                R.has('startSize', range) ||
+                R.has('startHeight', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1584,6 +1605,60 @@ export const selectArcRange = createSelector(
           ),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
         )(legendObjectsFunc({ mapId, layerKey: 'arc' }))
+    )
+)
+export const selectGroupedEnabledGeosFunc = createSelector(
+  [selectEnabledGeosFunc, selectMergedGeos],
+  (enabledGeosFunc, mergedGeos) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.toPairs,
+          R.filter((d) => R.propOr(false, d[0], enabledGeosFunc(mapId))),
+          R.groupBy(R.hasPath([1, 0, 'geoJson'])),
+          R.map(R.fromPairs)
+        )(mergedGeos),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectFetchedGeoDataFunc = createSelector(
+  selectGroupedEnabledGeosFunc,
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.propOr({}, 'true', dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectIncludedGeoDataFunc = createSelector(
+  selectGroupedEnabledGeosFunc,
+  (dataFunc) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(R.propOr({}, 'false'), R.map(R.toPairs))(dataFunc(mapId)),
+      MAX_MEMOIZED_CHARTS
+    )
+)
+
+export const selectMatchingKeysByTypeFunc = createSelector(
+  [selectFetchedGeoDataFunc],
+  (geosByType) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.map(
+            R.pipe(
+              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
+              R.indexBy(R.prop('geoJsonValue'))
+            )
+          )
+        )(geosByType(mapId)),
+      MAX_MEMOIZED_CHARTS
     )
 )
 
@@ -1650,9 +1725,9 @@ export const selectNodeRange = createSelector(
   [selectLegendTypesFn, selectMergedNodes],
   (legendObjectsFunc, nodesByType) =>
     R.memoizeWith(
-      (type, prop, dimensionOptions, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
         JSON.stringify([type, prop, dimensionOptions, mapId]),
-      (type, prop, dimensionOptions, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
         R.pipe(
           R.path([type, dimensionOptions, prop]),
           R.when(
@@ -1679,15 +1754,16 @@ export const selectGeoRange = createSelector(
   [selectLegendTypesFn, selectMergedGeos],
   (legendObjectsFunc, geosByType) =>
     R.memoizeWith(
-      (type, prop, dimensionOptions, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
         JSON.stringify([type, prop, dimensionOptions, mapId]),
-      (type, prop, dimensionOptions, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
         R.pipe(
           R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              (R.has('startGradientColor', range) &&
+              ((R.has('startGradientColor', range) ||
+                R.has('startHeight', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1719,8 +1795,12 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
               [d.type, 'colorBy'],
               enabledArcsFunc(mapId)
             )
-            const statRange = arcRange(d.type, colorProp, 'colorByOptions')
-
+            const statRange = arcRange(
+              d.type,
+              colorProp,
+              mapId,
+              'colorByOptions'
+            )
             return !(
               R.has('nullColor', statRange) &&
               R.isNil(R.prop('nullColor', statRange))
@@ -1970,107 +2050,20 @@ export const selectNodeRangeAtZoomFunc = createSelector(
 
 export const selectNodeGeoJsonObjectFunc = createSelector(
   [selectSplitNodeDataFunc, selectNodeRange, selectEnabledNodesFunc],
-  (nodeDataSplitFunc, nodeRange, legendObjectsFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.propOr({}, false),
-          R.mapObjIndexed((obj) => {
-            const [id, node] = obj
-            const legendObj = legendObjectsFunc(mapId)[node.type]
-            const filters = R.pipe(
-              R.propOr([], 'filters'),
-              R.reject(R.propEq(false, 'active'))
-            )(legendObj)
-            if (!filterMapFeature(filters, node)) return false
-            const sizeProp = legendObj.sizeBy
-            const sizeRange = nodeRange(
-              node.type,
-              sizeProp,
-              'sizeByOptions',
-              mapId
-            )
-            const sizePropVal = R.path(['values', sizeProp], node)
-            const isSizeCategorical = !R.has('min', sizeRange)
-            const size = R.isNil(sizePropVal)
-              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-              : isSizeCategorical
-                ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
-                : getScaledValue(
-                    R.prop('min', sizeRange),
-                    R.prop('max', sizeRange),
-                    parseFloat(R.prop('startSize', sizeRange)),
-                    parseFloat(R.prop('endSize', sizeRange)),
-                    parseFloat(sizePropVal)
-                  )
-            const colorProp = legendObj.colorBy
-            const colorPropVal = R.pipe(
-              R.path(['values', colorProp]),
-              R.when(R.isNil, R.always('')),
-              (s) => s.toString()
-            )(node)
-            const colorRange = nodeRange(
-              node.type,
-              colorProp,
-              'colorByOptions',
-              mapId
-            )
-
-            const nullColor = R.propOr(
-              'rgba(0,0,0,255)',
-              'nullColor',
-              colorRange
-            )
-
-            const isColorCategorical = !R.has('min', colorRange)
-            const color = isColorCategorical
-              ? R.map((val) => parseFloat(val))(
-                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                )
-              : getScaledArray(
-                  R.prop('min', colorRange),
-                  R.prop('max', colorRange),
-                  R.map((val) => parseFloat(val))(
-                    R.prop('startGradientColor', colorRange)
-                      .replace(/[^\d,.]/g, '')
-                      .split(',')
-                  ),
-                  R.map((val) => parseFloat(val))(
-                    R.prop('endGradientColor', colorRange)
-                      .replace(/[^\d,.]/g, '')
-                      .split(',')
-                  ),
-                  parseFloat(colorPropVal)
-                )
-            const colorString = R.equals('', colorPropVal)
-              ? nullColor
-              : `rgba(${color.join(',')})`
-            return {
-              type: 'Feature',
-              properties: {
-                cave_obj: node,
-                cave_name: JSON.stringify([node.type, id]),
-                color: colorString,
-                size: size / ICON_RESOLUTION,
-                icon: legendObj.icon,
-              },
-              geometry: {
-                type: 'Point',
-                coordinates: [
-                  node.longitude,
-                  node.latitude,
-                  R.pathOr(0, ['height'], node),
-                ],
-              },
-            }
-          }),
-          R.values
-        )(nodeDataSplitFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
+  (nodeDataSplitFunc, nodeRange, legendObjectsFunc) => {
+    const nodeDataFunc = R.pipe(nodeDataSplitFunc, R.propOr({}, 'false'))
+    const geometryFunc = (item) => ({
+      type: 'Point',
+      coordinates: [item.longitude, item.latitude],
+    })
+    return constructGeoJson(
+      nodeRange,
+      nodeDataFunc,
+      legendObjectsFunc,
+      geometryFunc,
+      'node'
     )
+  }
 )
 export const selectNodeClusterGeoJsonObjectFunc = createSelector(
   [selectNodeClustersAtZoomFunc, selectEnabledNodesFunc],
@@ -2164,284 +2157,118 @@ export const selectNodeLayerGeoJsonFunc = createSelector(
 
 export const selectArcLayerGeoJsonFunc = createSelector(
   [selectArcRange, selectLineDataFunc, selectEnabledArcsFunc],
-  (arcRange, arcDataFunc, legendObjectsFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.values,
-          R.unnest,
-          R.map(([id, arc]) => {
-            const legendObj = legendObjectsFunc(mapId)[arc.type]
-            const filters = R.pipe(
-              R.propOr([], 'filters'),
-              R.reject(R.propEq(false, 'active'))
-            )(legendObj)
-
-            if (!filterMapFeature(filters, arc)) return false
-
-            const sizeProp = R.path(
-              [arc.type, 'sizeBy'],
-              legendObjectsFunc(mapId)
-            )
-            const sizeRange = arcRange(
-              arc.type,
-              sizeProp,
-              'sizeByOptions',
-              mapId
-            )
-            const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
-            const size = isNaN(sizePropVal)
-              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-              : getScaledValue(
-                  R.prop('min', sizeRange),
-                  R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', sizeRange)),
-                  parseFloat(R.prop('endSize', sizeRange)),
-                  sizePropVal
-                )
-
-            const colorProp = legendObj.colorBy
-            const colorRange = arcRange(
-              arc.type,
-              colorProp,
-              'colorByOptions',
-              mapId
-            )
-            const colorPropVal = R.pipe(
-              R.path(['values', colorProp]),
-              R.when(R.isNil, R.always('')),
-              (s) => s.toString()
-            )(arc)
-            const isCategorical = !R.has('min', colorRange)
-
-            if (
-              R.has('nullColor', colorRange) &&
-              R.isNil(R.prop('nullColor', colorRange)) &&
-              R.equals('', colorPropVal)
-            )
-              return false
-
-            const nullColor = R.propOr(
-              'rgba(0,0,0,255)',
-              'nullColor',
-              colorRange
-            )
-
-            const color = isCategorical
-              ? R.map((val) => parseFloat(val))(
-                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                )
-              : getScaledArray(
-                  R.prop('min', colorRange),
-                  R.prop('max', colorRange),
-                  R.map((val) => parseFloat(val))(
-                    R.prop('startGradientColor', colorRange)
-                      .replace(/[^\d,.]/g, '')
-                      .split(',')
-                  ),
-                  R.map((val) => parseFloat(val))(
-                    R.prop('endGradientColor', colorRange)
-                      .replace(/[^\d,.]/g, '')
-                      .split(',')
-                  ),
-                  parseFloat(colorPropVal)
-                )
-            const colorString = R.equals('', colorPropVal)
-              ? nullColor
-              : `rgba(${color.join(',')})`
-            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
-              return false
-            const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
-
-            const heightProp = R.path(
-              [arc.type, 'heightBy'],
-              legendObjectsFunc(mapId)
-            )
-            const heightRange = arcRange(
-              arc.type,
-              heightProp,
-              'heightByOptions',
-              mapId
-            )
-            const heightPropVal = parseFloat(
-              R.path(['values', heightProp], arc)
-            )
-            const defaultHeight =
-              R.has('startHeight', arc) && R.has('endHeight', arc) ? '100' : '0'
-
-            const height = isNaN(heightPropVal)
-              ? parseFloat(R.propOr(defaultHeight, 'nullSize', heightRange))
-              : getScaledValue(
-                  R.prop('min', heightRange),
-                  R.prop('max', heightRange),
-                  parseFloat(R.prop('startHeight', heightRange)),
-                  parseFloat(R.prop('endHeight', heightRange)),
-                  heightPropVal
-                )
-
-            // If the arc crosses the antimeridian, adjust the coordinates to be continuous
-            const finalEndLong =
-              arc.endLongitude - arc.startLongitude >= 180
-                ? (arc.endLongitude -= 360)
-                : arc.endLongitude - arc.startLongitude <= -180
-                  ? (arc.endLongitude += 360)
-                  : arc.endLongitude
-
-            return {
-              type: 'Feature',
-              properties: {
-                cave_obj: arc,
-                cave_name: JSON.stringify([arc.type, id]),
-                color: colorString,
-                height,
-                size,
-                dash: dashPattern,
-              },
-              geometry: {
-                type: 'LineString',
-                coordinates: arc.path
-                  ? adjustArcPath(arc.path)
-                  : [
-                      [
-                        arc.startLongitude,
-                        arc.startLatitude,
-                        R.pathOr(0, ['startHeight'], arc),
-                      ],
-                      [
-                        finalEndLong,
-                        arc.endLatitude,
-                        R.pathOr(0, ['endHeight'], arc),
-                      ],
-                    ],
-              },
-            }
-          }),
-          R.filter(R.identity),
-          R.groupBy(R.path(['properties', 'dash']))
-        )(arcDataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
+  (arcRange, arcDataFunc, legendObjectsFunc) => {
+    const geometryFunc = (item) => {
+      const finalEndLong =
+        item.endLongitude - item.startLongitude >= 180
+          ? (item.endLongitude -= 360)
+          : item.endLongitude - item.startLongitude <= -180
+            ? (item.endLongitude += 360)
+            : item.endLongitude
+      return {
+        type: 'LineString',
+        coordinates: item.path
+          ? adjustArcPath(item.path)
+          : [
+              [item.startLongitude, item.startLatitude],
+              [finalEndLong, item.endLatitude],
+            ],
+      }
+    }
+    const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
+    return constructGeoJson(
+      arcRange,
+      modifiedArcDataFunc,
+      legendObjectsFunc,
+      geometryFunc,
+      'arc'
     )
+  }
 )
 
 export const selectArcLayer3DGeoJsonFunc = createSelector(
   [selectArcRange, selectArcDataFunc, selectEnabledArcsFunc],
-  (arcRange, arcDataFunc, legendObjectsFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.values,
-          R.unnest,
-          R.map(([id, arc]) => {
-            const legendObj = legendObjectsFunc(mapId)[arc.type]
-            const filters = R.pipe(
-              R.propOr([], 'filters'),
-              R.reject(R.propEq(false, 'active'))
-            )(legendObj)
-            if (!filterMapFeature(filters, arc)) return false
+  (arcRange, arcDataFunc, legendObjectsFunc) => {
+    const geometryFunc = (item) => {
+      const finalEndLong =
+        item.endLongitude - item.startLongitude >= 180
+          ? (item.endLongitude -= 360)
+          : item.endLongitude - item.startLongitude <= -180
+            ? (item.endLongitude += 360)
+            : item.endLongitude
+      return {
+        type: 'LineString',
+        coordinates: item.path
+          ? adjustArcPath(item.path)
+          : [
+              [item.startLongitude, item.startLatitude],
+              [finalEndLong, item.endLatitude],
+            ],
+      }
+    }
+    const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
+    return constructGeoJson(
+      arcRange,
+      modifiedArcDataFunc,
+      legendObjectsFunc,
+      geometryFunc,
+      'arc'
+    )
+  }
+)
 
-            const sizeProp = legendObj.sizeBy
-            const sizeRange = arcRange(
-              arc.type,
-              sizeProp,
-              'sizeByOptions',
-              mapId
-            )
-            const sizePropVal = parseFloat(R.path(['values', sizeProp], arc))
-            const size = isNaN(sizePropVal)
-              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-              : getScaledValue(
-                  R.prop('min', sizeRange),
-                  R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', sizeRange)),
-                  parseFloat(R.prop('endSize', sizeRange)),
-                  sizePropVal
-                )
-            const colorProp = legendObj.colorBy
-            const colorRange = arcRange(
-              arc.type,
-              colorProp,
-              'colorByOptions',
-              mapId
-            )
-            const isCategorical = !R.has('min', colorRange)
-            const colorPropVal = R.pipe(
-              R.path(['values', colorProp]),
-              R.when(R.isNil, R.always('')),
-              (s) => s.toString()
-            )(arc)
+export const selectFetchedArcGeoJsonFunc = createSelector(
+  [
+    selectLineMatchingKeysByTypeFunc,
+    selectArcRange,
+    selectEnabledArcsFunc,
+    selectArcTypes,
+  ],
+  (lineMatchingKeysByTypeFunc, arcRange, enabledArcsFunc, arcTypes) =>
+    constructFetchedGeoJson(
+      lineMatchingKeysByTypeFunc,
+      arcRange,
+      enabledArcsFunc,
+      arcTypes,
+      'arc'
+    )
+)
 
-            if (
-              R.has('nullColor', colorRange) &&
-              R.isNil(R.prop('nullColor', colorRange)) &&
-              R.equals('', colorPropVal)
-            )
-              return false
+export const selectIncludedGeoJsonFunc = createSelector(
+  [selectIncludedGeoDataFunc, selectGeoRange, selectEnabledGeosFunc],
+  (includedGeoDataFunc, geoRange, legendObjectsFunc) => {
+    const geometryFunc = (item) => ({
+      type: 'Polygon',
+      coordinates: [item.path],
+    })
+    const modifiedIncludedGeoDataFunc = R.pipe(
+      includedGeoDataFunc,
+      R.values,
+      R.unnest
+    )
+    return constructGeoJson(
+      geoRange,
+      modifiedIncludedGeoDataFunc,
+      legendObjectsFunc,
+      geometryFunc,
+      'geo'
+    )
+  }
+)
 
-            const nullColor = R.propOr(
-              'rgba(0,0,0,255)',
-              'nullColor',
-              colorRange
-            )
-
-            const color = isCategorical
-              ? R.map((val) => parseFloat(val))(
-                  R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                )
-              : getScaledArray(
-                  R.prop('min', colorRange),
-                  R.prop('max', colorRange),
-                  R.map((val) => parseFloat(val))(
-                    R.prop('startGradientColor', colorRange)
-                      .replace(/[^\d,.]/g, '')
-                      .split(',')
-                  ),
-                  R.map((val) => parseFloat(val))(
-                    R.prop('endGradientColor', colorRange)
-                      .replace(/[^\d,.]/g, '')
-                      .split(',')
-                  ),
-                  parseFloat(colorPropVal)
-                )
-            const colorString = R.equals('', colorPropVal)
-              ? nullColor
-              : `rgba(${color.join(',')})`
-            if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
-              return false
-            const dashPattern = R.propOr('solid', 'lineBy')(legendObj)
-            // If the arc crosses the antimeridian, adjust the coordinates to be continuous
-            const finalEndLong =
-              arc.endLongitude - arc.startLongitude >= 180
-                ? (arc.endLongitude -= 360)
-                : arc.endLongitude - arc.startLongitude <= -180
-                  ? (arc.endLongitude += 360)
-                  : arc.endLongitude
-
-            return {
-              type: 'Feature',
-              properties: {
-                cave_obj: arc,
-                cave_name: JSON.stringify([arc.type, id]),
-                color: colorString,
-                size: size,
-                dash: dashPattern,
-              },
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [arc.startLongitude, arc.startLatitude],
-                  [finalEndLong, arc.endLatitude],
-                ],
-              },
-            }
-          }),
-          R.filter(R.identity)
-        )(arcDataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
+export const selectFetchedGeoJsonFunc = createSelector(
+  [
+    selectGeoRange,
+    selectEnabledGeosFunc,
+    selectGeoTypes,
+    selectMatchingKeysByTypeFunc,
+  ],
+  (geoRange, enabledGeosFunc, geoTypes, matchingKeysByTypeFunc) =>
+    constructFetchedGeoJson(
+      matchingKeysByTypeFunc,
+      geoRange,
+      enabledGeosFunc,
+      geoTypes,
+      'geo'
     )
 )

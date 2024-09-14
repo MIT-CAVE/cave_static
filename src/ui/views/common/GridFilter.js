@@ -4,10 +4,12 @@ import {
   GRID_CHECKBOX_SELECTION_COL_DEF,
   GridActionsCellItem,
   GridBooleanCell,
+  GridCellCheckboxRenderer,
   GridEditBooleanCell,
   GridEditDateCell,
   GridEditInputCell,
   GridEditSingleSelectCell,
+  GridHeaderCheckbox,
   GridRowEditStopReasons,
   GridRowModes,
   useGridApiRef,
@@ -384,9 +386,23 @@ const GridFilter = ({
         valueOptions: ['and'], // FIXME: ['or', 'and'],
         getOptionLabel: (option) => option.toUpperCase(),
         cellClassName: ({ id }) => (id > rows[0].id ? '' : 'hidden'),
+        renderEditCell: (params) => (
+          <GridEditSingleSelectCell {...params} name="cave-filter-edit-logic" />
+        ),
         preProcessEditCellProps,
       },
-      GRID_CHECKBOX_SELECTION_COL_DEF,
+      {
+        ...GRID_CHECKBOX_SELECTION_COL_DEF,
+        renderHeader: (params) => (
+          <GridHeaderCheckbox {...params} name="cave-filter-checkbox-header" />
+        ),
+        renderCell: (params) => (
+          <GridCellCheckboxRenderer
+            {...params}
+            name="cave-filter-checkbox-row"
+          />
+        ),
+      },
       {
         field: 'source',
         headerName: sourceHeaderName,
@@ -400,8 +416,9 @@ const GridFilter = ({
         ),
         renderEditCell: (params) => (
           <EnhancedEditSingleSelect
-            fieldsToClear={['value', 'relation']}
             {...params}
+            name="cave-filter-edit-source"
+            fieldsToClear={['value', 'relation']}
           />
         ),
         preProcessEditCellProps,
@@ -423,6 +440,12 @@ const GridFilter = ({
             value && value !== '' ? sourceValueTypes[value] : 'number'
           return getRelationValueOptsByType(valueType)
         },
+        renderEditCell: (params) => (
+          <GridEditSingleSelectCell
+            {...params}
+            name="cave-filter-edit-relation"
+          />
+        ),
         preProcessEditCellProps,
       },
       {
@@ -509,7 +532,13 @@ const GridFilter = ({
                     inputProps: { style: { colorScheme: 'dark' } },
                   }),
                 }
-          return <Component {...params} {...props} />
+          return (
+            <Component
+              name={`cave-filter-edit-${valueType}`}
+              {...params}
+              {...props}
+            />
+          )
         },
         preProcessEditCellProps,
       },

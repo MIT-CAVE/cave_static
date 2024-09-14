@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { useMemo, useEffect, useState, memo, useCallback } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -12,31 +12,19 @@ import {
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectEnabledArcsFunc,
-  selectArcRange,
-  selectEnabledGeosFunc,
-  selectGeoRange,
-  selectMatchingKeysByTypeFunc,
-  selectGeoTypes,
-  selectArcTypes,
-  selectLineMatchingKeysByTypeFunc,
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
   selectIsGlobe,
+  selectIncludedGeoJsonFunc,
+  selectFetchedGeoJsonFunc,
+  selectFetchedArcGeoJsonFunc,
 } from '../../../data/selectors'
 import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
-import {
-  getScaledColor,
-  getScaledArray,
-  getScaledValue,
-  includesPath,
-  filterMapFeature,
-  adjustArcPath,
-} from '../../../utils'
+import { includesPath } from '../../../utils'
 
 const handleFeatureClick = (
   dispatch,
@@ -68,378 +56,43 @@ const handleFeatureClick = (
 export const Geos = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
-  const enabledGeos = useSelector(selectEnabledGeosFunc)(mapId)
-  const geometryRange = useSelector(selectGeoRange)
-  const matchingKeysByType = useSelector(selectMatchingKeysByTypeFunc)(mapId)
-  const geoTypes = useSelector(selectGeoTypes)
-  const enabledArcs = useSelector(selectEnabledArcsFunc)(mapId)
-  const arcTypes = useSelector(selectArcTypes)
-  const lineMatchingKeysByType = useSelector(selectLineMatchingKeysByTypeFunc)(
-    mapId
-  )
-  const arcRange = useSelector(selectArcRange)
+
+  const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
+  const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
   const isGlobe = useSelector(selectIsGlobe)(mapId)
 
-  const [selectedGeos, setSelectedGeos] = useState({})
-  const [selectedArcs, setSelectedArcs] = useState({})
+  const [loadedGeoJson, setLoadedGeoJson] = useState({})
+  const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
 
   useEffect(() => {
-    const geoNames = R.keys(R.filter(R.identity, enabledGeos))
-
-    const fetchCache = async () => {
-      const cache = await caches.open('geos')
-      const geos = {}
-      for (let geoName of geoNames) {
-        const url = R.pathOr('', [geoName, 'geoJson', 'geoJsonLayer'], geoTypes)
-        // Special catch for empty urls on initial call
-        if (url === '') {
-          break
-        }
-        let response = await cache.match(url)
-        // add to cache if not found
-        if (R.isNil(response)) {
-          await cache.add(url)
-          response = await cache.match(url)
-        }
-        geos[geoName] = await response.json()
-      }
-      setSelectedGeos(geos)
+    const loadData = async () => {
+      geoJsonObjectFunc(mapId).then((loadedData) => {
+        setLoadedGeoJson(loadedData)
+      })
     }
-    fetchCache()
-  }, [geoTypes, enabledGeos, matchingKeysByType])
+    loadData()
+  }, [geoJsonObjectFunc, mapId])
 
   useEffect(() => {
-    const arcNames = R.keys(R.filter(R.identity, enabledArcs))
-
-    const fetchCache = async () => {
-      const cache = await caches.open('arcs')
-      const arcs = {}
-      for (let arcName of arcNames) {
-        const url = R.pathOr('', [arcName, 'geoJson', 'geoJsonLayer'], arcTypes)
-        // Special catch for empty urls on initial call
-        if (url === '') {
-          continue
-        }
-        let response = await cache.match(url)
-        // add to cache if not found
-        if (R.isNil(response)) {
-          await cache.add(url)
-          response = await cache.match(url)
-        }
-        arcs[arcName] = await response.json()
-      }
-      setSelectedArcs(arcs)
+    const loadData = async () => {
+      lineObjFunc(mapId).then((loadedData) => {
+        setLineGeoJsonObject(loadedData)
+      })
     }
-    fetchCache()
-  }, [arcTypes, enabledArcs, lineMatchingKeysByType])
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findColor = useCallback(
-    R.memoizeWith(
-      (geoObj) => {
-        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const value = R.path(['values', colorProp], geoObj)
-        return `${geoObj.geoJsonValue}${value}${geoObj.type}`
-      },
-      (geoObj) => {
-        const colorProp = R.path([geoObj.type, 'colorBy'], enabledGeos)
-        const statRange = geometryRange(
-          geoObj.type,
-          colorProp,
-          'colorByOptions',
-          mapId
-        )
-        const colorRange = R.map((prop) => R.pathOr(0, [prop])(statRange))([
-          'startGradientColor',
-          'endGradientColor',
-        ])
-        const value = R.pipe(
-          R.path(['values', colorProp]),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(geoObj)
-        const isCategorical = !R.has('min', statRange)
-
-        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
-
-        return R.equals('', value)
-          ? nullColor
-          : isCategorical
-            ? R.propOr('rgba(0,0,0,5)', value, statRange)
-            : `rgba(${getScaledColor(
-                [R.prop('min', statRange), R.prop('max', statRange)],
-                colorRange,
-                value
-              ).join(',')})`
-      }
-    ),
-    [enabledGeos, geometryRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findHeight = useCallback(
-    R.memoizeWith(
-      (geoObj) => {
-        const heightProp = R.path([geoObj.type, 'heightBy'], enabledGeos)
-        const value = R.path(['values', heightProp], geoObj)
-        return `${geoObj.geoJsonValue}${value}${geoObj.type}`
-      },
-      (geoObj) => {
-        const heightProp = R.path([geoObj.type, 'heightBy'], enabledGeos)
-        const heightRange = geometryRange(
-          geoObj.type,
-          heightProp,
-          'heightByOptions',
-          mapId
-        )
-        const value = R.pipe(
-          R.path(['values', heightProp]),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(geoObj)
-
-        return R.equals('', value)
-          ? 0
-          : getScaledValue(
-              R.prop('min', heightRange),
-              R.prop('max', heightRange),
-              parseFloat(R.prop('startHeight', heightRange)),
-              parseFloat(R.prop('endHeight', heightRange)),
-              value
-            )
-      }
-    ),
-    [enabledGeos, geometryRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findLineSize = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const propVal = R.path(['values', sizeProp], d)
-        return `${R.prop('data_key', d)}${propVal}${d.type}`
-      },
-      (d) => {
-        const sizeProp = R.path([d.type, 'sizeBy'], enabledArcs)
-        const heightRange = arcRange(d.type, sizeProp, 'sizeByOptions', mapId)
-        const propVal = parseFloat(R.path(['values', sizeProp], d))
-        return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', heightRange))
-          : getScaledValue(
-              R.prop('min', heightRange),
-              R.prop('max', heightRange),
-              parseFloat(R.prop('startSize', heightRange)),
-              parseFloat(R.prop('endSize', heightRange)),
-              propVal
-            )
-      }
-    ),
-    [enabledArcs, arcRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findLineColor = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const propVal = R.path(['values', colorProp], d[1])
-        return `${R.prop('data_key', d)}${propVal}${d.type}`
-      },
-      (d) => {
-        const colorProp = R.path([d.type, 'colorBy'], enabledArcs)
-        const colorRange = arcRange(d.type, colorProp, 'colorByOptions', mapId)
-        const isCategorical = !R.has('min', colorRange)
-        const propVal = R.pipe(
-          R.path(['values', colorProp]),
-          R.when(R.isNil, R.always('')),
-          (s) => s.toString()
-        )(d)
-
-        const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
-
-        return R.equals('', propVal)
-          ? nullColor
-          : isCategorical
-            ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
-            : `rgba(${getScaledArray(
-                R.prop('min', colorRange),
-                R.prop('max', colorRange),
-                R.map((val) => parseFloat(val))(
-                  R.prop('startGradientColor', colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                R.map((val) => parseFloat(val))(
-                  R.prop('endGradientColor', colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                parseFloat(R.path(['values', colorProp], d))
-              ).join(',')})`
-      }
-    ),
-    [enabledArcs, arcRange]
-  )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const findLineHeight = useCallback(
-    R.memoizeWith(
-      (d) => {
-        const heightProp = R.path([d.type, 'heightBy'], enabledArcs)
-        const propVal = R.path(['values', heightProp], d)
-        return `${R.prop('data_key', d)}${propVal}${d.type}`
-      },
-      (d) => {
-        const heightProp = R.path([d.type, 'heightBy'], enabledArcs)
-        const sizeRange = arcRange(d.type, heightProp, 'heightByOptions', mapId)
-        const propVal = parseFloat(R.path(['values', heightProp], d))
-        return isNaN(propVal)
-          ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-          : getScaledValue(
-              R.prop('min', sizeRange),
-              R.prop('max', sizeRange),
-              parseFloat(R.prop('startHeight', sizeRange)),
-              parseFloat(R.prop('endHeight', sizeRange)),
-              propVal
-            )
-      }
-    ),
-    [enabledArcs, arcRange]
-  )
-
-  const geoJsonObject = useMemo(
-    () =>
-      R.pipe(
-        R.map(
-          R.pipe(
-            R.mapObjIndexed((geoObj, geoJsonValue) => {
-              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'], geoObj)
-              const geoType = R.prop('type', geoObj)
-
-              const filters = R.pipe(
-                R.pathOr([], [geoObj.type, 'filters']),
-                R.reject(R.propEq(false, 'active'))
-              )(enabledGeos)
-              if (!filterMapFeature(filters, geoObj)) return false
-
-              const filteredFeature = R.find(
-                (feature) =>
-                  R.path(['properties', geoJsonProp])(feature) === geoJsonValue
-              )(R.pathOr({}, [geoType, 'features'])(selectedGeos))
-              const color = findColor(geoObj)
-              const height = findHeight(geoObj)
-
-              const id = R.prop('data_key', geoObj)
-              return R.mergeRight(filteredFeature, {
-                properties: {
-                  cave_name: JSON.stringify([geoType, id]),
-                  cave_obj: geoObj,
-                  color,
-                  height,
-                },
-              })
-            }),
-            R.values,
-            R.filter(R.identity)
-          )
-        ),
-        R.values,
-        R.unnest
-      )(matchingKeysByType),
-    [enabledGeos, findColor, findHeight, matchingKeysByType, selectedGeos]
-  )
-
-  const lineGeoJsonObject = useMemo(
-    () =>
-      R.pipe(
-        R.map(
-          R.pipe(
-            R.mapObjIndexed((geoObj, geoJsonValue) => {
-              const geoJsonProp = R.path(['geoJson', 'geoJsonProp'], geoObj)
-              const geoType = R.prop('type', geoObj)
-              const filteredFeature = R.find(
-                (feature) =>
-                  R.path(['properties', geoJsonProp], feature) === geoJsonValue
-              )(R.pathOr({}, [geoType, 'features'], selectedArcs))
-
-              const filters = R.pipe(
-                R.pathOr([], [geoObj.type, 'filters']),
-                R.reject(R.propEq(false, 'active'))
-              )(enabledArcs)
-              if (
-                R.isNil(filteredFeature) &&
-                R.isNotEmpty(R.pathOr({}, [geoType, 'features'], selectedArcs))
-              ) {
-                console.warn(
-                  `No feature with ${geoJsonValue} for property ${geoJsonProp}`
-                )
-                return false
-              } else if (!filterMapFeature(filters, geoObj)) return false
-
-              const color = findLineColor(geoObj)
-              const size = findLineSize(geoObj)
-              const height = findLineHeight(geoObj)
-              const id = R.prop('data_key', geoObj)
-              const dashPattern = R.propOr(
-                'solid',
-                'lineBy',
-                R.path([geoType, 'colorBy'], enabledArcs)
-              )
-
-              if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1)
-                return false
-
-              const adjustedFeature = R.assocPath(
-                ['geometry', 'coordinates'],
-                adjustArcPath(
-                  R.pathOr([], ['geometry', 'coordinates'], filteredFeature)
-                ),
-                filteredFeature
-              )
-
-              return R.mergeRight(adjustedFeature, {
-                properties: {
-                  cave_name: JSON.stringify([geoType, id]),
-                  cave_obj: geoObj,
-                  dash: dashPattern,
-                  size,
-                  color,
-                  height,
-                },
-              })
-            }),
-            R.values,
-            R.filter(R.identity)
-          )
-        ),
-        R.values,
-        R.unnest,
-        R.groupBy(R.path(['properties', 'dash']))
-      )(lineMatchingKeysByType),
-    [
-      enabledArcs,
-      findLineSize,
-      findLineColor,
-      findLineHeight,
-      lineMatchingKeysByType,
-      selectedArcs,
-    ]
-  )
+    loadData()
+  }, [lineObjFunc, mapId])
 
   return [
     <GeosWithHeight
       id="geos-with-altitude"
-      key="geos-with-altitude"
-      geos={!isGlobe ? geoJsonObject : []}
+      geos={!isGlobe ? loadedGeoJson : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
       }
     />,
     <ArcsWithHeight
       id="geos-arcs-with-altitude"
-      key="geos-arcs-with-altitude"
-      arcs={!isGlobe ? R.unnest(R.values(lineGeoJsonObject)) : []}
+      arcs={!isGlobe ? lineGeoJsonObject : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
       }
@@ -451,7 +104,7 @@ export const Geos = memo(({ mapId }) => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: geoJsonObject,
+        features: loadedGeoJson,
       }}
     >
       <Layer
@@ -480,7 +133,7 @@ export const Geos = memo(({ mapId }) => {
       type="geojson"
       data={{
         type: 'FeatureCollection',
-        features: R.propOr([], 'solid', lineGeoJsonObject),
+        features: lineGeoJsonObject,
       }}
     >
       <Layer
@@ -501,74 +154,50 @@ export const Geos = memo(({ mapId }) => {
           ],
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
-        }}
-      />
-    </Source>,
-    <Source
-      id={layerId.MULTI_ARC_LAYER_DASH}
-      key={layerId.MULTI_ARC_LAYER_DASH}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: R.propOr([], 'dashed', lineGeoJsonObject),
-      }}
-    >
-      <Layer
-        id={layerId.MULTI_ARC_LAYER_DASH}
-        key={layerId.MULTI_ARC_LAYER_DASH}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': [
+          'line-dasharray': [
             'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
+            ['==', ['get', 'dash'], 'dashed'],
+            LINE_TYPES['dashed'],
+            ['==', ['get', 'dash'], 'dotted'],
+            LINE_TYPES['dotted'],
+            LINE_TYPES['solid'],
           ],
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          'line-dasharray': LINE_TYPES['dashed'],
-        }}
-      />
-    </Source>,
-    <Source
-      id={layerId.MULTI_ARC_LAYER_DOT}
-      key={layerId.MULTI_ARC_LAYER_DOT}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: R.propOr([], 'dotted', lineGeoJsonObject),
-      }}
-    >
-      <Layer
-        id={layerId.MULTI_ARC_LAYER_DOT}
-        key={layerId.MULTI_ARC_LAYER_DOT}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          'line-dasharray': LINE_TYPES['dotted'],
         }}
       />
     </Source>,
   ]
+})
+
+export const IncludedGeos = memo(({ mapId }) => {
+  const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
+
+  return (
+    <Source
+      type="geojson"
+      key={layerId.INCLUDED_GEOGRAPHY_LAYER}
+      id={layerId.INCLUDED_GEOGRAPHY_LAYER}
+      generateId={true}
+      data={{
+        type: 'FeatureCollection',
+        features: geoObjs,
+      }}
+    >
+      <Layer
+        id={layerId.INCLUDED_GEOGRAPHY_LAYER}
+        key={layerId.INCLUDED_GEOGRAPHY_LAYER}
+        type="fill"
+        paint={{
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            HIGHLIGHT_COLOR,
+            ['get', 'color'],
+          ],
+          'fill-opacity': 0.4,
+        }}
+      />
+    </Source>
+  )
 })
 
 export const Nodes = memo(({ mapId }) => {
@@ -627,7 +256,7 @@ export const Arcs = memo(({ mapId }) => {
   return [
     <ArcsWithHeight
       id="arcs-with-altitude"
-      arcs={!isGlobe ? R.unnest(R.values(arcLayerGeoJson)) : []}
+      arcs={!isGlobe ? arcLayerGeoJson : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
       }
@@ -639,7 +268,7 @@ export const Arcs = memo(({ mapId }) => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: R.propOr([], 'solid', arcLayerGeoJson),
+        features: arcLayerGeoJson,
       }}
     >
       <Layer
@@ -660,70 +289,14 @@ export const Arcs = memo(({ mapId }) => {
           ],
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
-        }}
-      />
-    </Source>,
-    <Source
-      id={layerId.ARC_LAYER_DASH}
-      key={layerId.ARC_LAYER_DASH}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: R.propOr([], 'dashed', arcLayerGeoJson),
-      }}
-    >
-      <Layer
-        id={layerId.ARC_LAYER_DASH}
-        key={layerId.ARC_LAYER_DASH}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': [
+          'line-dasharray': [
             'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
+            ['==', ['get', 'dash'], 'dashed'],
+            LINE_TYPES['dashed'],
+            ['==', ['get', 'dash'], 'dotted'],
+            LINE_TYPES['dotted'],
+            LINE_TYPES['solid'],
           ],
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          'line-dasharray': LINE_TYPES['dashed'],
-        }}
-      />
-    </Source>,
-    <Source
-      id={layerId.ARC_LAYER_DOT}
-      key={layerId.ARC_LAYER_DOT}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: R.propOr([], 'dotted', arcLayerGeoJson),
-      }}
-    >
-      <Layer
-        id={layerId.ARC_LAYER_DOT}
-        key={layerId.ARC_LAYER_DOT}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          'line-dasharray': LINE_TYPES['dotted'],
         }}
       />
     </Source>,

@@ -1206,20 +1206,20 @@ const LegendCard = memo(
     const sizeRange = geometryRange(
       geometryType,
       sizeProp,
-      'sizeByOptions',
-      mapId
+      mapId,
+      'sizeByOptions'
     )
     const colorRange = geometryRange(
       geometryType,
       colorProp,
-      'colorByOptions',
-      mapId
+      mapId,
+      'colorByOptions'
     )
     const heightRange = geometryRange(
       geometryType,
       heightProp,
-      'heightByOptions',
-      mapId
+      mapId,
+      'heightByOptions'
     )
 
     const numSections = [sizeRange, colorRange, heightRange].filter(
@@ -1259,6 +1259,7 @@ const LegendCard = memo(
             legendName={R.propOr(geometryType, 'name')(typeObj)}
             toggle={
               <Switch
+                name={`cave-toggle-map-${geometryName}`}
                 checked={isOpen}
                 onChange={(event) => {
                   event.target.checked

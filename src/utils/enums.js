@@ -7,6 +7,7 @@ export const layerId = {
   MULTI_ARC_LAYER_DOT: 'multiArcLayerDot',
   GEOGRAPHY_LAYER: 'geographyLayer',
   NODE_ICON_LAYER: 'nodeIconLayer',
+  INCLUDED_GEOGRAPHY_LAYER: 'includedGeographyLayer',
 }
 
 export const asyncStatus = {
@@ -136,6 +137,7 @@ export const chartVariant = {
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
   DISTRIBUTION: 'distribution',
+  MIXED: 'mixed',
   OVERVIEW: 'overview',
 }
 
@@ -164,12 +166,14 @@ export const chartMaxGrouping = {
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
   [chartVariant.DISTRIBUTION]: 2,
+  [chartVariant.MIXED]: 2,
 }
 
 // Stat limits for multistat charts
 export const chartStatUses = {
   [chartVariant.TABLE]: [],
   [chartVariant.SCATTER]: ['X Axis', 'Y Axis', 'Size (Optional)'],
+  [chartVariant.MIXED]: ['Left', 'Right'],
 }
 
 export const unitPlacements = {
