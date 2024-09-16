@@ -869,7 +869,7 @@ export const constructFetchedGeoJson = (
                   geoObj.type,
                   colorProp,
                   mapId,
-                  false
+                  'colorByOptions'
                 )
                 const isCategorical = !R.has('min', colorRange)
                 const propVal = R.pipe(
@@ -906,17 +906,53 @@ export const constructFetchedGeoJson = (
 
                 const id = R.prop('data_key')(geoObj)
 
+                const heightProp = R.path(
+                  [geoObj.type, 'heightBy'],
+                  enabledItems
+                )
+                const heightRange = itemRange(
+                  geoObj.type,
+                  heightProp,
+                  mapId,
+                  'heightByOptions'
+                )
+
+                const heightPropVal = parseFloat(
+                  R.path(['values', heightProp], geoObj)
+                )
+                const defaultHeight =
+                  R.has('startHeight', geoObj) && R.has('endHeight', geoObj)
+                    ? '100'
+                    : '0'
+
+                const height = isNaN(heightPropVal)
+                  ? parseFloat(R.propOr(defaultHeight, 'nullSize', heightRange))
+                  : getScaledValue(
+                      R.prop('min', heightRange),
+                      R.prop('max', heightRange),
+                      parseFloat(R.prop('startHeight', heightRange)),
+                      parseFloat(R.prop('endHeight', heightRange)),
+                      heightPropVal
+                    )
+
                 // don't calculate size, dash, or adjust path for geos
                 if (cacheName === 'geo')
                   return R.mergeRight(filteredFeature, {
                     properties: {
                       cave_name: JSON.stringify([geoType, id]),
-                      color: color,
+                      cave_obj: geoObj,
+                      color,
+                      height,
                     },
                   })
 
                 const sizeProp = R.path([geoObj.type, 'sizeBy'], enabledItems)
-                const sizeRange = itemRange(geoObj.type, sizeProp, mapId, true)
+                const sizeRange = itemRange(
+                  geoObj.type,
+                  sizeProp,
+                  mapId,
+                  'sizeByOptions'
+                )
                 const sizePropVal = parseFloat(
                   R.path(['values', sizeProp], geoObj)
                 )
@@ -935,9 +971,9 @@ export const constructFetchedGeoJson = (
                   'lineBy'
                 )(R.path([geoType, 'colorBy'], enabledItems))
 
-                if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1) {
+                if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1)
                   return false
-                }
+
                 const adjustedFeature = R.assocPath(
                   ['geometry', 'coordinates'],
                   adjustArcPath(
@@ -947,9 +983,11 @@ export const constructFetchedGeoJson = (
                 return R.mergeRight(adjustedFeature, {
                   properties: {
                     cave_name: JSON.stringify([geoType, id]),
-                    color: color,
+                    cave_obj: geoObj,
+                    color,
                     dash: dashPattern,
-                    size: size,
+                    size,
+                    height,
                   },
                 })
               }),
@@ -991,7 +1029,12 @@ export const constructGeoJson = (
             R.when(R.isNil, R.always('')),
             (s) => s.toString()
           )(item)
-          const colorRange = itemRange(item.type, colorProp, mapId, false)
+          const colorRange = itemRange(
+            item.type,
+            colorProp,
+            mapId,
+            'colorByOptions'
+          )
 
           const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
 
@@ -1021,42 +1064,74 @@ export const constructGeoJson = (
             ? nullColor
             : `rgba(${color.join(',')})`
 
-          if (type === 'geo')
-            return {
-              type: 'Feature',
-              properties: {
-                cave_obj: item,
-                cave_name: JSON.stringify([item.type, id]),
-                color: colorString,
-              },
-              geometry: geometryFunc(item),
-            }
+          let size = null
 
-          const sizeProp = legendObj.sizeBy
-          const sizeRange = itemRange(item.type, sizeProp, mapId, true)
-          const sizePropVal = R.path(['values', sizeProp], item)
-          const isSizeCategorical = !R.has('min', sizeRange)
-          const size = R.isNil(sizePropVal)
-            ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-            : isSizeCategorical
-              ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
-              : getScaledValue(
-                  R.prop('min', sizeRange),
-                  R.prop('max', sizeRange),
-                  parseFloat(R.prop('startSize', sizeRange)),
-                  parseFloat(R.prop('endSize', sizeRange)),
-                  parseFloat(sizePropVal)
-                )
+          if (type === 'node' || type === 'arc') {
+            const sizeProp = legendObj.sizeBy
+            const sizeRange = itemRange(
+              item.type,
+              sizeProp,
+              mapId,
+              'sizeByOptions'
+            )
+            const sizePropVal = R.path(['values', sizeProp], item)
+            const isSizeCategorical = !R.has('min', sizeRange)
+            size = R.isNil(sizePropVal)
+              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
+              : isSizeCategorical
+                ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
+                : getScaledValue(
+                    R.prop('min', sizeRange),
+                    R.prop('max', sizeRange),
+                    parseFloat(R.prop('startSize', sizeRange)),
+                    parseFloat(R.prop('endSize', sizeRange)),
+                    parseFloat(sizePropVal)
+                  )
+          }
 
           if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
             return false
+
+          let height = null
+
+          if (type === 'geo' || type === 'arc') {
+            const heightProp = legendObj.heightBy
+            const heightRange = itemRange(
+              item.type,
+              heightProp,
+              mapId,
+              'heightByOptions'
+            )
+
+            const heightPropVal = parseFloat(
+              R.path(['values', heightProp], item)
+            )
+            const defaultHeight =
+              R.has('startHeight', item) && R.has('endHeight', item)
+                ? '100'
+                : '0'
+
+            height = isNaN(heightPropVal)
+              ? parseFloat(R.propOr(defaultHeight, 'nullSize', heightRange))
+              : getScaledValue(
+                  R.prop('min', heightRange),
+                  R.prop('max', heightRange),
+                  parseFloat(R.prop('startHeight', heightRange)),
+                  parseFloat(R.prop('endHeight', heightRange)),
+                  heightPropVal
+                )
+          }
+
           return {
             type: 'Feature',
             properties: {
               cave_obj: item,
               cave_name: JSON.stringify([item.type, id]),
               color: colorString,
-              size: type === 'node' ? size / ICON_RESOLUTION : size,
+              ...(R.isNotNil(height) && { height }),
+              ...(R.isNotNil(size) && {
+                size: type === 'node' ? size / ICON_RESOLUTION : size,
+              }),
               ...(type === 'node' && { icon: legendObj.icon }),
               ...(type === 'arc' && {
                 dash: R.propOr('solid', 'lineBy')(legendObj),

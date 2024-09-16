@@ -847,6 +847,48 @@ export const selectCurrentMapProjectionFunc = createSelector(
     },
   }
 )
+export const selectIsGlobeNotMemoized = createSelector(
+  [selectViewportsByMap, selectCurrentMapDataByMap, selectMapboxToken],
+  (viewportsByMap, dataObj, token) =>
+    R.pipe(
+      R.toPairs,
+      R.map(([mapId]) => {
+        const mapProjection =
+          token !== ''
+            ? R.pathOr('mercator', ['currentProjection', mapId], dataObj)
+            : 'mercator'
+        const zoom = R.path([mapId, 'zoom'], viewportsByMap)
+        return [mapId, mapProjection === 'globe' && zoom < 6]
+      }),
+      R.fromPairs
+    )(viewportsByMap),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      equalityCheck: (a, b) => {
+        // token
+        if (typeof a === 'string') return R.equals(a, b)
+        // dataObj
+        const getProjection = R.prop('currentProjection')
+        if (getProjection(a) !== undefined)
+          return R.equals(getProjection(a), getProjection(b))
+        // viewportsByMap
+        const getZoomLevels = R.map((data) => R.prop('zoom', data) < 6)
+        return R.equals(getZoomLevels(a), getZoomLevels(b))
+      },
+    },
+  }
+)
+export const selectIsGlobe = createSelector(
+  [selectIsGlobeNotMemoized],
+  (isGlobeData) => (mapId) => R.prop(mapId, isGlobeData),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      equalityCheck: (a, b) => R.equals(a, b),
+    },
+  }
+)
 export const selectIsMapboxTokenProvided = createSelector(
   selectMapboxToken,
   R.both(R.isNotNil, R.isNotEmpty)
@@ -1541,15 +1583,17 @@ export const selectArcRange = createSelector(
   [selectMergedArcs, selectLegendTypesFn],
   (arcsByType, legendObjectsFunc) =>
     R.memoizeWith(
-      (type, prop, mapId, size) => JSON.stringify([type, prop, size, mapId]),
-      (type, prop, mapId, size) =>
+      (type, prop, mapId, dimensionOptions) =>
+        JSON.stringify([type, prop, dimensionOptions, mapId]),
+      (type, prop, mapId, dimensionOptions) =>
         R.pipe(
-          R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
               ((R.has('startGradientColor', range) ||
-                R.has('startSize', range)) &&
+                R.has('startSize', range) ||
+                R.has('startHeight', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1683,10 +1727,11 @@ export const selectNodeRange = createSelector(
   [selectLegendTypesFn, selectMergedNodes],
   (legendObjectsFunc, nodesByType) =>
     R.memoizeWith(
-      (type, prop, mapId, size) => JSON.stringify([type, prop, size, mapId]),
-      (type, prop, mapId, size) =>
+      (type, prop, mapId, dimensionOptions) =>
+        JSON.stringify([type, prop, dimensionOptions, mapId]),
+      (type, prop, mapId, dimensionOptions) =>
         R.pipe(
-          R.path([type, size ? 'sizeByOptions' : 'colorByOptions', prop]),
+          R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1707,18 +1752,20 @@ export const selectNodeRange = createSelector(
         )(legendObjectsFunc({ mapId, layerKey: 'node' }))
     )
 )
-export const selectGeoColorRange = createSelector(
+export const selectGeoRange = createSelector(
   [selectLegendTypesFn, selectMergedGeos],
   (legendObjectsFunc, geosByType) =>
     R.memoizeWith(
-      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
-      (type, prop, mapId) =>
+      (type, prop, mapId, dimensionOptions) =>
+        JSON.stringify([type, prop, dimensionOptions, mapId]),
+      (type, prop, mapId, dimensionOptions) =>
         R.pipe(
-          R.path([type, 'colorByOptions', prop]),
+          R.path([type, dimensionOptions, prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              (R.has('startGradientColor', range) &&
+              ((R.has('startGradientColor', range) ||
+                R.has('startHeight', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1750,7 +1797,12 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
               [d.type, 'colorBy'],
               enabledArcsFunc(mapId)
             )
-            const statRange = arcRange(d.type, colorProp, mapId, false)
+            const statRange = arcRange(
+              d.type,
+              colorProp,
+              mapId,
+              'colorByOptions'
+            )
             return !(
               R.has('nullColor', statRange) &&
               R.isNil(R.prop('nullColor', statRange))
@@ -2185,8 +2237,8 @@ export const selectFetchedArcGeoJsonFunc = createSelector(
 )
 
 export const selectIncludedGeoJsonFunc = createSelector(
-  [selectIncludedGeoDataFunc, selectGeoColorRange, selectEnabledGeosFunc],
-  (includedGeoDataFunc, geoColorRange, legendObjectsFunc) => {
+  [selectIncludedGeoDataFunc, selectGeoRange, selectEnabledGeosFunc],
+  (includedGeoDataFunc, geoRange, legendObjectsFunc) => {
     const geometryFunc = (item) => ({
       type: 'Polygon',
       coordinates: [item.path],
@@ -2197,7 +2249,7 @@ export const selectIncludedGeoJsonFunc = createSelector(
       R.unnest
     )
     return constructGeoJson(
-      geoColorRange,
+      geoRange,
       modifiedIncludedGeoDataFunc,
       legendObjectsFunc,
       geometryFunc,
@@ -2208,15 +2260,15 @@ export const selectIncludedGeoJsonFunc = createSelector(
 
 export const selectFetchedGeoJsonFunc = createSelector(
   [
-    selectGeoColorRange,
+    selectGeoRange,
     selectEnabledGeosFunc,
     selectGeoTypes,
     selectMatchingKeysByTypeFunc,
   ],
-  (geoColorRange, enabledGeosFunc, geoTypes, matchingKeysByTypeFunc) =>
+  (geoRange, enabledGeosFunc, geoTypes, matchingKeysByTypeFunc) =>
     constructFetchedGeoJson(
       matchingKeysByTypeFunc,
-      geoColorRange,
+      geoRange,
       enabledGeosFunc,
       geoTypes,
       'geo'

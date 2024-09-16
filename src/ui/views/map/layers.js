@@ -3,7 +3,12 @@ import { useEffect, useState, memo } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { ArcLayer3D } from './CustomLayers'
+import {
+  ArcLayer3D,
+  NodesWithHeight,
+  GeosWithHeight,
+  ArcsWithHeight,
+} from './CustomLayers'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -11,6 +16,7 @@ import {
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
+  selectIsGlobe,
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
@@ -20,9 +26,40 @@ import { layerId } from '../../../utils/enums'
 
 import { includesPath } from '../../../utils'
 
+const handleFeatureClick = (
+  dispatch,
+  sync,
+  mapId,
+  cave_name,
+  cave_obj,
+  feature
+) => {
+  const [type] = JSON.parse(cave_name)
+  dispatch(
+    mutateLocal({
+      path: ['panes', 'paneState', 'center'],
+      value: {
+        open: {
+          ...(cave_obj || {}),
+          feature: feature,
+          type: R.propOr(type, 'name')(cave_obj),
+          key: cave_name,
+          mapId,
+        },
+        type: 'feature',
+      },
+      sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+    })
+  )
+}
+
 export const Geos = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
+
   const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
   const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
@@ -46,6 +83,20 @@ export const Geos = memo(({ mapId }) => {
   }, [lineObjFunc, mapId])
 
   return [
+    <GeosWithHeight
+      id="geos-with-altitude"
+      geos={!isGlobe ? loadedGeoJson : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
+      }
+    />,
+    <ArcsWithHeight
+      id="geos-arcs-with-altitude"
+      arcs={!isGlobe ? lineGeoJsonObject : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+      }
+    />,
     <Source
       type="geojson"
       key={layerId.GEOGRAPHY_LAYER}
@@ -59,7 +110,11 @@ export const Geos = memo(({ mapId }) => {
       <Layer
         id={layerId.GEOGRAPHY_LAYER}
         key={layerId.GEOGRAPHY_LAYER}
+        react
         type="fill"
+        layout={{
+          visibility: isGlobe ? 'visible' : 'none',
+        }}
         paint={{
           'fill-color': [
             'case',
@@ -88,6 +143,7 @@ export const Geos = memo(({ mapId }) => {
         layout={{
           'line-cap': 'round',
           'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
           'line-color': [
@@ -145,9 +201,19 @@ export const IncludedGeos = memo(({ mapId }) => {
 })
 
 export const Nodes = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
 
-  return (
+  return [
+    <NodesWithHeight
+      id="nodes-with-altitude"
+      nodes={!isGlobe ? nodeGeoJson : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'nodes')
+      }
+    />,
     <Source
       id={layerId.NODE_ICON_LAYER}
       key={layerId.NODE_ICON_LAYER}
@@ -166,6 +232,7 @@ export const Nodes = memo(({ mapId }) => {
           'icon-image': ['get', 'icon'],
           'icon-size': ['get', 'size'],
           'icon-allow-overlap': true,
+          visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
           'icon-color': [
@@ -176,12 +243,24 @@ export const Nodes = memo(({ mapId }) => {
           ],
         }}
       />
-    </Source>
-  )
+    </Source>,
+  ]
 })
+
 export const Arcs = memo(({ mapId }) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
-  return (
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
+
+  return [
+    <ArcsWithHeight
+      id="arcs-with-altitude"
+      arcs={!isGlobe ? arcLayerGeoJson : []}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+      }
+    />,
     <Source
       id={layerId.ARC_LAYER_SOLID}
       key={layerId.ARC_LAYER_SOLID}
@@ -196,6 +275,11 @@ export const Arcs = memo(({ mapId }) => {
         id={layerId.ARC_LAYER_SOLID}
         key={layerId.ARC_LAYER_SOLID}
         type="line"
+        layout={{
+          'line-cap': 'round',
+          'line-join': 'round',
+          visibility: isGlobe ? 'visible' : 'none',
+        }}
         paint={{
           'line-color': [
             'case',
@@ -214,13 +298,9 @@ export const Arcs = memo(({ mapId }) => {
             LINE_TYPES['solid'],
           ],
         }}
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-        }}
       />
-    </Source>
-  )
+    </Source>,
+  ]
 })
 
 export const Arcs3D = memo(({ mapId }) => {
@@ -230,29 +310,9 @@ export const Arcs3D = memo(({ mapId }) => {
   return (
     <ArcLayer3D
       features={arcLayerGeoJson}
-      onClick={({ cave_name, cave_obj: obj }) => {
-        const [type] = JSON.parse(cave_name)
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: {
-              open: {
-                ...(obj || {}),
-                feature: 'arcs',
-                type: R.propOr(type, 'name')(obj),
-                key: cave_name,
-                mapId,
-              },
-              type: 'feature',
-            },
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
-          })
-        )
-      }}
+      onClick={({ cave_name, cave_obj }) =>
+        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
+      }
     />
   )
 })
