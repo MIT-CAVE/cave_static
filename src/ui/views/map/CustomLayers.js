@@ -527,6 +527,12 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
           ['properties', 'color'],
           geo
         )
+        const colorArr = rgbStrToArray(color)
+        const colorObj = new THREE.Color(
+          colorArr[0] / 255,
+          colorArr[1] / 255,
+          colorArr[2] / 255
+        )
 
         const sideGeometry = new THREE.BufferGeometry()
         const sideVerticesFloat32Array = new Float32Array(sideVertices)
@@ -536,12 +542,12 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         )
         sideGeometry.setIndex(sideTriangles)
 
-        const opacity = parseInt(rgbStrToArray(color)[3])
+        const opacity = parseInt(colorArr[3])
         // if opacity > 1, it is on a 0-255 scale, which happens for colorBy options
         // so we need to convert it to a 0-1 scale
         const scaledOpacity = opacity > 1 ? opacity / 255 : opacity
         const meshOptions = {
-          color,
+          color: colorObj,
           side: THREE.DoubleSide,
           transparent: true,
         }

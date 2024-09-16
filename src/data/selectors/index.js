@@ -863,6 +863,7 @@ export const selectIsGlobeNotMemoized = createSelector(
       R.fromPairs
     )(viewportsByMap),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) => {
         // token
@@ -882,6 +883,7 @@ export const selectIsGlobe = createSelector(
   [selectIsGlobeNotMemoized],
   (isGlobeData) => (mapId) => R.prop(mapId, isGlobeData),
   {
+    memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) => R.equals(a, b),
     },
