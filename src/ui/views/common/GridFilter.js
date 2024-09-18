@@ -227,7 +227,7 @@ const GridFilter = ({
         source: '',
         relation: '',
         value: '',
-        depth: depth,
+        depth: depth + 1,
         edit: true,
       }
       const newRows = [
@@ -347,8 +347,8 @@ const GridFilter = ({
         width: 90,
         editable: false,
         renderCell: ({ row }) =>
-          row.type === 'group' ? (
-            row.edit ? (
+          row.edit ? (
+            row.type === 'group' ? (
               <Select
                 value={row.logic}
                 onChange={(event) =>
@@ -359,31 +359,31 @@ const GridFilter = ({
                 <MenuItem value={'or'}>OR</MenuItem>
               </Select>
             ) : (
-              <Box sx={{ display: 'flex' }}>
-                <Box sx={{ marginRight: '3px', display: 'flex' }}>
-                  {Array.from({ length: row.depth }).map((_, index) => {
-                    const colors = ['#21cf46', '#db2323', '#277ee3']
-                    const color = colors[index % colors.length]
-
-                    return (
-                      <Box
-                        key={index}
-                        sx={{
-                          marginRight: '3px',
-                          color: color,
-                          backgroundColor: color,
-                        }}
-                      >
-                        |
-                      </Box>
-                    )
-                  })}
-                </Box>
-                <Box>{row.logic.toUpperCase()}</Box>
-              </Box>
+              ''
             )
           ) : (
-            ''
+            <Box sx={{ display: 'flex' }}>
+              <Box sx={{ marginRight: '3px', display: 'flex' }}>
+                {Array.from({ length: row.depth }).map((_, index) => {
+                  const colors = ['#21cf46', '#db2323', '#277ee3']
+                  const color = colors[index % colors.length]
+
+                  return (
+                    <Box
+                      key={index}
+                      sx={{
+                        marginRight: '3px',
+                        color: color,
+                        backgroundColor: color,
+                      }}
+                    >
+                      |
+                    </Box>
+                  )
+                })}
+              </Box>
+              {row.type === 'group' ? <Box>{row.logic.toUpperCase()}</Box> : ''}
+            </Box>
           ),
       },
       {
