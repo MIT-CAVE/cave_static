@@ -362,13 +362,17 @@ const GridFilter = ({
               <Box sx={{ display: 'flex' }}>
                 <Box sx={{ marginRight: '3px', display: 'flex' }}>
                   {Array.from({ length: row.depth }).map((_, index) => {
-                    const colors = ['green', 'red', 'blue']
+                    const colors = ['#21cf46', '#db2323', '#277ee3']
                     const color = colors[index % colors.length]
 
                     return (
                       <Box
                         key={index}
-                        sx={{ marginRight: '2px', color: color }}
+                        sx={{
+                          marginRight: '3px',
+                          color: color,
+                          backgroundColor: color,
+                        }}
                       >
                         |
                       </Box>
