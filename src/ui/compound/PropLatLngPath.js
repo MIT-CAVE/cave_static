@@ -72,7 +72,7 @@ const displayPath = (path) => {
     <List sx={styles.text}>
       {path.map(([lng, lat], idx) => {
         return (
-          <ListItem disablePadding maxHeight={200} key={idx}>
+          <ListItem key={idx} disablePadding sx={{ maxHeight: 200 }}>
             <ListItemButton component="a" href="#simple-list">
               <ListItemText
                 primary={`(${lat.toFixed(6)}, ${lng.toFixed(6)})\n`}
@@ -88,7 +88,7 @@ const displayPath = (path) => {
 const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const enabled = prop.enabled || false
+  const { enabled = false, placeholder, label } = prop
 
   const mapSettings = {
     style: {
@@ -189,7 +189,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           <Box sx={[styles.getBoxStyle(enabled), ...forceArray(sx)]} {...props}>
             <Typography> Latitude </Typography>
             <NumberInput
-              {...{ enabled, max: 90, min: -90 }}
+              {...{ enabled, placeholder, label, max: 90, min: -90 }}
               numberFormat={numberFormatProps}
               value={manual[1]}
               onClickAway={inputLat}
@@ -198,7 +198,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           <Box sx={[styles.getBoxStyle(enabled), ...forceArray(sx)]} {...props}>
             <Typography> Longitude </Typography>
             <NumberInput
-              {...{ enabled, max: 180, min: -180 }}
+              {...{ enabled, placeholder, label, max: 180, min: -180 }}
               numberFormat={numberFormatProps}
               value={manual[0]}
               onClickAway={inputLng}

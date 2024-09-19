@@ -13,11 +13,11 @@ const style = {
 }
 
 const PropText = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const enabled = prop.enabled || false
+  const { enabled = false, placeholder, label } = prop
   return (
     <Box sx={[style, ...forceArray(sx)]} {...props}>
       <TextInput
-        {...{ enabled }}
+        {...{ enabled, placeholder, label }}
         value={R.defaultTo(prop.value, currentVal)}
         onClickAway={(value) => {
           if (!enabled) return

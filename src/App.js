@@ -27,6 +27,7 @@ import { AppModal } from './ui/views/common/Modal'
 import renderAppPane from './ui/views/common/Pane'
 import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
 import SnackBar from './ui/views/common/SnackBar'
+import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
 import { paneId } from './utils/enums'
@@ -161,6 +162,7 @@ const App = () => {
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={styles.page}>
               <Loader />
+
               <ErrorBoundary fallback={SessionPane}>
                 <Dashboard />
                 <Panes />
@@ -171,6 +173,7 @@ const App = () => {
           </LocalizationProvider>
           <RightAppBar />
         </Box>
+        <VirtualKeyboard />
       </ThemeProvider>
     </StyledEngineProvider>
   )

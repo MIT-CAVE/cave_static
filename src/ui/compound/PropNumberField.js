@@ -18,19 +18,24 @@ const getStyles = (enabled) => ({
 
 const PropNumberField = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
-  const max = R.propOr(Infinity, 'maxValue', prop)
-  const min = R.propOr(-Infinity, 'minValue', prop)
-  const enabled = prop.enabled || false
+  const {
+    enabled = false,
+    maxValue = Infinity,
+    minValue = -Infinity,
+    placeholder,
+    label,
+  } = prop
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <NumberInput
-        {...{ enabled, max, min }}
+        {...{ enabled, placeholder, label }}
+        min={minValue}
+        max={maxValue}
+        value={R.pipe(
+          R.defaultTo(prop.value),
+          R.clamp(minValue, maxValue)
+        )(currentVal)}
         numberFormat={numberFormatProps}
-        value={R.clamp(
-          min,
-          max,
-          R.defaultTo(R.prop('value', prop), currentVal)
-        )}
         onClickAway={(value) => {
           if (enabled) onChange(value)
         }}

@@ -26,7 +26,6 @@ const styles = {
     flexWrap: 'nowrap',
     pb: 0.75,
     width: (theme) => `calc(100% - ${theme.spacing(6)})`,
-    '>:first-child': { ml: 0 },
   },
   filter: {
     mr: 0.5,
@@ -91,6 +90,7 @@ const ChartToolbar = ({
       ]}
     >
       <ChartDropdownWrapper
+        sx={{ ml: 0 }}
         menuProps={{
           transformOrigin: { horizontal: 'left', vertical: 'top' },
           anchorOrigin: { horizontal: 'left', vertical: 'bottom' },

@@ -22,17 +22,17 @@ const PropComboBoxMulti = ({
   onChange,
   ...props
 }) => {
-  const { enabled = false, options, placeholder } = prop
-  const value = R.defaultTo(prop.value, currentVal)
+  const { enabled = false, options, placeholder, numVisibleTags } = prop
   const optionsList = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsList)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <Autocomplete
-        {...{ value }}
-        sx={{ p: 1.5, maxWidth: 300 }}
         multiple
         fullWidth
+        sx={{ p: 1.5, maxWidth: 300 }}
+        limitTags={numVisibleTags}
+        value={R.defaultTo(prop.value)(currentVal)}
         options={R.pluck('id')(optionsList)}
         renderInput={(params) => (
           <TextField

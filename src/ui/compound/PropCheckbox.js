@@ -26,6 +26,7 @@ const PropCheckbox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
             sx={{ pl: 1 }}
             control={
               <Checkbox
+                name="cave-checkbox"
                 checked={R.includes(key)(value)}
                 onClick={() => {
                   if (!enabled) return

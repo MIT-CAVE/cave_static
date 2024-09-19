@@ -25,7 +25,7 @@ import {
   selectEnabledNodesFunc,
   selectEnabledGeosFunc,
   selectMapLegendFunc,
-  selectGeoColorRange,
+  selectGeoRange,
   selectNodeRange,
   selectArcRange,
   selectLegendDataFunc,
@@ -40,6 +40,7 @@ import {
   selectNumberFormatPropsFn,
   selectPageLayout,
   selectMapData,
+  selectIsGlobe,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { useFilter } from '../../../utils/hooks'
@@ -794,197 +795,245 @@ const MapLegendColorBySection = ({
   )
 }
 
+const MapLegendHeightBySection = ({
+  heightProp,
+  heightRange,
+  valueRange,
+  getPropName,
+  typeObj,
+  syncPath,
+  icon,
+  group,
+  propValue,
+  onSelectProp,
+  geometryName,
+  geometryType,
+  legendGroupId,
+  legendObj,
+  mapId,
+  getCategoryName,
+}) => {
+  const dispatch = useDispatch()
+  const sync = useSelector(selectSync)
+  const isGlobe = useSelector(selectIsGlobe)(mapId)
+
+  const prop = typeObj.props[heightProp]
+  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
+
+  const syncSize = !includesPath(R.values(sync), syncPath)
+
+  const typePath = [
+    'maps',
+    'data',
+    mapId,
+    'legendGroups',
+    legendGroupId,
+    'data',
+    geometryType,
+  ]
+  const iconPath = R.append('icon')(typePath)
+  const propHeightPath = R.concat(typePath, ['heightByOptions', heightProp])
+  const startHeightPath = R.append('startHeight', propHeightPath)
+  const endHeightPath = R.append('endHeight', propHeightPath)
+
+  const isCategorical = !R.has('min', heightRange)
+
+  if (isGlobe)
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gridRow: `1 / span ${group ? 3 : 2}`,
+          padding: 1,
+          fontWeight: 'bold',
+        }}
+      >
+        Zoom in or switch to Mercator map to set heightBy.
+      </Box>
+    )
+
+  return (
+    <>
+      {/* First row: Prop selector + unit label */}
+      <Grid
+        item
+        container
+        alignItems="center"
+        justifyContent="center"
+        xs={12}
+        spacing={numberFormatProps.unit ? 0.5 : 0}
+      >
+        <Grid item zeroMinWidth xs>
+          <SimpleDropdown
+            paperProps={{ elevation: 3 }}
+            marquee
+            value={heightProp}
+            getLabel={getPropName}
+            optionsList={R.keys(R.prop('heightByOptions')(legendObj))}
+            onSelect={(value) =>
+              dispatch(mutateLocal({ path: syncPath, sync: syncSize, value }))
+            }
+          />
+        </Grid>
+        {numberFormatProps.unit && (
+          <Grid item xs={4}>
+            <Typography
+              component={Paper}
+              elevation={1}
+              variant="subtitle1"
+              sx={styles.unit}
+            >
+              <OverflowText text={numberFormatProps.unit} />
+            </Typography>
+          </Grid>
+        )}
+      </Grid>
+
+      {/* Second row: Size icons with value range */}
+      {isCategorical ? (
+        <CategoricalSizeItems
+          sizeRange={heightRange}
+          getLabel={getCategoryName}
+          icon={icon}
+          iconPath={iconPath}
+          sizePath={propHeightPath}
+          geometryType={geometryName}
+        />
+      ) : (
+        <Grid
+          item
+          container
+          alignItems="center"
+          justifyContent="center"
+          xs={12}
+        >
+          <SizePickerTooltip
+            value={parseFloat(R.prop('startHeight', heightRange))}
+            onSelect={(newSize) =>
+              dispatch(
+                mutateLocal({
+                  path: startHeightPath,
+                  sync: !includesPath(R.values(sync), startHeightPath),
+                  value: newSize,
+                })
+              )
+            }
+          >
+            <Grid
+              item
+              sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
+              xs={3.5}
+            >
+              <OverflowText
+                text={getMinLabel(valueRange, numberFormatProps, group)}
+              />
+            </Grid>
+          </SizePickerTooltip>
+          <StableTooltip
+            enabled={geometryName === 'nodes'}
+            title={
+              <IconPicker
+                onSelect={(iconName) =>
+                  dispatch(
+                    mutateLocal({
+                      path: iconPath,
+                      sync: !includesPath(R.values(sync), iconPath),
+                      value: iconName,
+                    })
+                  )
+                }
+              />
+            }
+          >
+            <Grid
+              item
+              container
+              alignItems="flex-end"
+              justifyContent="center"
+              height="50px"
+              gap={2}
+              xs={4}
+            >
+              <Box
+                width="4px"
+                height={`${parseFloat(R.slice(0, -2, R.prop('startHeight', heightRange))) * 0.5}px`}
+                backgroundColor="white"
+                xs={6}
+              />
+              <Box
+                width="4px"
+                height={`${parseFloat(R.slice(0, -2, R.prop('endHeight', heightRange))) * 0.5}px`}
+                backgroundColor="white"
+                xs={6}
+              />
+            </Grid>
+          </StableTooltip>
+          <SizePickerTooltip
+            value={parseFloat(R.prop('endHeight', heightRange))}
+            onSelect={(newSize) =>
+              dispatch(
+                mutateLocal({
+                  path: endHeightPath,
+                  sync: !includesPath(R.values(sync), endHeightPath),
+                  value: newSize,
+                })
+              )
+            }
+          >
+            <Grid
+              item
+              sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
+              xs={3.5}
+            >
+              <OverflowText
+                text={getMaxLabel(valueRange, numberFormatProps, group)}
+              />
+            </Grid>
+          </SizePickerTooltip>
+        </Grid>
+      )}
+
+      {/* Third row: Clustering functions */}
+      {group && (
+        <GroupCalcDropdown
+          propType={typeObj.props[heightProp].type}
+          value={propValue}
+          onSelect={onSelectProp}
+        />
+      )}
+    </>
+  )
+}
+
 const MapLegendGeoToggle = ({
   geoType,
   legendGroupId,
   colorProp,
+  heightProp,
   mapId,
   legendObj,
 }) => {
-  const dispatch = useDispatch()
-  const geoColorRange = useSelector(selectGeoColorRange)
-  const displayedGeos = useSelector(selectEnabledGeosFunc)(mapId)
-  const sync = useSelector(selectSync)
-
+  const geometryRange = useSelector(selectGeoRange)
   const typeObj = R.prop(geoType, useSelector(selectLocalizedGeoTypes))
 
-  const prop = typeObj.props[colorProp]
-  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
-  const colorRange = geoColorRange(geoType, colorProp, mapId)
-  const isCategorical = !R.has('min', colorRange)
-
-  const filterableProps = R.pipe(
-    R.prop('props'),
-    R.reject(
-      R.whereAny({
-        type: R.equals('head'), // Leave out layout props
-        filterable: R.equals('false'),
-      })
-    )
-  )(typeObj)
-
-  const filterableExtraProps = R.mapObjIndexed((value, key) =>
-    // eslint-disable-next-line ramda/cond-simplification
-    R.cond([
-      [
-        R.propEq('selector', 'type'),
-        R.always({
-          colorByOptions: R.path(['colorByOptions', key])(legendObj),
-        }),
-      ],
-      // Others if needed
-    ])(value)
-  )(filterableProps)
-
-  const path = [
-    'maps',
-    'data',
-    mapId,
-    'legendGroups',
-    legendGroupId,
-    'data',
-    geoType,
-    'value',
-  ]
-  const syncToggle = !includesPath(R.values(sync), path)
-
-  const colorPath = [
-    'maps',
-    'data',
-    mapId,
-    'legendGroups',
-    legendGroupId,
-    'data',
-    geoType,
-    'colorBy',
-  ]
-  const syncColor = !includesPath(R.values(sync), colorPath)
-
-  const getGeoPropName = useCallback(
-    (prop) => R.pathOr(prop, ['props', prop, 'name'], typeObj),
-    [typeObj]
-  )
-  const getGeoCategoryName = useCallback(
-    (key) =>
-      R.pathOr(
-        capitalize(key),
-        ['props', colorProp, 'options', key, 'name'],
-        typeObj
-      ),
-    [typeObj, colorProp]
-  )
-
-  const syncFilters = !includesPath(R.values(sync), [
-    'maps',
-    'data',
-    mapId,
-    'legendGroups',
-    legendGroupId,
-    'data',
-    geoType,
-    'filters',
-  ])
-  const handleSaveFilters = (newFilters) => {
-    dispatch(
-      mutateLocal({
-        path: [
-          'maps',
-          'data',
-          mapId,
-          'legendGroups',
-          legendGroupId,
-          'data',
-          geoType,
-          'filters',
-        ],
-        value: newFilters,
-        sync: syncFilters,
-      })
-    )
-  }
-
   return (
-    <details
-      key={geoType}
-      css={nonSx.typeWrapper}
-      open={eitherBoolOrNotNull(displayedGeos[geoType])}
-    >
-      <summary css={nonSx.itemSummary}>
-        <MapLegendGroupRowToggleLayer
-          icon={<FetchedIcon iconName={R.prop('icon', legendObj)} />}
-          legendName={R.propOr(geoType, 'name')(typeObj)}
-          toggle={
-            <Switch
-              checked={eitherBoolOrNotNull(displayedGeos[geoType])}
-              onChange={(event) => {
-                event.target.checked
-                  ? dispatch(
-                      mutateLocal({ path, sync: syncToggle, value: true })
-                    )
-                  : dispatch(
-                      mutateLocal({ path, sync: syncToggle, value: false })
-                    )
-              }}
-            />
-          }
-          {...{ filterableProps, filterableExtraProps, mapId }}
-          filters={legendObj.filters}
-          onSaveFilters={handleSaveFilters}
-        />
-      </summary>
-      <hr />
-
-      <Grid
-        container
-        alignItems="center"
-        justifyContent="center"
-        spacing={1}
-        padding="8px"
-      >
-        <Grid item xs={12}>
-          <SimpleDropdown
-            marquee
-            paperProps={{ elevation: 3 }}
-            optionsList={R.keys(R.prop('colorByOptions')(legendObj))}
-            getLabel={getGeoPropName}
-            value={colorProp}
-            onSelect={(value) => {
-              dispatch(mutateLocal({ sync: syncColor, path: colorPath, value }))
-            }}
-          />
-        </Grid>
-
-        <Grid item container xs={12}>
-          {isCategorical ? (
-            <CategoricalColorItems
-              getLabel={getGeoCategoryName}
-              geometryName="geos"
-              geometryType={geoType}
-              propId={colorProp}
-              {...{ colorRange }}
-            />
-          ) : (
-            <GradientBox
-              minColor={colorRange.startGradientColor}
-              maxColor={colorRange.endGradientColor}
-              minLabel={getMinLabel(colorRange, numberFormatProps)}
-              maxLabel={getMaxLabel(colorRange, numberFormatProps)}
-              colorPropPath={[
-                'maps',
-                'data',
-                mapId,
-                'legendGroups',
-                legendGroupId,
-                'data',
-                geoType,
-                'colorByOptions',
-                colorProp,
-              ]}
-            />
-          )}
-        </Grid>
-      </Grid>
-    </details>
+    <LegendCard
+      geometryType={geoType}
+      typeObj={typeObj}
+      legendGroupId={legendGroupId}
+      sizeProp={null}
+      colorProp={colorProp}
+      heightProp={heightProp}
+      selectEnabledGeometryFunc={selectEnabledGeosFunc}
+      geometryRange={geometryRange}
+      clusterRange={{}}
+      geometryName="geos"
+      icon={R.prop('icon', legendObj)}
+      mapId={mapId}
+      legendObj={legendObj}
+    />
   )
 }
 
@@ -1029,6 +1078,7 @@ const MapLegendArcToggle = ({
   legendGroupId,
   sizeProp,
   colorProp,
+  heightProp,
   mapId,
   legendObj,
 }) => {
@@ -1042,6 +1092,7 @@ const MapLegendArcToggle = ({
         : legendObj.lineBy === '3d'
           ? 'vsc/VscLoading'
           : 'ai/AiOutlineLine'
+
   return (
     <LegendCard
       geometryType={arcType}
@@ -1049,6 +1100,7 @@ const MapLegendArcToggle = ({
       legendGroupId={legendGroupId}
       sizeProp={sizeProp}
       colorProp={colorProp}
+      heightProp={heightProp}
       selectEnabledGeometryFunc={selectEnabledArcsFunc}
       geometryRange={geometryRange}
       clusterRange={{}}
@@ -1067,15 +1119,15 @@ const LegendCard = memo(
     legendGroupId,
     sizeProp,
     colorProp,
+    heightProp,
     selectEnabledGeometryFunc,
     geometryRange,
     clusterRange,
-    geometryName, // arcs/nodes
+    geometryName,
     legendObj,
     icon,
     mapId,
   }) => {
-    // TODO: extend this for geos?
     const dispatch = useDispatch()
     const displayedGeometry = useSelector(selectEnabledGeometryFunc)(mapId)
     const sync = useSelector(selectSync)
@@ -1111,17 +1163,26 @@ const LegendCard = memo(
     const groupPath = R.append('group', basePath)
     const syncGroupToggle = !includesPath(R.values(sync), groupPath)
 
-    const groupCalcColorPath = R.append('groupCalcByColor', basePath)
-    const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
     const allowGrouping = displayedGeometry[geometryType].allowGrouping || false
     const group = displayedGeometry[geometryType].group || false
+
     const groupCalcBySize =
       displayedGeometry[geometryType].groupCalcBySize || statId.COUNT
-
     const groupCalcSizePath = R.append('groupCalcBySize', basePath)
     const syncGroupCalcSize = !includesPath(R.values(sync), groupCalcSizePath)
+
     const groupCalcByColor =
       displayedGeometry[geometryType].groupCalcByColor || statId.COUNT
+    const groupCalcColorPath = R.append('groupCalcByColor', basePath)
+    const syncGroupCalcColor = !includesPath(R.values(sync), groupCalcColorPath)
+
+    const groupCalcByHeight =
+      displayedGeometry[geometryType].groupCalcByHeight || statId.COUNT
+    const groupCalcHeightPath = R.append('groupCalcByHeight', basePath)
+    const syncGroupCalcHeight = !includesPath(
+      R.values(sync),
+      groupCalcHeightPath
+    )
 
     const filterableProps = R.pipe(
       R.prop('props'),
@@ -1152,8 +1213,31 @@ const LegendCard = memo(
       clusterRange
     )
 
-    const sizeRange = geometryRange(geometryType, sizeProp, true, mapId)
-    const colorRange = geometryRange(geometryType, colorProp, false, mapId)
+    const sizeRange = geometryRange(
+      geometryType,
+      sizeProp,
+      mapId,
+      'sizeByOptions'
+    )
+    const colorRange = geometryRange(
+      geometryType,
+      colorProp,
+      mapId,
+      'colorByOptions'
+    )
+    const heightRange = geometryRange(
+      geometryType,
+      heightProp,
+      mapId,
+      'heightByOptions'
+    )
+
+    const numSections = [sizeRange, colorRange, heightRange].filter(
+      (property) => property !== undefined
+    ).length
+    const numDividers = numSections - 1
+    const percentagePerSection = (100 - 3 * numDividers) / numSections
+    const gridTemplateColumns = `${new Array(numSections).fill(`${percentagePerSection}%`).join(' 1% ')}`
 
     const syncFilters = !includesPath(R.values(sync), [...basePath, 'filters'])
     const handleSaveFilters = (newFilters) => {
@@ -1185,6 +1269,7 @@ const LegendCard = memo(
             legendName={R.propOr(geometryType, 'name')(typeObj)}
             toggle={
               <Switch
+                name={`cave-toggle-map-${geometryName}`}
                 checked={isOpen}
                 onChange={(event) => {
                   event.target.checked
@@ -1233,17 +1318,103 @@ const LegendCard = memo(
         <hr />
         <Box
           display="grid"
-          gridTemplateColumns="49% 1% 49%"
+          gridTemplateColumns={gridTemplateColumns}
           gridTemplateRows={`repeat(${group ? 3 : 2}, auto)`}
           gridAutoFlow="column"
           pr={2}
           columnGap={1}
         >
-          {legendObj.sizeByOptions != null && (
-            <MapLegendSizeBySection
+          {R.has('sizeByOptions', legendObj) && (
+            <>
+              <MapLegendSizeBySection
+                {...{
+                  sizeProp,
+                  sizeRange,
+                  typeObj,
+                  group,
+                  geometryName,
+                  geometryType,
+                  legendObj,
+                  mapId,
+                  legendGroupId,
+                }}
+                valueRange={group && sizeDomain ? sizeDomain : sizeRange}
+                icon={<FetchedIcon iconName={icon} />}
+                getPropName={getGeometryPropName}
+                getCategoryName={getGeometryCategoryName}
+                syncPath={R.append('sizeBy', basePath)}
+                propValue={groupCalcBySize}
+                onSelectProp={(value) => {
+                  dispatch(
+                    mutateLocal({
+                      path: groupCalcSizePath,
+                      sync: syncGroupCalcSize,
+                      value,
+                    })
+                  )
+                }}
+              />
+
+              {numSections > 1 && (
+                <Divider
+                  orientation="vertical"
+                  sx={{
+                    gridRow: 'span 3',
+                    borderColor: 'rgba(255, 255, 255, 0.6)',
+                    borderStyle: 'dotted',
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {R.has('colorByOptions', legendObj) && (
+            <>
+              <MapLegendColorBySection
+                {...{
+                  colorProp,
+                  colorRange,
+                  typeObj,
+                  group,
+                  geometryType,
+                  legendObj,
+                  mapId,
+                  legendGroupId,
+                }}
+                valueRange={group && colorDomain ? colorDomain : colorRange}
+                getPropName={getGeometryPropName}
+                getCategoryName={getGeometryCategoryName}
+                syncPath={R.append('colorBy', basePath)}
+                propValue={groupCalcByColor}
+                onSelectProp={(value) => {
+                  dispatch(
+                    mutateLocal({
+                      path: groupCalcColorPath,
+                      sync: syncGroupCalcColor,
+                      value,
+                    })
+                  )
+                }}
+              />
+
+              {R.has('heightByOptions', legendObj) && (
+                <Divider
+                  orientation="vertical"
+                  sx={{
+                    gridRow: 'span 3',
+                    borderColor: 'rgba(255, 255, 255, 0.6)',
+                    borderStyle: 'dotted',
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {R.has('heightByOptions', legendObj) && (
+            <MapLegendHeightBySection
               {...{
-                sizeProp,
-                sizeRange,
+                heightProp,
+                heightRange,
                 typeObj,
                 group,
                 geometryName,
@@ -1252,54 +1423,17 @@ const LegendCard = memo(
                 mapId,
                 legendGroupId,
               }}
-              valueRange={group && sizeDomain ? sizeDomain : sizeRange}
+              valueRange={heightRange}
               icon={<FetchedIcon iconName={icon} />}
               getPropName={getGeometryPropName}
               getCategoryName={getGeometryCategoryName}
-              syncPath={R.append('sizeBy')(basePath)}
-              propValue={groupCalcBySize}
+              syncPath={R.append('heightBy', basePath)}
+              propValue={groupCalcByHeight}
               onSelectProp={(value) => {
                 dispatch(
                   mutateLocal({
-                    path: groupCalcSizePath,
-                    sync: syncGroupCalcSize,
-                    value,
-                  })
-                )
-              }}
-            />
-          )}
-
-          <Divider
-            orientation="vertical"
-            sx={{
-              gridRow: 'span 3',
-              borderColor: 'rgba(255, 255, 255, 0.6)',
-              borderStyle: 'dotted',
-            }}
-          />
-          {legendObj.colorByOptions != null && (
-            <MapLegendColorBySection
-              {...{
-                colorProp,
-                colorRange,
-                typeObj,
-                group,
-                geometryType,
-                legendObj,
-                mapId,
-                legendGroupId,
-              }}
-              valueRange={group && colorDomain ? colorDomain : colorRange}
-              getPropName={getGeometryPropName}
-              getCategoryName={getGeometryCategoryName}
-              syncPath={R.append('colorBy')(basePath)}
-              propValue={groupCalcByColor}
-              onSelectProp={(value) => {
-                dispatch(
-                  mutateLocal({
-                    path: groupCalcColorPath,
-                    sync: syncGroupCalcColor,
+                    path: groupCalcHeightPath,
+                    sync: syncGroupCalcHeight,
                     value,
                   })
                 )
@@ -1333,7 +1467,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
         </span>
       </summary>
       {R.map((legendItem) => {
-        const { id, value, sizeBy, colorBy } = legendItem
+        const { id, value, sizeBy, colorBy, heightBy } = legendItem
         return R.includes(id, nodeTypes) ? (
           <MapLegendNodeToggle
             key={id}
@@ -1353,6 +1487,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             value={value}
             sizeProp={sizeBy}
             colorProp={colorBy}
+            heightProp={heightBy}
             mapId={mapId}
             legendObj={legendItem}
           />
@@ -1363,6 +1498,7 @@ const MapLegendToggleList = ({ legendObj, mapId, ...props }) => {
             geoType={id}
             value={value}
             colorProp={colorBy}
+            heightProp={heightBy}
             mapId={mapId}
             legendObj={legendItem}
           />
