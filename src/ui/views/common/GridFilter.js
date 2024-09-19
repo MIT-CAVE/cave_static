@@ -373,6 +373,7 @@ const GridFilter = ({
                       key={index}
                       sx={{
                         marginRight: '3px',
+                        width: '4px',
                         color: color,
                         backgroundColor: color,
                       }}
