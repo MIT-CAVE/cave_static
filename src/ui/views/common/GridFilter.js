@@ -374,6 +374,7 @@ const GridFilter = ({
                       sx={{
                         marginRight: '3px',
                         width: '4px',
+                        height: '44px',
                         color: color,
                         backgroundColor: color,
                       }}
