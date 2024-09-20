@@ -739,6 +739,7 @@ const SessionPane = ({ width }) => {
         sx={{ py: 3 }}
       />
       <DataGrid
+        disableVirtualization
         sx={{
           '.MuiDataGrid-virtualScrollerRenderZone': {
             width: '97%',
