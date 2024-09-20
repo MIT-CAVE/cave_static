@@ -1319,8 +1319,8 @@ export const selectMemoizedChartFunc = createSelector(
               filterGroupedOutputs(
                 groupedOutputs[stat[0]],
                 R.pipe(
-                  R.propOr([], 'filters'),
-                  R.reject(R.propEq(false, 'active'))
+                  R.propOr([], 'filters')
+                  // R.reject(R.propEq(false, 'active'))
                 )(obj),
                 groupingIndicies
               ),

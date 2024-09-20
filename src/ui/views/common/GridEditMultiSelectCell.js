@@ -27,6 +27,7 @@ const GridEditMultiSelectCell = ({
   options: optionsRaw,
   colorByOptions = {},
   readOnly,
+  onChange,
 }) => {
   const apiRef = useGridApiContext()
   const [value, setValue] = useState(defaultValue === '' ? [] : defaultValue)
@@ -94,7 +95,7 @@ const GridEditMultiSelectCell = ({
         })
       }
       renderInput={(params) => <TextField {...{ placeholder, ...params }} />}
-      onChange={handleChange}
+      onChange={onChange ? onChange : handleChange}
     />
   )
 }
