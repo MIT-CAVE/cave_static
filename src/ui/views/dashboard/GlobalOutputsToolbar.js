@@ -87,7 +87,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
         <>
           <ChartDropdownWrapper>
             <Autocomplete
-              sx={{ minWidth: 300 }}
+              sx={{ minWidth: 300, padding: 1 }}
               value={R.propOr([], 'sessions', chartObj)}
               multiple
               fullWidth
