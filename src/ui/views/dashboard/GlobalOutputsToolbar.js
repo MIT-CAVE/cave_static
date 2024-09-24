@@ -1,4 +1,4 @@
-import { Box, Button } from '@mui/material'
+import { Autocomplete, Box, Button, TextField } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -86,16 +86,26 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
       {chartObj.variant !== chartVariant.OVERVIEW && (
         <>
           <ChartDropdownWrapper>
-            <SelectMulti
+            <Autocomplete
+              sx={{ minWidth: 300 }}
               value={R.propOr([], 'sessions', chartObj)}
-              header="Select Sessions"
-              optionsList={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
-              onSelect={(value) => {
+              multiple
+              fullWidth
+              options={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Select Sessions"
+                  variant="standard"
+                />
+              )}
+              onChange={(_, updatedValue) => {
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('sessions', value, chartObj),
+                    value: R.assoc('sessions', updatedValue, chartObj),
                   })
                 )
               }}
