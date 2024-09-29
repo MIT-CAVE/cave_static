@@ -93,28 +93,6 @@ const DashboardChart = ({ chartObj }) => {
     runWorkers()
   }, [cleanedChartObj, memoizedChartFunc])
 
-  const convertDataToCSV = () => {
-    const convertRowData = (rowData) => {
-      // recursive case
-      if (R.has('children', rowData)) {
-        return R.chain(
-          (child) =>
-            R.map((row) => [rowData.name, ...row], convertRowData(child)),
-          rowData.children
-        )
-      }
-
-      // base case
-      return [[rowData.name, rowData.value[0]]]
-    }
-
-    const csv = [[...cleanedChartObj.groupingLevel, cleanedChartObj.statId]]
-    R.forEach((row) => csv.push(...convertRowData(row)), formattedData)
-    return csv.map((row) => row.join(',')).join('\n')
-  }
-
-  console.log(convertDataToCSV())
-
   const groupingRange = R.pipe(
     R.prop('groupingId'),
     R.length,

@@ -49,6 +49,11 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
     }),
   }))
 
+  const csv = R.concat([R.pluck('label', labelProps)], R.unnest(rawList)).join(
+    '\n'
+  )
+  console.log(csv)
+
   return (
     <FlexibleContainer>
       <DataGrid
