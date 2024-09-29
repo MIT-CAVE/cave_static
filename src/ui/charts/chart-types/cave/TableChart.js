@@ -1,3 +1,4 @@
+import { Box, Button } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
 
@@ -52,19 +53,47 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
   const csv = R.concat([R.pluck('label', labelProps)], R.unnest(rawList)).join(
     '\n'
   )
-  console.log(csv)
 
   return (
-    <FlexibleContainer>
-      <DataGrid
-        {...{ rows, columns }}
-        rowsPerPageOptions={[25, 50, 100]}
+    <>
+      <FlexibleContainer>
+        <DataGrid
+          {...{ rows, columns }}
+          rowsPerPageOptions={[25, 50, 100]}
+          sx={{
+            minWidth: 0,
+            bgcolor: 'background.paper',
+          }}
+        />
+      </FlexibleContainer>
+      <Box
         sx={{
-          minWidth: 0,
-          bgcolor: 'background.paper',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          p: 1,
+          pb: 2,
+          pt: 2,
         }}
-      />
-    </FlexibleContainer>
+      >
+        <Button
+          variant="contained"
+          sx={{}}
+          onClick={() => {
+            const link = document.createElement('a')
+            link.href = URL.createObjectURL(
+              new Blob([csv], { type: 'text/csv' })
+            )
+            link.setAttribute('download', 'data.csv')
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+          }}
+        >
+          Download CSV
+        </Button>
+      </Box>
+    </>
   )
 }
 
