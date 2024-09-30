@@ -11,7 +11,7 @@ import {
 import ReactGridLayout from 'react-grid-layout'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
-import { AutoSizer } from 'react-virtualized'
+import AutoSizer from 'react-virtualized-auto-sizer'
 
 import ChartMenu from './ChartMenu'
 import ChartToolbar from './ChartToolbar'
