@@ -1,6 +1,7 @@
-import { Autocomplete, Box, Button, TextField } from '@mui/material'
+import { Autocomplete, Box, Button, Checkbox, TextField } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
+import { MdCheckBox, MdCheckBoxOutlineBlank } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
@@ -87,10 +88,13 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
         <>
           <ChartDropdownWrapper>
             <Autocomplete
-              sx={{ minWidth: 300, padding: 1 }}
+              sx={{ width: 700, padding: 1 }}
               value={R.propOr([], 'sessions', chartObj)}
+              limitTags={0}
+              size="small"
               multiple
               fullWidth
+              disableCloseOnSelect
               options={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
               renderInput={(params) => (
                 <TextField
@@ -100,6 +104,19 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                   variant="standard"
                 />
               )}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...optionProps } = props
+                return (
+                  <li key={key} {...optionProps}>
+                    <Checkbox
+                      icon={<MdCheckBoxOutlineBlank />}
+                      checkedIcon={<MdCheckBox />}
+                      checked={selected}
+                    />
+                    {option}
+                  </li>
+                )
+              }}
               onChange={(_, updatedValue) => {
                 dispatch(
                   mutateLocal({
