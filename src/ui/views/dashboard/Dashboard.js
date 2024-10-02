@@ -27,13 +27,14 @@ import {
   selectMapboxToken,
   selectShowToolbar,
   selectEditLayoutMode,
+  selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import { useFilter, useMutateState } from '../../../utils/hooks'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
-import { includesPath } from '../../../utils'
+import { getFreeName, includesPath } from '../../../utils'
 
 import 'react-grid-layout/css/styles.css'
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -75,6 +76,7 @@ const styles = {
 const DashboardItem = ({ chartObj, index, path }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const mapboxToken = useSelector(selectMapboxToken)
+  const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
   const editLayoutMode = useSelector(selectEditLayoutMode)
@@ -84,19 +86,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
 
   const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
-  const defaultFilters = R.propOr(
-    [
-      {
-        id: 0,
-        type: 'group',
-        groupId: 0,
-        logic: 'and',
-        depth: 0,
-        edit: false,
-      },
-    ],
-    'filters'
-  )(chartObj)
+  const defaultFilters = R.propOr([], 'filters')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
@@ -120,14 +110,19 @@ const DashboardItem = ({ chartObj, index, path }) => {
     [chartObj, isMaximized, path, sync]
   )
 
-  const handleRemoveChart = useMutateState(
-    () => ({
-      path: R.init(path),
-      value: R.assoc(index, null)(pageLayout),
-      sync: !includesPath(R.values(sync), R.init(path)),
-    }),
-    [pageLayout, sync, index, path]
-  )
+  const handleRemoveChart = useMutateState(() => {
+    const delIndex = R.pipe(R.findIndex(R.equals(index)))(pageLayout)
+    const pagePath = R.init(R.init(path))
+    return {
+      path: pagePath,
+      value: {
+        charts: R.assoc(index, null)(charts),
+        pageLayout: R.update(delIndex, null, pageLayout),
+        lockedLayout,
+      },
+      sync: !includesPath(R.values(sync), pagePath),
+    }
+  }, [charts, sync, index, path])
 
   const handleSaveFilters = useMutateState(
     (filters) => ({
@@ -165,7 +160,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const numActiveStatFilters = useMemo(
-    () => R.count(R.propEq('rule', 'type'))(statFilters),
+    () => R.count(R.propOr(true, 'active'))(statFilters),
     [statFilters]
   )
 
@@ -243,9 +238,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
 
 const Dashboard = () => {
   const [cursor, setCursor] = useState()
-  const [layouts, setLayouts] = useState({})
 
   const pageLayout = useSelector(selectPageLayout)
+  const charts = useSelector(selectCharts)
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const currentPage = useSelector(selectCurrentPage)
@@ -253,105 +248,253 @@ const Dashboard = () => {
   const rightBar = useSelector(selectRightAppBarDisplay)
   const sync = useSelector(selectSync)
 
-  const gridLayoutDefault = useMemo(
-    () =>
-      R.range(0, 4).map((i) => ({
-        i: `${i}`,
-        x: i % 2,
-        y: Math.floor(i / 2),
-        h: 1,
-        w: 1,
-        maxH: 2,
-        maxW: 2,
-      })),
-    []
-  )
-
   useEffect(() => {
     setCursor(editLayoutMode ? 'grab' : 'auto')
   }, [editLayoutMode])
 
-  useEffect(() => {
-    if (R.has(currentPage)(layouts)) return
-    setLayouts(R.assoc(currentPage, gridLayoutDefault))
-  }, [currentPage, gridLayoutDefault, layouts])
+  const pagePath = ['pages', 'data', currentPage]
+  const layoutPath = [...pagePath, 'pageLayout']
+  const chartsPath = [...pagePath, 'charts']
 
-  const layoutPath = useMemo(
-    () => ['pages', 'data', currentPage, 'pageLayout'],
-    [currentPage]
-  )
-
-  const maximizedIndex = useMemo(
-    () => R.findIndex(R.propEq(true, 'maximized'))(pageLayout),
-    [pageLayout]
+  const maximizedChart = useMemo(
+    () =>
+      R.pipe(
+        R.toPairs,
+        R.find(R.pathOr(false, [1, 'maximized'])),
+        R.propOr(null, 0)
+      )(charts),
+    [charts]
   )
 
   const handleAddChart = useMutateState(() => {
-    const index = R.pipe(
-      R.findIndex(R.isNil),
-      R.when(R.equals(-1), R.always(pageLayout.length))
-    )(pageLayout)
+    const name = getFreeName('chart', R.keys(charts))
+    const index = R.pipe(R.findIndex(R.isNil))(pageLayout)
+
     return {
-      path: layoutPath,
-      value: R.ifElse(
-        R.pipe(R.length, R.equals(index)),
-        R.append(CHART_DEFAULTS),
-        R.update(index, CHART_DEFAULTS)
-      )(pageLayout),
-      sync: !includesPath(R.values(sync), layoutPath),
+      path: pagePath,
+      value: R.pipe(
+        R.assocPath(['charts', name], CHART_DEFAULTS),
+        R.assocPath(['pageLayout', index], name)
+      )({
+        charts,
+        pageLayout,
+        lockedLayout,
+      }),
+      sync: !includesPath(R.values(sync), pagePath),
     }
-  }, [pageLayout, layoutPath, sync])
+  }, [pageLayout, pagePath, sync, charts, lockedLayout, CHART_DEFAULTS])
+
+  const handleUpdateLayout = useMutateState(
+    (layout) => {
+      return {
+        path: layoutPath,
+        value: layout,
+        sync: !includesPath(R.values(sync), layoutPath),
+      }
+    },
+    [layoutPath, sync]
+  )
+  console.log(pageLayout)
+  // const translateGridToLayout = useCallback(
+  //   (grid) => {
+  //     const lineLength = pageLayout.length === 9 ? 3 : 2
+  //     const sortedItems = R.sortBy((item) => item.x + item.y * lineLength, grid)
+  //     const lines =
+  //       lineLength === 2
+  //         ? [
+  //             [null, null],
+  //             [null, null],
+  //           ]
+  //         : [
+  //             [null, null, null],
+  //             [null, null, null],
+  //             [null, null, null],
+  //           ]
+  //     const preFilled = {}
+  //     for (let row = 0; row < lineLength; row++) {
+  //       for (let col = 0; col < lineLength; col++) {
+  //         if (preFilled[`${row}-${col}`]) continue
+  //         const item = sortedItems.shift()
+  //         lines[row][col] = item.i
+  //         if (item.w === 2) {
+  //           lines[row][col + 1] = 'left'
+  //           col += 1
+  //         }
+
+  //         if (item.h === 2) {
+  //           preFilled[`${row + 1}-${col}`] = true
+  //           lines[row + 1][col] = 'up'
+  //           if (item.w === 2) {
+  //             preFilled[`${row + 1}-${col + 1}`] = true
+  //             lines[row + 1][col + 1] = 'left'
+  //           }
+  //         }
+  //       }
+  //     }
+  //     return R.flatten(lines)
+  //   },
+  //   [pageLayout.length]
+  // )
+
+  const translateLayoutToGrid = useCallback((layout) => {
+    const grid = []
+    const lineLength = layout.length === 9 ? 3 : 2
+    for (let i = 0; i < layout.length; i++) {
+      if (layout[i] === 'left') grid[grid.length - 1].w += 1
+      else if (layout[i] === 'up') grid[i - lineLength].h += 1
+      else {
+        const x = i % lineLength
+        const y = Math.floor(i / lineLength)
+        grid.push({
+          i: layout[i],
+          x,
+          y,
+          w: 1,
+          h: 1,
+        })
+      }
+    }
+    return grid
+  }, [])
 
   const handleResizeStop = useCallback(
-    (layout) => {
-      console.log({ layout })
-      setLayouts(R.assoc(currentPage, layout))
-    },
-    [currentPage]
-  )
+    (grid) => {
+      const lineLength = pageLayout.length === 9 ? 3 : 2
+      const oldGrid = translateLayoutToGrid(pageLayout)
+      const changedItem = R.find((item) =>
+        R.none(
+          (item2) =>
+            item.x === item2.x &&
+            item.y === item2.y &&
+            item.h === item2.h &&
+            item.w === item2.w,
+          oldGrid
+        )
+      )(grid)
+      if (changedItem == null) return
 
-  const swapXY = useCallback(
-    (index1, index2, arr) =>
-      R.pipe(
-        R.adjust(index1, R.mergeLeft(R.pick(['x', 'y'])(arr[index2]))),
-        R.adjust(index2, R.mergeLeft(R.pick(['x', 'y'])(arr[index1])))
-      )(arr),
-    []
+      const changedIndex = changedItem.x + changedItem.y * lineLength
+      console.log(changedIndex)
+      const layoutWithChangedItem = R.update(
+        changedIndex,
+        changedItem.i,
+        pageLayout
+      )
+      // item height increased
+      if (changedItem.h === 2) {
+        handleUpdateLayout(
+          R.update(changedIndex + lineLength, 'up', layoutWithChangedItem)
+        )
+        // item width increased
+      } else if (changedItem.w === 2) {
+        handleUpdateLayout(
+          R.update(changedIndex + 1, 'left', layoutWithChangedItem)
+        )
+        // item shrunk - figure out where to set null
+      } else {
+        // discover whether the shrink is in x or y
+        const isY = R.none(
+          (item) => item.x === changedItem.x && item.i !== changedItem.i
+        )(grid)
+        if (isY) {
+          if (layoutWithChangedItem[changedIndex + lineLength] === 'up') {
+            handleUpdateLayout(
+              R.update(changedIndex + lineLength, null, layoutWithChangedItem)
+            )
+          } else {
+            handleUpdateLayout(
+              R.update(changedIndex - lineLength, null, layoutWithChangedItem)
+            )
+          }
+        } else {
+          if (layoutWithChangedItem[changedIndex + 1] === 'left') {
+            handleUpdateLayout(
+              R.update(changedIndex + 1, null, layoutWithChangedItem)
+            )
+          } else {
+            handleUpdateLayout(
+              R.update(changedIndex - 1, null, layoutWithChangedItem)
+            )
+          }
+        }
+      }
+    },
+    [handleUpdateLayout, pageLayout, translateLayoutToGrid]
   )
 
   const handleDragStop = useCallback(
-    (layout, oldItem, newItem, placeholder, event, element) => {
+    (layout, oldPos, newPos, placeholder, event, element) => {
       setCursor('grab')
       if (
-        (oldItem.x === newItem.x && oldItem.y === newItem.y) ||
+        (oldPos.x === newPos.x && oldPos.y === newPos.y) ||
         element.firstChild == null // Prevent ghost-dragging of an empty grid item
       )
         return
+      const gridLength = pageLayout.length === 9 ? 3 : 2
+      const oldPosIndex = oldPos.x + oldPos.y * gridLength
+      const newPosIndex = newPos.x + newPos.y * gridLength
 
-      const index1 = R.findIndex(R.whereEq(R.pick(['x', 'y'])(oldItem)))(
-        layouts[currentPage]
-      )
-      const index2 = R.findIndex(R.whereEq(R.pick(['x', 'y'])(newItem)))(
-        layouts[currentPage]
-      )
+      const oldItem = translateLayoutToGrid(pageLayout)[newPosIndex]
+      // check if either of the items being resized are > 1x1
+      const isOneBig =
+        newPos.h > 1 ||
+        newPos.w > 1 ||
+        R.isNil(oldItem) ||
+        oldItem.h > 1 ||
+        oldItem.w > 1
 
-      const newLayout = swapXY(index1, index2, layouts[currentPage])
-      setLayouts(R.assoc(currentPage, newLayout))
+      const newLayout = R.pipe(
+        R.swap(oldPosIndex, newPosIndex),
+        isOneBig
+          ? R.map((item) => {
+              if (item === 'left' || item === 'up') return null
+              return item
+            })
+          : R.identity
+      )(pageLayout)
+      handleUpdateLayout(newLayout)
     },
-    [currentPage, layouts, swapXY]
+    [handleUpdateLayout, pageLayout, translateLayoutToGrid]
   )
 
-  const gridLayout = useMemo(
-    () => R.propOr(gridLayoutDefault, currentPage)(layouts),
-    [currentPage, gridLayoutDefault, layouts]
-  )
+  const findResizeHandles = (chartObj, gridItem, index, gridLayout) => {
+    if (
+      chartObj == null ||
+      gridItem == null ||
+      index == null ||
+      gridLayout == null ||
+      !editLayoutMode
+    )
+      return []
+    if (chartObj.maximized) return []
+    const { x, y, w, h } = gridItem
+    const gridSize = pageLayout.length === 9 ? 3 : 2
+    // can always shrink if larger than 1x1
+    if (gridSize === 2 && (w >= 2 || h >= 2))
+      return h === 2 ? ['s', 'n'] : ['e', 'w']
+    // find empty blocks by checking if they are defined in pageLayout
+    const blanks = R.pipe(
+      R.filter((item) => R.isNil(item.i)),
+      R.values
+    )(gridLayout)
+    const resizeHandles = []
+    if (R.any((item) => y === item.y && item.x === 1, blanks))
+      resizeHandles.push('e')
+    if (R.any((item) => x === item.x && item.y === 1, blanks))
+      resizeHandles.push('s')
+    if (R.any((item) => y === item.y && item.x === 0, blanks))
+      resizeHandles.push('w')
+    if (R.any((item) => x === item.x && item.y === 0, blanks))
+      resizeHandles.push('n')
+    return resizeHandles
+  }
 
   return (
     <Container
       maxWidth={false}
       sx={[
         styles.root,
-        maximizedIndex > -1 && { p: 0 },
+        R.isNotNil(maximizedChart) && { p: 0 },
         { p: 0 },
         leftBar && rightBar
           ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
@@ -366,47 +509,51 @@ const Dashboard = () => {
               <ReactGridLayout
                 className="layout"
                 {...{ width }}
-                margin={maximizedIndex < 0 ? [8, 8] : [0, 0]}
+                margin={R.isNil(maximizedChart) ? [8, 8] : [0, 0]}
                 cols={2}
                 maxRows={2}
-                rowHeight={height / 2 - (maximizedIndex < 0 ? 12 : 0)}
+                layout={translateLayoutToGrid(pageLayout)}
+                rowHeight={height / 2 - (R.isNil(maximizedChart) ? 12 : 0)}
                 allowOverlap
-                draggableCancel=".MuiButtonGroup-root .react-resizable-handle"
+                draggableCancel=".MuiSelect-select, .MuiButtonBase-root, div:has(> div.mapboxgl-map)"
                 onDragStart={() => {
                   setCursor('grabbing')
                 }}
                 onDragStop={handleDragStop}
                 onResizeStop={handleResizeStop}
               >
-                {gridLayout.map((gridItem, index) => {
-                  if (maximizedIndex > -1 && index !== maximizedIndex)
+                {translateLayoutToGrid(pageLayout).map((gridItem) => {
+                  if (
+                    R.isNotNil(maximizedChart) &&
+                    gridItem.i !== maximizedChart
+                  )
                     return null
+                  const index = gridItem.i
+                  const chartObj = charts[index]
 
-                  const firstIndex = R.findIndex(
-                    R.whereEq(R.pick(['x', 'y'])(gridItem))
-                  )(gridLayout)
-                  const chartObj =
-                    index === firstIndex ? pageLayout[index] : null
-
-                  const dataGrid =
-                    maximizedIndex < 0
-                      ? R.mergeLeft({
-                          isDraggable: editLayoutMode,
-                          isResizable: false,
-                        })(gridItem)
-                      : {
-                          x: 0,
-                          y: 0,
-                          w: 2,
-                          h: 2,
-                          static: true,
-                        }
-
+                  const dataGrid = R.isNil(maximizedChart)
+                    ? gridItem
+                    : {
+                        x: 0,
+                        y: 0,
+                        w: 2,
+                        h: 2,
+                        static: true,
+                      }
                   return (
                     <Box
                       key={`${index}`}
                       display="flex"
-                      data-grid={dataGrid}
+                      data-grid={R.mergeLeft({
+                        isDraggable: chartObj != null && editLayoutMode,
+                        isResizable: chartObj != null && editLayoutMode,
+                        resizeHandles: findResizeHandles(
+                          chartObj,
+                          gridItem,
+                          index,
+                          translateLayoutToGrid(pageLayout)
+                        ),
+                      })(dataGrid)}
                       sx={{
                         cursor: `${cursor} !important`,
                       }}
@@ -414,7 +561,7 @@ const Dashboard = () => {
                       {chartObj != null && (
                         <DashboardItem
                           {...{ chartObj, index }}
-                          path={[...layoutPath, index]}
+                          path={[...chartsPath, index]}
                         />
                       )}
                     </Box>
@@ -426,7 +573,7 @@ const Dashboard = () => {
         </AutoSizer>
       </div>
       {!lockedLayout &&
-        maximizedIndex < 0 &&
+        R.isNil(maximizedChart) &&
         R.count(R.isNotNil)(pageLayout) < 4 && (
           <Fab
             color="primary"

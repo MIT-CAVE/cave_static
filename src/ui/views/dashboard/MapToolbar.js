@@ -22,7 +22,7 @@ const MapToolbar = memo(({ chartObj, index }) => {
   const dispatch = useDispatch()
 
   const path = useMemo(
-    () => ['pages', 'data', currentPage, 'pageLayout', index],
+    () => ['pages', 'data', currentPage, 'charts', index],
     [currentPage, index]
   )
 

@@ -107,7 +107,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )(obj)
   }
 
-  const path = ['pages', 'data', currentPage, 'pageLayout', index]
+  const path = ['pages', 'data', currentPage, 'charts', index]
 
   const handleAddGroup = () => {
     dispatch(
@@ -504,6 +504,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               const newGroups = groupedOutputs[value[0]].groupLists
               const [grouping] = getGroupValues()
               const [grouping2] = getGroupValues(1)
+              console.log(path)
               dispatch(
                 mutateLocal({
                   path,

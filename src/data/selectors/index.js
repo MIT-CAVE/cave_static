@@ -450,9 +450,18 @@ export const selectPageLayout = createSelector(
       localDashboardData
     )
 )
+export const selectCharts = createSelector(
+  [selectCurrentPage, selectDashboardData, selectLocalPagesData],
+  (currentPage, dashboardData, localDashboardData) =>
+    R.pathOr(
+      R.pathOr([], [currentPage, 'charts'], dashboardData),
+      [currentPage, 'charts'],
+      localDashboardData
+    )
+)
 export const selectIsMaximized = createSelector(
-  selectPageLayout,
-  R.pipe(R.findIndex(R.propEq(true)('maximized')), R.lte(0))
+  selectCharts,
+  R.any(R.propOr(false, 'maximized'))
 )
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
