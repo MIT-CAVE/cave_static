@@ -4,7 +4,6 @@ import {
   Box,
   Divider,
   Grid,
-  Grid2,
   IconButton,
   Paper,
   Stack,
@@ -15,9 +14,8 @@ import {
 import * as R from 'ramda'
 import { memo, useCallback, useState, useEffect, useMemo } from 'react'
 import { BlockPicker } from 'react-color'
-import { FaFilter } from 'react-icons/fa'
+import { FaFilter, FaCompress } from 'react-icons/fa'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
-import { VscEditorLayout } from 'react-icons/vsc'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { mutateLocal } from '../../../data/local'
@@ -81,6 +79,7 @@ const styles = {
     overflow: 'auto',
   },
   paper: {
+    position: 'relative',
     width: 600,
     p: (theme) => theme.spacing(0, 2, 2),
     mx: 0,
@@ -1511,23 +1510,20 @@ const ClassicLegend = ({ mapId, onChangeView }) => {
   const legendData = useSelector(selectLegendDataFunc)(mapId)
   return (
     <Box sx={styles.paper}>
-      <Grid2 container spacing={1} sx={{ alignItems: 'center', px: 0.8 }}>
-        <Grid2 size="grow" sx={{ textAlign: 'center', mt: 1 }}>
-          <Typography variant="h4" fontWeight={700}>
-            Map Legend
-          </Typography>
-        </Grid2>
-        <Grid2 size="auto">
-          <IconButton
-            size="large"
-            color="primary"
-            sx={{ position: 'absolute', top: '8px', right: '8px' }}
-            onClick={onChangeView}
-          >
-            <VscEditorLayout />
-          </IconButton>
-        </Grid2>
-      </Grid2>
+      <Typography
+        variant="h4"
+        sx={{ fontWeight: 700, textAlign: 'center', mt: 2 }}
+      >
+        Map Legend
+      </Typography>
+      <IconButton
+        size="large"
+        color="primary"
+        sx={{ position: 'absolute', top: '8px', right: '8px' }}
+        onClick={onChangeView}
+      >
+        <FaCompress size={32} />
+      </IconButton>
       {R.map((legendObj) => (
         <MapLegendToggleList key={legendObj.id} {...{ mapId, legendObj }} />
       ))(withIndex(legendData))}
