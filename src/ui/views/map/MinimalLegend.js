@@ -111,6 +111,15 @@ const styles = {
     borderRadius: 0.5,
     backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
   }),
+  unit: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    border: 1,
+    borderColor: 'rgb(128, 128, 128)',
+    boxSizing: 'border-box',
+  },
 }
 
 const getNumLabel = (value, numberFormat) =>
@@ -151,10 +160,8 @@ const GradientBox = ({
   valueRange,
   colorBy,
   colorByOptions,
-  featureTypeProps,
+  numberFormat,
 }) => {
-  const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
-  const numberFormat = getNumberFormatProps(featureTypeProps)
   const minColor = colorByOptions[colorBy].startGradientColor
   const maxColor = colorByOptions[colorBy].endGradientColor
   const minLabel = getMinLabel(valueRange, numberFormat, group)
@@ -222,26 +229,50 @@ const ColorLegend = ({
   featureTypeProps,
   onSelect,
 }) => {
-  const colorByPropType = featureTypeProps[colorBy].type
-  const isCategorical = colorByPropType !== propId.NUMBER
+  const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
+  const colorByProp = featureTypeProps[colorBy]
+  const numberFormat = getNumberFormatProps(colorByProp)
+  const isCategorical = colorByProp.type !== propId.NUMBER
+  console.log({ numberFormat })
   return (
     <Stack spacing={2} sx={{ width: '100%' }}>
-      <Select
-        marquee
-        size="small"
-        value={colorBy}
-        optionsList={Object.keys(colorByOptions)}
-        getLabel={(prop) => featureTypeProps[prop].name || prop}
-        {...{ onSelect }}
-      />
+      <Grid2 container spacing={1}>
+        <Grid2 size="grow">
+          <Select
+            fullWidth
+            size="small"
+            value={colorBy}
+            optionsList={Object.keys(colorByOptions)}
+            getLabel={(prop) => featureTypeProps[prop].name || prop}
+            {...{ onSelect }}
+          />
+        </Grid2>
+        {numberFormat.unit && (
+          <Grid2 size={4}>
+            <Typography
+              component={OverflowText}
+              variant="subtitle1"
+              sx={styles.unit}
+            >
+              {numberFormat.unit}
+            </Typography>
+          </Grid2>
+        )}
+      </Grid2>
       {isCategorical ? (
         <CategoricalColors
-          type={colorByPropType}
+          type={colorByProp.type}
           {...{ colorBy, colorByOptions, featureTypeProps }}
         />
       ) : (
         <GradientBox
-          {...{ group, valueRange, colorBy, colorByOptions, featureTypeProps }}
+          {...{
+            group,
+            valueRange,
+            colorBy,
+            colorByOptions,
+            numberFormat,
+          }}
         />
       )}
     </Stack>
@@ -257,8 +288,10 @@ const SizeLegend = ({
   featureTypeProps,
   onSelectProp,
 }) => {
-  const sizeByPropType = featureTypeProps[sizeBy].type
-  const isCategorical = sizeByPropType !== propId.NUMBER
+  const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
+  const sizeByProp = featureTypeProps[sizeBy]
+  const numberFormat = getNumberFormatProps(sizeByProp)
+  const isCategorical = sizeByProp.type !== propId.NUMBER
   console.log({
     group,
     valueRange,
@@ -267,6 +300,7 @@ const SizeLegend = ({
     featureTypeProps,
     isCategorical,
     onSelectProp,
+    numberFormat,
   })
   return null
 }
@@ -279,8 +313,10 @@ const HeightLegend = ({
   featureTypeProps,
   onSelectProp,
 }) => {
-  const heightByPropType = featureTypeProps[heightBy].type
-  const isCategorical = heightByPropType !== propId.NUMBER
+  const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
+  const heightByProp = featureTypeProps[heightBy]
+  const numberFormat = getNumberFormatProps(heightByProp)
+  const isCategorical = heightByProp.type !== propId.NUMBER
   console.log({
     valueRange,
     heightBy,
@@ -288,6 +324,7 @@ const HeightLegend = ({
     featureTypeProps,
     isCategorical,
     onSelectProp,
+    numberFormat,
   })
   return null
 }
