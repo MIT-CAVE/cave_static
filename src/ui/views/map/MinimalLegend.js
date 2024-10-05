@@ -233,7 +233,6 @@ const ColorLegend = ({
   const colorByProp = featureTypeProps[colorBy]
   const numberFormat = getNumberFormatProps(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
-  console.log({ numberFormat })
   return (
     <Stack spacing={2} sx={{ width: '100%' }}>
       <Grid2 container spacing={1}>
@@ -380,7 +379,6 @@ const LegendRowDetails = ({
 
   const handleSelectProp = useCallback(
     (pathEnd) => (value, event) => {
-      console.log({ value, event })
       const path = [
         'maps',
         'data',
