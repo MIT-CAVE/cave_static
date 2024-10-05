@@ -1517,12 +1517,11 @@ const ClassicLegend = ({ mapId, onChangeView }) => {
         Map Legend
       </Typography>
       <IconButton
-        size="large"
         color="primary"
-        sx={{ position: 'absolute', top: '8px', right: '8px' }}
+        sx={{ position: 'absolute', top: '16px', right: '16px' }}
         onClick={onChangeView}
       >
-        <FaCompress size={32} />
+        <FaCompress size={28} />
       </IconButton>
       {R.map((legendObj) => (
         <MapLegendToggleList key={legendObj.id} {...{ mapId, legendObj }} />
