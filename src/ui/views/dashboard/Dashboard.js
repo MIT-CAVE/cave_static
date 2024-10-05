@@ -174,6 +174,12 @@ const DashboardItem = ({ chartObj, index, path }) => {
     [groupingFilters]
   )
 
+  const labelExtra = useMemo(() => {
+    if (isMaximized) return
+    const chartIndex = pageLayout.indexOf(index)
+    return `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][chartIndex]} Chart)`
+  }, [index, isMaximized, pageLayout])
+
   return (
     <Paper
       sx={[
@@ -189,13 +195,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
           groupingFilters,
           numActiveStatFilters,
           numGroupingFilters,
+          labelExtra,
         }}
         label="Chart Data Filter"
-        labelExtra={
-          isMaximized
-            ? null
-            : `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][index]} Chart)`
-        }
         open={filterOpen}
         onSave={handleSaveFilters}
         onClose={handleCloseFilter}
