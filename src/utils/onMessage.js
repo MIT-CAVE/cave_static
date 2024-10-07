@@ -1,5 +1,7 @@
 import * as R from 'ramda'
 
+import downloadJSON from './downloadJSON'
+
 import { mutateData, overwriteData } from '../data/data'
 import { updateLoading } from '../data/utilities/loadingSlice'
 import { addMessage } from '../data/utilities/messagesSlice'
@@ -22,15 +24,7 @@ const onMessage = (dispatch) => (payload) => {
     // console.log('overwrite: ', payload)
     dispatch(overwriteData(payload))
   } else if (R.prop('event', payload) === 'export') {
-    const data = JSON.stringify(payload.data, null, 2)
-    const url = window.URL.createObjectURL(
-      new Blob([data], { type: 'application/json' })
-    )
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', 'session_data.cave.json')
-    document.body.appendChild(link)
-    link.click()
+    downloadJSON(R.prop('data', payload), 'session-data.json')
   } else {
     console.log('Unknown event: ', payload)
   }
