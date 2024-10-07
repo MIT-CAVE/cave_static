@@ -1,6 +1,7 @@
-import { Box, Button } from '@mui/material'
+import { Autocomplete, Box, Button, Checkbox, TextField } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
+import { MdCheckBox, MdCheckBoxOutlineBlank } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
@@ -86,16 +87,42 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
       {chartObj.variant !== chartVariant.OVERVIEW && (
         <>
           <ChartDropdownWrapper>
-            <SelectMulti
+            <Autocomplete
+              sx={{ width: 700, padding: 1 }}
               value={R.propOr([], 'sessions', chartObj)}
-              header="Select Sessions"
-              optionsList={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
-              onSelect={(value) => {
+              limitTags={0}
+              size="small"
+              multiple
+              fullWidth
+              disableCloseOnSelect
+              options={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Select Sessions"
+                  variant="standard"
+                />
+              )}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...optionProps } = props
+                return (
+                  <li key={key} {...optionProps}>
+                    <Checkbox
+                      icon={<MdCheckBoxOutlineBlank />}
+                      checkedIcon={<MdCheckBox />}
+                      checked={selected}
+                    />
+                    {option}
+                  </li>
+                )
+              }}
+              onChange={(_, updatedValue) => {
                 dispatch(
                   mutateLocal({
                     path,
                     sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('sessions', value, chartObj),
+                    value: R.assoc('sessions', updatedValue, chartObj),
                   })
                 )
               }}
