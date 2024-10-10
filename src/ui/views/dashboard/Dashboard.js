@@ -296,47 +296,6 @@ const Dashboard = () => {
     },
     [layoutPath, sync]
   )
-  console.log(pageLayout)
-  // const translateGridToLayout = useCallback(
-  //   (grid) => {
-  //     const lineLength = pageLayout.length === 9 ? 3 : 2
-  //     const sortedItems = R.sortBy((item) => item.x + item.y * lineLength, grid)
-  //     const lines =
-  //       lineLength === 2
-  //         ? [
-  //             [null, null],
-  //             [null, null],
-  //           ]
-  //         : [
-  //             [null, null, null],
-  //             [null, null, null],
-  //             [null, null, null],
-  //           ]
-  //     const preFilled = {}
-  //     for (let row = 0; row < lineLength; row++) {
-  //       for (let col = 0; col < lineLength; col++) {
-  //         if (preFilled[`${row}-${col}`]) continue
-  //         const item = sortedItems.shift()
-  //         lines[row][col] = item.i
-  //         if (item.w === 2) {
-  //           lines[row][col + 1] = 'left'
-  //           col += 1
-  //         }
-
-  //         if (item.h === 2) {
-  //           preFilled[`${row + 1}-${col}`] = true
-  //           lines[row + 1][col] = 'up'
-  //           if (item.w === 2) {
-  //             preFilled[`${row + 1}-${col + 1}`] = true
-  //             lines[row + 1][col + 1] = 'left'
-  //           }
-  //         }
-  //       }
-  //     }
-  //     return R.flatten(lines)
-  //   },
-  //   [pageLayout.length]
-  // )
 
   const translateLayoutToGrid = useCallback((layout) => {
     const grid = []
@@ -376,7 +335,7 @@ const Dashboard = () => {
       if (changedItem == null) return
 
       const changedIndex = changedItem.x + changedItem.y * lineLength
-      console.log(changedIndex)
+
       const layoutWithChangedItem = R.update(
         changedIndex,
         changedItem.i,
@@ -438,16 +397,12 @@ const Dashboard = () => {
 
       const oldItem = translateLayoutToGrid(pageLayout)[newPosIndex]
       // check if either of the items being resized are > 1x1
-      const isOneBig =
-        newPos.h > 1 ||
-        newPos.w > 1 ||
-        R.isNil(oldItem) ||
-        oldItem.h > 1 ||
-        oldItem.w > 1
+      const needsResize =
+        R.isNil(oldItem) || newPos.h !== oldItem.h || newPos.w !== oldItem.w
 
       const newLayout = R.pipe(
         R.swap(oldPosIndex, newPosIndex),
-        isOneBig
+        needsResize
           ? R.map((item) => {
               if (item === 'left' || item === 'up') return null
               return item
