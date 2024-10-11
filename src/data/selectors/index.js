@@ -1351,10 +1351,12 @@ export const selectMemoizedChartFunc = createSelector(
               )(groupBys)
             : R.append((i) => [i])(groupBys)
 
-          return calculateStatAnyDepth(
+          const groupingFn = calculateStatAnyDepth(
             valueBuffers[obj.dataset],
             workerManager
-          )(
+          )
+
+          const statGroup = groupingFn(
             statGroupBys,
             R.pathOr('0', [obj.dataset, stat.statId, 'calculation'])(
               statisticTypes
@@ -1362,12 +1364,27 @@ export const selectMemoizedChartFunc = createSelector(
             filteredStatsToCalc[obj.dataset],
             stat.aggregationType
           )
+          return R.has('statIdDivisor', stat)
+            ? Promise.all([
+                statGroup,
+                groupingFn(
+                  statGroupBys,
+                  R.pathOr('0', [
+                    obj.dataset,
+                    stat.statIdDivisor,
+                    'calculation',
+                  ])(statisticTypes),
+                  filteredStatsToCalc[obj.dataset],
+                  stat.aggregationType
+                ),
+              ])
+            : statGroup
         })(statObjs)
 
         return Promise.all(calculatedStats).then((resolvedStats) => {
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-          const statValues = R.addIndex(R.map)(
+          const mergedValues = R.addIndex(R.map)(
             (val, idx) =>
               recursiveBubbleMap(
                 R.pipe(R.values, R.head, R.is(Object), R.not),
@@ -1387,7 +1404,11 @@ export const selectMemoizedChartFunc = createSelector(
               ),
             resolvedStats
           )
-
+          const dividedValues = R.map(
+            R.when(R.is(Array), (arr) =>
+              R.mergeDeepWith(R.divide, arr[0], arr[1])
+            )
+          )(mergedValues)
           // Helper function to map merged stats to chart input object
           const recursiveMapLayers = (val, lowestGroupings) =>
             R.type(val) === 'Object'
@@ -1470,7 +1491,7 @@ export const selectMemoizedChartFunc = createSelector(
               R.map(nLevelOrder(1))
             )
           )
-          const formattedData = getFormattedData(statValues)
+          const formattedData = getFormattedData(dividedValues)
           const conditionalMerge = (key, a, b) =>
             key === 'name'
               ? a
