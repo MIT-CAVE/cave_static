@@ -1,7 +1,6 @@
 import { quantileSorted } from 'd3-array'
 import { color, rgb } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
-import { Parser } from 'expr-eval'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
@@ -266,49 +265,17 @@ const promiseAllObject = (obj) =>
 
 export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
   const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
-  const parser = new Parser()
   const calculate = (group, calculation) => {
     // if there are no calculations just return values at the group indicies
     if (R.has(calculation, valueLists)) {
-      return R.pipe((d) => d[calculation], R.pick(group), R.values)(valueLists)
+      return R.pipe(
+        (d) => d[calculation],
+        R.pick(group),
+        R.values,
+        R.sum
+      )(valueLists)
     }
-    // define groupSum for each base level group
-    const preSummed = {}
-    parser.functions.groupSum = (statName) => {
-      // groupSum only works for non-derived stats
-      // dont recalculate sum for each stat
-      if (R.isNil(preSummed[statName])) {
-        preSummed[statName] = R.sum(
-          R.map((idx) => valueLists[statName][idx], group)
-        )
-      }
-      return preSummed[statName]
-    }
-    return group.map((idx) => {
-      const proxy = new Proxy(valueLists, {
-        get(target, name, receiver) {
-          return Reflect.get(target, name, receiver)[idx]
-        },
-      })
-      try {
-        return parser.parse(calculation).evaluate(
-          // evaluate each list item
-          proxy
-        )
-      } catch {
-        console.warn(`Malformed calculation: ${calculation}`)
-        // if calculation is malformed return simplified array
-        return parseArray(
-          parser
-            .parse(calculation)
-            .simplify(
-              // evaluate each list item
-              proxy
-            )
-            .toString()
-        )
-      }
-    })
+    console.error('calculation not found', calculation)
   }
   const group = async (groupBys, calculation, indicies) => {
     const currentGroupBy = groupBys[0]
@@ -809,21 +776,16 @@ export const customSortByX = R.curry((orderings, data) => {
 })
 
 export const cleanUndefinedStats = (chartObj) => {
-  const statIds = R.pathOr([], ['statId'], chartObj)
-  if (R.is(String, statIds)) return chartObj
+  const stats = R.pathOr([], ['stats'], chartObj)
   const transformations = {
-    statId: R.dropLast(1),
-    groupedOutputDataId: R.dropLast(1),
+    stats: R.dropLast(1),
   }
-  const reduced_chart = R.isNil(R.last(statIds))
+  const reduced_chart = R.isNil(R.last(stats))
     ? R.evolve(transformations, chartObj)
     : chartObj
 
-  return R.any(R.isNil)(reduced_chart['statId'])
-    ? R.pipe(
-        R.assoc('statId', []),
-        R.assoc('groupedOutputDataId', [])
-      )(reduced_chart)
+  return R.any(R.isNil)(reduced_chart['stats'])
+    ? R.pipe(R.assoc('stats', []), R.assoc('dataset', ''))(reduced_chart)
     : reduced_chart
 }
 

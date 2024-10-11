@@ -224,7 +224,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
         />
       )}
       {vizType === 'groupedOutput' ? (
-        chartObj.statId && (
+        chartObj.stats && (
           <Suspense fallback={<CircularProgress sx={styles.loader} />}>
             <DashboardChart {...{ chartObj }} />
           </Suspense>
