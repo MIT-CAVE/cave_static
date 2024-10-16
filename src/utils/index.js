@@ -213,30 +213,36 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
     R.prop('valueLists'),
     R.values,
     R.head,
-    R.length,
-    R.range(0)
+    R.length
   )(statistics)
-  const filteredIndicies = indicies.filter((idx) => {
+  const indiciesBuffer = window.crossOriginIsolated
+    ? new SharedArrayBuffer(0, { maxByteLength: indicies * 4 })
+    : new ArrayBuffer(0, { maxByteLength: indicies * 4 })
+  const indiciesView = new Uint32Array(indiciesBuffer)
+
+  // fill and grow indicies buffer with filtered values
+  for (let i = 0; i < indicies; i++) {
+    let allow = true
     for (const filterObj of filters) {
       const format = R.propOr('stat', 'format', filterObj)
       const prop = R.prop('prop', filterObj)
       const filterValue = R.prop('value', filterObj)
       const value =
         format === 'stat'
-          ? R.path([prop, idx], valueLists)
+          ? R.path([prop, i], valueLists)
           : groupingIndicies[format]['data'][prop][
               groupingIndicies[format]['data']['id'][
-                R.path(['groupLists', format, idx], statistics)
+                R.path(['groupLists', format, i], statistics)
               ]
             ]
       if (format !== 'stat') {
         if (R.has('option', filterObj)) {
           if (R.any(R.flip(R.includes)(value), filterValue)) {
-            return false
+            allow = false
           }
         } else {
           if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
-            return false
+            allow = false
           }
         }
       } else if (filterObj['option'] !== 'eq') {
@@ -251,65 +257,18 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
                 : R.lte(value, filterValue)
       } else {
         if (filterValue !== value) {
-          return false
+          allow = false
         }
       }
     }
-    return true
-  })
-  return filteredIndicies
-}
-
-const promiseAllObject = (obj) =>
-  Promise.all(R.values(obj)).then(R.zipObj(R.keys(obj)))
-
-export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
-  const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
-  const calculate = (group, statId) => {
-    return R.pipe((d) => d[statId], R.pick(group), R.values, R.sum)(valueLists)
+    if (allow) {
+      if (window.crossOriginIsolated)
+        indiciesBuffer.grow(indiciesView.byteLength + 4)
+      else indiciesBuffer.resize(indiciesView.byteLength + 4)
+      indiciesView[indiciesView.length - 1] = i
+    }
   }
-
-  const group = async (groupBys, statId, indicies) => {
-    const currentGroupBy = groupBys[0]
-    const keyFn = R.pipe(currentGroupBy, R.join(' \u279D '))
-    return await R.pipe(
-      (idxs) => {
-        const acc = {}
-        for (let i = 0; i < idxs.length; i++) {
-          const idx = idxs[i]
-          const key = keyFn(idx)
-          if (!(key in acc)) {
-            acc[key] = []
-          }
-          acc[key].push(idx)
-        }
-        return acc
-      },
-      R.length(groupBys) === 1
-        ? async (d) =>
-            await promiseAllObject(
-              R.map((group) => {
-                // if group is small enough or if sharedArrayBuffer is not available calculate in main thread
-                if (group.length < 1000 || !window.crossOriginIsolated)
-                  return calculate(group, statId)
-                else
-                  return workerManager.doWork({
-                    indicies: group,
-                    statId,
-                    valueBuffers,
-                  })
-              })(d)
-            )
-        : async (d) =>
-            await promiseAllObject(
-              R.map(
-                async (stats) => await group(groupBys.slice(1), statId, stats)
-              )(d)
-            )
-    )(indicies)
-  }
-
-  return group
+  return indiciesBuffer
 }
 
 export const recursiveMap = R.curry(

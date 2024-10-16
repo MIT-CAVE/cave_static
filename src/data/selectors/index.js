@@ -40,7 +40,6 @@ import {
   addValuesToProps,
   recursiveBubbleMap,
   filterGroupedOutputs,
-  calculateStatAnyDepth,
   adjustArcPath,
   constructFetchedGeoJson,
   constructGeoJson,
@@ -1234,28 +1233,26 @@ export const selectGroupedOutputValueBuffers = createSelector(
 )
 
 const mergeFuncs = {
-  [chartAggrFunc.SUM]: R.sum,
+  [chartAggrFunc.SUM]: R.identity,
   [chartAggrFunc.MIN]: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
   [chartAggrFunc.MAX]: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
   [chartAggrFunc.MEAN]: R.mean,
-  // divisor logic happens in the selector
+  // divisor logic happens once stats are calculated - treat as a sum here
   [chartAggrFunc.DIVISOR]: R.sum,
 }
 
 export const selectMemoizedChartFunc = createSelector(
   [
     selectGroupedOutputsData,
-    selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
     selectGroupedOutputValueBuffers,
   ],
-  (groupedOutputs, statisticTypes, groupings, groupingIndicies, valueBuffers) =>
+  (groupedOutputs, groupings, groupingIndicies, valueBuffers) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
       async (obj) => {
         const statObjs = obj.stats ?? []
-
         // Helper function to find the parental path of a given level
         const createParentalPath = (
           path,
@@ -1298,8 +1295,10 @@ export const selectMemoizedChartFunc = createSelector(
             R.pick(parentalPath),
             R.values
           )(groupings)
-
-          return (index) => {
+          const groupBys = Array(
+            R.values(groupedOutputs[outputGroup]['valueLists'])[0].length
+          )
+          for (let index = 0; index < groupBys.length; index++) {
             if (groupList == null) return []
             const groupName = groupList[index]
             const groupingIndex =
@@ -1308,8 +1307,9 @@ export const selectMemoizedChartFunc = createSelector(
             for (let i = 0; i < groupingVal.length; i++) {
               pluckedValues[i] = groupingVal[i][groupingIndex]
             }
-            return pluckedValues
+            groupBys[index] = pluckedValues
           }
+          return groupBys
         })
 
         // List of groupBy, subGroupBy etc...
@@ -1320,23 +1320,30 @@ export const selectMemoizedChartFunc = createSelector(
           R.map((idx) =>
             obj.groupingId[idx] != null
               ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
-              : R.always(R.always(['All']))
+              : R.always(
+                  R.repeat(
+                    'All',
+                    R.values(groupedOutputs[obj.dataset]['valueLists'])[0]
+                      .length
+                  )
+                )
           ),
           R.ifElse(
             R.isEmpty,
-            R.always([R.always(['All'])]),
+            R.always([
+              R.repeat(
+                'All',
+                R.values(groupedOutputs[obj.dataset]['valueLists'])[0].length
+              ),
+            ]),
             R.map(R.applyTo(obj.dataset))
           )
         )(obj)
 
-        const filteredStatsToCalc = R.assoc(
-          obj.dataset,
-          filterGroupedOutputs(
-            groupedOutputs[obj.dataset],
-            R.pipe(R.propOr([], 'filters'))(obj),
-            groupingIndicies
-          ),
-          {}
+        const filteredStatsToCalc = filterGroupedOutputs(
+          groupedOutputs[obj.dataset],
+          R.pipe(R.propOr([], 'filters'))(obj),
+          groupingIndicies
         )
 
         // Calculates stat values without applying mergeFunc
@@ -1349,28 +1356,23 @@ export const selectMemoizedChartFunc = createSelector(
                   obj.dataset
                 )
               )(groupBys)
-            : R.append((i) => [i])(groupBys)
+            : R.append(R.last(groupBys))(groupBys)
 
-          const groupingFn = calculateStatAnyDepth(
-            valueBuffers[obj.dataset],
-            workerManager
-          )
-
-          const statGroup = groupingFn(
-            statGroupBys,
-            stat.statId,
-            filteredStatsToCalc[obj.dataset],
-            stat.aggregationType
-          )
+          const statGroup = workerManager.doWork({
+            groupBys: statGroupBys,
+            statId: stat.statId,
+            indicies: filteredStatsToCalc,
+            valueLists: valueBuffers[obj.dataset],
+          })
           return R.has('statIdDivisor', stat)
             ? Promise.all([
                 statGroup,
-                groupingFn(
-                  statGroupBys,
-                  stat.statIdDivisor,
-                  filteredStatsToCalc[obj.dataset],
-                  stat.aggregationType
-                ),
+                workerManager.doWork({
+                  groupBys: statGroupBys,
+                  statId: stat.statIdDivisor,
+                  indicies: filteredStatsToCalc,
+                  valueLists: valueBuffers[obj.dataset],
+                }),
               ])
             : statGroup
         })(statObjs)
