@@ -397,8 +397,13 @@ const Dashboard = () => {
 
       const oldItem = translateLayoutToGrid(pageLayout)[newPosIndex]
       // check if either of the items being resized are > 1x1
+
       const needsResize =
-        R.isNil(oldItem) || newPos.h !== oldItem.h || newPos.w !== oldItem.w
+        R.isNil(oldItem) ||
+        newPos.h !== oldItem.h ||
+        newPos.w !== oldItem.w ||
+        pageLayout[newPosIndex] === 'left' ||
+        pageLayout[newPosIndex] === 'up'
 
       const newLayout = R.pipe(
         R.swap(oldPosIndex, newPosIndex),
