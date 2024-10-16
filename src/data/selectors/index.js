@@ -1358,9 +1358,7 @@ export const selectMemoizedChartFunc = createSelector(
 
           const statGroup = groupingFn(
             statGroupBys,
-            R.pathOr('0', [obj.dataset, stat.statId, 'calculation'])(
-              statisticTypes
-            ),
+            stat.statId,
             filteredStatsToCalc[obj.dataset],
             stat.aggregationType
           )
@@ -1369,11 +1367,7 @@ export const selectMemoizedChartFunc = createSelector(
                 statGroup,
                 groupingFn(
                   statGroupBys,
-                  R.pathOr('0', [
-                    obj.dataset,
-                    stat.statIdDivisor,
-                    'calculation',
-                  ])(statisticTypes),
+                  stat.statIdDivisor,
                   filteredStatsToCalc[obj.dataset],
                   stat.aggregationType
                 ),

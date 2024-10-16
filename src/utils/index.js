@@ -265,19 +265,11 @@ const promiseAllObject = (obj) =>
 
 export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
   const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
-  const calculate = (group, calculation) => {
-    // if there are no calculations just return values at the group indicies
-    if (R.has(calculation, valueLists)) {
-      return R.pipe(
-        (d) => d[calculation],
-        R.pick(group),
-        R.values,
-        R.sum
-      )(valueLists)
-    }
-    console.error('calculation not found', calculation)
+  const calculate = (group, statId) => {
+    return R.pipe((d) => d[statId], R.pick(group), R.values, R.sum)(valueLists)
   }
-  const group = async (groupBys, calculation, indicies) => {
+
+  const group = async (groupBys, statId, indicies) => {
     const currentGroupBy = groupBys[0]
     const keyFn = R.pipe(currentGroupBy, R.join(' \u279D '))
     return await R.pipe(
@@ -299,11 +291,11 @@ export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
               R.map((group) => {
                 // if group is small enough or if sharedArrayBuffer is not available calculate in main thread
                 if (group.length < 1000 || !window.crossOriginIsolated)
-                  return calculate(group, calculation)
+                  return calculate(group, statId)
                 else
                   return workerManager.doWork({
                     indicies: group,
-                    calculation,
+                    statId,
                     valueBuffers,
                   })
               })(d)
@@ -311,8 +303,7 @@ export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
         : async (d) =>
             await promiseAllObject(
               R.map(
-                async (stats) =>
-                  await group(groupBys.slice(1), calculation, stats)
+                async (stats) => await group(groupBys.slice(1), statId, stats)
               )(d)
             )
     )(indicies)
