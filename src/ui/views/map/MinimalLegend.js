@@ -3,7 +3,7 @@ import {
   Button,
   capitalize,
   Divider,
-  Grid2,
+  Grid2 as Grid,
   IconButton,
   Paper,
   Popper,
@@ -166,20 +166,61 @@ const GradientBox = ({
   const maxColor = colorByOptions[colorBy].endGradientColor
   const minLabel = getMinLabel(valueRange, numberFormat, group)
   const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+
   return (
-    <Grid2 container spacing={1} sx={styles.gradientRoot}>
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography component={OverflowText} variant="caption">
+    <Grid
+      container
+      spacing={1}
+      alignItems="center"
+      justifyContent="center"
+      sx={styles.gradientRoot}
+    >
+      <Grid item xs={3} sx={{ textAlign: 'center', paddingRight: 0 }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 'normal', textAlign: 'center' }}
+        >
+          Min
+        </Typography>
+        <Typography
+          component={OverflowText}
+          variant="body1"
+          sx={{
+            fontWeight: 'bold',
+            textAlign: 'center',
+            fontSize: '0.75rem',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {minLabel}
         </Typography>
-      </Grid2>
-      <Grid2 size="grow" sx={styles.getGradient(minColor, maxColor)} />
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography component={OverflowText} variant="caption">
+      </Grid>
+
+      <Grid item xs={6} sx={{ textAlign: 'center', padding: 0 }}>
+        <Box sx={styles.getGradient(minColor, maxColor)} />
+      </Grid>
+
+      <Grid item xs={3} sx={{ textAlign: 'center', paddingLeft: 0 }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 'normal', textAlign: 'center' }}
+        >
+          Max
+        </Typography>
+        <Typography
+          component={OverflowText}
+          variant="body1"
+          sx={{
+            fontWeight: 'bold',
+            textAlign: 'center',
+            fontSize: '0.75rem',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {maxLabel}
         </Typography>
-      </Grid2>
-    </Grid2>
+      </Grid>
+    </Grid>
   )
 }
 
@@ -233,10 +274,16 @@ const ColorLegend = ({
   const colorByProp = featureTypeProps[colorBy]
   const numberFormat = getNumberFormatProps(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
+
   return (
-    <Stack spacing={2} sx={{ width: '100%' }}>
-      <Grid2 container spacing={1}>
-        <Grid2 size="grow">
+    <Stack spacing={2} sx={{ width: '100%', padding: 0 }}>
+      <Grid
+        container
+        spacing={1}
+        alignItems="center"
+        justifyContent="flex-start"
+      >
+        <Grid item xs={numberFormat.unit ? 8 : 12}>
           <Select
             fullWidth
             size="small"
@@ -245,19 +292,27 @@ const ColorLegend = ({
             getLabel={(prop) => featureTypeProps[prop].name || prop}
             {...{ onSelect }}
           />
-        </Grid2>
+        </Grid>
+
         {numberFormat.unit && (
-          <Grid2 size={4}>
-            <Typography
-              component={OverflowText}
-              variant="subtitle1"
-              sx={styles.unit}
-            >
-              {numberFormat.unit}
-            </Typography>
-          </Grid2>
+          <Grid item xs={4}>
+            <Box sx={styles.unit}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {numberFormat.unit}
+              </Typography>
+            </Box>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
+
       {isCategorical ? (
         <CategoricalColors
           type={colorByProp.type}
@@ -286,46 +341,286 @@ const SizeLegend = ({
   sizeByOptions,
   featureTypeProps,
   onSelectProp,
+  icon,
 }) => {
+  console.log(
+    valueRange.endSize,
+    valueRange.startSize,
+    valueRange.max,
+    valueRange.min
+  )
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = getNumberFormatProps(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
-  console.log({
-    group,
-    valueRange,
-    sizeBy,
-    sizeByOptions,
-    featureTypeProps,
-    isCategorical,
-    onSelectProp,
-    numberFormat,
-  })
-  return null
+
+  const handleSelectSize = (newSize) => {
+    onSelectProp(newSize)
+  }
+
+  const renderNumericSize = () => {
+    const minLabel = getMinLabel(valueRange, numberFormat, group)
+    const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+
+    return (
+      <Grid
+        container
+        spacing={1}
+        sx={{ alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Grid item xs={3} sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
+            Min
+          </Typography>
+          <Typography
+            component={OverflowText}
+            variant="body1"
+            sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+          >
+            {minLabel}
+          </Typography>
+        </Grid>
+
+        <Grid item xs={6} container alignItems="center" justifyContent="center">
+          <Grid
+            item
+            container
+            xs={6}
+            alignItems="center"
+            justifyContent="center"
+          >
+            {icon && (
+              <icon.type
+                {...icon.props}
+                style={{
+                  width: valueRange.startSize,
+                  height: valueRange.startSize,
+                  display: 'block',
+                  margin: '0 auto',
+                }}
+              />
+            )}
+          </Grid>
+          <Grid
+            item
+            container
+            xs={6}
+            alignItems="center"
+            justifyContent="center"
+          >
+            {icon && (
+              <icon.type
+                {...icon.props}
+                style={{
+                  width: valueRange.endSize,
+                  height: valueRange.endSize,
+                  display: 'block',
+                  margin: '0 auto',
+                }}
+              />
+            )}
+          </Grid>
+        </Grid>
+
+        <Grid item xs={3} sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
+            Max
+          </Typography>
+          <Typography
+            component={OverflowText}
+            variant="body1"
+            sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+          >
+            {maxLabel}
+          </Typography>
+        </Grid>
+      </Grid>
+    )
+  }
+
+  const renderCategoricalSize = () => (
+    <Stack direction="row" spacing={1.5} justifyContent="center">
+      {Object.entries(sizeByOptions).map(([category]) => (
+        <Paper key={category} sx={{ padding: 0.5, textAlign: 'center' }}>
+          <Typography variant="caption">{category}</Typography>
+        </Paper>
+      ))}
+    </Stack>
+  )
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Grid container alignItems="center" justifyContent="center" spacing={1}>
+        <Grid item xs={8}>
+          <Select
+            fullWidth
+            size="small"
+            value={sizeBy}
+            optionsList={Object.keys(sizeByOptions)}
+            getLabel={(option) => featureTypeProps[option].name || option}
+            onSelect={handleSelectSize}
+          />
+        </Grid>
+        {numberFormat.unit && (
+          <Grid item xs={4}>
+            <Box sx={styles.unit}>
+              <Typography
+                component={OverflowText}
+                variant="subtitle1"
+                sx={{ textAlign: 'center' }}
+              >
+                {numberFormat.unit}
+              </Typography>
+            </Box>
+          </Grid>
+        )}
+      </Grid>
+
+      {isCategorical ? renderCategoricalSize() : renderNumericSize()}
+    </Box>
+  )
 }
 
-// TODO: Implement this component
 const HeightLegend = ({
   valueRange,
   heightBy,
   heightByOptions,
   featureTypeProps,
   onSelectProp,
+  icon,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
   const heightByProp = featureTypeProps[heightBy]
   const numberFormat = getNumberFormatProps(heightByProp)
   const isCategorical = heightByProp.type !== propId.NUMBER
-  console.log({
-    valueRange,
-    heightBy,
-    heightByOptions,
-    featureTypeProps,
-    isCategorical,
-    onSelectProp,
-    numberFormat,
-  })
-  return null
+
+  const handleSelectHeight = (newSize) => {
+    onSelectProp(newSize)
+  }
+
+  const renderNumericHeight = () => {
+    return (
+      <Grid
+        container
+        spacing={1}
+        sx={{ alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Grid item xs={3} sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
+            Min
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+          >
+            {valueRange.min}
+          </Typography>
+        </Grid>
+
+        <Grid item xs={6} container alignItems="center" justifyContent="center">
+          <Grid
+            item
+            container
+            xs={6}
+            alignItems="center"
+            justifyContent="center"
+          >
+            {icon && (
+              <icon.type
+                {...icon.props}
+                style={{
+                  height: `${valueRange.min}px`,
+                  width: 'auto',
+                  display: 'block',
+                  margin: '0 auto',
+                  transform: 'rotate(90deg)',
+                }}
+              />
+            )}
+          </Grid>
+          <Grid
+            item
+            container
+            xs={6}
+            alignItems="center"
+            justifyContent="center"
+          >
+            {icon && (
+              <icon.type
+                {...icon.props}
+                style={{
+                  height: `${valueRange.max}px`,
+                  width: 'auto',
+                  display: 'block',
+                  margin: '0 auto',
+                  transform: 'rotate(90deg)',
+                }}
+              />
+            )}
+          </Grid>
+        </Grid>
+
+        <Grid item xs={3} sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
+            Max
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+          >
+            {valueRange.max}
+          </Typography>
+        </Grid>
+      </Grid>
+    )
+  }
+
+  const renderCategoricalHeight = () => (
+    <Stack direction="row" spacing={1.5} justifyContent="center">
+      {Object.entries(heightByOptions).map(([category]) => (
+        <Paper key={category} sx={{ padding: 0.5, textAlign: 'center' }}>
+          <Typography variant="caption">{category}</Typography>
+        </Paper>
+      ))}
+    </Stack>
+  )
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Grid container alignItems="center" justifyContent="center" spacing={1}>
+        <Grid item xs={8}>
+          <Select
+            fullWidth
+            size="small"
+            value={heightBy}
+            optionsList={Object.keys(heightByOptions)}
+            getLabel={(option) => featureTypeProps[option].name || option}
+            onSelect={handleSelectHeight}
+          />
+        </Grid>
+        {numberFormat.unit && (
+          <Grid item xs={4}>
+            <Box sx={styles.unit}>
+              <Typography
+                component={OverflowText}
+                variant="subtitle1"
+                sx={{
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {numberFormat.unit}
+              </Typography>
+            </Box>
+          </Grid>
+        )}
+      </Grid>
+
+      {isCategorical ? renderCategoricalHeight() : renderNumericHeight()}
+    </Box>
+  )
 }
 
 const LegendRowDetails = ({
@@ -422,30 +717,30 @@ const LegendRowDetails = ({
           event.stopPropagation()
         }}
       >
-        <Grid2
+        <Grid
           container
           spacing={1}
           sx={styles.popperContent}
           direction="column"
         >
-          <Grid2 container sx={{ alignItems: 'center' }}>
-            <Grid2 size="auto">
+          <Grid container sx={{ alignItems: 'center' }}>
+            <Grid size="auto">
               <Switch
                 size="small"
                 checked={value}
                 onClick={onChangeVisibility}
               />
-            </Grid2>
-            <Grid2 size="auto">
+            </Grid>
+            <Grid size="auto">
               <FetchedIcon iconName={icon} />
-            </Grid2>
-            <Grid2 size="grow">
+            </Grid>
+            <Grid size="grow">
               <Typography component={OverflowText} variant="subtitle">
                 {name}
               </Typography>
-            </Grid2>
-          </Grid2>
-          <Divider sx={{ mb: 1, mx: -1.5 }} />
+            </Grid>
+          </Grid>
+          <Divider sx={{ mt: 1 }} />
           {colorBy != null && (
             <ColorLegend
               valueRange={
@@ -462,18 +757,22 @@ const LegendRowDetails = ({
               onSelect={handleSelectProp('colorBy')}
             />
           )}
+          <Divider sx={{ mt: 1, mb: 1 }} />
           {sizeBy != null && (
             <SizeLegend
               valueRange={
                 group && clusterRange.size ? clusterRange.size : sizeRange
               }
               {...{
+                legendGroupId,
+                mapId,
                 group,
                 sizeBy,
                 sizeByOptions,
                 featureTypeProps,
               }}
-              onSelect={handleSelectProp('sizeBy')}
+              onSelectProp={handleSelectProp('sizeBy')}
+              icon={<FetchedIcon iconName={icon} />}
             />
           )}
           {heightBy != null && (
@@ -487,9 +786,10 @@ const LegendRowDetails = ({
                 featureTypeProps,
               }}
               onSelect={handleSelectProp('heightBy')}
+              icon={<FetchedIcon iconName={icon} />}
             />
           )}
-        </Grid2>
+        </Grid>
       </Popper>
     </ToggleButton>
   )
@@ -498,37 +798,32 @@ const LegendRowDetails = ({
 const LegendRow = ({ id, featureTypeData, settingsMode, ...props }) => {
   const name = getLabelFn(featureTypeData, id)
   return (
-    <Grid2
-      key={id}
-      container
-      spacing={1}
-      sx={{ alignItems: 'center', width: '100%' }}
-    >
+    <Grid container spacing={1} sx={{ alignItems: 'center', width: '100%' }}>
       {settingsMode && (
-        <Grid2 size="auto">
+        <Grid item>
           <Switch
             name={`cave-toggle-map-${id}`}
             size="small"
             checked={props.value}
             onClick={props.onChangeVisibility}
           />
-        </Grid2>
+        </Grid>
       )}
-      <Grid2 size="auto">
+      <Grid item>
         <FetchedIcon iconName={props.icon} />
-      </Grid2>
-      <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+      </Grid>
+      <Grid item xs>
         <Typography variant="caption">{name}</Typography>
-      </Grid2>
+      </Grid>
       {!settingsMode && (
-        <Grid2 size="auto">
+        <Grid item>
           <LegendRowDetails
             featureTypeProps={featureTypeData[id].props}
             {...{ id, name, ...props }}
           />
-        </Grid2>
+        </Grid>
       )}
-    </Grid2>
+    </Grid>
   )
 }
 
@@ -643,9 +938,9 @@ const LegendGroup = ({
   return isAnyMapFeatureVisible ? (
     <StyledWrapper show={isLegendGroupNameVisible}>
       {isLegendGroupNameVisible && (
-        <Grid2 container spacing={1} sx={{ alignItems: 'center' }}>
+        <Grid container spacing={1} sx={{ alignItems: 'center' }}>
           {settingsMode && (
-            <Grid2 size="auto">
+            <Grid size="auto">
               <IconButton
                 size="small"
                 color="primary"
@@ -657,12 +952,12 @@ const LegendGroup = ({
                   <MdOutlineVisibilityOff />
                 )}
               </IconButton>
-            </Grid2>
+            </Grid>
           )}
-          <Grid2 size="grow">
+          <Grid size="grow">
             <Typography variant="subtitle1">{legendGroup.name}</Typography>
-          </Grid2>
-        </Grid2>
+          </Grid>
+        </Grid>
       )}
       {legendGroupData.map(({ id, value, ...props }, index) => {
         const legendGroupId = legendGroup.id
@@ -731,13 +1026,13 @@ const MinimalLegend = ({ mapId, onChangeView }) => {
 
   return (
     <Box sx={styles.root}>
-      <Grid2 container spacing={1} sx={{ alignItems: 'center', px: 0.8 }}>
-        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+      <Grid container spacing={1} sx={{ alignItems: 'center', px: 0.8 }}>
+        <Grid size="grow" sx={{ textAlign: 'start' }}>
           <Typography variant="h6">
             {settingsMode ? 'Settings' : 'Legend'}
           </Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <IconButton
             size="small"
             color="primary"
@@ -747,17 +1042,20 @@ const MinimalLegend = ({ mapId, onChangeView }) => {
           >
             {settingsMode ? <MdOutlineFactCheck /> : <RiSettings5Line />}
           </IconButton>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
 
       {settingsMode ? (
         <LegendSettings
-          {...{ mapId, showLegendGroupName, onChangeView }}
+          mapId={mapId}
+          showLegendGroupName={showLegendGroupName}
+          onChangeView={onChangeView}
           onToggleLegendGroupName={handleToggleLegendGroupName}
         />
       ) : (
         <LegendGroups
-          {...{ mapId, showLegendGroupName }}
+          mapId={mapId}
+          showLegendGroupName={showLegendGroupName}
           onToggleLegendGroupName={handleToggleLegendGroupName}
         />
       )}
