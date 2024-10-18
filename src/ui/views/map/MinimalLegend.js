@@ -3,7 +3,7 @@ import {
   Button,
   capitalize,
   Divider,
-  Grid2 as Grid,
+  Grid,
   IconButton,
   Paper,
   Popper,
