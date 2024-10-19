@@ -115,10 +115,18 @@ export const findColoring = (name, colors) => {
   const smallestName = R.pipe(R.split(' \u279D '), R.head)(name)
   return R.prop(smallestName, colors)
 }
-
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
   if (!namesSet.has(name)) return name
+
+  const match = name.match(/ \((\d+)\)$/)
+
+  if (match) {
+    const baseName = name.slice(0, match.index)
+    let count = Number(match[1]) + 1
+    while (namesSet.has(`${baseName} (${count})`)) count++
+    return `${baseName} (${count})`
+  }
 
   let count = 1
   while (namesSet.has(`${name} (${count})`)) count++
