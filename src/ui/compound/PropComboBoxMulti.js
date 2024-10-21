@@ -31,6 +31,7 @@ const PropComboBoxMulti = ({
         multiple
         fullWidth
         sx={{ p: 1.5, maxWidth: 300 }}
+        disabled={!enabled}
         limitTags={numVisibleTags}
         value={R.defaultTo(prop.value)(currentVal)}
         options={R.pluck('id')(optionsList)}
