@@ -40,11 +40,11 @@ import { withIndex, includesPath } from '../../../utils'
 
 const styles = {
   modal: {
+    position: 'fixed',
     display: 'flex',
     p: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
   paper: {
     border: 1,
@@ -60,10 +60,12 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   listPaper: {
-    position: 'absolute',
+    position: 'fixed',
     right: '64px',
     bottom: '72px',
     width: '280px',
+    maxHeight: '80vh',
+    overflowY: 'auto',
     border: 1,
     borderColor: 'text.secondary',
     borderRadius: 1,
