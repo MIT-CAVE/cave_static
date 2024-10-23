@@ -31,6 +31,8 @@ const MapLegend = ({ mapId }) => {
   )
 
   if (!R.propOr(true, 'isOpen', mapLegend)) return null
+
+  const LegendView = classicView ? ClassicLegend : MinimalLegend
   return (
     <Box
       key="map-legend"
@@ -47,11 +49,7 @@ const MapLegend = ({ mapId }) => {
         },
       ]}
     >
-      {classicView ? (
-        <ClassicLegend {...{ mapId }} onChangeView={handleChangeView} />
-      ) : (
-        <MinimalLegend {...{ mapId }} onChangeView={handleChangeView} />
-      )}
+      <LegendView {...{ mapId }} onChangeView={handleChangeView} />
     </Box>
   )
 }

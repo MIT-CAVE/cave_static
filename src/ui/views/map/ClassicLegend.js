@@ -14,7 +14,8 @@ import {
 import * as R from 'ramda'
 import { memo, useCallback, useState, useEffect, useMemo } from 'react'
 import { BlockPicker } from 'react-color'
-import { FaFilter, FaCompress } from 'react-icons/fa'
+import { FaFilter } from 'react-icons/fa'
+import { LiaCompressArrowsAltSolid } from 'react-icons/lia'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -1523,7 +1524,7 @@ const ClassicLegend = ({ mapId, onChangeView }) => {
         sx={{ position: 'absolute', top: '16px', right: '16px' }}
         onClick={onChangeView}
       >
-        <FaCompress size={28} />
+        <LiaCompressArrowsAltSolid size={28} />
       </IconButton>
       {R.map((legendObj) => (
         <MapLegendToggleList key={legendObj.id} {...{ mapId, legendObj }} />
