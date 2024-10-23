@@ -7,6 +7,8 @@ import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 import WrappedText from './WrappedText'
 
+import { forceArray } from '../../utils'
+
 const styles = {
   displayIcon: {
     display: 'flex',
@@ -57,6 +59,7 @@ const Select = ({
   placeholder,
   displayIcon,
   disabled,
+  sx = [],
   getLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
@@ -67,7 +70,7 @@ const Select = ({
   return (
     <MuiSelect
       {...{ disabled, open, ...props }}
-      sx={styles.select}
+      sx={[styles.select, ...forceArray(sx)]}
       name="cave-select"
       displayEmpty
       value={selectedValue}
@@ -101,8 +104,8 @@ const Select = ({
       {placeholder && (
         <MenuItem
           value=""
-          onClick={() => {
-            onSelect && onSelect(null)
+          onClick={(event) => {
+            onSelect && onSelect(null, event)
             setOpen(false)
           }}
           disabled
@@ -127,8 +130,8 @@ const Select = ({
                 ? () => {
                     allowClose.current = false
                   }
-                : () => {
-                    onSelect && onSelect(value || label || item)
+                : (event) => {
+                    onSelect && onSelect(value || label || item, event)
                     setOpen(false)
                   }
             }
@@ -141,8 +144,8 @@ const Select = ({
             <span
               {...(subOptions
                 ? {
-                    onClick: () => {
-                      onSelect && onSelect(value || label || item)
+                    onClick: (event) => {
+                      onSelect && onSelect(value || label || item, event)
                       setOpen(false)
                     },
                   }
@@ -182,6 +185,13 @@ Select.propTypes = {
   value: PropTypes.any,
   placeholder: PropTypes.string,
   displayIcon: PropTypes.bool,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
   getLabel: PropTypes.func,
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
