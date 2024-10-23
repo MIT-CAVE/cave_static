@@ -35,9 +35,9 @@ import {
   selectArcTypeKeys,
   selectNodeTypeKeys,
   selectNumberFormatPropsFn,
-  selectPageLayout,
   selectMapData,
   selectIsGlobe,
+  selectCharts,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
 import { useFilter } from '../../../utils/hooks'
@@ -363,7 +363,7 @@ const MapLegendGroupRowToggleLayer = ({
   ...props
 }) => {
   const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
-  const pageLayout = useSelector(selectPageLayout)
+  const charts = useSelector(selectCharts)
   const mapData = useSelector(selectMapData)
 
   const numActiveFilters = useMemo(
@@ -375,15 +375,17 @@ const MapLegendGroupRowToggleLayer = ({
     () => R.isEmpty(filterables) || toggleGroupLabel === 'Grouped',
     [filterables, toggleGroupLabel]
   )
+
   const labelStart = useMemo(() => {
-    const isMaximized = R.any(R.propEq(true, 'maximized'))(pageLayout)
-    if (isMaximized) return null
+    const chartsArr = R.values(charts)
+    const isMaximized = R.any(R.propEq(true, 'maximized'))(chartsArr)
+    if (isMaximized) return
 
     const mapIndices = R.addIndex(R.reduce)(
       (acc, value, index) =>
         R.when(R.always(R.propEq(mapId, 'mapId')(value)), R.append(index))(acc),
       []
-    )(pageLayout)
+    )(chartsArr)
     return mapIndices.length > 1
       ? R.pathOr(mapId, [mapId, 'name'])(mapData)
       : `${
@@ -391,7 +393,7 @@ const MapLegendGroupRowToggleLayer = ({
             mapIndices[0]
           ]
         } Chart`
-  }, [mapData, mapId, pageLayout])
+  }, [charts, mapData, mapId])
 
   return (
     <Grid container spacing={0} alignItems="center" {...props}>

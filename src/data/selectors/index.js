@@ -1146,7 +1146,6 @@ const getMergedAllProps = (data, dataType) =>
   R.mapObjIndexed((type, key) =>
     R.pipe(
       R.pathOr({}, ['data', 'location']),
-      dataType === 'node' ? R.map((d) => d[0]) : R.identity,
       R.dissoc('timeValues'),
       R.values,
       R.head,
@@ -1159,7 +1158,7 @@ const getMergedAllProps = (data, dataType) =>
         )(type)
         const location = R.pipe(
           R.pathOr({}, ['data', 'location']),
-          dataType === 'node' ? R.map((d) => d[0]) : R.identity,
+          dataType === 'node' ? R.map(R.map((d) => d[0])) : R.identity,
           R.pluck(idx)
         )(type)
         return R.pipe(
