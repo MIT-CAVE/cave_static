@@ -284,7 +284,7 @@ const Dashboard = () => {
 
   const handleAddChart = useMutateState(() => {
     const name = getFreeName('chart', R.keys(charts))
-    const index = R.pipe(R.findIndex(R.isNil))(pageLayout)
+    const index = R.findIndex(R.isNil)(pageLayout)
 
     return {
       path: pagePath,
@@ -350,7 +350,7 @@ const Dashboard = () => {
       for (let i = 0; i < grid.length; i++) {
         const { x, y, w, h } = grid[i]
         // Skip null items
-        if (grid[i].i === 'null') continue
+        if (R.includes(null, grid[i].i)) continue
         for (let j = 0; j < w; j++) {
           for (let k = 0; k < h; k++) {
             // set the top left cell to the name of the chart
@@ -521,7 +521,11 @@ const Dashboard = () => {
                       }
                   return (
                     <Box
-                      key={`${index}`}
+                      key={
+                        R.isNotNil(index)
+                          ? `${index}`
+                          : `${gridItem.x}x${gridItem.y}null`
+                      }
                       display="flex"
                       data-grid={R.mergeLeft({
                         isDraggable: chartObj != null && editLayoutMode,
