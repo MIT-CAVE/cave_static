@@ -28,6 +28,7 @@
     "kdbush": "^4.0.2",
     "mapbox-gl": "3.5.1",
     "maplibre-gl": "^4.5.2",
+    "mui-color-input": "4.0.0",
     "prop-types": "^15.8.1",
     "ramda": "^0.30.1",
     "react": "^18.3.1",

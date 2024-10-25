@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   capitalize,
+  ClickAwayListener,
   Divider,
   Grid2,
   IconButton,
@@ -12,6 +13,8 @@ import {
   ToggleButton,
   Typography,
 } from '@mui/material'
+import { color } from 'd3-color'
+import { matchIsValidColor, MuiColorInput } from 'mui-color-input'
 import { Fragment, memo, useCallback, useMemo, useState } from 'react'
 import { LuGroup, LuShapes, LuUngroup } from 'react-icons/lu'
 import {
@@ -25,6 +28,7 @@ import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
+import useColorPicker from './useColorPicker'
 import useMapFilter from './useMapFilter'
 
 import { mutateLocal } from '../../../data/local'
@@ -51,6 +55,7 @@ import GridFilter from '../common/GridFilter'
 import { FetchedIcon, OverflowText, Select } from '../../compound'
 
 import {
+  colorToRgba,
   getContrastText,
   getLabelFn,
   includesPath,
@@ -82,7 +87,7 @@ const styles = {
     boxSizing: 'border-box',
   },
   popper: {
-    width: '288px',
+    width: '328px',
     position: 'absolute',
   },
   popperContent: {
@@ -96,12 +101,12 @@ const styles = {
     mt: 1,
   },
   category: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    p: 0.75,
-    mx: 'auto',
-    borderRadius: 1,
+    height: '12px',
+    minWidth: '12px',
+    p: 1,
+    border: '1px outset rgb(128, 128, 128)',
+    boxSizing: 'content-box',
+    textTransform: 'none',
   },
   gradientRoot: {
     justifyContent: 'center',
@@ -117,10 +122,9 @@ const styles = {
     maxWidth: '56px',
   },
   getGradient: (minColor, maxColor) => ({
-    height: '20px',
+    height: '24px',
     minWidth: '80px',
-    width: 'auto',
-    borderRadius: 0.5,
+    border: '1px outset rgb(128, 128, 128)',
     backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
   }),
   unit: {
@@ -168,45 +172,116 @@ const getMinLabel = (valRange, numberFormat, group) =>
 const getMaxLabel = (valRange, numberFormat, group) =>
   getMinMaxLabel(valRange, numberFormat, group, 'max', 'legendMaxLabel')
 
+const ColorPicker = ({ colorLabel, value, onClose, onChange }) => {
+  const formattedColor = useMemo(() => {
+    if (!matchIsValidColor(value)) return value
+    return color(value).formatHex8().toLowerCase()
+  }, [value])
+
+  return (
+    <ClickAwayListener onClickAway={onClose}>
+      <MuiColorInput
+        // size="small"
+        fullWidth={false}
+        format="hex8"
+        PopoverProps={{ onClose }}
+        label={`Color picker \u279D ${colorLabel}`}
+        style={{ marginTop: '20px' }}
+        value={formattedColor}
+        {...{ onChange }}
+      />
+    </ClickAwayListener>
+  )
+}
+
 const NumericalColorLegend = ({
   group,
   valueRange,
   colorBy,
   colorByOptions,
   numberFormat,
+  onChangeColor,
 }) => {
+  const minCp = useColorPicker(onChangeColor)
+  const maxCp = useColorPicker(onChangeColor)
+
   const minColor = colorByOptions[colorBy].startGradientColor
   const maxColor = colorByOptions[colorBy].endGradientColor
   const minLabel = getMinLabel(valueRange, numberFormat, group)
   const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+
+  const handleClick = useCallback(() => {
+    minCp.handleOpen('startGradientColor', minColor)()
+    maxCp.handleOpen('endGradientColor', maxColor)()
+  }, [maxColor, maxCp, minColor, minCp])
+
+  const handleClose = useCallback(
+    (event) => {
+      minCp.handleClose(event)
+      maxCp.handleClose(event)
+    },
+    [maxCp, minCp]
+  )
+
+  const showColorPicker = minCp.showColorPicker && maxCp.showColorPicker
   return (
-    <Grid2 container spacing={1} sx={styles.gradientRoot}>
-      {/* <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="caption">Min</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={minLabel} />
-        </Typography>
-      </Grid2> */}
+    <>
+      <Grid2 container spacing={1.5} sx={styles.gradientRoot}>
+        <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="caption">Min</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={minLabel} />
+          </Typography>
+        </Grid2>
 
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={minLabel} />
-        </Typography>
-      </Grid2>
-      <Grid2 size="grow" sx={styles.getGradient(minColor, maxColor)} />
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={maxLabel} />
-        </Typography>
-      </Grid2>
+        {/* <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={minLabel} />
+          </Typography>
+        </Grid2> */}
+        <Grid2 size="grow">
+          <Button
+            fullWidth
+            size="small"
+            variant="contained"
+            sx={[
+              styles.getGradient(minColor, maxColor),
+              showColorPicker && { borderStyle: 'inset' },
+            ]}
+            onClick={handleClick}
+          />
+        </Grid2>
+        {/* <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={maxLabel} />
+          </Typography>
+        </Grid2> */}
 
-      {/* <Grid2 item size={3} sx={styles.gradientLabel}>
-        <Typography variant="caption">Max</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={maxLabel} />
-        </Typography>
-      </Grid2> */}
-    </Grid2>
+        <Grid2 item size={3} sx={styles.gradientLabel}>
+          <Typography variant="caption">Max</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={maxLabel} />
+          </Typography>
+        </Grid2>
+      </Grid2>
+      {showColorPicker && (
+        // BUG: For some reason the `sx` prop doesn't work here
+        <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
+          <ColorPicker
+            colorLabel="Min"
+            value={minCp.colorPickerProps.value}
+            onChange={minCp.handleChange}
+            onClose={handleClose}
+          />
+          <ColorPicker
+            colorLabel="Max"
+            value={maxCp.colorPickerProps.value}
+            onChange={maxCp.handleChange}
+            onClose={handleClose}
+          />
+        </Stack>
+      )}
+    </>
   )
 }
 
@@ -215,7 +290,16 @@ const CategoricalColorLegend = ({
   colorBy,
   colorByOptions,
   featureTypeProps,
+  onChangeColor,
 }) => {
+  const {
+    colorPickerProps,
+    showColorPicker,
+    handleOpen,
+    handleClose,
+    handleChange,
+  } = useColorPicker(onChangeColor)
+
   const colorOptions = colorByOptions[colorBy]
   const getCategoryLabel = useCallback(
     (option) => {
@@ -229,27 +313,50 @@ const CategoricalColorLegend = ({
   )
 
   return (
-    <OverflowText sx={styles.categoryRoot}>
-      <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center' }}>
-        {Object.entries(colorOptions).map(([opt, val]) => (
-          <Paper
-            key={opt}
-            sx={[
-              styles.category,
-              {
-                color: getContrastText(val),
-                bgcolor: val,
-                minWidth: '12px',
-                height: '12px',
-              },
-            ]}
-            elevation={3}
-          >
-            <Typography variant="caption">{getCategoryLabel(opt)}</Typography>
-          </Paper>
-        ))}
-      </Stack>
-    </OverflowText>
+    <>
+      <OverflowText
+        marqueeProps={{ play: !showColorPicker }}
+        sx={styles.categoryRoot}
+      >
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: 'center', justifyContent: 'center' }}
+        >
+          {Object.entries(colorOptions).map(([option, value]) => (
+            <Button
+              key={option}
+              size="small"
+              variant="contained"
+              sx={[
+                styles.category,
+                option === colorPickerProps.key && {
+                  border: 2,
+                  borderStyle: 'inset',
+                },
+                {
+                  bgcolor: value,
+                  color: getContrastText(value),
+                },
+              ]}
+              onClick={handleOpen(option, value)}
+            >
+              <Typography variant="caption">
+                {getCategoryLabel(option)}
+              </Typography>
+            </Button>
+          ))}
+        </Stack>
+      </OverflowText>
+      {showColorPicker && (
+        <ColorPicker
+          colorLabel={getCategoryLabel(colorPickerProps.key)}
+          value={colorPickerProps.value}
+          onChange={handleChange}
+          onClose={handleClose}
+        />
+      )}
+    </>
   )
 }
 
@@ -298,6 +405,7 @@ const ColorLegend = ({
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangeColor,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
   const colorByProp = featureTypeProps[colorBy]
@@ -332,7 +440,12 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          {...{ colorBy, colorByOptions, featureTypeProps }}
+          {...{
+            colorBy,
+            colorByOptions,
+            featureTypeProps,
+            onChangeColor,
+          }}
         />
       ) : (
         <NumericalColorLegend
@@ -342,6 +455,7 @@ const ColorLegend = ({
             colorBy,
             colorByOptions,
             numberFormat,
+            onChangeColor,
           }}
         />
       )}
@@ -736,6 +850,20 @@ const LegendRowDetails = ({
     [basePath, dispatch, sync]
   )
 
+  const handleChangeColor = useCallback(
+    (pathEnd) => (value) => {
+      const path = [...basePath, 'colorByOptions', colorBy, pathEnd]
+      dispatch(
+        mutateLocal({
+          path,
+          value: colorToRgba(value),
+          sync: !includesPath(Object.values(sync), path),
+        })
+      )
+    },
+    [basePath, colorBy, dispatch, sync]
+  )
+
   return (
     <ToggleButton
       size="small"
@@ -825,7 +953,7 @@ const LegendRowDetails = ({
           <Divider sx={{ mx: -1.5 }} />
           {colorBy != null && (
             <>
-              <Typography variant="subtitle2">Color By</Typography>
+              <Typography variant="subtitle2">Color by</Typography>
               <ColorLegend
                 valueRange={
                   group && clusterRange.color ? clusterRange.color : colorRange
@@ -841,12 +969,13 @@ const LegendRowDetails = ({
                 groupCalcValue={groupCalcByColor}
                 onSelectProp={handleSelectProp('colorBy')}
                 onSelectGroupCalc={handleSelectGroupCalc('groupCalcByColor')}
+                onChangeColor={handleChangeColor}
               />
             </>
           )}
           {sizeBy != null && (
             <>
-              <Typography variant="subtitle2">Size By</Typography>
+              <Typography variant="subtitle2">Size by</Typography>
               <SizeLegend
                 valueRange={
                   group && clusterRange.size ? clusterRange.size : sizeRange
@@ -866,7 +995,7 @@ const LegendRowDetails = ({
           )}
           {heightBy != null && (
             <>
-              <Typography variant="subtitle2">Height By</Typography>
+              <Typography variant="subtitle2">Height by</Typography>
               <HeightLegend
                 valueRange={heightRange}
                 {...{
