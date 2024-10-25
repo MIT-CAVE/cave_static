@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  ButtonBase,
   capitalize,
   ClickAwayListener,
   Divider,
@@ -56,6 +57,7 @@ import { FetchedIcon, OverflowText, Select } from '../../compound'
 
 import {
   colorToRgba,
+  forceArray,
   getContrastText,
   getLabelFn,
   includesPath,
@@ -104,7 +106,6 @@ const styles = {
     height: '12px',
     minWidth: '12px',
     p: 1,
-    border: '1px outset rgb(128, 128, 128)',
     boxSizing: 'content-box',
     textTransform: 'none',
   },
@@ -122,9 +123,9 @@ const styles = {
     maxWidth: '56px',
   },
   getGradient: (minColor, maxColor) => ({
+    width: '100%',
     height: '24px',
     minWidth: '80px',
-    border: '1px outset rgb(128, 128, 128)',
     backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
   }),
   unit: {
@@ -137,7 +138,19 @@ const styles = {
     borderColor: 'rgb(128, 128, 128)',
     boxSizing: 'border-box',
   },
+  rippleBox: {
+    border: '1px outset rgb(128, 128, 128)',
+    borderRadius: 1,
+  },
 }
+
+const RippleBox = ({ sx = [], ...props }) => (
+  <ButtonBase
+    component="div"
+    sx={[styles.rippleBox, ...forceArray(sx)]}
+    {...props}
+  />
+)
 
 const getNumLabel = (value, numberFormat) =>
   NumberFormat.format(value, {
@@ -240,10 +253,7 @@ const NumericalColorLegend = ({
           </Typography>
         </Grid2> */}
         <Grid2 size="grow">
-          <Button
-            fullWidth
-            size="small"
-            variant="contained"
+          <RippleBox
             sx={[
               styles.getGradient(minColor, maxColor),
               showColorPicker && { borderStyle: 'inset' },
@@ -324,10 +334,8 @@ const CategoricalColorLegend = ({
           sx={{ alignItems: 'center', justifyContent: 'center' }}
         >
           {Object.entries(colorOptions).map(([option, value]) => (
-            <Button
+            <RippleBox
               key={option}
-              size="small"
-              variant="contained"
               sx={[
                 styles.category,
                 option === colorPickerProps.key && {
@@ -344,7 +352,7 @@ const CategoricalColorLegend = ({
               <Typography variant="caption">
                 {getCategoryLabel(option)}
               </Typography>
-            </Button>
+            </RippleBox>
           ))}
         </Stack>
       </OverflowText>
