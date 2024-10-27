@@ -60,11 +60,11 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   listPaper: {
-    position: 'fixed',
+    position: 'absolute',
     right: '64px',
     bottom: '72px',
     width: '280px',
-    maxHeight: '80vh',
+    maxHeight: '50%',
     overflowY: 'auto',
     border: 1,
     borderColor: 'text.secondary',
