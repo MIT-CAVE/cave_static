@@ -547,7 +547,7 @@ const MapLegendSizeBySection = ({
         size={12}
         spacing={numberFormatProps.unit ? 0.5 : 0}
       >
-        <Grid2 size={7}>
+        <Grid2 size={8}>
           <SimpleDropdown
             paperProps={{ elevation: 3 }}
             marquee
@@ -716,7 +716,7 @@ const MapLegendColorBySection = ({
         size={12}
         spacing={numberFormatProps.unit ? 0.5 : 0}
       >
-        <Grid2 size={7}>
+        <Grid2 size={8}>
           <SimpleDropdown
             paperProps={{ elevation: 3 }}
             marquee
@@ -852,7 +852,7 @@ const MapLegendHeightBySection = ({
         size={12}
         spacing={numberFormatProps.unit ? 0.5 : 0}
       >
-        <Grid2 size={7}>
+        <Grid2 size={8}>
           <SimpleDropdown
             paperProps={{ elevation: 3 }}
             marquee
