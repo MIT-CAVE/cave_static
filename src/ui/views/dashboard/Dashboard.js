@@ -111,13 +111,25 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const handleRemoveChart = useMutateState(() => {
-    const delIndex = R.pipe(R.findIndex(R.equals(index)))(pageLayout)
+    const nameIndex = R.pipe(R.findIndex(R.equals(index)))(pageLayout)
+    const findIndicies = (idx) => {
+      const lineLength = pageLayout.length === 9 ? 3 : 2
+      const list = [idx]
+      if (pageLayout[idx + 1] === 'left') list.push(findIndicies(idx + 1))
+      if (pageLayout[idx + lineLength] === 'up')
+        list.push(findIndicies(idx + lineLength))
+      return R.flatten(list)
+    }
     const pagePath = R.init(R.init(path))
     return {
       path: pagePath,
       value: {
         charts: R.assoc(index, null)(charts),
-        pageLayout: R.update(delIndex, null, pageLayout),
+        pageLayout: R.reduce(
+          (acc, value) => R.update(value, null, acc),
+          pageLayout,
+          findIndicies(nameIndex)
+        ),
         lockedLayout,
       },
       sync: !includesPath(R.values(sync), pagePath),
@@ -258,6 +270,8 @@ const Dashboard = () => {
   const layoutPath = [...pagePath, 'pageLayout']
   const chartsPath = [...pagePath, 'charts']
 
+  const lineLength = pageLayout.length === 9 ? 3 : 2
+
   const maximizedChart = useMemo(
     () =>
       R.pipe(
@@ -270,7 +284,7 @@ const Dashboard = () => {
 
   const handleAddChart = useMutateState(() => {
     const name = getFreeName('chart', R.keys(charts))
-    const index = R.pipe(R.findIndex(R.isNil))(pageLayout)
+    const index = R.findIndex(R.isNil)(pageLayout)
 
     return {
       path: pagePath,
@@ -297,90 +311,60 @@ const Dashboard = () => {
     [layoutPath, sync]
   )
 
-  const translateLayoutToGrid = useCallback((layout) => {
-    const grid = []
-    const lineLength = layout.length === 9 ? 3 : 2
-    for (let i = 0; i < layout.length; i++) {
-      if (layout[i] === 'left') grid[grid.length - 1].w += 1
-      else if (layout[i] === 'up') grid[i - lineLength].h += 1
-      else {
-        const x = i % lineLength
-        const y = Math.floor(i / lineLength)
-        grid.push({
-          i: layout[i],
-          x,
-          y,
-          w: 1,
-          h: 1,
-        })
-      }
-    }
-    return grid
-  }, [])
-
-  const handleResizeStop = useCallback(
-    (grid) => {
-      const lineLength = pageLayout.length === 9 ? 3 : 2
-      const oldGrid = translateLayoutToGrid(pageLayout)
-      const changedItem = R.find((item) =>
-        R.none(
-          (item2) =>
-            item.x === item2.x &&
-            item.y === item2.y &&
-            item.h === item2.h &&
-            item.w === item2.w,
-          oldGrid
-        )
-      )(grid)
-      if (changedItem == null) return
-
-      const changedIndex = changedItem.x + changedItem.y * lineLength
-
-      const layoutWithChangedItem = R.update(
-        changedIndex,
-        changedItem.i,
-        pageLayout
-      )
-      // item height increased
-      if (changedItem.h === 2) {
-        handleUpdateLayout(
-          R.update(changedIndex + lineLength, 'up', layoutWithChangedItem)
-        )
-        // item width increased
-      } else if (changedItem.w === 2) {
-        handleUpdateLayout(
-          R.update(changedIndex + 1, 'left', layoutWithChangedItem)
-        )
-        // item shrunk - figure out where to set null
-      } else {
-        // discover whether the shrink is in x or y
-        const isY = R.none(
-          (item) => item.x === changedItem.x && item.i !== changedItem.i
-        )(grid)
-        if (isY) {
-          if (layoutWithChangedItem[changedIndex + lineLength] === 'up') {
-            handleUpdateLayout(
-              R.update(changedIndex + lineLength, null, layoutWithChangedItem)
-            )
-          } else {
-            handleUpdateLayout(
-              R.update(changedIndex - lineLength, null, layoutWithChangedItem)
-            )
-          }
+  const translateLayoutToGrid = useCallback(
+    (layout) => {
+      const grid = []
+      for (let i = 0; i < layout.length; i++) {
+        if (layout[i] === 'left' || layout[i] === 'up') {
+          continue
         } else {
-          if (layoutWithChangedItem[changedIndex + 1] === 'left') {
-            handleUpdateLayout(
-              R.update(changedIndex + 1, null, layoutWithChangedItem)
-            )
-          } else {
-            handleUpdateLayout(
-              R.update(changedIndex - 1, null, layoutWithChangedItem)
-            )
+          const x = i % lineLength
+          const y = Math.floor(i / lineLength)
+          grid.push({
+            i: layout[i],
+            x,
+            y,
+            w: 1,
+            h: 1,
+          })
+          let j = 1
+          while (layout[i + j] === 'left') {
+            grid[grid.length - 1].w += 1
+            j += 1
+          }
+          j = 1
+          while (layout[i + j * lineLength] === 'up') {
+            grid[grid.length - 1].h += 1
+            j += 1
           }
         }
       }
+      return grid
     },
-    [handleUpdateLayout, pageLayout, translateLayoutToGrid]
+    [lineLength]
+  )
+
+  const handleResizeStop = useCallback(
+    (grid) => {
+      const newLayout = R.repeat(null, lineLength * lineLength)
+      for (let i = 0; i < grid.length; i++) {
+        const { x, y, w, h } = grid[i]
+        // Skip null items
+        if (R.includes(null, grid[i].i)) continue
+        for (let j = 0; j < w; j++) {
+          for (let k = 0; k < h; k++) {
+            // set the top left cell to the name of the chart
+            if (j === 0 && k === 0) newLayout[x + y * lineLength] = grid[i].i
+            // set the rest of the top row to 'left'
+            else if (k === 0) newLayout[x + j + y * lineLength] = 'left'
+            // set the rest of the cells contained to 'up'
+            else newLayout[x + j + (y + k) * lineLength] = 'up'
+          }
+        }
+      }
+      handleUpdateLayout(newLayout)
+    },
+    [handleUpdateLayout, lineLength]
   )
 
   const handleDragStop = useCallback(
@@ -391,14 +375,17 @@ const Dashboard = () => {
         element.firstChild == null // Prevent ghost-dragging of an empty grid item
       )
         return
-      const gridLength = pageLayout.length === 9 ? 3 : 2
-      const oldPosIndex = oldPos.x + oldPos.y * gridLength
-      const newPosIndex = newPos.x + newPos.y * gridLength
+      const oldPosIndex = oldPos.x + oldPos.y * lineLength
+      const newPosIndex = newPos.x + newPos.y * lineLength
 
       const oldItem = translateLayoutToGrid(pageLayout)[newPosIndex]
       // check if either of the items being resized are > 1x1
       const needsResize =
-        R.isNil(oldItem) || newPos.h !== oldItem.h || newPos.w !== oldItem.w
+        R.isNil(oldItem) ||
+        newPos.h !== oldItem.h ||
+        newPos.w !== oldItem.w ||
+        pageLayout[newPosIndex] === 'left' ||
+        pageLayout[newPosIndex] === 'up'
 
       const newLayout = R.pipe(
         R.swap(oldPosIndex, newPosIndex),
@@ -411,7 +398,7 @@ const Dashboard = () => {
       )(pageLayout)
       handleUpdateLayout(newLayout)
     },
-    [handleUpdateLayout, pageLayout, translateLayoutToGrid]
+    [handleUpdateLayout, lineLength, pageLayout, translateLayoutToGrid]
   )
 
   const findResizeHandles = (chartObj, gridItem, index, gridLayout) => {
@@ -425,24 +412,57 @@ const Dashboard = () => {
       return []
     if (chartObj.maximized) return []
     const { x, y, w, h } = gridItem
-    const gridSize = pageLayout.length === 9 ? 3 : 2
-    // can always shrink if larger than 1x1
-    if (gridSize === 2 && (w >= 2 || h >= 2))
-      return h === 2 ? ['s', 'n'] : ['e', 'w']
-    // find empty blocks by checking if they are defined in pageLayout
-    const blanks = R.pipe(
-      R.filter((item) => R.isNil(item.i)),
-      R.values
-    )(gridLayout)
+    const pageIndex = x + y * lineLength
     const resizeHandles = []
-    if (R.any((item) => y === item.y && item.x === 1, blanks))
-      resizeHandles.push('e')
-    if (R.any((item) => x === item.x && item.y === 1, blanks))
-      resizeHandles.push('s')
-    if (R.any((item) => y === item.y && item.x === 0, blanks))
-      resizeHandles.push('w')
-    if (R.any((item) => x === item.x && item.y === 0, blanks))
-      resizeHandles.push('n')
+    // can always shrink from a side if larger than 1x1
+    if (w >= 2 || h >= 2) {
+      if (h >= 2 && y === 0) resizeHandles.push('n')
+      else if (h >= 2 && y === 1) resizeHandles.push('s')
+
+      if (w >= 2 && x === 0) resizeHandles.push('w')
+      else if (w >= 2 && x === 1) resizeHandles.push('e')
+    }
+    // can only grow if there is a null space
+    let growW, growE, growN, growS
+    growW = growE = growN = growS = true
+    // check over entire height
+    for (let i = 0; i < h; i++) {
+      if (
+        x === 0 ||
+        x + w >= lineLength ||
+        pageLayout[pageIndex + w + i * lineLength] !== null
+      ) {
+        growE = false
+      }
+      if (
+        x === lineLength - 1 ||
+        x - 1 < 0 ||
+        pageLayout[pageIndex - 1 + i * lineLength] !== null
+      ) {
+        growW = false
+      }
+    }
+    // check over entire width
+    for (let i = 0; i < w; i++) {
+      if (
+        y === 0 ||
+        y + h >= lineLength ||
+        pageLayout[pageIndex + i + h * lineLength] !== null
+      ) {
+        growS = false
+      }
+      if (
+        y === lineLength - 1 ||
+        y - 1 < 0 ||
+        pageLayout[pageIndex + i - lineLength] !== null
+      ) {
+        growN = false
+      }
+    }
+    if (growW) resizeHandles.push('w')
+    if (growE) resizeHandles.push('e')
+    if (growN) resizeHandles.push('n')
+    if (growS) resizeHandles.push('s')
     return resizeHandles
   }
 
@@ -467,10 +487,12 @@ const Dashboard = () => {
                 className="layout"
                 {...{ width }}
                 margin={R.isNil(maximizedChart) ? [8, 8] : [0, 0]}
-                cols={2}
-                maxRows={2}
+                cols={lineLength}
+                maxRows={lineLength}
                 layout={translateLayoutToGrid(pageLayout)}
-                rowHeight={height / 2 - (R.isNil(maximizedChart) ? 12 : 0)}
+                rowHeight={
+                  height / lineLength - (R.isNil(maximizedChart) ? 12 : 0)
+                }
                 allowOverlap
                 draggableCancel=".MuiSelect-select, .MuiButtonBase-root, div:has(> div.mapboxgl-map)"
                 onDragStart={() => {
@@ -493,13 +515,17 @@ const Dashboard = () => {
                     : {
                         x: 0,
                         y: 0,
-                        w: 2,
-                        h: 2,
+                        w: lineLength,
+                        h: lineLength,
                         static: true,
                       }
                   return (
                     <Box
-                      key={`${index}`}
+                      key={
+                        R.isNotNil(index)
+                          ? `${index}`
+                          : `${gridItem.x}x${gridItem.y}null`
+                      }
                       display="flex"
                       data-grid={R.mergeLeft({
                         isDraggable: chartObj != null && editLayoutMode,
@@ -531,7 +557,7 @@ const Dashboard = () => {
       </div>
       {!lockedLayout &&
         R.isNil(maximizedChart) &&
-        R.count(R.isNotNil)(pageLayout) < 4 && (
+        R.count(R.isNotNil)(pageLayout) < lineLength * lineLength && (
           <Fab
             color="primary"
             variant="extended"
