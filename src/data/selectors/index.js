@@ -1555,7 +1555,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
             )(val),
           })),
           R.when(
-            R.always(R.has(R.prop('variant', obj), chartStatUses)),
+            R.always(R.has(R.prop('chartType', obj), chartStatUses)),
             R.map((session) => ({
               name: session.name,
               value: R.unnest(R.pluck('value', session.children)),
