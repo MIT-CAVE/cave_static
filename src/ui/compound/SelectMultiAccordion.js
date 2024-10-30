@@ -110,7 +110,11 @@ const CategoryItem = ({
           </AccordionDetails>
         </Accordion>
       ) : (
-        <SubItem sx={styles.soloCategory} {...{ item }} subItem={subItems[0]} />
+        <SubItem
+          sx={styles.soloCategory}
+          {...{ item, getSubLabel, onSelect, values, index }}
+          subItem={subItems[0]}
+        />
       )}
     </MenuItem>
   )
