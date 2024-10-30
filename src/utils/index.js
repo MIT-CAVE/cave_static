@@ -437,6 +437,11 @@ export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
   return rgbObjToRgbaArray(color(getColor(value)))
 })
 
+export const colorToRgba = (value) => {
+  const rgbColor = rgb(value)
+  return `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${rgbColor.opacity})`
+}
+
 export const getContrastText = (bgColor) => {
   const background = rgb(bgColor)
   // luminance is calculated using the formula provided in WCAG 2.0 guidelines,

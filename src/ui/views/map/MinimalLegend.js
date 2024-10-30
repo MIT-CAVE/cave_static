@@ -1,17 +1,28 @@
 import {
+  Autocomplete,
   Badge,
   Button,
+  ButtonBase,
   capitalize,
+  ClickAwayListener,
   Divider,
+  FormControl,
   Grid2,
   IconButton,
+  InputAdornment,
+  InputLabel,
   Paper,
   Popper,
+  Portal,
+  Slider,
   Stack,
   Switch,
+  TextField,
   ToggleButton,
   Typography,
 } from '@mui/material'
+import { color } from 'd3-color'
+import { matchIsValidColor, MuiColorInput } from 'mui-color-input'
 import { Fragment, memo, useCallback, useMemo, useState } from 'react'
 import { LuGroup, LuShapes, LuUngroup } from 'react-icons/lu'
 import {
@@ -25,12 +36,15 @@ import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
+import useColorPicker from './useColorPicker'
 import useMapFilter from './useMapFilter'
+import useSizeSlider from './useSizeSlider'
 
 import { mutateLocal } from '../../../data/local'
 import {
   selectArcRange,
   selectArcTypeKeys,
+  selectBearingSliderToggleFunc,
   selectGeoRange,
   selectLegendDataFunc,
   selectLocalizedArcTypes,
@@ -40,17 +54,26 @@ import {
   selectNodeRangeAtZoomFunc,
   selectNodeTypeKeys,
   selectNumberFormatPropsFn,
+  selectPitchSliderToggleFunc,
+  selectSettingsIconUrl,
   selectSync,
 } from '../../../data/selectors'
 import { propId, statFns, statId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 import { getStatLabel } from '../../../utils/stats'
+import {
+  EnhancedListbox,
+  ListboxPropsContext,
+  useIconDataLoader,
+} from '../../compound/IconPicker'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
 
 import { FetchedIcon, OverflowText, Select } from '../../compound'
 
 import {
+  colorToRgba,
+  forceArray,
   getContrastText,
   getLabelFn,
   includesPath,
@@ -66,8 +89,9 @@ const styles = {
     p: (theme) => theme.spacing(0, 1, 1),
     mx: 0,
     color: 'text.primary',
-    border: 1,
+    border: 2,
     borderColor: (theme) => theme.palette.grey[500],
+    borderStyle: 'outset',
     borderRadius: 1,
   },
   legendGroup: {
@@ -75,54 +99,43 @@ const styles = {
     mt: 1,
     px: 1,
     py: 0.5,
+    border: 1,
+    borderColor: 'rgb(128, 128, 128)',
+    borderStyle: 'outset',
   },
   legendSection: {
     width: '100%',
     p: 1,
+    pt: 2,
     boxSizing: 'border-box',
   },
   popper: {
-    width: '288px',
-    position: 'absolute',
+    height: '100%',
+    width: '400px',
+    overflow: 'hidden',
+    zIndex: 2,
   },
   popperContent: {
-    width: '100%',
+    maxHeight: '100%',
+    maxWidth: '100%',
     p: 1.5,
     border: 1,
+    boxSizing: 'border-box',
+    borderColor: 'rgb(128, 128, 128)',
     // borderColor: (theme) => theme.palette.primary.main,
+    borderStyle: 'outset',
   },
   categoryRoot: {
     width: '100%',
     mt: 1,
   },
   category: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    p: 0.75,
-    mx: 'auto',
-    borderRadius: 1,
-  },
-  gradientRoot: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    m: 1,
-  },
-  toggleGroup: {
+    height: '12px',
+    minWidth: '12px',
     p: 1,
-    borderRadius: '50%',
+    boxSizing: 'content-box',
+    textTransform: 'none',
   },
-  gradientLabel: {
-    textAlign: 'center',
-    maxWidth: '56px',
-  },
-  getGradient: (minColor, maxColor) => ({
-    height: '20px',
-    minWidth: '80px',
-    width: 'auto',
-    borderRadius: 0.5,
-    backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
-  }),
   unit: {
     display: 'flex',
     alignItems: 'center',
@@ -133,6 +146,29 @@ const styles = {
     borderColor: 'rgb(128, 128, 128)',
     boxSizing: 'border-box',
   },
+  toggleGroup: {
+    p: 1,
+    borderRadius: '50%',
+  },
+  gradientRoot: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    m: 1,
+  },
+  gradientLabel: {
+    textAlign: 'center',
+    maxWidth: '56px',
+  },
+  getGradient: (minColor, maxColor) => ({
+    width: '100%',
+    height: '24px',
+    minWidth: '80px',
+    backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
+  }),
+  getRippleBox: (selected) => ({
+    border: `1px ${selected ? 'inset' : 'outset'} rgb(128, 128, 128)`,
+    borderRadius: 1,
+  }),
 }
 
 const getNumLabel = (value, numberFormat) =>
@@ -168,45 +204,105 @@ const getMinLabel = (valRange, numberFormat, group) =>
 const getMaxLabel = (valRange, numberFormat, group) =>
   getMinMaxLabel(valRange, numberFormat, group, 'max', 'legendMaxLabel')
 
+const RippleBox = ({ selected, sx = [], ...props }) => (
+  <ButtonBase
+    // component="div"
+    sx={[styles.getRippleBox(selected), ...forceArray(sx)]}
+    {...props}
+  />
+)
+
+const ColorPicker = ({ colorLabel, value, onClose, onChange }) => {
+  const formattedColor = useMemo(() => {
+    if (!matchIsValidColor(value)) return value
+    return color(value).formatHex8().toLowerCase()
+  }, [value])
+
+  return (
+    <ClickAwayListener onClickAway={onClose}>
+      <MuiColorInput
+        // size="small"
+        color="error"
+        format="hex8"
+        PopoverProps={{ onClose }}
+        label={`Color picker \u279D ${colorLabel}`}
+        style={{ marginTop: '20px' }}
+        value={formattedColor}
+        {...{ onChange }}
+      />
+    </ClickAwayListener>
+  )
+}
+
 const NumericalColorLegend = ({
   group,
   valueRange,
-  colorBy,
-  colorByOptions,
   numberFormat,
+  onChangeColor,
 }) => {
-  const minColor = colorByOptions[colorBy].startGradientColor
-  const maxColor = colorByOptions[colorBy].endGradientColor
+  const minCp = useColorPicker(onChangeColor)
+  const maxCp = useColorPicker(onChangeColor)
+
+  const { startGradientColor, endGradientColor } = valueRange
   const minLabel = getMinLabel(valueRange, numberFormat, group)
   const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+
+  const handleClick = useCallback(() => {
+    minCp.handleOpen('startGradientColor', startGradientColor)()
+    maxCp.handleOpen('endGradientColor', endGradientColor)()
+  }, [endGradientColor, maxCp, minCp, startGradientColor])
+
+  const handleClose = useCallback(
+    (event) => {
+      minCp.handleClose(event)
+      maxCp.handleClose(event)
+    },
+    [maxCp, minCp]
+  )
+
+  const showColorPicker = minCp.showColorPicker && maxCp.showColorPicker
   return (
-    <Grid2 container spacing={1} sx={styles.gradientRoot}>
-      {/* <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="caption">Min</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={minLabel} />
-        </Typography>
-      </Grid2> */}
-
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={minLabel} />
-        </Typography>
+    <>
+      <Grid2 container spacing={1.5} sx={styles.gradientRoot}>
+        <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="caption">Min</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={minLabel} />
+          </Typography>
+        </Grid2>
+        <Grid2 size="grow">
+          <RippleBox
+            selected={showColorPicker}
+            sx={styles.getGradient(startGradientColor, endGradientColor)}
+            onClick={handleClick}
+          />
+        </Grid2>
+        <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="caption">Max</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={maxLabel} />
+          </Typography>
+        </Grid2>
       </Grid2>
-      <Grid2 size="grow" sx={styles.getGradient(minColor, maxColor)} />
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={maxLabel} />
-        </Typography>
-      </Grid2>
 
-      {/* <Grid2 item size={3} sx={styles.gradientLabel}>
-        <Typography variant="caption">Max</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={maxLabel} />
-        </Typography>
-      </Grid2> */}
-    </Grid2>
+      {showColorPicker && (
+        // BUG: For some reason the `sx` prop doesn't work here
+        <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
+          <ColorPicker
+            colorLabel="Min"
+            value={minCp.colorPickerProps.value}
+            onChange={minCp.handleChange}
+            onClose={handleClose}
+          />
+          <ColorPicker
+            colorLabel="Max"
+            value={maxCp.colorPickerProps.value}
+            onChange={maxCp.handleChange}
+            onClose={handleClose}
+          />
+        </Stack>
+      )}
+    </>
   )
 }
 
@@ -215,7 +311,16 @@ const CategoricalColorLegend = ({
   colorBy,
   colorByOptions,
   featureTypeProps,
+  onChangeColor,
 }) => {
+  const {
+    colorPickerProps,
+    showColorPicker,
+    handleOpen,
+    handleClose,
+    handleChange,
+  } = useColorPicker(onChangeColor)
+
   const colorOptions = colorByOptions[colorBy]
   const getCategoryLabel = useCallback(
     (option) => {
@@ -229,27 +334,42 @@ const CategoricalColorLegend = ({
   )
 
   return (
-    <OverflowText sx={styles.categoryRoot}>
-      <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center' }}>
-        {Object.entries(colorOptions).map(([opt, val]) => (
-          <Paper
-            key={opt}
-            sx={[
-              styles.category,
-              {
-                color: getContrastText(val),
-                bgcolor: val,
-                minWidth: '12px',
-                height: '12px',
-              },
-            ]}
-            elevation={3}
-          >
-            <Typography variant="caption">{getCategoryLabel(opt)}</Typography>
-          </Paper>
-        ))}
-      </Stack>
-    </OverflowText>
+    <>
+      <OverflowText
+        marqueeProps={{ play: !showColorPicker }}
+        sx={styles.categoryRoot}
+      >
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: 'center', justifyContent: 'center' }}
+        >
+          {Object.entries(colorOptions).map(([option, value]) => (
+            <RippleBox
+              key={option}
+              selected={option === colorPickerProps.key}
+              sx={[
+                styles.category,
+                { bgcolor: value, color: getContrastText(value) },
+              ]}
+              onClick={handleOpen(option, value)}
+            >
+              <Typography variant="caption">
+                {getCategoryLabel(option)}
+              </Typography>
+            </RippleBox>
+          ))}
+        </Stack>
+      </OverflowText>
+      {showColorPicker && (
+        <ColorPicker
+          colorLabel={getCategoryLabel(colorPickerProps.key)}
+          value={colorPickerProps.value}
+          onChange={handleChange}
+          onClose={handleClose}
+        />
+      )}
+    </>
   )
 }
 
@@ -268,24 +388,21 @@ const GroupCalcSelector = ({ type, value, onSelect }) => {
         ? TbMathFunction
         : LuShapes
   return (
-    <Grid2
-      container
-      spacing={1}
-      sx={{ pl: 0.5, justifyContent: 'center', alignItems: 'center' }}
-      size={12}
-    >
-      <Grid2>
-        <IconClass size={24} />
-      </Grid2>
-      <Grid2 size="grow">
-        <Select
-          fullWidth
-          size="small"
-          getLabel={getStatLabel}
-          {...{ optionsList, value, onSelect }}
-        />
-      </Grid2>
-    </Grid2>
+    <FormControl fullWidth>
+      <InputLabel id="group-calc-fn-label">Group Aggreg. Func.</InputLabel>
+      <Select
+        id="group-calc-fn"
+        labelId="group-calc-fn-label"
+        label="Group Aggreg. Func."
+        getLabel={getStatLabel}
+        startAdornment={
+          <InputAdornment position="start">
+            <IconClass size={24} />
+          </InputAdornment>
+        }
+        {...{ optionsList, value, onSelect }}
+      />
+    </FormControl>
   )
 }
 
@@ -298,6 +415,7 @@ const ColorLegend = ({
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangeColor,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
   const colorByProp = featureTypeProps[colorBy]
@@ -312,14 +430,18 @@ const ColorLegend = ({
     >
       <Grid2 container spacing={1}>
         <Grid2 size="grow">
-          <Select
-            fullWidth
-            size="small"
-            value={colorBy}
-            optionsList={Object.keys(colorByOptions)}
-            getLabel={(prop) => featureTypeProps[prop].name || prop}
-            onSelect={onSelectProp}
-          />
+          <FormControl fullWidth>
+            <InputLabel id="color-by-label">Color by</InputLabel>
+            <Select
+              id="color-by"
+              labelId="color-by-label"
+              label="Color by"
+              value={colorBy}
+              optionsList={Object.keys(colorByOptions)}
+              getLabel={(prop) => featureTypeProps[prop].name || prop}
+              onSelect={onSelectProp}
+            />
+          </FormControl>
         </Grid2>
         {numberFormat.unit && (
           <Grid2 size={4}>
@@ -332,17 +454,11 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          {...{ colorBy, colorByOptions, featureTypeProps }}
+          {...{ colorBy, colorByOptions, featureTypeProps, onChangeColor }}
         />
       ) : (
         <NumericalColorLegend
-          {...{
-            group,
-            valueRange,
-            colorBy,
-            colorByOptions,
-            numberFormat,
-          }}
+          {...{ group, valueRange, numberFormat, onChangeColor }}
         />
       )}
       {group && (
@@ -356,46 +472,188 @@ const ColorLegend = ({
   )
 }
 
-const PropIcon = ({ icon, ...props }) => (
-  <FetchedIcon
-    iconName={icon}
-    style={{ display: 'block', margin: '0 auto' }}
-    {...props}
-  />
+const PropIcon = ({ icon, selected, onClick, ...props }) => (
+  <RippleBox sx={{ p: 1, borderRadius: '50%' }} {...{ selected, onClick }}>
+    <FetchedIcon iconName={icon} {...props} />
+  </RippleBox>
 )
 
-const NumericalSizeLegend = ({ valueRange, numberFormat, icon, group }) => {
+const SizeSlider = ({
+  sizeLabel,
+  value,
+  onClose,
+  onChange,
+  onChangeCommitted,
+}) => {
+  const isRange = value.length > 1
+  const [minValue, maxValue] = useMemo(
+    () => (isRange ? [Math.min(...value), Math.max(...value)] : []),
+    [isRange, value]
+  )
+  return (
+    <ClickAwayListener onClickAway={onClose}>
+      <Slider
+        style={{
+          // BUG: For some reason the `sx` prop doesn't work here for `mt` and `mb`
+          marginTop: 40,
+          marginBottom: 32,
+          width: '85%',
+          alignSelf: 'center',
+          boxSizing: 'border-box',
+        }}
+        min={1}
+        max={100}
+        {...{ value }}
+        marks={[
+          {
+            value: value[0],
+            label: <OverflowText text={sizeLabel} sx={{ maxWidth: '64px' }} />,
+          },
+          ...(minValue > 16 || (!isRange && value[0] > 16)
+            ? [{ value: 1, label: '1px' }]
+            : []),
+          ...(isRange
+            ? [
+                { value: value[0], label: 'Min' },
+                { value: value[value.length - 1], label: 'Max' },
+              ]
+            : []),
+          ...(maxValue < 83 || (!isRange && value[0] < 83)
+            ? [{ value: 100, label: '100px' }]
+            : []),
+        ]}
+        valueLabelDisplay="on"
+        valueLabelFormat={(value) => `${value}px`}
+        {...{ onChange, onChangeCommitted }}
+      />
+    </ClickAwayListener>
+  )
+}
+
+const NumericalSizeLegend = ({
+  valueRange,
+  numberFormat,
+  icon,
+  group,
+  onChangeSize,
+}) => {
+  const minSz = useSizeSlider(onChangeSize)
+  const maxSz = useSizeSlider(onChangeSize)
+  const [activeThumb, setActiveThumb] = useState()
+
+  const { startSize, endSize } = valueRange
   const minLabel = getMinLabel(valueRange, numberFormat, group)
   const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+
+  const handleChange = useCallback(
+    (event, value, thumb) => {
+      setActiveThumb(thumb)
+      // Only dispatch the change for the modified value
+      const thumbChangeTrigger =
+        minSz.showSizeSlider && thumb === 0
+          ? minSz.handleChange
+          : maxSz.showSizeSlider && (!minSz.showSizeSlider || thumb === 1)
+            ? maxSz.handleChange
+            : () => {
+                console.error('This should never happen...')
+              }
+      thumbChangeTrigger(event, [value[thumb]])
+    },
+    [maxSz, minSz]
+  )
+
+  const handleChangeComitted = useCallback(
+    (event, value) => {
+      // Only dispatch the change for the modified value
+      const thumbChangeComittedTrigger =
+        minSz.showSizeSlider && activeThumb === 0
+          ? minSz.handleChangeComitted
+          : maxSz.showSizeSlider && (!minSz.showSizeSlider || activeThumb === 1)
+            ? maxSz.handleChangeComitted
+            : () => {
+                console.error('This should never happen...')
+              }
+      thumbChangeComittedTrigger(event, [value[activeThumb]])
+    },
+
+    [activeThumb, maxSz, minSz]
+  )
+
+  const handleClose = useCallback(
+    (event) => {
+      minSz.handleClose(event)
+      maxSz.handleClose(event)
+    },
+    [maxSz, minSz]
+  )
+
+  const showSizeSlider = minSz.showSizeSlider || maxSz.showSizeSlider
   return (
-    <Grid2
-      container
-      spacing={0.5}
-      sx={{ alignItems: 'center', justifyContent: 'center' }}
-    >
-      <Grid2 size={3} sx={styles.gradientLabel}>
-        <Typography variant="caption">Min</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={minLabel} />
-        </Typography>
+    <>
+      <Grid2
+        container
+        spacing={0.5}
+        sx={{ alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="caption">Min</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={minLabel} />
+          </Typography>
+        </Grid2>
+
+        <Grid2
+          container
+          size="grow"
+          sx={{ alignItems: 'center', textAlign: 'center' }}
+          spacing={1}
+        >
+          <Grid2 size={6}>
+            {icon && (
+              <PropIcon
+                {...{ icon }}
+                selected={minSz.showSizeSlider}
+                size={minSz.sizeSliderProps.value ?? startSize}
+                onClick={minSz.handleOpen('startSize', startSize)}
+              />
+            )}
+          </Grid2>
+          <Grid2 size={6}>
+            {icon && (
+              <PropIcon
+                {...{ icon }}
+                selected={maxSz.showSizeSlider}
+                size={maxSz.sizeSliderProps.value ?? endSize}
+                onClick={maxSz.handleOpen('endSize', endSize)}
+              />
+            )}
+          </Grid2>
+        </Grid2>
+
+        <Grid2 size={3} sx={styles.gradientLabel}>
+          <Typography variant="caption">Max</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <OverflowText text={maxLabel} />
+          </Typography>
+        </Grid2>
       </Grid2>
 
-      <Grid2 container size="grow" sx={{ alignItems: 'center' }}>
-        <Grid2 container size={6}>
-          {icon && <PropIcon {...{ icon }} size={valueRange.startSize} />}
-        </Grid2>
-        <Grid2 container size={6}>
-          {icon && <PropIcon {...{ icon }} size={valueRange.endSize} />}
-        </Grid2>
-      </Grid2>
-
-      <Grid2 item size={3} sx={styles.gradientLabel}>
-        <Typography variant="caption">Max</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          <OverflowText text={maxLabel} />
-        </Typography>
-      </Grid2>
-    </Grid2>
+      {showSizeSlider && (
+        <SizeSlider
+          value={[
+            ...(minSz.sizeSliderProps.value != null
+              ? [minSz.sizeSliderProps.value]
+              : []),
+            ...(maxSz.sizeSliderProps.value != null
+              ? [maxSz.sizeSliderProps.value]
+              : []),
+          ]}
+          onClose={handleClose}
+          onChange={handleChange}
+          onChangeCommitted={handleChangeComitted}
+        />
+      )}
+    </>
   )
 }
 
@@ -405,8 +663,17 @@ const CategoricalSizeLegend = ({
   sizeByOptions,
   featureTypeProps,
   icon,
+  onChangeSize,
 }) => {
-  const sizeOptions = sizeByOptions[sizeBy]
+  const {
+    showSizeSlider,
+    sizeSliderProps,
+    handleOpen,
+    handleClose,
+    handleChange,
+    handleChangeComitted,
+  } = useSizeSlider(onChangeSize)
+
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
@@ -417,21 +684,43 @@ const CategoricalSizeLegend = ({
     },
     [featureTypeProps, sizeBy, type]
   )
+  const sizeOptions = sizeByOptions[sizeBy]
   return (
-    <OverflowText sx={styles.categoryRoot}>
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ justifyContent: 'center', alignItems: 'end' }}
+    <>
+      <OverflowText
+        sx={styles.categoryRoot}
+        marqueeProps={{ play: !showSizeSlider }}
       >
-        {Object.entries(sizeOptions).map(([opt, val]) => (
-          <Stack key={opt} sx={{ alignItems: 'center' }}>
-            <PropIcon {...{ icon }} size={val} />
-            <Typography variant="caption">{getCategoryLabel(opt)}</Typography>
-          </Stack>
-        ))}
-      </Stack>
-    </OverflowText>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ justifyContent: 'center', alignItems: 'end' }}
+        >
+          {Object.entries(sizeOptions).map(([option, value]) => (
+            <Stack key={option} sx={{ alignItems: 'center' }}>
+              <PropIcon
+                {...{ icon }}
+                selected={option === sizeSliderProps.key}
+                size={value}
+                onClick={handleOpen(option, value)}
+              />
+              <Typography variant="caption">
+                {getCategoryLabel(option)}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </OverflowText>
+      {showSizeSlider && (
+        <SizeSlider
+          sizeLabel={getCategoryLabel(sizeSliderProps.key)}
+          value={sizeSliderProps.value}
+          onClose={handleClose}
+          onChange={handleChange}
+          onChangeCommitted={handleChangeComitted}
+        />
+      )}
+    </>
   )
 }
 
@@ -445,11 +734,13 @@ const SizeLegend = ({
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangeSize,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = getNumberFormatProps(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
+  const optionsList = useMemo(() => Object.keys(sizeByOptions), [sizeByOptions])
   return (
     <Paper
       elevation={3}
@@ -459,14 +750,18 @@ const SizeLegend = ({
     >
       <Grid2 container spacing={1}>
         <Grid2 size="grow">
-          <Select
-            fullWidth
-            size="small"
-            value={sizeBy}
-            optionsList={Object.keys(sizeByOptions)}
-            getLabel={(option) => featureTypeProps[option].name || option}
-            onSelect={onSelectProp}
-          />
+          <FormControl fullWidth>
+            <InputLabel id="size-by-label">Size by</InputLabel>
+            <Select
+              id="size-by"
+              labelId="size-by-label"
+              label="Size by"
+              value={sizeBy}
+              {...{ optionsList }}
+              getLabel={(option) => featureTypeProps[option].name || option}
+              onSelect={onSelectProp}
+            />
+          </FormControl>
         </Grid2>
         {numberFormat.unit && (
           <Grid2 size={4}>
@@ -479,10 +774,12 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}
-          {...{ sizeBy, sizeByOptions, featureTypeProps, icon }}
+          {...{ sizeBy, sizeByOptions, featureTypeProps, icon, onChangeSize }}
         />
       ) : (
-        <NumericalSizeLegend {...{ valueRange, numberFormat, icon, group }} />
+        <NumericalSizeLegend
+          {...{ valueRange, numberFormat, icon, group, onChangeSize }}
+        />
       )}
       {group && (
         <GroupCalcSelector
@@ -583,14 +880,18 @@ const HeightLegend = ({
     <Stack spacing={2} sx={{ width: '100%' }}>
       <Grid2 container spacing={1}>
         <Grid2 size="grow">
-          <Select
-            fullWidth
-            size="small"
-            value={heightBy}
-            optionsList={Object.keys(heightByOptions)}
-            getLabel={(option) => featureTypeProps[option].name || option}
-            onSelect={onSelectProp}
-          />
+          <FormControl fullWidth>
+            <InputLabel id="height-by-label">Height by</InputLabel>
+            <Select
+              id="height-by"
+              labelId="height-by-label"
+              label="Height by"
+              value={heightBy}
+              optionsList={Object.keys(heightByOptions)}
+              getLabel={(option) => featureTypeProps[option].name || option}
+              onSelect={onSelectProp}
+            />
+          </FormControl>
         </Grid2>
         {numberFormat.unit && (
           <Grid2 size={4}>
@@ -606,6 +907,64 @@ const HeightLegend = ({
   )
 }
 
+const ShapePicker = ({
+  label,
+  value,
+  options,
+  groupBy,
+  getIcon,
+  getLabel,
+  ListboxComponent,
+  onChange,
+}) => (
+  <ListboxPropsContext.Provider value={{ getLabel, getIcon }}>
+    <Autocomplete
+      disableListWrap
+      clearIcon={false}
+      sx={{ p: 1 }}
+      {...{ options, value, ListboxComponent, groupBy, onChange }}
+      renderInput={({ InputProps, ...params }) => (
+        <TextField
+          {...{ label, ...params }}
+          fullWidth
+          autoFocus
+          slotProps={{
+            input: {
+              ...InputProps,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FetchedIcon size={24} iconName={getIcon(value)} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      )}
+      // renderOption={(props, option, state) => [props, option, state.index]}
+      {...(ListboxComponent == null && {
+        renderOption: (props, option) => {
+          const { key, ...optionProps } = props
+          return (
+            <Stack
+              key={key}
+              component="li"
+              direction="row"
+              spacing={1}
+              {...optionProps}
+            >
+              <FetchedIcon size={24} iconName={getIcon(option)} />
+              <Typography variant="subtitle2">
+                {getLabel(option) ?? option}
+              </Typography>
+            </Stack>
+          )
+        },
+        getOptionLabel: (option) => getLabel(option) ?? option,
+      })}
+    />
+  </ListboxPropsContext.Provider>
+)
+
 const LegendRowDetails = ({
   mapId,
   legendGroupId,
@@ -620,6 +979,15 @@ const LegendRowDetails = ({
   sizeByOptions,
   heightBy,
   heightByOptions,
+  // shapeBy, // TODO: `shapeBy` would be a unifying property for `iconBy` and `lineBy`?
+  shape,
+  shapeLabel,
+  shapePathEnd,
+  shapeOptions,
+  ListboxComponent,
+  groupBy,
+  getShapeIcon,
+  getShapeLabel,
   group,
   groupCalcByColor = statId.COUNT,
   groupCalcBySize = statId.COUNT,
@@ -634,11 +1002,15 @@ const LegendRowDetails = ({
     },
   ],
   featureTypeProps,
+  containerRef,
   getRange,
   onChangeVisibility,
 }) => {
   const [selected, setSelected] = useState(false)
+  const [showShapePicker, setShowShapePicker] = useState(false)
 
+  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
+  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -736,6 +1108,53 @@ const LegendRowDetails = ({
     [basePath, dispatch, sync]
   )
 
+  const handleChangeColor = useCallback(
+    (pathEnd) => (value) => {
+      const path = [...basePath, 'colorByOptions', colorBy, pathEnd]
+      dispatch(
+        mutateLocal({
+          path,
+          value: colorToRgba(value),
+          sync: !includesPath(Object.values(sync), path),
+        })
+      )
+    },
+    [basePath, colorBy, dispatch, sync]
+  )
+
+  const handleChangeSize = useCallback(
+    (pathEnd) => (value) => {
+      const path = [...basePath, 'sizeByOptions', sizeBy, pathEnd]
+      dispatch(
+        mutateLocal({
+          path,
+          value,
+          sync: !includesPath(Object.values(sync), path),
+        })
+      )
+    },
+    [basePath, dispatch, sizeBy, sync]
+  )
+
+  const handleChangeShape = useCallback(
+    (event, value) => {
+      const path = [...basePath, shapePathEnd]
+      dispatch(
+        mutateLocal({
+          path,
+          value,
+          sync: !includesPath(Object.values(sync), path),
+        })
+      )
+    },
+    [basePath, dispatch, shapePathEnd, sync]
+  )
+
+  const handleClickShape = useCallback(() => {
+    setShowShapePicker(!showShapePicker)
+  }, [showShapePicker])
+
+  const ShapeWrapper = shapeOptions ? ToggleButton : Fragment
   return (
     <ToggleButton
       size="small"
@@ -749,140 +1168,169 @@ const LegendRowDetails = ({
       <Badge color="info" variant="dot" invisible={numActiveFilters < 1}>
         <PiInfo />
       </Badge>
-      <Popper
-        {...{ anchorEl }}
-        placement="right"
-        sx={styles.popper}
-        open={Boolean(anchorEl) || selected}
-        onClose={handleCloseMenu}
-        onClick={(event) => {
-          event.stopPropagation()
-        }}
-      >
-        <Grid2
-          component={Paper}
-          elevation={1}
-          container
-          spacing={1}
-          sx={styles.popperContent}
-          direction="column"
+      <Portal container={() => containerRef.current}>
+        <Popper
+          {...{ anchorEl }}
+          placement="left"
+          disablePortal
+          sx={[
+            styles.popper,
+            {
+              maxHeight: showBearingSlider
+                ? 'calc(100% - 165px)'
+                : 'calc(100% - 88px)',
+              maxWidth: showPitchSlider
+                ? 'calc(100% - 164px)'
+                : 'calc(100% - 128px)',
+            },
+          ]}
+          open={Boolean(anchorEl) || selected}
+          onClose={handleCloseMenu}
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
         >
-          <Grid2 container sx={{ alignItems: 'center' }}>
-            <Grid2 size="auto">
-              <Switch
-                size="small"
-                checked={value}
-                onClick={onChangeVisibility}
-              />
-            </Grid2>
-            <Grid2 size="auto">
-              <FetchedIcon iconName={icon} />
-            </Grid2>
-            <Grid2 size="grow">
-              <Typography variant="subtitle">
-                <OverflowText text={name} />
-              </Typography>
-            </Grid2>
-            <Grid2 size="auto">
-              {allowGrouping && (
-                <ToggleButton
-                  color={group ? 'primary' : null}
-                  selected={group}
-                  value={group}
-                  sx={styles.toggleGroup}
-                  onClick={handleToggleGroup}
-                >
-                  {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
-                </ToggleButton>
-              )}
-              {/* Filter */}
-              <DataGridModal
-                open={filterOpen}
-                label="Chart Data Filter"
-                labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${name})`}
-                onClose={handleCloseFilter}
-              >
-                <GridFilter
-                  {...{ filterableExtraProps }}
-                  filterables={filterableProps}
-                  defaultFilters={filters}
-                  onSave={handleSaveFilters}
+          <Stack
+            component={Paper}
+            elevation={1}
+            spacing={1}
+            sx={styles.popperContent}
+          >
+            <Grid2 container sx={{ alignItems: 'center' }} spacing={1}>
+              <Grid2 size="auto">
+                <Switch
+                  name="map-feature-switch"
+                  size="small"
+                  checked={value}
+                  onClick={onChangeVisibility}
                 />
-              </DataGridModal>
-              <IconButton
-                disabled={isFilterDisabled}
-                onClick={handleOpenFilter}
-              >
-                <Badge
-                  color={isFilterDisabled ? 'default' : 'info'}
-                  badgeContent={numActiveFilters}
+              </Grid2>
+              <Grid2 size="auto">
+                <ShapeWrapper
+                  {...(shapeOptions && {
+                    value: 'shape',
+                    sx: { p: 1, borderRadius: '50%' },
+                    onClick: handleClickShape,
+                  })}
                 >
-                  <MdFilterAlt />
-                </Badge>
-              </IconButton>
+                  <FetchedIcon iconName={icon} size={24} />
+                </ShapeWrapper>
+              </Grid2>
+              <Grid2 size="grow">
+                <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
+                  <OverflowText text={name} />
+                </Typography>
+              </Grid2>
+              <Grid2 size="auto">
+                {allowGrouping && (
+                  <ToggleButton
+                    color={group ? 'primary' : null}
+                    selected={group}
+                    value={group}
+                    sx={styles.toggleGroup}
+                    onClick={handleToggleGroup}
+                  >
+                    {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
+                  </ToggleButton>
+                )}
+                {/* Filter */}
+                <DataGridModal
+                  open={filterOpen}
+                  label="Chart Data Filter"
+                  labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${name})`}
+                  onClose={handleCloseFilter}
+                >
+                  <GridFilter
+                    {...{ filterableExtraProps }}
+                    filterables={filterableProps}
+                    defaultFilters={filters}
+                    onSave={handleSaveFilters}
+                  />
+                </DataGridModal>
+                <IconButton
+                  disabled={isFilterDisabled}
+                  onClick={handleOpenFilter}
+                >
+                  <Badge
+                    color={isFilterDisabled ? 'default' : 'info'}
+                    badgeContent={numActiveFilters}
+                  >
+                    <MdFilterAlt />
+                  </Badge>
+                </IconButton>
+              </Grid2>
             </Grid2>
-          </Grid2>
-          <Divider sx={{ mx: -1.5 }} />
-          {colorBy != null && (
-            <>
-              <Typography variant="subtitle2">Color By</Typography>
-              <ColorLegend
-                valueRange={
-                  group && clusterRange.color ? clusterRange.color : colorRange
-                }
-                {...{
-                  legendGroupId,
-                  mapId,
-                  group,
-                  colorBy,
-                  colorByOptions,
-                  featureTypeProps,
-                }}
-                groupCalcValue={groupCalcByColor}
-                onSelectProp={handleSelectProp('colorBy')}
-                onSelectGroupCalc={handleSelectGroupCalc('groupCalcByColor')}
+            {showShapePicker && (
+              <ShapePicker
+                {...{ groupBy, ListboxComponent }}
+                value={shape}
+                label={shapeLabel}
+                options={shapeOptions}
+                getIcon={getShapeIcon}
+                getLabel={getShapeLabel}
+                onChange={handleChangeShape}
               />
-            </>
-          )}
-          {sizeBy != null && (
-            <>
-              <Typography variant="subtitle2">Size By</Typography>
-              <SizeLegend
-                valueRange={
-                  group && clusterRange.size ? clusterRange.size : sizeRange
-                }
-                {...{
-                  icon,
-                  group,
-                  sizeBy,
-                  sizeByOptions,
-                  featureTypeProps,
-                }}
-                groupCalcValue={groupCalcBySize}
-                onSelectProp={handleSelectProp('sizeBy')}
-                onSelectGroupCalc={handleSelectGroupCalc('groupCalcBySize')}
-              />
-            </>
-          )}
-          {heightBy != null && (
-            <>
-              <Typography variant="subtitle2">Height By</Typography>
-              <HeightLegend
-                valueRange={heightRange}
-                {...{
-                  legendGroupId,
-                  mapId,
-                  heightBy,
-                  heightByOptions,
-                  featureTypeProps,
-                }}
-                onSelectProp={handleSelectProp('heightBy')}
-                icon={<FetchedIcon iconName={icon} />}
-              />
-            </>
-          )}
-        </Grid2>
-      </Popper>
+            )}
+            <Divider sx={{ mx: -1.5 }} />
+
+            <Stack spacing={1} sx={{ overflow: 'auto' }}>
+              {colorBy != null && (
+                <ColorLegend
+                  valueRange={
+                    group && clusterRange.color
+                      ? clusterRange.color
+                      : colorRange
+                  }
+                  {...{
+                    legendGroupId,
+                    mapId,
+                    group,
+                    colorBy,
+                    colorByOptions,
+                    featureTypeProps,
+                  }}
+                  groupCalcValue={groupCalcByColor}
+                  onSelectProp={handleSelectProp('colorBy')}
+                  onSelectGroupCalc={handleSelectGroupCalc('groupCalcByColor')}
+                  onChangeColor={handleChangeColor}
+                />
+              )}
+              {sizeBy != null && (
+                <SizeLegend
+                  valueRange={
+                    group && clusterRange.size ? clusterRange.size : sizeRange
+                  }
+                  {...{
+                    icon,
+                    group,
+                    sizeBy,
+                    sizeByOptions,
+                    featureTypeProps,
+                  }}
+                  groupCalcValue={groupCalcBySize}
+                  onSelectProp={handleSelectProp('sizeBy')}
+                  onSelectGroupCalc={handleSelectGroupCalc('groupCalcBySize')}
+                  onChangeSize={handleChangeSize}
+                />
+              )}
+              {heightBy != null && (
+                <HeightLegend
+                  valueRange={heightRange}
+                  {...{
+                    legendGroupId,
+                    mapId,
+                    heightBy,
+                    heightByOptions,
+                    featureTypeProps,
+                  }}
+                  icon={<FetchedIcon iconName={icon} />}
+                  onSelectProp={handleSelectProp('heightBy')}
+                />
+              )}
+            </Stack>
+          </Stack>
+        </Popper>
+      </Portal>
     </ToggleButton>
   )
 }
@@ -925,27 +1373,49 @@ const LegendRow = ({ id, featureTypeData, settingsMode, ...props }) => {
 }
 
 const LegendRowNode = (props) => {
+  const [options, setOptions] = useState([])
   const nodeTypes = useSelector(selectLocalizedNodeTypes)
   const getRange = useSelector(selectNodeRange)
-  return <LegendRow featureTypeData={nodeTypes} {...{ getRange, ...props }} />
+  const iconUrl = useSelector(selectSettingsIconUrl)
+  useIconDataLoader(iconUrl, setOptions, console.error)
+  return (
+    <LegendRow
+      featureTypeData={nodeTypes}
+      shapeOptions={options}
+      shapePathEnd="icon"
+      shape={props.icon}
+      shapeLabel="Search available icons"
+      getShapeIcon={(option) => option}
+      getShapeLabel={(option) => option?.split('/')[1]}
+      ListboxComponent={EnhancedListbox}
+      // TODO: Implement groups
+      // groupBy={(option) => option?.split('/')[0]}
+      {...{ getRange, ...props }}
+    />
+  )
 }
 
 const LegendRowArc = (props) => {
   const arcTypes = useSelector(selectLocalizedArcTypes)
   const getRange = useSelector(selectArcRange)
-  const icon = useMemo(
-    () =>
-      props.lineBy === 'dotted'
-        ? 'ai/AiOutlineEllipsis'
-        : props.lineBy === 'dashed'
-          ? 'ai/AiOutlineDash'
-          : props.lineBy === '3d'
-            ? 'vsc/VscLoading'
-            : 'ai/AiOutlineLine',
-    [props.lineBy]
-  )
+  const indexedOptions = {
+    solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
+    dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
+    dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
+    // '3d': { icon: 'vsc/VscLoading', label: 'Arc' },
+  }
   return (
-    <LegendRow featureTypeData={arcTypes} {...{ icon, getRange, ...props }} />
+    <LegendRow
+      featureTypeData={arcTypes}
+      shapeOptions={Object.keys(indexedOptions)}
+      shapePathEnd="lineBy"
+      shape={props.lineBy ?? 'solid'}
+      icon={indexedOptions[props.lineBy ?? 'solid']?.icon}
+      shapeLabel="Select the line style"
+      getShapeIcon={(option) => indexedOptions[option]?.icon}
+      getShapeLabel={(option) => indexedOptions[option]?.label}
+      {...{ getRange, ...props }}
+    />
   )
 }
 
@@ -992,8 +1462,6 @@ const MapFeature = ({
     [dispatch, legendGroupId, mapId, sync]
   )
 
-  // const handle
-
   const LegendRowClass = nodeTypes.includes(id)
     ? LegendRowNode
     : arcTypes.includes(id)
@@ -1019,6 +1487,7 @@ const StyledWrapper = ({ show, children }) =>
 
 const LegendGroup = ({
   mapId,
+  containerRef,
   legendGroup,
   settingsMode,
   showLegendGroupName,
@@ -1064,7 +1533,15 @@ const LegendGroup = ({
           <Fragment key={id}>
             {index > 0 && <Divider sx={{ opacity: 0.6, width: '100%' }} />}
             <MapFeature
-              {...{ mapId, legendGroupId, id, value, settingsMode, ...props }}
+              {...{
+                mapId,
+                containerRef,
+                legendGroupId,
+                id,
+                value,
+                settingsMode,
+                ...props,
+              }}
             />
           </Fragment>
         ) : null
@@ -1115,7 +1592,7 @@ const LegendSettings = ({ mapId, onChangeView, ...props }) => (
   </Stack>
 )
 
-const MinimalLegend = ({ mapId, onChangeView }) => {
+const MinimalLegend = ({ mapId, containerRef, onChangeView }) => {
   const [settingsMode, setSettingsMode] = useState(false)
   const [showLegendGroupName, setShowLegendGroupName] = useState(true)
 
@@ -1155,6 +1632,7 @@ const MinimalLegend = ({ mapId, onChangeView }) => {
         <LegendGroups
           mapId={mapId}
           showLegendGroupName={showLegendGroupName}
+          containerRef={containerRef}
           onToggleLegendGroupName={handleToggleLegendGroupName}
         />
       )}

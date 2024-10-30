@@ -3,7 +3,7 @@ import {
   Badge,
   Box,
   Divider,
-  Grid,
+  Grid2,
   IconButton,
   Paper,
   Stack,
@@ -298,22 +298,21 @@ const CategoricalSizeItems = ({
                     />
                   }
                 >
-                  <Grid
-                    item
+                  <Grid2
                     container
                     alignItems="center"
                     justifyContent={'center'}
-                    xs={4}
+                    size={4}
                   >
-                    <Grid item>
+                    <Grid2>
                       {addExtraProps(icon, {
                         css: {
                           width: val,
                           height: val,
                         },
                       })}
-                    </Grid>
-                  </Grid>
+                    </Grid2>
+                  </Grid2>
                 </StableTooltip>
                 <div>
                   <SizePickerTooltip
@@ -397,34 +396,34 @@ const MapLegendGroupRowToggleLayer = ({
   }, [charts, mapData, mapId])
 
   return (
-    <Grid container spacing={0} alignItems="center" {...props}>
-      <Grid item xs={1} className="my-auto text-center">
+    <Grid2 container spacing={0} alignItems="center" {...props}>
+      <Grid2 size={1} className="my-auto text-center">
         <Box sx={{ ml: 1 }}>{icon}</Box>
-      </Grid>
-      <Grid item xs={2} className="my-auto ml-0">
+      </Grid2>
+      <Grid2 size={2} className="my-auto ml-0">
         {toggle}
-      </Grid>
+      </Grid2>
       {toggleGroup ? (
         <>
-          <Grid item xs={4.5} className="my-auto ml-0">
+          <Grid2 size={4.5} className="my-auto ml-0">
             <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
-          </Grid>
-          <Grid item xs={1} className="my-auto">
+          </Grid2>
+          <Grid2 size={1} className="my-auto">
             {toggleGroup}
-          </Grid>
-          <Grid item xs={2} className="my-auto ml-0">
+          </Grid2>
+          <Grid2 size={2} className="my-auto ml-0">
             <OverflowText
               sx={styles.overflowAlignLeft}
               text={toggleGroupLabel}
             />
-          </Grid>
+          </Grid2>
         </>
       ) : (
-        <Grid item xs={7.5} className="my-auto">
+        <Grid2 size={7.5} className="my-auto">
           <OverflowText sx={styles.overflowAlignLeft} text={legendName} />
-        </Grid>
+        </Grid2>
       )}
-      <Grid item xs={1.5} className="my-auto">
+      <Grid2 size={1.5} className="my-auto">
         <DataGridModal
           open={filterOpen}
           label="Chart Data Filter"
@@ -450,8 +449,8 @@ const MapLegendGroupRowToggleLayer = ({
             <FaFilter size={20} />
           </Badge>
         </IconButton>
-      </Grid>
-    </Grid>
+      </Grid2>
+    </Grid2>
   )
 }
 
@@ -464,16 +463,15 @@ const GroupCalcDropdown = ({ propType, value, onSelect }) => {
     onSelect(optionsList[0])
   }
   return (
-    <Grid
-      item
+    <Grid2
       container
       alignItems="center"
       justifyContent="center"
       paddingLeft="4px"
       // spacing={1}
-      xs={12}
+      size={12}
     >
-      <Grid item>
+      <Grid2>
         <FetchedIcon
           iconName={
             propType === propId.TOGGLE
@@ -484,16 +482,16 @@ const GroupCalcDropdown = ({ propType, value, onSelect }) => {
           }
           size={24}
         />
-      </Grid>
-      <Grid item xs>
+      </Grid2>
+      <Grid2 size="grow">
         <SimpleDropdown
           marquee
           paperProps={{ elevation: 3 }}
           getLabel={getStatLabel}
           {...{ optionsList, value, onSelect }}
         />
-      </Grid>
-    </Grid>
+      </Grid2>
+    </Grid2>
   )
 }
 
@@ -542,15 +540,14 @@ const MapLegendSizeBySection = ({
   return (
     <>
       {/* First row: Prop selector + unit label */}
-      <Grid
-        item
+      <Grid2
         container
         alignItems="center"
         justifyContent="center"
-        xs={12}
+        size={12}
         spacing={numberFormatProps.unit ? 0.5 : 0}
       >
-        <Grid item zeroMinWidth xs>
+        <Grid2 size={'grow'}>
           <SimpleDropdown
             paperProps={{ elevation: 3 }}
             marquee
@@ -561,9 +558,9 @@ const MapLegendSizeBySection = ({
               dispatch(mutateLocal({ path: syncPath, sync: syncSize, value }))
             }}
           />
-        </Grid>
+        </Grid2>
         {numberFormatProps.unit && (
-          <Grid item xs={4}>
+          <Grid2 size={4}>
             <Typography
               component={Paper}
               elevation={1}
@@ -572,9 +569,9 @@ const MapLegendSizeBySection = ({
             >
               <OverflowText text={numberFormatProps.unit} />
             </Typography>
-          </Grid>
+          </Grid2>
         )}
-      </Grid>
+      </Grid2>
 
       {/* Second row: Size icons with value range */}
       {isCategorical ? (
@@ -587,13 +584,7 @@ const MapLegendSizeBySection = ({
           geometryType={geometryName}
         />
       ) : (
-        <Grid
-          item
-          container
-          alignItems="center"
-          justifyContent="center"
-          xs={12}
-        >
+        <Grid2 container alignItems="center" justifyContent="center" size={12}>
           <SizePickerTooltip
             value={parseFloat(R.prop('startSize')(sizeRange))}
             onSelect={(newSize) => {
@@ -606,15 +597,14 @@ const MapLegendSizeBySection = ({
               )
             }}
           >
-            <Grid
-              item
+            <Grid2
               sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
-              xs={3.5}
+              size={3.5}
             >
               <OverflowText
                 text={getMinLabel(valueRange, numberFormatProps, group)}
               />
-            </Grid>
+            </Grid2>
           </SizePickerTooltip>
           <StableTooltip
             enabled={geometryName === 'nodes'}
@@ -632,30 +622,29 @@ const MapLegendSizeBySection = ({
               />
             }
           >
-            <Grid
-              item
+            <Grid2
               container
               alignItems="center"
               justifyContent={'center'}
-              xs={4}
+              size={4}
             >
-              <Grid item sx={{ pr: 0.75 }}>
+              <Grid2 sx={{ pr: 0.75 }}>
                 {addExtraProps(icon, {
                   css: {
                     width: R.prop('startSize')(sizeRange),
                     height: R.prop('startSize')(sizeRange),
                   },
                 })}
-              </Grid>
-              <Grid item sx={{ pl: 0.75 }}>
+              </Grid2>
+              <Grid2 sx={{ pl: 0.75 }}>
                 {addExtraProps(icon, {
                   css: {
                     width: R.prop('endSize')(sizeRange),
                     height: R.prop('endSize')(sizeRange),
                   },
                 })}
-              </Grid>
-            </Grid>
+              </Grid2>
+            </Grid2>
           </StableTooltip>
           <SizePickerTooltip
             value={parseFloat(R.prop('endSize')(sizeRange))}
@@ -669,17 +658,16 @@ const MapLegendSizeBySection = ({
               )
             }}
           >
-            <Grid
-              item
+            <Grid2
               sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
-              xs={3.5}
+              size={3.5}
             >
               <OverflowText
                 text={getMaxLabel(valueRange, numberFormatProps, group)}
               />
-            </Grid>
+            </Grid2>
           </SizePickerTooltip>
-        </Grid>
+        </Grid2>
       )}
       {/* Third row: Clustering functions */}
       {group && (
@@ -721,15 +709,14 @@ const MapLegendColorBySection = ({
   return (
     <>
       {/* First row: Prop selector + unit label */}
-      <Grid
-        item
+      <Grid2
         container
         alignItems="center"
         justifyContent="center"
-        xs={12}
+        size={12}
         spacing={numberFormatProps.unit ? 0.5 : 0}
       >
-        <Grid item zeroMinWidth xs>
+        <Grid2 size={'grow'}>
           <SimpleDropdown
             paperProps={{ elevation: 3 }}
             marquee
@@ -740,9 +727,9 @@ const MapLegendColorBySection = ({
               dispatch(mutateLocal({ path: syncPath, value, sync: syncColor }))
             }}
           />
-        </Grid>
+        </Grid2>
         {numberFormatProps.unit && (
-          <Grid item xs={4}>
+          <Grid2 size={4}>
             <Typography
               component={Paper}
               elevation={1}
@@ -751,12 +738,12 @@ const MapLegendColorBySection = ({
             >
               <OverflowText text={numberFormatProps.unit} />
             </Typography>
-          </Grid>
+          </Grid2>
         )}
-      </Grid>
+      </Grid2>
 
       {/* Second row: Color gradient for value range */}
-      <Grid item container alignItems="center" justifyContent="center" xs={12}>
+      <Grid2 container alignItems="center" justifyContent="center" size={12}>
         {isCategorical ? (
           <CategoricalColorItems
             getLabel={getCategoryName}
@@ -782,7 +769,7 @@ const MapLegendColorBySection = ({
             ]}
           />
         )}
-      </Grid>
+      </Grid2>
 
       {/* Third row: Clustering functions */}
       {group && (
@@ -858,15 +845,14 @@ const MapLegendHeightBySection = ({
   return (
     <>
       {/* First row: Prop selector + unit label */}
-      <Grid
-        item
+      <Grid2
         container
         alignItems="center"
         justifyContent="center"
-        xs={12}
+        size={12}
         spacing={numberFormatProps.unit ? 0.5 : 0}
       >
-        <Grid item zeroMinWidth xs>
+        <Grid2 size={'grow'}>
           <SimpleDropdown
             paperProps={{ elevation: 3 }}
             marquee
@@ -877,9 +863,9 @@ const MapLegendHeightBySection = ({
               dispatch(mutateLocal({ path: syncPath, sync: syncSize, value }))
             }
           />
-        </Grid>
+        </Grid2>
         {numberFormatProps.unit && (
-          <Grid item xs={4}>
+          <Grid2 size={4}>
             <Typography
               component={Paper}
               elevation={1}
@@ -888,9 +874,9 @@ const MapLegendHeightBySection = ({
             >
               <OverflowText text={numberFormatProps.unit} />
             </Typography>
-          </Grid>
+          </Grid2>
         )}
-      </Grid>
+      </Grid2>
 
       {/* Second row: Size icons with value range */}
       {isCategorical ? (
@@ -903,13 +889,7 @@ const MapLegendHeightBySection = ({
           geometryType={geometryName}
         />
       ) : (
-        <Grid
-          item
-          container
-          alignItems="center"
-          justifyContent="center"
-          xs={12}
-        >
+        <Grid2 container alignItems="center" justifyContent="center" size={12}>
           <SizePickerTooltip
             value={parseFloat(R.prop('startHeight', heightRange))}
             onSelect={(newSize) =>
@@ -922,15 +902,14 @@ const MapLegendHeightBySection = ({
               )
             }
           >
-            <Grid
-              item
+            <Grid2
               sx={{ pr: 1, fontWeight: 700, textAlign: 'right' }}
-              xs={3.5}
+              size={3.5}
             >
               <OverflowText
                 text={getMinLabel(valueRange, numberFormatProps, group)}
               />
-            </Grid>
+            </Grid2>
           </SizePickerTooltip>
           <StableTooltip
             enabled={geometryName === 'nodes'}
@@ -948,28 +927,27 @@ const MapLegendHeightBySection = ({
               />
             }
           >
-            <Grid
-              item
+            <Grid2
               container
               alignItems="flex-end"
               justifyContent="center"
               height="50px"
               gap={2}
-              xs={4}
+              size={4}
             >
               <Box
                 width="4px"
                 height={`${parseFloat(R.slice(0, -2, R.prop('startHeight', heightRange))) * 0.5}px`}
                 backgroundColor="white"
-                xs={6}
+                size={6}
               />
               <Box
                 width="4px"
                 height={`${parseFloat(R.slice(0, -2, R.prop('endHeight', heightRange))) * 0.5}px`}
                 backgroundColor="white"
-                xs={6}
+                size={6}
               />
-            </Grid>
+            </Grid2>
           </StableTooltip>
           <SizePickerTooltip
             value={parseFloat(R.prop('endHeight', heightRange))}
@@ -983,17 +961,16 @@ const MapLegendHeightBySection = ({
               )
             }
           >
-            <Grid
-              item
+            <Grid2
               sx={{ pl: 1, fontWeight: 700, textAlign: 'left' }}
-              xs={3.5}
+              size={3.5}
             >
               <OverflowText
                 text={getMaxLabel(valueRange, numberFormatProps, group)}
               />
-            </Grid>
+            </Grid2>
           </SizePickerTooltip>
-        </Grid>
+        </Grid2>
       )}
 
       {/* Third row: Clustering functions */}
