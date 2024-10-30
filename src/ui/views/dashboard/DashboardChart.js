@@ -217,6 +217,7 @@ const DashboardChart = ({ chartObj }) => {
 
   const numberFormat =
     R.keys(numberFormats).length > 1 ? numberFormats : numberFormats[firstStat]
+
   if (loading) return loadingComponent
   if (R.isEmpty(formattedData))
     return (
@@ -258,7 +259,11 @@ const DashboardChart = ({ chartObj }) => {
       {cleanedChartObj.chartType === chartVariant.TABLE &&
       cleanedChartObj.groupingId &&
       cleanedChartObj.groupingId[0] ? (
-        <TableChart data={formattedData} {...{ labelProps, numberFormat }} />
+        <TableChart
+          data={formattedData}
+          numberFormat={numberFormats}
+          {...{ labelProps }}
+        />
       ) : cleanedChartObj.chartType === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}

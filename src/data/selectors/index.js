@@ -301,7 +301,7 @@ export const selectSyncToggles = createSelector(selectSettings, (data) =>
 export const selectGroupedOutputNames = createSelector(
   selectGroupedOutputsData,
   R.pipe(
-    R.mapObjIndexed((obj, key) =>
+    R.map((obj) =>
       R.pipe(
         R.propOr({}, 'stats'),
         R.keys,
@@ -309,15 +309,13 @@ export const selectGroupedOutputNames = createSelector(
           (acc, statKey) =>
             R.assoc(
               R.pathOr(statKey, ['stats', statKey, 'name'], obj),
-              [key, statKey],
+              statKey,
               acc
             ),
           {}
         )
       )(obj)
-    ),
-    R.values,
-    R.mergeAll
+    )
   )
 )
 export const selectGroupedOutputTypes = createSelector(
@@ -1321,7 +1319,7 @@ export const selectMemoizedChartFunc = createSelector(
               ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
               : R.always(
                   R.repeat(
-                    'All',
+                    ['All'],
                     R.values(groupedOutputs[obj.dataset]['valueLists'])[0]
                       .length
                   )
@@ -1331,7 +1329,7 @@ export const selectMemoizedChartFunc = createSelector(
             R.isEmpty,
             R.always([
               R.repeat(
-                'All',
+                ['All'],
                 R.values(groupedOutputs[obj.dataset]['valueLists'])[0].length
               ),
             ]),

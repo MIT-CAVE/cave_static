@@ -48,7 +48,6 @@ const ChartToolbar = ({
 
   const handleSelectVizType = useMutateState(
     (value) => {
-      console.log(value)
       return {
         path,
         value: R.pipe(
