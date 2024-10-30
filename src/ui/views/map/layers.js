@@ -16,7 +16,7 @@ import {
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
-  selectIsGlobe,
+  // selectIsGlobe,
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
@@ -59,7 +59,7 @@ export const Geos = memo(({ mapId }) => {
 
   const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
   const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
-  const isGlobe = useSelector(selectIsGlobe)(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
@@ -204,7 +204,7 @@ export const Nodes = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-  const isGlobe = useSelector(selectIsGlobe)(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   return [
     <NodesWithHeight
@@ -251,7 +251,7 @@ export const Arcs = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
-  const isGlobe = useSelector(selectIsGlobe)(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   return [
     <ArcsWithHeight
