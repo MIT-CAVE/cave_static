@@ -17,9 +17,10 @@ const rootStyle = {
   top: '8px',
   zIndex: 1,
   overflow: 'auto',
+  // scrollbarGutter: 'stable',
 }
 
-const MapLegend = ({ mapId }) => {
+const MapLegend = ({ mapId, containerRef }) => {
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const mapLegend = useSelector(selectMapLegendFunc)(mapId)
@@ -49,7 +50,10 @@ const MapLegend = ({ mapId }) => {
         },
       ]}
     >
-      <LegendView {...{ mapId }} onChangeView={handleChangeView} />
+      <LegendView
+        {...{ mapId, containerRef }}
+        onChangeView={handleChangeView}
+      />
     </Box>
   )
 }

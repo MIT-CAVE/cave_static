@@ -65,6 +65,7 @@ const Map = ({ mapboxToken, mapId }) => {
   const mapRef = useRef(false)
   const highlight = useRef(null)
   const fogTimeout = useRef(null)
+  const containerRef = useRef(null)
 
   const demoInterval = useRef(-1)
   useEffect(() => {
@@ -331,9 +332,10 @@ const Map = ({ mapboxToken, mapId }) => {
         <Arcs mapId={mapId} />
         <Nodes mapId={mapId} />
         <Arcs3D mapId={mapId} />
+        <div ref={containerRef} />
       </ReactMapGL>
       <MapModal mapId={mapId} />
-      <MapLegend mapId={mapId} />
+      <MapLegend mapId={mapId} containerRef={containerRef} />
     </Box>
   )
 }
