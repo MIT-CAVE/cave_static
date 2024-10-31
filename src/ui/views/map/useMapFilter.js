@@ -6,6 +6,7 @@ import { mutateLocal } from '../../../data/local'
 import {
   selectCharts,
   selectMapData,
+  selectPageLayout,
   selectSync,
 } from '../../../data/selectors'
 import { useFilter } from '../../../utils/hooks'
@@ -23,6 +24,7 @@ const useMapFilter = ({
   const mapData = useSelector(selectMapData)
   const charts = useSelector(selectCharts)
   const sync = useSelector(selectSync)
+  const pageLayout = useSelector(selectPageLayout)
   const dispatch = useDispatch()
 
   const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
@@ -77,10 +79,10 @@ const useMapFilter = ({
       ? R.pathOr(mapId, [mapId, 'name'])(mapData)
       : `${
           ['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][
-            mapIndices[0]
+            pageLayout.indexOf(mapId)
           ]
         } Chart`
-  }, [charts, mapData, mapId])
+  }, [charts, mapData, mapId, pageLayout])
 
   const handleSaveFilters = useCallback(
     (newFilters) => {
