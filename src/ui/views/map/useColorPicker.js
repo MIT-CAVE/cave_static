@@ -6,7 +6,7 @@ const useColorPicker = (onChangeColor) => {
 
   const handleChange = useCallback(
     (value) => {
-      setColorPickerProps({ ...colorPickerProps, value })
+      setColorPickerProps(R.assoc('value', value))
       onChangeColor(colorPickerProps.key)(value)
     },
     [colorPickerProps, onChangeColor]

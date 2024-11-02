@@ -1,4 +1,4 @@
-import { chartAggrFunc, chartVariant } from './enums'
+import { chartVariant } from './enums'
 
 export const DEFAULT_LOCALE = 'en-US'
 
@@ -190,8 +190,7 @@ export const CHART_PALETTE = [
 export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
 
 export const CHART_DEFAULTS = {
-  variant: chartVariant.BAR,
-  statAggregation: chartAggrFunc.SUM,
+  chartType: chartVariant.BAR,
 }
 
 export const NUMBER_FORMAT_KEYS = [
