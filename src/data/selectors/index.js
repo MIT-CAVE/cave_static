@@ -155,9 +155,29 @@ export const selectVersionsData = createSelector(selectData, (data) =>
 export const selectMapFeatures = createSelector(selectData, (data) =>
   R.propOr({}, 'mapFeatures')(data)
 )
-export const selectAppBar = createSelector(selectData, (data) =>
-  R.propOr({}, 'appBar')(data)
-)
+export const selectAppBar = createSelector(selectData, (data) => {
+  let appBarData = R.propOr({}, 'appBar', data)
+  const order = R.pathOr([], ['order', 'data'], appBarData)
+  const updatedOrder = ['session', 'appSettings', ...order]
+  appBarData = R.assocPath(['order', 'data'], updatedOrder, appBarData)
+  appBarData = R.assocPath(
+    ['data'],
+    R.mergeDeepRight(R.propOr({}, 'data', appBarData), {
+      appSettings: {
+        bar: 'upperLeft',
+        icon: 'md/MdOutlineSettings',
+        type: 'settings',
+      },
+      session: {
+        bar: 'upperLeft',
+        icon: 'md/MdApi',
+        type: 'session',
+      },
+    }),
+    appBarData
+  )
+  return appBarData
+})
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'groupedOutputs')(data)
 )
