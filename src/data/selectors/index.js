@@ -157,21 +157,28 @@ export const selectMapFeatures = createSelector(selectData, (data) =>
 )
 export const selectAppBar = createSelector(selectData, (data) => {
   let appBar = R.propOr({}, 'appBar', data)
-  // filter out any session or settings from cave_app
+
+  // filter out any session or settings types from cave_app
   if (R.isNotEmpty(appBar)) {
-    appBar = R.over(
-      R.lensProp('data'),
-      R.reject(
-        R.anyPass([R.propEq('settings', 'type'), R.propEq('session', 'type')])
-      ),
-      appBar
-    )
+    const keysToRemove = []
+    R.pipe(
+      R.toPairs,
+      R.forEach(([key, value]) => {
+        if (['session', 'settings'].includes(R.propOr('', 'type', value))) {
+          keysToRemove.push(key)
+        }
+      })
+    )(R.prop('data', appBar))
+
+    appBar = R.over(R.lensProp('data'), R.omit(keysToRemove), appBar)
+
     appBar = R.over(
       R.lensPath(['order', 'data']),
-      R.reject(R.includes(R.__, ['session', 'appSettings'])),
+      R.reject(R.includes(R.__, keysToRemove)),
       appBar
     )
   }
+
   // add persistent session and appSettings
   const order = R.pathOr([], ['order', 'data'], appBar)
   const updatedOrder = ['session', 'appSettings', ...order]
