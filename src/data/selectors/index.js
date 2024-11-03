@@ -156,13 +156,29 @@ export const selectMapFeatures = createSelector(selectData, (data) =>
   R.propOr({}, 'mapFeatures')(data)
 )
 export const selectAppBar = createSelector(selectData, (data) => {
-  let appBarData = R.propOr({}, 'appBar', data)
-  const order = R.pathOr([], ['order', 'data'], appBarData)
+  let appBar = R.propOr({}, 'appBar', data)
+  // filter out any session or settings from cave_app
+  if (R.isNotEmpty(appBar)) {
+    appBar = R.over(
+      R.lensProp('data'),
+      R.reject(
+        R.anyPass([R.propEq('settings', 'type'), R.propEq('session', 'type')])
+      ),
+      appBar
+    )
+    appBar = R.over(
+      R.lensPath(['order', 'data']),
+      R.reject(R.includes(R.__, ['session', 'appSettings'])),
+      appBar
+    )
+  }
+  // add persistent session and appSettings
+  const order = R.pathOr([], ['order', 'data'], appBar)
   const updatedOrder = ['session', 'appSettings', ...order]
-  appBarData = R.assocPath(['order', 'data'], updatedOrder, appBarData)
-  appBarData = R.assocPath(
+  appBar = R.assocPath(['order', 'data'], updatedOrder, appBar)
+  appBar = R.assocPath(
     ['data'],
-    R.mergeDeepRight(R.propOr({}, 'data', appBarData), {
+    R.mergeDeepRight(R.propOr({}, 'data', appBar), {
       appSettings: {
         bar: 'upperLeft',
         icon: 'md/MdOutlineSettings',
@@ -174,9 +190,9 @@ export const selectAppBar = createSelector(selectData, (data) => {
         type: 'session',
       },
     }),
-    appBarData
+    appBar
   )
-  return appBarData
+  return appBar
 })
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'groupedOutputs')(data)
