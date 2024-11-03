@@ -18,6 +18,7 @@ import {
   chartVariant,
   chartAggrFunc,
   draggableId,
+  paneId,
 } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
@@ -164,7 +165,11 @@ export const selectAppBar = createSelector(selectData, (data) => {
     R.pipe(
       R.toPairs,
       R.forEach(([key, value]) => {
-        if (['session', 'settings'].includes(R.propOr('', 'type', value))) {
+        if (
+          [paneId.SESSION, paneId.APP_SETTINGS].includes(
+            R.propOr('', 'type', value)
+          )
+        ) {
           keysToRemove.push(key)
         }
       })
