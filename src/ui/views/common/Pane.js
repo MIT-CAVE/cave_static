@@ -1,15 +1,17 @@
-import { IconButton } from '@mui/material'
+import { IconButton, Stack, Button } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useDispatch } from 'react-redux'
 
 import AppSettingsPane from './AppSettingsPane'
+import BaseModal from './BaseModal'
 import OptionsPane from './OptionsPane'
 import SessionPane from './SessionPane'
 
 import { sendCommand } from '../../../data/data'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
+import { useFilter } from '../../../utils/hooks'
 import Pane from '../../compound/Pane'
 
 import { FetchedIcon } from '../../compound'
@@ -76,6 +78,51 @@ const RefreshButton = () => {
   )
 }
 
+const ResetButton = () => {
+  const dispatch = useDispatch()
+  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+
+  const reset = () => {
+    dispatch(
+      sendCommand({
+        command: 'mutate_session',
+        data: {
+          api_command: 'reset',
+        },
+      })
+    )
+  }
+
+  return (
+    <>
+      <FloatButton onClick={handleOpenFilter} iconName="md/MdUndo" />
+      <BaseModal
+        open={filterOpen}
+        label="Reset Session?"
+        slotProps={{
+          root: { sx: { zIndex: 2001 } },
+          paper: { sx: { zIndex: 2001, height: 'auto', width: '500px' } },
+        }}
+        onClose={handleCloseFilter}
+      >
+        <Stack
+          direction="row"
+          spacing={1}
+          justifyContent="center"
+          alignItems="center"
+        >
+          <Button variant="outlined" onClick={handleCloseFilter}>
+            No
+          </Button>
+          <Button variant="contained" onClick={reset}>
+            Yes
+          </Button>
+        </Stack>
+      </BaseModal>
+    </>
+  )
+}
+
 const PaneWrapper = ({ open, pane, side, width, variant, ...props }) => (
   <Pane
     open={!!open}
@@ -85,7 +132,10 @@ const PaneWrapper = ({ open, pane, side, width, variant, ...props }) => (
     style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
     rightButton={
       R.equals(variant, paneId.SESSION) ? (
-        <RefreshButton />
+        <>
+          <ResetButton />
+          <RefreshButton />
+        </>
       ) : (
         pane.teamSync && <SyncButton {...{ open, pane }} />
       )
