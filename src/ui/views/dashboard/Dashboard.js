@@ -321,7 +321,7 @@ const Dashboard = () => {
           const x = i % lineLength
           const y = Math.floor(i / lineLength)
           grid.push({
-            i: layout[i],
+            i: layout[i] ?? 'null',
             x,
             y,
             w: 1,
@@ -424,9 +424,10 @@ const Dashboard = () => {
     }
     // for simple 2x2 grid, can only grow if there is a null space - can never be 2x2
     if (lineLength === 2) {
+      if (resizeHandles.length > 0) return resizeHandles
       // find empty blocks by checking if they are defined in pageLayout
       const blanks = R.pipe(
-        R.filter((item) => R.isNil(item.i)),
+        R.filter((item) => item.i === 'null'),
         R.values
       )(gridLayout)
       if (R.any((item) => y === item.y && item.x === 1, blanks))
@@ -539,7 +540,7 @@ const Dashboard = () => {
                   return (
                     <Box
                       key={
-                        R.isNotNil(index)
+                        index !== 'null'
                           ? `${index}`
                           : `${gridItem.x}x${gridItem.y}null`
                       }
