@@ -422,6 +422,23 @@ const Dashboard = () => {
       if (w >= 2 && x === 0) resizeHandles.push('w')
       else if (w >= 2 && x === 1) resizeHandles.push('e')
     }
+    // for simple 2x2 grid, can only grow if there is a null space - can never be 2x2
+    if (lineLength === 2) {
+      // find empty blocks by checking if they are defined in pageLayout
+      const blanks = R.pipe(
+        R.filter((item) => R.isNil(item.i)),
+        R.values
+      )(gridLayout)
+      if (R.any((item) => y === item.y && item.x === 1, blanks))
+        resizeHandles.push('e')
+      if (R.any((item) => x === item.x && item.y === 1, blanks))
+        resizeHandles.push('s')
+      if (R.any((item) => y === item.y && item.x === 0, blanks))
+        resizeHandles.push('w')
+      if (R.any((item) => x === item.x && item.y === 0, blanks))
+        resizeHandles.push('n')
+      return resizeHandles
+    }
     // can only grow if there is a null space
     let growW, growE, growN, growS
     growW = growE = growN = growS = true
