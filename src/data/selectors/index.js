@@ -159,49 +159,25 @@ export const selectMapFeatures = createSelector(selectData, (data) =>
 export const selectAppBar = createSelector(selectData, (data) => {
   let appBar = R.propOr({}, 'appBar', data)
 
-  // filter out any session or settings types from cave_app
-  if (R.isNotEmpty(appBar)) {
-    const keysToRemove = []
-    R.pipe(
-      R.toPairs,
-      R.forEach(([key, value]) => {
-        if (
-          [paneId.SESSION, paneId.APP_SETTINGS].includes(
-            R.propOr('', 'type', value)
-          )
-        ) {
-          keysToRemove.push(key)
-        }
-      })
-    )(R.prop('data', appBar))
-
-    appBar = R.over(R.lensProp('data'), R.omit(keysToRemove), appBar)
-
-    appBar = R.over(
-      R.lensPath(['order', 'data']),
-      R.reject(R.includes(R.__, keysToRemove)),
-      appBar
-    )
+  // add persistent session and settings
+  const systemAppBar = {
+    [paneId.SESSION]: {
+      bar: 'upperLeft',
+      icon: 'md/MdApi',
+      type: paneId.SESSION,
+    },
+    [paneId.APP_SETTINGS]: {
+      bar: 'upperLeft',
+      icon: 'md/MdOutlineSettings',
+      type: paneId.APP_SETTINGS,
+    },
   }
-
-  // add persistent session and appSettings
   const order = R.pathOr([], ['order', 'data'], appBar)
-  const updatedOrder = ['session', 'appSettings', ...order]
+  const updatedOrder = [paneId.SESSION, paneId.APP_SETTINGS, ...order]
   appBar = R.assocPath(['order', 'data'], updatedOrder, appBar)
   appBar = R.assocPath(
     ['data'],
-    R.mergeDeepRight(R.propOr({}, 'data', appBar), {
-      appSettings: {
-        bar: 'upperLeft',
-        icon: 'md/MdOutlineSettings',
-        type: 'settings',
-      },
-      session: {
-        bar: 'upperLeft',
-        icon: 'md/MdApi',
-        type: 'session',
-      },
-    }),
+    R.mergeDeepRight(R.propOr({}, 'data', appBar), systemAppBar),
     appBar
   )
   return appBar
@@ -260,7 +236,25 @@ export const selectGeoTypes = createSelector(
 // Data -> data
 export const selectPanesData = createSelector(
   [selectPanes, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+  (data, time) => {
+    const panesData = getTimeValue(time, R.propOr({}, 'data', data))
+
+    // add persistent session and settings
+    const systemPanesData = {
+      [paneId.SESSION]: {
+        type: paneId.SESSION,
+        variant: paneId.SESSION,
+        name: `${paneId.SESSION.charAt(0).toUpperCase()}${paneId.SESSION.slice(1)}`,
+      },
+      [paneId.APP_SETTINGS]: {
+        type: paneId.APP_SETTINGS,
+        variant: paneId.APP_SETTINGS,
+        name: `${paneId.APP_SETTINGS.charAt(0).toUpperCase()}${paneId.APP_SETTINGS.slice(1)}`,
+      },
+    }
+
+    return R.mergeRight(panesData, systemPanesData)
+  }
 )
 export const selectModalsData = createSelector(
   selectModals,
