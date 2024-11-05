@@ -43,7 +43,7 @@ import {
   selectCharts,
 } from '../../../data/selectors'
 import { propId, statId, statFns } from '../../../utils/enums'
-import { useFilter } from '../../../utils/hooks'
+import { useModal } from '../../../utils/hooks'
 import { getStatLabel } from '../../../utils/stats'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
@@ -364,7 +364,7 @@ const MapLegendGroupRowToggleLayer = ({
   mapId,
   ...props
 }) => {
-  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
   const charts = useSelector(selectCharts)
   const mapData = useSelector(selectMapData)
 
@@ -427,10 +427,10 @@ const MapLegendGroupRowToggleLayer = ({
       )}
       <Grid item xs={1.5} className="my-auto">
         <DataGridModal
-          open={filterOpen}
+          open={modalOpen}
           label="Chart Data Filter"
           labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${legendName})`}
-          onClose={handleCloseFilter}
+          onClose={handleCloseModal}
         >
           <GridFilter
             {...{ filterables, filterableExtraProps }}
@@ -442,7 +442,7 @@ const MapLegendGroupRowToggleLayer = ({
           disabled={isFilterDisabled}
           sx={{ p: 0.5 }}
           value="filter"
-          onClick={handleOpenFilter}
+          onClick={handleOpenModal}
         >
           <Badge
             color={isFilterDisabled ? 'default' : 'info'}

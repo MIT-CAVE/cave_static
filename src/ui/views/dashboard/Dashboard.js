@@ -30,7 +30,7 @@ import {
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { useFilter, useMutateState } from '../../../utils/hooks'
+import { useModal, useMutateState } from '../../../utils/hooks'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
@@ -82,7 +82,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const sync = useSelector(selectSync)
 
-  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
 
   const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
@@ -198,15 +198,15 @@ const DashboardItem = ({ chartObj, index, path }) => {
           labelExtra,
         }}
         label="Chart Data Filter"
-        open={filterOpen}
+        open={modalOpen}
         onSave={handleSaveFilters}
-        onClose={handleCloseFilter}
+        onClose={handleCloseModal}
       />
       {showToolbar && (
         <ChartToolbar
           numFilters={numActiveStatFilters + numGroupingFilters}
           showFilter={vizType === 'groupedOutput'}
-          onOpenFilter={handleOpenFilter}
+          onOpenFilter={handleOpenModal}
           {...{ chartObj, index, path }}
         />
       )}

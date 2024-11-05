@@ -40,7 +40,7 @@ import {
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { draggableId } from '../../../utils/enums'
-import { useMenu, useMutateState, useFilter } from '../../../utils/hooks'
+import { useMenu, useMutateState, useModal } from '../../../utils/hooks'
 
 import { FetchedIcon, TextInput } from '../../compound'
 
@@ -516,7 +516,7 @@ const CustomDataGridRow = ({ ...props }) => {
 
 const SessionPane = ({ width }) => {
   const dispatch = useDispatch()
-  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
 
   const [currentAction, setCurrentAction] = useState({})
   const [openDialogDelete, setOpenDialogDelete] = useState(false)
@@ -662,16 +662,16 @@ const SessionPane = ({ width }) => {
 
   // Reset session
   const onClickResetHandler = (teamId, sessionId) => {
-    handleOpenFilter()
     setCurrentAction({ command: 'reset', teamId, sessionId })
+    handleOpenModal()
   }
 
   const onCancelReset = () => {
-    handleCloseFilter()
     setCurrentAction({})
+    handleCloseModal()
   }
 
-  const resetSession = () => {
+  const onConfirmReset = () => {
     dispatch(
       sendCommand({
         command: 'mutate_session',
@@ -680,6 +680,8 @@ const SessionPane = ({ width }) => {
         },
       })
     )
+    setCurrentAction({})
+    handleCloseModal()
   }
 
   // Cancel action (shared by all commands)
@@ -898,7 +900,7 @@ const SessionPane = ({ width }) => {
         )}
       </Box>
       <BaseModal
-        open={filterOpen}
+        open={modalOpen}
         label="Reset Session?"
         slotProps={{
           root: { sx: { zIndex: 2001 } },
@@ -914,7 +916,7 @@ const SessionPane = ({ width }) => {
           paddingY={2}
         >
           <ConfirmCancelButtons
-            onConfirm={resetSession}
+            onConfirm={onConfirmReset}
             onCancel={onCancelReset}
           />
         </Stack>

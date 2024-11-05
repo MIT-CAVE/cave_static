@@ -18,18 +18,18 @@ export const useMenu = () => {
   return { anchorEl, handleOpenMenu, handleCloseMenu }
 }
 
-export const useFilter = () => {
-  const [filterOpen, setFilterOpen] = useState(false)
+export const useModal = () => {
+  const [modalOpen, setModalOpen] = useState(false)
 
-  const handleOpenFilter = () => {
-    setFilterOpen(true)
+  const handleOpenModal = () => {
+    setModalOpen(true)
   }
 
-  const handleCloseFilter = () => {
-    setFilterOpen(false)
+  const handleCloseModal = () => {
+    setModalOpen(false)
   }
 
-  return { filterOpen, handleOpenFilter, handleCloseFilter }
+  return { modalOpen, handleOpenModal, handleCloseModal }
 }
 
 /**
