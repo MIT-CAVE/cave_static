@@ -13,6 +13,7 @@ import {
   selectDashboardLockedLayout,
   selectSync,
 } from '../../../data/selectors'
+import { CHART_DEFAULTS } from '../../../utils/constants'
 import { chartVariant } from '../../../utils/enums'
 import { useMutateState } from '../../../utils/hooks'
 
@@ -46,37 +47,17 @@ const ChartToolbar = ({
   const sync = useSelector(selectSync)
 
   const handleSelectVizType = useMutateState(
-    (value) => ({
-      path,
-      value: R.pipe(
-        R.assoc('type', value),
-        // If the new selected `vizType` doesn't support the current
-        // chart variant chosen, switch to a 'table' variant.
-        R.when(
-          R.either(
-            R.both(
-              R.always(value === 'groupedOutput'),
-              R.propEq(chartVariant.OVERVIEW, 'variant')
-            ),
-            R.both(
-              R.always(value === 'globalOutput'),
-              R.pipe(
-                R.prop('variant'),
-                R.flip(R.includes)([
-                  chartVariant.BAR,
-                  chartVariant.LINE,
-                  chartVariant.TABLE,
-                ]),
-                R.not
-              )
-            )
-          ),
-          R.assoc('variant', chartVariant.TABLE)
-        )
-      )(chartObj),
-      sync: !includesPath(R.values(sync), path),
-    }),
-    [sync, chartObj, path]
+    (value) => {
+      return {
+        path,
+        value: R.pipe(
+          value === chartVariant.map ? R.dissoc('chartType') : R.identity,
+          R.assoc('type', value)
+        )(CHART_DEFAULTS),
+        sync: !includesPath(R.values(sync), path),
+      }
+    },
+    [sync, chartObj, path, CHART_DEFAULTS]
   )
 
   return (

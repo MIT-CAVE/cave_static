@@ -146,6 +146,7 @@ export const chartAggrFunc = {
   MIN: 'min',
   MAX: 'max',
   MEAN: 'mean',
+  DIVISOR: 'divisor',
 }
 
 // TODO: Update these when we add support for more than 2 grouping levels

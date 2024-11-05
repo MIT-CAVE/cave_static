@@ -57,13 +57,14 @@ const SubItem = ({
   onSelect,
   getSubLabel,
   values,
+  index,
   ...props
 }) => (
   <MenuItem
     component="div"
     onClick={() => {
       onClose && onClose()
-      onSelect && onSelect(item, subItem)
+      onSelect && onSelect(item, subItem, index)
     }}
     selected={R.equals(R.propOr(false, item, values), subItem)}
     {...props}
@@ -80,17 +81,19 @@ const CategoryItem = ({
   onSelect,
   getSubLabel,
   values,
+  index,
 }) => {
-  const [subOpen, setSubOpen] = useState(false)
   return (
     <MenuItem key={item} component="div">
       {subItems.length > 1 ? (
         <Accordion
           key={item}
-          expanded={subOpen}
-          // defaultExpanded
           sx={styles.accordionRoot}
-          onClick={() => setSubOpen(!subOpen)}
+          onChange={(event) => {
+            // Prevents other Select components from capturing
+            // the event when expanding/collapsing the accordion
+            event.stopPropagation()
+          }}
         >
           <AccordionSummary
             expandIcon={<FetchedIcon iconName="md/MdExpandMore" />}
@@ -101,14 +104,17 @@ const CategoryItem = ({
             {subItems.map((subItem, idx) => (
               <SubItem
                 key={idx}
-                onClose={() => setSubOpen(false)}
-                {...{ item, subItem, onSelect, getSubLabel, values }}
+                {...{ item, subItem, index, onSelect, getSubLabel, values }}
               />
             ))}
           </AccordionDetails>
         </Accordion>
       ) : (
-        <SubItem sx={styles.soloCategory} {...{ item }} subItem={subItems[0]} />
+        <SubItem
+          sx={styles.soloCategory}
+          {...{ item, getSubLabel, onSelect, values, index }}
+          subItem={subItems[0]}
+        />
       )}
     </MenuItem>
   )
@@ -201,7 +207,7 @@ const SelectMultiAccordion = ({
                   <CategoryItem
                     {...item}
                     key={item.id}
-                    {...{ getLabel, getSubLabel, onSelect, values }}
+                    {...{ getLabel, getSubLabel, onSelect, values, index }}
                   />
                 ))}
               </AccordionDetails>

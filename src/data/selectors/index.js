@@ -41,7 +41,6 @@ import {
   addValuesToProps,
   recursiveBubbleMap,
   filterGroupedOutputs,
-  calculateStatAnyDepth,
   adjustArcPath,
   constructFetchedGeoJson,
   constructGeoJson,
@@ -344,7 +343,7 @@ export const selectSyncToggles = createSelector(selectSettings, (data) =>
 export const selectGroupedOutputNames = createSelector(
   selectGroupedOutputsData,
   R.pipe(
-    R.mapObjIndexed((obj, key) =>
+    R.map((obj) =>
       R.pipe(
         R.propOr({}, 'stats'),
         R.keys,
@@ -352,15 +351,13 @@ export const selectGroupedOutputNames = createSelector(
           (acc, statKey) =>
             R.assoc(
               R.pathOr(statKey, ['stats', statKey, 'name'], obj),
-              [key, statKey],
+              statKey,
               acc
             ),
           {}
         )
       )(obj)
-    ),
-    R.values,
-    R.mergeAll
+    )
   )
 )
 export const selectGroupedOutputTypes = createSelector(
@@ -1274,30 +1271,28 @@ export const selectGroupedOutputValueBuffers = createSelector(
     )(groupedOutputs)
 )
 
+const mergeFuncs = {
+  [chartAggrFunc.SUM]: R.identity,
+  [chartAggrFunc.MIN]: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
+  [chartAggrFunc.MAX]: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
+  [chartAggrFunc.MEAN]: R.mean,
+  // divisor logic happens once stats are calculated - treat as a sum here
+  [chartAggrFunc.DIVISOR]: R.sum,
+}
+
 export const selectMemoizedChartFunc = createSelector(
   [
     selectGroupedOutputsData,
-    selectGroupedOutputTypes,
     selectStatGroupings,
     selectStatGroupingIndicies,
     selectGroupedOutputValueBuffers,
   ],
-  (groupedOutputs, statisticTypes, groupings, groupingIndicies, valueBuffers) =>
+  (groupedOutputs, groupings, groupingIndicies, valueBuffers) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
       async (obj) => {
-        const actualStat = R.is(Array, obj.statId)
-          ? R.zip(obj.groupedOutputDataId, obj.statId)
-          : [[obj.groupedOutputDataId, obj.statId]]
-        const mergeFuncs = {
-          [chartAggrFunc.SUM]: R.sum,
-          [chartAggrFunc.MIN]: (val) =>
-            R.reduce(R.min, R.head(val), R.tail(val)),
-          [chartAggrFunc.MAX]: (val) =>
-            R.reduce(R.max, R.head(val), R.tail(val)),
-          [chartAggrFunc.MEAN]: R.mean,
-        }
-
+        const statObjs = obj.stats ?? []
+        // Helper function to find the parental path of a given level
         const createParentalPath = (
           path,
           category,
@@ -1339,11 +1334,10 @@ export const selectMemoizedChartFunc = createSelector(
             R.pick(parentalPath),
             R.values
           )(groupings)
-
-          return (index) => {
-            // BUG: Doesn't work well when multiple stats
-            // are selected and at least one of them is not
-            // available for the chosen group + level
+          const groupBys = Array(
+            R.values(groupedOutputs[outputGroup]['valueLists'])[0].length
+          )
+          for (let index = 0; index < groupBys.length; index++) {
             if (groupList == null) return []
             const groupName = groupList[index]
             const groupingIndex =
@@ -1352,62 +1346,104 @@ export const selectMemoizedChartFunc = createSelector(
             for (let i = 0; i < groupingVal.length; i++) {
               pluckedValues[i] = groupingVal[i][groupingIndex]
             }
-            return pluckedValues
+            groupBys[index] = pluckedValues
           }
+          return groupBys
         })
-        // List of groupBy, subGroupBy etc...
-        const groupBys = R.map((idx) =>
-          obj.groupingId[idx] != null
-            ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
-            : R.always(R.always(['All']))
-        )(R.range(0, R.length(obj.groupingId)))
 
-        const filteredStatsToCalc = R.reduce(
-          (acc, stat) =>
-            R.assoc(
-              stat[0],
-              filterGroupedOutputs(
-                groupedOutputs[stat[0]],
-                R.pipe(
-                  R.propOr([], 'filters')
-                  // R.reject(R.propEq(false, 'active'))
-                )(obj),
-                groupingIndicies
+        // List of groupBy, subGroupBy etc...
+        const groupBys = R.pipe(
+          R.prop('groupingId'),
+          R.length,
+          R.range(0),
+          R.map((idx) =>
+            obj.groupingId[idx] != null
+              ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
+              : R.always(
+                  R.repeat(
+                    ['All'],
+                    R.values(groupedOutputs[obj.dataset]['valueLists'])[0]
+                      .length
+                  )
+                )
+          ),
+          R.ifElse(
+            R.isEmpty,
+            R.always([
+              R.repeat(
+                ['All'],
+                R.values(groupedOutputs[obj.dataset]['valueLists'])[0].length
               ),
-              acc
-            ),
-          {},
-          actualStat
-        )
-        // Calculates stat values without applying mergeFunc
-        const calculatedStats = R.map((stat) =>
-          calculateStatAnyDepth(valueBuffers[stat[0]], workerManager)(
-            R.isEmpty(groupBys)
-              ? [R.always(['All'])]
-              : R.map(R.applyTo(stat[0]), groupBys),
-            R.pathOr('0', [...stat, 'calculation'])(statisticTypes),
-            filteredStatsToCalc[stat[0]]
+            ]),
+            R.map(R.applyTo(obj.dataset))
           )
-        )(actualStat)
+        )(obj)
+
+        const filteredStatsToCalc = filterGroupedOutputs(
+          groupedOutputs[obj.dataset],
+          R.pipe(R.propOr([], 'filters'))(obj),
+          groupingIndicies
+        )
+
+        // Calculates stat values without applying mergeFunc
+        const calculatedStats = R.map((stat) => {
+          const statGroupBys = R.has('aggregationGroupingLevel', stat)
+            ? R.append(
+                categoryFunc(
+                  stat.aggregationGroupingId,
+                  stat.aggregationGroupingLevel,
+                  obj.dataset
+                )
+              )(groupBys)
+            : R.append(R.last(groupBys))(groupBys)
+
+          const statGroup = workerManager.doWork({
+            groupBys: statGroupBys,
+            statId: stat.statId,
+            indicies: filteredStatsToCalc,
+            valueLists: valueBuffers[obj.dataset],
+          })
+          return R.has('statIdDivisor', stat)
+            ? Promise.all([
+                statGroup,
+                workerManager.doWork({
+                  groupBys: statGroupBys,
+                  statId: stat.statIdDivisor,
+                  indicies: filteredStatsToCalc,
+                  valueLists: valueBuffers[obj.dataset],
+                }),
+              ])
+            : statGroup
+        })(statObjs)
 
         return Promise.all(calculatedStats).then((resolvedStats) => {
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-          const statValues = R.map(
-            recursiveBubbleMap(
-              R.is(Array),
-              R.pipe(
-                R.filter(R.is(Number)),
-                obj.variant !== chartVariant.BOX_PLOT
-                  ? R.unless(R.isEmpty, mergeFuncs[obj.statAggregation])
-                  : R.identity
+          const mergedValues = R.addIndex(R.map)(
+            (val, idx) =>
+              recursiveBubbleMap(
+                R.pipe(R.values, R.head, R.is(Object), R.not),
+                R.pipe(
+                  R.values,
+                  R.filter(R.is(Number)),
+                  obj.chartType !== chartVariant.BOX_PLOT
+                    ? R.unless(
+                        R.isEmpty,
+                        mergeFuncs[statObjs[idx].aggregationType]
+                      )
+                    : R.identity
+                ),
+                R.identity,
+                R.filter(R.isNotEmpty),
+                val
               ),
-              R.identity,
-              R.filter(R.isNotEmpty)
-            ),
             resolvedStats
           )
-
+          const dividedValues = R.map(
+            R.when(R.is(Array), (arr) =>
+              R.mergeDeepWith(R.divide, arr[0], arr[1])
+            )
+          )(mergedValues)
           // Helper function to map merged stats to chart input object
           const recursiveMapLayers = (val, lowestGroupings) =>
             R.type(val) === 'Object'
@@ -1490,7 +1526,7 @@ export const selectMemoizedChartFunc = createSelector(
               R.map(nLevelOrder(1))
             )
           )
-          const formattedData = getFormattedData(statValues)
+          const formattedData = getFormattedData(dividedValues)
           const conditionalMerge = (key, a, b) =>
             key === 'name'
               ? a
@@ -1503,7 +1539,7 @@ export const selectMemoizedChartFunc = createSelector(
             R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
             R.values
           )
-          return R.is(Array, obj.statId)
+          return obj.stats.length > 1
             ? mergeMultiStatData(formattedData)
             : R.head(formattedData)
         })
@@ -1559,7 +1595,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
             )(val),
           })),
           R.when(
-            R.always(R.has(R.prop('variant', obj), chartStatUses)),
+            R.always(R.has(R.prop('chartType', obj), chartStatUses)),
             R.map((session) => ({
               name: session.name,
               value: R.unnest(R.pluck('value', session.children)),

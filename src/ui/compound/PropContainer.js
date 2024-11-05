@@ -23,7 +23,6 @@ const styles = {
     top: theme.spacing(1),
     right: theme.spacing(1),
     position: 'absolute',
-    mb: 1,
   }),
   unit: {
     display: 'flex',
@@ -74,7 +73,7 @@ const PropTitle = ({
     </Grid>
     {unit && (
       <Grid item zeroMinWidth maxWidth="33.33%">
-        <Typography variant="subtitle1" minWidth="1ch" sx={[styles.unit, {}]}>
+        <Typography variant="subtitle1" minWidth="1ch" sx={styles.unit}>
           <OverflowText text={unit} />
         </Typography>
       </Grid>
@@ -94,6 +93,7 @@ const HorizontalContainer = ({
     <Grid
       container
       alignItems="center"
+      alignContent="start"
       mt={tooltipTitle ? 3.5 : 0}
       overflow="auto"
       height="100%"
@@ -121,7 +121,7 @@ const VerticalContainer = ({
       <Grid item pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid item container alignItems="start" overflow="visible" flexGrow={1}>
+      <Grid item container alignItems="start" overflow="visible">
         {children}
       </Grid>
     </Grid>
@@ -137,7 +137,7 @@ const TitledContainer = ({ elevation = 0, sx, ...props }) => (
 
 const UntitledContainer = ({ children, ...props }) => (
   <BaseContainer {...props}>
-    <Grid container alignItems="center" item xs>
+    <Grid container item xs alignContent="start" mt={3.5}>
       {children}
     </Grid>
   </BaseContainer>

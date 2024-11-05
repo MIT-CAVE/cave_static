@@ -80,7 +80,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
   })(selectedGlobalOutputKeys)
 
   const labelProps =
-    chartObj.variant === chartVariant.TABLE
+    chartObj.chartType === chartVariant.TABLE
       ? R.pipe(
           R.zipWith(
             (globalOutputKey, unit) => ({
@@ -110,10 +110,10 @@ const DashboardGlobalOutput = ({ chartObj }) => {
     <Box
       sx={[
         styles.root,
-        chartObj.variant === chartVariant.OVERVIEW && styles.overview,
+        chartObj.chartType === chartVariant.OVERVIEW && styles.overview,
       ]}
     >
-      {chartObj.variant === chartVariant.OVERVIEW ? (
+      {chartObj.chartType === chartVariant.OVERVIEW ? (
         <Box
           sx={{
             position: 'absolute',
@@ -127,12 +127,12 @@ const DashboardGlobalOutput = ({ chartObj }) => {
             onChangeProp: () => null,
           })}
         </Box>
-      ) : chartObj.variant === chartVariant.TABLE ? (
+      ) : chartObj.chartType === chartVariant.TABLE ? (
         <TableChart
           data={formattedGlobalOutputs}
           {...{ labelProps, numberFormat }}
         />
-      ) : chartObj.variant === chartVariant.BAR ? (
+      ) : chartObj.chartType === chartVariant.BAR ? (
         <BarPlot
           data={formattedGlobalOutputs}
           xAxisTitle="Sessions"
@@ -142,7 +142,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
           // as that of a statistics chart with subgrouped data
           subGrouped
         />
-      ) : chartObj.variant === chartVariant.LINE ? (
+      ) : chartObj.chartType === chartVariant.LINE ? (
         <LinePlot
           data={formattedGlobalOutputs}
           {...{ numberFormat }}

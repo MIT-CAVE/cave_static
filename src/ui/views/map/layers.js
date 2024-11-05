@@ -16,7 +16,7 @@ import {
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
   selectSync,
-  selectIsGlobe,
+  // selectIsGlobe,
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
@@ -59,7 +59,7 @@ export const Geos = memo(({ mapId }) => {
 
   const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
   const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
-  const isGlobe = useSelector(selectIsGlobe)(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
@@ -85,6 +85,7 @@ export const Geos = memo(({ mapId }) => {
   return [
     <GeosWithHeight
       id="geos-with-altitude"
+      key="geos-with-altitude"
       geos={!isGlobe ? loadedGeoJson : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
@@ -92,6 +93,7 @@ export const Geos = memo(({ mapId }) => {
     />,
     <ArcsWithHeight
       id="geos-arcs-with-altitude"
+      key="geos-arcs-with-altitude"
       arcs={!isGlobe ? lineGeoJsonObject : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
@@ -204,11 +206,12 @@ export const Nodes = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-  const isGlobe = useSelector(selectIsGlobe)(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   return [
     <NodesWithHeight
       id="nodes-with-altitude"
+      key="nodes-with-altitude"
       nodes={!isGlobe ? nodeGeoJson : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'nodes')
@@ -251,11 +254,12 @@ export const Arcs = memo(({ mapId }) => {
   const dispatch = useDispatch()
   const sync = useSelector(selectSync)
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
-  const isGlobe = useSelector(selectIsGlobe)(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   return [
     <ArcsWithHeight
       id="arcs-with-altitude"
+      key="arcs-with-altitude"
       arcs={!isGlobe ? arcLayerGeoJson : []}
       onClick={({ cave_name, cave_obj }) =>
         handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
