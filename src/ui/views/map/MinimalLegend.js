@@ -47,16 +47,16 @@ import {
   selectBearingSliderToggleFunc,
   selectGeoRange,
   selectLegendDataFunc,
-  selectLocalizedArcTypes,
-  selectLocalizedGeoTypes,
-  selectLocalizedNodeTypes,
   selectNodeRange,
   selectNodeRangeAtZoomFunc,
   selectNodeTypeKeys,
   selectNumberFormatPropsFn,
   selectPitchSliderToggleFunc,
+  selectEffectiveNodesBy,
   selectSettingsIconUrl,
   selectSync,
+  selectEffectiveArcsBy,
+  selectEffectiveGeosBy,
 } from '../../../data/selectors'
 import { propId, statFns, statId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
@@ -75,7 +75,6 @@ import {
   colorToRgba,
   forceArray,
   getContrastText,
-  getLabelFn,
   includesPath,
   NumberFormat,
   withIndex,
@@ -309,8 +308,7 @@ const NumericalColorLegend = ({
 const CategoricalColorLegend = ({
   type,
   colorBy,
-  colorByOptions,
-  featureTypeProps,
+  colorByProps,
   onChangeColor,
 }) => {
   const {
@@ -318,21 +316,33 @@ const CategoricalColorLegend = ({
     showColorPicker,
     handleOpen,
     handleClose,
-    handleChange,
+    handleChange: handleChangeRaw,
   } = useColorPicker(onChangeColor)
 
-  const colorOptions = colorByOptions[colorBy]
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
-        type === propId.SELECTOR
-          ? featureTypeProps[colorBy].options[option].name
+        type === propId.SELECTOR || type === propId.TOGGLE
+          ? colorByProps[colorBy].options[option].name
           : null
       return label || capitalize(option)
     },
-    [colorBy, featureTypeProps, type]
+    [colorBy, colorByProps, type]
   )
-
+  const handleChange = useCallback(
+    (event, value) => {
+      handleChangeRaw(event, value, ['options', colorPickerProps.key, 'color'])
+    },
+    [handleChangeRaw, colorPickerProps.key]
+  )
+  const colorOptions = useMemo(
+    () =>
+      Object.entries(colorByProps[colorBy].options).reduce(
+        (acc, [option, value]) => ({ ...acc, [option]: value.color }),
+        {}
+      ),
+    [colorBy, colorByProps]
+  )
   return (
     <>
       <OverflowText
@@ -410,7 +420,6 @@ const ColorLegend = ({
   group,
   valueRange,
   colorBy,
-  colorByOptions,
   featureTypeProps,
   groupCalcValue,
   onSelectProp,
@@ -421,6 +430,23 @@ const ColorLegend = ({
   const colorByProp = featureTypeProps[colorBy]
   const numberFormat = getNumberFormatProps(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
+  // Find valid `colorBy` props
+  const colorByProps = useMemo(
+    () =>
+      Object.entries(featureTypeProps).reduce((acc, [propId, prop]) => {
+        const hasGradientColors =
+          'startGradientColor' in prop && 'endGradientColor' in prop
+        const hasColorOptions = Object.values(prop.options || {}).some(
+          (value) => 'color' in value
+        )
+
+        if (hasGradientColors || hasColorOptions) {
+          return { ...acc, [propId]: prop }
+        }
+        return acc
+      }, {}),
+    [featureTypeProps]
+  )
   return (
     <Paper
       elevation={3}
@@ -437,7 +463,7 @@ const ColorLegend = ({
               labelId="color-by-label"
               label="Color by"
               value={colorBy}
-              optionsList={Object.keys(colorByOptions)}
+              optionsList={Object.keys(colorByProps)}
               getLabel={(prop) => featureTypeProps[prop].name || prop}
               onSelect={onSelectProp}
             />
@@ -454,7 +480,7 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          {...{ colorBy, colorByOptions, featureTypeProps, onChangeColor }}
+          {...{ colorBy, colorByProps, onChangeColor }}
         />
       ) : (
         <NumericalColorLegend
@@ -660,8 +686,7 @@ const NumericalSizeLegend = ({
 const CategoricalSizeLegend = ({
   type,
   sizeBy,
-  sizeByOptions,
-  featureTypeProps,
+  sizeByProps,
   icon,
   onChangeSize,
 }) => {
@@ -671,20 +696,36 @@ const CategoricalSizeLegend = ({
     handleOpen,
     handleClose,
     handleChange,
-    handleChangeComitted,
+    handleChangeComitted: handleChangeComittedRaw,
   } = useSizeSlider(onChangeSize)
 
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
-        type === propId.SELECTOR
-          ? featureTypeProps[sizeBy].options[option].name
+        type === propId.SELECTOR || type === propId.TOGGLE
+          ? sizeByProps[sizeBy].options[option].name
           : null
       return label || capitalize(option)
     },
-    [featureTypeProps, sizeBy, type]
+    [sizeBy, sizeByProps, type]
   )
-  const sizeOptions = sizeByOptions[sizeBy]
+  const handleChangeComitted = useCallback(
+    (event, value) => {
+      handleChangeComittedRaw(event, value, [
+        'options',
+        sizeSliderProps.key,
+        'size',
+      ])
+    },
+    [handleChangeComittedRaw, sizeSliderProps.key]
+  )
+
+  const sizeOptions = useMemo(() => {
+    return Object.entries(sizeByProps[sizeBy].options).reduce(
+      (acc, [option, value]) => ({ ...acc, [option]: value.size ?? '1px' }),
+      {}
+    )
+  }, [sizeBy, sizeByProps])
   return (
     <>
       <OverflowText
@@ -727,7 +768,6 @@ const CategoricalSizeLegend = ({
 const SizeLegend = ({
   valueRange,
   sizeBy,
-  sizeByOptions,
   featureTypeProps,
   icon,
   group,
@@ -740,7 +780,21 @@ const SizeLegend = ({
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = getNumberFormatProps(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
-  const optionsList = useMemo(() => Object.keys(sizeByOptions), [sizeByOptions])
+  // Find valid `sizeBy` props
+  const sizeByProps = useMemo(
+    () =>
+      Object.entries(featureTypeProps).reduce((acc, [propId, prop]) => {
+        const hasSizeRange = 'startSize' in prop && 'endSize' in prop
+        const hasSizeOptions = Object.values(prop.options || {}).some(
+          (value) => 'size' in value
+        )
+        if (hasSizeRange || hasSizeOptions) {
+          return { ...acc, [propId]: prop }
+        }
+        return acc
+      }, {}),
+    [featureTypeProps]
+  )
   return (
     <Paper
       elevation={3}
@@ -757,7 +811,7 @@ const SizeLegend = ({
               labelId="size-by-label"
               label="Size by"
               value={sizeBy}
-              {...{ optionsList }}
+              optionsList={Object.keys(sizeByProps)}
               getLabel={(option) => featureTypeProps[option].name || option}
               onSelect={onSelectProp}
             />
@@ -774,7 +828,7 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}
-          {...{ sizeBy, sizeByOptions, featureTypeProps, icon, onChangeSize }}
+          {...{ sizeBy, sizeByProps, icon, onChangeSize }}
         />
       ) : (
         <NumericalSizeLegend
@@ -974,11 +1028,8 @@ const LegendRowDetails = ({
   value,
   allowGrouping,
   colorBy,
-  colorByOptions,
   sizeBy,
-  sizeByOptions,
   heightBy,
-  heightByOptions,
   // shapeBy, // TODO: `shapeBy` would be a unifying property for `iconBy` and `lineBy`?
   shape,
   shapeLabel,
@@ -1034,7 +1085,6 @@ const LegendRowDetails = ({
   } = useMapFilter({
     mapId,
     group,
-    colorByOptions,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
     filters,
@@ -1042,11 +1092,11 @@ const LegendRowDetails = ({
 
   // Valid ranges for all features
   const colorRange = useMemo(
-    () => getRange(id, colorBy, mapId, 'colorByOptions'),
+    () => getRange(id, colorBy, mapId),
     [colorBy, getRange, id, mapId]
   )
   const sizeRange = useMemo(
-    () => getRange(id, sizeBy, mapId, 'sizeByOptions'),
+    () => getRange(id, sizeBy, mapId),
     [sizeBy, getRange, id, mapId]
   )
   // Groupable nodes (only)
@@ -1056,10 +1106,7 @@ const LegendRowDetails = ({
   }, [getRangeOnZoom, mapId])
   // Geos (only)
   const heightRange = useMemo(
-    () =>
-      heightBy != null
-        ? getRange(id, heightBy, mapId, 'heightByOptions')
-        : null,
+    () => (heightBy != null ? getRange(id, heightBy, mapId) : null),
     [getRange, heightBy, id, mapId]
   )
 
@@ -1110,7 +1157,7 @@ const LegendRowDetails = ({
 
   const handleChangeColor = useCallback(
     (pathEnd) => (value) => {
-      const path = [...basePath, 'colorByOptions', colorBy, pathEnd]
+      const path = [...basePath, 'props', colorBy, ...forceArray(pathEnd)]
       dispatch(
         mutateLocal({
           path,
@@ -1124,7 +1171,7 @@ const LegendRowDetails = ({
 
   const handleChangeSize = useCallback(
     (pathEnd) => (value) => {
-      const path = [...basePath, 'sizeByOptions', sizeBy, pathEnd]
+      const path = [...basePath, 'props', sizeBy, ...forceArray(pathEnd)]
       dispatch(
         mutateLocal({
           path,
@@ -1286,7 +1333,6 @@ const LegendRowDetails = ({
                     mapId,
                     group,
                     colorBy,
-                    colorByOptions,
                     featureTypeProps,
                   }}
                   groupCalcValue={groupCalcByColor}
@@ -1304,7 +1350,6 @@ const LegendRowDetails = ({
                     icon,
                     group,
                     sizeBy,
-                    sizeByOptions,
                     featureTypeProps,
                   }}
                   groupCalcValue={groupCalcBySize}
@@ -1320,7 +1365,6 @@ const LegendRowDetails = ({
                     legendGroupId,
                     mapId,
                     heightBy,
-                    heightByOptions,
                     featureTypeProps,
                   }}
                   icon={<FetchedIcon iconName={icon} />}
@@ -1335,8 +1379,9 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({ id, featureTypeData, settingsMode, ...props }) => {
-  const name = getLabelFn(featureTypeData, id)
+const LegendRow = ({ id, mapFeaturesBy, settingsMode, ...props }) => {
+  const featureTypeData = mapFeaturesBy(id, props.mapId)[0]
+  const name = featureTypeData.name ?? id
   return (
     <Grid2
       key={id}
@@ -1363,7 +1408,7 @@ const LegendRow = ({ id, featureTypeData, settingsMode, ...props }) => {
       {!settingsMode && (
         <Grid2 size="auto">
           <LegendRowDetails
-            featureTypeProps={featureTypeData[id].props}
+            featureTypeProps={featureTypeData.props}
             {...{ id, name, ...props }}
           />
         </Grid2>
@@ -1374,13 +1419,13 @@ const LegendRow = ({ id, featureTypeData, settingsMode, ...props }) => {
 
 const LegendRowNode = (props) => {
   const [options, setOptions] = useState([])
-  const nodeTypes = useSelector(selectLocalizedNodeTypes)
+  const effectiveNodesBy = useSelector(selectEffectiveNodesBy)
   const getRange = useSelector(selectNodeRange)
   const iconUrl = useSelector(selectSettingsIconUrl)
   useIconDataLoader(iconUrl, setOptions, console.error)
   return (
     <LegendRow
-      featureTypeData={nodeTypes}
+      mapFeaturesBy={effectiveNodesBy}
       shapeOptions={options}
       shapePathEnd="icon"
       shape={props.icon}
@@ -1396,7 +1441,7 @@ const LegendRowNode = (props) => {
 }
 
 const LegendRowArc = (props) => {
-  const arcTypes = useSelector(selectLocalizedArcTypes)
+  const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
   const indexedOptions = {
     solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
@@ -1406,7 +1451,7 @@ const LegendRowArc = (props) => {
   }
   return (
     <LegendRow
-      featureTypeData={arcTypes}
+      mapFeaturesBy={effectiveArcsBy}
       shapeOptions={Object.keys(indexedOptions)}
       shapePathEnd="lineBy"
       shape={props.lineBy ?? 'solid'}
@@ -1420,9 +1465,11 @@ const LegendRowArc = (props) => {
 }
 
 const LegendRowGeo = (props) => {
-  const geoTypes = useSelector(selectLocalizedGeoTypes)
+  const effectiveGeosBy = useSelector(selectEffectiveGeosBy)
   const getRange = useSelector(selectGeoRange)
-  return <LegendRow featureTypeData={geoTypes} {...{ getRange, ...props }} />
+  return (
+    <LegendRow mapFeaturesBy={effectiveGeosBy} {...{ getRange, ...props }} />
+  )
 }
 
 const MapFeature = ({

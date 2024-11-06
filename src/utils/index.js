@@ -616,7 +616,7 @@ export const getQuartiles = R.ifElse(
   R.pipe(R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
-const allowedRangeKeys = [
+export const ALLOWED_RANGE_KEYS = [
   'startGradientColor',
   'endGradientColor',
   'nullColor',
@@ -624,6 +624,11 @@ const allowedRangeKeys = [
   'timeValues',
   'startSize',
   'endSize',
+  'startHeight',
+  'endHeight',
+  'min',
+  'max',
+  'options',
 ]
 
 // checks that range is either min/max or list of strings
@@ -631,7 +636,7 @@ export const checkValidRange = R.pipe(
   R.mapObjIndexed((value, key) =>
     key === 'min' || key === 'max'
       ? R.is(Number, value)
-      : R.includes(key, allowedRangeKeys) || R.is(String, value)
+      : R.includes(key, ALLOWED_RANGE_KEYS) || R.is(String, value)
   ),
   R.values,
   R.all(R.identity)
@@ -814,12 +819,7 @@ export const constructFetchedGeoJson = (
                 } else if (!filterMapFeature(filters, geoObj)) return false
 
                 const colorProp = R.path([geoObj.type, 'colorBy'], enabledItems)
-                const colorRange = itemRange(
-                  geoObj.type,
-                  colorProp,
-                  mapId,
-                  'colorByOptions'
-                )
+                const colorRange = itemRange(geoObj.type, colorProp, mapId)
                 const isCategorical = !R.has('min', colorRange)
                 const propVal = R.pipe(
                   R.path(['values', colorProp]),
@@ -827,16 +827,19 @@ export const constructFetchedGeoJson = (
                   (s) => s.toString()
                 )(geoObj)
 
-                const nullColor = R.propOr(
+                const nullColor = R.pathOr(
                   'rgba(0,0,0,255)',
-                  'nullColor',
+                  isCategorical ? ['options', 'nullColor', 'color'] : ['color'],
                   colorRange
                 )
-
                 const color = R.equals('', propVal)
                   ? nullColor
                   : isCategorical
-                    ? R.propOr('rgba(0,0,0,255)', propVal, colorRange)
+                    ? R.pathOr(
+                        'rgba(0,0,0,255)',
+                        ['options', propVal, 'color'],
+                        colorRange
+                      )
                     : `rgba(${getScaledArray(
                         R.prop('min', colorRange),
                         R.prop('max', colorRange),
@@ -852,19 +855,13 @@ export const constructFetchedGeoJson = (
                         ),
                         parseFloat(R.path(['values', colorProp], geoObj))
                       ).join(',')})`
-
                 const id = R.prop('data_key')(geoObj)
 
                 const heightProp = R.path(
                   [geoObj.type, 'heightBy'],
                   enabledItems
                 )
-                const heightRange = itemRange(
-                  geoObj.type,
-                  heightProp,
-                  mapId,
-                  'heightByOptions'
-                )
+                const heightRange = itemRange(geoObj.type, heightProp, mapId)
 
                 const heightPropVal = parseFloat(
                   R.path(['values', heightProp], geoObj)
@@ -896,12 +893,7 @@ export const constructFetchedGeoJson = (
                   })
 
                 const sizeProp = R.path([geoObj.type, 'sizeBy'], enabledItems)
-                const sizeRange = itemRange(
-                  geoObj.type,
-                  sizeProp,
-                  mapId,
-                  'sizeByOptions'
-                )
+                const sizeRange = itemRange(geoObj.type, sizeProp, mapId)
                 const sizePropVal = parseFloat(
                   R.path(['values', sizeProp], geoObj)
                 )
@@ -978,19 +970,22 @@ export const constructGeoJson = (
             R.when(R.isNil, R.always('')),
             (s) => s.toString()
           )(item)
-          const colorRange = itemRange(
-            item.type,
-            colorProp,
-            mapId,
-            'colorByOptions'
+          const colorRange = itemRange(item.type, colorProp, mapId)
+          const isColorCategorical = !R.has('min', colorRange)
+
+          const nullColor = R.pathOr(
+            'rgba(0,0,0,255)',
+            isColorCategorical ? ['options', 'nullColor', 'color'] : ['color'],
+            colorRange
           )
 
-          const nullColor = R.propOr('rgba(0,0,0,255)', 'nullColor', colorRange)
-
-          const isColorCategorical = !R.has('min', colorRange)
           const color = isColorCategorical
             ? R.map((val) => parseFloat(val))(
-                R.propOr('rgba(0,0,0,255)', colorPropVal, colorRange)
+                R.pathOr(
+                  'rgba(0,0,0,255)',
+                  ['options', colorPropVal, 'color'],
+                  colorRange
+                )
                   .replace(/[^\d,.]/g, '')
                   .split(',')
               )
@@ -1017,12 +1012,7 @@ export const constructGeoJson = (
 
           if (type === 'node' || type === 'arc') {
             const sizeProp = legendObj.sizeBy
-            const sizeRange = itemRange(
-              item.type,
-              sizeProp,
-              mapId,
-              'sizeByOptions'
-            )
+            const sizeRange = itemRange(item.type, sizeProp, mapId)
             const sizePropVal = R.path(['values', sizeProp], item)
             const isSizeCategorical = !R.has('min', sizeRange)
             size = R.isNil(sizePropVal)
@@ -1045,12 +1035,7 @@ export const constructGeoJson = (
 
           if (type === 'geo' || type === 'arc') {
             const heightProp = legendObj.heightBy
-            const heightRange = itemRange(
-              item.type,
-              heightProp,
-              mapId,
-              'heightByOptions'
-            )
+            const heightRange = itemRange(item.type, heightProp, mapId)
 
             const heightPropVal = parseFloat(
               R.path(['values', heightProp], item)

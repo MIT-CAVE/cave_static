@@ -18,8 +18,8 @@ const useSizeSlider = (onChangeSize) => {
   }, [])
 
   const handleChangeComitted = useCallback(
-    (event, value) => {
-      onChangeSize(sizeSliderProps.key)(value[0])
+    (event, value, pathEnd = sizeSliderProps.key) => {
+      onChangeSize(pathEnd)(value[0])
     },
     [onChangeSize, sizeSliderProps.key]
   )

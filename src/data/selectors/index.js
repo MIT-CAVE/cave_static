@@ -43,6 +43,7 @@ import {
   adjustArcPath,
   constructFetchedGeoJson,
   constructGeoJson,
+  ALLOWED_RANGE_KEYS,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -1180,6 +1181,42 @@ export const selectMergedGeos = createSelector(
   [selectLocalizedGeoTypes, selectCurrentTime],
   (geos, time) => getMergedAllProps(getTimeValue(time, geos), 'geo')
 )
+
+const selectEffectiveMapFeaturesBy = createSelector(
+  selectLegendTypesFn,
+  (legendObjectsFunc) =>
+    R.curry((mapId, layerKey, featuresByType, type) => {
+      const legendFeatures = legendObjectsFunc({ mapId, layerKey })
+      const features = R.propOr([], type)(featuresByType)
+      const effectiveMapFeatures = R.map(
+        // R.over(R.lensProp('props'), R.mergeDeepLeft(legendFeatures[type].props))
+        R.mergeDeepLeft(legendFeatures[type])
+      )(features)
+      return effectiveMapFeatures
+    })
+)
+export const selectEffectiveArcsBy = createSelector(
+  [selectEffectiveMapFeaturesBy, selectMergedArcs],
+  (effectiveMapFeaturesBy, arcsByType) =>
+    R.curry((type, mapId) =>
+      effectiveMapFeaturesBy(mapId, 'arc', arcsByType, type)
+    )
+)
+export const selectEffectiveNodesBy = createSelector(
+  [selectEffectiveMapFeaturesBy, selectMergedNodes],
+  (effectiveMapFeaturesBy, nodesByType) =>
+    R.curry((type, mapId) =>
+      effectiveMapFeaturesBy(mapId, 'node', nodesByType, type)
+    )
+)
+export const selectEffectiveGeosBy = createSelector(
+  [selectEffectiveMapFeaturesBy, selectMergedGeos],
+  (effectiveMapFeaturesBy, geosByType) =>
+    R.curry((type, mapId) =>
+      effectiveMapFeaturesBy(mapId, 'geo', geosByType, type)
+    )
+)
+
 // Map (Custom)
 export const selectLayerById = (state, id) =>
   R.path(['local', 'map', 'mapLayers', id])(state)
@@ -1624,14 +1661,14 @@ export const selectMultiLineDataFunc = createSelector(
     )
 )
 export const selectArcRange = createSelector(
-  [selectMergedArcs, selectLegendTypesFn],
-  (arcsByType, legendObjectsFunc) =>
+  selectEffectiveArcsBy,
+  (effectiveArcsBy) =>
     R.memoizeWith(
-      (type, prop, mapId, dimensionOptions) =>
-        JSON.stringify([type, prop, dimensionOptions, mapId]),
-      (type, prop, mapId, dimensionOptions) =>
-        R.pipe(
-          R.path([type, dimensionOptions, prop]),
+      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+      (type, prop, mapId) => {
+        const effectiveArcs = effectiveArcsBy(type, mapId)
+        return R.pipe(
+          R.path([0, 'props', prop]), // Picking a specific index (in this case 0) is irrelevant as the elements of the array only vary by value and the props should remain the same
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1646,11 +1683,13 @@ export const selectArcRange = createSelector(
                   min: R.min(acc.min, R.path(['values', prop], value)),
                 }),
                 { min: Infinity, max: -Infinity }
-              )(R.propOr([], type, arcsByType))
+              )(effectiveArcs)
             )
           ),
+          R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(legendObjectsFunc({ mapId, layerKey: 'arc' }))
+        )(effectiveArcs)
+      }
     )
 )
 export const selectGroupedEnabledGeosFunc = createSelector(
@@ -1768,14 +1807,14 @@ export const selectGroupedNodesWithIdFunc = createSelector(
 )
 
 export const selectNodeRange = createSelector(
-  [selectLegendTypesFn, selectMergedNodes],
-  (legendObjectsFunc, nodesByType) =>
+  selectEffectiveNodesBy,
+  (effectiveNodesBy) =>
     R.memoizeWith(
-      (type, prop, mapId, dimensionOptions) =>
-        JSON.stringify([type, prop, dimensionOptions, mapId]),
-      (type, prop, mapId, dimensionOptions) =>
-        R.pipe(
-          R.path([type, dimensionOptions, prop]),
+      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+      (type, prop, mapId) => {
+        const effectiveNodes = effectiveNodesBy(type, mapId)
+        return R.pipe(
+          R.path([0, 'props', prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1789,22 +1828,24 @@ export const selectNodeRange = createSelector(
                   min: R.min(acc.min, R.path(['values', prop], value)),
                 }),
                 { min: Infinity, max: -Infinity }
-              )(R.propOr([], type, nodesByType))
+              )(effectiveNodes)
             )
           ),
+          R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(legendObjectsFunc({ mapId, layerKey: 'node' }))
+        )(effectiveNodes)
+      }
     )
 )
 export const selectGeoRange = createSelector(
-  [selectLegendTypesFn, selectMergedGeos],
-  (legendObjectsFunc, geosByType) =>
+  [selectEffectiveGeosBy],
+  (effectiveGeosBy) =>
     R.memoizeWith(
-      (type, prop, mapId, dimensionOptions) =>
-        JSON.stringify([type, prop, dimensionOptions, mapId]),
-      (type, prop, mapId, dimensionOptions) =>
-        R.pipe(
-          R.path([type, dimensionOptions, prop]),
+      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+      (type, prop, mapId) => {
+        const effectiveGeos = effectiveGeosBy(type, mapId)
+        return R.pipe(
+          R.path([0, 'props', prop]),
           R.when(
             (range) =>
               R.isEmpty(range) ||
@@ -1818,11 +1859,13 @@ export const selectGeoRange = createSelector(
                   min: R.min(acc.min, R.path(['values', prop], value)),
                 }),
                 { min: Infinity, max: -Infinity }
-              )(R.propOr([], type, geosByType))
+              )(effectiveGeos)
             )
           ),
+          R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
           R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
-        )(legendObjectsFunc({ mapId, layerKey: 'geo' }))
+        )(effectiveGeos)
+      }
     )
 )
 
@@ -1841,12 +1884,7 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
               [d.type, 'colorBy'],
               enabledArcsFunc(mapId)
             )
-            const statRange = arcRange(
-              d.type,
-              colorProp,
-              mapId,
-              'colorByOptions'
-            )
+            const statRange = arcRange(d.type, colorProp, mapId)
             return !(
               R.has('nullColor', statRange) &&
               R.isNil(R.prop('nullColor', statRange))
@@ -2112,49 +2150,44 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
   }
 )
 export const selectNodeClusterGeoJsonObjectFunc = createSelector(
-  [selectNodeClustersAtZoomFunc, selectEnabledNodesFunc],
-  (nodeClustersFunc, legendObjectsFunc) =>
+  [
+    selectNodeClustersAtZoomFunc,
+    selectEnabledNodesFunc,
+    selectEffectiveNodesBy,
+  ],
+  (nodeClustersFunc, legendObjectsFunc, effectiveNodesBy) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
         R.map((group) => {
           const nodeType = group.properties.type
           const legendObj = legendObjectsFunc(mapId)[nodeType]
+          const effectiveNodes = effectiveNodesBy(nodeType, mapId)[0]
           const sizePropObj = R.path(['properties', 'sizeProp'], group)
-          const sizeProp = legendObj.sizeBy
-          const isSizeCategorical = !R.has('min')(
-            legendObj.sizeByOptions[sizeProp]
-          )
+
+          const sizeByProp = effectiveNodes.props[effectiveNodes.sizeBy]
+          const isSizeCategorical = !R.has('min')(sizeByProp)
           const sizeRange = isSizeCategorical
-            ? legendObj.sizeByOptions[sizeProp]
+            ? R.pluck('size')(sizeByProp.options)
             : nodeClustersFunc(mapId).range[group.properties.type].size
           const size = isSizeCategorical
             ? parseFloat(R.propOr('0', sizePropObj.value, sizeRange))
             : getScaledValue(
                 R.prop('min', sizeRange),
                 R.prop('max', sizeRange),
-                parseFloat(
-                  R.prop('startSize', legendObj.sizeByOptions[sizeProp])
-                ),
-                parseFloat(
-                  R.prop('endSize', legendObj.sizeByOptions[sizeProp])
-                ),
+                parseFloat(R.prop('startSize', sizeByProp)),
+                parseFloat(R.prop('endSize', sizeByProp)),
                 parseFloat(sizePropObj.value)
               )
 
-          const colorProp = legendObj.colorBy
+          const colorByProp = effectiveNodes.props[effectiveNodes.colorBy]
           const colorObj = group.properties.colorProp
           const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const isColorCategorical = !R.has('min')(
-            legendObj.colorByOptions[colorProp]
-          )
+          const isColorCategorical = !R.has('min')(colorByProp)
           const value = R.prop('value', colorObj)
           const colorRange = isColorCategorical
-            ? legendObj.colorByOptions[colorProp]
-            : R.map((prop) => legendObj.colorByOptions[colorProp][prop])([
-                'startGradientColor',
-                'endGradientColor',
-              ])
+            ? R.pluck('color')(colorByProp.options)
+            : R.props(['startGradientColor', 'endGradientColor'])(colorByProp)
           const color = isColorCategorical
             ? R.propOr('', value, colorRange)
                 .replace(/[^\d,.]/g, '')

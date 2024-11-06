@@ -474,7 +474,7 @@ const GridFilter = ({
               return (
                 <GridEditMultiSelectCell
                   options={filterables[row.source].options}
-                  colorByOptions={R.path([row.source, 'colorByOptions'])(
+                  colorOptions={R.path([row.source, 'colorOptions'])(
                     filterableExtraProps
                   )}
                   onChange={(event, newValue) =>
@@ -512,7 +512,7 @@ const GridFilter = ({
                 R.always(
                   <GridMultiSelectCell
                     options={R.path([row.source, 'options'])(filterables)}
-                    colorByOptions={R.path([row.source, 'colorByOptions'])(
+                    colorOptions={R.path([row.source, 'colorOptions'])(
                       filterableExtraProps
                     )}
                     {...params}

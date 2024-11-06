@@ -25,7 +25,7 @@ const GridEditMultiSelectCell = ({
   placeholder = 'Select values',
   value: defaultValue,
   options: optionsRaw,
-  colorByOptions = {},
+  colorOptions = {},
   readOnly,
   onChange,
 }) => {
@@ -47,8 +47,8 @@ const GridEditMultiSelectCell = ({
       R.applySpec({
         main: R.identity,
         contrastText: R.unless(R.isNil, getContrastText),
-      })(colorByOptions[option]),
-    [colorByOptions]
+      })(colorOptions[option]),
+    [colorOptions]
   )
 
   return (

@@ -16,7 +16,6 @@ import { includesPath } from '../../../utils'
 const useMapFilter = ({
   mapId,
   group,
-  colorByOptions,
   filtersPath,
   featureTypeProps,
   filters,
@@ -47,12 +46,16 @@ const useMapFilter = ({
         R.cond([
           [
             R.propEq('selector', 'type'),
-            R.always({ colorByOptions: colorByOptions[key] }),
+            R.always({
+              colorOptions: R.pluck('color')(
+                featureTypeProps[key]?.options ?? []
+              ),
+            }),
           ],
           // Others if needed
         ])(value)
       )(filterableProps),
-    [colorByOptions, filterableProps]
+    [featureTypeProps, filterableProps]
   )
 
   const numActiveFilters = useMemo(
