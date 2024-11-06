@@ -72,10 +72,6 @@ const DashboardChart = ({ chartObj }) => {
   const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
 
-  useEffect(() => {
-    setLoading(false)
-  }, [formattedData])
-
   // for some reason useLayoutEffect doesn't set the state before the chart is rendered
   // so we use useMemo to trigger the loading state
   useMemo(() => {
@@ -87,9 +83,11 @@ const DashboardChart = ({ chartObj }) => {
     const runWorkers = async () => {
       memoizedChartFunc(cleanedChartObj).then((computedData) => {
         setFormattedData(computedData)
+        setLoading(false)
       })
     }
-    runWorkers()
+    const workerRunner = setTimeout(runWorkers, 1)
+    return () => clearTimeout(workerRunner)
   }, [cleanedChartObj, memoizedChartFunc])
 
   const groupingRange = R.pipe(
