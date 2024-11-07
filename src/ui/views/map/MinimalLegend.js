@@ -23,6 +23,7 @@ import {
 } from '@mui/material'
 import { color } from 'd3-color'
 import { matchIsValidColor, MuiColorInput } from 'mui-color-input'
+import * as R from 'ramda'
 import { Fragment, memo, useCallback, useMemo, useState } from 'react'
 import { LuGroup, LuShapes, LuUngroup } from 'react-icons/lu'
 import {
@@ -77,6 +78,7 @@ import {
   getContrastText,
   includesPath,
   NumberFormat,
+  orderEntireDict,
   withIndex,
 } from '../../../utils'
 
@@ -337,10 +339,11 @@ const CategoricalColorLegend = ({
   )
   const colorOptions = useMemo(
     () =>
-      Object.entries(colorByProps[colorBy].options).reduce(
-        (acc, [option, value]) => ({ ...acc, [option]: value.color }),
-        {}
-      ),
+      R.pipe(
+        orderEntireDict, // Preserve order of options after state updates
+        R.prop('options'),
+        R.pluck('color')
+      )(colorByProps[colorBy]),
     [colorBy, colorByProps]
   )
   return (
@@ -441,7 +444,7 @@ const ColorLegend = ({
         )
 
         if (hasGradientColors || hasColorOptions) {
-          return { ...acc, [propId]: prop }
+          acc[propId] = prop
         }
         return acc
       }, {}),
@@ -720,12 +723,15 @@ const CategoricalSizeLegend = ({
     [handleChangeComittedRaw, sizeSliderProps.key]
   )
 
-  const sizeOptions = useMemo(() => {
-    return Object.entries(sizeByProps[sizeBy].options).reduce(
-      (acc, [option, value]) => ({ ...acc, [option]: value.size ?? '1px' }),
-      {}
-    )
-  }, [sizeBy, sizeByProps])
+  const sizeOptions = useMemo(
+    () =>
+      R.pipe(
+        orderEntireDict, // Preserve order of options after state updates
+        R.prop('options'),
+        R.map(R.propOr('1px', 'size'))
+      )(sizeByProps[sizeBy]),
+    [sizeBy, sizeByProps]
+  )
   return (
     <>
       <OverflowText

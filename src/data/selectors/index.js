@@ -193,9 +193,13 @@ export const selectOrderedGroupedOutputs = createSelector(
   selectGroupedOutputs,
   (data) => orderEntireDict(data)
 )
+const selectOrderedMapFeatures = createSelector(selectMapFeatures, (data) =>
+  orderEntireDict(data)
+)
 // Data -> Types
-export const selectFeatureData = createSelector(selectMapFeatures, (data) =>
-  R.propOr({}, 'data')(data)
+export const selectFeatureData = createSelector(
+  selectOrderedMapFeatures,
+  (data) => R.propOr({}, 'data')(data)
 )
 export const selectNodeTypes = createSelector(
   [selectFeatureData, selectCurrentTime],
