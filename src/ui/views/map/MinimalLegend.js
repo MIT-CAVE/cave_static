@@ -58,9 +58,9 @@ import {
   selectSettingsIconUrl,
   selectSync,
 } from '../../../data/selectors'
-import { propId, statFns, statId } from '../../../utils/enums'
+import { statFuncs, propId, statId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
-import { getStatLabel } from '../../../utils/stats'
+import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
 import {
   EnhancedListbox,
   ListboxPropsContext,
@@ -266,7 +266,7 @@ const NumericalColorLegend = ({
       <Grid2 container spacing={1.5} sx={styles.gradientRoot}>
         <Grid2 size={3} sx={styles.gradientLabel}>
           <Typography variant="caption">Min</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={minLabel} />
           </Typography>
         </Grid2>
@@ -279,7 +279,7 @@ const NumericalColorLegend = ({
         </Grid2>
         <Grid2 size={3} sx={styles.gradientLabel}>
           <Typography variant="caption">Max</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={maxLabel} />
           </Typography>
         </Grid2>
@@ -374,13 +374,6 @@ const CategoricalColorLegend = ({
 }
 
 const GroupCalcSelector = ({ type, value, onSelect }) => {
-  const optionsList = useMemo(() => [...statFns[type].values()], [type])
-  if (!statFns[type].has(value)) {
-    // When a different prop type is selected and the
-    // current aggr. fn is not supported, the first
-    // element of the list of agg. Fns is chosen
-    onSelect(optionsList[0])
-  }
   const IconClass =
     type === propId.TOGGLE
       ? TbLogicAnd
@@ -395,12 +388,13 @@ const GroupCalcSelector = ({ type, value, onSelect }) => {
         labelId="group-calc-fn-label"
         label="Group Aggreg. Func."
         getLabel={getStatLabel}
+        optionsList={getStatFuncsByType(type)}
         startAdornment={
           <InputAdornment position="start">
             <IconClass size={24} />
           </InputAdornment>
         }
-        {...{ optionsList, value, onSelect }}
+        {...{ value, onSelect }}
       />
     </FormControl>
   )
@@ -439,7 +433,11 @@ const ColorLegend = ({
               value={colorBy}
               optionsList={Object.keys(colorByOptions)}
               getLabel={(prop) => featureTypeProps[prop].name || prop}
-              onSelect={onSelectProp}
+              onSelect={onSelectProp(
+                'colorBy',
+                'groupCalcByColor',
+                groupCalcValue
+              )}
             />
           </FormControl>
         </Grid2>
@@ -465,7 +463,7 @@ const ColorLegend = ({
         <GroupCalcSelector
           type={colorByProp.type}
           value={groupCalcValue}
-          onSelect={onSelectGroupCalc}
+          onSelect={onSelectGroupCalc('groupCalcByColor')}
         />
       )}
     </Paper>
@@ -490,6 +488,27 @@ const SizeSlider = ({
     () => (isRange ? [Math.min(...value), Math.max(...value)] : []),
     [isRange, value]
   )
+  const marks = useMemo(
+    () => [
+      {
+        value: value[0],
+        label: <OverflowText text={sizeLabel} sx={{ maxWidth: '64px' }} />,
+      },
+      ...(minValue > 16 || (!isRange && value[0] > 16)
+        ? [{ value: 1, label: '1px' }]
+        : []),
+      ...(isRange
+        ? [
+            { value: value[0], label: 'Min' },
+            { value: value[value.length - 1], label: 'Max' },
+          ]
+        : []),
+      ...(maxValue < 83 || (!isRange && value[0] < 83)
+        ? [{ value: 100, label: '100px' }]
+        : []),
+    ],
+    [isRange, maxValue, minValue, sizeLabel, value]
+  )
   return (
     <ClickAwayListener onClickAway={onClose}>
       <Slider
@@ -503,28 +522,9 @@ const SizeSlider = ({
         }}
         min={1}
         max={100}
-        {...{ value }}
-        marks={[
-          {
-            value: value[0],
-            label: <OverflowText text={sizeLabel} sx={{ maxWidth: '64px' }} />,
-          },
-          ...(minValue > 16 || (!isRange && value[0] > 16)
-            ? [{ value: 1, label: '1px' }]
-            : []),
-          ...(isRange
-            ? [
-                { value: value[0], label: 'Min' },
-                { value: value[value.length - 1], label: 'Max' },
-              ]
-            : []),
-          ...(maxValue < 83 || (!isRange && value[0] < 83)
-            ? [{ value: 100, label: '100px' }]
-            : []),
-        ]}
         valueLabelDisplay="on"
+        {...{ value, marks, onChange, onChangeCommitted }}
         valueLabelFormat={(value) => `${value}px`}
-        {...{ onChange, onChangeCommitted }}
       />
     </ClickAwayListener>
   )
@@ -597,7 +597,7 @@ const NumericalSizeLegend = ({
       >
         <Grid2 size={3} sx={styles.gradientLabel}>
           <Typography variant="caption">Min</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={minLabel} />
           </Typography>
         </Grid2>
@@ -632,7 +632,7 @@ const NumericalSizeLegend = ({
 
         <Grid2 size={3} sx={styles.gradientLabel}>
           <Typography variant="caption">Max</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={maxLabel} />
           </Typography>
         </Grid2>
@@ -642,10 +642,10 @@ const NumericalSizeLegend = ({
         <SizeSlider
           value={[
             ...(minSz.sizeSliderProps.value != null
-              ? [minSz.sizeSliderProps.value]
+              ? minSz.sizeSliderProps.value
               : []),
             ...(maxSz.sizeSliderProps.value != null
-              ? [maxSz.sizeSliderProps.value]
+              ? maxSz.sizeSliderProps.value
               : []),
           ]}
           onClose={handleClose}
@@ -759,7 +759,11 @@ const SizeLegend = ({
               value={sizeBy}
               {...{ optionsList }}
               getLabel={(option) => featureTypeProps[option].name || option}
-              onSelect={onSelectProp}
+              onSelect={onSelectProp(
+                'sizeBy',
+                'groupCalcBySize',
+                groupCalcValue
+              )}
             />
           </FormControl>
         </Grid2>
@@ -785,7 +789,7 @@ const SizeLegend = ({
         <GroupCalcSelector
           type={sizeByProp.type}
           value={groupCalcValue}
-          onSelect={onSelectGroupCalc}
+          onSelect={onSelectGroupCalc('groupCalcBySize')}
         />
       )}
     </Paper>
@@ -1063,7 +1067,7 @@ const LegendRowDetails = ({
     [getRange, heightBy, id, mapId]
   )
 
-  const handleSelectProp = useCallback(
+  const handleSelectGroupCalc = useCallback(
     (pathEnd) => (value, event) => {
       const path = [...basePath, pathEnd]
       dispatch(
@@ -1073,9 +1077,31 @@ const LegendRowDetails = ({
           sync: !includesPath(Object.values(sync), path),
         })
       )
-      event.stopPropagation()
+      if (event != null) event.stopPropagation()
     },
     [basePath, dispatch, sync]
+  )
+
+  const handleSelectProp = useCallback(
+    (pathEnd, groupCalcPathEnd, groupCalcValue) => (value, event) => {
+      const path = [...basePath, pathEnd]
+      const newPropType = featureTypeProps[value].type
+      if (!statFuncs[newPropType].has(groupCalcValue)) {
+        // If the selected aggregation function is not
+        // valid for the new prop type, set a default
+        const [defaultGroupCalc] = getStatFuncsByType(newPropType)
+        handleSelectGroupCalc(groupCalcPathEnd)(defaultGroupCalc)
+      }
+      dispatch(
+        mutateLocal({
+          path,
+          value,
+          sync: !includesPath(Object.values(sync), path),
+        })
+      )
+      event.stopPropagation()
+    },
+    [basePath, dispatch, featureTypeProps, handleSelectGroupCalc, sync]
   )
 
   const handleToggleGroup = useCallback(
@@ -1091,21 +1117,6 @@ const LegendRowDetails = ({
       event.stopPropagation()
     },
     [basePath, dispatch, group, sync]
-  )
-
-  const handleSelectGroupCalc = useCallback(
-    (pathEnd) => (value, event) => {
-      const path = [...basePath, pathEnd]
-      dispatch(
-        mutateLocal({
-          path,
-          value,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-      if (event != null) event.stopPropagation()
-    },
-    [basePath, dispatch, sync]
   )
 
   const handleChangeColor = useCallback(
@@ -1290,8 +1301,8 @@ const LegendRowDetails = ({
                     featureTypeProps,
                   }}
                   groupCalcValue={groupCalcByColor}
-                  onSelectProp={handleSelectProp('colorBy')}
-                  onSelectGroupCalc={handleSelectGroupCalc('groupCalcByColor')}
+                  onSelectProp={handleSelectProp}
+                  onSelectGroupCalc={handleSelectGroupCalc}
                   onChangeColor={handleChangeColor}
                 />
               )}
@@ -1308,8 +1319,8 @@ const LegendRowDetails = ({
                     featureTypeProps,
                   }}
                   groupCalcValue={groupCalcBySize}
-                  onSelectProp={handleSelectProp('sizeBy')}
-                  onSelectGroupCalc={handleSelectGroupCalc('groupCalcBySize')}
+                  onSelectProp={handleSelectProp}
+                  onSelectGroupCalc={handleSelectGroupCalc}
                   onChangeSize={handleChangeSize}
                 />
               )}

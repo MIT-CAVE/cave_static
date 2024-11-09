@@ -40,9 +40,9 @@ import {
   selectIsGlobe,
   selectCharts,
 } from '../../../data/selectors'
-import { propId, statId, statFns } from '../../../utils/enums'
+import { propId, statId, statFuncs } from '../../../utils/enums'
 import { useFilter } from '../../../utils/hooks'
-import { getStatLabel } from '../../../utils/stats'
+import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
 
@@ -455,8 +455,8 @@ const MapLegendGroupRowToggleLayer = ({
 }
 
 const GroupCalcDropdown = ({ propType, value, onSelect }) => {
-  const optionsList = [...statFns[propType].values()]
-  if (!statFns[propType].has(value)) {
+  const optionsList = getStatFuncsByType(propType)
+  if (!statFuncs[propType].has(value)) {
     // When a different prop type is selected and the
     // current aggr. fn is not supported, the first
     // element of the list of agg. Fns is chosen

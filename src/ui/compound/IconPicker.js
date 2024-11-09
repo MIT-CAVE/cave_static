@@ -44,7 +44,7 @@ export const EnhancedListbox = forwardRef((props, ref) => {
             return cloneElement(
               child,
               { style },
-              <Stack key={option} component="li" direction="row" spacing={1}>
+              <Stack key={option} direction="row" spacing={1}>
                 <FetchedIcon size={40} iconName={getIcon(option)} />
                 <Typography variant="subtitle2">{getLabel(option)}</Typography>
               </Stack>

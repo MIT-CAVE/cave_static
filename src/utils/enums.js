@@ -106,7 +106,7 @@ export const statId = {
   OR: 'or',
 }
 
-export const statFns = {
+export const statFuncs = {
   [propId.NUMBER]: new Set([
     statId.COUNT,
     statId.MODE,
