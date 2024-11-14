@@ -1,27 +1,47 @@
+import { decode as msgpackDecoder } from '@msgpack/msgpack'
 import * as R from 'ramda'
 
 class socket {
-  connect(token, onMessage) {
+  connect(token, onMessage, wsPath, wsEncoding) {
     return new Promise((resolve) => {
       var connectUrl = R.replace(
         'http',
         'ws',
         window.location.ancestorOrigins[0]
       )
-      this.ws = new WebSocket(`${connectUrl}/ws/?user_token=${token}`)
+      // Set ws path to /ws/ if not provided
+      if (wsPath === undefined) {
+        wsPath = '/ws/'
+      }
+      // get the decoder based on the encoding
+      if (wsEncoding === undefined || wsEncoding === 'json') {
+        this.decoder = JSON.parse
+      } else if (wsEncoding === 'msgpack') {
+        this.decoder = msgpackDecoder
+      } else {
+        console.error('Invalid encoding provided')
+      }
+
+      this.ws = new WebSocket(`${connectUrl}${wsPath}?user_token=${token}`)
 
       this.ws.onopen = () => {
         console.log('App Socket Connection Established!')
         resolve('Connection established')
       }
 
-      this.ws.onmessage = (e) => {
+      this.ws.onmessage = async (e) => {
         // Listner to take in messages from the websocket consumer
         // parse the sent message and forward it to the onMessage callback
-        // NOTE: The WS consumer auto formats the sent message payload
-        // in a json string as `e.data` so we parse that out here
-        var payload = JSON.parse(e.data)
-        onMessage(payload)
+
+        var data
+        // If e.data is a blob, wait for it to be read as an array buffer
+        if (e.data instanceof Blob) {
+          data = await e.data.arrayBuffer()
+        } else {
+          data = e.data
+        }
+        // Decode and forward the data to the onMessage callback
+        onMessage(this.decoder(data))
       }
 
       this.ws.onclose = (e) => {
@@ -30,7 +50,7 @@ class socket {
         )
         console.log(e)
         setTimeout(() => {
-          this.connect(token, onMessage)
+          this.connect(token, onMessage, wsPath, wsEncoding)
         }, 1000)
       }
 
