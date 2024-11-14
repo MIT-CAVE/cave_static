@@ -8,7 +8,6 @@ import { selectSync } from '../../../data/selectors'
 import { CHART_DEFAULTS } from '../../../utils/constants'
 import { chartVariant } from '../../../utils/enums'
 import { useMutateState } from '../../../utils/hooks'
-import ChartDropdownWrapper from '../dashboard/ChartDropdownWrapper'
 import GlobalOutputsToolbar from '../dashboard/GlobalOutputsToolbar'
 import GroupedOutputsToolbar from '../dashboard/GroupedOutputsToolbar'
 import MapToolbar from '../dashboard/MapToolbar'
@@ -19,8 +18,10 @@ import { includesPath } from '../../../utils'
 
 const styles = {
   content: {
-    marginTop: 1,
+    marginTop: 2,
+    marginBottom: 2,
     padding: 1,
+    height: '100%',
   },
 }
 
@@ -51,36 +52,27 @@ const ChartToolsModal = ({
 
   return (
     <DataGridModal {...{ label, labelExtra, open, onClose }}>
-      <ChartDropdownWrapper
-        sx={{ ml: 0 }}
-        menuProps={{
-          transformOrigin: { horizontal: 'left', vertical: 'top' },
-          anchorOrigin: { horizontal: 'left', vertical: 'bottom' },
-        }}
-      >
-        <Select
-          value={R.propOr('groupedOutput', 'type')(chartObj)}
-          optionsList={[
-            {
-              label: 'Grouped Outputs',
-              value: 'groupedOutput',
-              iconName: 'md/MdMultilineChart',
-            },
-            {
-              label: 'Global Outputs',
-              value: 'globalOutput',
-              iconName: 'md/MdSpeed',
-            },
-            {
-              label: 'Maps',
-              value: 'map',
-              iconName: 'fa/FaMapMarked',
-            },
-          ]}
-          onSelect={handleSelectVizType}
-        />
-      </ChartDropdownWrapper>
-
+      <Select
+        value={R.propOr('groupedOutput', 'type')(chartObj)}
+        optionsList={[
+          {
+            label: 'Grouped Outputs',
+            value: 'groupedOutput',
+            iconName: 'md/MdMultilineChart',
+          },
+          {
+            label: 'Global Outputs',
+            value: 'globalOutput',
+            iconName: 'md/MdSpeed',
+          },
+          {
+            label: 'Maps',
+            value: 'map',
+            iconName: 'fa/FaMapMarked',
+          },
+        ]}
+        onSelect={handleSelectVizType}
+      />
       <Card sx={styles.content}>
         {R.propOr('groupedOutput', 'type', chartObj) === 'groupedOutput' ? (
           <GroupedOutputsToolbar {...{ chartObj, index }} />

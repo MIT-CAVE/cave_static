@@ -1,3 +1,4 @@
+import { Tab, Tabs } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -25,6 +26,7 @@ import {
 import { useMutateState } from '../../../utils/hooks'
 
 import {
+  FetchedIcon,
   Select,
   SelectAccordionList,
   SelectMulti,
@@ -42,6 +44,94 @@ import {
   forceArray,
   capitalize,
 } from '../../../utils'
+
+const CHART_OPTIONS = [
+  {
+    label: 'Bar',
+    value: chartVariant.BAR,
+    iconName: 'md/MdBarChart',
+  },
+  {
+    label: 'Stacked Bar',
+    value: chartVariant.STACKED_BAR,
+    iconName: 'md/MdStackedBarChart',
+  },
+  {
+    label: 'Line',
+    value: chartVariant.LINE,
+    iconName: 'md/MdShowChart',
+  },
+  {
+    label: 'Cumulative Line',
+    value: chartVariant.CUMULATIVE_LINE,
+    iconName: 'md/MdStackedLineChart',
+  },
+  {
+    label: 'Area',
+    value: chartVariant.AREA,
+    iconName: 'tb/TbChartAreaLineFilled',
+  },
+  {
+    label: 'Stacked Area',
+    value: chartVariant.STACKED_AREA,
+    iconName: 'md/MdAreaChart',
+  },
+  {
+    label: 'Waterfall',
+    value: chartVariant.WATERFALL,
+    iconName: 'md/MdWaterfallChart',
+  },
+  {
+    label: 'Stacked Waterfall',
+    value: chartVariant.STACKED_WATERFALL,
+    iconName: 'tb/TbStack2',
+  },
+  {
+    label: 'Box Plot',
+    value: chartVariant.BOX_PLOT,
+    iconName: 'md/MdGraphicEq',
+  },
+  {
+    label: 'Table',
+    value: chartVariant.TABLE,
+    iconName: 'md/MdTableChart',
+  },
+  {
+    label: 'Sunburst',
+    value: chartVariant.SUNBURST,
+    iconName: 'md/MdDonutLarge',
+  },
+  {
+    label: 'Treemap',
+    value: chartVariant.TREEMAP,
+    iconName: 'tb/TbChartTreemap',
+  },
+  {
+    label: 'Gauge',
+    value: chartVariant.GAUGE,
+    iconName: 'tb/TbGauge',
+  },
+  {
+    label: 'Heatmap',
+    value: chartVariant.HEATMAP,
+    iconName: 'tb/TbLayoutDashboard',
+  },
+  {
+    label: 'Scatter',
+    value: chartVariant.SCATTER,
+    iconName: 'md/MdScatterPlot',
+  },
+  {
+    label: 'Distribution',
+    value: chartVariant.DISTRIBUTION,
+    iconName: 'md/MdBarChart',
+  },
+  {
+    label: 'Mixed',
+    value: chartVariant.MIXED,
+    iconName: 'tb/TbChartHistogram',
+  },
+]
 
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const categories = useSelector(selectStatGroupings)
@@ -162,7 +252,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       R.when(R.any(R.isNil), R.always(''))
     )(chartObj)
 
-  const handleSelectChart = (value) => {
+  const handleSelectChart = (_, value) => {
     const statUsesChanged =
       chartStatUses[chartObj.chartType] !== chartStatUses[value]
 
@@ -262,100 +352,23 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   }, [])
   return (
     <>
-      <ChartDropdownWrapper>
-        <Select
-          value={R.propOr('', 'chartType', chartObj)}
-          optionsList={[
-            {
-              label: 'Bar',
-              value: chartVariant.BAR,
-              iconName: 'md/MdBarChart',
-            },
-            {
-              label: 'Stacked Bar',
-              value: chartVariant.STACKED_BAR,
-              iconName: 'md/MdStackedBarChart',
-            },
-            {
-              label: 'Line',
-              value: chartVariant.LINE,
-              iconName: 'md/MdShowChart',
-            },
-            {
-              label: 'Cumulative Line',
-              value: chartVariant.CUMULATIVE_LINE,
-              iconName: 'md/MdStackedLineChart',
-            },
-            {
-              label: 'Area',
-              value: chartVariant.AREA,
-              iconName: 'tb/TbChartAreaLineFilled',
-            },
-            {
-              label: 'Stacked Area',
-              value: chartVariant.STACKED_AREA,
-              iconName: 'md/MdAreaChart',
-            },
-            {
-              label: 'Waterfall',
-              value: chartVariant.WATERFALL,
-              iconName: 'md/MdWaterfallChart',
-            },
-            {
-              label: 'Stacked Waterfall',
-              value: chartVariant.STACKED_WATERFALL,
-              iconName: 'tb/TbStack2',
-            },
-            {
-              label: 'Box Plot',
-              value: chartVariant.BOX_PLOT,
-              iconName: 'md/MdGraphicEq',
-            },
-            {
-              label: 'Table',
-              value: chartVariant.TABLE,
-              iconName: 'md/MdTableChart',
-            },
-            {
-              label: 'Sunburst',
-              value: chartVariant.SUNBURST,
-              iconName: 'md/MdDonutLarge',
-            },
-            {
-              label: 'Treemap',
-              value: chartVariant.TREEMAP,
-              iconName: 'tb/TbChartTreemap',
-            },
-            {
-              label: 'Gauge',
-              value: chartVariant.GAUGE,
-              iconName: 'tb/TbGauge',
-            },
-            {
-              label: 'Heatmap',
-              value: chartVariant.HEATMAP,
-              iconName: 'tb/TbLayoutDashboard',
-            },
-            {
-              label: 'Scatter',
-              value: chartVariant.SCATTER,
-              iconName: 'md/MdScatterPlot',
-            },
-            {
-              label: 'Distribution',
-              value: chartVariant.DISTRIBUTION,
-              iconName: 'md/MdBarChart',
-            },
-            {
-              label: 'Mixed',
-              value: chartVariant.MIXED,
-              iconName: 'tb/TbChartHistogram',
-            },
-          ]}
-          displayIcon
-          onSelect={handleSelectChart}
-        />
-      </ChartDropdownWrapper>
+      <Tabs
+        value={R.propOr('', 'chartType', chartObj)}
+        onChange={handleSelectChart}
+        variant="scrollable"
+        scrollButtons="auto"
+      >
+        {CHART_OPTIONS.map((option) => {
+          return (
+            <Tab
+              key={option.label}
+              label={option.label}
+              value={option.value}
+              icon={<FetchedIcon iconName={option.iconName} />}
+            />
+          )
+        })}
+      </Tabs>
       <ChartDropdownWrapper>
         <SelectMultiAccordion
           disabled={chartObj.chartType === chartVariant.BOX_PLOT}
