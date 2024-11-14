@@ -13,7 +13,6 @@ class socket {
       if (wsPath === undefined) {
         wsPath = '/ws/'
       }
-      console.log(wsEncoding)
       // get the decoder based on the encoding
       if (wsEncoding === undefined || wsEncoding === 'json') {
         this.decoder = JSON.parse
