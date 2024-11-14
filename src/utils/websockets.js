@@ -10,11 +10,12 @@ class socket {
         window.location.ancestorOrigins[0]
       )
       // Set ws path to /ws/ if not provided
-      if (wsPath == null) {
+      if (wsPath === undefined) {
         wsPath = '/ws/'
       }
+      console.log(wsEncoding)
       // get the decoder based on the encoding
-      if (wsEncoding === null || wsEncoding === 'json') {
+      if (wsEncoding === undefined || wsEncoding === 'json') {
         this.decoder = JSON.parse
       } else if (wsEncoding === 'msgpack') {
         this.decoder = msgpackDecoder
