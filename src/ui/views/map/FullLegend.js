@@ -19,7 +19,13 @@ import { useSelector } from 'react-redux'
 
 import ColorLegend from './ColorLegend'
 import HeightLegend from './HeightLegend'
-import { LegendHeader, LegendRoot, useLegend, useLegendDetails } from './Legend'
+import {
+  LegendHeader,
+  LegendRoot,
+  useLegend,
+  useLegendDetails,
+  WithEditBadge,
+} from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
 
@@ -53,27 +59,28 @@ import { withIndex, getLabelFn } from '../../../utils'
 const styles = {
   root: {
     position: 'relative',
-    width: '600px',
+    // width: 'auto',
+    // maxWidth: '800px',
+    width: '700px',
     p: (theme) => theme.spacing(0, 1, 1),
     mx: 0,
-    bgcolor: 'background.paper',
     color: 'text.primary',
     border: 2,
-    borderColor: (theme) => theme.palette.grey[500],
+    borderColor: 'grey.500',
     borderStyle: 'outset',
     borderRadius: 1,
   },
   details: {
     maxHeight: '100%',
     maxWidth: '100%',
+    bgcolor: 'grey.800',
     p: 1.5,
     border: 1,
     boxSizing: 'border-box',
     borderColor: 'rgb(128, 128, 128)',
-    // borderColor: (theme) => theme.palette.primary.main,
     borderStyle: 'outset',
   },
-  toggleGroup: {
+  toggleButton: {
     p: 1,
     borderRadius: '50%',
   },
@@ -202,17 +209,21 @@ const LegendRow = ({
           />
         </Grid2>
         <Grid2 size="auto">
-          <OptionalWrapper
-            component={ToggleButton}
-            wrap={shapeOptions != null}
-            wrapperProps={{
-              value: 'shape',
-              sx: { p: 1, borderRadius: '50%' },
-              onClick: handleToggleShapePicker,
-            }}
-          >
-            <FetchedIcon iconName={icon} size={24} />
-          </OptionalWrapper>
+          <WithEditBadge editing={showShapePicker}>
+            <OptionalWrapper
+              component={ToggleButton}
+              wrap={shapeOptions != null}
+              wrapperProps={{
+                color: showShapePicker ? 'warning' : null,
+                selected: shapeOptions != null,
+                value: 'shape',
+                sx: styles.toggleButton,
+                onClick: handleToggleShapePicker,
+              }}
+            >
+              <FetchedIcon iconName={icon} size={24} />
+            </OptionalWrapper>
+          </WithEditBadge>
         </Grid2>
         <Grid2 size="grow">
           <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
@@ -225,7 +236,7 @@ const LegendRow = ({
               color={group ? 'primary' : null}
               selected={group}
               value={group}
-              sx={styles.toggleGroup}
+              sx={styles.toggleButton}
               onClick={handleToggleGroup}
             >
               {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
@@ -259,69 +270,76 @@ const LegendRow = ({
       {/* TODO: Improve location/width of `ShapePicker` */}
       {showShapePicker && (
         <ShapePicker
-          {...{ groupBy, ListboxComponent }}
-          value={shape}
           label={shapeLabel}
+          value={shape}
           options={shapeOptions}
+          color="warning"
+          {...{ ListboxComponent, groupBy }}
           getIcon={getShapeIcon}
           getLabel={getShapeLabel}
           onChange={handleChangeShape}
         />
       )}
 
-      <Stack direction="row" spacing={1} sx={{ overflow: 'auto' }}>
+      <Grid2 container spacing={1}>
         {sizeBy != null && (
-          <SizeLegend
-            valueRange={
-              group && clusterRange.size ? clusterRange.size : sizeRange
-            }
-            {...{
-              icon,
-              group,
-              sizeBy,
-              sizeByOptions,
-              featureTypeProps,
-            }}
-            groupCalcValue={groupCalcBySize}
-            onSelectProp={handleSelectProp}
-            onSelectGroupCalc={handleSelectGroupCalc}
-            onChangeSize={handleChangeSize}
-          />
+          <Grid2 size="grow">
+            <SizeLegend
+              valueRange={
+                group && clusterRange.size ? clusterRange.size : sizeRange
+              }
+              {...{
+                icon,
+                group,
+                sizeBy,
+                sizeByOptions,
+                featureTypeProps,
+              }}
+              groupCalcValue={groupCalcBySize}
+              onSelectProp={handleSelectProp}
+              onSelectGroupCalc={handleSelectGroupCalc}
+              onChangeSize={handleChangeSize}
+            />
+          </Grid2>
         )}
         {colorBy != null && (
-          <ColorLegend
-            valueRange={
-              group && clusterRange.color ? clusterRange.color : colorRange
-            }
-            {...{
-              legendGroupId,
-              mapId,
-              group,
-              colorBy,
-              colorByOptions,
-              featureTypeProps,
-            }}
-            groupCalcValue={groupCalcByColor}
-            onSelectProp={handleSelectProp}
-            onSelectGroupCalc={handleSelectGroupCalc}
-            onChangeColor={handleChangeColor}
-          />
+          <Grid2 size="grow">
+            <ColorLegend
+              valueRange={
+                group && clusterRange.color ? clusterRange.color : colorRange
+              }
+              {...{
+                legendGroupId,
+                mapId,
+                group,
+                colorBy,
+                colorByOptions,
+                featureTypeProps,
+              }}
+              groupCalcValue={groupCalcByColor}
+              onSelectProp={handleSelectProp}
+              onSelectGroupCalc={handleSelectGroupCalc}
+              onChangeColor={handleChangeColor}
+            />
+          </Grid2>
         )}
         {heightBy != null && (
-          <HeightLegend
-            valueRange={heightRange}
-            {...{
-              legendGroupId,
-              mapId,
-              heightBy,
-              heightByOptions,
-              featureTypeProps,
-            }}
-            icon={<FetchedIcon iconName={icon} />}
-            onSelectProp={handleSelectProp('heightBy')}
-          />
+          <Grid2 size="grow">
+            <HeightLegend
+              valueRange={heightRange}
+              {...{
+                legendGroupId,
+                mapId,
+                heightBy,
+                heightByOptions,
+                featureTypeProps,
+              }}
+              icon={<FetchedIcon iconName={icon} />}
+              onSelectProp={handleSelectProp('heightBy')}
+            />
+          </Grid2>
         )}
-      </Stack>
+      </Grid2>
     </Stack>
   )
 }
@@ -409,7 +427,7 @@ const LegendGroup = ({
       component={Accordion}
       wrap={showLegendGroupNames}
       wrapperProps={{
-        elevation: 2,
+        elevation: 1,
         disableGutters: true,
         defaultExpanded: true,
       }}
@@ -423,7 +441,11 @@ const LegendGroup = ({
           <Typography variant="h6">{legendGroup.name}</Typography>
         </OptionalWrapper>
       )}
-      <OptionalWrapper component={AccordionDetails} wrap={showLegendGroupNames}>
+      <OptionalWrapper
+        component={AccordionDetails}
+        wrap={showLegendGroupNames}
+        wrapperProps={{ sx: { p: 1 } }}
+      >
         {legendGroupData.map(({ id, value, ...props }) =>
           value || showDisabledFeatures ? (
             <MapFeature
@@ -486,10 +508,13 @@ const FullLegend = ({ mapId, onChangeView }) => {
     handleToggleSettings,
   } = useLegend(mapId)
   return (
-    <LegendRoot {...{ mapId }} sx={styles.root}>
+    <LegendRoot
+      {...{ mapId }}
+      sx={[styles.root, showLegendGroupNames && { p: 0 }]}
+    >
       <LegendHeader
         label="Legend"
-        labelProps={{ variant: 'h5' }}
+        labelProps={{ variant: 'h5', pl: 1 }}
         iconProps={{ size: 'large' }}
         {...{ showSettings }}
         onToggleSettings={handleToggleSettings}

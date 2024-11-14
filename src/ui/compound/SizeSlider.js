@@ -1,4 +1,4 @@
-import { ClickAwayListener, Slider } from '@mui/material'
+import { Slider } from '@mui/material'
 import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -42,13 +42,7 @@ export const useSizeSlider = (onChangeSize) => {
   }
 }
 
-const SizeSlider = ({
-  sizeLabel,
-  value,
-  onClose,
-  onChange,
-  onChangeCommitted,
-}) => {
+const SizeSlider = ({ sizeLabel, value, onChange, onChangeCommitted }) => {
   const isRange = value.length > 1
   const [minValue, maxValue] = useMemo(
     () => (isRange ? [Math.min(...value), Math.max(...value)] : []),
@@ -76,23 +70,22 @@ const SizeSlider = ({
     [isRange, maxValue, minValue, sizeLabel, value]
   )
   return (
-    <ClickAwayListener onClickAway={onClose}>
-      <Slider
-        style={{
-          // BUG: For some reason the `sx` prop doesn't work here for `mt` and `mb`
-          marginTop: 40,
-          marginBottom: 32,
-          width: '85%',
-          alignSelf: 'center',
-          boxSizing: 'border-box',
-        }}
-        min={1}
-        max={100}
-        valueLabelDisplay="on"
-        {...{ value, marks, onChange, onChangeCommitted }}
-        valueLabelFormat={(value) => `${value}px`}
-      />
-    </ClickAwayListener>
+    <Slider
+      style={{
+        // BUG: For some reason the `sx` prop doesn't work here for `mt` and `mb`
+        marginTop: '40px',
+        marginBottom: '32px',
+        width: '85%',
+        alignSelf: 'center',
+        boxSizing: 'border-box',
+      }}
+      min={1}
+      max={100}
+      valueLabelDisplay="on"
+      color="warning"
+      {...{ value, marks, onChange, onChangeCommitted }}
+      valueLabelFormat={(value) => `${value}px`}
+    />
   )
 }
 

@@ -7,10 +7,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 
-import { getMaxLabel, getMinLabel, GroupCalcSelector, PropIcon } from './Legend'
+import {
+  getMaxLabel,
+  getMinLabel,
+  GroupCalcSelector,
+  PropIcon,
+  WithEditBadge,
+} from './Legend'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
@@ -20,14 +26,17 @@ import { OverflowText, Select } from '../../compound'
 
 const styles = {
   legendSection: {
+    height: '100%',
     width: '100%',
     p: 1,
     pt: 2,
+    // justifyContent: 'space-between',
     boxSizing: 'border-box',
   },
   categoryRoot: {
+    height: '100%',
     width: '100%',
-    mt: 1,
+    pt: 0.75,
   },
   unit: {
     display: 'flex',
@@ -38,6 +47,11 @@ const styles = {
     px: 1,
     borderColor: 'rgb(128, 128, 128)',
     boxSizing: 'border-box',
+  },
+  rangeRoot: {
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rangeLabel: {
     textAlign: 'center',
@@ -94,22 +108,18 @@ const NumericalSizeLegend = ({
     [activeThumb, maxSz, minSz]
   )
 
-  const handleClose = useCallback(
-    (event) => {
-      minSz.handleClose(event)
-      maxSz.handleClose(event)
-    },
-    [maxSz, minSz]
-  )
+  // const handleClose = useCallback(
+  //   (event) => {
+  //     minSz.handleClose(event)
+  //     maxSz.handleClose(event)
+  //   },
+  //   [maxSz, minSz]
+  // )
 
   const showSizeSlider = minSz.showSizeSlider || maxSz.showSizeSlider
   return (
     <>
-      <Grid2
-        container
-        spacing={0.5}
-        sx={{ alignItems: 'center', justifyContent: 'center' }}
-      >
+      <Grid2 container spacing={0.5} sx={styles.rangeRoot}>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Min</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
@@ -125,22 +135,26 @@ const NumericalSizeLegend = ({
         >
           <Grid2 size={6}>
             {icon && (
-              <PropIcon
-                {...{ icon }}
-                selected={minSz.showSizeSlider}
-                size={minSz.sizeSliderProps.value ?? startSize}
-                onClick={minSz.handleOpen('startSize', startSize)}
-              />
+              <WithEditBadge editing={minSz.showSizeSlider}>
+                <PropIcon
+                  {...{ icon }}
+                  selected={minSz.showSizeSlider}
+                  size={minSz.sizeSliderProps.value ?? startSize}
+                  onClick={minSz.handleOpen('startSize', startSize)}
+                />
+              </WithEditBadge>
             )}
           </Grid2>
           <Grid2 size={6}>
             {icon && (
-              <PropIcon
-                {...{ icon }}
-                selected={maxSz.showSizeSlider}
-                size={maxSz.sizeSliderProps.value ?? endSize}
-                onClick={maxSz.handleOpen('endSize', endSize)}
-              />
+              <WithEditBadge editing={maxSz.showSizeSlider}>
+                <PropIcon
+                  {...{ icon }}
+                  selected={maxSz.showSizeSlider}
+                  size={maxSz.sizeSliderProps.value ?? endSize}
+                  onClick={maxSz.handleOpen('endSize', endSize)}
+                />
+              </WithEditBadge>
             )}
           </Grid2>
         </Grid2>
@@ -163,7 +177,7 @@ const NumericalSizeLegend = ({
               ? maxSz.sizeSliderProps.value
               : []),
           ]}
-          onClose={handleClose}
+          // onClose={handleClose}
           onChange={handleChange}
           onChangeCommitted={handleChangeComitted}
         />
@@ -184,7 +198,7 @@ const CategoricalSizeLegend = ({
     showSizeSlider,
     sizeSliderProps,
     handleOpen,
-    handleClose,
+    // handleClose,
     handleChange,
     handleChangeComitted,
   } = useSizeSlider(onChangeSize)
@@ -213,12 +227,16 @@ const CategoricalSizeLegend = ({
         >
           {Object.entries(sizeOptions).map(([option, value]) => (
             <Stack key={option} sx={{ alignItems: 'center' }}>
-              <PropIcon
-                {...{ icon }}
-                selected={option === sizeSliderProps.key}
-                size={value}
-                onClick={handleOpen(option, value)}
-              />
+              <WithEditBadge
+                editing={showSizeSlider && option === sizeSliderProps.key}
+              >
+                <PropIcon
+                  {...{ icon }}
+                  selected={option === sizeSliderProps.key}
+                  size={value}
+                  onClick={handleOpen(option, value)}
+                />
+              </WithEditBadge>
               <Typography variant="caption">
                 {getCategoryLabel(option)}
               </Typography>
@@ -230,7 +248,7 @@ const CategoricalSizeLegend = ({
         <SizeSlider
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
           value={sizeSliderProps.value}
-          onClose={handleClose}
+          // onClose={handleClose}
           onChange={handleChange}
           onChangeCommitted={handleChangeComitted}
         />
@@ -311,4 +329,4 @@ const SizeLegend = ({
   )
 }
 
-export default SizeLegend
+export default memo(SizeLegend)

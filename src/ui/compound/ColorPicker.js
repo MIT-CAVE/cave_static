@@ -1,4 +1,3 @@
-import { ClickAwayListener } from '@mui/material'
 import { color } from 'd3-color'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
@@ -36,25 +35,24 @@ export const useColorPicker = (onChangeColor) => {
   }
 }
 
-const ColorPicker = ({ colorLabel, value, onClose, onChange }) => {
+const ColorPicker = ({ colorLabel, value, onChange }) => {
   const formattedColor = useMemo(() => {
     if (!matchIsValidColor(value)) return value
     return color(value).formatHex8().toLowerCase()
   }, [value])
 
   return (
-    <ClickAwayListener onClickAway={onClose}>
-      <MuiColorInput
-        // size="small"
-        color="error"
-        format="hex8"
-        PopoverProps={{ onClose }}
-        label={`Color picker \u279D ${colorLabel}`}
-        style={{ marginTop: '20px' }}
-        value={formattedColor}
-        {...{ onChange }}
-      />
-    </ClickAwayListener>
+    <MuiColorInput
+      // size="small"
+      focused
+      color="warning"
+      format="hex8"
+      // PopoverProps={{ onClose }}
+      label={`Color picker \u279D ${colorLabel}`}
+      style={{ marginTop: '20px' }}
+      value={formattedColor}
+      {...{ onChange }}
+    />
   )
 }
 

@@ -30,6 +30,8 @@ import {
   LegendRoot,
   useLegend,
   useLegendDetails,
+  WithEditBadge,
+  WithBadge,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
@@ -74,7 +76,7 @@ const styles = {
     mx: 0,
     color: 'text.primary',
     border: 2,
-    borderColor: (theme) => theme.palette.grey[500],
+    borderColor: 'grey.500',
     borderStyle: 'outset',
     borderRadius: 1,
   },
@@ -86,12 +88,6 @@ const styles = {
     border: 1,
     borderColor: 'rgb(128, 128, 128)',
     borderStyle: 'outset',
-  },
-  legendSection: {
-    width: '100%',
-    p: 1,
-    pt: 2,
-    boxSizing: 'border-box',
   },
   popper: {
     height: '100%',
@@ -109,46 +105,10 @@ const styles = {
     // borderColor: (theme) => theme.palette.primary.main,
     borderStyle: 'outset',
   },
-  categoryRoot: {
-    width: '100%',
-    mt: 1,
-  },
-  category: {
-    height: '12px',
-    minWidth: '12px',
-    p: 1,
-    boxSizing: 'content-box',
-    textTransform: 'none',
-  },
-  unit: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    border: 1,
-    px: 1,
-    borderColor: 'rgb(128, 128, 128)',
-    boxSizing: 'border-box',
-  },
-  toggleGroup: {
+  toggleButton: {
     p: 1,
     borderRadius: '50%',
   },
-  gradientRoot: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    m: 1,
-  },
-  gradientLabel: {
-    textAlign: 'center',
-    maxWidth: '56px',
-  },
-  getGradient: (minColor, maxColor) => ({
-    width: '100%',
-    height: '24px',
-    minWidth: '80px',
-    backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
-  }),
 }
 
 const LegendRowDetails = ({
@@ -253,9 +213,16 @@ const LegendRowDetails = ({
       onMouseLeave={selected ? null : handleCloseMenu}
       onClick={handleToggleSelected}
     >
-      <Badge color="info" variant="dot" invisible={numActiveFilters < 1}>
-        <PiInfo />
-      </Badge>
+      <WithBadge
+        size={14}
+        color="#29b6f6"
+        overlap="rectangular"
+        showBadge={numActiveFilters > 0}
+        slotProps={{ badge: { sx: { right: 0, top: 0 } } }}
+        reactIcon={() => <MdFilterAlt color="#4a4a4a" />}
+      >
+        <PiInfo color={selected ? '#90caf9' : '#fff'} />
+      </WithBadge>
       <Portal container={() => (containerRef ? containerRef.current : null)}>
         <Popper
           {...{ anchorEl }}
@@ -294,17 +261,21 @@ const LegendRowDetails = ({
                 />
               </Grid2>
               <Grid2 size="auto">
-                <OptionalWrapper
-                  component={ToggleButton}
-                  wrap={shapeOptions != null}
-                  wrapperProps={{
-                    value: 'shape',
-                    sx: { p: 1, borderRadius: '50%' },
-                    onClick: handleToggleShapePicker,
-                  }}
-                >
-                  <FetchedIcon iconName={icon} size={24} />
-                </OptionalWrapper>
+                <WithEditBadge editing={showShapePicker}>
+                  <OptionalWrapper
+                    component={ToggleButton}
+                    wrap={shapeOptions != null}
+                    wrapperProps={{
+                      color: showShapePicker ? 'warning' : null,
+                      selected: shapeOptions != null,
+                      value: 'shape',
+                      sx: styles.toggleButton,
+                      onClick: handleToggleShapePicker,
+                    }}
+                  >
+                    <FetchedIcon iconName={icon} size={24} />
+                  </OptionalWrapper>
+                </WithEditBadge>
               </Grid2>
               <Grid2 size="grow">
                 <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
@@ -317,7 +288,7 @@ const LegendRowDetails = ({
                     color={group ? 'primary' : null}
                     selected={group}
                     value={group}
-                    sx={styles.toggleGroup}
+                    sx={styles.toggleButton}
                     onClick={handleToggleGroup}
                   >
                     {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
@@ -352,10 +323,11 @@ const LegendRowDetails = ({
             </Grid2>
             {showShapePicker && (
               <ShapePicker
-                {...{ groupBy, ListboxComponent }}
-                value={shape}
                 label={shapeLabel}
+                value={shape}
                 options={shapeOptions}
+                color="warning"
+                {...{ ListboxComponent, groupBy }}
                 getIcon={getShapeIcon}
                 getLabel={getShapeLabel}
                 onChange={handleChangeShape}

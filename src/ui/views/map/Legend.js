@@ -1,4 +1,6 @@
 import {
+  Avatar,
+  Badge,
   Box,
   ButtonBase,
   FormControl,
@@ -11,7 +13,7 @@ import {
 } from '@mui/material'
 import { createContext, useCallback, useMemo } from 'react'
 import { LuShapes } from 'react-icons/lu'
-import { MdOutlineFactCheck } from 'react-icons/md'
+import { MdOutlineEdit, MdOutlineFactCheck } from 'react-icons/md'
 import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
@@ -43,7 +45,7 @@ const styles = {
     top: '8px',
     zIndex: 1,
     overflow: 'auto',
-    // scrollbarGutter: 'stable',
+    scrollbarGutter: 'stable',
   },
   legendRoot: {
     width: 'auto',
@@ -267,6 +269,46 @@ export const RippleBox = ({ selected, sx = [], ...props }) => (
   <ButtonBase
     // component="div"
     sx={[styles.getRippleBox(selected), ...forceArray(sx)]}
+    {...props}
+  />
+)
+
+// TODO: Move this to some `legendUtils.js` module
+export const WithBadge = ({
+  reactIcon: ReactIcon,
+  color,
+  showBadge,
+  sx = [],
+  size = 16,
+  ...props
+}) => (
+  <Badge
+    overlap="circular"
+    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+    invisible={!showBadge}
+    sx={[showBadge && { color }, ...forceArray(sx)]}
+    badgeContent={
+      <Avatar
+        sx={{
+          bgcolor: color,
+          height: size,
+          width: size,
+          border: '2px solid #4a4a4a',
+        }}
+      >
+        <ReactIcon size={size - 2} style={{ padding: 0 }} />
+      </Avatar>
+    }
+    {...props}
+  />
+)
+
+// TODO: Move this to some `legendUtils.js` module
+export const WithEditBadge = ({ editing, ...props }) => (
+  <WithBadge
+    reactIcon={MdOutlineEdit}
+    color="#ffa726"
+    showBadge={editing}
     {...props}
   />
 )

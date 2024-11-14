@@ -7,7 +7,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -15,6 +15,7 @@ import {
   getMinLabel,
   GroupCalcSelector,
   RippleBox,
+  WithEditBadge,
 } from './Legend'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
@@ -27,14 +28,16 @@ import { getContrastText } from '../../../utils'
 
 const styles = {
   legendSection: {
+    height: '100%',
     width: '100%',
     p: 1,
     pt: 2,
     boxSizing: 'border-box',
   },
   categoryRoot: {
+    height: '100%',
     width: '100%',
-    mt: 1,
+    pt: 0.75,
   },
   category: {
     height: '12px',
@@ -54,6 +57,7 @@ const styles = {
     boxSizing: 'border-box',
   },
   gradientRoot: {
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     m: 1,
@@ -69,6 +73,16 @@ const styles = {
     backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
   }),
 }
+
+const WithEditColorBadge = ({ showBadge, ...props }) => (
+  <WithEditBadge
+    editing={showBadge}
+    sx={{ display: 'flex' }}
+    // overlap="rectangular"
+    slotProps={{ badge: { sx: { right: '4px' } } }}
+    {...props}
+  />
+)
 
 const NumericalColorLegend = ({
   group,
@@ -88,13 +102,13 @@ const NumericalColorLegend = ({
     maxCp.handleOpen('endGradientColor', endGradientColor)()
   }, [endGradientColor, maxCp, minCp, startGradientColor])
 
-  const handleClose = useCallback(
-    (event) => {
-      minCp.handleClose(event)
-      maxCp.handleClose(event)
-    },
-    [maxCp, minCp]
-  )
+  // const handleClose = useCallback(
+  //   (event) => {
+  //     minCp.handleClose(event)
+  //     maxCp.handleClose(event)
+  //   },
+  //   [maxCp, minCp]
+  // )
 
   const showColorPicker = minCp.showColorPicker && maxCp.showColorPicker
   return (
@@ -107,11 +121,13 @@ const NumericalColorLegend = ({
           </Typography>
         </Grid2>
         <Grid2 size="grow">
-          <RippleBox
-            selected={showColorPicker}
-            sx={styles.getGradient(startGradientColor, endGradientColor)}
-            onClick={handleClick}
-          />
+          <WithEditColorBadge showBadge={showColorPicker}>
+            <RippleBox
+              selected={showColorPicker}
+              sx={styles.getGradient(startGradientColor, endGradientColor)}
+              onClick={handleClick}
+            />
+          </WithEditColorBadge>
         </Grid2>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Max</Typography>
@@ -128,13 +144,13 @@ const NumericalColorLegend = ({
             colorLabel="Min"
             value={minCp.colorPickerProps.value}
             onChange={minCp.handleChange}
-            onClose={handleClose}
+            // onClose={handleClose}
           />
           <ColorPicker
             colorLabel="Max"
             value={maxCp.colorPickerProps.value}
             onChange={maxCp.handleChange}
-            onClose={handleClose}
+            // onClose={handleClose}
           />
         </Stack>
       )}
@@ -172,8 +188,8 @@ const CategoricalColorLegend = ({
   return (
     <>
       <OverflowText
-        marqueeProps={{ play: !showColorPicker }}
         sx={styles.categoryRoot}
+        marqueeProps={{ play: !showColorPicker }}
       >
         <Stack
           direction="row"
@@ -181,19 +197,24 @@ const CategoricalColorLegend = ({
           sx={{ alignItems: 'center', justifyContent: 'center' }}
         >
           {Object.entries(colorOptions).map(([option, value]) => (
-            <RippleBox
+            <WithEditColorBadge
               key={option}
-              selected={option === colorPickerProps.key}
-              sx={[
-                styles.category,
-                { bgcolor: value, color: getContrastText(value) },
-              ]}
-              onClick={handleOpen(option, value)}
+              // anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              showBadge={showColorPicker && option === colorPickerProps.key}
             >
-              <Typography variant="caption">
-                {getCategoryLabel(option)}
-              </Typography>
-            </RippleBox>
+              <RippleBox
+                selected={option === colorPickerProps.key}
+                sx={[
+                  styles.category,
+                  { bgcolor: value, color: getContrastText(value) },
+                ]}
+                onClick={handleOpen(option, value)}
+              >
+                <Typography variant="caption">
+                  {getCategoryLabel(option)}
+                </Typography>
+              </RippleBox>
+            </WithEditColorBadge>
           ))}
         </Stack>
       </OverflowText>
@@ -279,4 +300,4 @@ const ColorLegend = ({
   )
 }
 
-export default ColorLegend
+export default memo(ColorLegend)

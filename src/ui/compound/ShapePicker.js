@@ -6,6 +6,7 @@ import {
   cloneElement,
   createContext,
   forwardRef,
+  memo,
   useCallback,
   useContext,
   useEffect,
@@ -77,6 +78,7 @@ const ShapePicker = ({
   label,
   value,
   options,
+  color,
   groupBy,
   getIcon,
   getLabel,
@@ -91,9 +93,10 @@ const ShapePicker = ({
       {...{ options, value, ListboxComponent, groupBy, onChange }}
       renderInput={({ InputProps, ...params }) => (
         <TextField
-          {...{ label, ...params }}
           fullWidth
+          focused
           autoFocus
+          {...{ label, color, ...params }}
           slotProps={{
             input: {
               ...InputProps,
@@ -131,4 +134,4 @@ const ShapePicker = ({
   </ListboxPropsContext.Provider>
 )
 
-export default ShapePicker
+export default memo(ShapePicker)
