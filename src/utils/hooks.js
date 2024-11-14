@@ -32,6 +32,20 @@ export const useFilter = () => {
   return { filterOpen, handleOpenFilter, handleCloseFilter }
 }
 
+export const useChartTools = () => {
+  const [chartToolsOpen, setChartToolsOpen] = useState(false)
+
+  const handleOpenChartTools = () => {
+    setChartToolsOpen(true)
+  }
+
+  const handleCloseChartTools = () => {
+    setChartToolsOpen(false)
+  }
+
+  return { chartToolsOpen, handleOpenChartTools, handleCloseChartTools }
+}
+
 /**
  * A hook to dispatch the mutateLocal action as a callback
  * @param {function} getArgs - A function that accepts the arguement to the callback and returns the argument to the mutateLocal action
