@@ -177,6 +177,11 @@ export const chartStatUses = {
   [chartVariant.MIXED]: ['Left', 'Right'],
 }
 
+export const legendViews = {
+  FULL: 'full',
+  MINIMAL: 'minimal',
+}
+
 export const unitPlacements = {
   AFTER: 'after',
   AFTER_WITH_SPACE: 'afterWithSpace',

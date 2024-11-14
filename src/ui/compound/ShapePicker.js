@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material'
+import { InputAdornment, Stack, Typography } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 import TextField from '@mui/material/TextField'
 import * as R from 'ramda'
@@ -9,14 +9,10 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useState,
 } from 'react'
-import { useSelector } from 'react-redux'
 import { FixedSizeList } from 'react-window'
 
 import FetchedIcon from './FetchedIcon'
-
-import { selectSettingsIconUrl } from '../../data/selectors'
 
 export const ListboxPropsContext = createContext({
   getLabel: R.identity,
@@ -56,45 +52,6 @@ export const EnhancedListbox = forwardRef((props, ref) => {
   )
 })
 
-export const ListboxComponent = forwardRef(
-  function ListboxComponent(props, ref) {
-    const { children, role, ...other } = props
-    const itemCount = Array.isArray(children) ? children.length : 0
-    const itemSize = 79
-
-    return (
-      <div ref={ref}>
-        <div {...other}>
-          <FixedSizeList
-            height={250}
-            width={300}
-            itemSize={itemSize}
-            itemCount={itemCount}
-            overscanCount={5}
-            role={role}
-          >
-            {(props) => {
-              const child = children[props.index]
-              return cloneElement(
-                child,
-                {
-                  style: props.style,
-                },
-                <>
-                  <FetchedIcon size={52} iconName={child.key} />
-                  <Typography sx={{ mx: 'auto' }} align="right">
-                    {child.key}
-                  </Typography>
-                </>
-              )
-            }}
-          </FixedSizeList>
-        </div>
-      </div>
-    )
-  }
-)
-
 export const useIconDataLoader = (iconUrl, onSuccess, onReject) => {
   const fetchIconList = useCallback(async () => {
     const cache = await caches.open('icon_list')
@@ -116,26 +73,62 @@ export const useIconDataLoader = (iconUrl, onSuccess, onReject) => {
   }, [fetchIconList, onReject, onSuccess])
 }
 
-export default function IconPicker({ onSelect }) {
-  const [options, setOptions] = useState([])
-  const iconUrl = useSelector(selectSettingsIconUrl)
-  useIconDataLoader(iconUrl, setOptions, console.error)
-  return (
+const ShapePicker = ({
+  label,
+  value,
+  options,
+  groupBy,
+  getIcon,
+  getLabel,
+  ListboxComponent,
+  onChange,
+}) => (
+  <ListboxPropsContext.Provider value={{ getLabel, getIcon }}>
     <Autocomplete
-      style={{ width: 300 }}
       disableListWrap
-      ListboxComponent={ListboxComponent}
-      options={options}
-      onChange={(_, value) => value != null && onSelect(value)}
-      renderInput={(params) => (
+      clearIcon={false}
+      sx={{ p: 1 }}
+      {...{ options, value, ListboxComponent, groupBy, onChange }}
+      renderInput={({ InputProps, ...params }) => (
         <TextField
-          {...params}
+          {...{ label, ...params }}
           fullWidth
           autoFocus
-          variant="outlined"
-          label="Search to replace the icon"
+          slotProps={{
+            input: {
+              ...InputProps,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FetchedIcon size={24} iconName={getIcon(value)} />
+                </InputAdornment>
+              ),
+            },
+          }}
         />
       )}
+      // renderOption={(props, option, state) => [props, option, state.index]}
+      {...(ListboxComponent == null && {
+        renderOption: (props, option) => {
+          const { key, ...optionProps } = props
+          return (
+            <Stack
+              key={key}
+              component="li"
+              direction="row"
+              spacing={1}
+              {...optionProps}
+            >
+              <FetchedIcon size={24} iconName={getIcon(option)} />
+              <Typography variant="subtitle2">
+                {getLabel(option) ?? option}
+              </Typography>
+            </Stack>
+          )
+        },
+        getOptionLabel: (option) => getLabel(option) ?? option,
+      })}
     />
-  )
-}
+  </ListboxPropsContext.Provider>
+)
+
+export default ShapePicker
