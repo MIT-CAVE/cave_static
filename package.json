@@ -1,6 +1,6 @@
 {
   "name": "cave_static",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "scripts": {
     "build": "export $(cat .env | xargs) && craco build",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
@@ -11,6 +11,7 @@
   "dependencies": {
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
+    "@msgpack/msgpack": "^3.0.0-beta2",
     "@mui/material": "^5.16.7",
     "@mui/system": "^5.16.7",
     "@mui/x-data-grid": "^7.12.1",
