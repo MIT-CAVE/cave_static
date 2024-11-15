@@ -1,4 +1,4 @@
-import { Box, FormHelperText, Tab, Tabs } from '@mui/material'
+import { Box, FormHelperText, Tab, Tabs, Typography } from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -56,10 +56,11 @@ const styles = {
     gap: 2,
   },
   row: {
-    width: '100%',
+    width: '99%',
     display: 'flex',
     flexDirection: 'row',
     gap: 1,
+    marginBottom: 0.5,
   },
   field: {
     padding: 1,
@@ -73,6 +74,9 @@ const styles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
+  },
+  header: {
+    marginLeft: 1,
   },
 }
 
@@ -359,7 +363,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
   const renderLabelledSelector = (child, label) => {
     return (
-      <Box sx={styles.labelled}>
+      <Box sx={styles.labelled} key={label}>
         <FormHelperText>{label}</FormHelperText>
         {child}
       </Box>
@@ -483,6 +487,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         })(CHART_OPTIONS)}
       </Tabs>
       <Box sx={styles.content}>
+        <Typography variant="overline" sx={styles.header}>
+          STATISTICS
+        </Typography>
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
             {renderLabelledSelector(datasetSelector, 'Dataset')}
@@ -569,6 +576,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         </Box>
         {showFull(chartObj) && (
           <>
+            <Typography variant="overline" sx={styles.header}>
+              AGGREGATION
+            </Typography>
             <Box sx={styles.row}>
               <ChartDropdownWrapper sx={styles.field}>
                 <>
@@ -702,47 +712,55 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               </ChartDropdownWrapper>
             </Box>
             {chartObj.chartType === chartVariant.MIXED && (
-              <Box sx={styles.row}>
-                <ChartDropdownWrapper sx={styles.field}>
-                  <>
-                    {R.map((variant) => {
-                      const selector = (
-                        <Select
-                          getLabel={(item) =>
-                            item === 'cumulative_line'
-                              ? 'Cumulative Line'
-                              : capitalize(item)
-                          }
-                          value={R.propOr(
-                            'line',
-                            `${variant}Variant`,
-                            chartObj
-                          )}
-                          optionsList={['bar', 'line', 'cumulative_line']}
-                          onSelect={(value) => {
-                            dispatch(
-                              mutateLocal({
-                                path,
-                                sync: !includesPath(R.values(sync), path),
-                                value: R.assoc(
-                                  `${variant}Variant`,
-                                  value === 'Cumulative Line'
-                                    ? 'cumulative_line'
-                                    : value.toLowerCase(),
-                                  chartObj
-                                ),
-                              })
-                            )
-                          }}
-                        />
-                      )
-                      const label = `${capitalize(variant)} Chart Type`
-                      return renderLabelledSelector(selector, label)
-                    })(['left', 'right'])}
-                  </>
-                </ChartDropdownWrapper>
-              </Box>
+              <>
+                <Typography variant="overline" sx={styles.header}>
+                  CHART TYPES
+                </Typography>
+                <Box sx={styles.row}>
+                  <ChartDropdownWrapper sx={styles.field}>
+                    <>
+                      {R.map((variant) => {
+                        const selector = (
+                          <Select
+                            getLabel={(item) =>
+                              item === 'cumulative_line'
+                                ? 'Cumulative Line'
+                                : capitalize(item)
+                            }
+                            value={R.propOr(
+                              'line',
+                              `${variant}Variant`,
+                              chartObj
+                            )}
+                            optionsList={['bar', 'line', 'cumulative_line']}
+                            onSelect={(value) => {
+                              dispatch(
+                                mutateLocal({
+                                  path,
+                                  sync: !includesPath(R.values(sync), path),
+                                  value: R.assoc(
+                                    `${variant}Variant`,
+                                    value === 'Cumulative Line'
+                                      ? 'cumulative_line'
+                                      : value.toLowerCase(),
+                                    chartObj
+                                  ),
+                                })
+                              )
+                            }}
+                          />
+                        )
+                        const label = `${capitalize(variant)}`
+                        return renderLabelledSelector(selector, label)
+                      })(['left', 'right'])}
+                    </>
+                  </ChartDropdownWrapper>
+                </Box>
+              </>
             )}
+            <Typography variant="overline" sx={styles.header}>
+              GROUP BY
+            </Typography>
             <Box sx={styles.row}>
               <ChartDropdownWrapper sx={styles.field}>
                 <SelectAccordionList
@@ -753,7 +771,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                     R.map(R.defaultTo('')),
                     R.apply(R.zip)
                   )(chartObj)}
-                  placeholder="Group By"
                   maxGrouping={chartMaxGrouping[chartObj.chartType]}
                   getLabel={getLabelFn(categories)}
                   getSubLabel={getSubLabelFn(categories)}
@@ -765,31 +782,37 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               </ChartDropdownWrapper>
             </Box>
             {chartObj.chartType === chartVariant.DISTRIBUTION && (
-              <Box sx={styles.row}>
-                <ChartDropdownWrapper sx={styles.field}>
-                  <>
-                    {R.map(({ selector, label }) =>
-                      renderLabelledSelector(selector, label)
-                    )([
-                      {
-                        selector: distributionTypeSelector,
-                        label: 'Dist. Type',
-                      },
-                      {
-                        selector: distributionYAxisSelector,
-                        label: 'Dist. Y Axis',
-                      },
-                      {
-                        selector: distributionVariantSelector,
-                        label: 'Dist. Variant',
-                      },
-                    ])}
-                  </>
-                </ChartDropdownWrapper>
-              </Box>
+              <>
+                <Typography variant="overline" sx={styles.header}>
+                  DISTRIBUTION
+                </Typography>
+                <Box sx={styles.row}>
+                  <ChartDropdownWrapper sx={styles.field}>
+                    <>
+                      {R.map(({ selector, label }) =>
+                        renderLabelledSelector(selector, label)
+                      )([
+                        {
+                          selector: distributionTypeSelector,
+                          label: 'Type',
+                        },
+                        {
+                          selector: distributionYAxisSelector,
+                          label: 'Y Axis',
+                        },
+                        {
+                          selector: distributionVariantSelector,
+                          label: 'Variant',
+                        },
+                      ])}
+                    </>
+                  </ChartDropdownWrapper>
+                </Box>
+              </>
             )}
           </>
         )}
+        <Typography variant="overline" />
       </Box>
     </>
   )

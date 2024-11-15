@@ -22,6 +22,10 @@ const styles = {
     marginBottom: 1,
     padding: 1,
     height: '100%',
+    gap: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
 }
 
