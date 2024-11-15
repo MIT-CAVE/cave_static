@@ -16,7 +16,7 @@ const styles = {
   },
   filter: {
     mr: 0.5,
-    ml: 'auto',
+    ml: 0.5,
     alignSelf: 'center',
   },
 }

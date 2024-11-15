@@ -42,18 +42,20 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    gap: 2,
+    gap: 3,
   },
   sessions: {
-    minHeight: '100px',
     width: '95%',
-    padding: 1,
+    padding: 2,
+    minHeight: 100,
   },
   outputs: {
     width: '95%',
+    height: 70,
   },
   refresh: {
-    marginTop: 2,
+    marginTop: 3,
+    height: 70,
   },
 }
 
@@ -172,6 +174,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
             </ChartDropdownWrapper>
             <ChartDropdownWrapper sx={styles.outputs}>
               <SelectMulti
+                disabled={R.isEmpty(R.propOr([], 'sessions', chartObj))}
                 value={R.propOr([], 'globalOutput', chartObj)}
                 header="Select Global Outputs"
                 optionsList={R.pipe(
