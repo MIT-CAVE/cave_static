@@ -19,7 +19,7 @@ import { includesPath } from '../../../utils'
 const styles = {
   content: {
     marginTop: 2,
-    marginBottom: 2,
+    marginBottom: 1,
     padding: 1,
     height: '100%',
   },
