@@ -676,7 +676,7 @@ const SessionPane = ({ width }) => {
       sendCommand({
         command: 'mutate_session',
         data: {
-          api_command: 'reset',
+          api_command: 'init',
         },
       })
     )
