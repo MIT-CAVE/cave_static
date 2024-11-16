@@ -1,6 +1,16 @@
-import { Box, FormHelperText, Tab, Tabs, Typography } from '@mui/material'
+import {
+  Autocomplete,
+  Box,
+  Checkbox,
+  FormHelperText,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from '@mui/material'
 import * as R from 'ramda'
 import { memo } from 'react'
+import { MdCheckBox, MdCheckBoxOutlineBlank } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
@@ -23,13 +33,11 @@ import {
   distributionYAxes,
   distributionVariants,
 } from '../../../utils/enums'
-import { useMutateState } from '../../../utils/hooks'
 
 import {
   FetchedIcon,
   Select,
   SelectAccordionList,
-  SelectMulti,
   SelectMultiAccordion,
 } from '../../compound'
 
@@ -348,18 +356,20 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
-  const handleChangeDataset = useMutateState((value) => {
-    return {
-      path,
-      value: R.pipe(
-        R.assoc('dataset', value),
-        R.dissoc('stats'),
-        R.assoc('groupingId', []),
-        R.assoc('groupingLevel', [])
-      )(chartObj),
-      sync: !includesPath(R.values(sync), path),
-    }
-  }, [])
+  const handleChangeDataset = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        value: R.pipe(
+          R.assoc('dataset', value),
+          R.dissoc('stats'),
+          R.assoc('groupingId', []),
+          R.assoc('groupingLevel', [])
+        )(chartObj),
+        sync: !includesPath(R.values(sync), path),
+      })
+    )
+  }
 
   const renderLabelledSelector = (child, label) => {
     return (
@@ -380,6 +390,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
   const singleStatisticSelector = (
     <Select
+      disabled={chartObj.dataset == null}
       getLabel={(stat) =>
         getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
       }
@@ -407,12 +418,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         {
           label: 'PDF',
           value: distributionTypes.PDF,
-          // iconName: 'md/MdFunctions',
         },
         {
           label: 'CDF',
           value: distributionTypes.CDF,
-          // iconName: 'md/MdFunctions',
         },
       ]}
       onSelect={handleSelectDistributionType}
@@ -488,7 +497,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       </Tabs>
       <Box sx={styles.content}>
         <Typography variant="overline" sx={styles.header}>
-          STATISTICS
+          DATA
         </Typography>
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
@@ -503,6 +512,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   {mapIndexed((_, index) => {
                     const selector = (
                       <Select
+                        disabled={chartObj.dataset == null}
                         getLabel={(stat) =>
                           getGroupLabelFn(statisticTypes, [
                             chartObj.dataset,
@@ -540,17 +550,50 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   })(chartStatUses[chartObj.chartType])}
                 </>
               ) : (
-                <SelectMulti
-                  getLabel={(stat) =>
-                    getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-                  }
+                <Autocomplete
+                  sx={{
+                    padding: 1,
+                  }}
+                  disabled={chartObj.dataset == null}
                   value={R.pipe(
                     R.propOr([], 'stats'),
                     R.pluck('statId')
                   )(chartObj)}
-                  header="Select Statistics"
-                  optionsList={R.values(statNames)}
-                  onSelect={(value) => {
+                  limitTags={5}
+                  multiple
+                  fullWidth
+                  disableCloseOnSelect
+                  options={R.values(statNames)}
+                  renderInput={(params) => {
+                    return (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        label="Select Statistics"
+                        variant="standard"
+                      />
+                    )
+                  }}
+                  getOptionLabel={(option) =>
+                    getGroupLabelFn(statisticTypes, [chartObj.dataset, option])
+                  }
+                  renderOption={(props, option, { selected }) => {
+                    const { key, ...optionProps } = props
+                    return (
+                      <li key={key} {...optionProps}>
+                        <Checkbox
+                          icon={<MdCheckBoxOutlineBlank />}
+                          checkedIcon={<MdCheckBox />}
+                          checked={selected}
+                        />
+                        {getGroupLabelFn(statisticTypes, [
+                          chartObj.dataset,
+                          option,
+                        ])}
+                      </li>
+                    )
+                  }}
+                  onChange={(_, value) => {
                     dispatch(
                       mutateLocal({
                         path,

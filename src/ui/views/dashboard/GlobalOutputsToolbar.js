@@ -6,6 +6,7 @@ import {
   Tab,
   Tabs,
   TextField,
+  Typography,
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
@@ -24,7 +25,7 @@ import {
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
 
-import { FetchedIcon, SelectMulti } from '../../compound'
+import { FetchedIcon } from '../../compound'
 
 import {
   withIndex,
@@ -35,27 +36,24 @@ import {
 
 const styles = {
   content: {
-    height: '100%',
     width: '100%',
-    marginTop: 5,
+    height: '80%',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    gap: 3,
+    overflow: 'auto',
+    gap: 2,
   },
   sessions: {
     width: '95%',
     padding: 2,
     minHeight: 100,
   },
-  outputs: {
-    width: '95%',
-    height: 70,
-  },
   refresh: {
-    marginTop: 3,
-    height: 70,
+    marginTop: 2,
+    height: 50,
+    width: 50,
   },
 }
 
@@ -70,11 +68,6 @@ const CHART_OPTIONS = [
     value: chartVariant.LINE,
     iconName: 'md/MdShowChart',
   },
-  // {
-  //   label: 'Box Plot',
-  //   value: chartVariant.BOX_PLOT,
-  //   iconName: 'md/MdGraphicEq',
-  // },
   {
     label: 'Table',
     value: chartVariant.TABLE,
@@ -102,6 +95,13 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     () => ['pages', 'data', currentPage, 'charts', index],
     [currentPage, index]
   )
+
+  const globalOutputsOptions = R.pipe(
+    R.reject(R.pipe(R.prop('value'), R.isNil)),
+    withIndex,
+    R.project(['id', 'name', 'icon']),
+    R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
+  )(props)
   return (
     <>
       <Tabs
@@ -161,31 +161,63 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                     </li>
                   )
                 }}
-                onChange={(_, updatedValue) => {
+                onChange={(_, value) => {
                   dispatch(
                     mutateLocal({
                       path,
                       sync: !includesPath(R.values(sync), path),
-                      value: R.assoc('sessions', updatedValue, chartObj),
+                      value: R.assoc('sessions', value, chartObj),
                     })
                   )
                 }}
               />
             </ChartDropdownWrapper>
-            <ChartDropdownWrapper sx={styles.outputs}>
-              <SelectMulti
+            <ChartDropdownWrapper sx={styles.sessions}>
+              <Autocomplete
                 disabled={R.isEmpty(R.propOr([], 'sessions', chartObj))}
                 value={R.propOr([], 'globalOutput', chartObj)}
-                header="Select Global Outputs"
-                optionsList={R.pipe(
-                  R.reject(R.pipe(R.prop('value'), R.isNil)),
-                  withIndex,
-                  R.project(['id', 'name', 'icon']),
-                  R.map(
-                    renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
+                limitTags={5}
+                multiple
+                fullWidth
+                disableCloseOnSelect
+                options={R.pluck('value')(globalOutputsOptions)}
+                renderInput={(params) => {
+                  return (
+                    <TextField
+                      {...params}
+                      fullWidth
+                      label="Select Global Outputs"
+                      variant="standard"
+                    />
                   )
-                )(props)}
-                onSelect={(value) => {
+                }}
+                getOptionLabel={(option) => {
+                  return R.pipe(
+                    R.find(({ value }) => value === option),
+                    R.prop('label')
+                  )(globalOutputsOptions)
+                }}
+                renderOption={(props, option, { selected }) => {
+                  const { key, ...optionProps } = props
+                  const { label, iconName } = R.find(
+                    ({ value }) => value === option
+                  )(globalOutputsOptions)
+                  return (
+                    <li key={key} {...optionProps}>
+                      <Checkbox
+                        icon={<MdCheckBoxOutlineBlank />}
+                        checkedIcon={<MdCheckBox />}
+                        checked={selected}
+                      />
+                      <FetchedIcon
+                        iconName={iconName}
+                        sx={{ marginRight: 1 }}
+                      />
+                      <Typography sx={{ marginLeft: 1 }}> {label} </Typography>
+                    </li>
+                  )
+                }}
+                onChange={(_, value) => {
                   dispatch(
                     mutateLocal({
                       path,

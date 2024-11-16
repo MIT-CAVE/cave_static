@@ -84,8 +84,7 @@ const SelectAccordionList = ({
           // Using the `popper` slot since `.MuiAutocomplete-popperDisablePortal` doesn't seem to work
           popper: {
             sx: {
-              width: 'auto !important',
-              maxWidth: 'calc(100% - 32px)',
+              width: '100%',
             },
           },
         }}
