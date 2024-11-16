@@ -19,6 +19,7 @@ import {
   chartAggrFunc,
   draggableId,
   paneId,
+  legendViews,
 } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
@@ -29,7 +30,6 @@ import {
   getTimeValue,
   renameKeys,
   sortByOrderNameId,
-  toListWithKey,
   forcePath,
   customSortByX,
   withIndex,
@@ -493,14 +493,14 @@ export const selectCharts = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr([], [currentPage, 'charts'], dashboardData),
+      R.pathOr({}, [currentPage, 'charts'], dashboardData),
       [currentPage, 'charts'],
       localDashboardData
     )
 )
 export const selectIsMaximized = createSelector(
   selectCharts,
-  R.any(R.propOr(false, 'maximized'))
+  R.pipe(R.values, R.any(R.propOr(false, 'maximized')))
 )
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
@@ -725,6 +725,25 @@ export const selectLegendDataFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
+
+export const selectLegendViewFunc = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+    R.pathOr(
+      R.pathOr(legendViews.MINIMAL, ['legendView', mapId])(currentMapDataByMap),
+      ['legendView', mapId]
+    )(currentLocalMapDataByMap)
+)
+
+export const selectShowLegendGroupNamesFunc = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+    R.pathOr(
+      R.pathOr(true, ['showLegendGroupNames', mapId])(currentMapDataByMap),
+      ['showLegendGroupNames', mapId]
+    )(currentLocalMapDataByMap)
+)
+
 export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) => R.propOr({}, 'mapControls')(dataObj)
@@ -753,7 +772,7 @@ export const selectMapModal = createSelector(
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
 )
-export const selectMapLegendFunc = createSelector(
+const selectMapLegendFunc = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
@@ -768,6 +787,10 @@ export const selectMapLegendFunc = createSelector(
         R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
     },
   }
+)
+export const selectIsMapLegendOpenFunc = createSelector(
+  selectMapLegendFunc,
+  (mapLegendFunc) => (mapId) => R.propOr(true, 'isOpen')(mapLegendFunc(mapId))
 )
 // Local -> globalOutputs
 const selectLocalGlobalOutputs = createSelector(
@@ -1897,23 +1920,6 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
           R.groupBy(R.prop('type')),
           R.map(R.indexBy(R.prop('geoJsonValue')))
         )(dataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-
-export const selectGetLegendGroupId = createSelector(
-  selectLegendDataFunc,
-  (legendDataFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.curry((layerKey, type) =>
-          R.pipe(
-            toListWithKey('id'),
-            R.find(R.hasPath([layerKey, type])),
-            R.prop('id')
-          )(legendDataFunc(mapId))
-        ),
       MAX_MEMOIZED_CHARTS
     )
 )

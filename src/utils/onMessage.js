@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 
-import downloadJSON from './downloadJSON'
+import downloadFile from './downloadFile'
 
 import { mutateData, overwriteData } from '../data/data'
 import { updateLoading } from '../data/utilities/loadingSlice'
@@ -24,7 +24,8 @@ const onMessage = (dispatch) => (payload) => {
     // console.log('overwrite: ', payload)
     dispatch(overwriteData(payload))
   } else if (R.prop('event', payload) === 'export') {
-    downloadJSON(R.prop('data', payload), 'session-data.json')
+    const { data, name } = R.prop('data', payload)
+    downloadFile(data, name)
   } else {
     console.log('Unknown event: ', payload)
   }

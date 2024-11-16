@@ -24,7 +24,6 @@ import {
   selectSync,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
-  selectMapboxToken,
   selectShowToolbar,
   selectEditLayoutMode,
   selectCharts,
@@ -75,7 +74,6 @@ const styles = {
 
 const DashboardItem = ({ chartObj, index, path }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
-  const mapboxToken = useSelector(selectMapboxToken)
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
@@ -242,7 +240,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
           </Suspense>
         )
       ) : vizType === 'map' && chartObj.mapId ? (
-        <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
+        <Map mapId={chartObj.mapId} />
       ) : vizType === 'globalOutput' ? (
         <DashboardGlobalOutput {...{ chartObj }} />
       ) : null}

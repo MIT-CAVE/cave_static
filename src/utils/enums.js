@@ -106,7 +106,7 @@ export const statId = {
   OR: 'or',
 }
 
-export const statFns = {
+export const statFuncs = {
   [propId.NUMBER]: new Set([
     statId.COUNT,
     statId.MODE,
@@ -175,6 +175,11 @@ export const chartStatUses = {
   [chartVariant.TABLE]: [],
   [chartVariant.SCATTER]: ['X Axis', 'Y Axis', 'Size (Optional)'],
   [chartVariant.MIXED]: ['Left', 'Right'],
+}
+
+export const legendViews = {
+  FULL: 'full',
+  MINIMAL: 'minimal',
 }
 
 export const unitPlacements = {

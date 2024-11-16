@@ -1,61 +1,41 @@
-import { Box } from '@mui/material'
-import * as R from 'ramda'
-import { memo, useCallback, useState } from 'react'
+import { memo } from 'react'
 import { useSelector } from 'react-redux'
 
-import ClassicLegend from './ClassicLegend'
+import FullLegend from './FullLegend'
 import MinimalLegend from './MinimalLegend'
 
 import {
-  selectBearingSliderToggleFunc,
-  selectMapLegendFunc,
-  selectPitchSliderToggleFunc,
+  selectLegendViewFunc,
+  selectIsMapLegendOpenFunc,
 } from '../../../data/selectors'
+import { legendViews } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
-const rootStyle = {
-  position: 'absolute',
-  top: '8px',
-  zIndex: 1,
-  overflow: 'auto',
-  // scrollbarGutter: 'stable',
-}
+const MapLegend = ({ mapId }) => {
+  const isMapLegendOpen = useSelector(selectIsMapLegendOpenFunc)(mapId)
+  const legendView = useSelector(selectLegendViewFunc)(mapId)
 
-const MapLegend = ({ mapId, containerRef }) => {
-  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
-  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
-  const mapLegend = useSelector(selectMapLegendFunc)(mapId)
-  const [classicView, setClassicView] = useState(false)
+  const handleChangeView = useMutateStateWithSync(() => {
+    // Toggle between `full` and `minimal` legend views,
+    // as these are the only available options for now.
+    const newLegendView =
+      legendView === legendViews.FULL ? legendViews.MINIMAL : legendViews.FULL
+    return {
+      path: ['maps', 'data', mapId, 'legendView'],
+      value: newLegendView,
+    }
+  }, [mapId, legendView])
 
-  const handleChangeView = useCallback(
-    () => setClassicView(!classicView),
-    [classicView]
-  )
+  const LegendView =
+    legendView === legendViews.FULL
+      ? FullLegend
+      : legendView === legendViews.MINIMAL
+        ? MinimalLegend
+        : null
 
-  if (!R.propOr(true, 'isOpen', mapLegend)) return null
+  if (!isMapLegendOpen) return null
 
-  const LegendView = classicView ? ClassicLegend : MinimalLegend
-  return (
-    <Box
-      key="map-legend"
-      sx={[
-        rootStyle,
-        {
-          right: showPitchSlider ? 98 : 64,
-          maxHeight: showBearingSlider
-            ? 'calc(100% - 165px)'
-            : 'calc(100% - 88px)',
-          maxWidth: showPitchSlider
-            ? 'calc(100% - 106px)'
-            : 'calc(100% - 80px)',
-        },
-      ]}
-    >
-      <LegendView
-        {...{ mapId, containerRef }}
-        onChangeView={handleChangeView}
-      />
-    </Box>
-  )
+  return <LegendView {...{ mapId }} onChangeView={handleChangeView} />
 }
 
 export default memo(MapLegend)

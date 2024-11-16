@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 
 import { forceArray } from '.'
-import { statId } from './enums'
+import { statFuncs, statId } from './enums'
 
 // Calculate the mode item in a list (output formatted as a string)
 // This can mix strings and numbers, but will always return a string (of the number) or NaN
@@ -143,3 +143,7 @@ export const getStatLabel = R.cond([
   [R.equals(statId.OR), R.always('Any <OR>')], // \u2228
   [R.T, R.always(null)],
 ])
+
+export const getStatFuncsByType = R.memoizeWith(R.identity, (type) =>
+  Array.from(statFuncs[type])
+)

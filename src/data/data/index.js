@@ -53,13 +53,8 @@ export const overwriteData = createAsyncThunk(
     }
     // Overwrite
     const data = R.prop('data')(arg)
-    if (
-      R.has('settings', data) &&
-      !R.equals(
-        R.path(['settings', 'sync'], data),
-        R.path(['data', 'settings', 'sync'], getState())
-      )
-    ) {
+
+    if (R.has('settings', data)) {
       const desyncedPaths = R.pipe(
         R.pathOr({}, ['settings', 'sync']),
         R.filter(R.pipe(R.prop('value'), R.not)),
