@@ -4,6 +4,9 @@ import {
   AccordionSummary,
   Badge,
   Button,
+  Divider,
+  FormControlLabel,
+  FormGroup,
   Grid2,
   IconButton,
   Paper,
@@ -12,7 +15,8 @@ import {
   ToggleButton,
   Typography,
 } from '@mui/material'
-import { memo, useState, useMemo } from 'react'
+import * as R from 'ramda'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
 import { MdExpandMore, MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -22,6 +26,9 @@ import HeightLegend from './HeightLegend'
 import {
   LegendHeader,
   LegendRoot,
+  LegendRowArc,
+  LegendRowGeo,
+  LegendRowNode,
   useLegend,
   useLegendDetails,
   WithEditBadge,
@@ -30,20 +37,12 @@ import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
 
 import {
-  selectGeoRange,
-  selectNodeRange,
-  selectArcRange,
   selectLegendDataFunc,
-  selectLocalizedArcTypes,
-  selectLocalizedNodeTypes,
-  selectLocalizedGeoTypes,
   selectArcTypeKeys,
   selectNodeTypeKeys,
-  selectSettingsIconUrl,
 } from '../../../data/selectors'
 import { statId } from '../../../utils/enums'
 import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
-import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
 
@@ -62,23 +61,29 @@ const styles = {
     // width: 'auto',
     // maxWidth: '800px',
     width: '700px',
-    p: (theme) => theme.spacing(0, 1, 1),
+    p: 1,
     mx: 0,
     color: 'text.primary',
-    border: 2,
-    borderColor: 'grey.500',
+    borderWidth: 2,
     borderStyle: 'outset',
+    borderColor: 'grey.500',
     borderRadius: 1,
+    boxSizing: 'border-box',
   },
   details: {
     maxHeight: '100%',
     maxWidth: '100%',
     bgcolor: 'grey.800',
-    p: 1.5,
-    border: 1,
-    boxSizing: 'border-box',
-    borderColor: 'rgb(128, 128, 128)',
+    p: 1,
+    borderWidth: 1,
     borderStyle: 'outset',
+    borderColor: 'rgb(128, 128, 128)',
+    boxSizing: 'border-box',
+  },
+  settings: {
+    overflow: 'auto',
+    maxWidth: 'fit-content',
+    borderWidth: 2,
   },
   toggleButton: {
     p: 1,
@@ -87,7 +92,7 @@ const styles = {
   unit: {
     display: 'flex',
     justifyContent: 'center',
-    border: 1,
+    borderWidth: 1,
     borderRadius: 1,
     borderColor: 'text.secondary',
     fontWeight: 700,
@@ -98,20 +103,13 @@ const styles = {
   },
 }
 
-const LegendRow = ({
+const LegendRowDetails = ({
   mapId,
   legendGroupId,
   id,
   icon,
-  shape,
-  shapeLabel,
-  shapePathEnd,
-  shapeOptions,
-  ListboxComponent,
-  groupBy,
-  getShapeIcon,
-  getShapeLabel,
-  featureTypeData,
+  name,
+  value,
   allowGrouping,
   colorBy,
   colorByOptions,
@@ -119,10 +117,18 @@ const LegendRow = ({
   sizeByOptions,
   heightBy,
   heightByOptions,
+  shape,
+  // shapeBy, // TODO: `shapeBy` would be a unifying property for `iconBy` and `lineBy`?
+  shapeLabel,
+  shapePathEnd,
+  shapeOptions,
+  ListboxComponent,
+  groupBy,
+  getShapeIcon,
+  getShapeLabel,
   group,
   groupCalcByColor = statId.COUNT,
   groupCalcBySize = statId.COUNT,
-  value: isVisible,
   filters = [
     {
       id: 0,
@@ -133,12 +139,14 @@ const LegendRow = ({
       edit: false,
     },
   ],
+  featureTypeProps,
+  // expandAll,
+  expanded,
+  onToggleExpanded,
   getRange,
 }) => {
-  const [showShapePicker, handleToggleShapePicker] = useToggle(false)
-
-  const featureTypeProps = featureTypeData[id].props
-
+  // const [expanded, handleToggleExpanded, setExpanded] = useToggle(true)
+  const [showShapePicker, handleToggleShapePicker] = useToggle(false, true)
   const {
     basePath,
     colorRange,
@@ -163,7 +171,6 @@ const LegendRow = ({
     featureTypeProps,
     getRange,
   })
-
   const {
     filterOpen,
     labelStart,
@@ -183,7 +190,17 @@ const LegendRow = ({
     filters,
   })
 
-  const name = getLabelFn(featureTypeData, id)
+  // // Sync the `Accordion`'s expanded/collapsed
+  // // state with the "Expand all" setting
+  // useEffect(() => {
+  //   setExpanded(expandAll)
+  // }, [expandAll, setExpanded])
+
+  // // Sync the `Accordion`'s expanded/collapsed state
+  // // with the value of the map feature toggle
+  // useEffect(() => {
+  //   setExpanded(value)
+  // }, [setExpanded, value])
 
   const handleChangeVisibility = useMutateStateWithSync(
     (event) => ({
@@ -193,209 +210,184 @@ const LegendRow = ({
     [basePath]
   )
   return (
-    <Stack component={Paper} elevation={1} spacing={1} sx={styles.details}>
-      <Grid2
-        key={id}
-        container
-        spacing={1}
-        sx={{ alignItems: 'center', width: '100%' }}
+    <Stack
+      component={Paper}
+      elevation={1}
+      spacing={1}
+      sx={[styles.details, { p: 0 }]}
+    >
+      <Accordion
+        disableGutters
+        elevation={0}
+        {...{ expanded }}
+        onChange={onToggleExpanded}
       >
-        <Grid2 size="auto">
-          <Switch
-            name={`cave-toggle-map-${id}`}
-            size="small"
-            checked={isVisible}
-            onClick={handleChangeVisibility}
-          />
-        </Grid2>
-        <Grid2 size="auto">
-          <WithEditBadge editing={showShapePicker}>
-            <OptionalWrapper
-              component={ToggleButton}
-              wrap={shapeOptions != null}
-              wrapperProps={{
-                color: showShapePicker ? 'warning' : null,
-                selected: shapeOptions != null,
-                value: 'shape',
-                sx: styles.toggleButton,
-                onClick: handleToggleShapePicker,
-              }}
-            >
-              <FetchedIcon iconName={icon} size={24} />
-            </OptionalWrapper>
-          </WithEditBadge>
-        </Grid2>
-        <Grid2 size="grow">
-          <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
-            <OverflowText text={name} />
-          </Typography>
-        </Grid2>
-        <Grid2 size="auto">
-          {allowGrouping && (
-            <ToggleButton
-              color={group ? 'primary' : null}
-              selected={group}
-              value={group}
-              sx={styles.toggleButton}
-              onClick={handleToggleGroup}
-            >
-              {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
-            </ToggleButton>
-          )}
-          {/* Filter */}
-          <DataGridModal
-            open={filterOpen}
-            label="Chart Data Filter"
-            labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${name})`}
-            onClose={handleCloseFilter}
+        <AccordionSummary expandIcon={<MdExpandMore size={24} />}>
+          <Grid2
+            key={id}
+            container
+            spacing={1}
+            sx={{ alignItems: 'center', width: '100%' }}
           >
-            <GridFilter
-              {...{ filterableExtraProps }}
-              filterables={filterableProps}
-              defaultFilters={filters}
-              onSave={handleSaveFilters}
+            <Grid2 size="auto">
+              <Switch
+                name={`cave-toggle-map-${id}`}
+                size="small"
+                checked={value}
+                onClick={handleChangeVisibility}
+              />
+            </Grid2>
+            <Grid2 size="auto">
+              <WithEditBadge editing={showShapePicker}>
+                <OptionalWrapper
+                  component={ToggleButton}
+                  wrap={shapeOptions != null}
+                  wrapperProps={{
+                    color: showShapePicker ? 'warning' : null,
+                    selected: shapeOptions != null,
+                    value: 'shape',
+                    sx: styles.toggleButton,
+                    onClick: handleToggleShapePicker,
+                  }}
+                >
+                  <FetchedIcon iconName={icon} size={24} />
+                </OptionalWrapper>
+              </WithEditBadge>
+            </Grid2>
+            <Grid2 size="grow">
+              <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
+                <OverflowText text={name} />
+              </Typography>
+            </Grid2>
+            <Grid2 size="auto">
+              {allowGrouping && (
+                <ToggleButton
+                  color={group ? 'primary' : null}
+                  selected={group}
+                  value={group}
+                  sx={styles.toggleButton}
+                  onClick={handleToggleGroup}
+                >
+                  {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
+                </ToggleButton>
+              )}
+              {/* Filter */}
+              <DataGridModal
+                open={filterOpen}
+                label="Chart Data Filter"
+                labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${name})`}
+                onClose={handleCloseFilter}
+              >
+                <GridFilter
+                  {...{ filterableExtraProps }}
+                  filterables={filterableProps}
+                  defaultFilters={filters}
+                  onSave={handleSaveFilters}
+                />
+              </DataGridModal>
+              <IconButton
+                disabled={isFilterDisabled}
+                onClick={handleOpenFilter}
+              >
+                <Badge
+                  color={isFilterDisabled ? 'default' : 'info'}
+                  badgeContent={numActiveFilters}
+                >
+                  <MdFilterAlt size={24} />
+                </Badge>
+              </IconButton>
+            </Grid2>
+          </Grid2>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0, px: 1 }}>
+          {/* TODO: Improve location/width of `ShapePicker` */}
+          {showShapePicker && (
+            <ShapePicker
+              label={shapeLabel}
+              value={shape}
+              options={shapeOptions}
+              color="warning"
+              {...{ ListboxComponent, groupBy }}
+              getIcon={getShapeIcon}
+              getLabel={getShapeLabel}
+              onChange={handleChangeShape}
             />
-          </DataGridModal>
-          <IconButton disabled={isFilterDisabled} onClick={handleOpenFilter}>
-            <Badge
-              color={isFilterDisabled ? 'default' : 'info'}
-              badgeContent={numActiveFilters}
-            >
-              <MdFilterAlt size={24} />
-            </Badge>
-          </IconButton>
-        </Grid2>
-      </Grid2>
+          )}
 
-      {/* TODO: Improve location/width of `ShapePicker` */}
-      {showShapePicker && (
-        <ShapePicker
-          label={shapeLabel}
-          value={shape}
-          options={shapeOptions}
-          color="warning"
-          {...{ ListboxComponent, groupBy }}
-          getIcon={getShapeIcon}
-          getLabel={getShapeLabel}
-          onChange={handleChangeShape}
-        />
-      )}
-
-      <Grid2 container spacing={1}>
-        {sizeBy != null && (
-          <Grid2 size="grow">
-            <SizeLegend
-              valueRange={
-                group && clusterRange.size ? clusterRange.size : sizeRange
-              }
-              {...{
-                icon,
-                group,
-                sizeBy,
-                sizeByOptions,
-                featureTypeProps,
-              }}
-              groupCalcValue={groupCalcBySize}
-              onSelectProp={handleSelectProp}
-              onSelectGroupCalc={handleSelectGroupCalc}
-              onChangeSize={handleChangeSize}
-            />
+          <Grid2 container spacing={1}>
+            {sizeBy != null && (
+              <Grid2 size="grow">
+                <SizeLegend
+                  valueRange={
+                    group && clusterRange.size ? clusterRange.size : sizeRange
+                  }
+                  {...{
+                    icon,
+                    group,
+                    sizeBy,
+                    sizeByOptions,
+                    featureTypeProps,
+                  }}
+                  groupCalcValue={groupCalcBySize}
+                  onSelectProp={handleSelectProp}
+                  onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangeSize={handleChangeSize}
+                />
+              </Grid2>
+            )}
+            {colorBy != null && (
+              <Grid2 size="grow">
+                <ColorLegend
+                  valueRange={
+                    group && clusterRange.color
+                      ? clusterRange.color
+                      : colorRange
+                  }
+                  {...{
+                    legendGroupId,
+                    mapId,
+                    group,
+                    colorBy,
+                    colorByOptions,
+                    featureTypeProps,
+                  }}
+                  groupCalcValue={groupCalcByColor}
+                  onSelectProp={handleSelectProp}
+                  onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangeColor={handleChangeColor}
+                />
+              </Grid2>
+            )}
+            {heightBy != null && (
+              <Grid2 size="grow">
+                <HeightLegend
+                  valueRange={heightRange}
+                  {...{
+                    legendGroupId,
+                    mapId,
+                    heightBy,
+                    heightByOptions,
+                    featureTypeProps,
+                  }}
+                  icon={<FetchedIcon iconName={icon} />}
+                  onSelectProp={handleSelectProp('heightBy')}
+                />
+              </Grid2>
+            )}
           </Grid2>
-        )}
-        {colorBy != null && (
-          <Grid2 size="grow">
-            <ColorLegend
-              valueRange={
-                group && clusterRange.color ? clusterRange.color : colorRange
-              }
-              {...{
-                legendGroupId,
-                mapId,
-                group,
-                colorBy,
-                colorByOptions,
-                featureTypeProps,
-              }}
-              groupCalcValue={groupCalcByColor}
-              onSelectProp={handleSelectProp}
-              onSelectGroupCalc={handleSelectGroupCalc}
-              onChangeColor={handleChangeColor}
-            />
-          </Grid2>
-        )}
-        {heightBy != null && (
-          <Grid2 size="grow">
-            <HeightLegend
-              valueRange={heightRange}
-              {...{
-                legendGroupId,
-                mapId,
-                heightBy,
-                heightByOptions,
-                featureTypeProps,
-              }}
-              icon={<FetchedIcon iconName={icon} />}
-              onSelectProp={handleSelectProp('heightBy')}
-            />
-          </Grid2>
-        )}
-      </Grid2>
+        </AccordionDetails>
+      </Accordion>
     </Stack>
   )
 }
 
-const LegendRowNode = (props) => {
-  const [options, setOptions] = useState([])
-  const nodeTypes = useSelector(selectLocalizedNodeTypes)
-  const getRange = useSelector(selectNodeRange)
-  const iconUrl = useSelector(selectSettingsIconUrl)
-  useIconDataLoader(iconUrl, setOptions, console.error)
-  return (
-    <LegendRow
-      featureTypeData={nodeTypes}
-      shapeOptions={options}
-      shapePathEnd="icon"
-      shape={props.icon}
-      shapeLabel="Search available icons"
-      getShapeIcon={(option) => option}
-      getShapeLabel={(option) => option?.split('/')[1]}
-      ListboxComponent={EnhancedListbox}
-      // TODO: Implement groups
-      // groupBy={(option) => option?.split('/')[0]}
-      {...{ getRange, ...props }}
-    />
-  )
-}
-
-const LegendRowArc = (props) => {
-  const arcTypes = useSelector(selectLocalizedArcTypes)
-  const getRange = useSelector(selectArcRange)
-  const indexedOptions = {
-    solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
-    dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
-    dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
-    // '3d': { icon: 'vsc/VscLoading', label: 'Arc' },
-  }
-  return (
-    <LegendRow
-      featureTypeData={arcTypes}
-      shapeOptions={Object.keys(indexedOptions)}
-      shapePathEnd="lineBy"
-      shape={props.lineBy ?? 'solid'}
-      icon={indexedOptions[props.lineBy ?? 'solid']?.icon}
-      shapeLabel="Select the line style"
-      getShapeIcon={(option) => indexedOptions[option]?.icon}
-      getShapeLabel={(option) => indexedOptions[option]?.label}
-      {...{ getRange, ...props }}
-    />
-  )
-}
-
-const LegendRowGeo = (props) => {
-  const geoTypes = useSelector(selectLocalizedGeoTypes)
-  const getRange = useSelector(selectGeoRange)
-  return <LegendRow featureTypeData={geoTypes} {...{ getRange, ...props }} />
-}
+const LegendRow = ({ id, featureTypeData, ...props }) => (
+  <LegendRowDetails
+    name={getLabelFn(featureTypeData, id)}
+    featureTypeProps={featureTypeData[id].props}
+    {...{ id, ...props }}
+  />
+)
 
 const MapFeature = ({ id, ...props }) => {
   const nodeTypes = useSelector(selectNodeTypeKeys)
@@ -405,31 +397,57 @@ const MapFeature = ({ id, ...props }) => {
     : arcTypes.includes(id)
       ? LegendRowArc
       : LegendRowGeo
-  return <LegendRowClass {...{ id, ...props }} />
+  return <LegendRowClass LegendRowComponent={LegendRow} {...{ id, ...props }} />
 }
 
 const LegendGroup = ({
+  expandAll,
   mapId,
   legendGroup,
-  showDisabledFeatures = true, // QUESTION: Should this be always `true` or should we make it a legend setting?
   showLegendGroupNames,
 }) => {
+  const [
+    expandedLegendGroup,
+    handleToggleExpandedLegendGroup,
+    setExpandedLegendGroup,
+  ] = useToggle(true)
+
+  // `expanded` state for all map features (by `id`)
+  const [expanded, setExpanded] = useState(
+    R.pipe(
+      R.keys,
+      R.reduce((acc, id) => R.assoc(id, expandAll)(acc), {})
+    )(legendGroup.data)
+  )
+
+  // Sync the Legend Group's expanded/collapsed
+  // state with the "Expand all" setting
+  useEffect(() => {
+    setExpandedLegendGroup(expandAll)
+    setExpanded(R.map(R.always(expandAll)))
+  }, [expandAll, setExpandedLegendGroup])
+
+  const handleToggleExpandedBy = useCallback(
+    (id) => () => {
+      setExpanded(R.assoc(id, !(expanded[id] ?? true)))
+    },
+    [expanded]
+  )
+
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
-    [legendGroup]
+    [legendGroup.data]
   )
-  const isAnyMapFeatureVisible = useMemo(
-    () => showDisabledFeatures || legendGroupData.some(({ value }) => value),
-    [legendGroupData, showDisabledFeatures]
-  )
-  return isAnyMapFeatureVisible ? (
+
+  return (
     <OptionalWrapper
       component={Accordion}
       wrap={showLegendGroupNames}
       wrapperProps={{
-        elevation: 1,
         disableGutters: true,
-        defaultExpanded: true,
+        expanded: expandedLegendGroup,
+        elevation: 1,
+        onChange: handleToggleExpandedLegendGroup,
       }}
     >
       {showLegendGroupNames && (
@@ -446,18 +464,18 @@ const LegendGroup = ({
         wrap={showLegendGroupNames}
         wrapperProps={{ sx: { p: 1 } }}
       >
-        {legendGroupData.map(({ id, value, ...props }) =>
-          value || showDisabledFeatures ? (
-            <MapFeature
-              key={id}
-              legendGroupId={legendGroup.id}
-              {...{ mapId, id, value, ...props }}
-            />
-          ) : null
-        )}
+        {legendGroupData.map(({ id, ...props }) => (
+          <MapFeature
+            key={id}
+            legendGroupId={legendGroup.id}
+            expanded={expanded[id] ?? true}
+            onToggleExpanded={handleToggleExpandedBy(id)}
+            {...{ mapId, id, ...props }}
+          />
+        ))}
       </OptionalWrapper>
     </OptionalWrapper>
-  ) : null
+  )
 }
 
 const LegendGroups = ({ mapId, ...props }) => {
@@ -486,50 +504,82 @@ const LegendGroups = ({ mapId, ...props }) => {
 }
 
 // TODO: This might just be triggered as a menu
-const LegendSettings = ({ onChangeView, ...props }) => (
-  <Stack>
-    {/* <LegendGroups showSettings {...{ mapId, ...props }} /> */}
-    <Button
-      variant="contained"
-      color="warning"
-      sx={{ mt: 1.5 }}
-      onClick={onChangeView}
-    >
+const LegendSettings = ({
+  expandAll,
+  showLegendGroupNames,
+  onChangeView,
+  onExpandAll,
+  onToggleLegendGroupName,
+}) => (
+  <Stack
+    component={Paper}
+    elevation={1}
+    spacing={1}
+    divider={<Divider />}
+    sx={[styles.details, styles.settings]}
+  >
+    <Typography variant="h5" sx={{ textAlign: 'start' }}>
+      Settings
+    </Typography>
+    <FormGroup>
+      <FormControlLabel
+        value="expand-or-collapse-legend"
+        control={
+          <Switch
+            name="cave-expand-or-collapse-legend"
+            checked={expandAll}
+            onChange={onExpandAll}
+          />
+        }
+        label="Expand all"
+        labelPlacement="end"
+      />
+      <FormControlLabel
+        value="toggle-legend-group-names"
+        control={
+          <Switch
+            name="cave-toggle-legend-group-names"
+            checked={showLegendGroupNames}
+            onChange={onToggleLegendGroupName}
+          />
+        }
+        label="Show legend group names"
+        labelPlacement="end"
+      />
+    </FormGroup>
+    <Button variant="contained" color="warning" onClick={onChangeView}>
       Switch to Minimal View
     </Button>
   </Stack>
 )
 
 const FullLegend = ({ mapId, onChangeView }) => {
-  const {
-    showSettings,
-    showLegendGroupNames,
-    handleToggleLegendGroupNames,
-    handleToggleSettings,
-  } = useLegend(mapId)
+  const [expandAll, handleExpandAll] = useToggle(true)
+  const { showLegendGroupNames, handleToggleLegendGroupNames } =
+    useLegend(mapId)
   return (
     <LegendRoot
       {...{ mapId }}
-      sx={[styles.root, showLegendGroupNames && { p: 0 }]}
+      spacing={showLegendGroupNames ? 0 : 1}
+      sx={[styles.root, showLegendGroupNames && { pt: 0, px: 1 }]}
     >
       <LegendHeader
-        label="Legend"
-        labelProps={{ variant: 'h5', pl: 1 }}
-        iconProps={{ size: 'large' }}
-        {...{ showSettings }}
-        onToggleSettings={handleToggleSettings}
-      />
-      {showSettings ? (
+        {...{ mapId }}
+        slotProps={{
+          label: { variant: 'h5', sx: { pl: 1 } },
+          icon: { size: 24 },
+        }}
+      >
         <LegendSettings
-          {...{ mapId, showLegendGroupNames, onChangeView }}
+          {...{ expandAll, showLegendGroupNames, onChangeView }}
+          onExpandAll={handleExpandAll}
           onToggleLegendGroupName={handleToggleLegendGroupNames}
         />
-      ) : (
-        <LegendGroups
-          {...{ mapId, showLegendGroupNames }}
-          onToggleLegendGroupName={handleToggleLegendGroupNames}
-        />
-      )}
+      </LegendHeader>
+      <LegendGroups
+        {...{ mapId, expandAll, showLegendGroupNames }}
+        onToggleLegendGroupName={handleToggleLegendGroupNames}
+      />
     </LegendRoot>
   )
 }

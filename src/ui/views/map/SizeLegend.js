@@ -30,6 +30,7 @@ const styles = {
     width: '100%',
     p: 1,
     pt: 2,
+    border: '1px outset rgb(128, 128, 128)',
     // justifyContent: 'space-between',
     boxSizing: 'border-box',
   },
@@ -43,9 +44,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    border: 1,
     px: 1,
-    borderColor: 'rgb(128, 128, 128)',
+    border: '1px solid rgb(128, 128, 128)',
     boxSizing: 'border-box',
   },
   rangeRoot: {

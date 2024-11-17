@@ -32,6 +32,7 @@ const styles = {
     width: '100%',
     p: 1,
     pt: 2,
+    border: '1px outset rgb(128, 128, 128)',
     boxSizing: 'border-box',
   },
   categoryRoot: {
@@ -51,16 +52,14 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    border: 1,
     px: 1,
-    borderColor: 'rgb(128, 128, 128)',
+    border: '1px solid rgb(128, 128, 128)',
     boxSizing: 'border-box',
   },
-  gradientRoot: {
+  rangeRoot: {
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    m: 1,
   },
   rangeLabel: {
     textAlign: 'center',
@@ -113,7 +112,7 @@ const NumericalColorLegend = ({
   const showColorPicker = minCp.showColorPicker && maxCp.showColorPicker
   return (
     <>
-      <Grid2 container spacing={1.5} sx={styles.gradientRoot}>
+      <Grid2 container spacing={1.5} sx={styles.rangeRoot}>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Min</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>

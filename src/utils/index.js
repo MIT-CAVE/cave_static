@@ -752,6 +752,8 @@ export const cleanUndefinedStats = (chartObj) => {
     : reduced_chart
 }
 
+export const getNumActiveFilters = R.count(R.propEq('rule', 'type'))
+
 export const constructFetchedGeoJson = (
   matchingKeysByTypeFunc,
   itemRange,

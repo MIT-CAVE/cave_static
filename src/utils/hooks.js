@@ -6,12 +6,18 @@ import { includesPath } from '.'
 import { mutateLocal } from '../data/local'
 import { selectSync } from '../data/selectors'
 
-export const useToggle = (defaultValue) => {
+export const useToggle = (defaultValue, stopPropagation = false) => {
   const [value, setValue] = useState(defaultValue)
-  const handleToggleValue = useCallback(() => {
-    setValue(!value)
-  }, [value])
-  return [value, handleToggleValue]
+  const handleToggleValue = useCallback(
+    (event) => {
+      setValue(!value)
+      if (stopPropagation) {
+        event.stopPropagation()
+      }
+    },
+    [stopPropagation, value]
+  )
+  return [value, handleToggleValue, setValue]
 }
 
 export const useMenu = () => {

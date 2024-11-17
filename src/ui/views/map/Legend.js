@@ -5,30 +5,45 @@ import {
   ButtonBase,
   FormControl,
   Grid2,
-  IconButton,
   InputAdornment,
   InputLabel,
-  Paper,
+  Popper,
+  Stack,
+  ToggleButton,
   Typography,
 } from '@mui/material'
-import { createContext, useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
-import { MdOutlineEdit, MdOutlineFactCheck } from 'react-icons/md'
+import { MdOutlineEdit } from 'react-icons/md'
 import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { MapPortal } from './MapPortal'
+
 import { mutateLocal } from '../../../data/local'
 import {
+  selectArcRange,
   selectBearingSliderToggleFunc,
+  selectGeoRange,
+  selectLocalizedArcTypes,
+  selectLocalizedGeoTypes,
+  selectLocalizedNodeTypes,
+  selectNodeRange,
   selectNodeRangeAtZoomFunc,
   selectPitchSliderToggleFunc,
+  selectSettingsIconUrl,
   selectShowLegendGroupNamesFunc,
   selectSync,
 } from '../../../data/selectors'
 import { propId, statFuncs } from '../../../utils/enums'
-import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
+import {
+  useMenu,
+  useMutateStateWithSync,
+  useToggle,
+} from '../../../utils/hooks'
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
+import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 
 import { FetchedIcon, Select } from '../../compound'
 
@@ -47,25 +62,20 @@ const styles = {
     overflow: 'auto',
     scrollbarGutter: 'stable',
   },
-  legendRoot: {
-    width: 'auto',
-    minWidth: '120px',
-    maxWidth: '600px',
-    p: (theme) => theme.spacing(0, 1, 1),
-    mx: 0,
-    color: 'text.primary',
-    border: 2,
-    borderColor: (theme) => theme.palette.grey[500],
-    borderStyle: 'outset',
-    borderRadius: 1,
+  toggleButton: {
+    p: 1,
+    borderRadius: '50%',
+  },
+  popper: {
+    height: '100%',
+    overflow: 'hidden',
+    zIndex: 2,
   },
   getRippleBox: (selected) => ({
     border: `1px ${selected ? 'inset' : 'outset'} rgb(128, 128, 128)`,
     borderRadius: 1,
   }),
 }
-
-export const MapContainerContext = createContext(null)
 
 export const useLegendDetails = ({
   mapId,
@@ -212,7 +222,6 @@ export const useLegendDetails = ({
 }
 
 export const useLegend = (mapId) => {
-  const [showSettings, handleToggleSettings] = useToggle(false)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
     mapId
   )
@@ -223,12 +232,7 @@ export const useLegend = (mapId) => {
     }),
     [mapId, showLegendGroupNames]
   )
-  return {
-    showSettings,
-    handleToggleSettings,
-    showLegendGroupNames,
-    handleToggleLegendGroupNames,
-  }
+  return { showLegendGroupNames, handleToggleLegendGroupNames }
 }
 
 const getNumLabel = (value, numberFormat) =>
@@ -288,16 +292,18 @@ export const WithBadge = ({
     invisible={!showBadge}
     sx={[showBadge && { color }, ...forceArray(sx)]}
     badgeContent={
-      <Avatar
-        sx={{
-          bgcolor: color,
-          height: size,
-          width: size,
-          border: '2px solid #4a4a4a',
-        }}
-      >
-        <ReactIcon size={size - 2} style={{ padding: 0 }} />
-      </Avatar>
+      showBadge && (
+        <Avatar
+          sx={{
+            bgcolor: color,
+            height: size,
+            width: size,
+            border: '2px solid #4a4a4a',
+          }}
+        >
+          <ReactIcon size={size - 2} style={{ padding: 0 }} />
+        </Avatar>
+      )
     }
     {...props}
   />
@@ -313,6 +319,7 @@ export const WithEditBadge = ({ editing, ...props }) => (
   />
 )
 
+// TODO: Move this to some `legendUtils.js` module
 export const PropIcon = ({ icon, selected, onClick, ...props }) => (
   <RippleBox sx={{ p: 1, borderRadius: '50%' }} {...{ selected, onClick }}>
     <FetchedIcon iconName={icon} {...props} />
@@ -346,33 +353,157 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
   )
 }
 
+export const LegendPopper = ({
+  mapId,
+  IconComponent,
+  children,
+  slotProps = {},
+  ...props
+}) => {
+  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
+  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+
+  const [selected, handleToggleSelected] = useToggle(false)
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  return (
+    <ToggleButton
+      size="small"
+      color="primary"
+      value="details"
+      onMouseEnter={handleOpenMenu}
+      onMouseLeave={selected ? null : handleCloseMenu}
+      onClick={handleToggleSelected}
+      {...{ selected, ...props }}
+    >
+      <WithBadge
+        size={14}
+        color="#29b6f6"
+        slotProps={{
+          badge: {
+            ...slotProps.badge,
+            sx: [{ right: 0, top: 0 }, ...forceArray(slotProps.badge?.sx)],
+          },
+        }}
+      >
+        <IconComponent
+          color={selected ? '#90caf9' : '#fff'}
+          {...slotProps.icon}
+        />
+      </WithBadge>
+      {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
+      <MapPortal>
+        <Popper
+          placement="left"
+          disablePortal
+          open={Boolean(anchorEl) || selected}
+          onClose={handleCloseMenu}
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+          {...{ anchorEl, ...slotProps.popper }}
+          sx={[
+            styles.popper,
+            {
+              maxHeight: showBearingSlider
+                ? 'calc(100% - 165px)'
+                : 'calc(100% - 88px)',
+              maxWidth: showPitchSlider
+                ? 'calc(100% - 164px)'
+                : 'calc(100% - 128px)',
+            },
+            ...forceArray(slotProps.popper?.sx),
+          ]}
+        >
+          {children}
+        </Popper>
+      </MapPortal>
+    </ToggleButton>
+  )
+}
+
+export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
+  const [options, setOptions] = useState([])
+  const nodeTypes = useSelector(selectLocalizedNodeTypes)
+  const getRange = useSelector(selectNodeRange)
+  const iconUrl = useSelector(selectSettingsIconUrl)
+  useIconDataLoader(iconUrl, setOptions, console.error)
+  return (
+    <LegendRowComponent
+      featureTypeData={nodeTypes}
+      shapeOptions={options}
+      shapePathEnd="icon"
+      shape={props.icon}
+      shapeLabel="Search available icons"
+      getShapeIcon={(option) => option}
+      getShapeLabel={(option) => option?.split('/')[1]}
+      ListboxComponent={EnhancedListbox}
+      // TODO: Implement groups
+      // groupBy={(option) => option?.split('/')[0]}
+      {...{ getRange, ...props }}
+    />
+  )
+}
+
+export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
+  const arcTypes = useSelector(selectLocalizedArcTypes)
+  const getRange = useSelector(selectArcRange)
+  const indexedOptions = {
+    solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
+    dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
+    dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
+    // '3d': { icon: 'vsc/VscLoading', label: 'Arc' },
+  }
+  return (
+    <LegendRowComponent
+      featureTypeData={arcTypes}
+      shapeOptions={Object.keys(indexedOptions)}
+      shapePathEnd="lineBy"
+      shape={props.lineBy ?? 'solid'}
+      icon={indexedOptions[props.lineBy ?? 'solid']?.icon}
+      shapeLabel="Select the line style"
+      getShapeIcon={(option) => indexedOptions[option]?.icon}
+      getShapeLabel={(option) => indexedOptions[option]?.label}
+      {...{ getRange, ...props }}
+    />
+  )
+}
+
+export const LegendRowGeo = ({ LegendRowComponent, ...props }) => {
+  const geoTypes = useSelector(selectLocalizedGeoTypes)
+  const getRange = useSelector(selectGeoRange)
+  return (
+    <LegendRowComponent
+      featureTypeData={geoTypes}
+      {...{ getRange, ...props }}
+    />
+  )
+}
+
 export const LegendHeader = ({
   label = 'Legend',
-  labelProps,
-  iconProps,
-  showSettings,
-  onToggleSettings,
+  mapId,
+  slotProps = {},
   sx = [],
+  children,
 }) => (
   <Grid2
     container
     spacing={1}
-    sx={[{ alignItems: 'center', px: 0.8 }, ...forceArray(sx)]}
+    sx={[{ alignItems: 'center', px: 0.8, my: 1 }, ...forceArray(sx)]}
   >
     <Grid2 size="grow" sx={{ textAlign: 'start' }}>
-      <Typography variant="h6" {...labelProps}>
+      <Typography variant="h6" {...slotProps.label}>
         {label}
       </Typography>
     </Grid2>
     <Grid2 size="auto">
-      <IconButton
-        size="small"
-        color="primary"
-        onClick={onToggleSettings}
-        {...iconProps}
+      <LegendPopper
+        sx={styles.toggleButton}
+        IconComponent={RiSettings5Line}
+        {...{ mapId, slotProps }}
       >
-        {showSettings ? <MdOutlineFactCheck /> : <RiSettings5Line />}
-      </IconButton>
+        {children}
+      </LegendPopper>
     </Grid2>
   </Grid2>
 )
@@ -396,7 +527,7 @@ export const LegendRoot = ({ mapId, ...props }) => {
         },
       ]}
     >
-      <Paper {...props} />
+      <Stack spacing={1} bgcolor="background.paper" {...props} />
     </Box>
   )
 }

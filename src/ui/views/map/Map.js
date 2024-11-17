@@ -10,10 +10,10 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { getDefaultFog, getDefaultStyleId } from '.'
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
-import { MapContainerContext } from './Legend'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
+import { MapContainerContext } from './MapPortal'
 
 import { mutateLocal } from '../../../data/local'
 import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
@@ -336,6 +336,7 @@ const Map = ({ mapId }) => {
           <Arcs mapId={mapId} />
           <Nodes mapId={mapId} />
           <Arcs3D mapId={mapId} />
+          {/* `MapPortal` is injected here */}
           <div ref={containerRef} />
         </ReactMapGL>
         <MapModal mapId={mapId} />
@@ -376,4 +377,5 @@ export const MapPage = (props) => {
     </Container>
   )
 }
+
 export default Map

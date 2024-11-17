@@ -11,7 +11,7 @@ import {
 } from '../../../data/selectors'
 import { useFilter } from '../../../utils/hooks'
 
-import { includesPath } from '../../../utils'
+import { getNumActiveFilters, includesPath } from '../../../utils'
 
 const useMapFilter = ({
   mapId,
@@ -56,7 +56,7 @@ const useMapFilter = ({
   )
 
   const numActiveFilters = useMemo(
-    () => R.count(R.propEq('rule', 'type'))(filters),
+    () => getNumActiveFilters(filters),
     [filters]
   )
 
