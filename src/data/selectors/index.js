@@ -79,7 +79,7 @@ export const selectCurrentSession = createSelector(selectSessions, (data) =>
 )
 export const selectTeams = createSelector(
   selectSessionsData,
-  R.mapObjIndexed((value) => R.dissoc('sessions', value))
+  R.map(R.dissoc('sessions'))
 )
 export const selectSortedTeams = createSelector(
   selectTeams,
@@ -91,7 +91,7 @@ export const selectSortedTeams = createSelector(
 )
 export const selectSessionsByTeam = createSelector(
   selectSessionsData,
-  R.mapObjIndexed((value) => R.prop('sessions', value))
+  R.pluck('sessions')
 )
 
 // Tokens

@@ -46,21 +46,38 @@ import { FetchedIcon, TextInput } from '../../compound'
 
 import { forceArray, getFreeName } from '../../../utils'
 
-const ConfirmCancelButtons = ({ onCancel, onConfirm }) => {
+const SESSION_CARD_LARGE_HEIGHT = 470
+const SESSION_CARD_SMALL_HEIGHT = 400
+const SESSION_CARD_HEIGHT = 150
+const SESSION_CARD_MARGIN = 8
+
+const ACTION_TYPES = {
+  CREATE: 'create',
+  EDIT: 'edit',
+  DUPLICATE: 'duplicate',
+}
+
+const ConfirmCancelButtons = ({
+  confirmText = 'Confirm',
+  onCancel,
+  onConfirm,
+  cancelRed = true,
+}) => {
   return (
     <>
       <Button
         aria-label="confirm changes"
         onClick={onConfirm}
+        color={cancelRed ? 'primary' : 'error'}
         variant="contained"
         endIcon={<FetchedIcon iconName="md/MdCheck" size={24} />}
       >
-        Confirm
+        {confirmText}
       </Button>
       <Button
         aria-label="cancel"
         onClick={onCancel}
-        color="error"
+        color={cancelRed ? 'error' : 'primary'}
         variant="contained"
         startIcon={<FetchedIcon iconName="md/MdOutlineCancel" />}
       >
@@ -232,7 +249,16 @@ const ListItemSessionCardInput = ({
       teamOptions.length > 0 && { team: teamOptions[0].label }),
   })
   return (
-    <Card elevation={18} {...{ sx, ...props }}>
+    <Card
+      elevation={18}
+      {...{
+        sx: {
+          ...sx,
+          my: `${SESSION_CARD_MARGIN}px`,
+        },
+        ...props,
+      }}
+    >
       <CardHeader
         sx={[{ pb: 1 }, ...forceArray(cardHeaderSx)]}
         {...{ title }}
@@ -251,9 +277,9 @@ const ListItemSessionCardInput = ({
                   // The placeholder in the API serves as a label in the context of the MUI component.
                   <TextField fullWidth label={'Team'} {...params} />
                 )}
-                onChange={(_, value) => {
-                  setInputValues(R.assoc('team', value)(inputValues))
-                }}
+                onChange={(_, value) =>
+                  setInputValues(R.assoc('team', value, inputValues))
+                }
               />
             )}
             <TextInput
@@ -262,9 +288,9 @@ const ListItemSessionCardInput = ({
               sx={{ mt: 3 }}
               value={inputValues.name}
               label="Session name"
-              onChange={(value) => {
-                setInputValues(R.assoc('name', value)(inputValues))
-              }}
+              onChange={(value) =>
+                setInputValues(R.assoc('name', value, inputValues))
+              }
             />
           </>
         }
@@ -276,11 +302,10 @@ const ListItemSessionCardInput = ({
           multiline
           value={inputValues.description}
           label="Session description"
-          maxRows={6}
-          minRows={2}
-          onChange={(value) => {
-            setInputValues(R.assoc('description', value)(inputValues))
-          }}
+          rows={6}
+          onChange={(value) =>
+            setInputValues(R.assoc('description', value, inputValues))
+          }
         />
       </CardContent>
       <CardActions
@@ -289,7 +314,7 @@ const ListItemSessionCardInput = ({
       >
         <Stack direction="row" spacing={1} paddingBottom={0.75}>
           <ConfirmCancelButtons
-            onConfirm={() => {
+            onConfirm={() =>
               onClickConfirm(
                 inputValues.name,
                 inputValues.description,
@@ -299,7 +324,7 @@ const ListItemSessionCardInput = ({
                     R.prop('value')
                   )(teamOptions)
               )
-            }}
+            }
             onCancel={onClickCancel}
           />
         </Stack>
@@ -355,7 +380,13 @@ const ListItemSessionCard = ({
 
   return (
     <ListItemCard
-      {...{ disabled, selected, selectable, sx, onClick }}
+      {...{
+        disabled,
+        selected,
+        selectable,
+        sx: { ...sx, height: SESSION_CARD_HEIGHT },
+        onClick,
+      }}
       title={teamName}
       subtitle={sessionName}
       subtitleExtra={selected ? ' (current)' : ''}
@@ -433,7 +464,7 @@ const CustomDataGridRow = ({ ...props }) => {
   const selected = sessionId === sessionIdCurrent
   return (
     <Fragment key={`${teamId}-${sessionName}`}>
-      {props.index === 0 && currentAction.command === 'create' && (
+      {index === ACTION_TYPES.CREATE ? (
         <ListItemSessionCardInput
           key="create-session-form"
           title="Create session"
@@ -448,11 +479,25 @@ const CustomDataGridRow = ({ ...props }) => {
             (team) => ({ label: team.name, value: team.id }),
             teams
           )}
+          sx={{ height: SESSION_CARD_LARGE_HEIGHT }}
         />
-      )}
-      {sessionId === currentAction.sessionId &&
-      currentAction.index >= 0 &&
-      currentAction.command === 'edit' ? (
+      ) : index === ACTION_TYPES.DUPLICATE ? (
+        <ListItemSessionCardInput
+          key={`${currentAction.sessionId}-duplicate`}
+          title="Duplicate session"
+          sessionName={getFreeName(
+            sessionName,
+            R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
+          )}
+          sessionDescription={getFreeName(
+            sessionDescription,
+            R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
+          )}
+          onClickConfirm={onClickConfirmDuplicateHandler}
+          onClickCancel={onClickCancelHandler}
+          sx={{ height: SESSION_CARD_SMALL_HEIGHT }}
+        />
+      ) : index === ACTION_TYPES.EDIT ? (
         <ListItemSessionCardInput
           key={sessionId}
           title="Edit session"
@@ -488,28 +533,13 @@ const CustomDataGridRow = ({ ...props }) => {
               disabled: !selected,
             },
           ]}
-          sx={{ my: 1 }}
+          sx={{
+            height: SESSION_CARD_SMALL_HEIGHT,
+            my: `${SESSION_CARD_MARGIN}px`,
+          }}
           onClick={() => onClickHandler(sessionId)}
         />
       )}
-      {/* Render a duplicate session if applicable */}
-      {currentAction.index === index &&
-        currentAction.command === 'duplicate' && (
-          <ListItemSessionCardInput
-            key={`${currentAction.sessionId}-duplicate`}
-            title="Duplicate session"
-            sessionName={getFreeName(
-              sessionName,
-              R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
-            )}
-            sessionDescription={getFreeName(
-              sessionDescription,
-              R.pipe(R.values, R.pluck('sessionName'))(sessionsByTeam[teamId])
-            )}
-            onClickConfirm={onClickConfirmDuplicateHandler}
-            onClickCancel={onClickCancelHandler}
-          />
-        )}
     </Fragment>
   )
 }
@@ -710,6 +740,75 @@ const SessionPane = ({ width }) => {
   const { sessions: teamSessions, ...teamCurrent } = teamAllSessions
   const { sessionName, sessionDescription } = teamSessions[sessionIdCurrent]
 
+  const rows = R.flatten(
+    R.values(
+      R.map(
+        ({
+          sessions,
+          teamName,
+          teamId,
+          teamCountSessions,
+          teamLimitSessions,
+        }) =>
+          R.values(
+            R.mapObjIndexed(
+              ({ sessionId, sessionName, sessionDescription }, index) => ({
+                id: `${index}-${teamId}`,
+                currentAction,
+                index,
+                onClickCancelHandler,
+                onClickConfirmCreateHandler,
+                onClickConfirmDuplicateHandler,
+                onClickConfirmEditHandler,
+                onClickHandler,
+                onClickEditHandler,
+                onClickDuplicateHandler,
+                onClickRemoveHandler,
+                onClickResetHandler,
+                sessionDescription,
+                sessionId,
+                sessionIdCurrent,
+                sessionName,
+                sessionsByTeam,
+                teamCountSessions,
+                teamId,
+                teamLimitSessions,
+                teamName,
+                teams,
+              }),
+              sessions
+            )
+          ),
+        sessions.data
+      )
+    )
+  )
+
+  if (currentAction.command === 'create') {
+    rows.unshift({
+      ...rows[0],
+      id: `0-${rows[0].teamId}`,
+      index: ACTION_TYPES.CREATE,
+    })
+  } else if (currentAction.command === 'duplicate') {
+    const idx = rows.findIndex(
+      (row) => row.sessionId === currentAction.sessionId.toString()
+    )
+    rows.splice(idx + 1, 0, {
+      ...rows[idx],
+      id: `${idx + 1}-${rows[idx].teamId}-duplicate`,
+      index: ACTION_TYPES.DUPLICATE,
+    })
+  } else if (currentAction.index >= 0 && currentAction.command === 'edit') {
+    const idx = rows.findIndex(
+      (row) => row.sessionId === currentAction.sessionId
+    )
+    rows[idx] = {
+      ...rows[idx],
+      index: ACTION_TYPES.EDIT,
+    }
+  }
+
   return (
     <>
       <Box
@@ -791,51 +890,24 @@ const SessionPane = ({ width }) => {
           sx={{ py: 3 }}
         />
         <DataGrid
+          disableVirtualization
           sx={{
             '.MuiDataGrid-virtualScrollerRenderZone': {
               width: '97%',
             },
           }}
-          rows={R.flatten(
-            R.values(
-              R.mapObjIndexed(
-                ({ teamName, teamId, teamCountSessions, teamLimitSessions }) =>
-                  R.values(
-                    R.mapObjIndexed(
-                      (
-                        { sessionId, sessionName, sessionDescription },
-                        index
-                      ) => ({
-                        currentAction,
-                        id: `${index}-${teamId}`,
-                        index,
-                        onClickCancelHandler,
-                        onClickConfirmCreateHandler,
-                        onClickConfirmDuplicateHandler,
-                        onClickConfirmEditHandler,
-                        onClickHandler,
-                        onClickEditHandler,
-                        onClickDuplicateHandler,
-                        onClickRemoveHandler,
-                        onClickResetHandler,
-                        sessionDescription,
-                        sessionId,
-                        sessionIdCurrent,
-                        sessionName,
-                        sessionsByTeam,
-                        teamCountSessions,
-                        teamId,
-                        teamLimitSessions,
-                        teamName,
-                        teams,
-                      }),
-                      sessionsByTeam[teamId]
-                    )
-                  ),
-                sessions.data
-              )
+          getRowHeight={(params) => {
+            const index = params.model.index
+            return (
+              (index === ACTION_TYPES.CREATE
+                ? SESSION_CARD_LARGE_HEIGHT
+                : R.includes(index, R.values(ACTION_TYPES))
+                  ? SESSION_CARD_SMALL_HEIGHT
+                  : SESSION_CARD_HEIGHT) +
+              SESSION_CARD_MARGIN * 2
             )
-          )}
+          }}
+          rows={rows}
           columns={[
             { field: 'sessionName', headerName: 'Session' },
             { field: 'teamName', headerName: 'Team' },
@@ -916,8 +988,10 @@ const SessionPane = ({ width }) => {
           paddingY={2}
         >
           <ConfirmCancelButtons
+            confirmText="Reset"
             onConfirm={onConfirmReset}
             onCancel={onCancelReset}
+            cancelRed={false}
           />
         </Stack>
       </BaseModal>
