@@ -140,12 +140,11 @@ const LegendRowDetails = ({
     },
   ],
   featureTypeProps,
-  // expandAll,
   expanded,
+  setExpanded,
   onToggleExpanded,
   getRange,
 }) => {
-  // const [expanded, handleToggleExpanded, setExpanded] = useToggle(true)
   const [showShapePicker, handleToggleShapePicker] = useToggle(false, true)
   const {
     basePath,
@@ -190,23 +189,23 @@ const LegendRowDetails = ({
     filters,
   })
 
-  // // Sync the `Accordion`'s expanded/collapsed
-  // // state with the "Expand all" setting
-  // useEffect(() => {
-  //   setExpanded(expandAll)
-  // }, [expandAll, setExpanded])
-
-  // // Sync the `Accordion`'s expanded/collapsed state
-  // // with the value of the map feature toggle
-  // useEffect(() => {
-  //   setExpanded(value)
-  // }, [setExpanded, value])
+  // Automatically expand the `Accordion` when the Shape Picker toggle is enabled
+  useEffect(() => {
+    if (showShapePicker) setExpanded(true)
+  }, [setExpanded, showShapePicker])
 
   const handleChangeVisibility = useMutateStateWithSync(
-    (event) => ({
-      path: [...basePath, 'value'],
-      value: event.target.checked ?? true,
-    }),
+    (event) => {
+      // Sync the `Accordion`'s expanded/collapsed state
+      // with the value of the map feature toggle
+      const newValue = event.target.checked
+      setExpanded(newValue)
+      event.stopPropagation()
+      return {
+        path: [...basePath, 'value'],
+        value: newValue ?? true,
+      }
+    },
     [basePath]
   )
   return (
@@ -469,6 +468,7 @@ const LegendGroup = ({
             key={id}
             legendGroupId={legendGroup.id}
             expanded={expanded[id] ?? true}
+            setExpanded={(value) => setExpanded(R.assoc(id, value)(expanded))}
             onToggleExpanded={handleToggleExpandedBy(id)}
             {...{ mapId, id, ...props }}
           />
@@ -503,7 +503,6 @@ const LegendGroups = ({ mapId, ...props }) => {
   )
 }
 
-// TODO: This might just be triggered as a menu
 const LegendSettings = ({
   expandAll,
   showLegendGroupNames,
