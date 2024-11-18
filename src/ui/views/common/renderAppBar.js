@@ -26,7 +26,6 @@ import {
   selectVirtualKeyboard,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
-import { paneId } from '../../../utils/enums'
 
 import { includesPath } from '../../../utils'
 
@@ -184,47 +183,20 @@ const Panes = () => {
     <ClickAwayListener onClickAway={handlePaneClickAway}>
       <Box>
         {R.map(
-          ([side, open, pane, openPanesData]) => {
-            const systemPane = R.propOr(
-              {},
-              open,
-              side === 'left' && mirrorMode
-                ? rightAppBarData
-                : side === 'left'
-                  ? leftAppBarData
-                  : mirrorMode
-                    ? leftAppBarData
-                    : rightAppBarData
-            )
-            const isSystem =
-              systemPane &&
-              (systemPane.type === paneId.SESSION ||
-                systemPane.type === paneId.APP_SETTINGS)
-            return open ? (
+          ([side, open, pane, openPanesData]) =>
+            R.isNotEmpty(open) ? (
               <Box key={side} sx={styles.pane}>
                 {renderAppPane({
-                  side: side,
-                  open: open,
-                  pane: isSystem
-                    ? R.mergeLeft(
-                        {
-                          variant: systemPane.type,
-                          name:
-                            systemPane.type === paneId.SESSION
-                              ? 'Sessions'
-                              : 'Settings',
-                        },
-                        systemPane
-                      )
-                    : pane,
-                  openPanesData: openPanesData,
+                  open,
+                  openPanesData,
+                  pane,
+                  side,
                   ...getPinObj(side),
                 })}
               </Box>
             ) : (
               []
-            )
-          },
+            ),
           [
             ['left', leftOpen, leftPane, leftOpenPanesData],
             ['right', rightOpen, rightPane, rightOpenPanesData],
