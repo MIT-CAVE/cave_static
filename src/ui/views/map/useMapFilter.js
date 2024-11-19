@@ -26,7 +26,7 @@ const useMapFilter = ({
   const pageLayout = useSelector(selectPageLayout)
   const dispatch = useDispatch()
 
-  const { menuOpen, handleOpenMenu, handleCloseMenu } = useMenu()
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const filterableProps = useMemo(
     () =>
@@ -104,11 +104,11 @@ const useMapFilter = ({
     labelStart,
     isFilterDisabled,
     numActiveFilters,
-    menuOpen,
     filterableProps,
     filterableExtraProps,
-    handleOpenMenu,
-    handleCloseMenu,
+    filterOpen: Boolean(anchorEl),
+    handleOpenFilter: handleOpenMenu,
+    handleCloseFilter: handleCloseMenu,
     handleSaveFilters,
   }
 }
