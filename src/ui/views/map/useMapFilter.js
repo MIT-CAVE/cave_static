@@ -9,9 +9,9 @@ import {
   selectPageLayout,
   selectSync,
 } from '../../../data/selectors'
-import { useFilter } from '../../../utils/hooks'
+import { useMenu } from '../../../utils/hooks'
 
-import { includesPath } from '../../../utils'
+import { getNumActiveFilters, includesPath } from '../../../utils'
 
 const useMapFilter = ({
   mapId,
@@ -26,7 +26,7 @@ const useMapFilter = ({
   const pageLayout = useSelector(selectPageLayout)
   const dispatch = useDispatch()
 
-  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const { menuOpen, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const filterableProps = useMemo(
     () =>
@@ -59,7 +59,7 @@ const useMapFilter = ({
   )
 
   const numActiveFilters = useMemo(
-    () => R.count(R.propEq('rule', 'type'))(filters),
+    () => getNumActiveFilters(filters),
     [filters]
   )
 
@@ -104,11 +104,11 @@ const useMapFilter = ({
     labelStart,
     isFilterDisabled,
     numActiveFilters,
-    filterOpen,
+    menuOpen,
     filterableProps,
     filterableExtraProps,
-    handleOpenFilter,
-    handleCloseFilter,
+    handleOpenMenu,
+    handleCloseMenu,
     handleSaveFilters,
   }
 }

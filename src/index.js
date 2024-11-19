@@ -29,7 +29,12 @@ if (typeof window !== 'undefined') {
       // check if tokens are present in data
       if (payload.event === 'initialize') {
         dispatch(tokensSet({ mapboxToken: payload.data.mapbox_token }))
-        await websocket.connect(payload.data.user_token, onMessage(dispatch))
+        await websocket.connect(
+          payload.data.user_token,
+          onMessage(dispatch),
+          payload.data.ws_path,
+          payload.data.ws_encoding
+        )
         // After initial connection, get the session data
         await dispatch(sendCommand({ command: 'get_session_data', data: {} }))
       } else {

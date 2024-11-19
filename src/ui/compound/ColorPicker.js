@@ -1,7 +1,9 @@
+import { color } from 'd3-color'
+import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
-const useColorPicker = (onChangeColor) => {
+export const useColorPicker = (onChangeColor) => {
   const [colorPickerProps, setColorPickerProps] = useState({})
 
   const handleChange = useCallback(
@@ -33,4 +35,25 @@ const useColorPicker = (onChangeColor) => {
   }
 }
 
-export default useColorPicker
+const ColorPicker = ({ colorLabel, value, onChange }) => {
+  const formattedColor = useMemo(() => {
+    if (!matchIsValidColor(value)) return value
+    return color(value).formatHex8().toLowerCase()
+  }, [value])
+
+  return (
+    <MuiColorInput
+      // size="small"
+      focused
+      color="warning"
+      format="hex8"
+      // PopoverProps={{ onClose }}
+      label={`Color picker \u279D ${colorLabel}`}
+      style={{ marginTop: '20px' }}
+      value={formattedColor}
+      {...{ onChange }}
+    />
+  )
+}
+
+export default ColorPicker

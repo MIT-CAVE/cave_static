@@ -13,6 +13,7 @@ import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
+import { MapContainerContext } from './MapPortal'
 
 import { mutateLocal } from '../../../data/local'
 import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
@@ -32,13 +33,14 @@ import {
   selectAllNodeIcons,
   selectSync,
   selectIsMapboxTokenProvided,
+  selectMapboxToken,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, ICON_RESOLUTION } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 import { fetchIcon, includesPath } from '../../../utils'
 
-const Map = ({ mapboxToken, mapId }) => {
+const Map = ({ mapId }) => {
   const dispatch = useDispatch()
   const viewport = useSelector(selectViewportsByMap)[mapId]
   const mapStyle = useSelector(selectCurrentMapStyleFunc)(mapId)
@@ -54,6 +56,7 @@ const Map = ({ mapboxToken, mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
+  const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const sync = useSelector(selectSync)
   const [iconData, setIconData] = useState({})
@@ -298,51 +301,51 @@ const Map = ({ mapboxToken, mapId }) => {
         flex: '1 1 auto',
       }}
     >
-      <MapControls allowProjections={isMapboxTokenProvided} mapId={mapId} />
-      <ReactMapGL
-        {...viewport}
-        onMove={(e) => {
-          // Prevents setting incorrect viewport on load
-          if (e.viewState.zoom !== 0)
-            dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
-        }}
-        hash="map"
-        container="map"
-        mapStyle={mapStyleSpec}
-        mapboxAccessToken={isMapboxTokenProvided && mapboxToken}
-        projection={mapProjection}
-        fog={R.pathOr(getDefaultFog(), [
-          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
-          'fog',
-        ])(mapStyleOptions)}
-        onClick={onClick}
-        onMouseMove={onMouseMove}
-        onStyleData={loadIconsToStyle}
-        ref={mapRef}
-        onMouseOver={onMouseOver}
-        interactiveLayerIds={R.values(layerId)}
-        // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
-        // Checking if token is provided to prevents both issues
-        onRender={() => {
-          isMapboxTokenProvided && mapRef.current && mapRef.current.resize()
-        }}
-      >
-        <Geos mapId={mapId} />
-        <IncludedGeos mapId={mapId} />
-        <Arcs mapId={mapId} />
-        <Nodes mapId={mapId} />
-        <Arcs3D mapId={mapId} />
-        <div ref={containerRef} />
-      </ReactMapGL>
-      <MapModal mapId={mapId} />
-      <MapLegend mapId={mapId} containerRef={containerRef} />
+      <MapContainerContext.Provider value={containerRef}>
+        <MapControls allowProjections={isMapboxTokenProvided} mapId={mapId} />
+        <ReactMapGL
+          {...viewport}
+          onMove={(e) => {
+            // Prevents setting incorrect viewport on load
+            if (e.viewState.zoom !== 0)
+              dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
+          }}
+          hash="map"
+          container="map"
+          mapStyle={mapStyleSpec}
+          mapboxAccessToken={isMapboxTokenProvided && mapboxToken}
+          projection={mapProjection}
+          fog={R.pathOr(getDefaultFog(), [
+            mapStyle || getDefaultStyleId(isMapboxTokenProvided),
+            'fog',
+          ])(mapStyleOptions)}
+          onClick={onClick}
+          onMouseMove={onMouseMove}
+          onStyleData={loadIconsToStyle}
+          ref={mapRef}
+          onMouseOver={onMouseOver}
+          interactiveLayerIds={R.values(layerId)}
+          // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
+          // Checking if token is provided to prevents both issues
+          onRender={() => {
+            isMapboxTokenProvided && mapRef.current && mapRef.current.resize()
+          }}
+        >
+          <Geos mapId={mapId} />
+          <IncludedGeos mapId={mapId} />
+          <Arcs mapId={mapId} />
+          <Nodes mapId={mapId} />
+          <Arcs3D mapId={mapId} />
+          {/* `MapPortal` is injected here */}
+          <div ref={containerRef} />
+        </ReactMapGL>
+        <MapModal mapId={mapId} />
+        <MapLegend mapId={mapId} />
+      </MapContainerContext.Provider>
     </Box>
   )
 }
-Map.propTypes = {
-  mapboxToken: PropTypes.string,
-  mapId: PropTypes.string,
-}
+Map.propTypes = { mapId: PropTypes.string }
 
 const styles = {
   root: {
@@ -374,4 +377,5 @@ export const MapPage = (props) => {
     </Container>
   )
 }
+
 export default Map

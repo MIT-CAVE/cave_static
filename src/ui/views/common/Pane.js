@@ -120,7 +120,7 @@ const renderAppPane = ({ open, openPanesData, pane, side, pin, onPin }) => {
           R.T,
           R.always(<OptionsPane open={open} pane={openPanesData} />),
         ],
-      ])(variant)}
+      ])(open)}
     </PaneWrapper>
   )
 }

@@ -24,13 +24,12 @@ import {
   selectSync,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
-  selectMapboxToken,
   selectShowToolbar,
   selectEditLayoutMode,
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { useFilter, useMutateState } from '../../../utils/hooks'
+import { useModal, useMutateState } from '../../../utils/hooks'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
@@ -75,14 +74,13 @@ const styles = {
 
 const DashboardItem = ({ chartObj, index, path }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
-  const mapboxToken = useSelector(selectMapboxToken)
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
   const showToolbarDefault = useSelector(selectShowToolbar)
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const sync = useSelector(selectSync)
 
-  const { filterOpen, handleOpenFilter, handleCloseFilter } = useFilter()
+  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
 
   const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
@@ -210,15 +208,15 @@ const DashboardItem = ({ chartObj, index, path }) => {
           labelExtra,
         }}
         label="Chart Data Filter"
-        open={filterOpen}
+        open={modalOpen}
         onSave={handleSaveFilters}
-        onClose={handleCloseFilter}
+        onClose={handleCloseModal}
       />
       {showToolbar && (
         <ChartToolbar
           numFilters={numActiveStatFilters + numGroupingFilters}
           showFilter={vizType === 'groupedOutput'}
-          onOpenFilter={handleOpenFilter}
+          onOpenFilter={handleOpenModal}
           {...{ chartObj, index, path }}
         />
       )}
@@ -242,7 +240,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
           </Suspense>
         )
       ) : vizType === 'map' && chartObj.mapId ? (
-        <Map mapId={chartObj.mapId} {...{ mapboxToken }} />
+        <Map mapId={chartObj.mapId} />
       ) : vizType === 'globalOutput' ? (
         <DashboardGlobalOutput {...{ chartObj }} />
       ) : null}
