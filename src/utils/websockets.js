@@ -21,8 +21,7 @@ class socket {
       } else {
         console.error('Invalid encoding provided')
       }
-
-      this.ws = new WebSocket(`${connectUrl}${wsPath}?user_token=${token}`)
+      this.ws = new WebSocket(`${connectUrl}${wsPath}`, [`Token.${token}`])
 
       this.ws.onopen = () => {
         console.log('App Socket Connection Established!')
