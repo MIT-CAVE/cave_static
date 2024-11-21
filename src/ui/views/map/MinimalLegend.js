@@ -360,11 +360,7 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
                 size: 14,
                 color: '#29b6f6',
                 reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
-                slotProps: {
-                  badge: {
-                    sx: { right: 0, top: 0 },
-                  },
-                },
+                sx: { right: 0, top: 0 },
               },
               popper: { sx: { width: '400px' } },
             }}

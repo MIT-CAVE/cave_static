@@ -362,6 +362,10 @@ export const LegendPopper = ({
 
   const [selected, handleToggleSelected] = useToggle(false)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  const {
+    badge: { showBadge, reactIcon, ...muiBadgeProps } = {},
+    ...muiSlotProps
+  } = slotProps
   return (
     <ToggleButton
       size="small"
@@ -375,16 +379,17 @@ export const LegendPopper = ({
       <WithBadge
         size={14}
         color="#29b6f6"
+        {...{ showBadge, reactIcon }}
         slotProps={{
           badge: {
-            ...slotProps.badge,
-            sx: [{ right: 0, top: 0 }, ...forceArray(slotProps.badge?.sx)],
+            ...muiBadgeProps,
+            sx: [{ right: 0, top: 0 }, ...forceArray(muiBadgeProps?.sx)],
           },
         }}
       >
         <IconComponent
           color={selected ? '#90caf9' : '#fff'}
-          {...slotProps.icon}
+          {...muiSlotProps.icon}
         />
       </WithBadge>
       {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
@@ -397,7 +402,7 @@ export const LegendPopper = ({
           onClick={(event) => {
             event.stopPropagation()
           }}
-          {...{ anchorEl, ...slotProps.popper }}
+          {...{ anchorEl, ...muiSlotProps.popper }}
           sx={[
             styles.popper,
             {
@@ -408,7 +413,7 @@ export const LegendPopper = ({
                 ? 'calc(100% - 164px)'
                 : 'calc(100% - 128px)',
             },
-            ...forceArray(slotProps.popper?.sx),
+            ...forceArray(muiSlotProps.popper?.sx),
           ]}
         >
           {children}
