@@ -173,7 +173,12 @@ const CategoricalColorLegend = ({ type, colorByProp, onChangeColor }) => {
       orderEntireDict, // Preserve order of options after state updates
       // Add fallback color for null values, if available
       R.when(R.always(fallback?.color != null), R.assoc('null', fallback)),
-      R.map(R.pick(['name', 'color']))
+      R.map(
+        R.applySpec({
+          name: R.prop('name'),
+          color: R.propOr('#000', 'color'), // In case `color` is missing
+        })
+      )
     )(options)
   }, [colorByProp])
 
