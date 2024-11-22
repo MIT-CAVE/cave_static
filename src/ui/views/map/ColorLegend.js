@@ -158,12 +158,7 @@ const NumericalColorLegend = ({
   )
 }
 
-const CategoricalColorLegend = ({
-  type,
-  colorBy,
-  colorByProps,
-  onChangeColor,
-}) => {
+const CategoricalColorLegend = ({ type, colorByProp, onChangeColor }) => {
   const {
     colorPickerProps,
     showColorPicker,
@@ -172,34 +167,38 @@ const CategoricalColorLegend = ({
     handleChange: handleChangeRaw,
   } = useColorPicker(onChangeColor)
 
+  const colorOptions = useMemo(() => {
+    const { options, fallback } = colorByProp
+    return R.pipe(
+      orderEntireDict, // Preserve order of options after state updates
+      // Add fallback color for null values, if available
+      R.when(R.always(fallback?.color != null), R.assoc('null', fallback)),
+      R.map(R.pick(['name', 'color']))
+    )(options)
+  }, [colorByProp])
+
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
         type === propId.SELECTOR || type === propId.TOGGLE
-          ? colorByProps[colorBy].options[option].name
+          ? colorOptions[option].name
           : null
       return label || capitalize(option)
     },
-    [colorBy, colorByProps, type]
+    [colorOptions, type]
   )
 
   const handleChange = useCallback(
     (event, value) => {
-      handleChangeRaw(event, value, ['options', colorPickerProps.key, 'color'])
+      const option = colorPickerProps.key
+      const path =
+        option === 'null' // Updating fallback color?
+          ? ['fallback', 'color']
+          : ['options', option, 'color']
+      handleChangeRaw(event, value, path)
     },
     [handleChangeRaw, colorPickerProps.key]
   )
-
-  const colorOptions = useMemo(
-    () =>
-      R.pipe(
-        orderEntireDict, // Preserve order of options after state updates
-        R.prop('options'),
-        R.pluck('color')
-      )(colorByProps[colorBy]),
-    [colorBy, colorByProps]
-  )
-
   return (
     <>
       <OverflowText
@@ -211,7 +210,7 @@ const CategoricalColorLegend = ({
           spacing={1}
           sx={{ alignItems: 'center', justifyContent: 'center' }}
         >
-          {Object.entries(colorOptions).map(([option, value]) => (
+          {Object.entries(colorOptions).map(([option, { color: value }]) => (
             <WithEditColorBadge
               key={option}
               // anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
@@ -268,8 +267,9 @@ const ColorLegend = ({
         const hasColorOptions = Object.values(prop.options || {}).some(
           (value) => 'color' in value
         )
+        const hasFallbackColor = prop.fallback?.color != null
 
-        if (hasGradientColors || hasColorOptions) {
+        if (hasGradientColors || hasColorOptions || hasFallbackColor) {
           acc[propId] = prop
         }
         return acc
@@ -314,7 +314,8 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          {...{ colorBy, colorByProps, onChangeColor }}
+          colorByProp={colorByProps[colorBy]}
+          {...{ onChangeColor }}
         />
       ) : (
         <NumericalColorLegend

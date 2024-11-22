@@ -1,5 +1,5 @@
 import { quantileSorted } from 'd3-array'
-import { color, rgb } from 'd3-color'
+import { color } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
@@ -397,6 +397,27 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
+/**
+ * Scales a value from a given domain to a corresponding value in the specified range.
+ * If the input value is outside the domain or invalid, the fallback value is returned.
+ *
+ * @param {Array<number>} domain - The input domain for scaling (e.g., [min, max]).
+ * @param {Array<any>} range - The output range corresponding to the domain (e.g., [start, end]).
+ * @param {number} value - The input value to scale.
+ * @param {any} [fallback=null] - The fallback value to return if the input is invalid or unknown.
+ * @returns {any} The scaled value within the range, or the fallback if the input is invalid.
+ */
+export const getScaledValueAlt = R.curry(
+  (domain, range, value, fallback = null) => {
+    const linearScale = scaleLinear()
+      .domain(domain)
+      .range(range)
+      .clamp(true)
+      .unknown(fallback)
+    return linearScale(value) // Return the scaled value or the fallback
+  }
+)
+
 export const generateHash = (str) => {
   var hash = 0
   if (str.length === 0) return hash
@@ -412,38 +433,13 @@ export const getChartItemColor = (name) => {
   const colorIndex = Math.abs(generateHash(name))
   return CHART_PALETTE[colorIndex % CHART_PALETTE.length]
 }
-/**
- * Converts a d3-color RGB object into a conventional RGBA array.
- * @function
- * @param {Object} rgbObj - The d3-color RGB object.
- * @returns {Array} A RGBA equivalent array of the given color.
- * @private
- */
-const rgbObjToRgbaArray = (rgbObj) => {
-  const opacity = R.prop('opacity', rgbObj) * 255
-  return R.pipe(R.props(['r', 'g', 'b']), R.append(opacity))(rgbObj)
-} // RGBA array
 
 export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
-export const getScaledColor = R.curry((colorDomain, colorRange, value) =>
-  getScaledRgbObj(colorDomain, colorRange, value)
-)
 
-export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
-  const getColor = scaleLinear()
-    .domain(colorDomain)
-    .range(colorRange)
-    .clamp(true)
-  return rgbObjToRgbaArray(color(getColor(value)))
-})
-
-export const colorToRgba = (value) => {
-  const rgbColor = rgb(value)
-  return `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${rgbColor.opacity})`
-}
+export const getColorString = (rawColor) => color(rawColor).formatRgb()
 
 export const getContrastText = (bgColor) => {
-  const background = rgb(bgColor)
+  const background = color(bgColor)
   // luminance is calculated using the formula provided in WCAG 2.0 guidelines,
   // a specific weighted sum of the RGB values of the color
   const luminance =
@@ -566,7 +562,12 @@ export const toListWithKey = (key) =>
 
 export const sortedListById = R.pipe(
   toListWithKey('id'),
-  R.sortBy(R.prop('id'))
+  R.sortWith([
+    // BUG: Doesn't work for something like row3Col1 and row2Col1
+    // (a, b) => R.length(a.id) - R.length(b.id),
+    // If the length is the same, compare by alphabetical order
+    R.ascend(R.prop('id')),
+  ])
 )
 
 export const sortByOrderNameId = R.sortWith([
@@ -617,11 +618,9 @@ export const getQuartiles = R.ifElse(
 )
 
 export const ALLOWED_RANGE_KEYS = [
+  'timeValues',
   'startGradientColor',
   'endGradientColor',
-  'nullColor',
-  'nullSize',
-  'timeValues',
   'startSize',
   'endSize',
   'startHeight',
@@ -629,6 +628,7 @@ export const ALLOWED_RANGE_KEYS = [
   'min',
   'max',
   'options',
+  'fallback',
 ]
 
 // checks that range is either min/max or list of strings
@@ -797,7 +797,8 @@ export const constructFetchedGeoJson = (
             R.pipe(
               R.mapObjIndexed((geoObj, geoJsonValue) => {
                 const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
-                const geoType = R.prop('type')(geoObj)
+                const geoType = geoObj.type
+                const geoId = geoObj.data_key
                 const filteredFeature = R.find(
                   (feature) =>
                     R.path(['properties', geoJsonProp])(feature) ===
@@ -820,101 +821,106 @@ export const constructFetchedGeoJson = (
                   return false
                 } else if (!filterMapFeature(filters, geoObj)) return false
 
-                const colorProp = R.path([geoObj.type, 'colorBy'], enabledItems)
-                const colorRange = itemRange(geoObj.type, colorProp, mapId)
-                const isCategorical = !R.has('min', colorRange)
-                const propVal = R.pipe(
-                  R.path(['values', colorProp]),
+                const colorBy = enabledItems[geoObj.type].colorBy
+                const colorRange = itemRange(geoObj.type, colorBy, mapId)
+                const colorByPropVal = R.pipe(
+                  R.path(['values', colorBy]),
                   R.when(R.isNil, R.always('')),
                   (s) => s.toString()
                 )(geoObj)
-
-                const nullColor = R.pathOr(
-                  'rgba(0,0,0,255)',
-                  isCategorical ? ['options', 'nullColor', 'color'] : ['color'],
+                const colorFallback = R.pathOr(
+                  '#000',
+                  ['fallback', 'color'],
                   colorRange
                 )
-                const color = R.equals('', propVal)
-                  ? nullColor
-                  : isCategorical
-                    ? R.pathOr(
-                        'rgba(0,0,0,255)',
-                        ['options', propVal, 'color'],
-                        colorRange
-                      )
-                    : `rgba(${getScaledArray(
-                        R.prop('min', colorRange),
-                        R.prop('max', colorRange),
-                        R.map((val) => parseFloat(val))(
-                          R.prop('startGradientColor', colorRange)
-                            .replace(/[^\d,.]/g, '')
-                            .split(',')
-                        ),
-                        R.map((val) => parseFloat(val))(
-                          R.prop('endGradientColor', colorRange)
-                            .replace(/[^\d,.]/g, '')
-                            .split(',')
-                        ),
-                        parseFloat(R.path(['values', colorProp], geoObj))
-                      ).join(',')})`
-                const id = R.prop('data_key')(geoObj)
 
-                const heightProp = R.path(
-                  [geoObj.type, 'heightBy'],
-                  enabledItems
-                )
-                const heightRange = itemRange(geoObj.type, heightProp, mapId)
+                const isColorCategorical = !R.has('min', colorRange)
+                const rawColor =
+                  colorByPropVal === ''
+                    ? colorFallback
+                    : isColorCategorical
+                      ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
+                          colorRange
+                        )
+                      : getScaledValueAlt(
+                          [colorRange.min, colorRange.max],
+                          [
+                            colorRange.startGradientColor,
+                            colorRange.endGradientColor,
+                          ],
+                          parseFloat(colorByPropVal)
+                        )
 
-                const heightPropVal = parseFloat(
-                  R.path(['values', heightProp], geoObj)
-                )
+                const heightBy = enabledItems[geoObj.type].heightBy
+                const heightRange = itemRange(geoObj.type, heightBy, mapId)
+                const heightByPropVal = geoObj.values[heightBy]
                 const defaultHeight =
                   R.has('startHeight', geoObj) && R.has('endHeight', geoObj)
                     ? '100'
                     : '0'
+                const heightFallback = R.pathOr(
+                  defaultHeight,
+                  ['fallback', 'height'],
+                  heightRange
+                )
 
-                const height = isNaN(heightPropVal)
-                  ? parseFloat(R.propOr(defaultHeight, 'nullSize', heightRange))
-                  : getScaledValue(
-                      R.prop('min', heightRange),
-                      R.prop('max', heightRange),
-                      parseFloat(R.prop('startHeight', heightRange)),
-                      parseFloat(R.prop('endHeight', heightRange)),
-                      heightPropVal
-                    )
+                const isHeightCategorical = !R.has('min', heightRange)
+                const rawHeight =
+                  heightByPropVal == null
+                    ? heightFallback
+                    : isHeightCategorical
+                      ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
+                          heightRange
+                        )
+                      : getScaledValueAlt(
+                          [heightRange.min, heightRange.max],
+                          [
+                            parseFloat(heightRange.startHeight),
+                            parseFloat(heightRange.endHeight),
+                          ],
+                          parseFloat(heightByPropVal)
+                        )
 
                 // don't calculate size, dash, or adjust path for geos
                 if (cacheName === 'geo')
                   return R.mergeRight(filteredFeature, {
                     properties: {
-                      cave_name: JSON.stringify([geoType, id]),
+                      cave_name: JSON.stringify([geoType, geoId]),
                       cave_obj: geoObj,
-                      color,
-                      height,
+                      color: getColorString(rawColor),
+                      height: parseFloat(rawHeight),
                     },
                   })
 
-                const sizeProp = R.path([geoObj.type, 'sizeBy'], enabledItems)
-                const sizeRange = itemRange(geoObj.type, sizeProp, mapId)
-                const sizePropVal = parseFloat(
-                  R.path(['values', sizeProp], geoObj)
+                const sizeBy = enabledItems[geoObj.type].sizeBy
+                const sizeRange = itemRange(geoObj.type, sizeBy, mapId)
+                const sizeByPropVal = geoObj.values[sizeBy]
+                const sizeFallback = R.pathOr(
+                  '0',
+                  ['fallback', 'size'],
+                  sizeRange
                 )
-                const size = isNaN(sizePropVal)
-                  ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-                  : getScaledValue(
-                      R.prop('min', sizeRange),
-                      R.prop('max', sizeRange),
-                      parseFloat(R.prop('startSize', sizeRange)),
-                      parseFloat(R.prop('endSize', sizeRange)),
-                      sizePropVal
-                    )
 
-                const dashPattern = R.propOr(
-                  'solid',
-                  'lineBy'
-                )(R.path([geoType, 'colorBy'], enabledItems))
+                const isSizeCategorical = !R.has('min', sizeRange)
+                const rawSize =
+                  sizeByPropVal == null
+                    ? sizeFallback
+                    : isSizeCategorical
+                      ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(
+                          sizeRange
+                        )
+                      : getScaledValueAlt(
+                          [sizeRange.min, sizeRange.max],
+                          [
+                            parseFloat(sizeRange.startSize),
+                            parseFloat(sizeRange.endSize),
+                          ],
+                          parseFloat(sizeByPropVal)
+                        )
 
-                if (size === 0 || parseFloat(R.last(R.split(',', color))) < 1)
+                const dashPattern = enabledItems[geoType].lineBy ?? 'solid'
+
+                if (parseFloat(rawSize) === 0 || color(rawColor).opacity === 0)
                   return false
 
                 const adjustedFeature = R.assocPath(
@@ -923,14 +929,15 @@ export const constructFetchedGeoJson = (
                     R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
                   )
                 )(filteredFeature)
+
                 return R.mergeRight(adjustedFeature, {
                   properties: {
-                    cave_name: JSON.stringify([geoType, id]),
+                    cave_name: JSON.stringify([geoType, geoId]),
                     cave_obj: geoObj,
-                    color,
                     dash: dashPattern,
-                    size,
-                    height,
+                    color: getColorString(rawColor),
+                    size: parseFloat(rawSize),
+                    height: parseFloat(rawHeight),
                   },
                 })
               }),
@@ -966,96 +973,93 @@ export const constructGeoJson = (
           )(legendObj)
           if (!filterMapFeature(filters, item)) return false
 
-          const colorProp = legendObj.colorBy
-          const colorPropVal = R.pipe(
-            R.path(['values', colorProp]),
+          const { colorBy } = legendObj
+          const colorByPropVal = R.pipe(
+            R.path(['values', colorBy]),
             R.when(R.isNil, R.always('')),
             (s) => s.toString()
           )(item)
-          const colorRange = itemRange(item.type, colorProp, mapId)
-          const isColorCategorical = !R.has('min', colorRange)
-
-          const nullColor = R.pathOr(
-            'rgba(0,0,0,255)',
-            isColorCategorical ? ['options', 'nullColor', 'color'] : ['color'],
+          const colorRange = itemRange(item.type, colorBy, mapId)
+          const colorFallback = R.pathOr(
+            '#000',
+            ['fallback', 'color'],
             colorRange
           )
 
-          const color = isColorCategorical
-            ? R.map((val) => parseFloat(val))(
-                R.pathOr(
-                  'rgba(0,0,0,255)',
-                  ['options', colorPropVal, 'color'],
-                  colorRange
-                )
-                  .replace(/[^\d,.]/g, '')
-                  .split(',')
-              )
-            : getScaledArray(
-                R.prop('min', colorRange),
-                R.prop('max', colorRange),
-                R.map((val) => parseFloat(val))(
-                  R.prop('startGradientColor', colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                R.map((val) => parseFloat(val))(
-                  R.prop('endGradientColor', colorRange)
-                    .replace(/[^\d,.]/g, '')
-                    .split(',')
-                ),
-                parseFloat(colorPropVal)
-              )
-          const colorString = R.equals('', colorPropVal)
-            ? nullColor
-            : `rgba(${color.join(',')})`
+          const isColorCategorical = !R.has('min', colorRange)
+          const rawColor =
+            colorByPropVal === ''
+              ? colorFallback
+              : isColorCategorical
+                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
+                    colorRange
+                  )
+                : getScaledValueAlt(
+                    [colorRange.min, colorRange.max],
+                    [
+                      colorRange.startGradientColor,
+                      colorRange.endGradientColor,
+                    ],
+                    parseFloat(colorByPropVal)
+                  )
 
-          let size = null
+          let rawSize
 
           if (type === 'node' || type === 'arc') {
-            const sizeProp = legendObj.sizeBy
-            const sizeRange = itemRange(item.type, sizeProp, mapId)
-            const sizePropVal = R.path(['values', sizeProp], item)
+            const { sizeBy } = legendObj
+            const sizeRange = itemRange(item.type, sizeBy, mapId)
+            const sizeByPropVal = item.values[sizeBy]
+            const sizeFallback = R.pathOr('0', ['fallback', 'size'], sizeRange)
+
             const isSizeCategorical = !R.has('min', sizeRange)
-            size = R.isNil(sizePropVal)
-              ? parseFloat(R.propOr('0', 'nullSize', sizeRange))
-              : isSizeCategorical
-                ? parseFloat(R.propOr('0', sizePropVal, sizeRange))
-                : getScaledValue(
-                    R.prop('min', sizeRange),
-                    R.prop('max', sizeRange),
-                    parseFloat(R.prop('startSize', sizeRange)),
-                    parseFloat(R.prop('endSize', sizeRange)),
-                    parseFloat(sizePropVal)
-                  )
+            rawSize =
+              sizeByPropVal == null
+                ? sizeFallback
+                : isSizeCategorical
+                  ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeRange)
+                  : getScaledValueAlt(
+                      [sizeRange.min, sizeRange.max],
+                      [
+                        parseFloat(sizeRange.startSize),
+                        parseFloat(sizeRange.endSize),
+                      ],
+                      parseFloat(sizeByPropVal)
+                    )
           }
+          if (rawSize === 0 || color(rawColor).opacity === 0) return false
 
-          if (size === 0 || parseFloat(R.last(R.split(',', colorString))) < 1)
-            return false
-
-          let height = null
+          let rawHeight
 
           if (type === 'geo' || type === 'arc') {
-            const heightProp = legendObj.heightBy
-            const heightRange = itemRange(item.type, heightProp, mapId)
-
-            const heightPropVal = parseFloat(
-              R.path(['values', heightProp], item)
-            )
+            const { heightBy } = legendObj
+            const heightRange = itemRange(item.type, heightBy, mapId)
+            const heightByPropVal = item.values[heightBy]
             const defaultHeight =
               R.has('startHeight', item) && R.has('endHeight', item)
                 ? '100'
                 : '0'
+            const heightFallback = R.pathOr(
+              defaultHeight,
+              ['fallback', 'height'],
+              heightRange
+            )
 
-            height = isNaN(heightPropVal)
-              ? parseFloat(R.propOr(defaultHeight, 'nullSize', heightRange))
-              : getScaledValue(
-                  R.prop('min', heightRange),
-                  R.prop('max', heightRange),
-                  parseFloat(R.prop('startHeight', heightRange)),
-                  parseFloat(R.prop('endHeight', heightRange)),
-                  heightPropVal
-                )
+            const isHeightCategorical = !R.has('min', heightRange)
+            rawHeight =
+              heightByPropVal == null
+                ? heightFallback
+                : isHeightCategorical
+                  ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
+                      heightRange
+                    )
+                  : getScaledValueAlt(
+                      [heightRange.min, heightRange.max],
+                      [
+                        parseFloat(heightRange.startHeight),
+                        parseFloat(heightRange.endHeight),
+                      ],
+                      parseFloat(heightByPropVal)
+                    )
           }
 
           return {
@@ -1063,10 +1067,13 @@ export const constructGeoJson = (
             properties: {
               cave_obj: item,
               cave_name: JSON.stringify([item.type, id]),
-              color: colorString,
-              ...(R.isNotNil(height) && { height }),
-              ...(R.isNotNil(size) && {
-                size: type === 'node' ? size / ICON_RESOLUTION : size,
+              color: getColorString(rawColor),
+              ...(R.isNotNil(rawHeight) && { height: parseFloat(rawHeight) }),
+              ...(R.isNotNil(rawSize) && {
+                size:
+                  type === 'node'
+                    ? parseFloat(rawSize) / ICON_RESOLUTION
+                    : parseFloat(rawSize),
               }),
               ...(type === 'node' && { icon: legendObj.icon }),
               ...(type === 'arc' && {

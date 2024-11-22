@@ -48,8 +48,8 @@ import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 import { FetchedIcon, Select } from '../../compound'
 
 import {
-  colorToRgba,
   forceArray,
+  getColorString,
   includesPath,
   NumberFormat,
 } from '../../../utils'
@@ -93,11 +93,6 @@ export const useLegendDetails = ({
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
-  const basePath = useMemo(
-    () => ['maps', 'data', mapId, 'legendGroups', legendGroupId, 'data', id],
-    [id, legendGroupId, mapId]
-  )
-
   // Valid ranges for all features
   const colorRange = useMemo(
     () => getRange(id, colorBy, mapId),
@@ -118,6 +113,10 @@ export const useLegendDetails = ({
     [getRange, heightBy, id, mapId]
   )
 
+  const basePath = useMemo(
+    () => ['maps', 'data', mapId, 'legendGroups', legendGroupId, 'data', id],
+    [id, legendGroupId, mapId]
+  )
   const handleSelectGroupCalc = useCallback(
     (pathEnd) => (value, event) => {
       const path = [...basePath, pathEnd]
@@ -132,7 +131,17 @@ export const useLegendDetails = ({
     },
     [basePath, dispatch, sync]
   )
-
+  const handleToggleGroup = useMutateStateWithSync(
+    (event) => {
+      event.stopPropagation()
+      return { path: [...basePath, 'group'], value: !group }
+    },
+    [basePath, group]
+  )
+  const handleChangeShape = useMutateStateWithSync(
+    (event, value) => ({ path: [...basePath, shapePathEnd], value }),
+    [basePath, shapePathEnd]
+  )
   const handleSelectProp = useCallback(
     (pathEnd, groupCalcPathEnd, groupCalcValue) => (value, event) => {
       const path = [...basePath, pathEnd]
@@ -155,38 +164,23 @@ export const useLegendDetails = ({
     [basePath, dispatch, featureTypeProps, handleSelectGroupCalc, sync]
   )
 
-  const handleToggleGroup = useCallback(
-    (event) => {
-      const path = [...basePath, 'group']
-      dispatch(
-        mutateLocal({
-          path,
-          value: !group,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-      event.stopPropagation()
-    },
-    [basePath, dispatch, group, sync]
-  )
-
+  const basePathProp = useMemo(() => ['mapFeatures', 'data', id, 'props'], [id])
   const handleChangeColor = useCallback(
     (pathEnd) => (value) => {
-      const path = [...basePath, 'props', colorBy, ...forceArray(pathEnd)]
+      const path = [...basePathProp, colorBy, ...forceArray(pathEnd)]
       dispatch(
         mutateLocal({
           path,
-          value: colorToRgba(value),
+          value: getColorString(value),
           sync: !includesPath(Object.values(sync), path),
         })
       )
     },
-    [basePath, colorBy, dispatch, sync]
+    [basePathProp, colorBy, dispatch, sync]
   )
-
   const handleChangeSize = useCallback(
     (pathEnd) => (value) => {
-      const path = [...basePath, 'props', sizeBy, ...forceArray(pathEnd)]
+      const path = [...basePathProp, sizeBy, ...forceArray(pathEnd)]
       dispatch(
         mutateLocal({
           path,
@@ -195,12 +189,7 @@ export const useLegendDetails = ({
         })
       )
     },
-    [basePath, dispatch, sizeBy, sync]
-  )
-
-  const handleChangeShape = useMutateStateWithSync(
-    (event, value) => ({ path: [...basePath, shapePathEnd], value }),
-    [basePath, shapePathEnd]
+    [basePathProp, dispatch, sizeBy, sync]
   )
 
   return {

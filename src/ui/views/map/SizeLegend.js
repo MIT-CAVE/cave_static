@@ -188,13 +188,7 @@ const NumericalSizeLegend = ({
   )
 }
 
-const CategoricalSizeLegend = ({
-  type,
-  sizeBy,
-  sizeByProps,
-  icon,
-  onChangeSize,
-}) => {
+const CategoricalSizeLegend = ({ type, sizeByProp, icon, onChangeSize }) => {
   const {
     showSizeSlider,
     sizeSliderProps,
@@ -204,36 +198,42 @@ const CategoricalSizeLegend = ({
     handleChangeComitted: handleChangeComittedRaw,
   } = useSizeSlider(onChangeSize)
 
+  const sizeOptions = useMemo(() => {
+    const { options, fallback } = sizeByProp
+    return R.pipe(
+      orderEntireDict, // Preserve order of options after state updates
+      // Add fallback size for null values, if available
+      R.when(R.always(fallback?.size != null), R.assoc('null', fallback)),
+      R.map(
+        R.applySpec({
+          name: R.prop('name'),
+          size: R.propOr('1px', 'size'), // In case `size` is missing
+        })
+      )
+    )(options)
+  }, [sizeByProp])
+
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
         type === propId.SELECTOR || type === propId.TOGGLE
-          ? sizeByProps[sizeBy].options[option].name
+          ? sizeOptions[option].name
           : null
       return label || capitalize(option)
     },
-    [sizeByProps, sizeBy, type]
+    [sizeOptions, type]
   )
 
   const handleChangeComitted = useCallback(
     (event, value) => {
-      handleChangeComittedRaw(event, value, [
-        'options',
-        sizeSliderProps.key,
-        'size',
-      ])
+      const option = sizeSliderProps.key
+      const path =
+        option === 'null' // Updating fallback size?
+          ? ['fallback', 'size']
+          : ['options', option, 'size']
+      handleChangeComittedRaw(event, value, path)
     },
     [handleChangeComittedRaw, sizeSliderProps.key]
-  )
-
-  const sizeOptions = useMemo(
-    () =>
-      R.pipe(
-        orderEntireDict, // Preserve order of options after state updates
-        R.prop('options'),
-        R.map(R.propOr('1px', 'size'))
-      )(sizeByProps[sizeBy]),
-    [sizeBy, sizeByProps]
   )
   return (
     <>
@@ -246,7 +246,7 @@ const CategoricalSizeLegend = ({
           spacing={1}
           sx={{ justifyContent: 'center', alignItems: 'end' }}
         >
-          {Object.entries(sizeOptions).map(([option, value]) => (
+          {Object.entries(sizeOptions).map(([option, { size: value }]) => (
             <Stack key={option} sx={{ alignItems: 'center' }}>
               <WithEditBadge
                 editing={showSizeSlider && option === sizeSliderProps.key}
@@ -301,7 +301,9 @@ const SizeLegend = ({
         const hasSizeOptions = Object.values(prop.options || {}).some(
           (value) => 'size' in value
         )
-        if (hasSizeRange || hasSizeOptions) {
+        const hasFallbackSize = prop.fallback?.size != null
+
+        if (hasSizeRange || hasSizeOptions || hasFallbackSize) {
           return { ...acc, [propId]: prop }
         }
         return acc
@@ -346,7 +348,8 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}
-          {...{ sizeBy, sizeByProps, icon, onChangeSize }}
+          sizeByProp={sizeByProps[sizeBy]}
+          {...{ icon, onChangeSize }}
         />
       ) : (
         <NumericalSizeLegend

@@ -35,8 +35,6 @@ import {
   withIndex,
   recursiveMap,
   maxSizedMemoization,
-  getScaledValue,
-  getScaledRgbObj,
   orderEntireDict,
   addValuesToProps,
   recursiveBubbleMap,
@@ -45,6 +43,8 @@ import {
   constructFetchedGeoJson,
   constructGeoJson,
   ALLOWED_RANGE_KEYS,
+  getScaledValueAlt,
+  getColorString,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -1828,29 +1828,17 @@ export const selectSplitNodeDataFunc = createSelector(
           R.unnest,
           R.filter((d) => {
             const nodeType = d[1].type
-            const colorProp = R.path(
-              [nodeType, 'colorBy'],
-              enabledNodesFunc(mapId)
-            )
-            const sizeProp = R.path(
-              [nodeType, 'sizeBy'],
-              enabledNodesFunc(mapId)
-            )
-            const nullColor = R.path(['colorBy', colorProp], d[1])
-            const nullSize = R.path(['sizeBy', colorProp], d[1])
-
-            const sizeValue = R.path(['values', sizeProp], d[1])
-            const colorValue = R.path(['values', colorProp], d[1])
-
-            const groupable = enabledNodesFunc(mapId)[nodeType].allowGrouping
-
+            const enabledNodes = enabledNodesFunc(mapId)
+            const { colorBy, sizeBy, group } = enabledNodes[nodeType]
+            const colorFallback = d[1].props[colorBy]?.fallback?.color
+            const sizeFallback = d[1].props[sizeBy]?.fallback?.size
+            const colorValue = d[1].values[colorBy]
+            const sizeValue = d[1].values[sizeBy]
+            // TODO: Handle `null` values in categorical props
             return (
-              !(
-                R.hasPath(['colorBy', colorProp, 'nullColor'], d[1]) &&
-                R.isNil(nullColor)
-              ) &&
-              (R.isNotNil(nullSize) || R.isNotNil(sizeValue)) &&
-              !(groupable && R.isNil(colorValue))
+              (colorFallback != null || colorValue != null) &&
+              (sizeFallback != null || sizeValue != null) &&
+              !(group && colorValue == null)
             )
           }),
           R.groupBy((d) => {
@@ -1938,9 +1926,10 @@ export const selectGeoRange = createSelector(
     )
 )
 
+// TODO: Explore reusing code for shared logic with `selectSplitNodeDataFunc`
 export const selectLineMatchingKeysByTypeFunc = createSelector(
-  [selectMultiLineDataFunc, selectArcRange, selectEnabledArcsFunc],
-  (dataFunc, arcRange, enabledArcsFunc) =>
+  [selectEnabledArcsFunc, selectMultiLineDataFunc],
+  (enabledArcsFunc, dataFunc) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -1949,14 +1938,17 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
           R.unnest,
           R.map((d) => R.assoc('data_key', d[0], d[1])),
           R.filter((d) => {
-            const colorProp = R.path(
-              [d.type, 'colorBy'],
-              enabledArcsFunc(mapId)
-            )
-            const statRange = arcRange(d.type, colorProp, mapId)
-            return !(
-              R.has('nullColor', statRange) &&
-              R.isNil(R.prop('nullColor', statRange))
+            const arcType = d.type
+            const enabledArcs = enabledArcsFunc(mapId)
+            const { colorBy, sizeBy } = enabledArcs[arcType]
+            const colorFallback = d.props[colorBy]?.fallback?.color
+            const sizeFallback = d.props[sizeBy]?.fallback?.size
+            const colorValue = d.values[colorBy]
+            const sizeValue = d.values[sizeBy]
+            // TODO: Handle `null` values in categorical props
+            return (
+              (colorFallback != null || colorValue != null) &&
+              (sizeFallback != null || sizeValue != null)
             )
           }),
           R.groupBy(R.prop('type')),
@@ -2215,55 +2207,72 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const nodeType = group.properties.type
           const legendObj = legendObjectsFunc(mapId)[nodeType]
           const effectiveNodes = effectiveNodesBy(nodeType, mapId)[0]
-          const sizePropObj = R.path(['properties', 'sizeProp'], group)
 
-          const sizeByProp = effectiveNodes.props[effectiveNodes.sizeBy]
+          const { colorBy, sizeBy } = effectiveNodes
+
+          const sizeByProp = effectiveNodes.props[sizeBy]
+          const sizeObj = group.properties.sizeProp
+          const sizeByPropVal = sizeObj.value
+          const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
           const isSizeCategorical = !R.has('min')(sizeByProp)
+          const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
           const sizeRange = isSizeCategorical
             ? R.pluck('size')(sizeByProp.options)
-            : nodeClustersFunc(mapId).range[group.properties.type].size
-          const size = isSizeCategorical
-            ? parseFloat(R.propOr('0', sizePropObj.value, sizeRange))
-            : getScaledValue(
-                R.prop('min', sizeRange),
-                R.prop('max', sizeRange),
-                parseFloat(R.prop('startSize', sizeByProp)),
-                parseFloat(R.prop('endSize', sizeByProp)),
-                parseFloat(sizePropObj.value)
-              )
+            : [parseFloat(sizeByProp.startSize), parseFloat(sizeByProp.endSize)]
 
-          const colorByProp = effectiveNodes.props[effectiveNodes.colorBy]
+          const rawSize =
+            sizeByPropVal == null
+              ? sizeFallback
+              : isSizeCategorical
+                ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeByProp)
+                : getScaledValueAlt(
+                    R.props(['min', 'max'])(sizeDomain),
+                    sizeRange,
+                    parseFloat(sizeByPropVal)
+                  )
+
+          const colorByProp = effectiveNodes.props[colorBy]
           const colorObj = group.properties.colorProp
-          const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
+          const colorByPropVal = R.pipe(R.when(R.isNil, R.always('')), (s) =>
+            s.toString()
+          )(colorObj.value)
+          const colorFallback = R.pathOr('#000', ['fallback', 'color'])(
+            colorByProp
+          )
           const isColorCategorical = !R.has('min')(colorByProp)
-          const value = R.prop('value', colorObj)
+          const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
           const colorRange = isColorCategorical
             ? R.pluck('color')(colorByProp.options)
             : R.props(['startGradientColor', 'endGradientColor'])(colorByProp)
-          const color = isColorCategorical
-            ? R.propOr('', value, colorRange)
-                .replace(/[^\d,.]/g, '')
-                .split(',')
-            : getScaledRgbObj(
-                [R.prop('min', colorDomain), R.prop('max', colorDomain)],
-                colorRange,
-                value
-              )
+
+          const rawColor =
+            colorByPropVal === ''
+              ? colorFallback
+              : isColorCategorical
+                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
+                    colorByProp
+                  )
+                : getScaledValueAlt(
+                    R.props(['min', 'max'])(colorDomain),
+                    colorRange,
+                    parseFloat(colorByPropVal)
+                  )
+
           const id = R.pathOr(
             JSON.stringify(
               R.slice(0, 2, R.pathOr([], ['properties', 'grouped_ids'], group))
             ),
             ['properties', 'id']
           )(group)
-          const colorString = `rgba(${color.join(',')})`
+
           return {
             type: 'Feature',
             properties: {
               cave_obj: group,
               cave_isCluster: true,
               cave_name: JSON.stringify([nodeType, id]),
-              color: colorString,
-              size: size / ICON_RESOLUTION,
+              color: getColorString(rawColor),
+              size: parseFloat(rawSize) / ICON_RESOLUTION,
               icon: legendObj.icon,
             },
             geometry: {
