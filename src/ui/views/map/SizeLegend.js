@@ -208,6 +208,7 @@ const CategoricalSizeLegend = ({ type, sizeByProp, icon, onChangeSize }) => {
         R.applySpec({
           name: R.prop('name'),
           size: R.propOr('1px', 'size'), // In case `size` is missing
+          // Think more about this: unspecified `size`s
         })
       )
     )(options)
@@ -284,6 +285,7 @@ const SizeLegend = ({
   featureTypeProps,
   icon,
   group,
+  sizeByOptions,
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
@@ -293,24 +295,6 @@ const SizeLegend = ({
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = getNumberFormatProps(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
-  // Find valid `sizeBy` props
-  const sizeByProps = useMemo(
-    () =>
-      Object.entries(featureTypeProps).reduce((acc, [propId, prop]) => {
-        const hasSizeRange = 'startSize' in prop && 'endSize' in prop
-        const hasSizeOptions = Object.values(prop.options || {}).some(
-          (value) => 'size' in value
-        )
-        const hasFallbackSize = prop.fallback?.size != null
-
-        if (hasSizeRange || hasSizeOptions || hasFallbackSize) {
-          return { ...acc, [propId]: prop }
-        }
-        return acc
-      }, {}),
-    [featureTypeProps]
-  )
-  const optionsList = useMemo(() => Object.keys(sizeByProps), [sizeByProps])
   return (
     <Paper
       elevation={3}
@@ -327,7 +311,7 @@ const SizeLegend = ({
               labelId="size-by-label"
               label="Size by"
               value={sizeBy}
-              {...{ optionsList }}
+              optionsList={sizeByOptions}
               getLabel={(option) => featureTypeProps[option].name || option}
               onSelect={onSelectProp(
                 'sizeBy',
@@ -348,8 +332,7 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}
-          sizeByProp={sizeByProps[sizeBy]}
-          {...{ icon, onChangeSize }}
+          {...{ icon, sizeByProp, onChangeSize }}
         />
       ) : (
         <NumericalSizeLegend

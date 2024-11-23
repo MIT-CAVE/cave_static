@@ -111,6 +111,9 @@ const LegendRowDetails = ({
   colorBy,
   sizeBy,
   heightBy,
+  colorByOptions,
+  sizeByOptions,
+  heightByOptions,
   // shapeBy, // TODO: `shapeBy` would be a unifying property for `iconBy` and `lineBy`?
   shape,
   shapeLabel,
@@ -275,6 +278,7 @@ const LegendRowDetails = ({
               mapId,
               group,
               colorBy,
+              colorByOptions,
               featureTypeProps,
             }}
             groupCalcValue={groupCalcByColor}
@@ -292,6 +296,7 @@ const LegendRowDetails = ({
               icon,
               group,
               sizeBy,
+              sizeByOptions,
               featureTypeProps,
             }}
             groupCalcValue={groupCalcBySize}
@@ -307,6 +312,7 @@ const LegendRowDetails = ({
               legendGroupId,
               mapId,
               heightBy,
+              heightByOptions,
               featureTypeProps,
             }}
             icon={<FetchedIcon iconName={icon} />}

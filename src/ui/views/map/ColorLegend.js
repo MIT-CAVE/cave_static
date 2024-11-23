@@ -177,6 +177,7 @@ const CategoricalColorLegend = ({ type, colorByProp, onChangeColor }) => {
         R.applySpec({
           name: R.prop('name'),
           color: R.propOr('#000', 'color'), // In case `color` is missing
+          // TODO: Think more about this: unspecified `color`s
         })
       )
     )(options)
@@ -253,6 +254,7 @@ const ColorLegend = ({
   group,
   valueRange,
   colorBy,
+  colorByOptions,
   featureTypeProps,
   groupCalcValue,
   onSelectProp,
@@ -263,25 +265,6 @@ const ColorLegend = ({
   const colorByProp = featureTypeProps[colorBy]
   const numberFormat = getNumberFormatProps(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
-  // Find valid `colorBy` props
-  const colorByProps = useMemo(
-    () =>
-      Object.entries(featureTypeProps).reduce((acc, [propId, prop]) => {
-        const hasGradientColors =
-          'startGradientColor' in prop && 'endGradientColor' in prop
-        const hasColorOptions = Object.values(prop.options || {}).some(
-          (value) => 'color' in value
-        )
-        const hasFallbackColor = prop.fallback?.color != null
-
-        if (hasGradientColors || hasColorOptions || hasFallbackColor) {
-          acc[propId] = prop
-        }
-        return acc
-      }, {}),
-    [featureTypeProps]
-  )
-  const optionsList = useMemo(() => Object.keys(colorByProps), [colorByProps])
   return (
     <Paper
       elevation={3}
@@ -298,7 +281,7 @@ const ColorLegend = ({
               labelId="color-by-label"
               label="Color by"
               value={colorBy}
-              {...{ optionsList }}
+              optionsList={colorByOptions}
               getLabel={(prop) => featureTypeProps[prop].name || prop}
               onSelect={onSelectProp(
                 'colorBy',
@@ -319,8 +302,7 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          colorByProp={colorByProps[colorBy]}
-          {...{ onChangeColor }}
+          {...{ colorByProp, onChangeColor }}
         />
       ) : (
         <NumericalColorLegend
