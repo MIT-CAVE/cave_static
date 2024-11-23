@@ -6,9 +6,6 @@ import {
   CardActions,
   CardContent,
   CardHeader,
-  Dialog,
-  DialogTitle,
-  DialogActions,
   IconButton,
   MenuItem,
   Menu,
@@ -544,12 +541,49 @@ const CustomDataGridRow = ({ ...props }) => {
   )
 }
 
+const ActionModal = ({ open, label, confirmText, onConfirm, onCancel }) => {
+  return (
+    <BaseModal
+      open={open}
+      label={label}
+      slotProps={{
+        root: { sx: { zIndex: 2001 } },
+        paper: { sx: { zIndex: 2001, height: 'auto', width: '500px' } },
+      }}
+      onClose={onCancel}
+    >
+      <Stack
+        direction="row"
+        justifyContent="center"
+        alignItems="center"
+        spacing={1}
+        paddingY={2}
+      >
+        <ConfirmCancelButtons
+          confirmText={confirmText}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          cancelRed={false}
+        />
+      </Stack>
+    </BaseModal>
+  )
+}
+
 const SessionPane = ({ width }) => {
   const dispatch = useDispatch()
-  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
+  const {
+    modalOpen: resetModalOpen,
+    handleOpenModal: handleOpenResetModal,
+    handleCloseModal: handleCloseResetModal,
+  } = useModal()
+  const {
+    modalOpen: deleteModalOpen,
+    handleOpenModal: handleOpenDeleteModal,
+    handleCloseModal: handleCloseDeleteModal,
+  } = useModal()
 
   const [currentAction, setCurrentAction] = useState({})
-  const [openDialogDelete, setOpenDialogDelete] = useState(false)
 
   const sessionDraggable = useSelector(selectSessionDraggable)
   const teams = useSelector(selectSortedTeams)
@@ -672,10 +706,16 @@ const SessionPane = ({ width }) => {
   const onClickRemoveHandler = (teamId, sessionId) => {
     // Here, teamId is not required by sendCommand,
     // but it's useful to display the Dialog text
-    setOpenDialogDelete(true)
     setCurrentAction({ command: 'delete', teamId, sessionId })
+    handleOpenDeleteModal()
   }
-  const onClickConfirmRemoveHandler = () => {
+
+  const onCancelRemove = () => {
+    setCurrentAction({})
+    handleCloseDeleteModal()
+  }
+
+  const onConfirmRemove = () => {
     dispatch(
       sendCommand({
         command: 'session_management',
@@ -687,18 +727,18 @@ const SessionPane = ({ width }) => {
         },
       })
     )
-    setOpenDialogDelete(false)
+    handleCloseDeleteModal()
   }
 
   // Reset session
   const onClickResetHandler = (teamId, sessionId) => {
     setCurrentAction({ command: 'reset', teamId, sessionId })
-    handleOpenModal()
+    handleOpenResetModal()
   }
 
   const onCancelReset = () => {
     setCurrentAction({})
-    handleCloseModal()
+    handleCloseResetModal()
   }
 
   const onConfirmReset = () => {
@@ -711,7 +751,7 @@ const SessionPane = ({ width }) => {
       })
     )
     setCurrentAction({})
-    handleCloseModal()
+    handleCloseResetModal()
   }
 
   // Cancel action (shared by all commands)
@@ -925,76 +965,29 @@ const SessionPane = ({ width }) => {
             },
           }}
         />
-        {currentAction.command === 'delete' && (
-          <Dialog
-            open={openDialogDelete}
-            onClose={() => {
-              setOpenDialogDelete(false)
-              setCurrentAction({})
-            }}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogTitle id="alert-dialog-title">
-              {`Delete '${R.path([
-                currentAction.teamId,
-                currentAction.sessionId,
-                'sessionName',
-              ])(sessionsByTeam)}' from your team '${R.path([
-                'data',
-                currentAction.teamId,
-                'teamName',
-              ])(sessions)}'? This cannot be undone.`}
-            </DialogTitle>
-            <DialogActions>
-              <Button
-                onClick={() => {
-                  onClickConfirmRemoveHandler()
-                  setCurrentAction({})
-                }}
-                color="error"
-                variant="contained"
-              >
-                Delete
-              </Button>
-              <Button
-                onClick={() => {
-                  setOpenDialogDelete(false)
-                  setCurrentAction({})
-                }}
-                autoFocus
-                variant="contained"
-              >
-                Cancel
-              </Button>
-            </DialogActions>
-          </Dialog>
-        )}
       </Box>
-      <BaseModal
-        open={modalOpen}
+      <ActionModal
+        open={deleteModalOpen}
+        label={`Delete '${R.path([
+          currentAction.teamId,
+          currentAction.sessionId,
+          'sessionName',
+        ])(sessionsByTeam)}' from your team '${R.path([
+          'data',
+          currentAction.teamId,
+          'teamName',
+        ])(sessions)}'? This cannot be undone.`}
+        confirmText="Delete"
+        onConfirm={onConfirmRemove}
+        onCancel={onCancelRemove}
+      />
+      <ActionModal
+        open={resetModalOpen}
         label="Reset Session?"
-        slotProps={{
-          root: { sx: { zIndex: 2001 } },
-          paper: { sx: { zIndex: 2001, height: 'auto', width: '500px' } },
-        }}
-        onClose={onCancelReset}
-      >
-        <Stack
-          direction="row"
-          justifyContent="center"
-          alignItems="center"
-          spacing={1}
-          paddingY={2}
-        >
-          <ConfirmCancelButtons
-            confirmText="Reset"
-            onConfirm={onConfirmReset}
-            onCancel={onCancelReset}
-            cancelRed={false}
-          />
-        </Stack>
-      </BaseModal>
+        confirmText="Reset"
+        onConfirm={onConfirmReset}
+        onCancel={onCancelReset}
+      />
     </>
   )
 }
