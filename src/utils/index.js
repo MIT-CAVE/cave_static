@@ -436,7 +436,7 @@ export const getChartItemColor = (name) => {
 
 export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
 
-export const getColorString = (rawColor) => color(rawColor).formatRgb()
+export const getColorString = (rawColor) => color(rawColor)?.formatRgb()
 
 export const getContrastText = (bgColor) => {
   const background = color(bgColor)
