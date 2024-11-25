@@ -187,8 +187,6 @@ export const CHART_PALETTE = [
   '#dd79ff',
 ]
 
-export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
-
 export const CHART_DEFAULTS = {
   chartType: chartVariant.BAR,
 }

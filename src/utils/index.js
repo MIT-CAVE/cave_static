@@ -1,5 +1,5 @@
+import { colord } from 'colord'
 import { quantileSorted } from 'd3-array'
-import { color } from 'd3-color'
 import { scaleLinear } from 'd3-scale'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
@@ -436,10 +436,10 @@ export const getChartItemColor = (name) => {
 
 export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
 
-export const getColorString = (rawColor) => color(rawColor)?.formatRgb()
+export const getColorString = (rawColor) => colord(rawColor).toRgbString()
 
 export const getContrastText = (bgColor) => {
-  const background = color(bgColor)
+  const background = colord(bgColor).rgba
   // luminance is calculated using the formula provided in WCAG 2.0 guidelines,
   // a specific weighted sum of the RGB values of the color
   const luminance =
@@ -920,7 +920,7 @@ export const constructFetchedGeoJson = (
 
                 const dashPattern = enabledItems[geoType].lineBy ?? 'solid'
 
-                if (parseFloat(rawSize) === 0 || color(rawColor).opacity === 0)
+                if (parseFloat(rawSize) === 0 || colord(rawColor).alpha() === 0)
                   return false
 
                 const adjustedFeature = R.assocPath(
@@ -1026,7 +1026,7 @@ export const constructGeoJson = (
                       parseFloat(sizeByPropVal)
                     )
           }
-          if (rawSize === 0 || color(rawColor).opacity === 0) return false
+          if (rawSize === 0 || colord(rawColor).alpha() === 0) return false
 
           let rawHeight
 

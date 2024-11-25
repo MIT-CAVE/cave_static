@@ -1,4 +1,4 @@
-import { color } from 'd3-color'
+import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
@@ -9,6 +9,7 @@ export const useColorPicker = (onChangeColor) => {
   const handleChange = useCallback(
     (value, colorOutputs, pathEnd = colorPickerProps.key) => {
       setColorPickerProps(R.assoc('value', value))
+      if (!matchIsValidColor(value)) return
       onChangeColor(pathEnd)(value)
     },
     [colorPickerProps, onChangeColor]
@@ -38,7 +39,8 @@ export const useColorPicker = (onChangeColor) => {
 const ColorPicker = ({ colorLabel, value, onChange }) => {
   const formattedColor = useMemo(() => {
     if (!matchIsValidColor(value)) return value
-    return color(value).formatHex8().toLowerCase()
+    const rawHex = colord(value).toHex()
+    return rawHex.length > 7 ? rawHex : `${rawHex}ff`
   }, [value])
 
   return (
