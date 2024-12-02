@@ -231,19 +231,13 @@ const NumericalColorLegend = ({
           <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
             <ColorPicker
               colorLabel="Min"
-              value={R.when(
-                R.is(Array),
-                R.path([0, 'color'])
-              )(cp.colorPickerProps.value ?? colors[0])}
+              value={colors[0]}
               onChange={handleChangeColorByIndex(0)}
               onClose={handleClose}
             />
             <ColorPicker
               colorLabel="Max"
-              value={R.when(
-                R.is(Array),
-                R.path([1, 'color'])
-              )(cp.colorPickerProps.value ?? colors[1])}
+              value={colors[1]}
               onChange={handleChangeColorByIndex(1)}
               onClose={handleClose}
             />
@@ -254,10 +248,7 @@ const NumericalColorLegend = ({
               <Stack key={index} direction="row" spacing={1}>
                 <ColorPicker
                   colorLabel={getColorLabel(index)}
-                  value={R.when(
-                    R.is(Array),
-                    R.path([index, 'color'])
-                  )(colors[index])}
+                  value={colors[index]}
                   onChange={handleChangeColorByIndex(index)}
                   onClose={handleClose}
                 />
