@@ -21,8 +21,10 @@ export const useSizeSlider = (onChangeSize) => {
   }, [])
 
   const handleChangeComitted = useCallback(
-    (event, value, pathEnd = sizeSliderProps.key) => {
-      onChangeSize(pathEnd)(`${value[0]}px`)
+    (event, value, pathTail = sizeSliderProps.key) => {
+      // TODO: Revert this when the `pamda.assocPath` issue is resolved
+      // onChangeSize(pathTail)(`${value[0]}px`)
+      onChangeSize(pathTail)(value)
     },
     [onChangeSize, sizeSliderProps.key]
   )

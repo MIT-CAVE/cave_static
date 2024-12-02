@@ -16,6 +16,11 @@ import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
+import {
+  PiArrowBendRightUp,
+  PiArrowBendUpRight,
+  PiArrowUpRight,
+} from 'react-icons/pi'
 import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
@@ -37,23 +42,28 @@ import {
   selectShowLegendGroupNamesFunc,
   selectSync,
 } from '../../../data/selectors'
-import { propId, statFuncs } from '../../../utils/enums'
+import {
+  propId,
+  scaleId,
+  scaleParamsById,
+  statFuncs,
+} from '../../../utils/enums'
 import {
   useMenu,
   useMutateStateWithSync,
   useToggle,
 } from '../../../utils/hooks'
+import {
+  getScaleLabel,
+  getScaleParamDefaults,
+  getScaleParamLabel,
+} from '../../../utils/scales'
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 
-import { FetchedIcon, Select } from '../../compound'
+import { FetchedIcon, NumberInput, Select } from '../../compound'
 
-import {
-  forceArray,
-  getColorString,
-  includesPath,
-  NumberFormat,
-} from '../../../utils'
+import { forceArray, includesPath, NumberFormat } from '../../../utils'
 
 const styles = {
   root: {
@@ -73,7 +83,7 @@ const styles = {
     zIndex: 2,
   },
   getRippleBox: (selected) => ({
-    border: `1px ${selected ? 'inset' : 'outset'} rgb(128, 128, 128)`,
+    border: `1px ${selected ? 'inset' : 'outset'} rgb(128 128 128)`,
     borderRadius: 1,
   }),
 }
@@ -151,14 +161,14 @@ export const useLegendDetails = ({
     [basePath, shapePathEnd]
   )
   const handleSelectProp = useCallback(
-    (pathEnd, groupCalcPathEnd, groupCalcValue) => (value, event) => {
-      const path = [...basePath, pathEnd]
+    (pathTail, groupCalcPathTail, groupCalcValue) => (value, event) => {
+      const path = [...basePath, pathTail]
       const newPropType = featureTypeProps[value].type
       if (!statFuncs[newPropType].has(groupCalcValue)) {
         // If the selected aggregation function is not
         // valid for the new prop type, set a default
         const [defaultGroupCalc] = getStatFuncsByType(newPropType)
-        handleSelectGroupCalc(groupCalcPathEnd)(defaultGroupCalc)
+        handleSelectGroupCalc(groupCalcPathTail)(defaultGroupCalc)
       }
       dispatch(
         mutateLocal({
@@ -173,22 +183,9 @@ export const useLegendDetails = ({
   )
 
   const basePathProp = useMemo(() => ['mapFeatures', 'data', id, 'props'], [id])
-  const handleChangeColor = useCallback(
-    (pathEnd) => (value) => {
-      const path = [...basePathProp, colorBy, ...forceArray(pathEnd)]
-      dispatch(
-        mutateLocal({
-          path,
-          value: getColorString(value),
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-    },
-    [basePathProp, colorBy, dispatch, sync]
-  )
-  const handleChangeSize = useCallback(
-    (pathEnd) => (value) => {
-      const path = [...basePathProp, sizeBy, ...forceArray(pathEnd)]
+  const handleChangePropAttr = useCallback(
+    (pathTail) => (value) => {
+      const path = [...basePathProp, ...forceArray(pathTail)]
       dispatch(
         mutateLocal({
           path,
@@ -197,7 +194,20 @@ export const useLegendDetails = ({
         })
       )
     },
-    [basePathProp, dispatch, sizeBy, sync]
+    [basePathProp, dispatch, sync]
+  )
+
+  const handleChangeColor = useCallback(
+    (pathTail) => (value) => {
+      handleChangePropAttr([colorBy, ...forceArray(pathTail)])(value)
+    },
+    [colorBy, handleChangePropAttr]
+  )
+  const handleChangeSize = useCallback(
+    (pathTail) => (value) => {
+      handleChangePropAttr([sizeBy, ...forceArray(pathTail)])(value)
+    },
+    [sizeBy, handleChangePropAttr]
   )
 
   return {
@@ -213,6 +223,7 @@ export const useLegendDetails = ({
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
+    handleChangePropAttr,
   }
 }
 
@@ -230,38 +241,46 @@ export const useLegend = (mapId) => {
   return { showLegendGroupNames, handleToggleLegendGroupNames }
 }
 
-const getNumLabel = (value, numberFormat) =>
+const getNumLabel = (value, numberFormat, gradientKey) =>
   NumberFormat.format(value, {
     ...numberFormat,
-    // Formatting hierarchy: `props.legend<key>` -> `settings.defaults.legend<key>` -> `props.<key>` -> `settings.defaults.<key>`
+    // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
     ...{
-      precision: numberFormat.legendPrecision || numberFormat.precision,
-      notation: numberFormat.legendNotation || numberFormat.notation,
+      precision: numberFormat[gradientKey]?.precision || numberFormat.precision,
+      notation: numberFormat[gradientKey]?.notation || numberFormat.notation,
       notationDisplay:
-        numberFormat.legendNotationDisplay || numberFormat.notationDisplay,
+        numberFormat[gradientKey]?.notationDisplay ||
+        numberFormat.notationDisplay,
     },
   })
 
-const getMinMaxLabel = (
-  valueRange,
+export const getGradientLabel = (
+  labels,
+  values,
+  index,
   numberFormatRaw,
   group,
-  minMaxKey,
-  legendMinMaxLabel
+  gradientKey
 ) => {
   // eslint-disable-next-line no-unused-vars
   const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
-  return group
-    ? getNumLabel(valueRange[minMaxKey], numberFormat)
-    : numberFormat[legendMinMaxLabel] ||
-        getNumLabel(valueRange[minMaxKey], numberFormat)
+  return group || labels[index] == null
+    ? getNumLabel(values[index], numberFormat, gradientKey)
+    : labels[index]
 }
 
-export const getMinLabel = (valRange, numberFormat, group) =>
-  getMinMaxLabel(valRange, numberFormat, group, 'min', 'legendMinLabel')
+export const getMinLabel = (labels, values, numberFormat, group, gradientKey) =>
+  getGradientLabel(labels, values, 0, numberFormat, group, gradientKey)
 
-export const getMaxLabel = (valRange, numberFormat, group) =>
-  getMinMaxLabel(valRange, numberFormat, group, 'max', 'legendMaxLabel')
+export const getMaxLabel = (labels, values, numberFormat, group, gradientKey) =>
+  getGradientLabel(
+    labels,
+    values,
+    values.length - 1,
+    numberFormat,
+    group,
+    gradientKey
+  )
 
 // TODO: Move this to some `legendUtils.js` module
 export const RippleBox = ({ selected, sx = [], ...props }) => (
@@ -320,6 +339,68 @@ export const PropIcon = ({ icon, selected, onClick, ...props }) => (
     <FetchedIcon iconName={icon} {...props} />
   </RippleBox>
 )
+
+export const ScaleSelector = ({
+  scale = scaleId.LINEAR,
+  minDomainValue,
+  scaleParams,
+  onSelect,
+  onChangeScaleParamById,
+}) => {
+  const validScales = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.when(R.always(minDomainValue <= 0), R.without([scaleId.LOG]))
+      )(scaleId),
+    [minDomainValue]
+  )
+
+  const scaleParamId = scaleParamsById[scale]
+  const IconClass =
+    scale === scaleId.LINEAR
+      ? PiArrowUpRight
+      : scale === scaleId.LOG
+        ? PiArrowBendUpRight
+        : PiArrowBendRightUp
+
+  return (
+    <Stack direction="row" spacing={1}>
+      <FormControl fullWidth>
+        <InputLabel id="scale-fn-label">Gradient Scale Func.</InputLabel>
+        <Select
+          id="scale-fn"
+          labelId="scale-fn-label"
+          label="Gradient Scale Func."
+          getLabel={getScaleLabel}
+          optionsList={validScales}
+          startAdornment={
+            <InputAdornment position="start">
+              <IconClass size={24} />
+            </InputAdornment>
+          }
+          value={scale}
+          {...{ onSelect }}
+        />
+      </FormControl>
+      {scale !== scaleId.LINEAR && (
+        <NumberInput
+          sx={{ width: 'auto' }}
+          label={getScaleParamLabel(scaleParamId)}
+          min={scale === scaleId.LOG ? 0.0001 : -Infinity}
+          max={Infinity}
+          numberFormat={{}}
+          value={R.propOr(
+            getScaleParamDefaults(scaleParamId),
+            scaleParamId
+          )(scaleParams)}
+          slotProps={{ input: { sx: { borderRadius: 0 } } }}
+          onClickAway={onChangeScaleParamById(scaleParamId)}
+        />
+      )}
+    </Stack>
+  )
+}
 
 export const GroupCalcSelector = ({ type, value, onSelect }) => {
   const IconClass =

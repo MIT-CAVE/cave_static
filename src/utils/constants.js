@@ -191,7 +191,7 @@ export const CHART_DEFAULTS = {
   chartType: chartVariant.BAR,
 }
 
-export const NUMBER_FORMAT_KEYS = [
+export const NUMBER_FORMAT_KEY_PATHS = [
   'locale',
   'precision',
   'notation',
@@ -200,9 +200,13 @@ export const NUMBER_FORMAT_KEYS = [
   'unit',
   'unitPlacement',
   'fallbackValue',
-  'legendPrecision',
-  'legendNotation',
-  'legendNotationDisplay',
-  'legendMinLabel',
-  'legendMaxLabel',
+  ['colorGradient', 'precision'],
+  ['colorGradient', 'notation'],
+  ['colorGradient', 'notationDisplay'],
+  ['sizeGradient', 'precision'],
+  ['sizeGradient', 'notation'],
+  ['sizeGradient', 'notationDisplay'],
+  ['heightGradient', 'precision'],
+  ['heightGradient', 'notation'],
+  ['heightGradient', 'notationDisplay'],
 ]

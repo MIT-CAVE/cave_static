@@ -7,10 +7,10 @@ export const useColorPicker = (onChangeColor) => {
   const [colorPickerProps, setColorPickerProps] = useState({})
 
   const handleChange = useCallback(
-    (value, colorOutputs, pathEnd = colorPickerProps.key) => {
+    (value, colorOutputs, pathTail = colorPickerProps.key) => {
       setColorPickerProps(R.assoc('value', value))
-      if (!matchIsValidColor(value)) return
-      onChangeColor(pathEnd)(value)
+      if (!Array.isArray(value) && !matchIsValidColor(value)) return
+      onChangeColor(pathTail)(value)
     },
     [colorPickerProps, onChangeColor]
   )
@@ -50,9 +50,10 @@ const ColorPicker = ({ colorLabel, value, onChange }) => {
       color="warning"
       format="hex8"
       // PopoverProps={{ onClose }}
-      label={`Color picker \u279D ${colorLabel}`}
-      style={{ marginTop: '20px' }}
       value={formattedColor}
+      label={`Color \u279D ${colorLabel}`}
+      style={{ marginTop: '20px', flex: '1 1 auto' }}
+      slotProps={{ input: { style: { borderRadius: 0 } } }}
       {...{ onChange }}
     />
   )

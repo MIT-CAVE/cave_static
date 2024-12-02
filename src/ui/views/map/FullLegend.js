@@ -160,6 +160,7 @@ const LegendRowDetails = ({
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
+    handleChangePropAttr,
   } = useLegendDetails({
     mapId,
     legendGroupId,
@@ -333,6 +334,7 @@ const LegendRowDetails = ({
                   groupCalcValue={groupCalcBySize}
                   onSelectProp={handleSelectProp}
                   onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangePropAttr={handleChangePropAttr}
                   onChangeSize={handleChangeSize}
                 />
               </Grid2>
@@ -357,6 +359,7 @@ const LegendRowDetails = ({
                   groupCalcValue={groupCalcByColor}
                   onSelectProp={handleSelectProp}
                   onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangePropAttr={handleChangePropAttr}
                   onChangeColor={handleChangeColor}
                 />
               </Grid2>
@@ -374,6 +377,7 @@ const LegendRowDetails = ({
                   }}
                   hasAnyNullValue={hasAnyNullValue(heightBy)}
                   icon={<FetchedIcon iconName={icon} />}
+                  onChangePropAttr={handleChangePropAttr}
                   onSelectProp={handleSelectProp('heightBy')}
                 />
               </Grid2>

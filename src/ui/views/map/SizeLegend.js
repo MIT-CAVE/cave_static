@@ -16,6 +16,7 @@ import {
   getMinLabel,
   GroupCalcSelector,
   PropIcon,
+  ScaleSelector,
   WithEditBadge,
 } from './Legend'
 
@@ -25,7 +26,7 @@ import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 
 import { OverflowText, Select } from '../../compound'
 
-import { orderEntireDict } from '../../../utils'
+import { orderEntireDict, parseGradient } from '../../../utils'
 
 const styles = {
   legendSection: {
@@ -63,63 +64,111 @@ const styles = {
 }
 
 const NumericalSizeLegend = ({
-  valueRange,
-  numberFormat,
+  sizeByProp,
   icon,
   group,
+  valueRange,
+  numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
   onChangeSize,
 }) => {
-  const minSz = useSizeSlider(onChangeSize)
-  const maxSz = useSizeSlider(onChangeSize)
+  const leftSz = useSizeSlider(onChangeSize)
+  const rightSz = useSizeSlider(onChangeSize)
   const [activeThumb, setActiveThumb] = useState()
 
-  const { startSize, endSize } = valueRange
-  const minLabel = getMinLabel(valueRange, numberFormat, group)
-  const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+  const currentIndex = 0
+
+  const { sizes, values, labels } = useMemo(
+    () => parseGradient('sizeGradient', 'size')(valueRange),
+    [valueRange]
+  )
+
+  const minLabel = useMemo(
+    () => getMinLabel(labels, values, numberFormat, group, 'sizeGradient'),
+    [group, labels, numberFormat, values]
+  )
+
+  const maxLabel = useMemo(
+    () => getMaxLabel(labels, values, numberFormat, group, 'sizeGradient'),
+    [group, labels, numberFormat, values]
+  )
 
   const handleChange = useCallback(
     (event, value, thumb) => {
       setActiveThumb(thumb)
       // Only dispatch the change for the modified value
       const thumbChangeTrigger =
-        minSz.showSizeSlider && thumb === 0
-          ? minSz.handleChange
-          : maxSz.showSizeSlider && (!minSz.showSizeSlider || thumb === 1)
-            ? maxSz.handleChange
+        leftSz.showSizeSlider && thumb === 0
+          ? leftSz.handleChange
+          : rightSz.showSizeSlider && (!leftSz.showSizeSlider || thumb === 1)
+            ? rightSz.handleChange
             : () => {
                 console.error('This should never happen...')
               }
       thumbChangeTrigger(event, [value[thumb]])
     },
-    [maxSz, minSz]
+    [
+      leftSz.handleChange,
+      leftSz.showSizeSlider,
+      rightSz.handleChange,
+      rightSz.showSizeSlider,
+    ]
   )
 
   const handleChangeComitted = useCallback(
     (event, value) => {
-      // Only dispatch the change for the modified value
-      const thumbChangeComittedTrigger =
-        minSz.showSizeSlider && activeThumb === 0
-          ? minSz.handleChangeComitted
-          : maxSz.showSizeSlider && (!minSz.showSizeSlider || activeThumb === 1)
-            ? maxSz.handleChangeComitted
-            : () => {
-                console.error('This should never happen...')
-              }
-      thumbChangeComittedTrigger(event, [value[activeThumb]])
+      let index, thumbChangeComittedTrigger
+      if (leftSz.showSizeSlider && activeThumb === 0) {
+        thumbChangeComittedTrigger = leftSz.handleChangeComitted
+        index = leftSz.sizeSliderProps.key
+      } else if (
+        rightSz.showSizeSlider &&
+        (!leftSz.showSizeSlider || activeThumb === 1)
+      ) {
+        thumbChangeComittedTrigger = rightSz.handleChangeComitted
+        index = rightSz.sizeSliderProps.key
+      } else {
+        console.error('This should never happen...')
+      }
+
+      const pathTail =
+        index == null // Updating fallback size?
+          ? ['fallback', 'size']
+          : // : ['sizeGradient', 'data', index, 'size']
+            ['sizeGradient', 'data']
+
+      const changedValue =
+        index == null
+          ? // Only dispatch the change for the modified value
+            `${value[activeThumb]}px`
+          : // Take the long route since `pamda.assocPath` doesn't support array indices yet
+            R.pipe(
+              R.path(pathTail),
+              R.set(R.lensPath([index, 'size']), `${value[activeThumb]}px`)
+            )(sizeByProp)
+      thumbChangeComittedTrigger(event, changedValue, pathTail)
     },
-    [activeThumb, maxSz, minSz]
+    [
+      leftSz.showSizeSlider,
+      leftSz.handleChangeComitted,
+      leftSz.sizeSliderProps.key,
+      activeThumb,
+      rightSz.showSizeSlider,
+      rightSz.handleChangeComitted,
+      rightSz.sizeSliderProps.key,
+      sizeByProp,
+    ]
   )
 
-  // const handleClose = useCallback(
-  //   (event) => {
-  //     minSz.handleClose(event)
-  //     maxSz.handleClose(event)
-  //   },
-  //   [maxSz, minSz]
-  // )
+  const handleClose = useCallback(
+    (event) => {
+      leftSz.handleClose(event)
+      rightSz.handleClose(event)
+    },
+    [rightSz, leftSz]
+  )
 
-  const showSizeSlider = minSz.showSizeSlider || maxSz.showSizeSlider
+  const showSizeSlider = leftSz.showSizeSlider || rightSz.showSizeSlider
   return (
     <>
       <Grid2 container spacing={0.5} sx={styles.rangeRoot}>
@@ -138,24 +187,29 @@ const NumericalSizeLegend = ({
         >
           <Grid2 size={6}>
             {icon && (
-              <WithEditBadge editing={minSz.showSizeSlider}>
+              <WithEditBadge editing={leftSz.showSizeSlider}>
                 <PropIcon
                   {...{ icon }}
-                  selected={minSz.showSizeSlider}
-                  size={minSz.sizeSliderProps.value ?? startSize}
-                  onClick={minSz.handleOpen('startSize', startSize)}
+                  selected={leftSz.showSizeSlider}
+                  size={leftSz.sizeSliderProps.value ?? sizes[currentIndex]}
+                  onClick={leftSz.handleOpen(currentIndex, sizes[currentIndex])}
                 />
               </WithEditBadge>
             )}
           </Grid2>
           <Grid2 size={6}>
             {icon && (
-              <WithEditBadge editing={maxSz.showSizeSlider}>
+              <WithEditBadge editing={rightSz.showSizeSlider}>
                 <PropIcon
                   {...{ icon }}
-                  selected={maxSz.showSizeSlider}
-                  size={maxSz.sizeSliderProps.value ?? endSize}
-                  onClick={maxSz.handleOpen('endSize', endSize)}
+                  selected={rightSz.showSizeSlider}
+                  size={
+                    rightSz.sizeSliderProps.value ?? sizes[currentIndex + 1]
+                  }
+                  onClick={rightSz.handleOpen(
+                    currentIndex + 1,
+                    sizes[currentIndex + 1]
+                  )}
                 />
               </WithEditBadge>
             )}
@@ -173,14 +227,14 @@ const NumericalSizeLegend = ({
       {showSizeSlider && (
         <SizeSlider
           value={[
-            ...(minSz.sizeSliderProps.value != null
-              ? minSz.sizeSliderProps.value
+            ...(leftSz.sizeSliderProps.value != null
+              ? leftSz.sizeSliderProps.value
               : []),
-            ...(maxSz.sizeSliderProps.value != null
-              ? maxSz.sizeSliderProps.value
+            ...(rightSz.sizeSliderProps.value != null
+              ? rightSz.sizeSliderProps.value
               : []),
           ]}
-          // onClose={handleClose}
+          onClose={handleClose}
           onChange={handleChange}
           onChangeCommitted={handleChangeComitted}
         />
@@ -300,6 +354,7 @@ const SizeLegend = ({
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangePropAttr,
   onChangeSize,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
@@ -346,16 +401,33 @@ const SizeLegend = ({
           {...{ icon, sizeByProp, anyNullValue, onChangeSize }}
         />
       ) : (
-        <NumericalSizeLegend
-          {...{
-            valueRange,
-            numberFormat,
-            icon,
-            group,
-            anyNullValue,
-            onChangeSize,
-          }}
-        />
+        <>
+          <NumericalSizeLegend
+            {...{
+              sizeByProp,
+              valueRange,
+              numberFormat,
+              icon,
+              group,
+              anyNullValue,
+              onChangeSize,
+            }}
+          />
+          <ScaleSelector
+            scale={valueRange.sizeGradient.scale}
+            scaleParams={valueRange.sizeGradient.scaleParams}
+            minDomainValue={valueRange.min}
+            onSelect={onChangePropAttr([sizeBy, 'sizeGradient', 'scale'])}
+            onChangeScaleParamById={(scaleParamId) =>
+              onChangePropAttr([
+                sizeBy,
+                'sizeGradient',
+                'scaleParams',
+                scaleParamId,
+              ])
+            }
+          />
+        </>
       )}
       {group && (
         <GroupCalcSelector

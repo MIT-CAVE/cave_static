@@ -12,20 +12,27 @@ import { memo, useCallback, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
-  getMaxLabel,
-  getMinLabel,
+  getGradientLabel,
   GroupCalcSelector,
   RippleBox,
+  ScaleSelector,
   WithEditBadge,
 } from './Legend'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
+import { useToggle } from '../../../utils/hooks'
+import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
-import { OverflowText, Select } from '../../compound'
+import { NumberInput, OverflowText, Select } from '../../compound'
 
-import { getContrastText, orderEntireDict } from '../../../utils'
+import {
+  getColorString,
+  getContrastText,
+  orderEntireDict,
+  parseGradient,
+} from '../../../utils'
 
 const styles = {
   legendSection: {
@@ -66,11 +73,11 @@ const styles = {
     textAlign: 'center',
     maxWidth: '56px',
   },
-  getGradient: (minColor, maxColor) => ({
+  getGradient: (gradientColors) => ({
     width: '100%',
     height: '24px',
     minWidth: '80px',
-    backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
+    background: `linear-gradient(to right, ${gradientColors})`,
   }),
 }
 
@@ -85,76 +92,227 @@ const WithEditColorBadge = ({ showBadge, ...props }) => (
 )
 
 const NumericalColorLegend = ({
+  colorByProp,
   group,
   valueRange,
   numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
   onChangeColor,
+  onChangeValue,
 }) => {
-  const minCp = useColorPicker(onChangeColor)
-  const maxCp = useColorPicker(onChangeColor)
+  const [showColorPickers, handleToggleColorPickers] = useToggle()
 
-  const { startGradientColor, endGradientColor } = valueRange
-  const minLabel = getMinLabel(valueRange, numberFormat, group)
-  const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+  const leftCp = useColorPicker(onChangeColor)
+  const rightCp = useColorPicker(onChangeColor)
 
-  const handleClick = useCallback(() => {
-    minCp.handleOpen('startGradientColor', startGradientColor)()
-    maxCp.handleOpen('endGradientColor', endGradientColor)()
-  }, [endGradientColor, maxCp, minCp, startGradientColor])
+  const { colors, values, labels } = useMemo(
+    () => parseGradient('colorGradient', 'color')(valueRange),
+    [valueRange]
+  )
 
-  // const handleClose = useCallback(
-  //   (event) => {
-  //     minCp.handleClose(event)
-  //     maxCp.handleClose(event)
-  //   },
-  //   [maxCp, minCp]
-  // )
+  const getLabel = useCallback(
+    (index) =>
+      getGradientLabel(
+        labels,
+        values,
+        index,
+        numberFormat,
+        group,
+        'colorGradient'
+      ),
+    [group, labels, numberFormat, values]
+  )
 
-  const showColorPicker = minCp.showColorPicker && maxCp.showColorPicker
+  const getColorLabel = useCallback(
+    (index) =>
+      index < 1
+        ? 'Min'
+        : index < values.length - 1
+          ? `"${getLabel(index)}"`
+          : 'Max',
+    [getLabel, values.length]
+  )
+
+  const getValueLabel = useCallback(
+    (index) =>
+      index > 0 && index < values.length - 1
+        ? `Value \u279D "${getLabel(index)}"`
+        : `${index < 1 ? 'Min' : 'Max'} (Read-Only)`,
+    [getLabel, values.length]
+  )
+
+  const gradientStyle = useMemo(() => {
+    const {
+      colorGradient: { scale, scaleParams },
+      min: minValue,
+      max: maxValue,
+    } = valueRange
+
+    const gradientColors = R.zipWith((color, value) => {
+      const scaledValue = getScaledValueAlt(
+        [minValue, maxValue],
+        [0, 100],
+        value,
+        scale,
+        scaleParams
+      )
+      return `${color} ${scaledValue}%`
+    }, colors)(values)
+
+    return styles.getGradient(gradientColors.join(', '))
+  }, [colors, valueRange, values])
+
+  const handleChangeValue = useCallback(
+    (index) => (value) => {
+      // Take the long route since `pamda.assocPath` doesn't support array indices yet
+      const changedValue = R.pipe(
+        R.path(['colorGradient', 'data']),
+        R.set(R.lensPath([index, 'value']), value)
+      )(colorByProp)
+      onChangeValue(changedValue)
+    },
+    [colorByProp, onChangeValue]
+  )
+
+  const handleChangeColor = useCallback(
+    (cp) => (value, colorOutputs) => {
+      const index = cp.colorPickerProps.key
+      const pathTail =
+        index == null // Updating fallback color?
+          ? ['fallback', 'color']
+          : // : ['colorGradient', 'data', index, 'color']
+            ['colorGradient', 'data']
+      // Take the long route since `pamda.assocPath` doesn't support array indices yet
+      const changedValue =
+        index == null
+          ? getColorString(value)
+          : R.pipe(
+              R.path(pathTail),
+              R.set(R.lensPath([index, 'color']), getColorString(value))
+            )(colorByProp)
+      cp.handleChange(changedValue, colorOutputs, pathTail)
+    },
+    [colorByProp]
+  )
+
+  const handleChangeColorByIndex = useCallback(
+    (index) => (value, colorOutputs) => {
+      const pathTail =
+        index == null // Updating fallback color?
+          ? ['fallback', 'color']
+          : // : ['colorGradient', 'data', index, 'color']
+            ['colorGradient', 'data']
+      // Take the long route since `pamda.assocPath` doesn't support array indices yet
+      const changedValue =
+        index == null
+          ? getColorString(value)
+          : R.pipe(
+              R.path(pathTail),
+              R.set(R.lensPath([index, 'color']), getColorString(value))
+            )(colorByProp)
+      leftCp.handleChange(changedValue, colorOutputs, pathTail)
+    },
+    [colorByProp, leftCp]
+  )
+
+  const handleClose = useCallback(
+    (event) => {
+      leftCp.handleClose(event)
+      rightCp.handleClose(event)
+    },
+    [rightCp, leftCp]
+  )
+
+  // const showColorPicker = leftCp.showColorPicker && rightCp.showColorPicker
   return (
     <>
       <Grid2 container spacing={1.5} sx={styles.rangeRoot}>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Min</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={minLabel} />
+            <OverflowText text={getLabel(0)} />
           </Typography>
         </Grid2>
         <Grid2 size="grow">
-          <WithEditColorBadge showBadge={showColorPicker}>
+          <WithEditColorBadge showBadge={showColorPickers}>
             <RippleBox
-              selected={showColorPicker}
-              sx={styles.getGradient(startGradientColor, endGradientColor)}
-              onClick={handleClick}
+              selected={showColorPickers}
+              sx={gradientStyle}
+              onClick={handleToggleColorPickers}
             />
           </WithEditColorBadge>
         </Grid2>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Max</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={maxLabel} />
+            <OverflowText text={getLabel(values.length - 1)} />
           </Typography>
         </Grid2>
       </Grid2>
 
-      {showColorPicker && (
-        // BUG: For some reason the `sx` prop doesn't work here
-        <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
-          <ColorPicker
-            colorLabel="Min"
-            value={minCp.colorPickerProps.value}
-            onChange={minCp.handleChange}
-            // onClose={handleClose}
-          />
-          <ColorPicker
-            colorLabel="Max"
-            value={maxCp.colorPickerProps.value}
-            onChange={maxCp.handleChange}
-            // onClose={handleClose}
-          />
-        </Stack>
-      )}
+      {showColorPickers &&
+        (values.length < 3 ? (
+          // BUG: For some reason the `sx` prop doesn't work here
+          <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
+            <ColorPicker
+              colorLabel="Min"
+              value={R.when(
+                R.is(Array),
+                R.path([0, 'color'])
+              )(leftCp.colorPickerProps.value)}
+              onChange={handleChangeColor(leftCp)}
+              onClose={handleClose}
+            />
+            <ColorPicker
+              colorLabel="Max"
+              value={R.when(
+                R.is(Array),
+                R.path([1, 'color'])
+              )(rightCp.colorPickerProps.value)}
+              onChange={handleChangeColor(rightCp)}
+              onClose={handleClose}
+            />
+          </Stack>
+        ) : (
+          <Stack spacing={1} style={{ marginTop: 0 }}>
+            {values.map((value, index) => (
+              <Stack key={index} direction="row" spacing={1}>
+                <ColorPicker
+                  colorLabel={getColorLabel(index)}
+                  value={R.when(
+                    R.is(Array),
+                    R.path([index, 'color'])
+                  )(leftCp.colorPickerProps.value ?? colors[index])}
+                  onChange={handleChangeColorByIndex(index)}
+                  onClose={handleClose}
+                />
+                <NumberInput
+                  {...(index === 0 || index === values.length - 1
+                    ? { enabled: false }
+                    : { color: 'warning' })}
+                  sx={{
+                    width: 'auto',
+                    mt: '20px !important',
+                    flex: '1 1 auto',
+                    fieldset: {
+                      borderWidth: '2px !important',
+                    },
+                  }}
+                  slotProps={{
+                    input: {
+                      sx: { borderRadius: 0, pr: 1.75 },
+                    },
+                  }}
+                  label={getValueLabel(index)}
+                  min={valueRange.min}
+                  max={valueRange.max}
+                  {...{ value, numberFormat }}
+                  onClickAway={handleChangeValue(index)}
+                />
+              </Stack>
+            ))}
+          </Stack>
+        ))}
     </>
   )
 }
@@ -204,13 +362,13 @@ const CategoricalColorLegend = ({
   )
 
   const handleChange = useCallback(
-    (event, value) => {
+    (value, colorOutputs) => {
       const option = colorPickerProps.key
-      const path =
+      const pathTail =
         option === 'null' // Updating fallback color?
           ? ['fallback', 'color']
           : ['options', option, 'color']
-      handleChangeRaw(event, value, path)
+      handleChangeRaw(value, colorOutputs, pathTail)
     },
     [handleChangeRaw, colorPickerProps.key]
   )
@@ -269,6 +427,7 @@ const ColorLegend = ({
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangePropAttr,
   onChangeColor,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
@@ -315,15 +474,33 @@ const ColorLegend = ({
           {...{ colorByProp, anyNullValue, onChangeColor }}
         />
       ) : (
-        <NumericalColorLegend
-          {...{
-            group,
-            valueRange,
-            numberFormat,
-            anyNullValue,
-            onChangeColor,
-          }}
-        />
+        <>
+          <NumericalColorLegend
+            {...{
+              group,
+              valueRange,
+              colorByProp,
+              numberFormat,
+              anyNullValue,
+              onChangeColor,
+            }}
+            onChangeValue={onChangePropAttr([colorBy, 'colorGradient', 'data'])}
+          />
+          <ScaleSelector
+            scale={valueRange.colorGradient.scale}
+            scaleParams={valueRange.colorGradient.scaleParams}
+            minDomainValue={valueRange.min}
+            onSelect={onChangePropAttr([colorBy, 'colorGradient', 'scale'])}
+            onChangeScaleParamById={(scaleParamId) =>
+              onChangePropAttr([
+                colorBy,
+                'colorGradient',
+                'scaleParams',
+                scaleParamId,
+              ])
+            }
+          />
+        </>
       )}
       {group && (
         <GroupCalcSelector

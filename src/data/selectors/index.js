@@ -8,7 +8,7 @@ import {
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
-  NUMBER_FORMAT_KEYS,
+  NUMBER_FORMAT_KEY_PATHS,
   ICON_RESOLUTION,
 } from '../../utils/constants'
 import {
@@ -21,6 +21,7 @@ import {
   paneId,
   legendViews,
 } from '../../utils/enums'
+import { getScaledValueAlt } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
@@ -43,8 +44,8 @@ import {
   constructFetchedGeoJson,
   constructGeoJson,
   ALLOWED_RANGE_KEYS,
-  getScaledValueAlt,
   getColorString,
+  parseGradient,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -305,14 +306,23 @@ export const selectAssociatedData = createSelector(selectAssociated, (data) =>
 export const selectSettingsIconUrl = createSelector(selectSettings, (data) =>
   R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
 )
+const pickPaths = R.curry((paths, obj) =>
+  R.reduce((acc, val) => {
+    const path = forcePath(val)
+    return R.when(
+      R.always(R.hasPath(path)(obj)),
+      R.assocPath(path, R.path(path)(obj))
+    )(acc)
+  }, {})(paths)
+)
 export const selectNumberFormat = createSelector(
   selectSettings,
-  R.pipe(R.propOr({}, 'defaults'), R.pick(NUMBER_FORMAT_KEYS))
+  R.pipe(R.propOr({}, 'defaults'), pickPaths(NUMBER_FORMAT_KEY_PATHS))
 )
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
   R.curry((numberFormat, props) =>
-    R.mergeRight(numberFormat, R.pick(NUMBER_FORMAT_KEYS)(props))
+    R.mergeRight(numberFormat, pickPaths(NUMBER_FORMAT_KEY_PATHS)(props))
   )
 )
 export const selectDemoSettings = createSelector(
@@ -1741,9 +1751,9 @@ export const selectArcRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              ((R.has('startGradientColor', range) ||
-                R.has('startSize', range) ||
-                R.has('startHeight', range)) &&
+              ((R.has('colorGradient', range) ||
+                R.has('sizeGradient', range) ||
+                R.has('heightGradient', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1875,8 +1885,8 @@ export const selectNodeRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              ((R.has('startGradientColor', range) ||
-                R.has('startSize', range)) &&
+              ((R.has('colorGradient', range) ||
+                R.has('sizeGradient', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1906,8 +1916,8 @@ export const selectGeoRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              ((R.has('startGradientColor', range) ||
-                R.has('startHeight', range)) &&
+              ((R.has('colorGradient', range) ||
+                R.has('sizeGradient', range)) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -2215,10 +2225,12 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeByPropVal = sizeObj.value
           const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
           const isSizeCategorical = !R.has('min')(sizeByProp)
-          const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
-          const sizeRange = isSizeCategorical
-            ? R.pluck('size')(sizeByProp.options)
-            : [parseFloat(sizeByProp.startSize), parseFloat(sizeByProp.endSize)]
+          // const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
+          const parsedSize = parseGradient(
+            'sizeGradient',
+            'size',
+            true
+          )(sizeByProp)
 
           const rawSize =
             sizeByPropVal == null
@@ -2226,9 +2238,11 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               : isSizeCategorical
                 ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeByProp)
                 : getScaledValueAlt(
-                    R.props(['min', 'max'])(sizeDomain),
-                    sizeRange,
-                    parseFloat(sizeByPropVal)
+                    parsedSize.values,
+                    parsedSize.sizes,
+                    parseFloat(sizeByPropVal),
+                    sizeByProp.sizeGradient.scale,
+                    sizeByProp.sizeGradient.scaleParams
                   )
 
           const colorByProp = effectiveNodes.props[colorBy]
@@ -2240,10 +2254,11 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
             colorByProp
           )
           const isColorCategorical = !R.has('min')(colorByProp)
-          const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const colorRange = isColorCategorical
-            ? R.pluck('color')(colorByProp.options)
-            : R.props(['startGradientColor', 'endGradientColor'])(colorByProp)
+          // const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
+          const parsedColor = parseGradient(
+            'colorGradient',
+            'color'
+          )(colorByProp)
 
           const rawColor =
             colorByPropVal === ''
@@ -2253,9 +2268,11 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     colorByProp
                   )
                 : getScaledValueAlt(
-                    R.props(['min', 'max'])(colorDomain),
-                    colorRange,
-                    parseFloat(colorByPropVal)
+                    parsedColor.values,
+                    parsedColor.colors,
+                    parseFloat(colorByPropVal),
+                    colorByProp.colorGradient.scale,
+                    colorByProp.colorGradient.scaleParams
                   )
 
           const id = R.pathOr(
