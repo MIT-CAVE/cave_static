@@ -20,7 +20,7 @@ import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { MapPortal } from './MapPortal'
+import MapPortal from './MapPortal'
 
 import { mutateLocal } from '../../../data/local'
 import {
