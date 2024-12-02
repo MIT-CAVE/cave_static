@@ -101,9 +101,7 @@ const NumericalColorLegend = ({
   onChangeValue,
 }) => {
   const [showColorPickers, handleToggleColorPickers] = useToggle()
-
-  const leftCp = useColorPicker(onChangeColor)
-  const rightCp = useColorPicker(onChangeColor)
+  const cp = useColorPicker(onChangeColor)
 
   const { colors, values, labels } = useMemo(
     () => parseGradient('colorGradient', 'color')(valueRange),
@@ -174,27 +172,6 @@ const NumericalColorLegend = ({
     [colorByProp, onChangeValue]
   )
 
-  const handleChangeColor = useCallback(
-    (cp) => (value, colorOutputs) => {
-      const index = cp.colorPickerProps.key
-      const pathTail =
-        index == null // Updating fallback color?
-          ? ['fallback', 'color']
-          : // : ['colorGradient', 'data', index, 'color']
-            ['colorGradient', 'data']
-      // Take the long route since `pamda.assocPath` doesn't support array indices yet
-      const changedValue =
-        index == null
-          ? getColorString(value)
-          : R.pipe(
-              R.path(pathTail),
-              R.set(R.lensPath([index, 'color']), getColorString(value))
-            )(colorByProp)
-      cp.handleChange(changedValue, colorOutputs, pathTail)
-    },
-    [colorByProp]
-  )
-
   const handleChangeColorByIndex = useCallback(
     (index) => (value, colorOutputs) => {
       const pathTail =
@@ -210,20 +187,18 @@ const NumericalColorLegend = ({
               R.path(pathTail),
               R.set(R.lensPath([index, 'color']), getColorString(value))
             )(colorByProp)
-      leftCp.handleChange(changedValue, colorOutputs, pathTail)
+      cp.handleChange(changedValue, colorOutputs, pathTail)
     },
-    [colorByProp, leftCp]
+    [colorByProp, cp]
   )
 
   const handleClose = useCallback(
     (event) => {
-      leftCp.handleClose(event)
-      rightCp.handleClose(event)
+      cp.handleClose(event)
     },
-    [rightCp, leftCp]
+    [cp]
   )
 
-  // const showColorPicker = leftCp.showColorPicker && rightCp.showColorPicker
   return (
     <>
       <Grid2 container spacing={1.5} sx={styles.rangeRoot}>
@@ -259,8 +234,8 @@ const NumericalColorLegend = ({
               value={R.when(
                 R.is(Array),
                 R.path([0, 'color'])
-              )(leftCp.colorPickerProps.value)}
-              onChange={handleChangeColor(leftCp)}
+              )(cp.colorPickerProps.value ?? colors[0])}
+              onChange={handleChangeColorByIndex(0)}
               onClose={handleClose}
             />
             <ColorPicker
@@ -268,8 +243,8 @@ const NumericalColorLegend = ({
               value={R.when(
                 R.is(Array),
                 R.path([1, 'color'])
-              )(rightCp.colorPickerProps.value)}
-              onChange={handleChangeColor(rightCp)}
+              )(cp.colorPickerProps.value ?? colors[1])}
+              onChange={handleChangeColorByIndex(1)}
               onClose={handleClose}
             />
           </Stack>
@@ -282,7 +257,7 @@ const NumericalColorLegend = ({
                   value={R.when(
                     R.is(Array),
                     R.path([index, 'color'])
-                  )(leftCp.colorPickerProps.value ?? colors[index])}
+                  )(colors[index])}
                   onChange={handleChangeColorByIndex(index)}
                   onClose={handleClose}
                 />
