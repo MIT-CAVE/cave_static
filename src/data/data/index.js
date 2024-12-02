@@ -141,7 +141,11 @@ export const dataSlice = createSlice({
     ignore: {},
     associated: {},
   },
-  reducers: {},
+  reducers: {
+    clearVersions: (state) => {
+      return R.assoc('versions', {}, state)
+    },
+  },
   extraReducers: (builder) => {
     // Data mutation
     builder.addCase(mutateData.fulfilled, (state, action) => {
@@ -171,6 +175,6 @@ export const dataSlice = createSlice({
   },
 })
 
-export const { dataMutate } = dataSlice.actions
+export const { dataMutate, clearVersions } = dataSlice.actions
 
 export default dataSlice.reducer
