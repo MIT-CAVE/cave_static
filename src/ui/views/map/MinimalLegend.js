@@ -137,6 +137,7 @@ const LegendRowDetails = ({
     },
   ],
   featureTypeProps,
+  featureTypeValues,
   getRange,
   onChangeVisibility,
 }) => {
@@ -148,6 +149,7 @@ const LegendRowDetails = ({
     sizeRange,
     clusterRange,
     heightRange,
+    hasAnyNullValue,
     handleSelectGroupCalc,
     handleSelectProp,
     handleToggleGroup,
@@ -164,6 +166,7 @@ const LegendRowDetails = ({
     heightBy,
     shapePathEnd,
     featureTypeProps,
+    featureTypeValues,
     getRange,
   })
 
@@ -281,6 +284,7 @@ const LegendRowDetails = ({
               colorByOptions,
               featureTypeProps,
             }}
+            anyNullValue={hasAnyNullValue(colorBy)}
             groupCalcValue={groupCalcByColor}
             onSelectProp={handleSelectProp}
             onSelectGroupCalc={handleSelectGroupCalc}
@@ -299,6 +303,7 @@ const LegendRowDetails = ({
               sizeByOptions,
               featureTypeProps,
             }}
+            anyNullValue={hasAnyNullValue(sizeBy)}
             groupCalcValue={groupCalcBySize}
             onSelectProp={handleSelectProp}
             onSelectGroupCalc={handleSelectGroupCalc}
@@ -315,6 +320,7 @@ const LegendRowDetails = ({
               heightByOptions,
               featureTypeProps,
             }}
+            anyNullValue={hasAnyNullValue(heightBy)}
             icon={<FetchedIcon iconName={icon} />}
             onSelectProp={handleSelectProp('heightBy')}
           />
@@ -325,11 +331,15 @@ const LegendRowDetails = ({
 }
 
 const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
-  const featureTypeData = mapFeaturesBy(id, mapId)[0]
-  const name = featureTypeData.name ?? id
+  const mapFeatures = mapFeaturesBy(id, mapId)
+  const name = mapFeatures[0].name ?? id
   const numActiveFilters = useMemo(
     () => getNumActiveFilters(props.filters),
     [props.filters]
+  )
+  const featureTypeValues = useMemo(
+    () => mapFeatures.map((feature) => feature.values),
+    [mapFeatures]
   )
   return (
     <Grid2
@@ -372,8 +382,8 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
             }}
           >
             <LegendRowDetails
-              featureTypeProps={featureTypeData.props}
-              {...{ mapId, id, name, ...props }}
+              featureTypeProps={mapFeatures[0].props}
+              {...{ mapId, id, name, featureTypeValues, ...props }}
             />
           </LegendPopper>
         </Grid2>

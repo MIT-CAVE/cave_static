@@ -12,6 +12,7 @@ import {
   ToggleButton,
   Typography,
 } from '@mui/material'
+import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
@@ -87,6 +88,7 @@ export const useLegendDetails = ({
   heightBy,
   shapePathEnd,
   featureTypeProps,
+  featureTypeValues,
   getRange,
 }) => {
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
@@ -111,6 +113,12 @@ export const useLegendDetails = ({
   const heightRange = useMemo(
     () => (heightBy != null ? getRange(id, heightBy, mapId) : null),
     [getRange, heightBy, id, mapId]
+  )
+
+  const hasAnyNullValue = useCallback(
+    (propId) =>
+      !group && R.pipe(R.pluck(propId), R.any(R.isNil))(featureTypeValues),
+    [featureTypeValues, group]
   )
 
   const basePath = useMemo(
@@ -198,6 +206,7 @@ export const useLegendDetails = ({
     sizeRange,
     clusterRange,
     heightRange,
+    hasAnyNullValue,
     handleSelectGroupCalc,
     handleSelectProp,
     handleToggleGroup,

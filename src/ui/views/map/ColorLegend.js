@@ -88,6 +88,7 @@ const NumericalColorLegend = ({
   group,
   valueRange,
   numberFormat,
+  // anyNullValue, // TODO: Implement `fallback` UI
   onChangeColor,
 }) => {
   const minCp = useColorPicker(onChangeColor)
@@ -158,7 +159,12 @@ const NumericalColorLegend = ({
   )
 }
 
-const CategoricalColorLegend = ({ type, colorByProp, onChangeColor }) => {
+const CategoricalColorLegend = ({
+  type,
+  colorByProp,
+  anyNullValue,
+  onChangeColor,
+}) => {
   const {
     colorPickerProps,
     showColorPicker,
@@ -172,7 +178,10 @@ const CategoricalColorLegend = ({ type, colorByProp, onChangeColor }) => {
     return R.pipe(
       orderEntireDict, // Preserve order of options after state updates
       // Add fallback color for null values, if available
-      R.when(R.always(fallback?.color != null), R.assoc('null', fallback)),
+      R.when(
+        R.always(anyNullValue && fallback?.color != null),
+        R.assoc('null', fallback)
+      ),
       R.map(
         R.applySpec({
           name: R.prop('name'),
@@ -181,7 +190,7 @@ const CategoricalColorLegend = ({ type, colorByProp, onChangeColor }) => {
         })
       )
     )(options)
-  }, [colorByProp])
+  }, [anyNullValue, colorByProp])
 
   const getCategoryLabel = useCallback(
     (option) => {
@@ -256,6 +265,7 @@ const ColorLegend = ({
   colorBy,
   colorByOptions,
   featureTypeProps,
+  anyNullValue,
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
@@ -302,11 +312,17 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          {...{ colorByProp, onChangeColor }}
+          {...{ colorByProp, anyNullValue, onChangeColor }}
         />
       ) : (
         <NumericalColorLegend
-          {...{ group, valueRange, numberFormat, onChangeColor }}
+          {...{
+            group,
+            valueRange,
+            numberFormat,
+            anyNullValue,
+            onChangeColor,
+          }}
         />
       )}
       {group && (

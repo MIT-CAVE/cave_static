@@ -67,6 +67,7 @@ const NumericalSizeLegend = ({
   numberFormat,
   icon,
   group,
+  // anyNullValue, // TODO: Implement `fallback` UI
   onChangeSize,
 }) => {
   const minSz = useSizeSlider(onChangeSize)
@@ -188,7 +189,13 @@ const NumericalSizeLegend = ({
   )
 }
 
-const CategoricalSizeLegend = ({ type, sizeByProp, icon, onChangeSize }) => {
+const CategoricalSizeLegend = ({
+  type,
+  sizeByProp,
+  icon,
+  anyNullValue,
+  onChangeSize,
+}) => {
   const {
     showSizeSlider,
     sizeSliderProps,
@@ -203,7 +210,10 @@ const CategoricalSizeLegend = ({ type, sizeByProp, icon, onChangeSize }) => {
     return R.pipe(
       orderEntireDict, // Preserve order of options after state updates
       // Add fallback size for null values, if available
-      R.when(R.always(fallback?.size != null), R.assoc('null', fallback)),
+      R.when(
+        R.always(anyNullValue && fallback?.size != null),
+        R.assoc('null', fallback)
+      ),
       R.map(
         R.applySpec({
           name: R.prop('name'),
@@ -212,7 +222,7 @@ const CategoricalSizeLegend = ({ type, sizeByProp, icon, onChangeSize }) => {
         })
       )
     )(options)
-  }, [sizeByProp])
+  }, [anyNullValue, sizeByProp])
 
   const getCategoryLabel = useCallback(
     (option) => {
@@ -283,6 +293,7 @@ const SizeLegend = ({
   valueRange,
   sizeBy,
   featureTypeProps,
+  anyNullValue,
   icon,
   group,
   sizeByOptions,
@@ -332,11 +343,18 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}
-          {...{ icon, sizeByProp, onChangeSize }}
+          {...{ icon, sizeByProp, anyNullValue, onChangeSize }}
         />
       ) : (
         <NumericalSizeLegend
-          {...{ valueRange, numberFormat, icon, group, onChangeSize }}
+          {...{
+            valueRange,
+            numberFormat,
+            icon,
+            group,
+            anyNullValue,
+            onChangeSize,
+          }}
         />
       )}
       {group && (

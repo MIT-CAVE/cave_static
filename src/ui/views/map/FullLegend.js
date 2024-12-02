@@ -140,6 +140,7 @@ const LegendRowDetails = ({
     },
   ],
   featureTypeProps,
+  featureTypeValues,
   expanded,
   setExpanded,
   onToggleExpanded,
@@ -152,6 +153,7 @@ const LegendRowDetails = ({
     sizeRange,
     clusterRange,
     heightRange,
+    hasAnyNullValue,
     handleSelectGroupCalc,
     handleSelectProp,
     handleToggleGroup,
@@ -168,6 +170,7 @@ const LegendRowDetails = ({
     heightBy,
     shapePathEnd,
     featureTypeProps,
+    featureTypeValues,
     getRange,
   })
   const {
@@ -326,6 +329,7 @@ const LegendRowDetails = ({
                     sizeByOptions,
                     featureTypeProps,
                   }}
+                  hasAnyNullValue={hasAnyNullValue(sizeBy)}
                   groupCalcValue={groupCalcBySize}
                   onSelectProp={handleSelectProp}
                   onSelectGroupCalc={handleSelectGroupCalc}
@@ -349,6 +353,7 @@ const LegendRowDetails = ({
                     colorByOptions,
                     featureTypeProps,
                   }}
+                  hasAnyNullValue={hasAnyNullValue(colorBy)}
                   groupCalcValue={groupCalcByColor}
                   onSelectProp={handleSelectProp}
                   onSelectGroupCalc={handleSelectGroupCalc}
@@ -367,6 +372,7 @@ const LegendRowDetails = ({
                     heightByOptions,
                     featureTypeProps,
                   }}
+                  hasAnyNullValue={hasAnyNullValue(heightBy)}
                   icon={<FetchedIcon iconName={icon} />}
                   onSelectProp={handleSelectProp('heightBy')}
                 />
@@ -380,12 +386,16 @@ const LegendRowDetails = ({
 }
 
 const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
-  const featureTypeData = mapFeaturesBy(id, mapId)[0]
+  const mapFeatures = mapFeaturesBy(id, mapId)
+  const featureTypeValues = useMemo(
+    () => R.pluck('values')(mapFeatures),
+    [mapFeatures]
+  )
   return (
     <LegendRowDetails
-      name={featureTypeData.name ?? id}
-      featureTypeProps={featureTypeData.props}
-      {...{ id, mapId, ...props }}
+      name={mapFeatures[0].name ?? id}
+      featureTypeProps={mapFeatures[0].props}
+      {...{ id, mapId, featureTypeValues, ...props }}
     />
   )
 }
