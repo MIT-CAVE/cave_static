@@ -11,7 +11,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Fragment, memo, useMemo } from 'react'
-import { BiDetail as BiMessageSquareDetail } from 'react-icons/bi'
+import { BiDetail } from 'react-icons/bi'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
 import {
   MdFilterAlt,
@@ -366,7 +366,7 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
         <Grid2 size="auto">
           <LegendPopper
             {...{ mapId }}
-            IconComponent={BiMessageSquareDetail}
+            IconComponent={BiDetail}
             slotProps={{
               badge: {
                 showBadge: numActiveFilters > 0,

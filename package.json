@@ -1,6 +1,6 @@
 {
   "name": "cave_static",
-  "version": "3.0.0b7",
+  "version": "3.0.0b8",
   "scripts": {
     "build": "export $(cat .env | xargs) && craco build",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
@@ -17,8 +17,8 @@
     "@mui/x-data-grid": "^7.22.2",
     "@mui/x-date-pickers": "^7.22.2",
     "@reduxjs/toolkit": "^2.3.0",
-    "colord": "^2.9.3",
     "d3-array": "^3.2.4",
+    "d3-color": "^3.1.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.13",
     "earcut": "^3.0.0",
