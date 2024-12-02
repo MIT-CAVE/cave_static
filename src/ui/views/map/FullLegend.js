@@ -84,6 +84,7 @@ const styles = {
     overflow: 'auto',
     maxWidth: 'fit-content',
     borderWidth: 2,
+    pt: 2,
   },
   toggleButton: {
     p: 1,
@@ -484,7 +485,7 @@ const LegendGroup = ({
             key={id}
             legendGroupId={legendGroup.id}
             expanded={expanded[id] ?? true}
-            setExpanded={(value) => setExpanded(R.assoc(id, value)(expanded))}
+            setExpanded={(value) => setExpanded(R.assoc(id, value))}
             onToggleExpanded={handleToggleExpandedBy(id)}
             {...{ mapId, id, ...props }}
           />
@@ -522,9 +523,11 @@ const LegendGroups = ({ mapId, ...props }) => {
 const LegendSettings = ({
   expandAll,
   showLegendGroupNames,
+  showAdvancedControls,
   onChangeView,
   onExpandAll,
   onToggleLegendGroupName,
+  onToggleAdvancedControls,
 }) => (
   <Stack
     component={Paper}
@@ -561,6 +564,19 @@ const LegendSettings = ({
         label="Show legend group names"
         labelPlacement="end"
       />
+      <FormControlLabel
+        disabled
+        value="toggle-advanced-controls"
+        control={
+          <Switch
+            name="cave-toggle-advanced-controls"
+            checked={showAdvancedControls}
+            onChange={onToggleAdvancedControls}
+          />
+        }
+        label="Show advanced controls"
+        labelPlacement="end"
+      />
     </FormGroup>
     <Button variant="contained" color="warning" onClick={onChangeView}>
       Switch to Minimal View
@@ -570,6 +586,7 @@ const LegendSettings = ({
 
 const FullLegend = ({ mapId, onChangeView }) => {
   const [expandAll, handleExpandAll] = useToggle(true)
+  const [showAdvancedControls, handleToggleAdvancedControls] = useToggle(false)
   const { showLegendGroupNames, handleToggleLegendGroupNames } =
     useLegend(mapId)
   return (
@@ -586,9 +603,15 @@ const FullLegend = ({ mapId, onChangeView }) => {
         }}
       >
         <LegendSettings
-          {...{ expandAll, showLegendGroupNames, onChangeView }}
+          {...{
+            expandAll,
+            showLegendGroupNames,
+            showAdvancedControls,
+            onChangeView,
+          }}
           onExpandAll={handleExpandAll}
           onToggleLegendGroupName={handleToggleLegendGroupNames}
+          onToggleAdvancedControls={handleToggleAdvancedControls}
         />
       </LegendHeader>
       <LegendGroups
