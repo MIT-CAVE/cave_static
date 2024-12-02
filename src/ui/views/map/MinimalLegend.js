@@ -11,13 +11,13 @@ import {
   Typography,
 } from '@mui/material'
 import { Fragment, memo, useMemo } from 'react'
+import { BiDetail as BiMessageSquareDetail } from 'react-icons/bi'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
 import {
   MdFilterAlt,
   MdOutlineVisibility,
   MdOutlineVisibilityOff,
 } from 'react-icons/md'
-import { PiInfo } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import ColorLegend from './ColorLegend'
@@ -65,27 +65,21 @@ const styles = {
     p: 1,
     mx: 0,
     color: 'text.primary',
-    borderWidth: 2,
-    borderStyle: 'outset',
-    borderColor: 'grey.500',
+    border: '2px outset',
+    borderColor: 'grey.600',
     borderRadius: 1,
   },
   legendGroup: {
     alignItems: 'start',
-    px: 1,
-    py: 0.5,
-    borderWidth: 1,
-    borderColor: 'rgb(128, 128, 128)',
-    borderStyle: 'outset',
+    py: 0.75,
+    border: '1px outset rgb(128 128 128)',
   },
   details: {
     maxHeight: '100%',
     maxWidth: '100%',
     bgcolor: 'grey.800',
     p: 1,
-    borderWidth: 1,
-    borderStyle: 'outset',
-    borderColor: 'rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
     // borderColor: (theme) => theme.palette.primary.main,
   },
@@ -350,7 +344,7 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
       key={id}
       container
       spacing={1}
-      sx={{ alignItems: 'center', width: '100%' }}
+      sx={{ alignItems: 'center', width: '100%', px: 1 }}
     >
       {showSettings && (
         <Grid2 size="auto">
@@ -363,7 +357,7 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
         </Grid2>
       )}
       <Grid2 size="auto">
-        <FetchedIcon iconName={props.icon} />
+        <FetchedIcon size={16} iconName={props.icon} />
       </Grid2>
       <Grid2 size="grow" sx={{ textAlign: 'start' }}>
         <Typography variant="caption">{name}</Typography>
@@ -372,7 +366,7 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
         <Grid2 size="auto">
           <LegendPopper
             {...{ mapId }}
-            IconComponent={PiInfo}
+            IconComponent={BiMessageSquareDetail}
             slotProps={{
               badge: {
                 showBadge: numActiveFilters > 0,
@@ -458,36 +452,37 @@ const LegendGroup = ({
   return isAnyMapFeatureVisible ? (
     <StyledWrapper wrap={isLegendGroupNameVisible}>
       {isLegendGroupNameVisible && (
-        <Grid2 container spacing={1} sx={{ alignItems: 'center' }}>
-          {showSettings && (
-            <Grid2 size="auto">
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={onToggleLegendGroupName}
-              >
-                {showLegendGroupNames ? (
-                  <MdOutlineVisibility />
-                ) : (
-                  <MdOutlineVisibilityOff />
-                )}
-              </IconButton>
+        <>
+          <Grid2 container spacing={1} sx={{ alignItems: 'center', px: 1 }}>
+            {showSettings && (
+              <Grid2 size="auto">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={onToggleLegendGroupName}
+                >
+                  {showLegendGroupNames ? (
+                    <MdOutlineVisibility />
+                  ) : (
+                    <MdOutlineVisibilityOff />
+                  )}
+                </IconButton>
+              </Grid2>
+            )}
+            <Grid2 size="grow">
+              <Typography variant="subtitle1">{legendGroup.name}</Typography>
             </Grid2>
-          )}
-          <Grid2 size="grow">
-            <Typography variant="subtitle1">{legendGroup.name}</Typography>
           </Grid2>
-        </Grid2>
+          <Divider sx={{ width: '100%', mb: '2px !important' }} />
+        </>
       )}
-      {legendGroupData.map(({ id, value, ...props }, index) =>
+      {legendGroupData.map(({ id, value, ...props }) =>
         value || showSettings ? (
-          <Fragment key={id}>
-            {index > 0 && <Divider sx={{ opacity: 0.6, width: '100%' }} />}
-            <MapFeature
-              legendGroupId={legendGroup.id}
-              {...{ mapId, id, value, showSettings, ...props }}
-            />
-          </Fragment>
+          <MapFeature
+            key={id}
+            legendGroupId={legendGroup.id}
+            {...{ mapId, id, value, showSettings, ...props }}
+          />
         ) : null
       )}
     </StyledWrapper>
