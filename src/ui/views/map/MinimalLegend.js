@@ -307,7 +307,8 @@ const LegendRowDetails = ({
             onChangeSize={handleChangeSize}
           />
         )}
-        {heightBy != null && (
+        {/* FIXME: `heightBy` is temporarily hidden */}
+        {heightBy != null && false && (
           <HeightLegend
             valueRange={heightRange}
             {...{

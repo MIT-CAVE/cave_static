@@ -365,7 +365,8 @@ const LegendRowDetails = ({
                 />
               </Grid2>
             )}
-            {heightBy != null && (
+            {/* FIXME: `heightBy` is temporarily hidden */}
+            {heightBy != null && false && (
               <Grid2 size="grow">
                 <HeightLegend
                   valueRange={heightRange}
