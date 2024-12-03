@@ -162,6 +162,9 @@ const baseOptions = {
     textStyle: {
       color: '#ffffff',
     },
+    extraCssText:
+      'width:fit-content; height:fit-content; white-space:pre-line; overflow: hidden;',
+    confine: 'true',
   },
   textStyle: {
     // Not setting `fontFamily` to `'inherit'` here as
