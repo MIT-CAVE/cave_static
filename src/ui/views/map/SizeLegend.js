@@ -64,7 +64,6 @@ const styles = {
 }
 
 const NumericalSizeLegend = ({
-  sizeByProp,
   icon,
   group,
   valueRange,
@@ -134,19 +133,8 @@ const NumericalSizeLegend = ({
       const pathTail =
         index == null // Updating fallback size?
           ? ['fallback', 'size']
-          : // : ['sizeGradient', 'data', index, 'size']
-            ['sizeGradient', 'data']
-
-      const changedValue =
-        index == null
-          ? // Only dispatch the change for the modified value
-            `${value[activeThumb]}px`
-          : // Take the long route since `pamda.assocPath` doesn't support array indices yet
-            R.pipe(
-              R.path(pathTail),
-              R.set(R.lensPath([index, 'size']), `${value[activeThumb]}px`)
-            )(sizeByProp)
-      thumbChangeComittedTrigger(event, changedValue, pathTail)
+          : ['sizeGradient', 'data', index, 'size']
+      thumbChangeComittedTrigger(event, value, pathTail)
     },
     [
       leftSz.showSizeSlider,
@@ -156,7 +144,6 @@ const NumericalSizeLegend = ({
       rightSz.showSizeSlider,
       rightSz.handleChangeComitted,
       rightSz.sizeSliderProps.key,
-      sizeByProp,
     ]
   )
 
@@ -404,7 +391,6 @@ const SizeLegend = ({
         <>
           <NumericalSizeLegend
             {...{
-              sizeByProp,
               valueRange,
               numberFormat,
               icon,

@@ -63,7 +63,12 @@ import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 
 import { FetchedIcon, NumberInput, Select } from '../../compound'
 
-import { forceArray, includesPath, NumberFormat } from '../../../utils'
+import {
+  forceArray,
+  getColorString,
+  includesPath,
+  NumberFormat,
+} from '../../../utils'
 
 const styles = {
   root: {
@@ -199,7 +204,8 @@ export const useLegendDetails = ({
 
   const handleChangeColor = useCallback(
     (pathTail) => (value) => {
-      handleChangePropAttr([colorBy, ...forceArray(pathTail)])(value)
+      const newColor = getColorString(value)
+      handleChangePropAttr([colorBy, ...forceArray(pathTail)])(newColor)
     },
     [colorBy, handleChangePropAttr]
   )

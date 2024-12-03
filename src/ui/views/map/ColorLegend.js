@@ -27,12 +27,7 @@ import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
 import { NumberInput, OverflowText, Select } from '../../compound'
 
-import {
-  getColorString,
-  getContrastText,
-  orderEntireDict,
-  parseGradient,
-} from '../../../utils'
+import { getContrastText, orderEntireDict, parseGradient } from '../../../utils'
 
 const styles = {
   legendSection: {
@@ -92,13 +87,12 @@ const WithEditColorBadge = ({ showBadge, ...props }) => (
 )
 
 const NumericalColorLegend = ({
-  colorByProp,
   group,
   valueRange,
   numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
   onChangeColor,
-  onChangeValue,
+  onChangeValueByIndex,
 }) => {
   const [showColorPickers, handleToggleColorPickers] = useToggle()
   const cp = useColorPicker(onChangeColor)
@@ -160,36 +154,15 @@ const NumericalColorLegend = ({
     return styles.getGradient(gradientColors.join(', '))
   }, [colors, valueRange, values])
 
-  const handleChangeValue = useCallback(
-    (index) => (value) => {
-      // Take the long route since `pamda.assocPath` doesn't support array indices yet
-      const changedValue = R.pipe(
-        R.path(['colorGradient', 'data']),
-        R.set(R.lensPath([index, 'value']), value)
-      )(colorByProp)
-      onChangeValue(changedValue)
-    },
-    [colorByProp, onChangeValue]
-  )
-
   const handleChangeColorByIndex = useCallback(
     (index) => (value, colorOutputs) => {
       const pathTail =
         index == null // Updating fallback color?
           ? ['fallback', 'color']
-          : // : ['colorGradient', 'data', index, 'color']
-            ['colorGradient', 'data']
-      // Take the long route since `pamda.assocPath` doesn't support array indices yet
-      const changedValue =
-        index == null
-          ? getColorString(value)
-          : R.pipe(
-              R.path(pathTail),
-              R.set(R.lensPath([index, 'color']), getColorString(value))
-            )(colorByProp)
-      cp.handleChange(changedValue, colorOutputs, pathTail)
+          : ['colorGradient', 'data', index, 'color']
+      cp.handleChange(value, colorOutputs, pathTail)
     },
-    [colorByProp, cp]
+    [cp]
   )
 
   const handleClose = useCallback(
@@ -273,7 +246,7 @@ const NumericalColorLegend = ({
                   min={valueRange.min}
                   max={valueRange.max}
                   {...{ value, numberFormat }}
-                  onClickAway={handleChangeValue(index)}
+                  onClickAway={onChangeValueByIndex(index)}
                 />
               </Stack>
             ))}
@@ -445,12 +418,19 @@ const ColorLegend = ({
             {...{
               group,
               valueRange,
-              colorByProp,
               numberFormat,
               anyNullValue,
               onChangeColor,
             }}
-            onChangeValue={onChangePropAttr([colorBy, 'colorGradient', 'data'])}
+            onChangeValueByIndex={(index) =>
+              onChangePropAttr([
+                colorBy,
+                'colorGradient',
+                'data',
+                index,
+                'value',
+              ])
+            }
           />
           <ScaleSelector
             scale={valueRange.colorGradient.scale}

@@ -9,7 +9,7 @@ export const useColorPicker = (onChangeColor) => {
   const handleChange = useCallback(
     (value, colorOutputs, pathTail = colorPickerProps.key) => {
       setColorPickerProps(R.assoc('value', value))
-      if (!Array.isArray(value) && !matchIsValidColor(value)) return
+      if (!matchIsValidColor(value)) return
       onChangeColor(pathTail)(value)
     },
     [colorPickerProps, onChangeColor]
