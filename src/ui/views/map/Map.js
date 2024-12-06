@@ -121,10 +121,11 @@ const Map = ({ mapId }) => {
     if (mapRef.current && mapRef.current.isStyleLoaded()) {
       const map = mapRef.current.getMap()
       map.setFog(
-        R.pathOr(getDefaultFog(), [
-          mapStyle || getDefaultStyleId(isMapboxTokenProvided),
-          'fog',
-        ])(mapStyleOptions)
+        R.pathOr(
+          getDefaultFog(),
+          [mapStyle || getDefaultStyleId(isMapboxTokenProvided), 'fog'],
+          mapStyleOptions
+        )
       )
       fogTimeout.current = null
     } else {
@@ -137,7 +138,7 @@ const Map = ({ mapId }) => {
       if (mapRef.current && !mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
-    })(iconData)
+    }, iconData)
   }, [iconData])
 
   useEffect(() => {
@@ -315,13 +316,12 @@ const Map = ({ mapId }) => {
           mapStyle={mapStyleSpec}
           mapboxAccessToken={isMapboxTokenProvided && mapboxToken}
           projection={mapProjection}
-          fog={R.pathOr(getDefaultFog(), [
-            mapStyle || getDefaultStyleId(isMapboxTokenProvided),
-            'fog',
-          ])(mapStyleOptions)}
           onClick={onClick}
           onMouseMove={onMouseMove}
-          onStyleData={loadIconsToStyle}
+          onStyleData={() => {
+            loadIconsToStyle()
+            loadFog()
+          }}
           ref={mapRef}
           onMouseOver={onMouseOver}
           interactiveLayerIds={R.values(layerId)}
