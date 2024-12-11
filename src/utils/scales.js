@@ -59,7 +59,11 @@ export const getScaledValueAlt = R.curry(
               : () => {
                   throw new Error(`Invalid scale "${scale}"`)
                 }
-    const scaleFunc = scaleBuilder.domain(domain).range(range).unknown(fallback)
+    const scaleFunc = scaleBuilder
+      .domain(domain)
+      .range(range)
+      .unknown(fallback)
+      ?.clamp(true) // Clamp whenever the scaling function supports it
     return scaleFunc(value) // Return the scaled value or the fallback
   }
 )
