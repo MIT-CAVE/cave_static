@@ -18,6 +18,8 @@ import {
   chartVariant,
   chartAggrFunc,
   draggableId,
+  paneId,
+  legendViews,
 } from '../../utils/enums'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
@@ -28,7 +30,6 @@ import {
   getTimeValue,
   renameKeys,
   sortByOrderNameId,
-  toListWithKey,
   forcePath,
   customSortByX,
   withIndex,
@@ -78,7 +79,7 @@ export const selectCurrentSession = createSelector(selectSessions, (data) =>
 )
 export const selectTeams = createSelector(
   selectSessionsData,
-  R.mapObjIndexed((value) => R.dissoc('sessions', value))
+  R.map(R.dissoc('sessions'))
 )
 export const selectSortedTeams = createSelector(
   selectTeams,
@@ -90,7 +91,7 @@ export const selectSortedTeams = createSelector(
 )
 export const selectSessionsByTeam = createSelector(
   selectSessionsData,
-  R.mapObjIndexed((value) => R.prop('sessions', value))
+  R.pluck('sessions')
 )
 
 // Tokens
@@ -154,9 +155,32 @@ export const selectVersionsData = createSelector(selectData, (data) =>
 export const selectMapFeatures = createSelector(selectData, (data) =>
   R.propOr({}, 'mapFeatures')(data)
 )
-export const selectAppBar = createSelector(selectData, (data) =>
-  R.propOr({}, 'appBar')(data)
-)
+export const selectAppBar = createSelector(selectData, (data) => {
+  let appBar = R.propOr({}, 'appBar', data)
+
+  // add persistent session and settings
+  const systemAppBar = {
+    [paneId.SESSION]: {
+      bar: 'upperLeft',
+      icon: 'md/MdApi',
+      type: paneId.SESSION,
+    },
+    [paneId.APP_SETTINGS]: {
+      bar: 'upperLeft',
+      icon: 'md/MdOutlineSettings',
+      type: paneId.APP_SETTINGS,
+    },
+  }
+  const order = R.pathOr([], ['order', 'data'], appBar)
+  const updatedOrder = [paneId.SESSION, paneId.APP_SETTINGS, ...order]
+  appBar = R.assocPath(['order', 'data'], updatedOrder, appBar)
+  appBar = R.assocPath(
+    ['data'],
+    R.mergeDeepRight(R.propOr({}, 'data', appBar), systemAppBar),
+    appBar
+  )
+  return appBar
+})
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'groupedOutputs')(data)
 )
@@ -211,7 +235,25 @@ export const selectGeoTypes = createSelector(
 // Data -> data
 export const selectPanesData = createSelector(
   [selectPanes, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+  (data, time) => {
+    const panesData = getTimeValue(time, R.propOr({}, 'data', data))
+
+    // add persistent session and settings
+    const systemPanesData = {
+      [paneId.SESSION]: {
+        type: paneId.SESSION,
+        variant: paneId.SESSION,
+        name: `${paneId.SESSION.charAt(0).toUpperCase()}${paneId.SESSION.slice(1)}`,
+      },
+      [paneId.APP_SETTINGS]: {
+        type: paneId.APP_SETTINGS,
+        variant: paneId.APP_SETTINGS,
+        name: `${paneId.APP_SETTINGS.charAt(0).toUpperCase()}${paneId.APP_SETTINGS.slice(1)}`,
+      },
+    }
+
+    return R.mergeRight(panesData, systemPanesData)
+  }
 )
 export const selectModalsData = createSelector(
   selectModals,
@@ -451,14 +493,14 @@ export const selectCharts = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
     R.pathOr(
-      R.pathOr([], [currentPage, 'charts'], dashboardData),
+      R.pathOr({}, [currentPage, 'charts'], dashboardData),
       [currentPage, 'charts'],
       localDashboardData
     )
 )
 export const selectIsMaximized = createSelector(
   selectCharts,
-  R.any(R.propOr(false, 'maximized'))
+  R.pipe(R.values, R.any(R.propOr(false, 'maximized')))
 )
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
@@ -683,6 +725,25 @@ export const selectLegendDataFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
+
+export const selectLegendViewFunc = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+    R.pathOr(
+      R.pathOr(legendViews.MINIMAL, ['legendView', mapId])(currentMapDataByMap),
+      ['legendView', mapId]
+    )(currentLocalMapDataByMap)
+)
+
+export const selectShowLegendGroupNamesFunc = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+    R.pathOr(
+      R.pathOr(true, ['showLegendGroupNames', mapId])(currentMapDataByMap),
+      ['showLegendGroupNames', mapId]
+    )(currentLocalMapDataByMap)
+)
+
 export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) => R.propOr({}, 'mapControls')(dataObj)
@@ -711,7 +772,7 @@ export const selectMapModal = createSelector(
 export const selectMapLayers = createSelector(selectLocalMap, (data) =>
   R.propOr({}, 'mapLayers')(data)
 )
-export const selectMapLegendFunc = createSelector(
+const selectMapLegendFunc = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
@@ -726,6 +787,10 @@ export const selectMapLegendFunc = createSelector(
         R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
     },
   }
+)
+export const selectIsMapLegendOpenFunc = createSelector(
+  selectMapLegendFunc,
+  (mapLegendFunc) => (mapId) => R.propOr(true, 'isOpen')(mapLegendFunc(mapId))
 )
 // Local -> globalOutputs
 const selectLocalGlobalOutputs = createSelector(
@@ -1855,23 +1920,6 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
           R.groupBy(R.prop('type')),
           R.map(R.indexBy(R.prop('geoJsonValue')))
         )(dataFunc(mapId)),
-      MAX_MEMOIZED_CHARTS
-    )
-)
-
-export const selectGetLegendGroupId = createSelector(
-  selectLegendDataFunc,
-  (legendDataFunc) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.curry((layerKey, type) =>
-          R.pipe(
-            toListWithKey('id'),
-            R.find(R.hasPath([layerKey, type])),
-            R.prop('id')
-          )(legendDataFunc(mapId))
-        ),
       MAX_MEMOIZED_CHARTS
     )
 )

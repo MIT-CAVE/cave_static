@@ -8,7 +8,6 @@ import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
   selectSync,
-  selectPanesData,
   selectSessionLoading,
   selectIgnoreLoading,
   selectDataLoading,
@@ -99,7 +98,6 @@ const ButtonInTabs = ({ icon, color, disabled, onClick, sx = [] }) => (
 
 const getAppBarItem = ({
   obj,
-  color,
   key,
   pin,
   currentPage,
@@ -108,17 +106,18 @@ const getAppBarItem = ({
   loading,
   dispatch,
 }) => {
+  const color = R.prop('color', obj)
   const type = R.prop('type', obj)
   const icon = R.prop('icon', obj)
   const variant = R.prop('variant', obj)
   const path = ['pages', 'currentPage']
 
-  return type === paneId.SESSION ? (
+  return key === paneId.SESSION || key === paneId.APP_SETTINGS ? (
     <Tab
       sx={styles.tab}
       key={key}
       value={key}
-      disabled={loading}
+      disabled={key === paneId.SESSION ? false : loading}
       icon={
         <FetchedIcon
           className={nonSx.navIcon}
@@ -127,27 +126,7 @@ const getAppBarItem = ({
           iconName={icon}
         />
       }
-      onClick={() => {
-        changePane(key)
-      }}
-    />
-  ) : type === paneId.APP_SETTINGS ? (
-    <Tab
-      sx={styles.tab}
-      key={key}
-      value={key}
-      disabled={loading}
-      icon={
-        <FetchedIcon
-          className={nonSx.navIcon}
-          size={25}
-          color={color}
-          iconName={icon}
-        />
-      }
-      onClick={() => {
-        changePane(key)
-      }}
+      onClick={() => changePane(key)}
     />
   ) : type === 'pane' ? (
     variant === 'modal' ? (
@@ -184,9 +163,7 @@ const getAppBarItem = ({
             iconName={icon}
           />
         }
-        onClick={() => {
-          changePane(key)
-        }}
+        onClick={() => changePane(key)}
       />
     )
   ) : type === 'button' ? (
@@ -239,7 +216,6 @@ const getAppBarItem = ({
 const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
   const currentPage = useSelector(selectCurrentPage)
-  const panesData = useSelector(selectPanesData)
   const sessionLoading = useSelector(selectSessionLoading)
   const dataLoading = useSelector(selectDataLoading)
   const ignoreLoading = useSelector(selectIgnoreLoading)
@@ -247,6 +223,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
 
   const waitTimeout = useRef(0)
   const [loading, setLoading] = useState(false)
+
   useEffect(() => {
     // show for ignoreloading
     if (ignoreLoading) setLoading(true)
@@ -295,22 +272,18 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   )
 
   const mapAppBarItems = R.pipe(
-    R.mapObjIndexed((obj, key) => {
-      const color = R.prop('color', obj)
-      const variant = R.pathOr(false, [key, 'variant'], panesData)
-      const disabled = R.equals(variant, paneId.SESSION) ? false : loading
-      return getAppBarItem({
-        color,
+    R.mapObjIndexed((obj, key) =>
+      getAppBarItem({
         key,
         pin,
         obj,
         currentPage,
         changePane,
         sync,
-        loading: disabled,
+        loading,
         dispatch,
       })
-    }),
+    ),
     R.values
   )
   const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
