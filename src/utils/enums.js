@@ -122,6 +122,7 @@ export const statFuncs = {
 
 export const scaleId = {
   LINEAR: 'linear',
+  STEP: 'step',
   LOG: 'log',
   POW: 'pow',
 }

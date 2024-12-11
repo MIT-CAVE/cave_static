@@ -16,11 +16,6 @@ import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
-import {
-  PiArrowBendRightUp,
-  PiArrowBendUpRight,
-  PiArrowUpRight,
-} from 'react-icons/pi'
 import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
@@ -54,9 +49,9 @@ import {
   useToggle,
 } from '../../../utils/hooks'
 import {
-  getScaleLabel,
   getScaleParamDefaults,
   getScaleParamLabel,
+  scaleIndexedOptions,
 } from '../../../utils/scales'
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
@@ -361,15 +356,7 @@ export const ScaleSelector = ({
       )(scaleId),
     [minDomainValue]
   )
-
   const scaleParamId = scaleParamsById[scale]
-  const IconClass =
-    scale === scaleId.LINEAR
-      ? PiArrowUpRight
-      : scale === scaleId.LOG
-        ? PiArrowBendUpRight
-        : PiArrowBendRightUp
-
   return (
     <Stack direction="row" spacing={1}>
       <FormControl fullWidth>
@@ -378,18 +365,21 @@ export const ScaleSelector = ({
           id="scale-fn"
           labelId="scale-fn-label"
           label="Gradient Scale Func."
-          getLabel={getScaleLabel}
           optionsList={validScales}
           startAdornment={
             <InputAdornment position="start">
-              <IconClass size={24} />
+              <FetchedIcon
+                iconName={scaleIndexedOptions[scale]?.iconName}
+                size={24}
+              />
             </InputAdornment>
           }
           value={scale}
+          getLabel={(option) => scaleIndexedOptions[option]?.label}
           {...{ onSelect }}
         />
       </FormControl>
-      {scale !== scaleId.LINEAR && (
+      {scale !== scaleId.LINEAR && scale !== scaleId.STEP && (
         <NumberInput
           sx={{ width: 'auto' }}
           label={getScaleParamLabel(scaleParamId)}

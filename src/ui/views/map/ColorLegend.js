@@ -20,7 +20,7 @@ import {
 } from './Legend'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
-import { propId } from '../../../utils/enums'
+import { propId, scaleId } from '../../../utils/enums'
 import { useToggle } from '../../../utils/hooks'
 import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
@@ -115,22 +115,33 @@ const NumericalColorLegend = ({
     [group, labels, numberFormat, values]
   )
 
+  const isStepScale = useMemo(
+    () => valueRange.colorGradient?.scale === scaleId.STEP,
+    [valueRange.colorGradient?.scale]
+  )
+
   const getColorLabel = useCallback(
     (index) =>
-      index < 1
-        ? 'Min'
-        : index < values.length - 1
-          ? `"${getLabel(index)}"`
-          : 'Max',
-    [getLabel, values.length]
+      index > 0 && index < values.length - 1 // Within the bounds
+        ? isStepScale
+          ? `[${values[index - 1]}, ${values[index]}) "${getLabel(index)}"`
+          : `"${getLabel(index)}"`
+        : isStepScale
+          ? `${index < 1 ? `(-\u221E, ${values[0]})` : `[${values[index]}, \u221E)`}`
+          : `${index < 1 ? 'Min' : 'Max'}`,
+    [getLabel, isStepScale, values]
   )
 
   const getValueLabel = useCallback(
     (index) =>
-      index > 0 && index < values.length - 1
-        ? `Value \u279D "${getLabel(index)}"`
-        : `${index < 1 ? 'Min' : 'Max'} (Read-Only)`,
-    [getLabel, values.length]
+      index > 0 && index < values.length - 1 // Within the bounds
+        ? isStepScale
+          ? `Threshold \u279D [${values[index - 1]}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
+        : isStepScale
+          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${values[0]})` : `[${values[index]}, \u221E)`}`
+          : `Value (Read-Only) \u279D ${index < 1 ? 'Min' : 'Max'}`,
+    [getLabel, isStepScale, labels, values]
   )
 
   const gradientStyle = useMemo(() => {
@@ -140,19 +151,28 @@ const NumericalColorLegend = ({
       max: maxValue,
     } = valueRange
 
-    const gradientColors = R.zipWith((color, value) => {
-      const scaledValue = getScaledValueAlt(
+    const scaledValues = R.map((value) =>
+      getScaledValueAlt(
         [minValue, maxValue],
         [0, 100],
         value,
-        scale,
+        isStepScale ? scaleId.LINEAR : scale,
         scaleParams
       )
-      return `${color} ${scaledValue}%`
-    }, colors)(values)
+    )(values)
+
+    const gradientColors = R.addIndex(R.zipWith)(
+      (color, scaledValue, idx) =>
+        !isStepScale
+          ? `${color} ${scaledValue}%`
+          : idx > 0
+            ? `${color} ${scaledValues[idx - 1]}% ${scaledValue}%`
+            : `${color} 1%`,
+      colors
+    )(scaledValues)
 
     return styles.getGradient(gradientColors.join(', '))
-  }, [colors, valueRange, values])
+  }, [colors, isStepScale, valueRange, values])
 
   const handleChangeColorByIndex = useCallback(
     (index) => (value, colorOutputs) => {
