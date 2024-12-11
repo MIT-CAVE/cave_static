@@ -242,8 +242,10 @@ export const useLegend = (mapId) => {
   return { showLegendGroupNames, handleToggleLegendGroupNames }
 }
 
-const getNumLabel = (value, numberFormat, gradientKey) =>
-  NumberFormat.format(value, {
+export const getNumLabel = (value, numberFormatRaw, gradientKey) => {
+  // eslint-disable-next-line no-unused-vars
+  const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
+  return NumberFormat.format(value, {
     ...numberFormat,
     // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
     ...{
@@ -254,21 +256,19 @@ const getNumLabel = (value, numberFormat, gradientKey) =>
         numberFormat.notationDisplay,
     },
   })
+}
 
 export const getGradientLabel = (
   labels,
   values,
   index,
-  numberFormatRaw,
+  numberFormat,
   group,
   gradientKey
-) => {
-  // eslint-disable-next-line no-unused-vars
-  const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
-  return group || labels[index] == null
+) =>
+  group || labels[index] == null
     ? getNumLabel(values[index], numberFormat, gradientKey)
     : labels[index]
-}
 
 export const getMinLabel = (labels, values, numberFormat, group, gradientKey) =>
   getGradientLabel(labels, values, 0, numberFormat, group, gradientKey)

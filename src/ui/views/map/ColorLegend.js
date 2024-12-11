@@ -13,6 +13,7 @@ import { useSelector } from 'react-redux'
 
 import {
   getGradientLabel,
+  getNumLabel,
   GroupCalcSelector,
   RippleBox,
   ScaleSelector,
@@ -120,28 +121,33 @@ const NumericalColorLegend = ({
     [valueRange.colorGradient?.scale]
   )
 
+  const getFormattedValue = useCallback(
+    (index) => getNumLabel(values[index], numberFormat, 'colorGradient'),
+    [numberFormat, values]
+  )
+
   const getColorLabel = useCallback(
     (index) =>
       index > 0 && index < values.length - 1 // Within the bounds
         ? isStepScale
-          ? `[${values[index - 1]}, ${values[index]}) "${getLabel(index)}"`
+          ? `[${getFormattedValue(index - 1)}, ${getFormattedValue(index)}) "${getLabel(index)}"`
           : `"${getLabel(index)}"`
         : isStepScale
-          ? `${index < 1 ? `(-\u221E, ${values[0]})` : `[${values[index]}, \u221E)`}`
+          ? `${index < 1 ? `(-\u221E, ${getFormattedValue(index)})` : `[${getFormattedValue(index)}, \u221E)`}`
           : `${index < 1 ? 'Min' : 'Max'}`,
-    [getLabel, isStepScale, values]
+    [getFormattedValue, getLabel, isStepScale, values]
   )
 
   const getValueLabel = useCallback(
     (index) =>
       index > 0 && index < values.length - 1 // Within the bounds
         ? isStepScale
-          ? `Threshold \u279D [${values[index - 1]}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          ? `Threshold \u279D [${getFormattedValue(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
           : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
         : isStepScale
-          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${values[0]})` : `[${values[index]}, \u221E)`}`
+          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${getFormattedValue(index)})` : `[${getFormattedValue(index)}, \u221E)`}`
           : `Value (Read-Only) \u279D ${index < 1 ? 'Min' : 'Max'}`,
-    [getLabel, isStepScale, labels, values]
+    [getFormattedValue, getLabel, isStepScale, labels, values.length]
   )
 
   const gradientStyle = useMemo(() => {
