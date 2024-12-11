@@ -129,11 +129,9 @@ export const scaleId = {
 
 export const scaleParamId = {
   EXPONENT: 'exponent',
-  BASE: 'base',
 }
 
 export const scaleParamsById = {
-  [scaleId.LOG]: scaleParamId.BASE,
   [scaleId.POW]: scaleParamId.EXPONENT,
 }
 

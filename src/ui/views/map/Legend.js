@@ -379,12 +379,10 @@ export const ScaleSelector = ({
           {...{ onSelect }}
         />
       </FormControl>
-      {scale !== scaleId.LINEAR && scale !== scaleId.STEP && (
+      {scale === scaleId.POW && (
         <NumberInput
           sx={{ width: 'auto' }}
           label={getScaleParamLabel(scaleParamId)}
-          min={scale === scaleId.LOG ? 0.0001 : -Infinity}
-          max={Infinity}
           numberFormat={{}}
           value={R.propOr(
             getScaleParamDefaults(scaleParamId),
