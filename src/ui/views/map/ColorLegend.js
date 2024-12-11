@@ -133,7 +133,7 @@ const NumericalColorLegend = ({
           ? `[${getFormattedValue(index - 1)}, ${getFormattedValue(index)}) "${getLabel(index)}"`
           : `"${getLabel(index)}"`
         : isStepScale
-          ? `${index < 1 ? `(-\u221E, ${getFormattedValue(index)})` : `[${getFormattedValue(index)}, \u221E)`}`
+          ? `${index < 1 ? `(-\u221E, ${getFormattedValue(index)})` : `[${getFormattedValue(index - 1)}, \u221E)`}`
           : `${index < 1 ? 'Min' : 'Max'}`,
     [getFormattedValue, getLabel, isStepScale, values]
   )
@@ -226,16 +226,15 @@ const NumericalColorLegend = ({
 
       {showColorPickers &&
         (values.length < 3 ? (
-          // BUG: For some reason the `sx` prop doesn't work here
           <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
             <ColorPicker
-              colorLabel="Min"
+              colorLabel={getColorLabel(0)}
               value={colors[0]}
               onChange={handleChangeColorByIndex(0)}
               onClose={handleClose}
             />
             <ColorPicker
-              colorLabel="Max"
+              colorLabel={getColorLabel(1)}
               value={colors[1]}
               onChange={handleChangeColorByIndex(1)}
               onClose={handleClose}
