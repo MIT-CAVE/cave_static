@@ -22,7 +22,6 @@ import {
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
-import { useToggle } from '../../../utils/hooks'
 import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
@@ -36,10 +35,10 @@ const styles = {
     width: '100%',
     p: 1,
     pt: 2,
-    border: '1px outset rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
   },
-  categoryRoot: {
+  marqueeRoot: {
     height: '100%',
     width: '100%',
     pt: 0.75,
@@ -57,7 +56,7 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     px: 1,
-    border: '1px solid rgb(128, 128, 128)',
+    border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
   },
   rangeRoot: {
@@ -93,10 +92,14 @@ const NumericalColorLegend = ({
   numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
   onChangeColor,
-  onChangeValueByIndex,
+  onChangeValueAt,
 }) => {
-  const [showColorPickers, handleToggleColorPickers] = useToggle()
-  const cp = useColorPicker(onChangeColor)
+  const {
+    showColorPicker: showColorPickers,
+    handleOpen,
+    handleChange,
+    handleClose,
+  } = useColorPicker(onChangeColor)
 
   const { colors, values, labels } = useMemo(
     () => parseGradient('colorGradient', 'color')(valueRange),
@@ -121,7 +124,7 @@ const NumericalColorLegend = ({
     [valueRange.colorGradient?.scale]
   )
 
-  const getFormattedValue = useCallback(
+  const getFormattedValueAt = useCallback(
     (index) => getNumLabel(values[index], numberFormat, 'colorGradient'),
     [numberFormat, values]
   )
@@ -130,24 +133,24 @@ const NumericalColorLegend = ({
     (index) =>
       index > 0 && index < values.length - 1 // Within the bounds
         ? isStepScale
-          ? `[${getFormattedValue(index - 1)}, ${getFormattedValue(index)}) "${getLabel(index)}"`
+          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)}) "${getLabel(index)}"`
           : `"${getLabel(index)}"`
         : isStepScale
-          ? `${index < 1 ? `(-\u221E, ${getFormattedValue(index)})` : `[${getFormattedValue(index - 1)}, \u221E)`}`
+          ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
           : `${index < 1 ? 'Min' : 'Max'}`,
-    [getFormattedValue, getLabel, isStepScale, values]
+    [getFormattedValueAt, getLabel, isStepScale, values]
   )
 
   const getValueLabel = useCallback(
     (index) =>
       index > 0 && index < values.length - 1 // Within the bounds
         ? isStepScale
-          ? `Threshold \u279D [${getFormattedValue(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
           : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
         : isStepScale
-          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${getFormattedValue(index)})` : `[${getFormattedValue(index)}, \u221E)`}`
+          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
           : `Value (Read-Only) \u279D ${index < 1 ? 'Min' : 'Max'}`,
-    [getFormattedValue, getLabel, isStepScale, labels, values.length]
+    [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
   )
 
   const gradientStyle = useMemo(() => {
@@ -180,22 +183,15 @@ const NumericalColorLegend = ({
     return styles.getGradient(gradientColors.join(', '))
   }, [colors, isStepScale, valueRange, values])
 
-  const handleChangeColorByIndex = useCallback(
+  const handleChangeColorAt = useCallback(
     (index) => (value, colorOutputs) => {
       const pathTail =
         index == null // Updating fallback color?
           ? ['fallback', 'color']
           : ['colorGradient', 'data', index, 'color']
-      cp.handleChange(value, colorOutputs, pathTail)
+      handleChange(value, colorOutputs, pathTail)
     },
-    [cp]
-  )
-
-  const handleClose = useCallback(
-    (event) => {
-      cp.handleClose(event)
-    },
-    [cp]
+    [handleChange]
   )
 
   return (
@@ -212,7 +208,7 @@ const NumericalColorLegend = ({
             <RippleBox
               selected={showColorPickers}
               sx={gradientStyle}
-              onClick={handleToggleColorPickers}
+              onClick={handleOpen(null, null)}
             />
           </WithEditColorBadge>
         </Grid2>
@@ -230,13 +226,13 @@ const NumericalColorLegend = ({
             <ColorPicker
               colorLabel={getColorLabel(0)}
               value={colors[0]}
-              onChange={handleChangeColorByIndex(0)}
+              onChange={handleChangeColorAt(0)}
               onClose={handleClose}
             />
             <ColorPicker
               colorLabel={getColorLabel(1)}
               value={colors[1]}
-              onChange={handleChangeColorByIndex(1)}
+              onChange={handleChangeColorAt(1)}
               onClose={handleClose}
             />
           </Stack>
@@ -247,7 +243,7 @@ const NumericalColorLegend = ({
                 <ColorPicker
                   colorLabel={getColorLabel(index)}
                   value={colors[index]}
-                  onChange={handleChangeColorByIndex(index)}
+                  onChange={handleChangeColorAt(index)}
                   onClose={handleClose}
                 />
                 <NumberInput
@@ -271,7 +267,7 @@ const NumericalColorLegend = ({
                   min={valueRange.min}
                   max={valueRange.max}
                   {...{ value, numberFormat }}
-                  onClickAway={onChangeValueByIndex(index)}
+                  onClickAway={onChangeValueAt(index)}
                 />
               </Stack>
             ))}
@@ -339,7 +335,7 @@ const CategoricalColorLegend = ({
   return (
     <>
       <OverflowText
-        sx={styles.categoryRoot}
+        sx={styles.marqueeRoot}
         marqueeProps={{ play: !showColorPicker }}
       >
         <Stack
@@ -447,7 +443,7 @@ const ColorLegend = ({
               anyNullValue,
               onChangeColor,
             }}
-            onChangeValueByIndex={(index) =>
+            onChangeValueAt={(index) =>
               onChangePropAttr([
                 colorBy,
                 'colorGradient',

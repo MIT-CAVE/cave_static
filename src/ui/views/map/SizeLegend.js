@@ -8,12 +8,12 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo } from 'react'
+import { PiDotsThree } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import {
-  getMaxLabel,
-  getMinLabel,
+  getGradientLabel,
   GroupCalcSelector,
   PropIcon,
   ScaleSelector,
@@ -34,11 +34,11 @@ const styles = {
     width: '100%',
     p: 1,
     pt: 2,
-    border: '1px outset rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     // justifyContent: 'space-between',
     boxSizing: 'border-box',
   },
-  categoryRoot: {
+  marqueRoot: {
     height: '100%',
     width: '100%',
     pt: 0.75,
@@ -49,7 +49,7 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     px: 1,
-    border: '1px solid rgb(128, 128, 128)',
+    border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
   },
   rangeRoot: {
@@ -71,159 +71,88 @@ const NumericalSizeLegend = ({
   // anyNullValue, // TODO: Implement `fallback` UI
   onChangeSize,
 }) => {
-  const leftSz = useSizeSlider(onChangeSize)
-  const rightSz = useSizeSlider(onChangeSize)
-  const [activeThumb, setActiveThumb] = useState()
-
-  const currentIndex = 0
+  const {
+    showSizeSlider,
+    sizeSliderProps,
+    handleOpen,
+    handleClose,
+    handleChange,
+    handleChangeComitted: handleChangeComittedRaw,
+  } = useSizeSlider(onChangeSize)
 
   const { sizes, values, labels } = useMemo(
     () => parseGradient('sizeGradient', 'size')(valueRange),
     [valueRange]
   )
 
-  const minLabel = useMemo(
-    () => getMinLabel(labels, values, numberFormat, group, 'sizeGradient'),
+  const getLabel = useCallback(
+    (index) =>
+      getGradientLabel(
+        labels,
+        values,
+        index,
+        numberFormat,
+        group,
+        'colorGradient'
+      ),
     [group, labels, numberFormat, values]
   )
 
-  const maxLabel = useMemo(
-    () => getMaxLabel(labels, values, numberFormat, group, 'sizeGradient'),
-    [group, labels, numberFormat, values]
-  )
-
-  const handleChange = useCallback(
-    (event, value, thumb) => {
-      setActiveThumb(thumb)
-      // Only dispatch the change for the modified value
-      const thumbChangeTrigger =
-        leftSz.showSizeSlider && thumb === 0
-          ? leftSz.handleChange
-          : rightSz.showSizeSlider && (!leftSz.showSizeSlider || thumb === 1)
-            ? rightSz.handleChange
-            : () => {
-                console.error('This should never happen...')
-              }
-      thumbChangeTrigger(event, [value[thumb]])
-    },
-    [
-      leftSz.handleChange,
-      leftSz.showSizeSlider,
-      rightSz.handleChange,
-      rightSz.showSizeSlider,
-    ]
-  )
-
-  const handleChangeComitted = useCallback(
-    (event, value) => {
-      let index, thumbChangeComittedTrigger
-      if (leftSz.showSizeSlider && activeThumb === 0) {
-        thumbChangeComittedTrigger = leftSz.handleChangeComitted
-        index = leftSz.sizeSliderProps.key
-      } else if (
-        rightSz.showSizeSlider &&
-        (!leftSz.showSizeSlider || activeThumb === 1)
-      ) {
-        thumbChangeComittedTrigger = rightSz.handleChangeComitted
-        index = rightSz.sizeSliderProps.key
-      } else {
-        console.error('This should never happen...')
-      }
-
+  const handleChangeComittedAt = useCallback(
+    (index) => (event, value) => {
       const pathTail =
         index == null // Updating fallback size?
           ? ['fallback', 'size']
           : ['sizeGradient', 'data', index, 'size']
-      thumbChangeComittedTrigger(event, value, pathTail)
+      handleChangeComittedRaw(event, value, pathTail)
     },
-    [
-      leftSz.showSizeSlider,
-      leftSz.handleChangeComitted,
-      leftSz.sizeSliderProps.key,
-      activeThumb,
-      rightSz.showSizeSlider,
-      rightSz.handleChangeComitted,
-      rightSz.sizeSliderProps.key,
-    ]
+    [handleChangeComittedRaw]
   )
 
-  const handleClose = useCallback(
-    (event) => {
-      leftSz.handleClose(event)
-      rightSz.handleClose(event)
-    },
-    [rightSz, leftSz]
-  )
-
-  const showSizeSlider = leftSz.showSizeSlider || rightSz.showSizeSlider
   return (
     <>
-      <Grid2 container spacing={0.5} sx={styles.rangeRoot}>
-        <Grid2 size={3} sx={styles.rangeLabel}>
-          <Typography variant="caption">Min</Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={minLabel} />
-          </Typography>
-        </Grid2>
-
-        <Grid2
-          container
-          size="grow"
-          sx={{ alignItems: 'center', textAlign: 'center' }}
-          spacing={1}
+      <OverflowText
+        sx={styles.marqueRoot}
+        marqueeProps={{ play: !showSizeSlider }}
+      >
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={styles.rangeRoot}
+          divider={<PiDotsThree size={24} />}
         >
-          <Grid2 size={6}>
-            {icon && (
-              <WithEditBadge editing={leftSz.showSizeSlider}>
-                <PropIcon
-                  {...{ icon }}
-                  selected={leftSz.showSizeSlider}
-                  size={leftSz.sizeSliderProps.value ?? sizes[currentIndex]}
-                  onClick={leftSz.handleOpen(currentIndex, sizes[currentIndex])}
-                />
-              </WithEditBadge>
-            )}
-          </Grid2>
-          <Grid2 size={6}>
-            {icon && (
-              <WithEditBadge editing={rightSz.showSizeSlider}>
-                <PropIcon
-                  {...{ icon }}
-                  selected={rightSz.showSizeSlider}
-                  size={
-                    rightSz.sizeSliderProps.value ?? sizes[currentIndex + 1]
-                  }
-                  onClick={rightSz.handleOpen(
-                    currentIndex + 1,
-                    sizes[currentIndex + 1]
-                  )}
-                />
-              </WithEditBadge>
-            )}
-          </Grid2>
-        </Grid2>
-
-        <Grid2 size={3} sx={styles.rangeLabel}>
-          <Typography variant="caption">Max</Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={maxLabel} />
-          </Typography>
-        </Grid2>
-      </Grid2>
+          {sizes.map((value, index) => (
+            <Stack
+              key={index}
+              spacing={0.5}
+              sx={{ alignSelf: 'end', alignItems: 'center' }}
+            >
+              {icon && (
+                <WithEditBadge
+                  editing={showSizeSlider && sizeSliderProps.key === index}
+                >
+                  <PropIcon
+                    {...{ icon }}
+                    selected={sizeSliderProps.key === index}
+                    size={value}
+                    onClick={handleOpen(index, sizes[index])}
+                  />
+                </WithEditBadge>
+              )}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                <OverflowText text={getLabel(index)} />
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </OverflowText>
 
       {showSizeSlider && (
         <SizeSlider
-          value={[
-            ...(leftSz.sizeSliderProps.value != null
-              ? leftSz.sizeSliderProps.value
-              : []),
-            ...(rightSz.sizeSliderProps.value != null
-              ? rightSz.sizeSliderProps.value
-              : []),
-          ]}
+          value={sizeSliderProps.value}
           onClose={handleClose}
           onChange={handleChange}
-          onChangeCommitted={handleChangeComitted}
+          onChangeCommitted={handleChangeComittedAt(sizeSliderProps.key)}
         />
       )}
     </>
@@ -241,7 +170,7 @@ const CategoricalSizeLegend = ({
     showSizeSlider,
     sizeSliderProps,
     handleOpen,
-    // handleClose,
+    handleClose,
     handleChange,
     handleChangeComitted: handleChangeComittedRaw,
   } = useSizeSlider(onChangeSize)
@@ -290,7 +219,7 @@ const CategoricalSizeLegend = ({
   return (
     <>
       <OverflowText
-        sx={styles.categoryRoot}
+        sx={styles.marqueRoot}
         marqueeProps={{ play: !showSizeSlider }}
       >
         <Stack
@@ -321,7 +250,7 @@ const CategoricalSizeLegend = ({
         <SizeSlider
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
           value={sizeSliderProps.value}
-          // onClose={handleClose}
+          onClose={handleClose}
           onChange={handleChange}
           onChangeCommitted={handleChangeComitted}
         />
