@@ -28,7 +28,8 @@ export const useMenu = () => {
     setAnchorEl(event.currentTarget)
   }
 
-  const handleCloseMenu = () => {
+  const handleCloseMenu = (event) => {
+    if (event != null) event.stopPropagation()
     setAnchorEl(null)
   }
 

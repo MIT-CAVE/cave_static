@@ -1,4 +1,4 @@
-import { color } from 'd3-color'
+import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
@@ -7,9 +7,10 @@ export const useColorPicker = (onChangeColor) => {
   const [colorPickerProps, setColorPickerProps] = useState({})
 
   const handleChange = useCallback(
-    (value) => {
+    (value, colorOutputs, pathTail = colorPickerProps.key) => {
       setColorPickerProps(R.assoc('value', value))
-      onChangeColor(colorPickerProps.key)(value)
+      if (!matchIsValidColor(value)) return
+      onChangeColor(pathTail)(value)
     },
     [colorPickerProps, onChangeColor]
   )
@@ -38,7 +39,8 @@ export const useColorPicker = (onChangeColor) => {
 const ColorPicker = ({ colorLabel, value, onChange }) => {
   const formattedColor = useMemo(() => {
     if (!matchIsValidColor(value)) return value
-    return color(value).formatHex8().toLowerCase()
+    const rawHex = colord(value).toHex()
+    return rawHex.length > 7 ? rawHex : `${rawHex}ff`
   }, [value])
 
   return (
@@ -48,9 +50,10 @@ const ColorPicker = ({ colorLabel, value, onChange }) => {
       color="warning"
       format="hex8"
       // PopoverProps={{ onClose }}
-      label={`Color picker \u279D ${colorLabel}`}
-      style={{ marginTop: '20px' }}
       value={formattedColor}
+      label={`Color \u279D ${colorLabel}`}
+      style={{ marginTop: '20px', flex: '1 1 auto' }}
+      slotProps={{ input: { style: { borderRadius: 0 } } }}
       {...{ onChange }}
     />
   )

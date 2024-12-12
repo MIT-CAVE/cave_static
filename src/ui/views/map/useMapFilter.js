@@ -16,7 +16,6 @@ import { getNumActiveFilters, includesPath } from '../../../utils'
 const useMapFilter = ({
   mapId,
   group,
-  colorByOptions,
   filtersPath,
   featureTypeProps,
   filters,
@@ -27,7 +26,7 @@ const useMapFilter = ({
   const pageLayout = useSelector(selectPageLayout)
   const dispatch = useDispatch()
 
-  const { menuOpen, handleOpenMenu, handleCloseMenu } = useMenu()
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const filterableProps = useMemo(
     () =>
@@ -47,12 +46,16 @@ const useMapFilter = ({
         R.cond([
           [
             R.propEq('selector', 'type'),
-            R.always({ colorByOptions: colorByOptions[key] }),
+            R.always({
+              colorOptions: R.pluck('color')(
+                featureTypeProps[key]?.options ?? []
+              ),
+            }),
           ],
           // Others if needed
         ])(value)
       )(filterableProps),
-    [colorByOptions, filterableProps]
+    [featureTypeProps, filterableProps]
   )
 
   const numActiveFilters = useMemo(
@@ -101,11 +104,11 @@ const useMapFilter = ({
     labelStart,
     isFilterDisabled,
     numActiveFilters,
-    menuOpen,
     filterableProps,
     filterableExtraProps,
-    handleOpenMenu,
-    handleCloseMenu,
+    filterOpen: Boolean(anchorEl),
+    handleOpenFilter: handleOpenMenu,
+    handleCloseFilter: handleCloseMenu,
     handleSaveFilters,
   }
 }

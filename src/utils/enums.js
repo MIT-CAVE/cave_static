@@ -120,6 +120,21 @@ export const statFuncs = {
   [propId.TOGGLE]: new Set([statId.MODE, statId.AND, statId.OR]),
 }
 
+export const scaleId = {
+  LINEAR: 'linear',
+  STEP: 'step',
+  LOG: 'log',
+  POW: 'pow',
+}
+
+export const scaleParamId = {
+  EXPONENT: 'exponent',
+}
+
+export const scaleParamsById = {
+  [scaleId.POW]: scaleParamId.EXPONENT,
+}
+
 export const chartVariant = {
   BAR: 'bar',
   BOX_PLOT: 'box_plot',
