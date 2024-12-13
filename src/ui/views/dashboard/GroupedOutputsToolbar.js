@@ -2,7 +2,10 @@ import {
   Autocomplete,
   Box,
   Checkbox,
+  FormControl,
   FormHelperText,
+  InputLabel,
+  Stack,
   Tab,
   Tabs,
   TextField,
@@ -381,33 +384,46 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   }
 
   const datasetSelector = (
-    <Select
-      value={R.propOr('', 'dataset', chartObj)}
-      optionsList={R.keys(groupedOutputs)}
-      onSelect={handleChangeDataset}
-    />
+    <FormControl fullWidth>
+      <InputLabel id="dataset-label">Dataset</InputLabel>
+      <Select
+        id="dataset"
+        labelId="dataset-label"
+        label="Dataset"
+        value={R.propOr(' ', 'dataset', chartObj)}
+        optionsList={R.keys(groupedOutputs)}
+        getLabel={getLabelFn(groupedOutputs)}
+        onSelect={handleChangeDataset}
+      />
+    </FormControl>
   )
 
   const singleStatisticSelector = (
-    <Select
-      disabled={chartObj.dataset == null}
-      getLabel={(stat) =>
-        getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-      }
-      value={R.pathOr('', ['stats', 0, 'statId'], chartObj)}
-      optionsList={R.values(statNames)}
-      onSelect={(value) => {
-        dispatch(
-          mutateLocal({
-            path,
-            sync: !includesPath(R.values(sync), path),
-            value: R.assoc('stats', [
-              { statId: value, aggregationType: 'sum' },
-            ])(chartObj),
-          })
-        )
-      }}
-    />
+    <FormControl fullWidth>
+      <InputLabel id="stat-label">Statistic</InputLabel>
+      <Select
+        disabled={chartObj.dataset == null}
+        id="stat"
+        labelId="stat-label"
+        label="Statistic"
+        value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
+        optionsList={R.values(statNames)}
+        getLabel={(stat) =>
+          getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+        }
+        onSelect={(value) => {
+          dispatch(
+            mutateLocal({
+              path,
+              sync: !includesPath(R.values(sync), path),
+              value: R.assoc('stats', [
+                { statId: value, aggregationType: 'sum' },
+              ])(chartObj),
+            })
+          )
+        }}
+      />
+    </FormControl>
   )
 
   const distributionTypeSelector = (
@@ -476,6 +492,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     }
     return !R.isEmpty(selectedStats)
   }
+
   return (
     <>
       <Tabs
@@ -497,126 +514,131 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       </Tabs>
       <Box sx={styles.content}>
         <Typography variant="overline" sx={styles.header}>
-          DATA
+          DATA CONFIGURATION
         </Typography>
-        <Box sx={styles.row}>
-          <ChartDropdownWrapper sx={styles.field}>
-            {renderLabelledSelector(datasetSelector, 'Dataset')}
-          </ChartDropdownWrapper>
-        </Box>
-        <Box sx={styles.row}>
-          <ChartDropdownWrapper sx={styles.field}>
-            {R.has(R.prop('chartType', chartObj), chartStatUses) ? (
-              R.length(chartStatUses[chartObj.chartType]) !== 0 ? (
-                <>
-                  {mapIndexed((_, index) => {
-                    const selector = (
-                      <Select
-                        disabled={chartObj.dataset == null}
-                        getLabel={(stat) =>
-                          getGroupLabelFn(statisticTypes, [
-                            chartObj.dataset,
-                            stat,
-                          ])
-                        }
-                        value={R.pathOr(
-                          '',
-                          ['stats', index, 'statId'],
-                          chartObj
-                        )}
-                        optionsList={R.values(statNames)}
-                        onSelect={(value) => {
-                          const newVal = R.equals(
-                            R.path(['stats', index, 'statId'], chartObj),
-                            value
-                          )
-                            ? undefined
-                            : value
-                          dispatch(
-                            mutateLocal({
-                              path,
-                              sync: !includesPath(R.values(sync), path),
-                              value: R.assocPath(['stats', index], {
-                                statId: newVal,
-                                aggregationType: 'sum',
-                              })(chartObj),
-                            })
-                          )
-                        }}
-                      />
-                    )
-                    const label = chartStatUses[chartObj.chartType][index]
-                    return renderLabelledSelector(selector, label)
-                  })(chartStatUses[chartObj.chartType])}
-                </>
-              ) : (
-                <Autocomplete
-                  sx={{
-                    padding: 1,
-                  }}
-                  disabled={chartObj.dataset == null}
-                  value={R.pipe(
-                    R.propOr([], 'stats'),
-                    R.pluck('statId')
-                  )(chartObj)}
-                  limitTags={5}
-                  multiple
-                  fullWidth
-                  disableCloseOnSelect
-                  options={R.values(statNames)}
-                  renderInput={(params) => {
-                    return (
-                      <TextField
-                        {...params}
-                        fullWidth
-                        label="Select Statistics"
-                        variant="standard"
-                      />
-                    )
-                  }}
-                  getOptionLabel={(option) =>
-                    getGroupLabelFn(statisticTypes, [chartObj.dataset, option])
-                  }
-                  renderOption={(props, option, { selected }) => {
-                    const { key, ...optionProps } = props
-                    return (
-                      <li key={key} {...optionProps}>
-                        <Checkbox
-                          icon={<MdCheckBoxOutlineBlank />}
-                          checkedIcon={<MdCheckBox />}
-                          checked={selected}
+        <Stack direction="row">
+          <Box sx={styles.row}>
+            <ChartDropdownWrapper sx={styles.field}>
+              {datasetSelector}
+            </ChartDropdownWrapper>
+          </Box>
+          <Box sx={styles.row}>
+            <ChartDropdownWrapper sx={styles.field}>
+              {R.has(R.prop('chartType', chartObj), chartStatUses) ? (
+                R.length(chartStatUses[chartObj.chartType]) !== 0 ? (
+                  <>
+                    {mapIndexed((_, index) => {
+                      const selector = (
+                        <Select
+                          disabled={chartObj.dataset == null}
+                          getLabel={(stat) =>
+                            getGroupLabelFn(statisticTypes, [
+                              chartObj.dataset,
+                              stat,
+                            ])
+                          }
+                          value={R.pathOr(
+                            '',
+                            ['stats', index, 'statId'],
+                            chartObj
+                          )}
+                          optionsList={R.values(statNames)}
+                          onSelect={(value) => {
+                            const newVal = R.equals(
+                              R.path(['stats', index, 'statId'], chartObj),
+                              value
+                            )
+                              ? undefined
+                              : value
+                            dispatch(
+                              mutateLocal({
+                                path,
+                                sync: !includesPath(R.values(sync), path),
+                                value: R.assocPath(['stats', index], {
+                                  statId: newVal,
+                                  aggregationType: 'sum',
+                                })(chartObj),
+                              })
+                            )
+                          }}
                         />
-                        {getGroupLabelFn(statisticTypes, [
-                          chartObj.dataset,
-                          option,
-                        ])}
-                      </li>
-                    )
-                  }}
-                  onChange={(_, value) => {
-                    dispatch(
-                      mutateLocal({
-                        path,
-                        sync: !includesPath(R.values(sync), path),
-                        value: R.pipe(
-                          R.assoc(
-                            'stats',
-                            R.map((id) => ({
-                              statId: id,
-                              aggregationType: 'sum',
-                            }))(value)
-                          )
-                        )(chartObj),
-                      })
-                    )
-                  }}
-                />
-              )
-            ) : (
-              renderLabelledSelector(singleStatisticSelector, 'Statistic')
-            )}
-          </ChartDropdownWrapper>
-        </Box>
+                      )
+                      const label = chartStatUses[chartObj.chartType][index]
+                      return renderLabelledSelector(selector, label)
+                    })(chartStatUses[chartObj.chartType])}
+                  </>
+                ) : (
+                  <Autocomplete
+                    sx={{
+                      padding: 1,
+                    }}
+                    disabled={chartObj.dataset == null}
+                    value={R.pipe(
+                      R.propOr([], 'stats'),
+                      R.pluck('statId')
+                    )(chartObj)}
+                    limitTags={5}
+                    multiple
+                    fullWidth
+                    disableCloseOnSelect
+                    options={R.values(statNames)}
+                    renderInput={(params) => {
+                      return (
+                        <TextField
+                          {...params}
+                          fullWidth
+                          label="Select Statistics"
+                          variant="standard"
+                        />
+                      )
+                    }}
+                    getOptionLabel={(option) =>
+                      getGroupLabelFn(statisticTypes, [
+                        chartObj.dataset,
+                        option,
+                      ])
+                    }
+                    renderOption={(props, option, { selected }) => {
+                      const { key, ...optionProps } = props
+                      return (
+                        <li key={key} {...optionProps}>
+                          <Checkbox
+                            icon={<MdCheckBoxOutlineBlank />}
+                            checkedIcon={<MdCheckBox />}
+                            checked={selected}
+                          />
+                          {getGroupLabelFn(statisticTypes, [
+                            chartObj.dataset,
+                            option,
+                          ])}
+                        </li>
+                      )
+                    }}
+                    onChange={(_, value) => {
+                      dispatch(
+                        mutateLocal({
+                          path,
+                          sync: !includesPath(R.values(sync), path),
+                          value: R.pipe(
+                            R.assoc(
+                              'stats',
+                              R.map((id) => ({
+                                statId: id,
+                                aggregationType: 'sum',
+                              }))(value)
+                            )
+                          )(chartObj),
+                        })
+                      )
+                    }}
+                  />
+                )
+              ) : (
+                singleStatisticSelector
+              )}
+            </ChartDropdownWrapper>
+          </Box>
+        </Stack>
         {showFull(chartObj) && (
           <>
             <Typography variant="overline" sx={styles.header}>
