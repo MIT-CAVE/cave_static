@@ -21,10 +21,29 @@ import {
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
 } from '../../../data/selectors'
-import { HIGHLIGHT_COLOR, LINE_TYPES } from '../../../utils/constants'
+import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 
 import { includesPath } from '../../../utils'
+
+const DARKEN_FILL_ON_HOVER = [
+  'case',
+  ['boolean', ['feature-state', 'hover'], false],
+  // Apply darkening when hovered
+  [
+    'let',
+    'rgbaArray',
+    ['to-rgba', ['get', 'color']],
+    [
+      'rgba',
+      ['*', ['at', 0, ['var', 'rgbaArray']], 0.6],
+      ['*', ['at', 1, ['var', 'rgbaArray']], 0.6],
+      ['*', ['at', 2, ['var', 'rgbaArray']], 0.6],
+      ['at', 3, ['var', 'rgbaArray']], // Keep alpha unchanged
+    ],
+  ],
+  ['get', 'color'], // No hover
+]
 
 const handleFeatureClick = (
   dispatch,
@@ -118,12 +137,7 @@ export const Geos = memo(({ mapId }) => {
           visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
+          'fill-color': DARKEN_FILL_ON_HOVER,
           'fill-opacity': 0.4,
         }}
       />
@@ -148,12 +162,7 @@ export const Geos = memo(({ mapId }) => {
           visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
-          'line-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
+          'line-color': DARKEN_FILL_ON_HOVER,
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
           'line-dasharray': [
@@ -189,12 +198,7 @@ export const IncludedGeos = memo(({ mapId }) => {
         key={layerId.INCLUDED_GEOGRAPHY_LAYER}
         type="fill"
         paint={{
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
+          'fill-color': DARKEN_FILL_ON_HOVER,
           'fill-opacity': 0.4,
         }}
       />
@@ -238,12 +242,7 @@ export const Nodes = memo(({ mapId }) => {
           visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
-          'icon-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
+          'icon-color': DARKEN_FILL_ON_HOVER,
         }}
       />
     </Source>,
@@ -285,12 +284,7 @@ export const Arcs = memo(({ mapId }) => {
           visibility: isGlobe ? 'visible' : 'none',
         }}
         paint={{
-          'line-color': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            HIGHLIGHT_COLOR,
-            ['get', 'color'],
-          ],
+          'line-color': DARKEN_FILL_ON_HOVER,
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
           'line-dasharray': [

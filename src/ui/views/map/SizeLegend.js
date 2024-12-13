@@ -7,14 +7,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { memo, useCallback, useMemo, useState } from 'react'
+import * as R from 'ramda'
+import { memo, useCallback, useMemo } from 'react'
+import { PiDotsThree } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import {
-  getMaxLabel,
-  getMinLabel,
+  getGradientLabel,
   GroupCalcSelector,
   PropIcon,
+  ScaleSelector,
   WithEditBadge,
 } from './Legend'
 
@@ -24,17 +26,19 @@ import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 
 import { OverflowText, Select } from '../../compound'
 
+import { orderEntireDict, parseGradient } from '../../../utils'
+
 const styles = {
   legendSection: {
     height: '100%',
     width: '100%',
     p: 1,
     pt: 2,
-    border: '1px outset rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     // justifyContent: 'space-between',
     boxSizing: 'border-box',
   },
-  categoryRoot: {
+  marqueRoot: {
     height: '100%',
     width: '100%',
     pt: 0.75,
@@ -45,7 +49,7 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     px: 1,
-    border: '1px solid rgb(128, 128, 128)',
+    border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
   },
   rangeRoot: {
@@ -60,126 +64,95 @@ const styles = {
 }
 
 const NumericalSizeLegend = ({
-  valueRange,
-  numberFormat,
   icon,
   group,
+  valueRange,
+  numberFormat,
+  // anyNullValue, // TODO: Implement `fallback` UI
   onChangeSize,
 }) => {
-  const minSz = useSizeSlider(onChangeSize)
-  const maxSz = useSizeSlider(onChangeSize)
-  const [activeThumb, setActiveThumb] = useState()
+  const {
+    showSizeSlider,
+    sizeSliderProps,
+    handleOpen,
+    handleClose,
+    handleChange,
+    handleChangeComitted: handleChangeComittedRaw,
+  } = useSizeSlider(onChangeSize)
 
-  const { startSize, endSize } = valueRange
-  const minLabel = getMinLabel(valueRange, numberFormat, group)
-  const maxLabel = getMaxLabel(valueRange, numberFormat, group)
-
-  const handleChange = useCallback(
-    (event, value, thumb) => {
-      setActiveThumb(thumb)
-      // Only dispatch the change for the modified value
-      const thumbChangeTrigger =
-        minSz.showSizeSlider && thumb === 0
-          ? minSz.handleChange
-          : maxSz.showSizeSlider && (!minSz.showSizeSlider || thumb === 1)
-            ? maxSz.handleChange
-            : () => {
-                console.error('This should never happen...')
-              }
-      thumbChangeTrigger(event, [value[thumb]])
-    },
-    [maxSz, minSz]
+  const { sizes, values, labels } = useMemo(
+    () => parseGradient('sizeGradient', 'size')(valueRange),
+    [valueRange]
   )
 
-  const handleChangeComitted = useCallback(
-    (event, value) => {
-      // Only dispatch the change for the modified value
-      const thumbChangeComittedTrigger =
-        minSz.showSizeSlider && activeThumb === 0
-          ? minSz.handleChangeComitted
-          : maxSz.showSizeSlider && (!minSz.showSizeSlider || activeThumb === 1)
-            ? maxSz.handleChangeComitted
-            : () => {
-                console.error('This should never happen...')
-              }
-      thumbChangeComittedTrigger(event, [value[activeThumb]])
-    },
-
-    [activeThumb, maxSz, minSz]
+  const getLabel = useCallback(
+    (index) =>
+      getGradientLabel(
+        labels,
+        values,
+        index,
+        numberFormat,
+        group,
+        'colorGradient'
+      ),
+    [group, labels, numberFormat, values]
   )
 
-  // const handleClose = useCallback(
-  //   (event) => {
-  //     minSz.handleClose(event)
-  //     maxSz.handleClose(event)
-  //   },
-  //   [maxSz, minSz]
-  // )
+  const handleChangeComittedAt = useCallback(
+    (index) => (event, value) => {
+      const pathTail =
+        index == null // Updating fallback size?
+          ? ['fallback', 'size']
+          : ['sizeGradient', 'data', index, 'size']
+      handleChangeComittedRaw(event, value, pathTail)
+    },
+    [handleChangeComittedRaw]
+  )
 
-  const showSizeSlider = minSz.showSizeSlider || maxSz.showSizeSlider
   return (
     <>
-      <Grid2 container spacing={0.5} sx={styles.rangeRoot}>
-        <Grid2 size={3} sx={styles.rangeLabel}>
-          <Typography variant="caption">Min</Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={minLabel} />
-          </Typography>
-        </Grid2>
-
-        <Grid2
-          container
-          size="grow"
-          sx={{ alignItems: 'center', textAlign: 'center' }}
-          spacing={1}
+      <OverflowText
+        sx={styles.marqueRoot}
+        marqueeProps={{ play: !showSizeSlider }}
+      >
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={styles.rangeRoot}
+          divider={<PiDotsThree size={24} />}
         >
-          <Grid2 size={6}>
-            {icon && (
-              <WithEditBadge editing={minSz.showSizeSlider}>
-                <PropIcon
-                  {...{ icon }}
-                  selected={minSz.showSizeSlider}
-                  size={minSz.sizeSliderProps.value ?? startSize}
-                  onClick={minSz.handleOpen('startSize', startSize)}
-                />
-              </WithEditBadge>
-            )}
-          </Grid2>
-          <Grid2 size={6}>
-            {icon && (
-              <WithEditBadge editing={maxSz.showSizeSlider}>
-                <PropIcon
-                  {...{ icon }}
-                  selected={maxSz.showSizeSlider}
-                  size={maxSz.sizeSliderProps.value ?? endSize}
-                  onClick={maxSz.handleOpen('endSize', endSize)}
-                />
-              </WithEditBadge>
-            )}
-          </Grid2>
-        </Grid2>
-
-        <Grid2 size={3} sx={styles.rangeLabel}>
-          <Typography variant="caption">Max</Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={maxLabel} />
-          </Typography>
-        </Grid2>
-      </Grid2>
+          {sizes.map((value, index) => (
+            <Stack
+              key={index}
+              spacing={0.5}
+              sx={{ alignSelf: 'end', alignItems: 'center' }}
+            >
+              {icon && (
+                <WithEditBadge
+                  editing={showSizeSlider && sizeSliderProps.key === index}
+                >
+                  <PropIcon
+                    {...{ icon }}
+                    selected={sizeSliderProps.key === index}
+                    size={value}
+                    onClick={handleOpen(index, sizes[index])}
+                  />
+                </WithEditBadge>
+              )}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                <OverflowText text={getLabel(index)} />
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </OverflowText>
 
       {showSizeSlider && (
         <SizeSlider
-          value={[
-            ...(minSz.sizeSliderProps.value != null
-              ? minSz.sizeSliderProps.value
-              : []),
-            ...(maxSz.sizeSliderProps.value != null
-              ? maxSz.sizeSliderProps.value
-              : []),
-          ]}
-          // onClose={handleClose}
+          value={sizeSliderProps.value}
+          onClose={handleClose}
           onChange={handleChange}
-          onChangeCommitted={handleChangeComitted}
+          onChangeCommitted={handleChangeComittedAt(sizeSliderProps.key)}
         />
       )}
     </>
@@ -188,36 +161,65 @@ const NumericalSizeLegend = ({
 
 const CategoricalSizeLegend = ({
   type,
-  sizeBy,
-  sizeByOptions,
-  featureTypeProps,
+  sizeByProp,
   icon,
+  anyNullValue,
   onChangeSize,
 }) => {
   const {
     showSizeSlider,
     sizeSliderProps,
     handleOpen,
-    // handleClose,
+    handleClose,
     handleChange,
-    handleChangeComitted,
+    handleChangeComitted: handleChangeComittedRaw,
   } = useSizeSlider(onChangeSize)
+
+  const sizeOptions = useMemo(() => {
+    const { options, fallback } = sizeByProp
+    return R.pipe(
+      orderEntireDict, // Preserve order of options after state updates
+      // Add fallback size for null values, if available
+      R.when(
+        R.always(anyNullValue && fallback?.size != null),
+        R.assoc('null', fallback)
+      ),
+      R.map(
+        R.applySpec({
+          name: R.prop('name'),
+          size: R.propOr('1px', 'size'), // In case `size` is missing
+          // Think more about this: unspecified `size`s
+        })
+      )
+    )(options)
+  }, [anyNullValue, sizeByProp])
 
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
-        type === propId.SELECTOR
-          ? featureTypeProps[sizeBy].options[option].name
+        type === propId.SELECTOR || type === propId.TOGGLE
+          ? sizeOptions[option].name
           : null
       return label || capitalize(option)
     },
-    [featureTypeProps, sizeBy, type]
+    [sizeOptions, type]
   )
-  const sizeOptions = sizeByOptions[sizeBy]
+
+  const handleChangeComitted = useCallback(
+    (event, value) => {
+      const option = sizeSliderProps.key
+      const path =
+        option === 'null' // Updating fallback size?
+          ? ['fallback', 'size']
+          : ['options', option, 'size']
+      handleChangeComittedRaw(event, value, path)
+    },
+    [handleChangeComittedRaw, sizeSliderProps.key]
+  )
   return (
     <>
       <OverflowText
-        sx={styles.categoryRoot}
+        sx={styles.marqueRoot}
         marqueeProps={{ play: !showSizeSlider }}
       >
         <Stack
@@ -225,7 +227,7 @@ const CategoricalSizeLegend = ({
           spacing={1}
           sx={{ justifyContent: 'center', alignItems: 'end' }}
         >
-          {Object.entries(sizeOptions).map(([option, value]) => (
+          {Object.entries(sizeOptions).map(([option, { size: value }]) => (
             <Stack key={option} sx={{ alignItems: 'center' }}>
               <WithEditBadge
                 editing={showSizeSlider && option === sizeSliderProps.key}
@@ -248,7 +250,7 @@ const CategoricalSizeLegend = ({
         <SizeSlider
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
           value={sizeSliderProps.value}
-          // onClose={handleClose}
+          onClose={handleClose}
           onChange={handleChange}
           onChangeCommitted={handleChangeComitted}
         />
@@ -260,20 +262,21 @@ const CategoricalSizeLegend = ({
 const SizeLegend = ({
   valueRange,
   sizeBy,
-  sizeByOptions,
   featureTypeProps,
+  anyNullValue,
   icon,
   group,
+  sizeByOptions,
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangePropAttr,
   onChangeSize,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = getNumberFormatProps(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
-  const optionsList = useMemo(() => Object.keys(sizeByOptions), [sizeByOptions])
   return (
     <Paper
       elevation={3}
@@ -290,7 +293,7 @@ const SizeLegend = ({
               labelId="size-by-label"
               label="Size by"
               value={sizeBy}
-              {...{ optionsList }}
+              optionsList={sizeByOptions}
               getLabel={(option) => featureTypeProps[option].name || option}
               onSelect={onSelectProp(
                 'sizeBy',
@@ -311,12 +314,35 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}
-          {...{ sizeBy, sizeByOptions, featureTypeProps, icon, onChangeSize }}
+          {...{ icon, sizeByProp, anyNullValue, onChangeSize }}
         />
       ) : (
-        <NumericalSizeLegend
-          {...{ valueRange, numberFormat, icon, group, onChangeSize }}
-        />
+        <>
+          <NumericalSizeLegend
+            {...{
+              valueRange,
+              numberFormat,
+              icon,
+              group,
+              anyNullValue,
+              onChangeSize,
+            }}
+          />
+          <ScaleSelector
+            scale={valueRange.sizeGradient.scale}
+            scaleParams={valueRange.sizeGradient.scaleParams}
+            minDomainValue={valueRange.min}
+            onSelect={onChangePropAttr([sizeBy, 'sizeGradient', 'scale'])}
+            onChangeScaleParamById={(scaleParamId) =>
+              onChangePropAttr([
+                sizeBy,
+                'sizeGradient',
+                'scaleParams',
+                scaleParamId,
+              ])
+            }
+          />
+        </>
       )}
       {group && (
         <GroupCalcSelector

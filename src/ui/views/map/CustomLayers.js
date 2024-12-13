@@ -1,3 +1,4 @@
+import { colord } from 'colord'
 import earcut from 'earcut'
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
@@ -9,15 +10,15 @@ import { useSelector } from 'react-redux'
 import * as THREE from 'three'
 
 import { selectSettingsIconUrl } from '../../../data/selectors'
-import { HIGHLIGHT_COLOR, ICON_RESOLUTION } from '../../../utils/constants'
+import { ICON_RESOLUTION } from '../../../utils/constants'
 
-import { rgbStrToArray, fetchIcon } from '../../../utils'
+import { fetchIcon } from '../../../utils'
 
 const MAX_HEIGHT = 0.00325
 // Generate line segment by creating cylinders between adjacent points on the curve
 const generateSegment = (curve, feature, segments = 80) => {
   const lineType = R.pathOr('solid', ['properties', 'dash'], feature)
-  const color = R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], feature)
+  const rawColor = R.pathOr('#000', ['properties', 'color'], feature)
   const size = R.pathOr(30, ['properties', 'size'], feature)
 
   const points = curve.getPoints(segments)
@@ -51,14 +52,8 @@ const generateSegment = (curve, feature, segments = 80) => {
         lineType === 'dotted' ? hypotenuse / 3 : hypotenuse * 1.5 // length
       )
       // set cylinder color, position, and angle
-      const colorArr = rgbStrToArray(color)
-      const colorObj = new THREE.Color(
-        colorArr[0] / 255,
-        colorArr[1] / 255,
-        colorArr[2] / 255
-      )
       const material = new THREE.MeshBasicMaterial({
-        color: colorObj,
+        color: colord(rawColor).toHex(),
       })
       const cylinder = new THREE.Mesh(geometry, material)
       cylinder.position.set(midpoint.x, midpoint.y, midpoint.z)
@@ -259,15 +254,10 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
               map.getCanvas().style.cursor = 'pointer'
               layer.highlightedId = intersects[0].object.userData.cave_name
               layer.oldColor = intersects[0].object.material.color.clone()
-              const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
-              const colorObj = new THREE.Color(
-                colorArr[0] / 255,
-                colorArr[1] / 255,
-                colorArr[2] / 255
-              )
+              const highlightedColor = colord(layer.oldColor).darken().toHex()
               R.forEach((line) => {
                 if (line.userData.cave_name === layer.highlightedId)
-                  line.material.color.set(colorObj)
+                  line.material.color.set(highlightedColor)
               })(layer.lines)
             }
           } else if (layer.highlightedId !== -1) {
@@ -337,14 +327,13 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
           )
           const data = imageData.data
 
-          const rgbaColor = rgbStrToArray(
-            R.pathOr('rgba(0,0,0,255)', ['properties', 'color'], node)
-          )
+          const rawColor = R.pathOr('#000', ['properties', 'color'], node)
+          const colorObj = colord(rawColor).rgba
           for (let i = 0; i < data.length; i += 4) {
             if (data[i + 3] !== 0) {
-              data[i] = rgbaColor[0]
-              data[i + 1] = rgbaColor[1]
-              data[i + 2] = rgbaColor[2]
+              data[i] = colorObj.r
+              data[i + 1] = colorObj.g
+              data[i + 2] = colorObj.b
             }
           }
 
@@ -522,17 +511,8 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         // Generate side faces for each hole
         holes.forEach(createSideFaces)
 
-        const color = R.pathOr(
-          'rgba(0, 0, 0, 255)',
-          ['properties', 'color'],
-          geo
-        )
-        const colorArr = rgbStrToArray(color)
-        const colorObj = new THREE.Color(
-          colorArr[0] / 255,
-          colorArr[1] / 255,
-          colorArr[2] / 255
-        )
+        const rawColor = R.pathOr('#000', ['properties', 'color'], geo)
+        const color = colord(rawColor).toHex()
 
         const sideGeometry = new THREE.BufferGeometry()
         const sideVerticesFloat32Array = new Float32Array(sideVertices)
@@ -542,18 +522,15 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         )
         sideGeometry.setIndex(sideTriangles)
 
-        const opacity = parseInt(colorArr[3])
-        // if opacity > 1, it is on a 0-255 scale, which happens for colorBy options
-        // so we need to convert it to a 0-1 scale
-        const scaledOpacity = opacity > 1 ? opacity / 255 : opacity
+        const opacity = color.alpha()
         const meshOptions = {
-          color: colorObj,
+          color,
           side: THREE.DoubleSide,
           transparent: true,
         }
         const sideMaterial = new THREE.MeshBasicMaterial({
           ...meshOptions,
-          opacity: scaledOpacity * 0.2,
+          opacity: opacity * 0.2,
         })
 
         const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial)
@@ -570,7 +547,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
 
         const topMaterial = new THREE.MeshBasicMaterial({
           ...meshOptions,
-          opacity: scaledOpacity * 0.4,
+          opacity: opacity * 0.4,
         })
         const topMesh = new THREE.Mesh(topGeometry, topMaterial)
 
@@ -869,13 +846,8 @@ const CustomLayer = memo(
             map.getCanvas().style.cursor = 'pointer'
             highlightedObject = hoveredObject
             oldColor = highlightedObject.material.color.clone()
-            const colorArr = rgbStrToArray(HIGHLIGHT_COLOR)
-            const colorObj = new THREE.Color(
-              colorArr[0] / 255,
-              colorArr[1] / 255,
-              colorArr[2] / 255
-            )
-            setObjectColor(hoveredObject, colorObj)
+            const highlightedColor = colord(layer.oldColor).darken().toHex()
+            setObjectColor(hoveredObject, highlightedColor)
           }
         } else if (wasPreviousHighlight && !click) {
           clearHighlight()

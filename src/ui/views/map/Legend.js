@@ -12,6 +12,7 @@ import {
   ToggleButton,
   Typography,
 } from '@mui/material'
+import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
@@ -19,16 +20,16 @@ import { RiSettings5Line } from 'react-icons/ri'
 import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { MapPortal } from './MapPortal'
+import MapPortal from './MapPortal'
 
 import { mutateLocal } from '../../../data/local'
 import {
   selectArcRange,
   selectBearingSliderToggleFunc,
+  selectEffectiveArcsBy,
+  selectEffectiveGeosBy,
+  selectEffectiveNodesBy,
   selectGeoRange,
-  selectLocalizedArcTypes,
-  selectLocalizedGeoTypes,
-  selectLocalizedNodeTypes,
   selectNodeRange,
   selectNodeRangeAtZoomFunc,
   selectPitchSliderToggleFunc,
@@ -36,20 +37,30 @@ import {
   selectShowLegendGroupNamesFunc,
   selectSync,
 } from '../../../data/selectors'
-import { propId, statFuncs } from '../../../utils/enums'
+import {
+  propId,
+  scaleId,
+  scaleParamsById,
+  statFuncs,
+} from '../../../utils/enums'
 import {
   useMenu,
   useMutateStateWithSync,
   useToggle,
 } from '../../../utils/hooks'
+import {
+  getScaleParamDefaults,
+  getScaleParamLabel,
+  scaleIndexedOptions,
+} from '../../../utils/scales'
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 
-import { FetchedIcon, Select } from '../../compound'
+import { FetchedIcon, NumberInput, Select } from '../../compound'
 
 import {
-  colorToRgba,
   forceArray,
+  getColorString,
   includesPath,
   NumberFormat,
 } from '../../../utils'
@@ -72,7 +83,7 @@ const styles = {
     zIndex: 2,
   },
   getRippleBox: (selected) => ({
-    border: `1px ${selected ? 'inset' : 'outset'} rgb(128, 128, 128)`,
+    border: `1px ${selected ? 'inset' : 'outset'} rgb(128 128 128)`,
     borderRadius: 1,
   }),
 }
@@ -87,40 +98,43 @@ export const useLegendDetails = ({
   heightBy,
   shapePathEnd,
   featureTypeProps,
+  featureTypeValues,
   getRange,
 }) => {
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
+  // Valid ranges for all features
+  const colorRange = useMemo(
+    () => getRange(id, colorBy, mapId),
+    [colorBy, getRange, id, mapId]
+  )
+  const sizeRange = useMemo(
+    () => getRange(id, sizeBy, mapId),
+    [sizeBy, getRange, id, mapId]
+  )
+  // Groupable nodes (only)
+  const clusterRange = useMemo(
+    () => (getRangeOnZoom != null ? getRangeOnZoom(mapId) : {}),
+    [getRangeOnZoom, mapId]
+  )
+  // Geos (only)
+  const heightRange = useMemo(
+    () => (heightBy != null ? getRange(id, heightBy, mapId) : null),
+    [getRange, heightBy, id, mapId]
+  )
+
+  const hasAnyNullValue = useCallback(
+    (propId) =>
+      !group && R.pipe(R.pluck(propId), R.any(R.isNil))(featureTypeValues),
+    [featureTypeValues, group]
+  )
+
   const basePath = useMemo(
     () => ['maps', 'data', mapId, 'legendGroups', legendGroupId, 'data', id],
     [id, legendGroupId, mapId]
   )
-
-  // Valid ranges for all features
-  const colorRange = useMemo(
-    () => getRange(id, colorBy, mapId, 'colorByOptions'),
-    [colorBy, getRange, id, mapId]
-  )
-  const sizeRange = useMemo(
-    () => getRange(id, sizeBy, mapId, 'sizeByOptions'),
-    [sizeBy, getRange, id, mapId]
-  )
-  // Groupable nodes (only)
-  const clusterRange = useMemo(() => {
-    if (getRangeOnZoom == null) return {}
-    return getRangeOnZoom(mapId)
-  }, [getRangeOnZoom, mapId])
-  // Geos (only)
-  const heightRange = useMemo(
-    () =>
-      heightBy != null
-        ? getRange(id, heightBy, mapId, 'heightByOptions')
-        : null,
-    [getRange, heightBy, id, mapId]
-  )
-
   const handleSelectGroupCalc = useCallback(
     (pathEnd) => (value, event) => {
       const path = [...basePath, pathEnd]
@@ -135,16 +149,26 @@ export const useLegendDetails = ({
     },
     [basePath, dispatch, sync]
   )
-
+  const handleToggleGroup = useMutateStateWithSync(
+    (event) => {
+      event.stopPropagation()
+      return { path: [...basePath, 'group'], value: !group }
+    },
+    [basePath, group]
+  )
+  const handleChangeShape = useMutateStateWithSync(
+    (event, value) => ({ path: [...basePath, shapePathEnd], value }),
+    [basePath, shapePathEnd]
+  )
   const handleSelectProp = useCallback(
-    (pathEnd, groupCalcPathEnd, groupCalcValue) => (value, event) => {
-      const path = [...basePath, pathEnd]
+    (pathTail, groupCalcPathTail, groupCalcValue) => (value, event) => {
+      const path = [...basePath, pathTail]
       const newPropType = featureTypeProps[value].type
       if (!statFuncs[newPropType].has(groupCalcValue)) {
         // If the selected aggregation function is not
         // valid for the new prop type, set a default
         const [defaultGroupCalc] = getStatFuncsByType(newPropType)
-        handleSelectGroupCalc(groupCalcPathEnd)(defaultGroupCalc)
+        handleSelectGroupCalc(groupCalcPathTail)(defaultGroupCalc)
       }
       dispatch(
         mutateLocal({
@@ -158,38 +182,10 @@ export const useLegendDetails = ({
     [basePath, dispatch, featureTypeProps, handleSelectGroupCalc, sync]
   )
 
-  const handleToggleGroup = useCallback(
-    (event) => {
-      const path = [...basePath, 'group']
-      dispatch(
-        mutateLocal({
-          path,
-          value: !group,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-      event.stopPropagation()
-    },
-    [basePath, dispatch, group, sync]
-  )
-
-  const handleChangeColor = useCallback(
-    (pathEnd) => (value) => {
-      const path = [...basePath, 'colorByOptions', colorBy, pathEnd]
-      dispatch(
-        mutateLocal({
-          path,
-          value: colorToRgba(value),
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-    },
-    [basePath, colorBy, dispatch, sync]
-  )
-
-  const handleChangeSize = useCallback(
-    (pathEnd) => (value) => {
-      const path = [...basePath, 'sizeByOptions', sizeBy, pathEnd]
+  const basePathProp = useMemo(() => ['mapFeatures', 'data', id, 'props'], [id])
+  const handleChangePropAttr = useCallback(
+    (pathTail) => (value) => {
+      const path = [...basePathProp, ...forceArray(pathTail)]
       dispatch(
         mutateLocal({
           path,
@@ -198,12 +194,21 @@ export const useLegendDetails = ({
         })
       )
     },
-    [basePath, dispatch, sizeBy, sync]
+    [basePathProp, dispatch, sync]
   )
 
-  const handleChangeShape = useMutateStateWithSync(
-    (event, value) => ({ path: [...basePath, shapePathEnd], value }),
-    [basePath, shapePathEnd]
+  const handleChangeColor = useCallback(
+    (pathTail) => (value) => {
+      const newColor = getColorString(value)
+      handleChangePropAttr([colorBy, ...forceArray(pathTail)])(newColor)
+    },
+    [colorBy, handleChangePropAttr]
+  )
+  const handleChangeSize = useCallback(
+    (pathTail) => (value) => {
+      handleChangePropAttr([sizeBy, ...forceArray(pathTail)])(value)
+    },
+    [sizeBy, handleChangePropAttr]
   )
 
   return {
@@ -212,12 +217,14 @@ export const useLegendDetails = ({
     sizeRange,
     clusterRange,
     heightRange,
+    hasAnyNullValue,
     handleSelectGroupCalc,
     handleSelectProp,
     handleToggleGroup,
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
+    handleChangePropAttr,
   }
 }
 
@@ -235,38 +242,46 @@ export const useLegend = (mapId) => {
   return { showLegendGroupNames, handleToggleLegendGroupNames }
 }
 
-const getNumLabel = (value, numberFormat) =>
-  NumberFormat.format(value, {
-    ...numberFormat,
-    // Formatting hierarchy: `props.legend<key>` -> `settings.defaults.legend<key>` -> `props.<key>` -> `settings.defaults.<key>`
-    ...{
-      precision: numberFormat.legendPrecision || numberFormat.precision,
-      notation: numberFormat.legendNotation || numberFormat.notation,
-      notationDisplay:
-        numberFormat.legendNotationDisplay || numberFormat.notationDisplay,
-    },
-  })
-
-const getMinMaxLabel = (
-  valueRange,
-  numberFormatRaw,
-  group,
-  minMaxKey,
-  legendMinMaxLabel
-) => {
+export const getNumLabel = (value, numberFormatRaw, gradientKey) => {
   // eslint-disable-next-line no-unused-vars
   const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
-  return group
-    ? getNumLabel(valueRange[minMaxKey], numberFormat)
-    : numberFormat[legendMinMaxLabel] ||
-        getNumLabel(valueRange[minMaxKey], numberFormat)
+  return NumberFormat.format(value, {
+    ...numberFormat,
+    // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
+    ...{
+      precision: numberFormat[gradientKey]?.precision || numberFormat.precision,
+      notation: numberFormat[gradientKey]?.notation || numberFormat.notation,
+      notationDisplay:
+        numberFormat[gradientKey]?.notationDisplay ||
+        numberFormat.notationDisplay,
+    },
+  })
 }
 
-export const getMinLabel = (valRange, numberFormat, group) =>
-  getMinMaxLabel(valRange, numberFormat, group, 'min', 'legendMinLabel')
+export const getGradientLabel = (
+  labels,
+  values,
+  index,
+  numberFormat,
+  group,
+  gradientKey
+) =>
+  group || labels[index] == null
+    ? getNumLabel(values[index], numberFormat, gradientKey)
+    : labels[index]
 
-export const getMaxLabel = (valRange, numberFormat, group) =>
-  getMinMaxLabel(valRange, numberFormat, group, 'max', 'legendMaxLabel')
+export const getMinLabel = (labels, values, numberFormat, group, gradientKey) =>
+  getGradientLabel(labels, values, 0, numberFormat, group, gradientKey)
+
+export const getMaxLabel = (labels, values, numberFormat, group, gradientKey) =>
+  getGradientLabel(
+    labels,
+    values,
+    values.length - 1,
+    numberFormat,
+    group,
+    gradientKey
+  )
 
 // TODO: Move this to some `legendUtils.js` module
 export const RippleBox = ({ selected, sx = [], ...props }) => (
@@ -326,6 +341,61 @@ export const PropIcon = ({ icon, selected, onClick, ...props }) => (
   </RippleBox>
 )
 
+export const ScaleSelector = ({
+  scale = scaleId.LINEAR,
+  minDomainValue,
+  scaleParams,
+  onSelect,
+  onChangeScaleParamById,
+}) => {
+  const validScales = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.when(R.always(minDomainValue <= 0), R.without([scaleId.LOG]))
+      )(scaleId),
+    [minDomainValue]
+  )
+  const scaleParamId = scaleParamsById[scale]
+  return (
+    <Stack direction="row" spacing={1}>
+      <FormControl fullWidth>
+        <InputLabel id="scale-fn-label">Gradient Scale Func.</InputLabel>
+        <Select
+          id="scale-fn"
+          labelId="scale-fn-label"
+          label="Gradient Scale Func."
+          optionsList={validScales}
+          startAdornment={
+            <InputAdornment position="start">
+              <FetchedIcon
+                iconName={scaleIndexedOptions[scale]?.iconName}
+                size={24}
+              />
+            </InputAdornment>
+          }
+          value={scale}
+          getLabel={(option) => scaleIndexedOptions[option]?.label}
+          {...{ onSelect }}
+        />
+      </FormControl>
+      {scale === scaleId.POW && (
+        <NumberInput
+          sx={{ width: 'auto' }}
+          label={getScaleParamLabel(scaleParamId)}
+          numberFormat={{}}
+          value={R.propOr(
+            getScaleParamDefaults(scaleParamId),
+            scaleParamId
+          )(scaleParams)}
+          slotProps={{ input: { sx: { borderRadius: 0 } } }}
+          onClickAway={onChangeScaleParamById(scaleParamId)}
+        />
+      )}
+    </Stack>
+  )
+}
+
 export const GroupCalcSelector = ({ type, value, onSelect }) => {
   const IconClass =
     type === propId.TOGGLE
@@ -365,6 +435,10 @@ export const LegendPopper = ({
 
   const [selected, handleToggleSelected] = useToggle(false)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  const {
+    badge: { showBadge, reactIcon, ...muiBadgeProps } = {},
+    ...muiSlotProps
+  } = slotProps
   return (
     <ToggleButton
       size="small"
@@ -378,16 +452,17 @@ export const LegendPopper = ({
       <WithBadge
         size={14}
         color="#29b6f6"
+        {...{ showBadge, reactIcon }}
         slotProps={{
           badge: {
-            ...slotProps.badge,
-            sx: [{ right: 0, top: 0 }, ...forceArray(slotProps.badge?.sx)],
+            ...muiBadgeProps,
+            sx: [{ right: 0, top: 0 }, ...forceArray(muiBadgeProps?.sx)],
           },
         }}
       >
         <IconComponent
           color={selected ? '#90caf9' : '#fff'}
-          {...slotProps.icon}
+          {...muiSlotProps.icon}
         />
       </WithBadge>
       {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
@@ -400,7 +475,7 @@ export const LegendPopper = ({
           onClick={(event) => {
             event.stopPropagation()
           }}
-          {...{ anchorEl, ...slotProps.popper }}
+          {...{ anchorEl, ...muiSlotProps.popper }}
           sx={[
             styles.popper,
             {
@@ -411,7 +486,7 @@ export const LegendPopper = ({
                 ? 'calc(100% - 164px)'
                 : 'calc(100% - 128px)',
             },
-            ...forceArray(slotProps.popper?.sx),
+            ...forceArray(muiSlotProps.popper?.sx),
           ]}
         >
           {children}
@@ -423,13 +498,13 @@ export const LegendPopper = ({
 
 export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
   const [options, setOptions] = useState([])
-  const nodeTypes = useSelector(selectLocalizedNodeTypes)
+  const effectiveNodesBy = useSelector(selectEffectiveNodesBy)
   const getRange = useSelector(selectNodeRange)
   const iconUrl = useSelector(selectSettingsIconUrl)
   useIconDataLoader(iconUrl, setOptions, console.error)
   return (
     <LegendRowComponent
-      featureTypeData={nodeTypes}
+      mapFeaturesBy={effectiveNodesBy}
       shapeOptions={options}
       shapePathEnd="icon"
       shape={props.icon}
@@ -445,7 +520,7 @@ export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
-  const arcTypes = useSelector(selectLocalizedArcTypes)
+  const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
   const indexedOptions = {
     solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
@@ -455,7 +530,7 @@ export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
   }
   return (
     <LegendRowComponent
-      featureTypeData={arcTypes}
+      mapFeaturesBy={effectiveArcsBy}
       shapeOptions={Object.keys(indexedOptions)}
       shapePathEnd="lineBy"
       shape={props.lineBy ?? 'solid'}
@@ -469,11 +544,11 @@ export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowGeo = ({ LegendRowComponent, ...props }) => {
-  const geoTypes = useSelector(selectLocalizedGeoTypes)
+  const effectiveGeosBy = useSelector(selectEffectiveGeosBy)
   const getRange = useSelector(selectGeoRange)
   return (
     <LegendRowComponent
-      featureTypeData={geoTypes}
+      mapFeaturesBy={effectiveGeosBy}
       {...{ getRange, ...props }}
     />
   )

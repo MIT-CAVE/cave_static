@@ -11,13 +11,13 @@ import {
   Typography,
 } from '@mui/material'
 import { Fragment, memo, useMemo } from 'react'
+import { BiDetail } from 'react-icons/bi'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
 import {
   MdFilterAlt,
   MdOutlineVisibility,
   MdOutlineVisibilityOff,
 } from 'react-icons/md'
-import { PiInfo } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import ColorLegend from './ColorLegend'
@@ -53,7 +53,7 @@ import {
   ShapePicker,
 } from '../../compound'
 
-import { getLabelFn, getNumActiveFilters, withIndex } from '../../../utils'
+import { getNumActiveFilters, withIndex } from '../../../utils'
 
 const styles = {
   root: {
@@ -65,27 +65,21 @@ const styles = {
     p: 1,
     mx: 0,
     color: 'text.primary',
-    borderWidth: 2,
-    borderStyle: 'outset',
-    borderColor: 'grey.500',
+    border: '2px outset',
+    borderColor: 'grey.600',
     borderRadius: 1,
   },
   legendGroup: {
     alignItems: 'start',
-    px: 1,
-    py: 0.5,
-    borderWidth: 1,
-    borderColor: 'rgb(128, 128, 128)',
-    borderStyle: 'outset',
+    py: 0.75,
+    border: '1px outset rgb(128 128 128)',
   },
   details: {
     maxHeight: '100%',
     maxWidth: '100%',
     bgcolor: 'grey.800',
     p: 1,
-    borderWidth: 1,
-    borderStyle: 'outset',
-    borderColor: 'rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
     // borderColor: (theme) => theme.palette.primary.main,
   },
@@ -109,10 +103,10 @@ const LegendRowDetails = ({
   value,
   allowGrouping,
   colorBy,
-  colorByOptions,
   sizeBy,
-  sizeByOptions,
   heightBy,
+  colorByOptions,
+  sizeByOptions,
   heightByOptions,
   // shapeBy, // TODO: `shapeBy` would be a unifying property for `iconBy` and `lineBy`?
   shape,
@@ -137,6 +131,7 @@ const LegendRowDetails = ({
     },
   ],
   featureTypeProps,
+  featureTypeValues,
   getRange,
   onChangeVisibility,
 }) => {
@@ -148,12 +143,14 @@ const LegendRowDetails = ({
     sizeRange,
     clusterRange,
     heightRange,
+    hasAnyNullValue,
     handleSelectGroupCalc,
     handleSelectProp,
     handleToggleGroup,
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
+    handleChangePropAttr,
   } = useLegendDetails({
     mapId,
     legendGroupId,
@@ -164,6 +161,7 @@ const LegendRowDetails = ({
     heightBy,
     shapePathEnd,
     featureTypeProps,
+    featureTypeValues,
     getRange,
   })
 
@@ -180,7 +178,6 @@ const LegendRowDetails = ({
   } = useMapFilter({
     mapId,
     group,
-    colorByOptions,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
     filters,
@@ -268,7 +265,6 @@ const LegendRowDetails = ({
         />
       )}
       <Divider sx={{ mx: -1.5 }} />
-
       <Stack spacing={1} sx={{ overflow: 'auto' }}>
         {colorBy != null && (
           <ColorLegend
@@ -283,9 +279,11 @@ const LegendRowDetails = ({
               colorByOptions,
               featureTypeProps,
             }}
+            anyNullValue={hasAnyNullValue(colorBy)}
             groupCalcValue={groupCalcByColor}
             onSelectProp={handleSelectProp}
             onSelectGroupCalc={handleSelectGroupCalc}
+            onChangePropAttr={handleChangePropAttr}
             onChangeColor={handleChangeColor}
           />
         )}
@@ -301,13 +299,16 @@ const LegendRowDetails = ({
               sizeByOptions,
               featureTypeProps,
             }}
+            anyNullValue={hasAnyNullValue(sizeBy)}
             groupCalcValue={groupCalcBySize}
             onSelectProp={handleSelectProp}
             onSelectGroupCalc={handleSelectGroupCalc}
+            onChangePropAttr={handleChangePropAttr}
             onChangeSize={handleChangeSize}
           />
         )}
-        {heightBy != null && (
+        {/* FIXME: `heightBy` is temporarily hidden */}
+        {heightBy != null && false && (
           <HeightLegend
             valueRange={heightRange}
             {...{
@@ -317,7 +318,9 @@ const LegendRowDetails = ({
               heightByOptions,
               featureTypeProps,
             }}
+            anyNullValue={hasAnyNullValue(heightBy)}
             icon={<FetchedIcon iconName={icon} />}
+            onChangePropAttr={handleChangePropAttr}
             onSelectProp={handleSelectProp('heightBy')}
           />
         )}
@@ -326,19 +329,23 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({ mapId, id, featureTypeData, showSettings, ...props }) => {
+const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
+  const mapFeatures = mapFeaturesBy(id, mapId)
+  const name = mapFeatures[0].name ?? id
   const numActiveFilters = useMemo(
     () => getNumActiveFilters(props.filters),
     [props.filters]
   )
-
-  const name = getLabelFn(featureTypeData, id)
+  const featureTypeValues = useMemo(
+    () => mapFeatures.map((feature) => feature.values),
+    [mapFeatures]
+  )
   return (
     <Grid2
       key={id}
       container
       spacing={1}
-      sx={{ alignItems: 'center', width: '100%' }}
+      sx={{ alignItems: 'center', width: '100%', px: 1 }}
     >
       {showSettings && (
         <Grid2 size="auto">
@@ -351,7 +358,7 @@ const LegendRow = ({ mapId, id, featureTypeData, showSettings, ...props }) => {
         </Grid2>
       )}
       <Grid2 size="auto">
-        <FetchedIcon iconName={props.icon} />
+        <FetchedIcon size={16} iconName={props.icon} />
       </Grid2>
       <Grid2 size="grow" sx={{ textAlign: 'start' }}>
         <Typography variant="caption">{name}</Typography>
@@ -360,7 +367,7 @@ const LegendRow = ({ mapId, id, featureTypeData, showSettings, ...props }) => {
         <Grid2 size="auto">
           <LegendPopper
             {...{ mapId }}
-            IconComponent={PiInfo}
+            IconComponent={BiDetail}
             slotProps={{
               badge: {
                 showBadge: numActiveFilters > 0,
@@ -368,18 +375,14 @@ const LegendRow = ({ mapId, id, featureTypeData, showSettings, ...props }) => {
                 size: 14,
                 color: '#29b6f6',
                 reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
-                slotProps: {
-                  badge: {
-                    sx: { right: 0, top: 0 },
-                  },
-                },
+                sx: { right: 0, top: 0 },
               },
               popper: { sx: { width: '400px' } },
             }}
           >
             <LegendRowDetails
-              featureTypeProps={featureTypeData[id].props}
-              {...{ mapId, id, name, ...props }}
+              featureTypeProps={mapFeatures[0].props}
+              {...{ mapId, id, name, featureTypeValues, ...props }}
             />
           </LegendPopper>
         </Grid2>
@@ -450,36 +453,37 @@ const LegendGroup = ({
   return isAnyMapFeatureVisible ? (
     <StyledWrapper wrap={isLegendGroupNameVisible}>
       {isLegendGroupNameVisible && (
-        <Grid2 container spacing={1} sx={{ alignItems: 'center' }}>
-          {showSettings && (
-            <Grid2 size="auto">
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={onToggleLegendGroupName}
-              >
-                {showLegendGroupNames ? (
-                  <MdOutlineVisibility />
-                ) : (
-                  <MdOutlineVisibilityOff />
-                )}
-              </IconButton>
+        <>
+          <Grid2 container spacing={1} sx={{ alignItems: 'center', px: 1 }}>
+            {showSettings && (
+              <Grid2 size="auto">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={onToggleLegendGroupName}
+                >
+                  {showLegendGroupNames ? (
+                    <MdOutlineVisibility />
+                  ) : (
+                    <MdOutlineVisibilityOff />
+                  )}
+                </IconButton>
+              </Grid2>
+            )}
+            <Grid2 size="grow">
+              <Typography variant="subtitle1">{legendGroup.name}</Typography>
             </Grid2>
-          )}
-          <Grid2 size="grow">
-            <Typography variant="subtitle1">{legendGroup.name}</Typography>
           </Grid2>
-        </Grid2>
+          <Divider sx={{ width: '100%', mb: '2px !important' }} />
+        </>
       )}
-      {legendGroupData.map(({ id, value, ...props }, index) =>
+      {legendGroupData.map(({ id, value, ...props }) =>
         value || showSettings ? (
-          <Fragment key={id}>
-            {index > 0 && <Divider sx={{ opacity: 0.6, width: '100%' }} />}
-            <MapFeature
-              legendGroupId={legendGroup.id}
-              {...{ mapId, id, value, showSettings, ...props }}
-            />
-          </Fragment>
+          <MapFeature
+            key={id}
+            legendGroupId={legendGroup.id}
+            {...{ mapId, id, value, showSettings, ...props }}
+          />
         ) : null
       )}
     </StyledWrapper>

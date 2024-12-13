@@ -7,24 +7,27 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { memo, useCallback } from 'react'
+import * as R from 'ramda'
+import { memo, useCallback, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
-  getMaxLabel,
-  getMinLabel,
+  getGradientLabel,
+  getNumLabel,
   GroupCalcSelector,
   RippleBox,
+  ScaleSelector,
   WithEditBadge,
 } from './Legend'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
-import { propId } from '../../../utils/enums'
+import { propId, scaleId } from '../../../utils/enums'
+import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
-import { OverflowText, Select } from '../../compound'
+import { NumberInput, OverflowText, Select } from '../../compound'
 
-import { getContrastText } from '../../../utils'
+import { getContrastText, orderEntireDict, parseGradient } from '../../../utils'
 
 const styles = {
   legendSection: {
@@ -32,10 +35,10 @@ const styles = {
     width: '100%',
     p: 1,
     pt: 2,
-    border: '1px outset rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
   },
-  categoryRoot: {
+  marqueeRoot: {
     height: '100%',
     width: '100%',
     pt: 0.75,
@@ -53,7 +56,7 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     px: 1,
-    border: '1px solid rgb(128, 128, 128)',
+    border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
   },
   rangeRoot: {
@@ -65,11 +68,11 @@ const styles = {
     textAlign: 'center',
     maxWidth: '56px',
   },
-  getGradient: (minColor, maxColor) => ({
+  getGradient: (gradientColors) => ({
     width: '100%',
     height: '24px',
     minWidth: '80px',
-    backgroundImage: `linear-gradient(to right, ${minColor}, ${maxColor})`,
+    background: `linear-gradient(to right, ${gradientColors})`,
   }),
 }
 
@@ -87,81 +90,197 @@ const NumericalColorLegend = ({
   group,
   valueRange,
   numberFormat,
+  // anyNullValue, // TODO: Implement `fallback` UI
   onChangeColor,
+  onChangeValueAt,
 }) => {
-  const minCp = useColorPicker(onChangeColor)
-  const maxCp = useColorPicker(onChangeColor)
+  const {
+    showColorPicker: showColorPickers,
+    handleOpen,
+    handleChange,
+    handleClose,
+  } = useColorPicker(onChangeColor)
 
-  const { startGradientColor, endGradientColor } = valueRange
-  const minLabel = getMinLabel(valueRange, numberFormat, group)
-  const maxLabel = getMaxLabel(valueRange, numberFormat, group)
+  const { colors, values, labels } = useMemo(
+    () => parseGradient('colorGradient', 'color')(valueRange),
+    [valueRange]
+  )
 
-  const handleClick = useCallback(() => {
-    minCp.handleOpen('startGradientColor', startGradientColor)()
-    maxCp.handleOpen('endGradientColor', endGradientColor)()
-  }, [endGradientColor, maxCp, minCp, startGradientColor])
+  const getLabel = useCallback(
+    (index) =>
+      getGradientLabel(
+        labels,
+        values,
+        index,
+        numberFormat,
+        group,
+        'colorGradient'
+      ),
+    [group, labels, numberFormat, values]
+  )
 
-  // const handleClose = useCallback(
-  //   (event) => {
-  //     minCp.handleClose(event)
-  //     maxCp.handleClose(event)
-  //   },
-  //   [maxCp, minCp]
-  // )
+  const isStepScale = useMemo(
+    () => valueRange.colorGradient?.scale === scaleId.STEP,
+    [valueRange.colorGradient?.scale]
+  )
 
-  const showColorPicker = minCp.showColorPicker && maxCp.showColorPicker
+  const getFormattedValueAt = useCallback(
+    (index) => getNumLabel(values[index], numberFormat, 'colorGradient'),
+    [numberFormat, values]
+  )
+
+  const getColorLabel = useCallback(
+    (index) =>
+      index > 0 && index < values.length - 1 // Within the bounds
+        ? isStepScale
+          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)}) "${getLabel(index)}"`
+          : `"${getLabel(index)}"`
+        : isStepScale
+          ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
+          : `${index < 1 ? 'Min' : 'Max'}`,
+    [getFormattedValueAt, getLabel, isStepScale, values]
+  )
+
+  const getValueLabel = useCallback(
+    (index) =>
+      index > 0 && index < values.length - 1 // Within the bounds
+        ? isStepScale
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
+        : isStepScale
+          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
+          : `Value (Read-Only) \u279D ${index < 1 ? 'Min' : 'Max'}`,
+    [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
+  )
+
+  const gradientStyle = useMemo(() => {
+    const {
+      colorGradient: { scale, scaleParams },
+      min: minValue,
+      max: maxValue,
+    } = valueRange
+
+    const scaledValues = R.map((value) =>
+      getScaledValueAlt(
+        [minValue, maxValue],
+        [0, 100],
+        value,
+        isStepScale ? scaleId.LINEAR : scale,
+        scaleParams
+      )
+    )(values)
+
+    const gradientColors = R.addIndex(R.zipWith)(
+      (color, scaledValue, idx) =>
+        !isStepScale
+          ? `${color} ${scaledValue}%`
+          : idx > 0
+            ? `${color} ${scaledValues[idx - 1]}% ${scaledValue}%`
+            : `${color} 1%`,
+      colors
+    )(scaledValues)
+
+    return styles.getGradient(gradientColors.join(', '))
+  }, [colors, isStepScale, valueRange, values])
+
+  const handleChangeColorAt = useCallback(
+    (index) => (value, colorOutputs) => {
+      const pathTail =
+        index == null // Updating fallback color?
+          ? ['fallback', 'color']
+          : ['colorGradient', 'data', index, 'color']
+      handleChange(value, colorOutputs, pathTail)
+    },
+    [handleChange]
+  )
+
   return (
     <>
       <Grid2 container spacing={1.5} sx={styles.rangeRoot}>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Min</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={minLabel} />
+            <OverflowText text={getLabel(0)} />
           </Typography>
         </Grid2>
         <Grid2 size="grow">
-          <WithEditColorBadge showBadge={showColorPicker}>
+          <WithEditColorBadge showBadge={showColorPickers}>
             <RippleBox
-              selected={showColorPicker}
-              sx={styles.getGradient(startGradientColor, endGradientColor)}
-              onClick={handleClick}
+              selected={showColorPickers}
+              sx={gradientStyle}
+              onClick={handleOpen(null, null)}
             />
           </WithEditColorBadge>
         </Grid2>
         <Grid2 size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">Max</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={maxLabel} />
+            <OverflowText text={getLabel(values.length - 1)} />
           </Typography>
         </Grid2>
       </Grid2>
 
-      {showColorPicker && (
-        // BUG: For some reason the `sx` prop doesn't work here
-        <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
-          <ColorPicker
-            colorLabel="Min"
-            value={minCp.colorPickerProps.value}
-            onChange={minCp.handleChange}
-            // onClose={handleClose}
-          />
-          <ColorPicker
-            colorLabel="Max"
-            value={maxCp.colorPickerProps.value}
-            onChange={maxCp.handleChange}
-            // onClose={handleClose}
-          />
-        </Stack>
-      )}
+      {showColorPickers &&
+        (values.length < 3 ? (
+          <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
+            <ColorPicker
+              colorLabel={getColorLabel(0)}
+              value={colors[0]}
+              onChange={handleChangeColorAt(0)}
+              onClose={handleClose}
+            />
+            <ColorPicker
+              colorLabel={getColorLabel(1)}
+              value={colors[1]}
+              onChange={handleChangeColorAt(1)}
+              onClose={handleClose}
+            />
+          </Stack>
+        ) : (
+          <Stack spacing={1} style={{ marginTop: 0 }}>
+            {values.map((value, index) => (
+              <Stack key={index} direction="row" spacing={1}>
+                <ColorPicker
+                  colorLabel={getColorLabel(index)}
+                  value={colors[index]}
+                  onChange={handleChangeColorAt(index)}
+                  onClose={handleClose}
+                />
+                <NumberInput
+                  {...(index === 0 || index === values.length - 1
+                    ? { enabled: false }
+                    : { color: 'warning' })}
+                  sx={{
+                    width: 'auto',
+                    mt: '20px !important',
+                    flex: '1 1 auto',
+                    fieldset: {
+                      borderWidth: '2px !important',
+                    },
+                  }}
+                  slotProps={{
+                    input: {
+                      sx: { borderRadius: 0, pr: 1.75 },
+                    },
+                  }}
+                  label={getValueLabel(index)}
+                  min={valueRange.min}
+                  max={valueRange.max}
+                  {...{ value, numberFormat }}
+                  onClickAway={onChangeValueAt(index)}
+                />
+              </Stack>
+            ))}
+          </Stack>
+        ))}
     </>
   )
 }
 
 const CategoricalColorLegend = ({
   type,
-  colorBy,
-  colorByOptions,
-  featureTypeProps,
+  colorByProp,
+  anyNullValue,
   onChangeColor,
 }) => {
   const {
@@ -169,25 +288,54 @@ const CategoricalColorLegend = ({
     showColorPicker,
     handleOpen,
     handleClose,
-    handleChange,
+    handleChange: handleChangeRaw,
   } = useColorPicker(onChangeColor)
 
-  const colorOptions = colorByOptions[colorBy]
+  const colorOptions = useMemo(() => {
+    const { options, fallback } = colorByProp
+    return R.pipe(
+      orderEntireDict, // Preserve order of options after state updates
+      // Add fallback color for null values, if available
+      R.when(
+        R.always(anyNullValue && fallback?.color != null),
+        R.assoc('null', fallback)
+      ),
+      R.map(
+        R.applySpec({
+          name: R.prop('name'),
+          color: R.propOr('#000', 'color'), // In case `color` is missing
+          // TODO: Think more about this: unspecified `color`s
+        })
+      )
+    )(options)
+  }, [anyNullValue, colorByProp])
+
   const getCategoryLabel = useCallback(
     (option) => {
       const label =
-        type === propId.SELECTOR
-          ? featureTypeProps[colorBy].options[option].name
+        type === propId.SELECTOR || type === propId.TOGGLE
+          ? colorOptions[option].name
           : null
       return label || capitalize(option)
     },
-    [colorBy, featureTypeProps, type]
+    [colorOptions, type]
   )
 
+  const handleChange = useCallback(
+    (value, colorOutputs) => {
+      const option = colorPickerProps.key
+      const pathTail =
+        option === 'null' // Updating fallback color?
+          ? ['fallback', 'color']
+          : ['options', option, 'color']
+      handleChangeRaw(value, colorOutputs, pathTail)
+    },
+    [handleChangeRaw, colorPickerProps.key]
+  )
   return (
     <>
       <OverflowText
-        sx={styles.categoryRoot}
+        sx={styles.marqueeRoot}
         marqueeProps={{ play: !showColorPicker }}
       >
         <Stack
@@ -195,7 +343,7 @@ const CategoricalColorLegend = ({
           spacing={1}
           sx={{ alignItems: 'center', justifyContent: 'center' }}
         >
-          {Object.entries(colorOptions).map(([option, value]) => (
+          {Object.entries(colorOptions).map(([option, { color: value }]) => (
             <WithEditColorBadge
               key={option}
               // anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
@@ -235,9 +383,11 @@ const ColorLegend = ({
   colorBy,
   colorByOptions,
   featureTypeProps,
+  anyNullValue,
   groupCalcValue,
   onSelectProp,
   onSelectGroupCalc,
+  onChangePropAttr,
   onChangeColor,
 }) => {
   const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
@@ -260,7 +410,7 @@ const ColorLegend = ({
               labelId="color-by-label"
               label="Color by"
               value={colorBy}
-              optionsList={Object.keys(colorByOptions)}
+              optionsList={colorByOptions}
               getLabel={(prop) => featureTypeProps[prop].name || prop}
               onSelect={onSelectProp(
                 'colorBy',
@@ -281,12 +431,43 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}
-          {...{ colorBy, colorByOptions, featureTypeProps, onChangeColor }}
+          {...{ colorByProp, anyNullValue, onChangeColor }}
         />
       ) : (
-        <NumericalColorLegend
-          {...{ group, valueRange, numberFormat, onChangeColor }}
-        />
+        <>
+          <NumericalColorLegend
+            {...{
+              group,
+              valueRange,
+              numberFormat,
+              anyNullValue,
+              onChangeColor,
+            }}
+            onChangeValueAt={(index) =>
+              onChangePropAttr([
+                colorBy,
+                'colorGradient',
+                'data',
+                index,
+                'value',
+              ])
+            }
+          />
+          <ScaleSelector
+            scale={valueRange.colorGradient.scale}
+            scaleParams={valueRange.colorGradient.scaleParams}
+            minDomainValue={valueRange.min}
+            onSelect={onChangePropAttr([colorBy, 'colorGradient', 'scale'])}
+            onChangeScaleParamById={(scaleParamId) =>
+              onChangePropAttr([
+                colorBy,
+                'colorGradient',
+                'scaleParams',
+                scaleParamId,
+              ])
+            }
+          />
+        </>
       )}
       {group && (
         <GroupCalcSelector

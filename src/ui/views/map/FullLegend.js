@@ -53,7 +53,7 @@ import {
   OptionalWrapper,
 } from '../../compound'
 
-import { withIndex, getLabelFn } from '../../../utils'
+import { withIndex } from '../../../utils'
 
 const styles = {
   root: {
@@ -84,6 +84,7 @@ const styles = {
     overflow: 'auto',
     maxWidth: 'fit-content',
     borderWidth: 2,
+    pt: 2,
   },
   toggleButton: {
     p: 1,
@@ -112,10 +113,10 @@ const LegendRowDetails = ({
   value,
   allowGrouping,
   colorBy,
-  colorByOptions,
   sizeBy,
-  sizeByOptions,
   heightBy,
+  colorByOptions,
+  sizeByOptions,
   heightByOptions,
   shape,
   // shapeBy, // TODO: `shapeBy` would be a unifying property for `iconBy` and `lineBy`?
@@ -140,6 +141,7 @@ const LegendRowDetails = ({
     },
   ],
   featureTypeProps,
+  featureTypeValues,
   expanded,
   setExpanded,
   onToggleExpanded,
@@ -152,12 +154,14 @@ const LegendRowDetails = ({
     sizeRange,
     clusterRange,
     heightRange,
+    hasAnyNullValue,
     handleSelectGroupCalc,
     handleSelectProp,
     handleToggleGroup,
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
+    handleChangePropAttr,
   } = useLegendDetails({
     mapId,
     legendGroupId,
@@ -168,6 +172,7 @@ const LegendRowDetails = ({
     heightBy,
     shapePathEnd,
     featureTypeProps,
+    featureTypeValues,
     getRange,
   })
   const {
@@ -183,7 +188,6 @@ const LegendRowDetails = ({
   } = useMapFilter({
     mapId,
     group,
-    colorByOptions,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
     filters,
@@ -327,9 +331,11 @@ const LegendRowDetails = ({
                     sizeByOptions,
                     featureTypeProps,
                   }}
+                  hasAnyNullValue={hasAnyNullValue(sizeBy)}
                   groupCalcValue={groupCalcBySize}
                   onSelectProp={handleSelectProp}
                   onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangePropAttr={handleChangePropAttr}
                   onChangeSize={handleChangeSize}
                 />
               </Grid2>
@@ -350,14 +356,17 @@ const LegendRowDetails = ({
                     colorByOptions,
                     featureTypeProps,
                   }}
+                  hasAnyNullValue={hasAnyNullValue(colorBy)}
                   groupCalcValue={groupCalcByColor}
                   onSelectProp={handleSelectProp}
                   onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangePropAttr={handleChangePropAttr}
                   onChangeColor={handleChangeColor}
                 />
               </Grid2>
             )}
-            {heightBy != null && (
+            {/* FIXME: `heightBy` is temporarily hidden */}
+            {heightBy != null && false && (
               <Grid2 size="grow">
                 <HeightLegend
                   valueRange={heightRange}
@@ -368,7 +377,9 @@ const LegendRowDetails = ({
                     heightByOptions,
                     featureTypeProps,
                   }}
+                  hasAnyNullValue={hasAnyNullValue(heightBy)}
                   icon={<FetchedIcon iconName={icon} />}
+                  onChangePropAttr={handleChangePropAttr}
                   onSelectProp={handleSelectProp('heightBy')}
                 />
               </Grid2>
@@ -380,13 +391,20 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({ id, featureTypeData, ...props }) => (
-  <LegendRowDetails
-    name={getLabelFn(featureTypeData, id)}
-    featureTypeProps={featureTypeData[id].props}
-    {...{ id, ...props }}
-  />
-)
+const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
+  const mapFeatures = mapFeaturesBy(id, mapId)
+  const featureTypeValues = useMemo(
+    () => R.pluck('values')(mapFeatures),
+    [mapFeatures]
+  )
+  return (
+    <LegendRowDetails
+      name={mapFeatures[0].name ?? id}
+      featureTypeProps={mapFeatures[0].props}
+      {...{ id, mapId, featureTypeValues, ...props }}
+    />
+  )
+}
 
 const MapFeature = ({ id, ...props }) => {
   const nodeTypes = useSelector(selectNodeTypeKeys)
@@ -468,7 +486,7 @@ const LegendGroup = ({
             key={id}
             legendGroupId={legendGroup.id}
             expanded={expanded[id] ?? true}
-            setExpanded={(value) => setExpanded(R.assoc(id, value)(expanded))}
+            setExpanded={(value) => setExpanded(R.assoc(id, value))}
             onToggleExpanded={handleToggleExpandedBy(id)}
             {...{ mapId, id, ...props }}
           />
@@ -506,9 +524,11 @@ const LegendGroups = ({ mapId, ...props }) => {
 const LegendSettings = ({
   expandAll,
   showLegendGroupNames,
+  showAdvancedControls,
   onChangeView,
   onExpandAll,
   onToggleLegendGroupName,
+  onToggleAdvancedControls,
 }) => (
   <Stack
     component={Paper}
@@ -545,6 +565,19 @@ const LegendSettings = ({
         label="Show legend group names"
         labelPlacement="end"
       />
+      <FormControlLabel
+        disabled
+        value="toggle-advanced-controls"
+        control={
+          <Switch
+            name="cave-toggle-advanced-controls"
+            checked={showAdvancedControls}
+            onChange={onToggleAdvancedControls}
+          />
+        }
+        label="Show advanced controls"
+        labelPlacement="end"
+      />
     </FormGroup>
     <Button variant="contained" color="warning" onClick={onChangeView}>
       Switch to Minimal View
@@ -554,6 +587,7 @@ const LegendSettings = ({
 
 const FullLegend = ({ mapId, onChangeView }) => {
   const [expandAll, handleExpandAll] = useToggle(true)
+  const [showAdvancedControls, handleToggleAdvancedControls] = useToggle(false)
   const { showLegendGroupNames, handleToggleLegendGroupNames } =
     useLegend(mapId)
   return (
@@ -570,9 +604,15 @@ const FullLegend = ({ mapId, onChangeView }) => {
         }}
       >
         <LegendSettings
-          {...{ expandAll, showLegendGroupNames, onChangeView }}
+          {...{
+            expandAll,
+            showLegendGroupNames,
+            showAdvancedControls,
+            onChangeView,
+          }}
           onExpandAll={handleExpandAll}
           onToggleLegendGroupName={handleToggleLegendGroupNames}
+          onToggleAdvancedControls={handleToggleAdvancedControls}
         />
       </LegendHeader>
       <LegendGroups
