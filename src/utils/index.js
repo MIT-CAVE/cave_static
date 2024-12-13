@@ -941,7 +941,7 @@ export const constructFetchedGeoJson = (
                           sizeRange.sizeGradient.scaleParams
                         )
 
-                const dashPattern = enabledItems[geoType].lineBy ?? 'solid'
+                const dashPattern = enabledItems[geoType].lineStyle ?? 'solid'
 
                 if (parseFloat(rawSize) === 0 || colord(rawColor).alpha() === 0)
                   return false
@@ -1111,7 +1111,7 @@ export const constructGeoJson = (
               }),
               ...(type === 'node' && { icon: legendObj.icon }),
               ...(type === 'arc' && {
-                dash: R.propOr('solid', 'lineBy')(legendObj),
+                dash: R.propOr('solid', 'lineStyle')(legendObj),
               }),
             },
             geometry: geometryFunc(item),

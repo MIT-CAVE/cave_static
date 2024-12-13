@@ -532,9 +532,9 @@ export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
     <LegendRowComponent
       mapFeaturesBy={effectiveArcsBy}
       shapeOptions={Object.keys(indexedOptions)}
-      shapePathEnd="lineBy"
-      shape={props.lineBy ?? 'solid'}
-      icon={indexedOptions[props.lineBy ?? 'solid']?.icon}
+      shapePathEnd="lineStyle"
+      shape={props.lineStyle ?? 'solid'}
+      icon={indexedOptions[props.lineStyle ?? 'solid']?.icon}
       shapeLabel="Select the line style"
       getShapeIcon={(option) => indexedOptions[option]?.icon}
       getShapeLabel={(option) => indexedOptions[option]?.label}
