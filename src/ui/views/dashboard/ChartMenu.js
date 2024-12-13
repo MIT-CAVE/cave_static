@@ -85,6 +85,8 @@ const ChartMenu = ({
   onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
+  orderBySize,
+  onChartHover,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
@@ -132,6 +134,11 @@ const ChartMenu = ({
           label="Show Toolbar"
           value={showToolbar}
           onClick={onShowToolbar}
+        />
+        <ToggleMenuItem
+          label="Order By Size"
+          value={orderBySize}
+          onClick={onChartHover}
         />
         <BaseMenuItem
           label={isMaximized ? 'Minimize' : 'Maximize'}

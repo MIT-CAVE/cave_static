@@ -71,6 +71,7 @@ const DashboardChart = ({ chartObj }) => {
   const leftVariant = R.propOr('line', 'leftVariant', cleanedChartObj)
   const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
+  const orderBySize = R.propOr(false, 'orderBySize')(chartObj)
 
   // for some reason useLayoutEffect doesn't set the state before the chart is rendered
   // so we use useMemo to trigger the loading state
@@ -348,7 +349,7 @@ const DashboardChart = ({ chartObj }) => {
       ) : cleanedChartObj.chartType === chartVariant.MIXED ? (
         <MixedChart
           data={formattedData}
-          {...{ labelProps }}
+          {...{ labelProps, orderBySize }}
           leftVariant={leftVariant}
           rightVariant={rightVariant}
         />

@@ -176,12 +176,16 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({ options, ...props }) => {
+const FlexibleChart = ({ options, orderBySize, ...props }) => {
   return (
     <FlexibleContainer>
       <ReactEChartsCore
         echarts={echarts}
-        option={R.mergeDeepRight(baseOptions)(options)}
+        option={R.mergeDeepRight(
+          orderBySize
+            ? R.assocPath(['tooltip', 'order'], 'valueDesc', baseOptions)
+            : baseOptions
+        )(options)}
         notMerge
         theme="dark"
         // lazyUpdate
