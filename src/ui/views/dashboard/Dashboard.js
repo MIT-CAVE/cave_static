@@ -88,17 +88,18 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
-  const orderBySize = R.propOr(false, 'orderBySize')(chartObj)
+  const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
-    () => ({
+    (event) => ({
       path,
-      value: R.assoc('orderBySize', !orderBySize)(chartObj),
+      value: R.assoc('chartHoverOrder', event.target.value)(chartObj),
       sync: !includesPath(R.values(sync), path),
     }),
-    [orderBySize, sync, chartObj, path]
+    [chartHoverOrder, sync, chartObj, path]
   )
+
   const handleShowToolbar = useMutateState(
     () => ({
       path,
@@ -231,7 +232,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
       )}
       {!lockedLayout && !chartObj.lockedLayout && (
         <ChartMenu
-          {...{ isMaximized, showToolbar, orderBySize }}
+          {...{ isMaximized, showToolbar, chartHoverOrder }}
           onRemoveChart={handleRemoveChart}
           onToggleMaximize={handleToggleMaximize}
           onShowToolbar={handleShowToolbar}

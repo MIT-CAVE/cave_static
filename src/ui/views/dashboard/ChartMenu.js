@@ -4,9 +4,12 @@ import {
   Divider,
   FormControlLabel,
   FormGroup,
+  FormLabel,
   Grid,
   Menu,
   MenuItem,
+  Radio,
+  RadioGroup,
   Switch,
 } from '@mui/material'
 import { memo } from 'react'
@@ -85,7 +88,7 @@ const ChartMenu = ({
   onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
-  orderBySize,
+  chartHoverOrder,
   onChartHover,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
@@ -135,16 +138,43 @@ const ChartMenu = ({
           value={showToolbar}
           onClick={onShowToolbar}
         />
-        <ToggleMenuItem
-          label="Order By Size"
-          value={orderBySize}
-          onClick={onChartHover}
-        />
         <BaseMenuItem
           label={isMaximized ? 'Minimize' : 'Maximize'}
           ReactIcon={isMaximized ? MdFullscreenExit : MdFullscreen}
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
+        <Divider />
+        <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
+        <RadioGroup
+          sx={{ ml: 2 }}
+          value={chartHoverOrder}
+          onChange={onChartHover}
+        >
+          <FormControlLabel
+            size="small"
+            value="seriesAsc"
+            control={<Radio />}
+            label="Alphabetical Asc."
+          />
+          <FormControlLabel
+            size="small"
+            value="seriesDesc"
+            control={<Radio />}
+            label="Alphabetical Desc."
+          />
+          <FormControlLabel
+            size="small"
+            value="valueAsc"
+            control={<Radio />}
+            label="Value Asc."
+          />
+          <FormControlLabel
+            size="small"
+            value="valueDesc"
+            control={<Radio />}
+            label="Value Desc."
+          />
+        </RadioGroup>
         <Divider />
         {isGroupedOutput && [
           <ToggleMenuItem
