@@ -67,6 +67,7 @@ const WaterfallChart = ({
   numberFormat,
   colors,
   showNA,
+  chartHoverOrder,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -245,7 +246,7 @@ const WaterfallChart = ({
     series,
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart {...{ options, chartHoverOrder }} />
 }
 
 const StackedWaterfallChart = ({
@@ -255,6 +256,7 @@ const StackedWaterfallChart = ({
   numberFormat,
   colors,
   showNA,
+  chartHoverOrder,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -592,7 +594,7 @@ const StackedWaterfallChart = ({
     },
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart {...{ options, chartHoverOrder }} />
 }
 
 export { WaterfallChart, StackedWaterfallChart }

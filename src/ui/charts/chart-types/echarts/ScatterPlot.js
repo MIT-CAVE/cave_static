@@ -9,7 +9,13 @@ import {
   getChartItemColor,
 } from '../../../../utils'
 
-const ScatterPlot = ({ data, labelProps, numberFormat, colors }) => {
+const ScatterPlot = ({
+  data,
+  labelProps,
+  numberFormat,
+  colors,
+  chartHoverOrder,
+}) => {
   const labels = R.pluck('label')(labelProps)
   if (
     R.isNil(data) ||
@@ -93,7 +99,7 @@ const ScatterPlot = ({ data, labelProps, numberFormat, colors }) => {
     },
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart {...{ options, chartHoverOrder }} />
 }
 
 export { ScatterPlot }

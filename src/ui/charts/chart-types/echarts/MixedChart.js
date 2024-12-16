@@ -30,7 +30,13 @@ const getData = (index, variant, data) => {
   return isCumulative(variant, values) ? accumulate(values) : values
 }
 
-const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
+const MixedChart = ({
+  data,
+  labelProps,
+  leftVariant,
+  rightVariant,
+  chartHoverOrder,
+}) => {
   const [syncAxes, setSyncAxes] = useState(true)
   const hasSubgroups = R.has('children', R.head(data))
   const xLabels = R.pluck('name', data)
@@ -200,7 +206,7 @@ const MixedChart = ({ data, labelProps, leftVariant, rightVariant }) => {
   }
   return (
     <>
-      <FlexibleChart {...{ options }} />
+      <FlexibleChart {...{ options, chartHoverOrder }} />
       <FormControlLabel
         sx={{ position: 'absolute', right: 65, top: 10 }}
         control={

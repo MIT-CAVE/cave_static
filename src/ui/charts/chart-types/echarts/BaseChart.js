@@ -176,12 +176,14 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({ options, ...props }) => {
+const FlexibleChart = ({ options, chartHoverOrder, ...props }) => {
   return (
     <FlexibleContainer>
       <ReactEChartsCore
         echarts={echarts}
-        option={R.mergeDeepRight(baseOptions)(options)}
+        option={R.mergeDeepRight(
+          R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
+        )(options)}
         notMerge
         theme="dark"
         // lazyUpdate
@@ -202,6 +204,7 @@ const EchartsPlot = ({
   colors,
   distribution = false,
   showNA,
+  chartHoverOrder,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -309,6 +312,16 @@ const EchartsPlot = ({
   const getNumberFormat = (labelKey, value) =>
     NumberFormat.format(value, numberFormat[labelKey])
 
+  const sortParams = (params) => {
+    const handleByValue =
+      chartHoverOrder === 'valueAsc' || chartHoverOrder === 'valueDesc'
+        ? R.sortBy(({ value }) => value)(params)
+        : params
+    return chartHoverOrder === 'valueAsc' || chartHoverOrder === 'seriesAsc'
+      ? handleByValue.reverse()
+      : handleByValue
+  }
+
   const options = {
     grid: distribution
       ? {
@@ -332,7 +345,7 @@ const EchartsPlot = ({
         ? {
             formatter: (params) =>
               `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${params
+                ${sortParams(params)
                   .map(({ marker, seriesId, seriesName, value }) =>
                     R.isNil(value) && !showNA
                       ? false
@@ -360,7 +373,7 @@ const EchartsPlot = ({
                   .filter(R.identity)
                   .join('')}`
                 : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${params
+                ${sortParams(params)
                   .map(({ marker, seriesName, value }) =>
                     R.isNil(value) && !showNA
                       ? false
@@ -376,7 +389,7 @@ const EchartsPlot = ({
     ...lineMap,
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart {...{ options, chartHoverOrder }} />
 }
 
 export default EchartsPlot

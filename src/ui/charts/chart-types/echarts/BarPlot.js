@@ -10,12 +10,21 @@ const BarPlot = ({
   colors,
   stack = false,
   showNA,
+  chartHoverOrder,
 }) => {
   return (
     <EchartsPlot
       data={data}
       chartType="bar"
-      {...{ xAxisTitle, yAxisTitle, numberFormat, stack, colors, showNA }}
+      {...{
+        xAxisTitle,
+        yAxisTitle,
+        numberFormat,
+        stack,
+        colors,
+        showNA,
+        chartHoverOrder,
+      }}
     />
   )
 }
