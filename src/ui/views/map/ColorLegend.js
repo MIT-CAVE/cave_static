@@ -148,8 +148,8 @@ const NumericalColorLegend = ({
           ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
           : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
         : isStepScale
-          ? `Threshold (Read-Only) \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
-          : `Value (Read-Only) \u279D ${index < 1 ? 'Min' : 'Max'}`,
+          ? `Threshold \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
+          : `Value \u279D ${index < 1 ? 'Min' : 'Max'}`,
     [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
   )
 
@@ -220,59 +220,41 @@ const NumericalColorLegend = ({
         </Grid2>
       </Grid2>
 
-      {showColorPickers &&
-        (values.length < 3 ? (
-          <Stack direction="row" spacing={1} style={{ marginTop: 0 }}>
-            <ColorPicker
-              colorLabel={getColorLabel(0)}
-              value={colors[0]}
-              onChange={handleChangeColorAt(0)}
-              onClose={handleClose}
-            />
-            <ColorPicker
-              colorLabel={getColorLabel(1)}
-              value={colors[1]}
-              onChange={handleChangeColorAt(1)}
-              onClose={handleClose}
-            />
-          </Stack>
-        ) : (
-          <Stack spacing={1} style={{ marginTop: 0 }}>
-            {values.map((value, index) => (
-              <Stack key={index} direction="row" spacing={1}>
-                <ColorPicker
-                  colorLabel={getColorLabel(index)}
-                  value={colors[index]}
-                  onChange={handleChangeColorAt(index)}
-                  onClose={handleClose}
-                />
-                <NumberInput
-                  {...(index === 0 || index === values.length - 1
-                    ? { enabled: false }
-                    : { color: 'warning' })}
-                  sx={{
-                    width: 'auto',
-                    mt: '20px !important',
-                    flex: '1 1 auto',
-                    fieldset: {
-                      borderWidth: '2px !important',
-                    },
-                  }}
-                  slotProps={{
-                    input: {
-                      sx: { borderRadius: 0, pr: 1.75 },
-                    },
-                  }}
-                  label={getValueLabel(index)}
-                  min={valueRange.min}
-                  max={valueRange.max}
-                  {...{ value, numberFormat }}
-                  onClickAway={onChangeValueAt(index)}
-                />
-              </Stack>
-            ))}
-          </Stack>
-        ))}
+      {showColorPickers && (
+        <Stack spacing={1} style={{ marginTop: 0 }}>
+          {values.map((value, index) => (
+            <Stack key={index} direction="row" spacing={1}>
+              <ColorPicker
+                colorLabel={getColorLabel(index)}
+                value={colors[index]}
+                onChange={handleChangeColorAt(index)}
+                onClose={handleClose}
+              />
+              <NumberInput
+                color="warning"
+                sx={{
+                  width: 'auto',
+                  mt: '20px !important',
+                  flex: '1 1 auto',
+                  fieldset: {
+                    borderWidth: '2px !important',
+                  },
+                }}
+                slotProps={{
+                  input: {
+                    sx: { borderRadius: 0, pr: 1.75 },
+                  },
+                }}
+                label={getValueLabel(index)}
+                min={valueRange.min}
+                max={valueRange.max}
+                {...{ value, numberFormat }}
+                onClickAway={onChangeValueAt(index)}
+              />
+            </Stack>
+          ))}
+        </Stack>
+      )}
     </>
   )
 }
