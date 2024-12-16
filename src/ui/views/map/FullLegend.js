@@ -588,7 +588,7 @@ const LegendSettings = ({
 const FullLegend = ({ mapId, onChangeView }) => {
   const [expandAll, handleExpandAll] = useToggle(true)
   const [showAdvancedControls, handleToggleAdvancedControls] = useToggle(false)
-  const { showLegendGroupNames, handleToggleLegendGroupNames } =
+  const { showLegendGroupNames, handleToggleLegendGroupNames, popperProps } =
     useLegend(mapId)
   return (
     <LegendRoot
@@ -597,7 +597,7 @@ const FullLegend = ({ mapId, onChangeView }) => {
       sx={[styles.root, showLegendGroupNames && { pt: 0, px: 1 }]}
     >
       <LegendHeader
-        {...{ mapId }}
+        {...{ mapId, popperProps }}
         slotProps={{
           label: { variant: 'h5', sx: { pl: 1 } },
           icon: { size: 24 },

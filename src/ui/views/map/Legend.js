@@ -3,6 +3,7 @@ import {
   Badge,
   Box,
   ButtonBase,
+  ClickAwayListener,
   FormControl,
   Grid2,
   InputAdornment,
@@ -43,11 +44,7 @@ import {
   scaleParamsById,
   statFuncs,
 } from '../../../utils/enums'
-import {
-  useMenu,
-  useMutateStateWithSync,
-  useToggle,
-} from '../../../utils/hooks'
+import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 import {
   getScaleParamDefaults,
   getScaleParamLabel,
@@ -229,9 +226,30 @@ export const useLegendDetails = ({
 }
 
 export const useLegend = (mapId) => {
+  const [openId, setOpenId] = useState()
+
   const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
     mapId
   )
+
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+
+  const handleClose = useCallback(
+    (event) => {
+      setOpenId(null)
+      handleCloseMenu(event)
+    },
+    [handleCloseMenu]
+  )
+
+  const handleOpenById = useCallback(
+    (id) => (event) => {
+      setOpenId(id)
+      handleOpenMenu(event)
+    },
+    [handleOpenMenu]
+  )
+
   const handleToggleLegendGroupNames = useMutateStateWithSync(
     () => ({
       path: ['maps', 'data', mapId, 'showLegendGroupNames'],
@@ -239,7 +257,17 @@ export const useLegend = (mapId) => {
     }),
     [mapId, showLegendGroupNames]
   )
-  return { showLegendGroupNames, handleToggleLegendGroupNames }
+
+  return {
+    showLegendGroupNames,
+    handleToggleLegendGroupNames,
+    popperProps: {
+      openId,
+      anchorEl,
+      handleClose,
+      handleOpenById,
+    },
+  }
 }
 
 export const getNumLabel = (value, numberFormatRaw, gradientKey) => {
@@ -428,26 +456,29 @@ export const LegendPopper = ({
   IconComponent,
   children,
   slotProps = {},
+  anchorEl,
+  onOpen,
+  onClose,
   ...props
 }) => {
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
 
-  const [selected, handleToggleSelected] = useToggle(false)
-  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  const open = Boolean(anchorEl)
   const {
     badge: { showBadge, reactIcon, ...muiBadgeProps } = {},
     ...muiSlotProps
   } = slotProps
+
   return (
     <ToggleButton
       size="small"
       color="primary"
       value="details"
-      onMouseEnter={handleOpenMenu}
-      onMouseLeave={selected ? null : handleCloseMenu}
-      onClick={handleToggleSelected}
-      {...{ selected, ...props }}
+      // Toggle when clicking on the opened popper
+      onClick={anchorEl == null ? onOpen : onClose}
+      selected={open}
+      {...props}
     >
       <WithBadge
         size={14}
@@ -461,36 +492,36 @@ export const LegendPopper = ({
         }}
       >
         <IconComponent
-          color={selected ? '#90caf9' : '#fff'}
+          color={open ? '#90caf9' : '#fff'}
           {...muiSlotProps.icon}
         />
       </WithBadge>
       {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
       <MapPortal>
-        <Popper
-          placement="left"
-          disablePortal
-          open={Boolean(anchorEl) || selected}
-          onClose={handleCloseMenu}
-          onClick={(event) => {
-            event.stopPropagation()
-          }}
-          {...{ anchorEl, ...muiSlotProps.popper }}
-          sx={[
-            styles.popper,
-            {
-              maxHeight: showBearingSlider
-                ? 'calc(100% - 165px)'
-                : 'calc(100% - 88px)',
-              maxWidth: showPitchSlider
-                ? 'calc(100% - 164px)'
-                : 'calc(100% - 128px)',
-            },
-            ...forceArray(muiSlotProps.popper?.sx),
-          ]}
-        >
-          {children}
-        </Popper>
+        <ClickAwayListener onClickAway={onClose}>
+          <Popper
+            placement="left"
+            disablePortal
+            {...{ open, anchorEl, onClose, ...muiSlotProps.popper }}
+            onClick={(event) => {
+              event.stopPropagation()
+            }}
+            sx={[
+              styles.popper,
+              {
+                maxHeight: showBearingSlider
+                  ? 'calc(100% - 165px)'
+                  : 'calc(100% - 88px)',
+                maxWidth: showPitchSlider
+                  ? 'calc(100% - 164px)'
+                  : 'calc(100% - 128px)',
+              },
+              ...forceArray(muiSlotProps.popper?.sx),
+            ]}
+          >
+            {children}
+          </Popper>
+        </ClickAwayListener>
       </MapPortal>
     </ToggleButton>
   )
@@ -554,11 +585,15 @@ export const LegendRowGeo = ({ LegendRowComponent, ...props }) => {
   )
 }
 
+// This is a reserved ID and shouldn't be used by API designers for map feature IDs in the legend
+const LEGEND_SETTINGS_POPPER_ID = 'legend-settings-popper'
+
 export const LegendHeader = ({
   label = 'Legend',
   mapId,
   slotProps = {},
   sx = [],
+  popperProps: { anchorEl, openId, handleOpenById, handleClose },
   children,
 }) => (
   <Grid2
@@ -576,6 +611,13 @@ export const LegendHeader = ({
         sx={styles.toggleButton}
         IconComponent={RiSettings5Line}
         {...{ mapId, slotProps }}
+        anchorEl={
+          openId === LEGEND_SETTINGS_POPPER_ID || openId == null
+            ? anchorEl
+            : null
+        }
+        onOpen={handleOpenById(LEGEND_SETTINGS_POPPER_ID)}
+        onClose={handleClose}
       >
         {children}
       </LegendPopper>

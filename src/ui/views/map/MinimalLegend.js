@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   Divider,
+  FormControlLabel,
   Grid2,
   IconButton,
   Paper,
@@ -10,14 +11,10 @@ import {
   ToggleButton,
   Typography,
 } from '@mui/material'
-import { Fragment, memo, useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { BiDetail } from 'react-icons/bi'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
-import {
-  MdFilterAlt,
-  MdOutlineVisibility,
-  MdOutlineVisibilityOff,
-} from 'react-icons/md'
+import { MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
 import ColorLegend from './ColorLegend'
@@ -329,7 +326,15 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
+const LegendRow = ({
+  mapId,
+  id,
+  mapFeaturesBy,
+  anchorEl,
+  onOpen,
+  onClose,
+  ...props
+}) => {
   const mapFeatures = mapFeaturesBy(id, mapId)
   const name = mapFeatures[0].name ?? id
   const numActiveFilters = useMemo(
@@ -347,46 +352,42 @@ const LegendRow = ({ mapId, id, mapFeaturesBy, showSettings, ...props }) => {
       spacing={1}
       sx={{ alignItems: 'center', width: '100%', px: 1 }}
     >
-      {showSettings && (
-        <Grid2 size="auto">
-          <Switch
-            name={`cave-toggle-map-${id}`}
-            size="small"
-            checked={props.value}
-            onClick={props.onChangeVisibility}
-          />
-        </Grid2>
-      )}
       <Grid2 size="auto">
-        <FetchedIcon size={16} iconName={props.icon} />
+        <Switch
+          name={`cave-toggle-map-${id}`}
+          size="small"
+          checked={props.value}
+          onClick={props.onChangeVisibility}
+        />
+      </Grid2>
+      <Grid2 size="auto">
+        <FetchedIcon iconName={props.icon} />
       </Grid2>
       <Grid2 size="grow" sx={{ textAlign: 'start' }}>
         <Typography variant="caption">{name}</Typography>
       </Grid2>
-      {!showSettings && (
-        <Grid2 size="auto">
-          <LegendPopper
-            {...{ mapId }}
-            IconComponent={BiDetail}
-            slotProps={{
-              badge: {
-                showBadge: numActiveFilters > 0,
-                overlap: 'rectangular',
-                size: 14,
-                color: '#29b6f6',
-                reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
-                sx: { right: 0, top: 0 },
-              },
-              popper: { sx: { width: '400px' } },
-            }}
-          >
-            <LegendRowDetails
-              featureTypeProps={mapFeatures[0].props}
-              {...{ mapId, id, name, featureTypeValues, ...props }}
-            />
-          </LegendPopper>
-        </Grid2>
-      )}
+      <Grid2 size="auto">
+        <LegendPopper
+          {...{ mapId, anchorEl, onOpen, onClose }}
+          IconComponent={BiDetail}
+          slotProps={{
+            badge: {
+              showBadge: numActiveFilters > 0,
+              overlap: 'rectangular',
+              size: 14,
+              color: '#29b6f6',
+              reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
+              sx: { right: 0, top: 0 },
+            },
+            popper: { sx: { width: '400px' } },
+          }}
+        >
+          <LegendRowDetails
+            featureTypeProps={mapFeatures[0].props}
+            {...{ mapId, id, name, featureTypeValues, ...props }}
+          />
+        </LegendPopper>
+      </Grid2>
     </Grid2>
   )
 }
@@ -436,73 +437,52 @@ const StyledWrapper = (props) => (
 const LegendGroup = ({
   mapId,
   legendGroup,
-  showSettings,
   showLegendGroupNames,
-  onToggleLegendGroupName,
+  popperProps: { anchorEl, openId, handleClose, handleOpenById },
 }) => {
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
     [legendGroup]
   )
   const isAnyMapFeatureVisible = useMemo(
-    () => showSettings || legendGroupData.some(({ value }) => value),
-    [legendGroupData, showSettings]
+    () => legendGroupData.some(({ value }) => value),
+    [legendGroupData]
   )
-  const isLegendGroupNameVisible = showSettings || showLegendGroupNames
 
   return isAnyMapFeatureVisible ? (
-    <StyledWrapper wrap={isLegendGroupNameVisible}>
-      {isLegendGroupNameVisible && (
+    <StyledWrapper wrap={showLegendGroupNames}>
+      {showLegendGroupNames && (
         <>
-          <Grid2 container spacing={1} sx={{ alignItems: 'center', px: 1 }}>
-            {showSettings && (
-              <Grid2 size="auto">
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={onToggleLegendGroupName}
-                >
-                  {showLegendGroupNames ? (
-                    <MdOutlineVisibility />
-                  ) : (
-                    <MdOutlineVisibilityOff />
-                  )}
-                </IconButton>
-              </Grid2>
-            )}
-            <Grid2 size="grow">
-              <Typography variant="subtitle1">{legendGroup.name}</Typography>
-            </Grid2>
-          </Grid2>
+          <Typography sx={{ alignItems: 'center', px: 1 }} variant="subtitle1">
+            {legendGroup.name}
+          </Typography>
           <Divider sx={{ width: '100%', mb: '2px !important' }} />
         </>
       )}
-      {legendGroupData.map(({ id, value, ...props }) =>
-        value || showSettings ? (
-          <MapFeature
-            key={id}
-            legendGroupId={legendGroup.id}
-            {...{ mapId, id, value, showSettings, ...props }}
-          />
-        ) : null
-      )}
+      {legendGroupData.map(({ id, value, ...props }) => (
+        <MapFeature
+          key={id}
+          legendGroupId={legendGroup.id}
+          anchorEl={id === openId || openId == null ? anchorEl : null}
+          onOpen={handleOpenById(id)}
+          onClose={handleClose}
+          {...{ mapId, id, value, ...props }}
+        />
+      ))}
     </StyledWrapper>
   ) : null
 }
 
 const LegendGroups = ({ mapId, ...props }) => {
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
+
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])
   const showWrapper = useMemo(() => {
     const isAnyMapFeatureVisible = legendData.some((legendGroup) =>
       Object.values(legendGroup.data).some((mapFeature) => mapFeature.value)
     )
-    return (
-      !props.showSettings &&
-      !props.showLegendGroupNames &&
-      isAnyMapFeatureVisible
-    )
-  }, [legendData, props.showSettings, props.showLegendGroupNames])
+    return !props.showLegendGroupNames && isAnyMapFeatureVisible
+  }, [legendData, props.showLegendGroupNames])
   return (
     <StyledWrapper wrap={showWrapper}>
       {legendData.map((legendGroup) => (
@@ -515,17 +495,33 @@ const LegendGroups = ({ mapId, ...props }) => {
   )
 }
 
-const LegendSettings = ({ mapId, onChangeView, ...props }) => (
+const LegendSettings = ({
+  showLegendGroupNames,
+  onToggleLegendGroupName,
+  onChangeView,
+}) => (
   <Stack
     component={Paper}
     elevation={1}
     spacing={1}
+    divider={<Divider />}
     sx={[styles.details, styles.settings]}
   >
     <Typography variant="h6" sx={{ textAlign: 'start' }}>
       Settings
     </Typography>
-    <LegendGroups showSettings {...{ mapId, ...props }} />
+    <FormControlLabel
+      value="toggle-legend-group-names"
+      control={
+        <Switch
+          name="cave-toggle-legend-group-names"
+          checked={showLegendGroupNames}
+          onChange={onToggleLegendGroupName}
+        />
+      }
+      label="Show legend group names"
+      labelPlacement="end"
+    />
     <Button variant="contained" color="warning" onClick={onChangeView}>
       Switch to Full View
     </Button>
@@ -533,24 +529,25 @@ const LegendSettings = ({ mapId, onChangeView, ...props }) => (
 )
 
 const MinimalLegend = ({ mapId, onChangeView }) => {
-  const { showLegendGroupNames, handleToggleLegendGroupNames } =
+  const { showLegendGroupNames, handleToggleLegendGroupNames, popperProps } =
     useLegend(mapId)
+
   return (
     <LegendRoot sx={styles.root} elevation={12} {...{ mapId }}>
       <LegendHeader
-        {...{ mapId }}
+        {...{ mapId, popperProps }}
         slotProps={{
           popper: { sx: { zIndex: 3 } },
           icon: { size: 16 },
         }}
       >
         <LegendSettings
-          {...{ mapId, showLegendGroupNames, onChangeView }}
+          {...{ showLegendGroupNames, onChangeView }}
           onToggleLegendGroupName={handleToggleLegendGroupNames}
         />
       </LegendHeader>
       <LegendGroups
-        {...{ mapId, showLegendGroupNames }}
+        {...{ mapId, showLegendGroupNames, popperProps }}
         onToggleLegendGroupName={handleToggleLegendGroupNames}
       />
     </LegendRoot>
