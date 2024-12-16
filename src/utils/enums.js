@@ -118,6 +118,7 @@ export const statFuncs = {
   ]),
   [propId.SELECTOR]: new Set([statId.MODE]),
   [propId.TOGGLE]: new Set([statId.MODE, statId.AND, statId.OR]),
+  [propId.TEXT]: new Set([statId.MODE]),
 }
 
 export const scaleId = {
