@@ -498,7 +498,14 @@ export const LegendPopper = ({
       </WithBadge>
       {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
       <MapPortal>
-        <ClickAwayListener onClickAway={onClose}>
+        <ClickAwayListener
+          onClickAway={() =>
+            // event
+            {
+              // onClose(event)
+            }
+          }
+        >
           <Popper
             placement="left"
             disablePortal
