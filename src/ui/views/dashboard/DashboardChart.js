@@ -130,17 +130,77 @@ const DashboardChart = ({ chartObj }) => {
       }`
     : ''
 
-  const firstStat = R.pathOr('', ['stats', 0, 'statId'], cleanedChartObj)
+  const getYAxisTitle = (cleanedChartObj, statIdx) => {
+    // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
+    const statDataset = cleanedChartObj.dataset
+    const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
+    const statId = R.propOr('', 'statId', statObject)
+    const statIdLabel = getGroupLabelFn(statisticTypes, [statDataset, statId])
+    const statUnit =
+      R.pathOr({}, [statDataset, statId], statisticTypes).unit ||
+      numberFormatDefault.unit
 
-  const stat = R.pathOr({}, [cleanedChartObj.dataset, firstStat])(
-    statisticTypes
-  )
-  const unit = stat.unit || numberFormatDefault.unit
+    const statDivisorId = R.propOr('', 'statIdDivisor', statObject)
+    const statDivisorIdLabel = getGroupLabelFn(statisticTypes, [
+      statDataset,
+      statDivisorId,
+    ])
+    const statDivisorUnit =
+      R.pathOr({}, [statDataset, statDivisorId], statisticTypes).unit ||
+      numberFormatDefault.unit
 
-  const yAxisTitle = `${getGroupLabelFn(statisticTypes)([
-    cleanedChartObj.dataset,
-    firstStat,
-  ])}${unit ? ` [${unit}]` : ''}`
+    const statAggregation = R.propOr('', 'aggregationType', statObject)
+    const statAggregationGroupingId = R.propOr(
+      '',
+      'aggregationGroupingId',
+      statObject
+    )
+    const statAggregationGroupingLevel = R.propOr(
+      '',
+      'aggregationGroupingLevel',
+      statObject
+    )
+    const statAggregationGroupingLabel = getLabelFn(
+      categories,
+      statAggregationGroupingId
+    )
+    const statAggregationGroupingSubLabel = getSubLabelFn(
+      categories,
+      statAggregationGroupingId,
+      statAggregationGroupingLevel
+    )
+
+    var yAxisTitle = ''
+
+    // TODO: Consider adding sum back in for consistency...
+    if (
+      statAggregation !== 'divisor' &&
+      statAggregation !== '' &&
+      statAggregation !== 'sum'
+    ) {
+      yAxisTitle += `${statAggregation.toUpperCase()} of `
+    }
+    // If the statAggregation is a divisor, add the statId and the divisor name to
+    if (statAggregation === 'divisor') {
+      yAxisTitle += `${statIdLabel} / ${statDivisorIdLabel}`
+      // If stat unit does not equal the divisor units, add the units to the yAxisTitle
+      if (statUnit !== statDivisorUnit) {
+        yAxisTitle += statUnit
+          ? `/n[${statUnit} ${statDivisorUnit ? `/ ${statDivisorUnit} ]` : ']'}`
+          : ''
+      }
+    } else {
+      yAxisTitle += statIdLabel
+      yAxisTitle += statUnit ? ` [${statUnit}]` : ''
+    }
+    yAxisTitle += statAggregationGroupingId
+      ? `\nGrouped By ${statAggregationGroupingLabel} \u279D ${statAggregationGroupingSubLabel}`
+      : ''
+
+    return yAxisTitle
+  }
+
+  const yAxisTitle = getYAxisTitle(cleanedChartObj, 0)
 
   const labels = { xAxisTitle, yAxisTitle }
 
@@ -149,15 +209,13 @@ const DashboardChart = ({ chartObj }) => {
     R.map((stat) => [cleanedChartObj.dataset, stat.statId])
   )(cleanedChartObj)
 
-  const multiStatLabelProps = R.map((item) => {
-    const stat = R.pathOr({}, item)(statisticTypes)
-    const unit = stat.unit || numberFormatDefault.unit
+  const multiStatLabelProps = R.map((idx) => {
     return {
       type: 'number',
-      key: item[1],
-      label: `${getGroupLabelFn(statisticTypes)(item)}${unit ? ` [${unit}]` : ''}`,
+      key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
+      label: getYAxisTitle(cleanedChartObj, idx),
     }
-  })(statPaths)
+  })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
 
   const getGroupingLabel = (n) =>
     `${getLabelFn(categories)(R.path(['groupingId', n], cleanedChartObj))}${
@@ -215,7 +273,11 @@ const DashboardChart = ({ chartObj }) => {
   )(statPaths)
 
   const numberFormat =
-    R.keys(numberFormats).length > 1 ? numberFormats : numberFormats[firstStat]
+    R.keys(numberFormats).length > 1
+      ? numberFormats
+      : numberFormats[
+          R.propOr('', 'statId', R.pathOr({}, ['stats', 0], cleanedChartObj))
+        ]
 
   if (loading) return loadingComponent
   if (R.isEmpty(formattedData))

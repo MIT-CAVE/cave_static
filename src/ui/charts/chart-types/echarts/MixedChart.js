@@ -178,14 +178,13 @@ const MixedChart = ({
   const createYAxis = (name, rotate, min, max) => ({
     type: 'value',
     name,
-    nameGap: 50,
+    nameGap: 45,
     min: min,
     max: max,
     nameLocation: 'middle',
     nameRotate: rotate,
     nameTextStyle: {
-      fontSize: 18,
-      height: 500,
+      fontSize: 20,
     },
     axisLine: {
       show: true,
@@ -208,7 +207,7 @@ const MixedChart = ({
     <>
       <FlexibleChart {...{ options, chartHoverOrder }} />
       <FormControlLabel
-        sx={{ position: 'absolute', right: 65, top: 10 }}
+        sx={{ position: 'absolute', right: 10, bottom: 10 }}
         control={
           <Switch
             checked={syncAxes}

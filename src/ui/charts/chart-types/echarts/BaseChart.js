@@ -108,7 +108,7 @@ const baseOptions = {
     nameLocation: 'middle',
     nameGap: 40,
     nameTextStyle: {
-      fontSize: 18,
+      fontSize: 20,
     },
     axisLine: {
       fontSize: 17,
@@ -127,10 +127,9 @@ const baseOptions = {
   yAxis: {
     type: 'value',
     nameLocation: 'middle',
-    nameGap: 64,
+    nameGap: 45,
     nameTextStyle: {
-      fontSize: 18,
-      height: 500,
+      fontSize: 20,
     },
     axisLine: {
       show: true,
