@@ -397,6 +397,8 @@ const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
     () => R.pluck('values')(mapFeatures),
     [mapFeatures]
   )
+  if (mapFeatures.length === 0) return null
+
   return (
     <LegendRowDetails
       name={mapFeatures[0].name ?? id}

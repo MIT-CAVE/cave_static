@@ -336,7 +336,8 @@ const LegendRow = ({
   ...props
 }) => {
   const mapFeatures = mapFeaturesBy(id, mapId)
-  const name = mapFeatures[0].name ?? id
+  const firstFeature = mapFeatures[0] ?? {}
+  const name = firstFeature.name ?? id
   const numActiveFilters = useMemo(
     () => getNumActiveFilters(props.filters),
     [props.filters]
@@ -345,6 +346,7 @@ const LegendRow = ({
     () => mapFeatures.map((feature) => feature.values),
     [mapFeatures]
   )
+  if (mapFeatures.length === 0) return null
   return (
     <Grid2
       key={id}
