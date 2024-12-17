@@ -499,12 +499,11 @@ export const LegendPopper = ({
       {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
       <MapPortal>
         <ClickAwayListener
-          onClickAway={() =>
-            // event
-            {
-              // onClose(event)
-            }
-          }
+          onClickAway={(event) => {
+            // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+            if (sessionStorage.getItem('mui-select-open-flag') === '1') return
+            onClose(event)
+          }}
         >
           <Popper
             placement="left"

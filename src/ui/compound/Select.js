@@ -76,6 +76,8 @@ const Select = ({
       value={selectedValue}
       onOpen={() => {
         setOpen(true)
+        // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+        sessionStorage.setItem('mui-select-open-flag', 1)
       }}
       onClose={(event) => {
         if (allowClose.current) {
@@ -84,6 +86,8 @@ const Select = ({
         } else {
           allowClose.current = true
         }
+        // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+        sessionStorage.removeItem('mui-select-open-flag')
       }}
       // Display only the icon when an item is selected
       {...((selectedValue !== '' || displayIcon) && {
