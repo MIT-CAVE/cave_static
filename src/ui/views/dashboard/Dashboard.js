@@ -197,18 +197,19 @@ const DashboardItem = ({ chartObj, index, path }) => {
     [groupingFilters]
   )
 
-  const labelExtra = useMemo(() => {
-    if (isMaximized) return
-    const chartIndex = pageLayout.indexOf(index)
-    return `(${['Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right'][chartIndex]} Chart)`
-  }, [index, isMaximized, pageLayout])
-
   return (
     <Paper
       sx={[
         styles.paper,
         isMaximized && !showToolbar && { p: 0 },
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
+        (chartToolsOpen || modalOpen) && {
+          outline: 'none',
+          'border-color': '#9ecaed',
+          'box-shadow': '0 0 10px #9ecaed',
+          border: '3px solid #dadada',
+          'border-radius': '7px',
+        },
       ]}
       elevation={editLayoutMode && !isMaximized ? 24 : 5}
     >
@@ -218,7 +219,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
           groupingFilters,
           numActiveStatFilters,
           numGroupingFilters,
-          labelExtra,
         }}
         label="Chart Data Filter"
         open={modalOpen}
@@ -230,7 +230,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
           chartObj,
           index,
           path,
-          labelExtra,
         }}
         label="Chart Tools"
         open={chartToolsOpen}
