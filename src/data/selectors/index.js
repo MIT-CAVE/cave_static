@@ -1751,9 +1751,7 @@ export const selectArcRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              ((R.has('colorGradient', range) ||
-                R.has('sizeGradient', range) ||
-                R.has('heightGradient', range)) &&
+              (R.has('gradient', range) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1885,8 +1883,7 @@ export const selectNodeRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              ((R.has('colorGradient', range) ||
-                R.has('sizeGradient', range)) &&
+              (R.has('gradient', range) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -1916,8 +1913,7 @@ export const selectGeoRange = createSelector(
           R.when(
             (range) =>
               R.isEmpty(range) ||
-              ((R.has('colorGradient', range) ||
-                R.has('sizeGradient', range)) &&
+              (R.has('gradient', range) &&
                 (!R.has('max', range) || !R.has('min', range))),
             R.mergeRight(
               R.reduce(
@@ -2226,11 +2222,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
           const isSizeCategorical = !R.has('min')(sizeByProp)
           // const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
-          const parsedSize = parseGradient(
-            'sizeGradient',
-            'size',
-            true
-          )(sizeByProp)
+          const parsedSize = parseGradient('size', true)(sizeByProp)
 
           const rawSize =
             sizeByPropVal == null
@@ -2241,8 +2233,8 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     parsedSize.values,
                     parsedSize.sizes,
                     parseFloat(sizeByPropVal),
-                    sizeByProp.sizeGradient.scale,
-                    sizeByProp.sizeGradient.scaleParams
+                    sizeByProp.gradient.scale,
+                    sizeByProp.gradient.scaleParams
                   )
 
           const colorByProp = effectiveNodes.props[colorBy]
@@ -2255,10 +2247,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           )
           const isColorCategorical = !R.has('min')(colorByProp)
           // const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const parsedColor = parseGradient(
-            'colorGradient',
-            'color'
-          )(colorByProp)
+          const parsedColor = parseGradient('color')(colorByProp)
 
           const rawColor =
             colorByPropVal === ''
@@ -2271,8 +2260,8 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     parsedColor.values,
                     parsedColor.colors,
                     parseFloat(colorByPropVal),
-                    colorByProp.colorGradient.scale,
-                    colorByProp.colorGradient.scaleParams
+                    colorByProp.gradient.scale,
+                    colorByProp.gradient.scaleParams
                   )
 
           const id = R.pathOr(

@@ -101,13 +101,13 @@ const NumericalColorLegend = ({
   } = useColorPicker(onChangeColor)
 
   const { colors, values, labels } = useMemo(
-    () => parseGradient('colorGradient', 'color')(valueRange),
+    () => parseGradient('color')(valueRange),
     [valueRange]
   )
 
   const isStepScale = useMemo(
-    () => valueRange.colorGradient?.scale === scaleId.STEP,
-    [valueRange.colorGradient?.scale]
+    () => valueRange.gradient?.scale === scaleId.STEP,
+    [valueRange.gradient?.scale]
   )
 
   const {
@@ -120,12 +120,11 @@ const NumericalColorLegend = ({
     numberFormat,
     group,
     isStepScale,
-    gradientKey: 'colorGradient',
   })
 
   const gradientStyle = useMemo(() => {
     const {
-      colorGradient: { scale, scaleParams },
+      gradient: { scale, scaleParams },
       min: minValue,
       max: maxValue,
     } = valueRange
@@ -158,7 +157,7 @@ const NumericalColorLegend = ({
       const pathTail =
         index == null // Updating fallback color?
           ? ['fallback', 'color']
-          : ['colorGradient', 'data', index, 'color']
+          : ['gradient', 'data', index, 'color']
       handleChange(value, colorOutputs, pathTail)
     },
     [handleChange]
@@ -402,24 +401,18 @@ const ColorLegend = ({
               onChangeColor,
             }}
             onChangeValueAt={(index) =>
-              onChangePropAttr([
-                colorBy,
-                'colorGradient',
-                'data',
-                index,
-                'value',
-              ])
+              onChangePropAttr([colorBy, 'gradient', 'data', index, 'value'])
             }
           />
           <ScaleSelector
-            scale={valueRange.colorGradient.scale}
-            scaleParams={valueRange.colorGradient.scaleParams}
+            scale={valueRange.gradient.scale}
+            scaleParams={valueRange.gradient.scaleParams}
             minDomainValue={valueRange.min}
-            onSelect={onChangePropAttr([colorBy, 'colorGradient', 'scale'])}
+            onSelect={onChangePropAttr([colorBy, 'gradient', 'scale'])}
             onChangeScaleParamById={(scaleParamId) =>
               onChangePropAttr([
                 colorBy,
-                'colorGradient',
+                'gradient',
                 'scaleParams',
                 scaleParamId,
               ])

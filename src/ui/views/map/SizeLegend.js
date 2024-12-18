@@ -81,13 +81,13 @@ const NumericalSizeLegend = ({
   } = useSizeSlider(onChangeSize)
 
   const { sizes, values, labels } = useMemo(
-    () => parseGradient('sizeGradient', 'size')(valueRange),
+    () => parseGradient('size')(valueRange),
     [valueRange]
   )
 
   const isStepScale = useMemo(
-    () => valueRange.sizeGradient?.scale === scaleId.STEP,
-    [valueRange.sizeGradient?.scale]
+    () => valueRange.gradient?.scale === scaleId.STEP,
+    [valueRange.gradient?.scale]
   )
 
   const {
@@ -100,7 +100,6 @@ const NumericalSizeLegend = ({
     numberFormat,
     group,
     isStepScale,
-    gradientKey: 'sizeGradient',
   })
 
   const handleChangeComittedAt = useCallback(
@@ -108,7 +107,7 @@ const NumericalSizeLegend = ({
       const pathTail =
         index == null // Updating fallback size?
           ? ['fallback', 'size']
-          : ['sizeGradient', 'data', index, 'size']
+          : ['gradient', 'data', index, 'size']
       handleChangeComittedRaw(event, value, pathTail)
     },
     [handleChangeComittedRaw]
@@ -387,18 +386,18 @@ const SizeLegend = ({
               onChangeSize,
             }}
             onChangeValueAt={(index) =>
-              onChangePropAttr([sizeBy, 'sizeGradient', 'data', index, 'value'])
+              onChangePropAttr([sizeBy, 'gradient', 'data', index, 'value'])
             }
           />
           <ScaleSelector
-            scale={valueRange.sizeGradient.scale}
-            scaleParams={valueRange.sizeGradient.scaleParams}
+            scale={valueRange.gradient.scale}
+            scaleParams={valueRange.gradient.scaleParams}
             minDomainValue={valueRange.min}
-            onSelect={onChangePropAttr([sizeBy, 'sizeGradient', 'scale'])}
+            onSelect={onChangePropAttr([sizeBy, 'gradient', 'scale'])}
             onChangeScaleParamById={(scaleParamId) =>
               onChangePropAttr([
                 sizeBy,
-                'sizeGradient',
+                'gradient',
                 'scaleParams',
                 scaleParamId,
               ])

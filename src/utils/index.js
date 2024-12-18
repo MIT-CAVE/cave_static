@@ -599,9 +599,7 @@ export const getQuartiles = R.ifElse(
 export const ALLOWED_RANGE_KEYS = [
   'timeValues',
   'gradients',
-  'colorGradient',
-  'sizeGradient',
-  'heightGradient',
+  'gradient',
   'min',
   'max',
   'options',
@@ -737,15 +735,15 @@ export const cleanUndefinedStats = (chartObj) => {
 export const getNumActiveFilters = R.count(R.propEq('rule', 'type'))
 
 export const parseGradient = R.memoizeWith(
-  ([gradientAttrKey, attrKey, parseRangeAsNumber, range]) =>
-    JSON.stringify({ gradientAttrKey, attrKey, parseRangeAsNumber, range }),
+  ([attrKey, parseRangeAsNumber, range]) =>
+    JSON.stringify({ attrKey, parseRangeAsNumber, range }),
   R.curry(
-    (gradientAttrKey, attrKey, parseRangeAsNumber = false) =>
+    (attrKey, parseRangeAsNumber = false) =>
       (range) =>
         R.ifElse(
-          R.has(gradientAttrKey),
+          R.has('gradient'),
           R.pipe(
-            R.path([gradientAttrKey, 'data']),
+            R.path(['gradient', 'data']),
             R.applySpec({
               [`${attrKey}s`]: R.map(
                 R.pipe(
@@ -845,10 +843,7 @@ export const constructFetchedGeoJson = (
                   ['fallback', 'color'],
                   colorRange
                 )
-                const parsedColor = parseGradient(
-                  'colorGradient',
-                  'color'
-                )(colorRange)
+                const parsedColor = parseGradient('color')(colorRange)
 
                 const isColorCategorical = !R.has('min', colorRange)
                 const rawColor =
@@ -862,8 +857,8 @@ export const constructFetchedGeoJson = (
                           parsedColor.values,
                           parsedColor.colors,
                           parseFloat(colorByPropVal),
-                          colorRange.colorGradient.scale,
-                          colorRange.colorGradient.scaleParams
+                          colorRange.gradient.scale,
+                          colorRange.gradient.scaleParams
                         )
 
                 const heightBy = enabledItems[geoObj.type].heightBy
@@ -878,11 +873,7 @@ export const constructFetchedGeoJson = (
                   ['fallback', 'height'],
                   heightRange
                 )
-                const parsedHeight = parseGradient(
-                  'heightGradient',
-                  'height',
-                  true
-                )(heightRange)
+                const parsedHeight = parseGradient('height', true)(heightRange)
 
                 const isHeightCategorical = !R.has('min', heightRange)
                 const rawHeight =
@@ -896,8 +887,8 @@ export const constructFetchedGeoJson = (
                           parsedHeight.values,
                           parsedHeight.heights,
                           parseFloat(heightByPropVal),
-                          heightRange.heightGradient.scale,
-                          heightRange.heightGradient.scaleParams
+                          heightRange.gradient.scale,
+                          heightRange.gradient.scaleParams
                         )
 
                 // don't calculate size, dash, or adjust path for geos
@@ -919,11 +910,7 @@ export const constructFetchedGeoJson = (
                   ['fallback', 'size'],
                   sizeRange
                 )
-                const parsedSize = parseGradient(
-                  'sizeGradient',
-                  'size',
-                  true
-                )(sizeRange)
+                const parsedSize = parseGradient('size', true)(sizeRange)
 
                 const isSizeCategorical = !R.has('min', sizeRange)
                 const rawSize =
@@ -937,8 +924,8 @@ export const constructFetchedGeoJson = (
                           parsedSize.values,
                           parsedSize.sizes,
                           parseFloat(sizeByPropVal),
-                          sizeRange.sizeGradient.scale,
-                          sizeRange.sizeGradient.scaleParams
+                          sizeRange.gradient.scale,
+                          sizeRange.gradient.scaleParams
                         )
 
                 const dashPattern = enabledItems[geoType].lineStyle ?? 'solid'
@@ -1008,10 +995,7 @@ export const constructGeoJson = (
             ['fallback', 'color'],
             colorRange
           )
-          const parsedColor = parseGradient(
-            'colorGradient',
-            'color'
-          )(colorRange)
+          const parsedColor = parseGradient('color')(colorRange)
 
           const isColorCategorical = !R.has('min', colorRange)
           const rawColor =
@@ -1025,8 +1009,8 @@ export const constructGeoJson = (
                     parsedColor.values,
                     parsedColor.colors,
                     parseFloat(colorByPropVal),
-                    colorRange.colorGradient.scale,
-                    colorRange.colorGradient.scaleParams
+                    colorRange.gradient.scale,
+                    colorRange.gradient.scaleParams
                   )
 
           let rawSize
@@ -1036,11 +1020,7 @@ export const constructGeoJson = (
             const sizeRange = itemRange(item.type, sizeBy, mapId)
             const sizeByPropVal = item.values[sizeBy]
             const sizeFallback = R.pathOr('0', ['fallback', 'size'], sizeRange)
-            const parsedSize = parseGradient(
-              'sizeGradient',
-              'size',
-              true
-            )(sizeRange)
+            const parsedSize = parseGradient('size', true)(sizeRange)
 
             const isSizeCategorical = !R.has('min', sizeRange)
             rawSize =
@@ -1052,8 +1032,8 @@ export const constructGeoJson = (
                       parsedSize.values,
                       parsedSize.sizes,
                       parseFloat(sizeByPropVal),
-                      sizeRange.sizeGradient.scale,
-                      sizeRange.sizeGradient.scaleParams
+                      sizeRange.gradient.scale,
+                      sizeRange.gradient.scaleParams
                     )
           }
           if (rawSize === 0 || colord(rawColor).alpha() === 0) return false
@@ -1073,11 +1053,7 @@ export const constructGeoJson = (
               ['fallback', 'height'],
               heightRange
             )
-            const parsedHeight = parseGradient(
-              'heightGradient',
-              'height',
-              true
-            )(heightRange)
+            const parsedHeight = parseGradient('height', true)(heightRange)
 
             const isHeightCategorical = !R.has('min', heightRange)
             rawHeight =
@@ -1091,8 +1067,8 @@ export const constructGeoJson = (
                       parsedHeight.values,
                       parsedHeight.heights,
                       parseFloat(heightByPropVal),
-                      heightRange.heightGradient.scale,
-                      heightRange.heightGradient.scaleParams
+                      heightRange.gradient.scale,
+                      heightRange.gradient.scaleParams
                     )
           }
 

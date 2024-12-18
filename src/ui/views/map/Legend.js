@@ -270,46 +270,32 @@ export const useLegend = (mapId) => {
   }
 }
 
-const getNumLabel = (value, numberFormatRaw, gradientKey) => {
+const getNumLabel = (value, numberFormatRaw) => {
   // eslint-disable-next-line no-unused-vars
   const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
   return NumberFormat.format(value, {
     ...numberFormat,
     // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
     ...{
-      precision: numberFormat[gradientKey]?.precision || numberFormat.precision,
-      notation: numberFormat[gradientKey]?.notation || numberFormat.notation,
+      precision: numberFormat['gradient']?.precision || numberFormat.precision,
+      notation: numberFormat['gradient']?.notation || numberFormat.notation,
       notationDisplay:
-        numberFormat[gradientKey]?.notationDisplay ||
+        numberFormat['gradient']?.notationDisplay ||
         numberFormat.notationDisplay,
     },
   })
 }
 
-export const getGradientLabel = (
-  labels,
-  values,
-  index,
-  numberFormat,
-  group,
-  gradientKey
-) =>
+export const getGradientLabel = (labels, values, index, numberFormat, group) =>
   group || labels[index] == null
-    ? getNumLabel(values[index], numberFormat, gradientKey)
+    ? getNumLabel(values[index], numberFormat)
     : labels[index]
 
-export const getMinLabel = (labels, values, numberFormat, group, gradientKey) =>
-  getGradientLabel(labels, values, 0, numberFormat, group, gradientKey)
+export const getMinLabel = (labels, values, numberFormat, group) =>
+  getGradientLabel(labels, values, 0, numberFormat, group)
 
-export const getMaxLabel = (labels, values, numberFormat, group, gradientKey) =>
-  getGradientLabel(
-    labels,
-    values,
-    values.length - 1,
-    numberFormat,
-    group,
-    gradientKey
-  )
+export const getMaxLabel = (labels, values, numberFormat, group) =>
+  getGradientLabel(labels, values, values.length - 1, numberFormat, group)
 
 export const useGradientLabels = ({
   labels,
@@ -317,17 +303,15 @@ export const useGradientLabels = ({
   numberFormat,
   group,
   isStepScale,
-  gradientKey,
 }) => {
   const getFormattedValueAt = useCallback(
-    (index) => getNumLabel(values[index], numberFormat, gradientKey),
-    [gradientKey, numberFormat, values]
+    (index) => getNumLabel(values[index], numberFormat),
+    [numberFormat, values]
   )
 
   const getLabel = useCallback(
-    (index) =>
-      getGradientLabel(labels, values, index, numberFormat, group, gradientKey),
-    [gradientKey, group, labels, numberFormat, values]
+    (index) => getGradientLabel(labels, values, index, numberFormat, group),
+    [group, labels, numberFormat, values]
   )
 
   const getAttrLabelAt = useCallback(
