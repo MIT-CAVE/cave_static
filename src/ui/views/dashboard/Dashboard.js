@@ -205,10 +205,10 @@ const DashboardItem = ({ chartObj, index, path }) => {
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
         (chartToolsOpen || modalOpen) && {
           outline: 'none',
-          'border-color': '#9ecaed',
-          'box-shadow': '0 0 10px #9ecaed',
+          borderColor: '#9ecaed',
+          boxShadow: '0 0 10px #9ecaed',
           border: '3px solid #dadada',
-          'border-radius': '7px',
+          borderRadius: '7px',
         },
       ]}
       elevation={editLayoutMode && !isMaximized ? 24 : 5}

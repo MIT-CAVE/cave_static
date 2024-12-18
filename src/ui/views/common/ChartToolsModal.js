@@ -55,7 +55,17 @@ const ChartToolsModal = ({
   )
 
   return (
-    <DataGridModal {...{ label, labelExtra, open, onClose }}>
+    <DataGridModal
+      slotProps={{
+        paper: {
+          sx: {
+            width: '1200px',
+            height: '900px',
+          },
+        },
+      }}
+      {...{ label, labelExtra, open, onClose }}
+    >
       <Select
         value={R.propOr('groupedOutput', 'type')(chartObj)}
         optionsList={[
