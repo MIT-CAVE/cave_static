@@ -270,7 +270,7 @@ export const useLegend = (mapId) => {
   }
 }
 
-export const getNumLabel = (value, numberFormatRaw, gradientKey) => {
+const getNumLabel = (value, numberFormatRaw, gradientKey) => {
   // eslint-disable-next-line no-unused-vars
   const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
   return NumberFormat.format(value, {
@@ -310,6 +310,52 @@ export const getMaxLabel = (labels, values, numberFormat, group, gradientKey) =>
     group,
     gradientKey
   )
+
+export const useGradientLabels = ({
+  labels,
+  values,
+  numberFormat,
+  group,
+  isStepScale,
+  gradientKey,
+}) => {
+  const getFormattedValueAt = useCallback(
+    (index) => getNumLabel(values[index], numberFormat, gradientKey),
+    [gradientKey, numberFormat, values]
+  )
+
+  const getLabel = useCallback(
+    (index) =>
+      getGradientLabel(labels, values, index, numberFormat, group, gradientKey),
+    [gradientKey, group, labels, numberFormat, values]
+  )
+
+  const getAttrLabelAt = useCallback(
+    (index) =>
+      index > 0 && index < values.length - 1 // Within the bounds
+        ? isStepScale
+          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)}) "${getLabel(index)}"`
+          : `"${getLabel(index)}"`
+        : isStepScale
+          ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
+          : `${index < 1 ? 'Min' : 'Max'}`,
+    [getFormattedValueAt, getLabel, isStepScale, values]
+  )
+
+  const getValueLabelAt = useCallback(
+    (index) =>
+      index > 0 && index < values.length - 1 // Within the bounds
+        ? isStepScale
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
+        : isStepScale
+          ? `Threshold \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
+          : `Value \u279D ${index < 1 ? 'Min' : 'Max'}`,
+    [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
+  )
+
+  return { getLabel, getAttrLabelAt, getValueLabelAt }
+}
 
 // TODO: Move this to some `legendUtils.js` module
 export const RippleBox = ({ selected, sx = [], ...props }) => (
@@ -409,7 +455,7 @@ export const ScaleSelector = ({
       </FormControl>
       {scale === scaleId.POW && (
         <NumberInput
-          sx={{ width: 'auto' }}
+          sx={{ width: '100%' }}
           label={getScaleParamLabel(scaleParamId)}
           numberFormat={{}}
           value={R.propOr(

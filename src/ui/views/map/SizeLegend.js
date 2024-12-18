@@ -13,18 +13,18 @@ import { PiDotsThree } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import {
-  getGradientLabel,
   GroupCalcSelector,
   PropIcon,
   ScaleSelector,
+  useGradientLabels,
   WithEditBadge,
 } from './Legend'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
-import { propId } from '../../../utils/enums'
+import { propId, scaleId } from '../../../utils/enums'
 import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 
-import { OverflowText, Select } from '../../compound'
+import { NumberInput, OverflowText, Select } from '../../compound'
 
 import { orderEntireDict, parseGradient } from '../../../utils'
 
@@ -70,6 +70,7 @@ const NumericalSizeLegend = ({
   numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
   onChangeSize,
+  onChangeValueAt,
 }) => {
   const {
     showSizeSlider,
@@ -85,18 +86,18 @@ const NumericalSizeLegend = ({
     [valueRange]
   )
 
-  const getLabel = useCallback(
-    (index) =>
-      getGradientLabel(
-        labels,
-        values,
-        index,
-        numberFormat,
-        group,
-        'sizeGradient'
-      ),
-    [group, labels, numberFormat, values]
-  )
+  const {
+    getLabel,
+    // getAttrLabelAt: getSizeLabelAt,
+    getValueLabelAt,
+  } = useGradientLabels({
+    labels,
+    values,
+    numberFormat,
+    group,
+    isStepScale: valueRange.sizeGradient?.scale === scaleId.STEP,
+    gradientKey: 'sizeGradient',
+  })
 
   const handleChangeComittedAt = useCallback(
     (index) => (event, value) => {
@@ -148,12 +149,36 @@ const NumericalSizeLegend = ({
       </OverflowText>
 
       {showSizeSlider && (
-        <SizeSlider
-          value={sizeSliderProps.value}
-          onClose={handleClose}
-          onChange={handleChange}
-          onChangeCommitted={handleChangeComittedAt(sizeSliderProps.key)}
-        />
+        <Stack>
+          <SizeSlider
+            value={sizeSliderProps.value}
+            onClose={handleClose}
+            onChange={handleChange}
+            onChangeCommitted={handleChangeComittedAt(sizeSliderProps.key)}
+          />
+          <NumberInput
+            color="warning"
+            sx={{
+              width: 'auto',
+              mt: '20px !important',
+              flex: '1 1 auto',
+              fieldset: {
+                borderWidth: '2px !important',
+              },
+            }}
+            slotProps={{
+              input: {
+                sx: { borderRadius: 0, pr: 1.75 },
+              },
+            }}
+            label={getValueLabelAt(sizeSliderProps.key)}
+            min={valueRange.min}
+            max={valueRange.max}
+            value={values[sizeSliderProps.key]}
+            {...{ numberFormat }}
+            onClickAway={onChangeValueAt(sizeSliderProps.key)}
+          />
+        </Stack>
       )}
     </>
   )
@@ -248,6 +273,7 @@ const CategoricalSizeLegend = ({
       </OverflowText>
       {showSizeSlider && (
         <SizeSlider
+          styleOverrides={{ marginBottom: '32px' }}
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
           value={sizeSliderProps.value}
           onClose={handleClose}
@@ -327,6 +353,9 @@ const SizeLegend = ({
               anyNullValue,
               onChangeSize,
             }}
+            onChangeValueAt={(index) =>
+              onChangePropAttr([sizeBy, 'sizeGradient', 'data', index, 'value'])
+            }
           />
           <ScaleSelector
             scale={valueRange.sizeGradient.scale}

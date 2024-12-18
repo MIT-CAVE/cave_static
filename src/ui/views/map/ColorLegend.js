@@ -12,11 +12,10 @@ import { memo, useCallback, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
-  getGradientLabel,
-  getNumLabel,
   GroupCalcSelector,
   RippleBox,
   ScaleSelector,
+  useGradientLabels,
   WithEditBadge,
 } from './Legend'
 
@@ -106,52 +105,23 @@ const NumericalColorLegend = ({
     [valueRange]
   )
 
-  const getLabel = useCallback(
-    (index) =>
-      getGradientLabel(
-        labels,
-        values,
-        index,
-        numberFormat,
-        group,
-        'colorGradient'
-      ),
-    [group, labels, numberFormat, values]
-  )
-
   const isStepScale = useMemo(
     () => valueRange.colorGradient?.scale === scaleId.STEP,
     [valueRange.colorGradient?.scale]
   )
 
-  const getFormattedValueAt = useCallback(
-    (index) => getNumLabel(values[index], numberFormat, 'colorGradient'),
-    [numberFormat, values]
-  )
-
-  const getColorLabel = useCallback(
-    (index) =>
-      index > 0 && index < values.length - 1 // Within the bounds
-        ? isStepScale
-          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)}) "${getLabel(index)}"`
-          : `"${getLabel(index)}"`
-        : isStepScale
-          ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
-          : `${index < 1 ? 'Min' : 'Max'}`,
-    [getFormattedValueAt, getLabel, isStepScale, values]
-  )
-
-  const getValueLabel = useCallback(
-    (index) =>
-      index > 0 && index < values.length - 1 // Within the bounds
-        ? isStepScale
-          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
-          : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
-        : isStepScale
-          ? `Threshold \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
-          : `Value \u279D ${index < 1 ? 'Min' : 'Max'}`,
-    [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
-  )
+  const {
+    getLabel,
+    getAttrLabelAt: getColorLabelAt,
+    getValueLabelAt,
+  } = useGradientLabels({
+    labels,
+    values,
+    numberFormat,
+    group,
+    isStepScale,
+    gradientKey: 'colorGradient',
+  })
 
   const gradientStyle = useMemo(() => {
     const {
@@ -225,7 +195,7 @@ const NumericalColorLegend = ({
           {values.map((value, index) => (
             <Stack key={index} direction="row" spacing={1}>
               <ColorPicker
-                colorLabel={getColorLabel(index)}
+                colorLabel={getColorLabelAt(index)}
                 value={colors[index]}
                 onChange={handleChangeColorAt(index)}
                 onClose={handleClose}
@@ -245,7 +215,7 @@ const NumericalColorLegend = ({
                     sx: { borderRadius: 0, pr: 1.75 },
                   },
                 }}
-                label={getValueLabel(index)}
+                label={getValueLabelAt(index)}
                 min={valueRange.min}
                 max={valueRange.max}
                 {...{ value, numberFormat }}

@@ -42,7 +42,13 @@ export const useSizeSlider = (onChangeSize) => {
   }
 }
 
-const SizeSlider = ({ sizeLabel, value, onChange, onChangeCommitted }) => {
+const SizeSlider = ({
+  sizeLabel,
+  value,
+  styleOverrides,
+  onChange,
+  onChangeCommitted,
+}) => {
   const isRange = value.length > 1
   const [minValue, maxValue] = useMemo(
     () => (isRange ? [Math.min(...value), Math.max(...value)] : []),
@@ -71,13 +77,13 @@ const SizeSlider = ({ sizeLabel, value, onChange, onChangeCommitted }) => {
   )
   return (
     <Slider
+      // BUG: For some reason the `sx` prop doesn't work here when used in `CategoricalSizeLegend`
       style={{
-        // BUG: For some reason the `sx` prop doesn't work here for `mt` and `mb`
         marginTop: '40px',
-        marginBottom: '32px',
         width: '85%',
         alignSelf: 'center',
         boxSizing: 'border-box',
+        ...styleOverrides,
       }}
       min={1}
       max={100}
