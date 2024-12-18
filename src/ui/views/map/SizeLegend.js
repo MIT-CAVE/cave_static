@@ -93,7 +93,7 @@ const NumericalSizeLegend = ({
         index,
         numberFormat,
         group,
-        'colorGradient'
+        'sizeGradient'
       ),
     [group, labels, numberFormat, values]
   )
