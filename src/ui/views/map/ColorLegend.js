@@ -200,27 +200,33 @@ const NumericalColorLegend = ({
                 onChange={handleChangeColorAt(index)}
                 onClose={handleClose}
               />
-              <NumberInput
-                color="warning"
-                sx={{
-                  width: 'auto',
-                  mt: '20px !important',
-                  flex: '1 1 auto',
-                  fieldset: {
-                    borderWidth: '2px !important',
-                  },
-                }}
-                slotProps={{
-                  input: {
-                    sx: { borderRadius: 0, pr: 1.75 },
-                  },
-                }}
-                label={getValueLabelAt(index)}
-                min={valueRange.min}
-                max={valueRange.max}
-                {...{ value, numberFormat }}
-                onClickAway={onChangeValueAt(index)}
-              />
+              {
+                // Do not display the max value for a step function
+                // scale, as it does not affect the function output
+                !(isStepScale && index === values.length - 1) && (
+                  <NumberInput
+                    color="warning"
+                    sx={{
+                      width: 'auto',
+                      mt: '20px !important',
+                      flex: '1 1 auto',
+                      fieldset: {
+                        borderWidth: '2px !important',
+                      },
+                    }}
+                    slotProps={{
+                      input: {
+                        sx: { borderRadius: 0, pr: 1.75 },
+                      },
+                    }}
+                    label={getValueLabelAt(index)}
+                    min={valueRange.min}
+                    max={valueRange.max}
+                    {...{ value, numberFormat }}
+                    onClickAway={onChangeValueAt(index)}
+                  />
+                )
+              }
             </Stack>
           ))}
         </Stack>

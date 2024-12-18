@@ -346,10 +346,12 @@ export const useGradientLabels = ({
     (index) =>
       index > 0 && index < values.length - 1 // Within the bounds
         ? isStepScale
-          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : '?'}`
           : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
         : isStepScale
-          ? `Threshold \u279D ${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index)}, \u221E)`}`
+          ? index < 1
+            ? `Threshold \u279D (-\u221E, ${getFormattedValueAt(index)})`
+            : null // This should not happen as the max value for a step function is not displayed
           : `Value \u279D ${index < 1 ? 'Min' : 'Max'}`,
     [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
   )

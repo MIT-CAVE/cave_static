@@ -9,7 +9,6 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useMemo } from 'react'
-import { PiDotsThree } from 'react-icons/pi'
 import { useSelector } from 'react-redux'
 
 import {
@@ -86,6 +85,11 @@ const NumericalSizeLegend = ({
     [valueRange]
   )
 
+  const isStepScale = useMemo(
+    () => valueRange.sizeGradient?.scale === scaleId.STEP,
+    [valueRange.sizeGradient?.scale]
+  )
+
   const {
     getLabel,
     // getAttrLabelAt: getSizeLabelAt,
@@ -95,7 +99,7 @@ const NumericalSizeLegend = ({
     values,
     numberFormat,
     group,
-    isStepScale: valueRange.sizeGradient?.scale === scaleId.STEP,
+    isStepScale,
     gradientKey: 'sizeGradient',
   })
 
@@ -120,17 +124,19 @@ const NumericalSizeLegend = ({
           direction="row"
           spacing={2}
           sx={styles.rangeRoot}
-          divider={<PiDotsThree size={24} />}
+          divider={
+            <Typography variant="h6" sx={{ pb: 4.5 }}>{`\u2026`}</Typography>
+          }
         >
+          {isStepScale && (
+            <Typography variant="h4" sx={{ pb: 4 }}>{`-\u221E`}</Typography>
+          )}
           {sizes.map((value, index) => (
-            <Stack
-              key={index}
-              spacing={0.5}
-              sx={{ alignSelf: 'end', alignItems: 'center' }}
-            >
+            <Stack key={index} spacing={0.5} sx={{ alignSelf: 'stretch' }}>
               {icon && (
                 <WithEditBadge
                   editing={showSizeSlider && sizeSliderProps.key === index}
+                  sx={{ flex: '1 1 auto', alignItems: 'center' }}
                 >
                   <PropIcon
                     {...{ icon }}
@@ -145,6 +151,9 @@ const NumericalSizeLegend = ({
               </Typography>
             </Stack>
           ))}
+          {isStepScale && (
+            <Typography variant="h4" sx={{ pb: 4 }}>{`\u221E`}</Typography>
+          )}
         </Stack>
       </OverflowText>
 
@@ -156,28 +165,34 @@ const NumericalSizeLegend = ({
             onChange={handleChange}
             onChangeCommitted={handleChangeComittedAt(sizeSliderProps.key)}
           />
-          <NumberInput
-            color="warning"
-            sx={{
-              width: 'auto',
-              mt: '20px !important',
-              flex: '1 1 auto',
-              fieldset: {
-                borderWidth: '2px !important',
-              },
-            }}
-            slotProps={{
-              input: {
-                sx: { borderRadius: 0, pr: 1.75 },
-              },
-            }}
-            label={getValueLabelAt(sizeSliderProps.key)}
-            min={valueRange.min}
-            max={valueRange.max}
-            value={values[sizeSliderProps.key]}
-            {...{ numberFormat }}
-            onClickAway={onChangeValueAt(sizeSliderProps.key)}
-          />
+          {
+            // Do not display the max value for a step function
+            // scale, as it does not affect the function output
+            !(isStepScale && sizeSliderProps.key === sizes.length - 1) && (
+              <NumberInput
+                color="warning"
+                sx={{
+                  width: 'auto',
+                  mt: '20px !important',
+                  flex: '1 1 auto',
+                  fieldset: {
+                    borderWidth: '2px !important',
+                  },
+                }}
+                slotProps={{
+                  input: {
+                    sx: { borderRadius: 0, pr: 1.75 },
+                  },
+                }}
+                label={getValueLabelAt(sizeSliderProps.key)}
+                min={valueRange.min}
+                max={valueRange.max}
+                value={values[sizeSliderProps.key]}
+                {...{ numberFormat }}
+                onClickAway={onChangeValueAt(sizeSliderProps.key)}
+              />
+            )
+          }
         </Stack>
       )}
     </>
