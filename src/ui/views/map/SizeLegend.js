@@ -92,7 +92,7 @@ const NumericalSizeLegend = ({
 
   const {
     getLabel,
-    // getAttrLabelAt: getSizeLabelAt,
+    getAttrLabelAt: getSizeLabelAt,
     getValueLabelAt,
   } = useGradientLabels({
     labels,
@@ -123,37 +123,55 @@ const NumericalSizeLegend = ({
         <Stack
           direction="row"
           spacing={2}
-          sx={styles.rangeRoot}
+          sx={
+            isStepScale
+              ? { justifyContent: 'center', alignItems: 'end' }
+              : styles.rangeRoot
+          }
           divider={
-            <Typography variant="h6" sx={{ pb: 4.5 }}>{`\u2026`}</Typography>
+            !isStepScale && (
+              <Typography variant="h6" sx={{ pb: 4.5 }}>{`\u2026`}</Typography>
+            )
           }
         >
-          {isStepScale && (
-            <Typography variant="h4" sx={{ pb: 4 }}>{`-\u221E`}</Typography>
-          )}
-          {sizes.map((value, index) => (
-            <Stack key={index} spacing={0.5} sx={{ alignSelf: 'stretch' }}>
-              {icon && (
-                <WithEditBadge
-                  editing={showSizeSlider && sizeSliderProps.key === index}
-                  sx={{ flex: '1 1 auto', alignItems: 'center' }}
+          {sizes.map((value, index) => {
+            const selected = sizeSliderProps.key === index
+            return (
+              <Stack
+                key={index}
+                spacing={0.5}
+                sx={
+                  isStepScale
+                    ? { alignItems: 'center' }
+                    : { alignSelf: 'stretch' }
+                }
+              >
+                {icon && (
+                  <WithEditBadge
+                    editing={showSizeSlider && selected}
+                    sx={
+                      !isStepScale && { flex: '1 1 auto', alignItems: 'center' }
+                    }
+                  >
+                    <PropIcon
+                      {...{ icon, selected }}
+                      size={value}
+                      onClick={handleOpen(index, sizes[index])}
+                    />
+                  </WithEditBadge>
+                )}
+                <Typography
+                  variant="subtitle2"
+                  color={selected ? 'warning' : 'default'}
+                  sx={{ fontWeight: 'bold' }}
                 >
-                  <PropIcon
-                    {...{ icon }}
-                    selected={sizeSliderProps.key === index}
-                    size={value}
-                    onClick={handleOpen(index, sizes[index])}
+                  <OverflowText
+                    text={isStepScale ? getSizeLabelAt(index) : getLabel(index)}
                   />
-                </WithEditBadge>
-              )}
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                <OverflowText text={getLabel(index)} />
-              </Typography>
-            </Stack>
-          ))}
-          {isStepScale && (
-            <Typography variant="h4" sx={{ pb: 4 }}>{`\u221E`}</Typography>
-          )}
+                </Typography>
+              </Stack>
+            )
+          })}
         </Stack>
       </OverflowText>
 
