@@ -530,7 +530,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                     {mapIndexed((_, index) => {
                       const label = chartStatUses[chartObj.chartType][index]
                       const selector = (
-                        <FormControl fullWidth>
+                        <FormControl key={index} fullWidth>
                           <InputLabel id={`stat-${label}-label`}>
                             {label}
                           </InputLabel>
