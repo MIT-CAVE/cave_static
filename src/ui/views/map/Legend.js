@@ -2,23 +2,38 @@ import {
   Avatar,
   Badge,
   Box,
+  Button,
   ButtonBase,
   ClickAwayListener,
+  Divider,
   FormControl,
+  FormControlLabel,
+  FormGroup,
   Grid2,
   InputAdornment,
   InputLabel,
+  Paper,
   Popper,
   Stack,
+  Switch,
   ToggleButton,
+  ToggleButtonGroup,
+  toggleButtonGroupClasses,
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
+import { PiColumns, PiLayout, PiRows } from 'react-icons/pi'
 import { RiSettings5Line } from 'react-icons/ri'
-import { TbLogicAnd, TbMathFunction } from 'react-icons/tb'
+import {
+  TbArrowAutofitWidth,
+  TbViewportWide,
+  TbViewportNarrow,
+  TbLogicAnd,
+  TbMathFunction,
+} from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
 import MapPortal from './MapPortal'
@@ -31,6 +46,9 @@ import {
   selectEffectiveGeosBy,
   selectEffectiveNodesBy,
   selectGeoRange,
+  selectLegendLayoutFunc,
+  selectLegendViewFunc,
+  selectLegendWidthFunc,
   selectNodeRange,
   selectNodeRangeAtZoomFunc,
   selectPitchSliderToggleFunc,
@@ -39,6 +57,9 @@ import {
   selectSync,
 } from '../../../data/selectors'
 import {
+  legendLayouts,
+  legendViews,
+  legendWidths,
   propId,
   scaleId,
   scaleParamsById,
@@ -69,6 +90,32 @@ const styles = {
     zIndex: 1,
     overflow: 'auto',
     scrollbarGutter: 'stable',
+  },
+  details: {
+    maxHeight: '100%',
+    maxWidth: '100%',
+    bgcolor: 'grey.800',
+    p: 1,
+    border: '1px outset rgb(128 128 128)',
+    boxSizing: 'border-box',
+  },
+  settings: {
+    overflow: 'auto',
+    maxWidth: 'fit-content',
+    borderWidth: 2,
+    pt: 2,
+  },
+  toggleGroup: {
+    [`& .${toggleButtonGroupClasses.grouped}`]: {
+      m: 0.5,
+      border: '1px outset rgb(128 128 128)',
+      borderRadius: 0,
+    },
+    [`& .${toggleButtonGroupClasses.selected}`]: {
+      m: 0.5,
+      border: '1px solid rgb(128 128 128)',
+      borderRadius: 0,
+    },
   },
   toggleButton: {
     p: 1,
@@ -225,12 +272,8 @@ export const useLegendDetails = ({
   }
 }
 
-export const useLegend = (mapId) => {
+export const useLegendPopper = () => {
   const [openId, setOpenId] = useState()
-
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
 
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
@@ -250,23 +293,11 @@ export const useLegend = (mapId) => {
     [handleOpenMenu]
   )
 
-  const handleToggleLegendGroupNames = useMutateStateWithSync(
-    () => ({
-      path: ['maps', 'data', mapId, 'showLegendGroupNames'],
-      value: !showLegendGroupNames,
-    }),
-    [mapId, showLegendGroupNames]
-  )
-
   return {
-    showLegendGroupNames,
-    handleToggleLegendGroupNames,
-    popperProps: {
-      openId,
-      anchorEl,
-      handleClose,
-      handleOpenById,
-    },
+    openId,
+    anchorEl,
+    handleClose,
+    handleOpenById,
   }
 }
 
@@ -625,6 +656,204 @@ export const LegendRowGeo = ({ LegendRowComponent, ...props }) => {
 
 // This is a reserved ID and shouldn't be used by API designers for map feature IDs in the legend
 const LEGEND_SETTINGS_POPPER_ID = 'legend-settings-popper'
+
+const SettingsToggle = ({ value, label, icon: Icon, selected }) => (
+  <ToggleButton {...{ value, selected }}>
+    <Icon size={24} style={{ marginRight: '8px' }} />
+    {label}
+  </ToggleButton>
+)
+
+// eslint-disable-next-line no-unused-vars
+const FormToggle = ({ id, value, label, icon: Icon, selected }) => (
+  <FormControlLabel
+    value={`${id}-${value}`}
+    control={
+      <ToggleButton {...{ value, selected }} sx={{ mb: 1 }}>
+        <Icon size={24} />
+      </ToggleButton>
+    }
+    {...{ label }}
+    labelPlacement="bottom"
+  />
+)
+
+const FormSwitch = ({ disabled, value, checked, label, onChange }) => (
+  <FormControlLabel
+    {...{ disabled, value, label }}
+    control={<Switch name={`cave-${value}`} {...{ checked, onChange }} />}
+    labelPlacement="end"
+  />
+)
+
+export const LegendSettings = ({
+  mapId,
+  expandAll,
+  showAdvancedControls,
+  onExpandAll,
+  onToggleAdvancedControls,
+}) => {
+  const legendView = useSelector(selectLegendViewFunc)(mapId)
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
+    mapId
+  )
+  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
+  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
+
+  const handleChangeView = useMutateStateWithSync(() => {
+    // Toggle between `full` and `minimal` legend views,
+    // as these are the only available options for now.
+    const newLegendView =
+      legendView === legendViews.FULL ? legendViews.MINIMAL : legendViews.FULL
+    return {
+      path: ['maps', 'data', mapId, 'legendView'],
+      value: newLegendView,
+    }
+  }, [mapId, legendView])
+
+  const handleToggleLegendGroupNames = useMutateStateWithSync(
+    () => ({
+      path: ['maps', 'data', mapId, 'showLegendGroupNames'],
+      value: !showLegendGroupNames,
+    }),
+    [mapId, showLegendGroupNames]
+  )
+
+  const handleChangeLegendLayout = useMutateStateWithSync(
+    (event, value) => ({
+      path: ['maps', 'data', mapId, 'legendLayout'],
+      value,
+    }),
+    [mapId]
+  )
+
+  const handleChangeLegendWidth = useMutateStateWithSync(
+    (event, value) => ({
+      path: ['maps', 'data', mapId, 'legendWidth'],
+      value,
+    }),
+    [mapId]
+  )
+
+  const isFullView = legendView === legendViews.FULL
+  return (
+    <Stack
+      component={Paper}
+      elevation={1}
+      spacing={1}
+      divider={<Divider />}
+      sx={[styles.details, styles.settings]}
+    >
+      <Typography variant="h5" sx={{ textAlign: 'start' }}>
+        Settings
+      </Typography>
+
+      <FormGroup>
+        {isFullView && (
+          <FormSwitch
+            value="expand-or-collapse-legend"
+            label="Expand all"
+            checked={expandAll}
+            onChange={onExpandAll}
+          />
+        )}
+        <FormSwitch
+          value="toggle-legend-group-names"
+          label="Show legend group names"
+          checked={showLegendGroupNames}
+          onChange={handleToggleLegendGroupNames}
+        />
+        {isFullView && (
+          <FormSwitch
+            disabled
+            value="toggle-advanced-controls"
+            label="Show advanced controls"
+            checked={showAdvancedControls}
+            onChange={onToggleAdvancedControls}
+          />
+        )}
+      </FormGroup>
+
+      <Stack>
+        <Typography variant="subtitle2" sx={{ textAlign: 'start', pl: 0.5 }}>
+          Layout width
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          sx={styles.toggleGroup}
+          value={legendWidth}
+          onChange={handleChangeLegendWidth}
+        >
+          <SettingsToggle
+            value={legendWidths.AUTO}
+            icon={TbArrowAutofitWidth}
+            label="Auto"
+          />
+          <SettingsToggle
+            value={legendWidths.SLIM}
+            icon={TbViewportNarrow}
+            label="Slim"
+            selected={
+              (!isFullView && legendWidth === legendWidths.AUTO) ||
+              legendWidth === legendWidths.SLIM
+            }
+          />
+          <SettingsToggle
+            value={legendWidths.WIDE}
+            icon={TbViewportWide}
+            label="Wide"
+            selected={
+              (isFullView && legendWidth === legendWidths.AUTO) ||
+              legendWidth === legendWidths.WIDE
+            }
+          />
+        </ToggleButtonGroup>
+      </Stack>
+
+      <Stack>
+        <Typography variant="subtitle2" sx={{ textAlign: 'start', pl: 0.5 }}>
+          Placement
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          sx={styles.toggleGroup}
+          value={legendLayout}
+          onChange={handleChangeLegendLayout}
+        >
+          <SettingsToggle
+            value={legendLayouts.AUTO}
+            icon={PiLayout}
+            label="Auto"
+          />
+          <SettingsToggle
+            value={legendLayouts.ROW}
+            icon={PiRows}
+            label="Rows"
+            selected={
+              (!isFullView && legendLayout === legendLayouts.AUTO) ||
+              legendLayout === legendLayouts.ROW
+            }
+          />
+          <SettingsToggle
+            value={legendLayouts.COLUMN}
+            icon={PiColumns}
+            label="Cols"
+            selected={
+              (isFullView && legendLayout === legendLayouts.AUTO) ||
+              legendLayout === legendLayouts.COLUMN
+            }
+          />
+        </ToggleButtonGroup>
+      </Stack>
+
+      <Button variant="contained" color="warning" onClick={handleChangeView}>
+        {`Switch to ${isFullView ? 'Compact' : 'Full'} View`}
+      </Button>
+    </Stack>
+  )
+}
 
 export const LegendHeader = ({
   label = 'Legend',

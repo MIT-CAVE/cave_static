@@ -1,8 +1,6 @@
 import {
   Badge,
-  Button,
   Divider,
-  FormControlLabel,
   Grid2,
   IconButton,
   Paper,
@@ -22,13 +20,14 @@ import HeightLegend from './HeightLegend'
 import {
   LegendHeader,
   LegendRoot,
-  useLegend,
+  useLegendPopper,
   useLegendDetails,
   WithEditBadge,
   LegendRowNode,
   LegendRowArc,
   LegendRowGeo,
   LegendPopper,
+  LegendSettings,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
@@ -36,9 +35,13 @@ import useMapFilter from './useMapFilter'
 import {
   selectArcTypeKeys,
   selectLegendDataFunc,
+  selectLegendLayoutFunc,
+  selectLegendWidthFunc,
   selectNodeTypeKeys,
+  selectShowLegendGroupNamesFunc,
 } from '../../../data/selectors'
-import { statId } from '../../../utils/enums'
+import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
+import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
 import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
@@ -78,12 +81,6 @@ const styles = {
     p: 1,
     border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
-    // borderColor: (theme) => theme.palette.primary.main,
-  },
-  settings: {
-    overflow: 'auto',
-    maxWidth: 'fit-content',
-    borderWidth: 2,
   },
   toggleButton: {
     p: 1,
@@ -132,8 +129,8 @@ const LegendRowDetails = ({
   getRange,
   onChangeVisibility,
 }) => {
+  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
   const [showShapePicker, handleToggleShapePicker] = useToggle(false)
-
   const {
     basePath,
     colorRange,
@@ -161,7 +158,6 @@ const LegendRowDetails = ({
     featureTypeValues,
     getRange,
   })
-
   const {
     filterOpen,
     labelStart,
@@ -180,6 +176,10 @@ const LegendRowDetails = ({
     filters,
   })
 
+  const layoutDirection =
+    legendLayout === legendLayouts.AUTO || legendLayout === legendLayouts.ROW
+      ? 'column'
+      : 'row'
   return (
     <Stack component={Paper} elevation={1} spacing={1} sx={styles.details}>
       <Grid2 container sx={{ alignItems: 'center' }} spacing={1}>
@@ -262,66 +262,77 @@ const LegendRowDetails = ({
         />
       )}
       <Divider sx={{ mx: -1.5 }} />
-      <Stack spacing={1} sx={{ overflow: 'auto' }}>
+      <Grid2
+        container
+        direction={layoutDirection}
+        spacing={1}
+        sx={{ overflow: 'auto' }}
+        wrap={layoutDirection === 'row' ? 'wrap' : 'nowrap'}
+      >
         {colorBy != null && (
-          <ColorLegend
-            valueRange={
-              group && clusterRange.color ? clusterRange.color : colorRange
-            }
-            {...{
-              legendGroupId,
-              mapId,
-              group,
-              colorBy,
-              colorByOptions,
-              featureTypeProps,
-            }}
-            anyNullValue={hasAnyNullValue(colorBy)}
-            groupCalcValue={groupCalcByColor}
-            onSelectProp={handleSelectProp}
-            onSelectGroupCalc={handleSelectGroupCalc}
-            onChangePropAttr={handleChangePropAttr}
-            onChangeColor={handleChangeColor}
-          />
+          <Grid2 size="grow">
+            <ColorLegend
+              valueRange={
+                group && clusterRange.color ? clusterRange.color : colorRange
+              }
+              {...{
+                mapId,
+                group,
+                colorBy,
+                colorByOptions,
+                featureTypeProps,
+              }}
+              anyNullValue={hasAnyNullValue(colorBy)}
+              groupCalcValue={groupCalcByColor}
+              onSelectProp={handleSelectProp}
+              onSelectGroupCalc={handleSelectGroupCalc}
+              onChangePropAttr={handleChangePropAttr}
+              onChangeColor={handleChangeColor}
+            />
+          </Grid2>
         )}
         {sizeBy != null && (
-          <SizeLegend
-            valueRange={
-              group && clusterRange.size ? clusterRange.size : sizeRange
-            }
-            {...{
-              icon,
-              group,
-              sizeBy,
-              sizeByOptions,
-              featureTypeProps,
-            }}
-            anyNullValue={hasAnyNullValue(sizeBy)}
-            groupCalcValue={groupCalcBySize}
-            onSelectProp={handleSelectProp}
-            onSelectGroupCalc={handleSelectGroupCalc}
-            onChangePropAttr={handleChangePropAttr}
-            onChangeSize={handleChangeSize}
-          />
+          <Grid2 size="grow">
+            <SizeLegend
+              valueRange={
+                group && clusterRange.size ? clusterRange.size : sizeRange
+              }
+              {...{
+                icon,
+                group,
+                sizeBy,
+                sizeByOptions,
+                featureTypeProps,
+              }}
+              anyNullValue={hasAnyNullValue(sizeBy)}
+              groupCalcValue={groupCalcBySize}
+              onSelectProp={handleSelectProp}
+              onSelectGroupCalc={handleSelectGroupCalc}
+              onChangePropAttr={handleChangePropAttr}
+              onChangeSize={handleChangeSize}
+            />
+          </Grid2>
         )}
         {/* FIXME: `heightBy` is temporarily hidden */}
         {heightBy != null && false && (
-          <HeightLegend
-            valueRange={heightRange}
-            {...{
-              legendGroupId,
-              mapId,
-              heightBy,
-              heightByOptions,
-              featureTypeProps,
-            }}
-            anyNullValue={hasAnyNullValue(heightBy)}
-            icon={<FetchedIcon iconName={icon} />}
-            onChangePropAttr={handleChangePropAttr}
-            onSelectProp={handleSelectProp('heightBy')}
-          />
+          <Grid2 size="grow">
+            <HeightLegend
+              valueRange={heightRange}
+              {...{
+                legendGroupId,
+                mapId,
+                heightBy,
+                heightByOptions,
+                featureTypeProps,
+              }}
+              anyNullValue={hasAnyNullValue(heightBy)}
+              icon={<FetchedIcon iconName={icon} />}
+              onChangePropAttr={handleChangePropAttr}
+              onSelectProp={handleSelectProp('heightBy')}
+            />
+          </Grid2>
         )}
-      </Stack>
+      </Grid2>
     </Stack>
   )
 }
@@ -335,9 +346,12 @@ const LegendRow = ({
   onClose,
   ...props
 }) => {
+  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
+
   const mapFeatures = mapFeaturesBy(id, mapId)
   const firstFeature = mapFeatures[0] ?? {}
   const name = firstFeature.name ?? id
+
   const numActiveFilters = useMemo(
     () => getNumActiveFilters(props.filters),
     [props.filters]
@@ -347,6 +361,9 @@ const LegendRow = ({
     [mapFeatures]
   )
   if (mapFeatures.length === 0) return null
+
+  const popperWidth =
+    legendWidth === legendWidths.WIDE ? LEGEND_WIDE_WIDTH : LEGEND_SLIM_WIDTH
   return (
     <Grid2
       key={id}
@@ -381,7 +398,7 @@ const LegendRow = ({
               reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
               sx: { right: 0, top: 0 },
             },
-            popper: { sx: { width: '400px' } },
+            popper: { sx: { width: popperWidth } },
           }}
         >
           <LegendRowDetails
@@ -439,19 +456,17 @@ const StyledWrapper = (props) => (
 const LegendGroup = ({
   mapId,
   legendGroup,
-  showLegendGroupNames,
   popperProps: { anchorEl, openId, handleClose, handleOpenById },
 }) => {
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
+    mapId
+  )
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
     [legendGroup]
   )
-  const isAnyMapFeatureVisible = useMemo(
-    () => legendGroupData.some(({ value }) => value),
-    [legendGroupData]
-  )
 
-  return isAnyMapFeatureVisible ? (
+  return (
     <StyledWrapper wrap={showLegendGroupNames}>
       {showLegendGroupNames && (
         <>
@@ -472,10 +487,13 @@ const LegendGroup = ({
         />
       ))}
     </StyledWrapper>
-  ) : null
+  )
 }
 
 const LegendGroups = ({ mapId, ...props }) => {
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
+    mapId
+  )
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
 
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])
@@ -483,8 +501,8 @@ const LegendGroups = ({ mapId, ...props }) => {
     const isAnyMapFeatureVisible = legendData.some((legendGroup) =>
       Object.values(legendGroup.data).some((mapFeature) => mapFeature.value)
     )
-    return !props.showLegendGroupNames && isAnyMapFeatureVisible
-  }, [legendData, props.showLegendGroupNames])
+    return !showLegendGroupNames && isAnyMapFeatureVisible
+  }, [legendData, showLegendGroupNames])
   return (
     <StyledWrapper wrap={showWrapper}>
       {legendData.map((legendGroup) => (
@@ -497,43 +515,8 @@ const LegendGroups = ({ mapId, ...props }) => {
   )
 }
 
-const LegendSettings = ({
-  showLegendGroupNames,
-  onToggleLegendGroupName,
-  onChangeView,
-}) => (
-  <Stack
-    component={Paper}
-    elevation={1}
-    spacing={1}
-    divider={<Divider />}
-    sx={[styles.details, styles.settings]}
-  >
-    <Typography variant="h6" sx={{ textAlign: 'start' }}>
-      Settings
-    </Typography>
-    <FormControlLabel
-      value="toggle-legend-group-names"
-      control={
-        <Switch
-          name="cave-toggle-legend-group-names"
-          checked={showLegendGroupNames}
-          onChange={onToggleLegendGroupName}
-        />
-      }
-      label="Show legend group names"
-      labelPlacement="end"
-    />
-    <Button variant="contained" color="warning" onClick={onChangeView}>
-      Switch to Full View
-    </Button>
-  </Stack>
-)
-
-const MinimalLegend = ({ mapId, onChangeView }) => {
-  const { showLegendGroupNames, handleToggleLegendGroupNames, popperProps } =
-    useLegend(mapId)
-
+const MinimalLegend = ({ mapId }) => {
+  const popperProps = useLegendPopper()
   return (
     <LegendRoot sx={styles.root} elevation={12} {...{ mapId }}>
       <LegendHeader
@@ -543,15 +526,9 @@ const MinimalLegend = ({ mapId, onChangeView }) => {
           icon: { size: 16 },
         }}
       >
-        <LegendSettings
-          {...{ showLegendGroupNames, onChangeView }}
-          onToggleLegendGroupName={handleToggleLegendGroupNames}
-        />
+        <LegendSettings {...{ mapId }} />
       </LegendHeader>
-      <LegendGroups
-        {...{ mapId, showLegendGroupNames, popperProps }}
-        onToggleLegendGroupName={handleToggleLegendGroupNames}
-      />
+      <LegendGroups {...{ mapId, popperProps }} />
     </LegendRoot>
   )
 }

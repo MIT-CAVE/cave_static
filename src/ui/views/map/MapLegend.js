@@ -9,22 +9,12 @@ import {
   selectIsMapLegendOpenFunc,
 } from '../../../data/selectors'
 import { legendViews } from '../../../utils/enums'
-import { useMutateStateWithSync } from '../../../utils/hooks'
 
 const MapLegend = ({ mapId }) => {
   const isMapLegendOpen = useSelector(selectIsMapLegendOpenFunc)(mapId)
   const legendView = useSelector(selectLegendViewFunc)(mapId)
 
-  const handleChangeView = useMutateStateWithSync(() => {
-    // Toggle between `full` and `minimal` legend views,
-    // as these are the only available options for now.
-    const newLegendView =
-      legendView === legendViews.FULL ? legendViews.MINIMAL : legendViews.FULL
-    return {
-      path: ['maps', 'data', mapId, 'legendView'],
-      value: newLegendView,
-    }
-  }, [mapId, legendView])
+  if (!isMapLegendOpen) return null
 
   const LegendView =
     legendView === legendViews.FULL
@@ -33,9 +23,7 @@ const MapLegend = ({ mapId }) => {
         ? MinimalLegend
         : null
 
-  if (!isMapLegendOpen) return null
-
-  return <LegendView {...{ mapId }} onChangeView={handleChangeView} />
+  return <LegendView {...{ mapId }} />
 }
 
 export default memo(MapLegend)

@@ -20,6 +20,8 @@ import {
   draggableId,
   paneId,
   legendViews,
+  legendLayouts,
+  legendWidths,
 } from '../../utils/enums'
 import { getScaledValueAlt } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
@@ -756,6 +758,26 @@ export const selectShowLegendGroupNamesFunc = createSelector(
     R.pathOr(
       R.pathOr(true, ['showLegendGroupNames', mapId])(currentMapDataByMap),
       ['showLegendGroupNames', mapId]
+    )(currentLocalMapDataByMap)
+)
+
+export const selectLegendLayoutFunc = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+    R.pathOr(
+      R.pathOr(legendLayouts.AUTO, ['legendLayout', mapId])(
+        currentMapDataByMap
+      ),
+      ['legendLayout', mapId]
+    )(currentLocalMapDataByMap)
+)
+
+export const selectLegendWidthFunc = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+    R.pathOr(
+      R.pathOr(legendWidths.AUTO, ['legendWidth', mapId])(currentMapDataByMap),
+      ['legendWidth', mapId]
     )(currentLocalMapDataByMap)
 )
 

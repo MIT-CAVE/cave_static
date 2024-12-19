@@ -3,10 +3,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Badge,
-  Button,
-  Divider,
-  FormControlLabel,
-  FormGroup,
   Grid2,
   IconButton,
   Paper,
@@ -29,9 +25,10 @@ import {
   LegendRowArc,
   LegendRowGeo,
   LegendRowNode,
-  useLegend,
+  useLegendPopper,
   useLegendDetails,
   WithEditBadge,
+  LegendSettings,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
@@ -40,8 +37,12 @@ import {
   selectLegendDataFunc,
   selectArcTypeKeys,
   selectNodeTypeKeys,
+  selectLegendLayoutFunc,
+  selectLegendWidthFunc,
+  selectShowLegendGroupNamesFunc,
 } from '../../../data/selectors'
-import { statId } from '../../../utils/enums'
+import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
+import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
 import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
@@ -60,7 +61,7 @@ const styles = {
     position: 'relative',
     // width: 'auto',
     // maxWidth: '800px',
-    width: '700px',
+    width: LEGEND_WIDE_WIDTH,
     p: 1,
     mx: 0,
     color: 'text.primary',
@@ -75,9 +76,7 @@ const styles = {
     maxWidth: '100%',
     bgcolor: 'grey.800',
     p: 1,
-    borderWidth: 1,
-    borderStyle: 'outset',
-    borderColor: 'rgb(128, 128, 128)',
+    border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
   },
   settings: {
@@ -147,6 +146,7 @@ const LegendRowDetails = ({
   onToggleExpanded,
   getRange,
 }) => {
+  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
   const [showShapePicker, handleToggleShapePicker] = useToggle(false, true)
   const {
     basePath,
@@ -317,7 +317,16 @@ const LegendRowDetails = ({
             />
           )}
 
-          <Grid2 container spacing={1}>
+          <Grid2
+            container
+            direction={
+              legendLayout === legendLayouts.AUTO ||
+              legendLayout === legendLayouts.COLUMN
+                ? 'row'
+                : 'column'
+            }
+            spacing={1}
+          >
             {sizeBy != null && (
               <Grid2 size="grow">
                 <SizeLegend
@@ -349,7 +358,6 @@ const LegendRowDetails = ({
                       : colorRange
                   }
                   {...{
-                    legendGroupId,
                     mapId,
                     group,
                     colorBy,
@@ -424,6 +432,7 @@ const LegendGroup = ({
   mapId,
   legendGroup,
   showLegendGroupNames,
+  legendLayout,
 }) => {
   const [
     expandedLegendGroup,
@@ -488,9 +497,9 @@ const LegendGroup = ({
             key={id}
             legendGroupId={legendGroup.id}
             expanded={expanded[id] ?? true}
+            {...{ mapId, id, legendLayout, ...props }}
             setExpanded={(value) => setExpanded(R.assoc(id, value))}
             onToggleExpanded={handleToggleExpandedBy(id)}
-            {...{ mapId, id, ...props }}
           />
         ))}
       </OptionalWrapper>
@@ -502,15 +511,8 @@ const LegendGroups = ({ mapId, ...props }) => {
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])
   const showWrapper = useMemo(() => {
-    const isAnyMapFeatureVisible = legendData.some((legendGroup) =>
-      Object.values(legendGroup.data).some((mapFeature) => mapFeature.value)
-    )
-    return (
-      !props.showSettings &&
-      !props.showLegendGroupNames &&
-      isAnyMapFeatureVisible
-    )
-  }, [legendData, props.showSettings, props.showLegendGroupNames])
+    return !props.showSettings && !props.showLegendGroupNames
+  }, [props.showSettings, props.showLegendGroupNames])
   return (
     <OptionalWrapper component="div" wrap={showWrapper}>
       {legendData.map((legendGroup) => (
@@ -523,80 +525,23 @@ const LegendGroups = ({ mapId, ...props }) => {
   )
 }
 
-const LegendSettings = ({
-  expandAll,
-  showLegendGroupNames,
-  showAdvancedControls,
-  onChangeView,
-  onExpandAll,
-  onToggleLegendGroupName,
-  onToggleAdvancedControls,
-}) => (
-  <Stack
-    component={Paper}
-    elevation={1}
-    spacing={1}
-    divider={<Divider />}
-    sx={[styles.details, styles.settings]}
-  >
-    <Typography variant="h5" sx={{ textAlign: 'start' }}>
-      Settings
-    </Typography>
-    <FormGroup>
-      <FormControlLabel
-        value="expand-or-collapse-legend"
-        control={
-          <Switch
-            name="cave-expand-or-collapse-legend"
-            checked={expandAll}
-            onChange={onExpandAll}
-          />
-        }
-        label="Expand all"
-        labelPlacement="end"
-      />
-      <FormControlLabel
-        value="toggle-legend-group-names"
-        control={
-          <Switch
-            name="cave-toggle-legend-group-names"
-            checked={showLegendGroupNames}
-            onChange={onToggleLegendGroupName}
-          />
-        }
-        label="Show legend group names"
-        labelPlacement="end"
-      />
-      <FormControlLabel
-        disabled
-        value="toggle-advanced-controls"
-        control={
-          <Switch
-            name="cave-toggle-advanced-controls"
-            checked={showAdvancedControls}
-            onChange={onToggleAdvancedControls}
-          />
-        }
-        label="Show advanced controls"
-        labelPlacement="end"
-      />
-    </FormGroup>
-    <Button variant="contained" color="warning" onClick={onChangeView}>
-      Switch to Minimal View
-    </Button>
-  </Stack>
-)
-
-const FullLegend = ({ mapId, onChangeView }) => {
+const FullLegend = ({ mapId }) => {
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
+    mapId
+  )
+  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
   const [expandAll, handleExpandAll] = useToggle(true)
   const [showAdvancedControls, handleToggleAdvancedControls] = useToggle(false)
-  const { showLegendGroupNames, handleToggleLegendGroupNames, popperProps } =
-    useLegend(mapId)
+  const popperProps = useLegendPopper()
   return (
     <LegendRoot
       {...{ mapId }}
       spacing={showLegendGroupNames ? 0 : 1}
-      sx={[styles.root, showLegendGroupNames && { pt: 0, px: 1 }]}
+      sx={[
+        styles.root,
+        showLegendGroupNames && { pt: 0, px: 1 },
+        legendWidth === legendWidths.SLIM && { width: LEGEND_SLIM_WIDTH },
+      ]}
     >
       <LegendHeader
         {...{ mapId, popperProps }}
@@ -607,20 +552,15 @@ const FullLegend = ({ mapId, onChangeView }) => {
       >
         <LegendSettings
           {...{
+            mapId,
             expandAll,
-            showLegendGroupNames,
             showAdvancedControls,
-            onChangeView,
           }}
           onExpandAll={handleExpandAll}
-          onToggleLegendGroupName={handleToggleLegendGroupNames}
           onToggleAdvancedControls={handleToggleAdvancedControls}
         />
       </LegendHeader>
-      <LegendGroups
-        {...{ mapId, expandAll, showLegendGroupNames }}
-        onToggleLegendGroupName={handleToggleLegendGroupNames}
-      />
+      <LegendGroups {...{ mapId, expandAll, showLegendGroupNames }} />
     </LegendRoot>
   )
 }

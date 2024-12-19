@@ -198,6 +198,18 @@ export const legendViews = {
   MINIMAL: 'minimal',
 }
 
+export const legendLayouts = {
+  AUTO: 'auto',
+  COLUMN: 'column',
+  ROW: 'row',
+}
+
+export const legendWidths = {
+  AUTO: 'auto',
+  WIDE: 'wide',
+  SLIM: 'slim',
+}
+
 export const unitPlacements = {
   AFTER: 'after',
   AFTER_WITH_SPACE: 'afterWithSpace',

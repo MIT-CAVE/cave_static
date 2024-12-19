@@ -7,6 +7,9 @@ export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/5.4.0'
 export const APP_BAR_WIDTH = 70
 export const PANE_WIDTH = 450
 
+export const LEGEND_WIDE_WIDTH = 700
+export const LEGEND_SLIM_WIDTH = 400
+
 export const GLOBALOUTPUT_WIDTH = 400
 export const PROP_MIN_WIDTH = 200
 
