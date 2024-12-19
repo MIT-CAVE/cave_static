@@ -621,7 +621,7 @@ const GridFilter = ({
             variant="contained"
             startIcon={<MdEdit />}
             onClick={() => {
-              const editableRows = rows.map((row) => ({ ...row, edit: false }))
+              const editableRows = rows.map((row) => ({ ...row, edit: true }))
               editableRows.unshift({ id: 0, edit: true, depth: 0 })
               setRows(editableRows)
               setEditing(true)
