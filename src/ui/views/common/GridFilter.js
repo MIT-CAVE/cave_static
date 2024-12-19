@@ -194,6 +194,7 @@ const GridFilter = ({
   const [groupIdCount, setGroupIdCount] = useState(maxGroupId + 1)
   const [rows, setRows] = useState(renamedFilters)
   const [initialRows, setInitialRows] = useState(renamedFilters)
+  const [editing, setEditing] = useState(false)
 
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
@@ -298,7 +299,7 @@ const GridFilter = ({
 
   const unsavedChanges = useMemo(() => {
     const removeEditProp = R.map(R.dissoc('edit'))
-    const cleanedRows = removeEditProp(rows)
+    const cleanedRows = removeEditProp(rows).slice(1)
     const cleanedInitialRows = removeEditProp(initialRows)
     return !R.equals(cleanedRows)(cleanedInitialRows)
   }, [rows, initialRows])
@@ -433,7 +434,7 @@ const GridFilter = ({
         width: 90,
         editable: false,
         renderCell: ({ row }) => {
-          if (row.type === 'group') return ''
+          if (row.type === 'group' || row.id === 0) return ''
           const value = row.source
           const valueType =
             value && value !== '' ? sourceValueTypes[value] : 'number'
@@ -467,7 +468,7 @@ const GridFilter = ({
         editable: false,
         renderCell: (params) => {
           const { value, row } = params
-          if (row.type === 'group') return ''
+          if (row.type === 'group' || row.id === 0) return ''
           if (row.edit) {
             const valueType = sourceValueTypes[params.row.source]
             if (valueType === 'multiSelect') {
@@ -614,17 +615,22 @@ const GridFilter = ({
       </Paper>
 
       <Stack mt={1} spacing={1} direction="row" justifyContent="end">
-        <Button
-          color="primary"
-          variant="contained"
-          startIcon={<MdEdit />}
-          onClick={() => {
-            setRows(rows.map((row) => ({ ...row, edit: true })))
-          }}
-        >
-          Edit
-        </Button>
-        {canCancel && (
+        {!editing && (
+          <Button
+            color="primary"
+            variant="contained"
+            startIcon={<MdEdit />}
+            onClick={() => {
+              const editableRows = rows.map((row) => ({ ...row, edit: false }))
+              editableRows.unshift({ id: 0, edit: true, depth: 0 })
+              setRows(editableRows)
+              setEditing(true)
+            }}
+          >
+            Edit
+          </Button>
+        )}
+        {editing && (
           <Button
             disabled={!canCancel}
             color="error"
@@ -632,25 +638,31 @@ const GridFilter = ({
             startIcon={<MdRestore />}
             onClick={() => {
               setRows(initialRows)
+              setEditing(false)
             }}
           >
             Cancel
           </Button>
         )}
-        <Button
-          disabled={!canSaveAll}
-          color="primary"
-          variant="contained"
-          startIcon={<MdCheck />}
-          onClick={() => {
-            const newRows = rows.map((row) => ({ ...row, edit: false }))
-            setRows(newRows)
-            handleClickSaveAll(newRows)
-            setInitialRows(newRows)
-          }}
-        >
-          Save Constraints
-        </Button>
+        {editing && (
+          <Button
+            disabled={!canSaveAll}
+            color="primary"
+            variant="contained"
+            startIcon={<MdCheck />}
+            onClick={() => {
+              const newRows = rows
+                .map((row) => ({ ...row, edit: false }))
+                .slice(1)
+              setRows(newRows)
+              handleClickSaveAll(newRows)
+              setInitialRows(newRows)
+              setEditing(false)
+            }}
+          >
+            Save Constraints
+          </Button>
+        )}
       </Stack>
     </>
   )
