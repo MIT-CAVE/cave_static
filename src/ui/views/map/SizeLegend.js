@@ -139,11 +139,10 @@ const NumericalSizeLegend = ({
               <Stack
                 key={index}
                 spacing={0.5}
-                sx={
-                  isStepScale
-                    ? { alignItems: 'center' }
-                    : { alignSelf: 'stretch' }
-                }
+                sx={[
+                  { alignItems: 'center' },
+                  !isStepScale && { alignSelf: 'stretch' },
+                ]}
               >
                 {icon && (
                   <WithEditBadge
