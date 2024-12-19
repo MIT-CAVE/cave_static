@@ -1,8 +1,8 @@
 import { memo } from 'react'
 import { useSelector } from 'react-redux'
 
+import CompactLegend from './CompactLegend'
 import FullLegend from './FullLegend'
-import MinimalLegend from './MinimalLegend'
 
 import {
   selectLegendViewFunc,
@@ -19,8 +19,8 @@ const MapLegend = ({ mapId }) => {
   const LegendView =
     legendView === legendViews.FULL
       ? FullLegend
-      : legendView === legendViews.MINIMAL
-        ? MinimalLegend
+      : legendView === legendViews.COMPACT
+        ? CompactLegend
         : null
 
   return <LegendView {...{ mapId }} />

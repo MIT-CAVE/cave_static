@@ -701,10 +701,10 @@ export const LegendSettings = ({
   const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
 
   const handleChangeView = useMutateStateWithSync(() => {
-    // Toggle between `full` and `minimal` legend views,
+    // Toggle between `full` and `compact` legend views,
     // as these are the only available options for now.
     const newLegendView =
-      legendView === legendViews.FULL ? legendViews.MINIMAL : legendViews.FULL
+      legendView === legendViews.FULL ? legendViews.COMPACT : legendViews.FULL
     return {
       path: ['maps', 'data', mapId, 'legendView'],
       value: newLegendView,

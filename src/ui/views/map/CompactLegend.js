@@ -515,7 +515,7 @@ const LegendGroups = ({ mapId, ...props }) => {
   )
 }
 
-const MinimalLegend = ({ mapId }) => {
+const CompactLegend = ({ mapId }) => {
   const popperProps = useLegendPopper()
   return (
     <LegendRoot sx={styles.root} elevation={12} {...{ mapId }}>
@@ -533,4 +533,4 @@ const MinimalLegend = ({ mapId }) => {
   )
 }
 
-export default memo(MinimalLegend)
+export default memo(CompactLegend)

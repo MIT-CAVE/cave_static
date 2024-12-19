@@ -195,7 +195,7 @@ export const chartStatUses = {
 
 export const legendViews = {
   FULL: 'full',
-  MINIMAL: 'minimal',
+  COMPACT: 'compact',
 }
 
 export const legendLayouts = {
