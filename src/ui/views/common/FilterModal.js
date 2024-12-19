@@ -130,6 +130,8 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
 
       if (R.isEmpty(resultGroupings[grouping].data)) {
         delete resultGroupings[grouping].data
+      } else {
+        resultGroupings[grouping].levels = R.prop('levels')(groupingProps)
       }
       if (R.isEmpty(resultGroupings[grouping])) {
         delete resultGroupings[grouping]
