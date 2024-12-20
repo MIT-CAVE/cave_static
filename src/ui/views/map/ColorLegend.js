@@ -135,16 +135,21 @@ const NumericalColorLegend = ({
         scaleParams
       )
     )(values)
-    const gradientColors = R.addIndex(R.zipWith)(
-      (color, scaledValue, idx) =>
-        !isStepScale
-          ? `${color} ${scaledValue}%`
-          : idx > 0
-            ? `${color} ${scaledValues[idx - 1]}% ${scaledValue}%`
-            : `${color} 1%`,
-      colors
-    )(scaledValues)
 
+    const gradientColors =
+      minValue === maxValue
+        ? isStepScale
+          ? [`${colors[0]} 1%`, `${colors[1]} 1% 100%`]
+          : [`${colors[colors.length - 1]} 0% 100%`]
+        : R.addIndex(R.zipWith)(
+            (color, scaledValue, idx) =>
+              !isStepScale
+                ? `${color} ${scaledValue}%`
+                : idx > 0
+                  ? `${color} ${scaledValues[idx - 1]}% ${scaledValue}%`
+                  : `${color} 1%`,
+            colors
+          )(scaledValues)
     return styles.getGradient(gradientColors.join(', '))
   }, [colors, isStepScale, valueRange, values])
 
@@ -215,8 +220,6 @@ const NumericalColorLegend = ({
                       },
                     }}
                     label={getValueLabelAt(index)}
-                    min={valueRange.min}
-                    max={valueRange.max}
                     {...{ value, numberFormat }}
                     onClickAway={onChangeValueAt(index)}
                   />
