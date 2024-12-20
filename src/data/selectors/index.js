@@ -1771,10 +1771,7 @@ export const selectArcRange = createSelector(
         return R.pipe(
           R.path([0, 'props', prop]), // Picking a specific index (in this case 0) is irrelevant as the elements of the array only vary by value and the props should remain the same
           R.when(
-            (range) =>
-              R.isEmpty(range) ||
-              (R.has('gradient', range) &&
-                (!R.has('max', range) || !R.has('min', range))),
+            R.either(R.isEmpty, R.has('gradient')),
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
@@ -1903,10 +1900,7 @@ export const selectNodeRange = createSelector(
         return R.pipe(
           R.path([0, 'props', prop]),
           R.when(
-            (range) =>
-              R.isEmpty(range) ||
-              (R.has('gradient', range) &&
-                (!R.has('max', range) || !R.has('min', range))),
+            R.either(R.isEmpty, R.has('gradient')),
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
@@ -1933,10 +1927,7 @@ export const selectGeoRange = createSelector(
         return R.pipe(
           R.path([0, 'props', prop]),
           R.when(
-            (range) =>
-              R.isEmpty(range) ||
-              (R.has('gradient', range) &&
-                (!R.has('max', range) || !R.has('min', range))),
+            R.either(R.isEmpty, R.has('gradient')),
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({

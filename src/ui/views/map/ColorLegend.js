@@ -123,12 +123,9 @@ const NumericalColorLegend = ({
   })
 
   const gradientStyle = useMemo(() => {
-    const {
-      gradient: { scale, scaleParams },
-      min: minValue,
-      max: maxValue,
-    } = valueRange
-
+    const { scale, scaleParams } = valueRange.gradient
+    const minValue = Math.min(...values)
+    const maxValue = Math.max(...values)
     const scaledValues = R.map((value) =>
       getScaledValueAlt(
         [minValue, maxValue],
@@ -138,7 +135,6 @@ const NumericalColorLegend = ({
         scaleParams
       )
     )(values)
-
     const gradientColors = R.addIndex(R.zipWith)(
       (color, scaledValue, idx) =>
         !isStepScale

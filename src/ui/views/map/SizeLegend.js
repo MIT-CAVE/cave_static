@@ -102,6 +102,12 @@ const NumericalSizeLegend = ({
     isStepScale,
   })
 
+  // These can be different from the ones in `valueRange`
+  const minMaxValues = useMemo(
+    () => [Math.min(...values), Math.max(...values)],
+    [values]
+  )
+
   const handleChangeComittedAt = useCallback(
     (index) => (event, value) => {
       const pathTail =
@@ -201,8 +207,8 @@ const NumericalSizeLegend = ({
                   },
                 }}
                 label={getValueLabelAt(sizeSliderProps.key)}
-                min={valueRange.min}
-                max={valueRange.max}
+                min={minMaxValues[0]}
+                max={minMaxValues[1]}
                 value={values[sizeSliderProps.key]}
                 {...{ numberFormat }}
                 onClickAway={onChangeValueAt(sizeSliderProps.key)}
