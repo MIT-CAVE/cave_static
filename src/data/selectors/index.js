@@ -2234,22 +2234,21 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeByPropVal = sizeObj.value
           const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
           const isSizeCategorical = sizeByProp.type !== propId.NUMBER
-          // const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
+          const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
           const parsedSize = parseGradient('size', true)(sizeByProp)
-          console.log(group)
           const rawSize =
             sizeByPropVal == null
               ? sizeFallback
               : isSizeCategorical
                 ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeByProp)
                 : getScaledValueAlt(
-                    parsedSize.values,
+                    [sizeDomain.min, sizeDomain.max],
                     parsedSize.sizes,
                     parseFloat(sizeByPropVal),
                     sizeByProp.gradient.scale,
                     sizeByProp.gradient.scaleParams
                   )
-          console.log(rawSize, isSizeCategorical, parsedSize)
+
           const colorByProp = effectiveNodes.props[colorBy]
           const colorObj = group.properties.colorProp
           const colorByPropVal = R.pipe(R.when(R.isNil, R.always('')), (s) =>
@@ -2259,7 +2258,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
             colorByProp
           )
           const isColorCategorical = colorByProp.type !== propId.NUMBER
-          // const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
+          const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
           const parsedColor = parseGradient('color')(colorByProp)
 
           const rawColor =
@@ -2270,7 +2269,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     colorByProp
                   )
                 : getScaledValueAlt(
-                    parsedColor.values,
+                    [colorDomain.min, colorDomain.max],
                     parsedColor.colors,
                     parseFloat(colorByPropVal),
                     colorByProp.gradient.scale,
