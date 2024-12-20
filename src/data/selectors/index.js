@@ -1786,7 +1786,7 @@ export const selectArcRange = createSelector(
             )
           ),
           R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
-          R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
+          R.unless(checkValidRange, R.always({ min: 0, max: 0, gradient: {} }))
         )(effectiveArcs)
       }
     )
@@ -1918,7 +1918,7 @@ export const selectNodeRange = createSelector(
             )
           ),
           R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
-          R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
+          R.unless(checkValidRange, R.always({ min: 0, max: 0, gradient: {} }))
         )(effectiveNodes)
       }
     )
@@ -1948,7 +1948,7 @@ export const selectGeoRange = createSelector(
             )
           ),
           R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
-          R.unless(checkValidRange, R.always({ min: 0, max: 0 }))
+          R.unless(checkValidRange, R.always({ min: 0, max: 0, gradient: {} }))
         )(effectiveGeos)
       }
     )

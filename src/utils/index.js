@@ -741,7 +741,7 @@ export const parseGradient = R.memoizeWith(
     (attrKey, parseRangeAsNumber = false) =>
       (range) =>
         R.ifElse(
-          R.has('gradient'),
+          R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
           R.pipe(
             R.path(['gradient', 'data']),
             R.applySpec({
