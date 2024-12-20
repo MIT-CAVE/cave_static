@@ -15,7 +15,7 @@ import {
   setIsTextArea,
 } from '../../data/utilities/virtualKeyboardSlice'
 
-import { NumberFormat, getStatusIcon } from '../../utils'
+import { NumberFormat, forceArray, getStatusIcon } from '../../utils'
 
 const shallowEqual = (object1, object2) => {
   const keys1 = Object.keys(object1)
@@ -46,8 +46,7 @@ const DELAY = 10
 const KEYBOARD_LAYOUT = 'numPad'
 
 const NumberInput = ({
-  color = 'default',
-  enabled,
+  enabled = true,
   help,
   min,
   max,
@@ -55,6 +54,10 @@ const NumberInput = ({
   placeholder,
   value: defaultValue,
   numberFormat,
+  color = 'default',
+  statusIcon,
+  sx = [],
+  slotProps,
   onClickAway,
 }) => {
   const dispatch = useDispatch()
@@ -230,7 +233,7 @@ const NumberInput = ({
 
   return (
     <TextField
-      sx={{ width: '100%' }}
+      sx={[{ width: '100%' }, ...forceArray(sx)]}
       {...{ placeholder, label }}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
@@ -238,6 +241,7 @@ const NumberInput = ({
       onChange={handleChange}
       onSelect={syncCaretPosition}
       onFocus={() => {
+        if (!enabled) return
         // delay to ensure the keyboard closing is overriden
         // if user focuses to another input field
         if (virtualKeyboard.isOpen) {
@@ -294,42 +298,47 @@ const NumberInput = ({
       }}
       helperText={help}
       inputRef={inputRef}
-      InputProps={{
-        readOnly: !enabled,
-        ...(enabled && {
-          endAdornment: (
-            <InputAdornment position="end">
-              <Box
-                sx={{ cursor: 'pointer' }}
-                onClick={() => {
-                  if (!focused.current) {
-                    inputRef.current.focus()
-                    inputRef.current.setSelectionRange(
-                      value.length,
-                      value.length
-                    )
-                  }
+      slotProps={{
+        ...slotProps,
+        input: {
+          readOnly: !enabled,
+          ...(enabled && {
+            endAdornment: (
+              <InputAdornment position="end">
+                <Box
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    if (!focused.current) {
+                      inputRef.current.focus()
+                      inputRef.current.setSelectionRange(
+                        value.length,
+                        value.length
+                      )
+                    }
 
-                  dispatch(setIsOpen(!virtualKeyboard.isOpen))
-                  dispatch(setLayout(KEYBOARD_LAYOUT))
-                  syncCaretPosition()
-                }}
-                onMouseDown={(event) => {
-                  if (focused.current) event.preventDefault()
-                }}
-              >
-                <BiSolidKeyboard />
-              </Box>
-              {color !== 'default' && getStatusIcon(color)}
-            </InputAdornment>
-          ),
-        }),
+                    dispatch(setIsOpen(!virtualKeyboard.isOpen))
+                    dispatch(setLayout(KEYBOARD_LAYOUT))
+                    syncCaretPosition()
+                  }}
+                  onMouseDown={(event) => {
+                    if (focused.current) event.preventDefault()
+                  }}
+                >
+                  <BiSolidKeyboard />
+                </Box>
+                {color !== 'default' && statusIcon && getStatusIcon(color)}
+              </InputAdornment>
+            ),
+          }),
+          ...slotProps?.input,
+        },
       }}
     />
   )
 }
 NumberInput.propTypes = {
   color: PropTypes.string,
+  statusIcon: PropTypes.bool,
   enabled: PropTypes.bool,
   help: PropTypes.string,
   min: PropTypes.number,
@@ -337,6 +346,13 @@ NumberInput.propTypes = {
   placeholder: PropTypes.string,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   numberFormat: PropTypes.object,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
   onClickAway: PropTypes.func,
 }
 

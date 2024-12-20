@@ -1,11 +1,14 @@
-import { chartAggrFunc, chartVariant } from './enums'
+import { chartVariant } from './enums'
 
 export const DEFAULT_LOCALE = 'en-US'
 
-export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/5.0.1'
+export const DEFAULT_ICON_URL = 'https://react-icons.mitcave.com/5.4.0'
 
 export const APP_BAR_WIDTH = 70
 export const PANE_WIDTH = 450
+
+export const LEGEND_WIDE_WIDTH = 700
+export const LEGEND_SLIM_WIDTH = 400
 
 export const GLOBALOUTPUT_WIDTH = 400
 export const PROP_MIN_WIDTH = 200
@@ -187,14 +190,11 @@ export const CHART_PALETTE = [
   '#dd79ff',
 ]
 
-export const HIGHLIGHT_COLOR = 'rgba(0,0,128,255)'
-
 export const CHART_DEFAULTS = {
-  variant: chartVariant.BAR,
-  statAggregation: chartAggrFunc.SUM,
+  chartType: chartVariant.BAR,
 }
 
-export const NUMBER_FORMAT_KEYS = [
+export const NUMBER_FORMAT_KEY_PATHS = [
   'locale',
   'precision',
   'notation',
@@ -203,9 +203,7 @@ export const NUMBER_FORMAT_KEYS = [
   'unit',
   'unitPlacement',
   'fallbackValue',
-  'legendPrecision',
-  'legendNotation',
-  'legendNotationDisplay',
-  'legendMinLabel',
-  'legendMaxLabel',
+  ['gradient', 'precision'],
+  ['gradient', 'notation'],
+  ['gradient', 'notationDisplay'],
 ]

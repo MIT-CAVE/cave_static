@@ -21,7 +21,14 @@ const styles = {
   },
 }
 
-const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
+const OverflowText = ({
+  text,
+  speed = 20,
+  sx = [],
+  marqueeProps,
+  children,
+  ...props
+}) => {
   const [isOverflowing, setIsOverflowing] = useState(false)
   const checkedFalse = useRef(false)
   const parent = useRef(null)
@@ -59,13 +66,13 @@ const OverflowText = ({ text, speed = 20, sx = [], children, ...props }) => {
   }, [text, checkOverflow, isOverflowing])
 
   return (
-    <Box sx={[styles.root, ...forceArray(sx)]} {...props} ref={parent}>
+    <Box ref={parent} sx={[styles.root, ...forceArray(sx)]} {...props}>
       <Marquee
         direction="left"
         delay={0.5}
         gradient={false}
         pauseOnHover
-        {...{ speed }}
+        {...{ speed, ...marqueeProps }}
         style={{
           display: isOverflowing ? '' : 'none',
           width: width.current,

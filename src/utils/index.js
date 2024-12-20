@@ -1,12 +1,17 @@
+import { colord } from 'colord'
 import { quantileSorted } from 'd3-array'
-import { color, rgb } from 'd3-color'
-import { scaleLinear } from 'd3-scale'
-import { Parser } from 'expr-eval'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
-import { CHART_PALETTE, DEFAULT_ICON_URL } from './constants'
+import {
+  CHART_PALETTE,
+  DEFAULT_ICON_URL,
+  ICON_RESOLUTION,
+  MAX_MEMOIZED_CHARTS,
+} from './constants'
+import { propId } from './enums'
+import { getScaledValueAlt } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
 
@@ -110,10 +115,18 @@ export const findColoring = (name, colors) => {
   const smallestName = R.pipe(R.split(' \u279D '), R.head)(name)
   return R.prop(smallestName, colors)
 }
-
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
   if (!namesSet.has(name)) return name
+
+  const match = name.match(/ \((\d+)\)$/)
+
+  if (match) {
+    const baseName = name.slice(0, match.index)
+    let count = Number(match[1]) + 1
+    while (namesSet.has(`${baseName} (${count})`)) count++
+    return `${baseName} (${count})`
+  }
 
   let count = 1
   while (namesSet.has(`${name} (${count})`)) count++
@@ -138,45 +151,69 @@ export const parseArray = (input) => {
   var items = s.split(',')
   return R.map(R.trim)(items)
 }
-export const filterMapFeature = (filters, featureObj) => {
-  for (const filterObj of filters) {
-    const prop = R.prop('prop', filterObj)
-    const filterValue = R.prop('value', filterObj)
-    const type = R.path(['props', prop, 'type'], featureObj)
-    const value = R.path(['values', prop], featureObj)
-    if (type === 'selector') {
-      if (R.has('option', filterObj)) {
-        if (filterObj.option === 'exc') {
-          if (R.any(R.flip(R.includes)(value), filterValue)) {
-            return false
-          }
-        } else if (filterObj.option === 'inc') {
-          if (R.none(R.flip(R.includes)(value), filterValue)) {
-            return false
-          }
+
+const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
+  const prop = R.prop('prop', filterObj)
+  const filterValue = R.prop('value', filterObj)
+  const type = R.path(['props', prop, 'type'], featureObj)
+  const value = R.path(['values', prop], featureObj)
+
+  if (type === 'selector') {
+    if (R.has('option', filterObj)) {
+      if (filterObj.option === 'exc') {
+        if (R.any(R.flip(R.includes)(value), filterValue)) {
+          return false
         }
-      } else {
-        if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
+      } else if (filterObj.option === 'inc') {
+        if (R.none(R.flip(R.includes)(value), filterValue)) {
           return false
         }
       }
-    } else if (type === 'num' && filterObj['option'] !== 'eq') {
-      return !R.has('option', filterObj)
-        ? true
-        : R.prop('option', filterObj) === 'gt'
-          ? R.gt(value, filterValue)
-          : R.prop('option', filterObj) === 'gte'
-            ? R.gte(value, filterValue)
-            : R.prop('option', filterObj) === 'lt'
-              ? R.lt(value, filterValue)
-              : R.lte(value, filterValue)
     } else {
-      if (filterValue !== value) {
+      if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
         return false
       }
     }
+  } else if (type === 'num' && filterObj['option'] !== 'eq') {
+    if (!R.has('option', filterObj)) {
+      return true
+    }
+    return R.prop('option', filterObj) === 'gt'
+      ? R.gt(value, filterValue)
+      : R.prop('option', filterObj) === 'gte'
+        ? R.gte(value, filterValue)
+        : R.prop('option', filterObj) === 'lt'
+          ? R.lt(value, filterValue)
+          : R.lte(value, filterValue)
+  } else {
+    if (filterValue !== value) {
+      return false
+    }
   }
   return true
+}
+
+const doesFeatureSatisfyGroup = (groupId, logic, filters, featureObj) => {
+  const children = filters.filter((filt) => filt.parentGroupId === groupId)
+  if (R.isEmpty(children)) return true
+  const filterResults = children.map((child) => {
+    return child.type === 'rule'
+      ? doesFeatureSatisfyFilter(child, featureObj)
+      : doesFeatureSatisfyGroup(child.groupId, child.logic, filters, featureObj)
+  })
+  return logic === 'and'
+    ? R.all(Boolean, filterResults)
+    : R.any(Boolean, filterResults)
+}
+
+export const filterMapFeature = (filters, featureObj) => {
+  const rootGroup = filters.find((filter) => filter.groupId === 0)
+  return doesFeatureSatisfyGroup(
+    0,
+    rootGroup ? rootGroup.logic : 'and',
+    filters,
+    featureObj
+  )
 }
 
 export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
@@ -185,30 +222,36 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
     R.prop('valueLists'),
     R.values,
     R.head,
-    R.length,
-    R.range(0)
+    R.length
   )(statistics)
-  const filteredIndicies = indicies.filter((idx) => {
+  const indiciesBuffer = window.crossOriginIsolated
+    ? new SharedArrayBuffer(0, { maxByteLength: indicies * 4 })
+    : new ArrayBuffer(0, { maxByteLength: indicies * 4 })
+  const indiciesView = new Uint32Array(indiciesBuffer)
+
+  // fill and grow indicies buffer with filtered values
+  for (let i = 0; i < indicies; i++) {
+    let allow = true
     for (const filterObj of filters) {
       const format = R.propOr('stat', 'format', filterObj)
       const prop = R.prop('prop', filterObj)
       const filterValue = R.prop('value', filterObj)
       const value =
         format === 'stat'
-          ? R.path([prop, idx], valueLists)
+          ? R.path([prop, i], valueLists)
           : groupingIndicies[format]['data'][prop][
               groupingIndicies[format]['data']['id'][
-                R.path(['groupLists', format, idx], statistics)
+                R.path(['groupLists', format, i], statistics)
               ]
             ]
       if (format !== 'stat') {
         if (R.has('option', filterObj)) {
           if (R.any(R.flip(R.includes)(value), filterValue)) {
-            return false
+            allow = false
           }
         } else {
           if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
-            return false
+            allow = false
           }
         }
       } else if (filterObj['option'] !== 'eq') {
@@ -223,106 +266,18 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
                 : R.lte(value, filterValue)
       } else {
         if (filterValue !== value) {
-          return false
+          allow = false
         }
       }
     }
-    return true
-  })
-  return filteredIndicies
-}
-
-const promiseAllObject = (obj) =>
-  Promise.all(R.values(obj)).then(R.zipObj(R.keys(obj)))
-
-export const calculateStatAnyDepth = (valueBuffers, workerManager) => {
-  const valueLists = R.map((buffer) => new Float64Array(buffer))(valueBuffers)
-  const parser = new Parser()
-  const calculate = (group, calculation) => {
-    // if there are no calculations just return values at the group indicies
-    if (R.has(calculation, valueLists)) {
-      return R.pipe((d) => d[calculation], R.pick(group), R.values)(valueLists)
+    if (allow) {
+      if (window.crossOriginIsolated)
+        indiciesBuffer.grow(indiciesView.byteLength + 4)
+      else indiciesBuffer.resize(indiciesView.byteLength + 4)
+      indiciesView[indiciesView.length - 1] = i
     }
-    // define groupSum for each base level group
-    const preSummed = {}
-    parser.functions.groupSum = (statName) => {
-      // groupSum only works for non-derived stats
-      // dont recalculate sum for each stat
-      if (R.isNil(preSummed[statName])) {
-        preSummed[statName] = R.sum(
-          R.map((idx) => valueLists[statName][idx], group)
-        )
-      }
-      return preSummed[statName]
-    }
-    return group.map((idx) => {
-      const proxy = new Proxy(valueLists, {
-        get(target, name, receiver) {
-          return Reflect.get(target, name, receiver)[idx]
-        },
-      })
-      try {
-        return parser.parse(calculation).evaluate(
-          // evaluate each list item
-          proxy
-        )
-      } catch {
-        console.warn(`Malformed calculation: ${calculation}`)
-        // if calculation is malformed return simplified array
-        return parseArray(
-          parser
-            .parse(calculation)
-            .simplify(
-              // evaluate each list item
-              proxy
-            )
-            .toString()
-        )
-      }
-    })
   }
-  const group = async (groupBys, calculation, indicies) => {
-    const currentGroupBy = groupBys[0]
-    const keyFn = R.pipe(currentGroupBy, R.join(' \u279D '))
-    return await R.pipe(
-      (idxs) => {
-        const acc = {}
-        for (let i = 0; i < idxs.length; i++) {
-          const idx = idxs[i]
-          const key = keyFn(idx)
-          if (!(key in acc)) {
-            acc[key] = []
-          }
-          acc[key].push(idx)
-        }
-        return acc
-      },
-      R.length(groupBys) === 1
-        ? async (d) =>
-            await promiseAllObject(
-              R.map((group) => {
-                // if group is small enough or if sharedArrayBuffer is not available calculate in main thread
-                if (group.length < 1000 || !window.crossOriginIsolated)
-                  return calculate(group, calculation)
-                else
-                  return workerManager.doWork({
-                    indicies: group,
-                    calculation,
-                    valueBuffers,
-                  })
-              })(d)
-            )
-        : async (d) =>
-            await promiseAllObject(
-              R.map(
-                async (stats) =>
-                  await group(groupBys.slice(1), calculation, stats)
-              )(d)
-            )
-    )(indicies)
-  }
-
-  return group
+  return indiciesBuffer
 }
 
 export const recursiveMap = R.curry(
@@ -458,33 +413,13 @@ export const getChartItemColor = (name) => {
   const colorIndex = Math.abs(generateHash(name))
   return CHART_PALETTE[colorIndex % CHART_PALETTE.length]
 }
-/**
- * Converts a d3-color RGB object into a conventional RGBA array.
- * @function
- * @param {Object} rgbObj - The d3-color RGB object.
- * @returns {Array} A RGBA equivalent array of the given color.
- * @private
- */
-const rgbObjToRgbaArray = (rgbObj) => {
-  const opacity = R.prop('opacity', rgbObj) * 255
-  return R.pipe(R.props(['r', 'g', 'b']), R.append(opacity))(rgbObj)
-} // RGBA array
 
 export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
-export const getScaledColor = R.curry((colorDomain, colorRange, value) =>
-  getScaledRgbObj(colorDomain, colorRange, value)
-)
 
-export const getScaledRgbObj = R.curry((colorDomain, colorRange, value) => {
-  const getColor = scaleLinear()
-    .domain(colorDomain)
-    .range(colorRange)
-    .clamp(true)
-  return rgbObjToRgbaArray(color(getColor(value)))
-})
+export const getColorString = (rawColor) => colord(rawColor).toRgbString()
 
 export const getContrastText = (bgColor) => {
-  const background = rgb(bgColor)
+  const background = colord(bgColor).rgba
   // luminance is calculated using the formula provided in WCAG 2.0 guidelines,
   // a specific weighted sum of the RGB values of the color
   const luminance =
@@ -607,7 +542,12 @@ export const toListWithKey = (key) =>
 
 export const sortedListById = R.pipe(
   toListWithKey('id'),
-  R.sortBy(R.prop('id'))
+  R.sortWith([
+    // BUG: Doesn't work for something like row3Col1 and row2Col1
+    // (a, b) => R.length(a.id) - R.length(b.id),
+    // If the length is the same, compare by alphabetical order
+    R.ascend(R.prop('id')),
+  ])
 )
 
 export const sortByOrderNameId = R.sortWith([
@@ -657,14 +597,14 @@ export const getQuartiles = R.ifElse(
   R.pipe(R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
-const allowedRangeKeys = [
-  'startGradientColor',
-  'endGradientColor',
-  'nullColor',
-  'nullSize',
+export const ALLOWED_RANGE_KEYS = [
   'timeValues',
-  'startSize',
-  'endSize',
+  'gradients',
+  'gradient',
+  'min',
+  'max',
+  'options',
+  'fallback',
 ]
 
 // checks that range is either min/max or list of strings
@@ -672,7 +612,7 @@ export const checkValidRange = R.pipe(
   R.mapObjIndexed((value, key) =>
     key === 'min' || key === 'max'
       ? R.is(Number, value)
-      : R.includes(key, allowedRangeKeys) || R.is(String, value)
+      : R.includes(key, ALLOWED_RANGE_KEYS) || R.is(String, value)
   ),
   R.values,
   R.all(R.identity)
@@ -780,20 +720,388 @@ export const customSortByX = R.curry((orderings, data) => {
 })
 
 export const cleanUndefinedStats = (chartObj) => {
-  const statIds = R.pathOr([], ['statId'], chartObj)
-  if (R.is(String, statIds)) return chartObj
+  const stats = R.pathOr([], ['stats'], chartObj)
   const transformations = {
-    statId: R.dropLast(1),
-    groupedOutputDataId: R.dropLast(1),
+    stats: R.dropLast(1),
   }
-  const reduced_chart = R.isNil(R.last(statIds))
+  const reduced_chart = R.isNil(R.last(stats))
     ? R.evolve(transformations, chartObj)
     : chartObj
 
-  return R.any(R.isNil)(reduced_chart['statId'])
-    ? R.pipe(
-        R.assoc('statId', []),
-        R.assoc('groupedOutputDataId', [])
-      )(reduced_chart)
+  return R.any(R.isNil)(reduced_chart['stats'])
+    ? R.pipe(R.assoc('stats', []), R.assoc('dataset', ''))(reduced_chart)
     : reduced_chart
 }
+
+export const getNumActiveFilters = R.count(R.propEq('rule', 'type'))
+
+export const parseGradient = R.memoizeWith(
+  ([attrKey, parseRangeAsNumber, range]) =>
+    JSON.stringify({ attrKey, parseRangeAsNumber, range }),
+  R.curry(
+    (attrKey, parseRangeAsNumber = false) =>
+      (range) =>
+        R.ifElse(
+          R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
+          R.pipe(
+            R.path(['gradient', 'data']),
+            R.applySpec({
+              [`${attrKey}s`]: R.map(
+                R.pipe(
+                  R.prop(attrKey),
+                  R.when(R.always(parseRangeAsNumber), parseFloat)
+                )
+              ),
+              values: R.map(
+                R.pipe(
+                  R.prop('value'),
+                  R.cond([
+                    [R.equals('min'), R.always(range?.min)],
+                    [R.equals('max'), R.always(range?.max)],
+                    [R.T, R.identity],
+                  ])
+                )
+              ),
+              labels: R.pluck('label'),
+            })
+          ),
+          R.always({ [`${attrKey}s`]: [], values: [], labels: [] })
+        )(range)
+  )
+)
+
+export const constructFetchedGeoJson = (
+  matchingKeysByTypeFunc,
+  itemRange,
+  enabledItemsFunc,
+  types,
+  cacheName
+) =>
+  maxSizedMemoization(
+    R.identity,
+    async (mapId) => {
+      const enabledItems = enabledItemsFunc(mapId)
+      const itemNames = R.keys(R.filter(R.identity, enabledItems))
+
+      const fetchCache = async () => {
+        const cache = await caches.open(cacheName)
+        const items = {}
+        for (let itemName of itemNames) {
+          const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'], types)
+          // Special catch for empty urls on initial call
+          if (url === '') {
+            continue
+          }
+          let response = await cache.match(url)
+          // add to cache if not found
+          if (R.isNil(response)) {
+            await cache.add(url)
+            response = await cache.match(url)
+          }
+          items[itemName] = await response.json()
+        }
+        return items
+      }
+      return fetchCache().then((selecteditems) =>
+        R.pipe(
+          R.map(
+            R.pipe(
+              R.mapObjIndexed((geoObj, geoJsonValue) => {
+                const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
+                const geoType = geoObj.type
+                const geoId = geoObj.data_key
+                const filteredFeature = R.find(
+                  (feature) =>
+                    R.path(['properties', geoJsonProp])(feature) ===
+                    geoJsonValue
+                )(R.pathOr({}, [geoType, 'features'])(selecteditems))
+
+                const filters = R.pipe(
+                  R.pathOr([], [geoObj.type, 'filters']),
+                  R.reject(R.propEq(false, 'active'))
+                )(enabledItems)
+                if (
+                  R.isNil(filteredFeature) &&
+                  R.isNotEmpty(
+                    R.pathOr({}, [geoType, 'features'])(selecteditems)
+                  )
+                ) {
+                  console.warn(
+                    `No feature with ${geoJsonValue} for property ${geoJsonProp}`
+                  )
+                  return false
+                } else if (!filterMapFeature(filters, geoObj)) return false
+
+                const colorBy = enabledItems[geoObj.type].colorBy
+                const colorRange = itemRange(geoObj.type, colorBy, mapId)
+                const colorByPropVal = R.pipe(
+                  R.path(['values', colorBy]),
+                  R.when(R.isNil, R.always('')),
+                  (s) => s.toString()
+                )(geoObj)
+                const colorFallback = R.pathOr(
+                  '#000',
+                  ['fallback', 'color'],
+                  colorRange
+                )
+                const parsedColor = parseGradient('color')(colorRange)
+                const colorProp = R.path(['props', colorBy], geoObj)
+
+                const isColorCategorical = colorProp.type !== propId.NUMBER
+                const rawColor =
+                  colorByPropVal === ''
+                    ? colorFallback
+                    : isColorCategorical
+                      ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
+                          colorRange
+                        )
+                      : getScaledValueAlt(
+                          parsedColor.values,
+                          parsedColor.colors,
+                          parseFloat(colorByPropVal),
+                          colorRange.gradient.scale,
+                          colorRange.gradient.scaleParams
+                        )
+
+                const heightBy = enabledItems[geoObj.type].heightBy
+                const heightRange = itemRange(geoObj.type, heightBy, mapId)
+                const heightByPropVal = geoObj.values[heightBy]
+                const defaultHeight =
+                  R.has('startHeight', geoObj) && R.has('endHeight', geoObj)
+                    ? '100'
+                    : '0'
+                const heightFallback = R.pathOr(
+                  defaultHeight,
+                  ['fallback', 'height'],
+                  heightRange
+                )
+                const parsedHeight = parseGradient('height', true)(heightRange)
+                const heightProp = R.pathOr({}, ['props', heightBy], geoObj)
+
+                const isHeightCategorical = heightProp.type !== propId.NUMBER
+                const rawHeight =
+                  heightByPropVal == null
+                    ? heightFallback
+                    : isHeightCategorical
+                      ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
+                          heightRange
+                        )
+                      : getScaledValueAlt(
+                          parsedHeight.values,
+                          parsedHeight.heights,
+                          parseFloat(heightByPropVal),
+                          heightRange.gradient.scale,
+                          heightRange.gradient.scaleParams
+                        )
+
+                // don't calculate size, dash, or adjust path for geos
+                if (cacheName === 'geo')
+                  return R.mergeRight(filteredFeature, {
+                    properties: {
+                      cave_name: JSON.stringify([geoType, geoId]),
+                      cave_obj: geoObj,
+                      color: getColorString(rawColor),
+                      height: parseFloat(rawHeight),
+                    },
+                  })
+
+                const sizeBy = enabledItems[geoObj.type].sizeBy
+                const sizeRange = itemRange(geoObj.type, sizeBy, mapId)
+                const sizeByPropVal = geoObj.values[sizeBy]
+                const sizeFallback = R.pathOr(
+                  '0',
+                  ['fallback', 'size'],
+                  sizeRange
+                )
+                const parsedSize = parseGradient('size', true)(sizeRange)
+                const sizeProp = R.path(['props', sizeBy], geoObj)
+
+                const isSizeCategorical = sizeProp.type !== propId.NUMBER
+                const rawSize =
+                  sizeByPropVal == null
+                    ? sizeFallback
+                    : isSizeCategorical
+                      ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(
+                          sizeRange
+                        )
+                      : getScaledValueAlt(
+                          parsedSize.values,
+                          parsedSize.sizes,
+                          parseFloat(sizeByPropVal),
+                          sizeRange.gradient.scale,
+                          sizeRange.gradient.scaleParams
+                        )
+
+                const dashPattern = enabledItems[geoType].lineStyle ?? 'solid'
+
+                if (parseFloat(rawSize) === 0 || colord(rawColor).alpha() === 0)
+                  return false
+
+                const adjustedFeature = R.assocPath(
+                  ['geometry', 'coordinates'],
+                  adjustArcPath(
+                    R.pathOr([], ['geometry', 'coordinates'])(filteredFeature)
+                  )
+                )(filteredFeature)
+
+                return R.mergeRight(adjustedFeature, {
+                  properties: {
+                    cave_name: JSON.stringify([geoType, geoId]),
+                    cave_obj: geoObj,
+                    dash: dashPattern,
+                    color: getColorString(rawColor),
+                    size: parseFloat(rawSize),
+                    height: parseFloat(rawHeight),
+                  },
+                })
+              }),
+              R.values,
+              R.filter(R.identity)
+            )
+          ),
+          R.values,
+          R.unnest
+        )(matchingKeysByTypeFunc(mapId))
+      )
+    },
+    MAX_MEMOIZED_CHARTS
+  )
+
+export const constructGeoJson = (
+  itemRange,
+  itemDataFunc,
+  legendObjectsFunc,
+  geometryFunc,
+  type
+) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) =>
+      R.pipe(
+        R.map((obj) => {
+          const [id, item] = obj
+          const legendObj = legendObjectsFunc(mapId)[item.type]
+          const filters = R.pipe(
+            R.propOr([], 'filters'),
+            R.reject(R.propEq(false, 'active'))
+          )(legendObj)
+          if (!filterMapFeature(filters, item)) return false
+
+          const { colorBy } = legendObj
+          const colorByPropVal = R.pipe(
+            R.path(['values', colorBy]),
+            R.when(R.isNil, R.always('')),
+            (s) => s.toString()
+          )(item)
+          const colorRange = itemRange(item.type, colorBy, mapId)
+          const colorFallback = R.pathOr(
+            '#000',
+            ['fallback', 'color'],
+            colorRange
+          )
+          const parsedColor = parseGradient('color')(colorRange)
+          const colorByProp = R.path(['props', colorBy], item)
+          const isColorCategorical = colorByProp.type !== propId.NUMBER
+          const rawColor =
+            colorByPropVal === ''
+              ? colorFallback
+              : isColorCategorical
+                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
+                    colorRange
+                  )
+                : getScaledValueAlt(
+                    parsedColor.values,
+                    parsedColor.colors,
+                    parseFloat(colorByPropVal),
+                    colorRange.gradient.scale,
+                    colorRange.gradient.scaleParams
+                  )
+
+          let rawSize
+
+          if (type === 'node' || type === 'arc') {
+            const { sizeBy } = legendObj
+            const sizeRange = itemRange(item.type, sizeBy, mapId)
+            const sizeByPropVal = item.values[sizeBy]
+            const sizeFallback = R.pathOr('0', ['fallback', 'size'], sizeRange)
+            const parsedSize = parseGradient('size', true)(sizeRange)
+
+            const sizeProp = R.path(['props', sizeBy], item)
+            const isSizeCategorical = sizeProp.type !== propId.NUMBER
+            rawSize =
+              sizeByPropVal == null
+                ? sizeFallback
+                : isSizeCategorical
+                  ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeRange)
+                  : getScaledValueAlt(
+                      parsedSize.values,
+                      parsedSize.sizes,
+                      parseFloat(sizeByPropVal),
+                      sizeRange.gradient.scale,
+                      sizeRange.gradient.scaleParams
+                    )
+          }
+          if (rawSize === 0 || colord(rawColor).alpha() === 0) return false
+
+          let rawHeight
+
+          if (type === 'geo' || type === 'arc') {
+            const { heightBy } = legendObj
+            const heightRange = itemRange(item.type, heightBy, mapId)
+            const heightByPropVal = item.values[heightBy]
+            const defaultHeight =
+              R.has('startHeight', item) && R.has('endHeight', item)
+                ? '100'
+                : '0'
+            const heightFallback = R.pathOr(
+              defaultHeight,
+              ['fallback', 'height'],
+              heightRange
+            )
+            const parsedHeight = parseGradient('height', true)(heightRange)
+
+            const heightProp = R.pathOr({}, ['props', heightBy], item)
+
+            const isHeightCategorical = heightProp.type !== propId.NUMBER
+            rawHeight =
+              heightByPropVal == null
+                ? heightFallback
+                : isHeightCategorical
+                  ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
+                      heightRange
+                    )
+                  : getScaledValueAlt(
+                      parsedHeight.values,
+                      parsedHeight.heights,
+                      parseFloat(heightByPropVal),
+                      heightRange.gradient.scale,
+                      heightRange.gradient.scaleParams
+                    )
+          }
+
+          return {
+            type: 'Feature',
+            properties: {
+              cave_obj: item,
+              cave_name: JSON.stringify([item.type, id]),
+              color: getColorString(rawColor),
+              ...(R.isNotNil(rawHeight) && { height: parseFloat(rawHeight) }),
+              ...(R.isNotNil(rawSize) && {
+                size:
+                  type === 'node'
+                    ? parseFloat(rawSize) / ICON_RESOLUTION
+                    : parseFloat(rawSize),
+              }),
+              ...(type === 'node' && { icon: legendObj.icon }),
+              ...(type === 'arc' && {
+                dash: R.propOr('solid', 'lineStyle')(legendObj),
+              }),
+            },
+            geometry: geometryFunc(item),
+          }
+        }),
+        R.values,
+        R.filter(R.identity)
+      )(itemDataFunc(mapId)),
+    MAX_MEMOIZED_CHARTS
+  )

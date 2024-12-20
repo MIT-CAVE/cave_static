@@ -1,6 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
+import { clearVersions } from '../data'
+
 export const sessionsSlice = createSlice({
   name: 'sessions',
   initialState: {
@@ -10,6 +12,9 @@ export const sessionsSlice = createSlice({
   reducers: {
     // Update sessions from ws message
     updateSessions: (state, action) => {
+      if (R.equals(action.payload.data_path, ['session_id'])) {
+        action.asyncDispatch(clearVersions())
+      }
       return R.assocPath(
         action.payload.data.data_path,
         action.payload.data.data,

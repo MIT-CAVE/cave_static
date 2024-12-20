@@ -1,5 +1,7 @@
 import * as R from 'ramda'
 
+import downloadFile from './downloadFile'
+
 import { mutateData, overwriteData } from '../data/data'
 import { updateLoading } from '../data/utilities/loadingSlice'
 import { addMessage } from '../data/utilities/messagesSlice'
@@ -21,6 +23,9 @@ const onMessage = (dispatch) => (payload) => {
   } else if (R.prop('event', payload) === 'overwrite') {
     // console.log('overwrite: ', payload)
     dispatch(overwriteData(payload))
+  } else if (R.prop('event', payload) === 'export') {
+    const { data, name } = R.prop('data', payload)
+    downloadFile(data, name)
   } else {
     console.log('Unknown event: ', payload)
   }

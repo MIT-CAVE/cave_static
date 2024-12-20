@@ -10,7 +10,7 @@ import {
 
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({ data, colors, numberFormat }) => {
+const Treemap = ({ data, colors, numberFormat, chartHoverOrder }) => {
   const findNames = (data) =>
     R.has('children', R.head(data))
       ? R.map((d) => R.prepend(R.prop('name', d), findNames(d.children)), data)
@@ -130,7 +130,7 @@ const Treemap = ({ data, colors, numberFormat }) => {
     },
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart {...{ options, chartHoverOrder }} />
 }
 
 export { Treemap }

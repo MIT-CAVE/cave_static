@@ -53,13 +53,8 @@ export const overwriteData = createAsyncThunk(
     }
     // Overwrite
     const data = R.prop('data')(arg)
-    if (
-      R.has('settings', data) &&
-      !R.equals(
-        R.path(['settings', 'sync'], data),
-        R.path(['data', 'settings', 'sync'], getState())
-      )
-    ) {
+
+    if (R.has('settings', data)) {
       const desyncedPaths = R.pipe(
         R.pathOr({}, ['settings', 'sync']),
         R.filter(R.pipe(R.prop('value'), R.not)),
@@ -146,7 +141,11 @@ export const dataSlice = createSlice({
     ignore: {},
     associated: {},
   },
-  reducers: {},
+  reducers: {
+    clearVersions: (state) => {
+      return R.assoc('versions', {}, state)
+    },
+  },
   extraReducers: (builder) => {
     // Data mutation
     builder.addCase(mutateData.fulfilled, (state, action) => {
@@ -176,6 +175,6 @@ export const dataSlice = createSlice({
   },
 })
 
-export const { dataMutate } = dataSlice.actions
+export const { dataMutate, clearVersions } = dataSlice.actions
 
 export default dataSlice.reducer

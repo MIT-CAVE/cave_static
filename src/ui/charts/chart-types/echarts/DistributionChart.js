@@ -35,6 +35,7 @@ const DistributionChart = ({
   counts,
   stack = false,
   area = false,
+  chartHoverOrder,
 }) => {
   const [numBuckets, setNumBuckets] = useState(10)
 
@@ -141,7 +142,15 @@ const DistributionChart = ({
         data={calcDistributionData}
         seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
         xAxisTitle={yAxisTitle}
-        {...{ numberFormat, stack, colors, xAxisTitle, yAxisTitle, chartType }}
+        {...{
+          numberFormat,
+          stack,
+          colors,
+          xAxisTitle,
+          yAxisTitle,
+          chartType,
+          chartHoverOrder,
+        }}
       />
       <Box
         sx={{

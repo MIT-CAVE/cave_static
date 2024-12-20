@@ -4,12 +4,20 @@ import {
   Divider,
   FormControlLabel,
   FormGroup,
+  FormLabel,
   Grid,
+  Select,
   Menu,
   MenuItem,
   Switch,
 } from '@mui/material'
 import { memo } from 'react'
+import {
+  FaSortNumericUp,
+  FaSortNumericDown,
+  FaSortAlphaDown,
+  FaSortAlphaUp,
+} from 'react-icons/fa'
 import {
   MdClose,
   MdFullscreen,
@@ -85,6 +93,8 @@ const ChartMenu = ({
   onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
+  chartHoverOrder,
+  onChartHover,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
@@ -138,6 +148,22 @@ const ChartMenu = ({
           ReactIcon={isMaximized ? MdFullscreenExit : MdFullscreen}
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
+        <Divider />
+        <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
+        <Select value={chartHoverOrder} onChange={onChartHover} sx={{ ml: 2 }}>
+          <MenuItem value="seriesAsc">
+            <FaSortAlphaDown fontSize={20} /> Name
+          </MenuItem>
+          <MenuItem value="seriesDesc">
+            <FaSortAlphaUp fontSize={20} /> Name
+          </MenuItem>
+          <MenuItem value="valueAsc">
+            <FaSortNumericDown fontSize={20} /> Value
+          </MenuItem>
+          <MenuItem value="valueDesc">
+            <FaSortNumericUp fontSize={20} /> Value
+          </MenuItem>
+        </Select>
         <Divider />
         {isGroupedOutput && [
           <ToggleMenuItem

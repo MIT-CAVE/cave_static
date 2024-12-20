@@ -43,6 +43,7 @@ const EchartsBoxPlot = ({
   numberFormat,
   colors,
   showNA,
+  chartHoverOrder,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -168,7 +169,7 @@ const EchartsBoxPlot = ({
     },
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart {...{ options, chartHoverOrder }} />
 }
 
 export { EchartsBoxPlot as BoxPlot }

@@ -7,6 +7,7 @@ export const layerId = {
   MULTI_ARC_LAYER_DOT: 'multiArcLayerDot',
   GEOGRAPHY_LAYER: 'geographyLayer',
   NODE_ICON_LAYER: 'nodeIconLayer',
+  INCLUDED_GEOGRAPHY_LAYER: 'includedGeographyLayer',
 }
 
 export const asyncStatus = {
@@ -105,7 +106,7 @@ export const statId = {
   OR: 'or',
 }
 
-export const statFns = {
+export const statFuncs = {
   [propId.NUMBER]: new Set([
     statId.COUNT,
     statId.MODE,
@@ -117,6 +118,22 @@ export const statFns = {
   ]),
   [propId.SELECTOR]: new Set([statId.MODE]),
   [propId.TOGGLE]: new Set([statId.MODE, statId.AND, statId.OR]),
+  [propId.TEXT]: new Set([statId.MODE]),
+}
+
+export const scaleId = {
+  LINEAR: 'linear',
+  STEP: 'step',
+  LOG: 'log',
+  POW: 'pow',
+}
+
+export const scaleParamId = {
+  EXPONENT: 'exponent',
+}
+
+export const scaleParamsById = {
+  [scaleId.POW]: scaleParamId.EXPONENT,
 }
 
 export const chartVariant = {
@@ -136,6 +153,7 @@ export const chartVariant = {
   HEATMAP: 'heatmap',
   SCATTER: 'scatter',
   DISTRIBUTION: 'distribution',
+  MIXED: 'mixed',
   OVERVIEW: 'overview',
 }
 
@@ -144,6 +162,7 @@ export const chartAggrFunc = {
   MIN: 'min',
   MAX: 'max',
   MEAN: 'mean',
+  DIVISOR: 'divisor',
 }
 
 // TODO: Update these when we add support for more than 2 grouping levels
@@ -164,12 +183,31 @@ export const chartMaxGrouping = {
   [chartVariant.HEATMAP]: 2,
   [chartVariant.SCATTER]: 1,
   [chartVariant.DISTRIBUTION]: 2,
+  [chartVariant.MIXED]: 2,
 }
 
 // Stat limits for multistat charts
 export const chartStatUses = {
   [chartVariant.TABLE]: [],
   [chartVariant.SCATTER]: ['X Axis', 'Y Axis', 'Size (Optional)'],
+  [chartVariant.MIXED]: ['Left', 'Right'],
+}
+
+export const legendViews = {
+  FULL: 'full',
+  COMPACT: 'compact',
+}
+
+export const legendLayouts = {
+  AUTO: 'auto',
+  COLUMN: 'column',
+  ROW: 'row',
+}
+
+export const legendWidths = {
+  AUTO: 'auto',
+  WIDE: 'wide',
+  SLIM: 'slim',
 }
 
 export const unitPlacements = {

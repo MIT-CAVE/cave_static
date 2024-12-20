@@ -138,6 +138,15 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     }
   }, [justFocused, setAllValues, valueName])
 
+  // NOTE: This workaround ensures that changes to `prop.value`
+  // or `currentVal` trigger updates, as the component doesn't
+  // re-render when these props change.
+  useEffect(() => {
+    const updatedValue = R.defaultTo(prop.value[0])(currentVal[0])
+    setValue(updatedValue)
+    setAllValues(valueName)
+  }, [currentVal, prop.value, setAllValues, valueName])
+
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
       <Autocomplete
