@@ -747,7 +747,7 @@ export const selectLegendViewFunc = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
   (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
     R.pathOr(
-      R.pathOr(legendViews.MINIMAL, ['legendView', mapId])(currentMapDataByMap),
+      R.pathOr(legendViews.COMPACT, ['legendView', mapId])(currentMapDataByMap),
       ['legendView', mapId]
     )(currentLocalMapDataByMap)
 )
