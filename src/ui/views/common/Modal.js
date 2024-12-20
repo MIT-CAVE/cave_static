@@ -199,7 +199,7 @@ const AppModal = () => {
   const open = useSelector(selectOpenModal)
   const fullModal = useSelector(selectModal)
   if (R.isEmpty(open)) return null
-  const type = R.prop('type', fullModal)
+  const type = R.propOr('pane', 'type', fullModal)
   return type === 'pane' ? <PaneModal /> : <MapFeatureModal />
 }
 export { AppModal, GeneralModal }
