@@ -14,7 +14,6 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import SimpleModalOptions from './SimpleModalOptions'
 
-import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
@@ -23,16 +22,9 @@ import {
   selectMapModal,
   selectCurrentTimeUnits,
   selectCurrentTimeLength,
-  selectCurrentTime,
-  selectMergedArcs,
-  selectMergedNodes,
-  selectMergedGeos,
   selectMapStyleOptions,
   selectSync,
 } from '../../../data/selectors'
-import ClusterModal from '../../compound/ClusterModal'
-import { GeneralModal } from '../common/Modal'
-import { renderPropsLayout } from '../common/renderLayout'
 
 import { FetchedIcon } from '../../compound'
 
@@ -78,74 +70,6 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
   },
-}
-
-const OnLayerEventModal = ({ mapId }) => {
-  const dispatch = useDispatch()
-  const mapModal = useSelector(selectMapModal)
-  const currentTime = useSelector(selectCurrentTime)
-  const arcData = useSelector(selectMergedArcs)
-  const nodeData = useSelector(selectMergedNodes)
-  const geoData = useSelector(selectMergedGeos)
-
-  const {
-    cluster_id,
-    feature,
-    type,
-    key,
-    name,
-    layout,
-    props: items,
-  } = R.propOr({}, 'data')(mapModal)
-  const featureData =
-    feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
-  const getCurrentVal = (propId) => R.path([key, 'values', propId])(featureData)
-
-  const onChangeProp = (prop, propId) => (value) => {
-    const usesTime = R.hasPath(
-      [key, 'valueLists', 'timeValues', currentTime, propId],
-      featureData
-    )
-    const dataPath = usesTime
-      ? ['data', key, 'valueLists', 'timeValues', `${currentTime}`, propId]
-      : ['data', key, 'valueLists', propId]
-
-    dispatch(
-      sendCommand({
-        command: 'mutate_session',
-        data: {
-          data_name: feature,
-          data_path: dataPath,
-          data_value: value,
-          mutation_type: 'mutate',
-          api_command: R.prop('apiCommand', prop),
-          api_command_keys: R.prop('apiCommandKeys', prop),
-        },
-      })
-    )
-  }
-
-  const onClose = () => dispatch(closeMapModal())
-
-  return R.isNotNil(cluster_id) ? (
-    <ClusterModal title={type} cluster_id={cluster_id} mapId={mapId}>
-      {renderPropsLayout({
-        layout,
-        items,
-        getCurrentVal,
-        onChangeProp,
-      })}
-    </ClusterModal>
-  ) : (
-    <GeneralModal title={name || type} onClose={onClose}>
-      {renderPropsLayout({
-        layout,
-        items,
-        getCurrentVal,
-        onChangeProp,
-      })}
-    </GeneralModal>
-  )
 }
 
 const ListModal = ({ title, options, mapId, defaultIcon, onSelect }) => {
@@ -265,7 +189,6 @@ const MapModal = ({ mapId }) => {
         />
       ),
     ],
-    [R.T, R.always(<OnLayerEventModal mapId={mapId} />)], // 'arcs', 'nodes' or 'geos'
   ])(feature)
 }
 
