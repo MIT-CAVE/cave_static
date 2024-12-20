@@ -176,11 +176,6 @@ const LegendRowDetails = ({
     filtersPath: [...basePath, 'filters'],
     filters,
   })
-  console.log(
-    sizeRange,
-    R.mergeDeepLeft(clusterRange.size, sizeRange),
-    group && clusterRange.size
-  )
   const layoutDirection =
     legendLayout === legendLayouts.AUTO || legendLayout === legendLayouts.ROW
       ? 'column'
