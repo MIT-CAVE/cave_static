@@ -9,6 +9,7 @@ import {
   ToggleButton,
   Typography,
 } from '@mui/material'
+import * as R from 'ramda'
 import { memo, useMemo } from 'react'
 import { BiDetail } from 'react-icons/bi'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
@@ -175,7 +176,7 @@ const LegendRowDetails = ({
     filtersPath: [...basePath, 'filters'],
     filters,
   })
-
+  console.log(sizeRange, colorRange, clusterRange)
   const layoutDirection =
     legendLayout === legendLayouts.AUTO || legendLayout === legendLayouts.ROW
       ? 'column'
@@ -273,7 +274,9 @@ const LegendRowDetails = ({
           <Grid2 size="grow">
             <ColorLegend
               valueRange={
-                group && clusterRange.color ? clusterRange.color : colorRange
+                group && clusterRange.color
+                  ? R.mergeDeepLeft(clusterRange.color, colorRange)
+                  : colorRange
               }
               {...{
                 mapId,
@@ -295,7 +298,9 @@ const LegendRowDetails = ({
           <Grid2 size="grow">
             <SizeLegend
               valueRange={
-                group && clusterRange.size ? clusterRange.size : sizeRange
+                group && clusterRange.size
+                  ? R.mergeDeepLeft(clusterRange.size, sizeRange)
+                  : sizeRange
               }
               {...{
                 icon,

@@ -10,6 +10,7 @@ import {
   ICON_RESOLUTION,
   MAX_MEMOIZED_CHARTS,
 } from './constants'
+import { propId } from './enums'
 import { getScaledValueAlt } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
@@ -844,8 +845,9 @@ export const constructFetchedGeoJson = (
                   colorRange
                 )
                 const parsedColor = parseGradient('color')(colorRange)
+                const colorProp = R.path(['props', colorBy], geoObj)
 
-                const isColorCategorical = !R.has('min', colorRange)
+                const isColorCategorical = colorProp.type !== propId.NUMBER
                 const rawColor =
                   colorByPropVal === ''
                     ? colorFallback
@@ -874,8 +876,9 @@ export const constructFetchedGeoJson = (
                   heightRange
                 )
                 const parsedHeight = parseGradient('height', true)(heightRange)
+                const heightProp = R.pathOr({}, ['props', heightBy], geoObj)
 
-                const isHeightCategorical = !R.has('min', heightRange)
+                const isHeightCategorical = heightProp.type !== propId.NUMBER
                 const rawHeight =
                   heightByPropVal == null
                     ? heightFallback
@@ -911,8 +914,9 @@ export const constructFetchedGeoJson = (
                   sizeRange
                 )
                 const parsedSize = parseGradient('size', true)(sizeRange)
+                const sizeProp = R.path(['props', sizeBy], geoObj)
 
-                const isSizeCategorical = !R.has('min', sizeRange)
+                const isSizeCategorical = sizeProp.type !== propId.NUMBER
                 const rawSize =
                   sizeByPropVal == null
                     ? sizeFallback
@@ -996,8 +1000,8 @@ export const constructGeoJson = (
             colorRange
           )
           const parsedColor = parseGradient('color')(colorRange)
-
-          const isColorCategorical = !R.has('min', colorRange)
+          const colorByProp = R.path(['props', colorBy], item)
+          const isColorCategorical = colorByProp.type !== propId.NUMBER
           const rawColor =
             colorByPropVal === ''
               ? colorFallback
@@ -1022,7 +1026,8 @@ export const constructGeoJson = (
             const sizeFallback = R.pathOr('0', ['fallback', 'size'], sizeRange)
             const parsedSize = parseGradient('size', true)(sizeRange)
 
-            const isSizeCategorical = !R.has('min', sizeRange)
+            const sizeProp = R.path(['props', sizeBy], item)
+            const isSizeCategorical = sizeProp.type !== propId.NUMBER
             rawSize =
               sizeByPropVal == null
                 ? sizeFallback
@@ -1055,7 +1060,9 @@ export const constructGeoJson = (
             )
             const parsedHeight = parseGradient('height', true)(heightRange)
 
-            const isHeightCategorical = !R.has('min', heightRange)
+            const heightProp = R.pathOr({}, ['props', heightBy], item)
+
+            const isHeightCategorical = heightProp.type !== propId.NUMBER
             rawHeight =
               heightByPropVal == null
                 ? heightFallback

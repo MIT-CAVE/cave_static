@@ -160,8 +160,8 @@ export const useLegendDetails = ({
   )
   // Groupable nodes (only)
   const clusterRange = useMemo(
-    () => (getRangeOnZoom != null ? getRangeOnZoom(mapId) : {}),
-    [getRangeOnZoom, mapId]
+    () => (getRangeOnZoom != null ? (getRangeOnZoom(mapId)[id] ?? {}) : {}),
+    [getRangeOnZoom, id, mapId]
   )
   // Geos (only)
   const heightRange = useMemo(

@@ -2242,10 +2242,10 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeObj = group.properties.sizeProp
           const sizeByPropVal = sizeObj.value
           const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
-          const isSizeCategorical = !R.has('min')(sizeByProp)
+          const isSizeCategorical = sizeByProp.type !== propId.NUMBER
           // const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
           const parsedSize = parseGradient('size', true)(sizeByProp)
-
+          console.log(group)
           const rawSize =
             sizeByPropVal == null
               ? sizeFallback
@@ -2258,7 +2258,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     sizeByProp.gradient.scale,
                     sizeByProp.gradient.scaleParams
                   )
-
+          console.log(rawSize, isSizeCategorical, parsedSize)
           const colorByProp = effectiveNodes.props[colorBy]
           const colorObj = group.properties.colorProp
           const colorByPropVal = R.pipe(R.when(R.isNil, R.always('')), (s) =>
@@ -2267,7 +2267,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const colorFallback = R.pathOr('#000', ['fallback', 'color'])(
             colorByProp
           )
-          const isColorCategorical = !R.has('min')(colorByProp)
+          const isColorCategorical = colorByProp.type !== propId.NUMBER
           // const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
           const parsedColor = parseGradient('color')(colorByProp)
 

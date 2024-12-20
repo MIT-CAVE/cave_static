@@ -192,7 +192,6 @@ const LegendRowDetails = ({
     filtersPath: [...basePath, 'filters'],
     filters,
   })
-
   // Automatically expand the `Accordion` when the Shape Picker toggle is enabled
   useEffect(() => {
     if (showShapePicker) setExpanded(true)
@@ -331,7 +330,9 @@ const LegendRowDetails = ({
               <Grid2 size="grow">
                 <SizeLegend
                   valueRange={
-                    group && clusterRange.size ? clusterRange.size : sizeRange
+                    group && clusterRange.size
+                      ? R.mergeDeepLeft(clusterRange.size, sizeRange)
+                      : sizeRange
                   }
                   {...{
                     icon,
@@ -354,7 +355,7 @@ const LegendRowDetails = ({
                 <ColorLegend
                   valueRange={
                     group && clusterRange.color
-                      ? clusterRange.color
+                      ? R.mergeDeepLeft(clusterRange.color, colorRange)
                       : colorRange
                   }
                   {...{
