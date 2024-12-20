@@ -17,11 +17,7 @@ const MapLegend = ({ mapId }) => {
   if (!isMapLegendOpen) return null
 
   const LegendView =
-    legendView === legendViews.FULL
-      ? FullLegend
-      : legendView === legendViews.COMPACT
-        ? CompactLegend
-        : null
+    legendView === legendViews.FULL ? FullLegend : CompactLegend
 
   return <LegendView {...{ mapId }} />
 }
