@@ -265,7 +265,7 @@ const DashboardChart = ({ chartObj }) => {
       R.assoc(
         statId,
         getNumberFormat(
-          statisticTypes[dataset][statId], // current stat
+          R.pathOr({}, [dataset, statId], statisticTypes), // current stat
           statId
         )
       )(acc),
