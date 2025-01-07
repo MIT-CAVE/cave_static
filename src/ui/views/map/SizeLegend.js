@@ -19,8 +19,8 @@ import {
   WithEditBadge,
 } from './Legend'
 
-import { selectNumberFormatPropsFn } from '../../../data/selectors'
-import { propId, scaleId } from '../../../utils/enums'
+import { selectLegendNumberFormatFunc } from '../../../data/selectors'
+import { propId } from '../../../utils/enums'
 import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 
 import { NumberInput, OverflowText, Select } from '../../compound'
@@ -60,6 +60,14 @@ const styles = {
     textAlign: 'center',
     maxWidth: '56px',
   },
+  valueInput: {
+    width: 'auto',
+    mt: '20px !important',
+    flex: '1 1 auto',
+    fieldset: {
+      borderWidth: '2px !important',
+    },
+  },
 }
 
 const NumericalSizeLegend = ({
@@ -80,33 +88,27 @@ const NumericalSizeLegend = ({
     handleChangeComitted: handleChangeComittedRaw,
   } = useSizeSlider(onChangeSize)
 
-  const { sizes, values, labels } = useMemo(
-    () => parseGradient('size')(valueRange),
-    [valueRange]
-  )
-
-  const isStepScale = useMemo(
-    () => valueRange.gradient?.scale === scaleId.STEP,
-    [valueRange.gradient?.scale]
+  const { sizes, values, rawValues, labels } = useMemo(
+    () => parseGradient('size', numberFormat.precision)(valueRange),
+    [numberFormat.precision, valueRange]
   )
 
   const {
+    isStepScale,
     getLabel,
+    getAdjustedLabel,
     getAttrLabelAt: getSizeLabelAt,
     getValueLabelAt,
   } = useGradientLabels({
     labels,
     values,
+    rawValues,
     numberFormat,
     group,
-    isStepScale,
+    scale: valueRange.gradient.scale,
   })
 
-  // These can be different from the ones in `valueRange`
-  const minMaxValues = useMemo(
-    () => [Math.min(...values), Math.max(...values)],
-    [values]
-  )
+  const lastIndex = values.length - 1
 
   const handleChangeComittedAt = useCallback(
     (index) => (event, value) => {
@@ -135,7 +137,7 @@ const NumericalSizeLegend = ({
           }
           divider={
             !isStepScale && (
-              <Typography variant="h6" sx={{ pb: 4.5 }}>{`\u2026`}</Typography>
+              <Typography variant="h6" sx={{ pb: 7 }}>{`\u2026`}</Typography>
             )
           }
         >
@@ -164,15 +166,39 @@ const NumericalSizeLegend = ({
                     />
                   </WithEditBadge>
                 )}
-                <Typography
-                  variant="subtitle2"
-                  color={selected ? 'warning' : 'default'}
-                  sx={{ fontWeight: 'bold' }}
-                >
-                  <OverflowText
-                    text={isStepScale ? getSizeLabelAt(index) : getLabel(index)}
-                  />
-                </Typography>
+                <Stack>
+                  {!isStepScale && (
+                    <Typography
+                      variant="caption"
+                      color={selected ? 'warning' : 'default'}
+                      noWrap
+                    >
+                      <OverflowText
+                        text={getAdjustedLabel(
+                          index < 1
+                            ? 'Min'
+                            : index === lastIndex
+                              ? 'Max'
+                              : labels[index] != null
+                                ? getLabel(index)
+                                : `\u2063`, // This preserves the alignment of the icons
+                          index
+                        )}
+                      />
+                    </Typography>
+                  )}
+                  <Typography
+                    variant="subtitle2"
+                    color={selected ? 'warning' : 'default'}
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    <OverflowText
+                      text={
+                        isStepScale ? getSizeLabelAt(index) : getLabel(index)
+                      }
+                    />
+                  </Typography>
+                </Stack>
               </Stack>
             )
           })}
@@ -190,26 +216,17 @@ const NumericalSizeLegend = ({
           {
             // Do not display the max value for a step function
             // scale, as it does not affect the function output
-            !(isStepScale && sizeSliderProps.key === sizes.length - 1) && (
+            !(isStepScale && sizeSliderProps.key === lastIndex) && (
               <NumberInput
                 color="warning"
-                sx={{
-                  width: 'auto',
-                  mt: '20px !important',
-                  flex: '1 1 auto',
-                  fieldset: {
-                    borderWidth: '2px !important',
-                  },
-                }}
+                sx={styles.valueInput}
                 slotProps={{
                   input: {
                     sx: { borderRadius: 0, pr: 1.75 },
                   },
                 }}
                 label={getValueLabelAt(sizeSliderProps.key)}
-                min={minMaxValues[0]}
-                max={minMaxValues[1]}
-                value={values[sizeSliderProps.key]}
+                value={rawValues[sizeSliderProps.key]}
                 {...{ numberFormat }}
                 onClickAway={onChangeValueAt(sizeSliderProps.key)}
               />
@@ -336,9 +353,9 @@ const SizeLegend = ({
   onChangePropAttr,
   onChangeSize,
 }) => {
-  const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
+  const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
   const sizeByProp = featureTypeProps[sizeBy]
-  const numberFormat = getNumberFormatProps(sizeByProp)
+  const numberFormat = legendNumberFormatFunc(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
   return (
     <Paper

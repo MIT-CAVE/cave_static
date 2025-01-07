@@ -19,7 +19,7 @@ import {
   WithEditBadge,
 } from './Legend'
 
-import { selectNumberFormatPropsFn } from '../../../data/selectors'
+import { selectLegendNumberFormatFunc } from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
 import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
@@ -65,7 +65,7 @@ const styles = {
   },
   rangeLabel: {
     textAlign: 'center',
-    maxWidth: '56px',
+    maxWidth: '80px',
   },
   getGradient: (gradientColors) => ({
     width: '100%',
@@ -73,6 +73,14 @@ const styles = {
     minWidth: '80px',
     background: `linear-gradient(to right, ${gradientColors})`,
   }),
+  valueInput: {
+    width: 'auto',
+    mt: '20px !important',
+    flex: '1 1 auto',
+    fieldset: {
+      borderWidth: '2px !important',
+    },
+  },
 }
 
 const WithEditColorBadge = ({ showBadge, ...props }) => (
@@ -100,32 +108,33 @@ const NumericalColorLegend = ({
     handleClose,
   } = useColorPicker(onChangeColor)
 
-  const { colors, values, labels } = useMemo(
-    () => parseGradient('color')(valueRange),
-    [valueRange]
-  )
-
-  const isStepScale = useMemo(
-    () => valueRange.gradient?.scale === scaleId.STEP,
-    [valueRange.gradient?.scale]
+  const { colors, values, rawValues, labels } = useMemo(
+    () => parseGradient('color', numberFormat.precision)(valueRange),
+    [numberFormat.precision, valueRange]
   )
 
   const {
+    isStepScale,
     getLabel,
     getAttrLabelAt: getColorLabelAt,
+    getAdjustedLabel,
     getValueLabelAt,
   } = useGradientLabels({
     labels,
     values,
+    rawValues,
     numberFormat,
     group,
-    isStepScale,
+    scale: valueRange.gradient.scale,
   })
+
+  const lastIndex = values.length - 1
 
   const gradientStyle = useMemo(() => {
     const { scale, scaleParams } = valueRange.gradient
     const minValue = Math.min(...values)
     const maxValue = Math.max(...values)
+
     const scaledValues = R.map((value) =>
       getScaledValueAlt(
         [minValue, maxValue],
@@ -139,8 +148,8 @@ const NumericalColorLegend = ({
     const gradientColors =
       minValue === maxValue
         ? isStepScale
-          ? [`${colors[0]} 1%`, `${colors[1]} 1% 100%`]
-          : [`${colors[colors.length - 1]} 0% 100%`]
+          ? [`${colors[0]} 1%`, `${colors[lastIndex]} 1% 100%`]
+          : [`${colors[lastIndex]} 0% 100%`]
         : R.addIndex(R.zipWith)(
             (color, scaledValue, idx) =>
               !isStepScale
@@ -150,8 +159,11 @@ const NumericalColorLegend = ({
                   : `${color} 1%`,
             colors
           )(scaledValues)
-    return styles.getGradient(gradientColors.join(', '))
-  }, [colors, isStepScale, valueRange, values])
+
+    return styles.getGradient(
+      gradientColors.filter((value) => value != null).join(', ')
+    )
+  }, [colors, isStepScale, lastIndex, valueRange, values])
 
   const handleChangeColorAt = useCallback(
     (index) => (value, colorOutputs) => {
@@ -166,9 +178,11 @@ const NumericalColorLegend = ({
 
   return (
     <>
-      <Grid2 container spacing={1.5} sx={styles.rangeRoot}>
+      <Grid2 container spacing={1.5} sx={styles.rangeRoot} wrap="nowrap">
         <Grid2 size={3} sx={styles.rangeLabel}>
-          <Typography variant="caption">Min</Typography>
+          <Typography variant="caption" noWrap>
+            <OverflowText text={getAdjustedLabel('Min', 0)} />
+          </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={getLabel(0)} />
           </Typography>
@@ -183,16 +197,18 @@ const NumericalColorLegend = ({
           </WithEditColorBadge>
         </Grid2>
         <Grid2 size={3} sx={styles.rangeLabel}>
-          <Typography variant="caption">Max</Typography>
+          <Typography variant="caption">
+            <OverflowText text={getAdjustedLabel('Max', lastIndex)} />
+          </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={getLabel(values.length - 1)} />
+            <OverflowText text={getLabel(lastIndex)} />
           </Typography>
         </Grid2>
       </Grid2>
 
       {showColorPickers && (
         <Stack spacing={1} style={{ marginTop: 0 }}>
-          {values.map((value, index) => (
+          {rawValues.map((value, index) => (
             <Stack key={index} direction="row" spacing={1}>
               <ColorPicker
                 colorLabel={getColorLabelAt(index)}
@@ -203,17 +219,10 @@ const NumericalColorLegend = ({
               {
                 // Do not display the max value for a step function
                 // scale, as it does not affect the function output
-                !(isStepScale && index === values.length - 1) && (
+                !(isStepScale && index === lastIndex) && (
                   <NumberInput
                     color="warning"
-                    sx={{
-                      width: 'auto',
-                      mt: '20px !important',
-                      flex: '1 1 auto',
-                      fieldset: {
-                        borderWidth: '2px !important',
-                      },
-                    }}
+                    sx={styles.valueInput}
                     slotProps={{
                       input: {
                         sx: { borderRadius: 0, pr: 1.75 },
@@ -346,9 +355,9 @@ const ColorLegend = ({
   onChangePropAttr,
   onChangeColor,
 }) => {
-  const getNumberFormatProps = useSelector(selectNumberFormatPropsFn)
+  const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
   const colorByProp = featureTypeProps[colorBy]
-  const numberFormat = getNumberFormatProps(colorByProp)
+  const numberFormat = legendNumberFormatFunc(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
   return (
     <Paper
