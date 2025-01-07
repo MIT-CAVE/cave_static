@@ -1780,8 +1780,14 @@ export const selectArcRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['values', prop], value)),
-                  min: R.min(acc.min, R.path(['values', prop], value)),
+                  max: R.max(
+                    acc.max,
+                    R.pathOr(acc.max, ['values', prop], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    R.pathOr(acc.min, ['values', prop], value)
+                  ),
                 }),
                 { min: Infinity, max: -Infinity }
               )(effectiveArcs)
@@ -1909,8 +1915,14 @@ export const selectNodeRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['values', prop], value)),
-                  min: R.min(acc.min, R.path(['values', prop], value)),
+                  max: R.max(
+                    acc.max,
+                    R.pathOr(acc.max, ['values', prop], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    R.pathOr(acc.min, ['values', prop], value)
+                  ),
                 }),
                 { min: Infinity, max: -Infinity }
               )(effectiveNodes)
@@ -1936,8 +1948,14 @@ export const selectGeoRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['values', prop], value)),
-                  min: R.min(acc.min, R.path(['values', prop], value)),
+                  max: R.max(
+                    acc.max,
+                    R.pathOr(acc.max, ['values', prop], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    R.pathOr(acc.min, ['values', prop], value)
+                  ),
                 }),
                 { min: Infinity, max: -Infinity }
               )(effectiveGeos)
