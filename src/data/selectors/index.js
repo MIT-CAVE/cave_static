@@ -139,15 +139,6 @@ export const selectEditLayoutMode = createSelector(
 export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'mirror', data)
 )
-// Local -> settings -> defaults
-const selectSettingsDefaults = createSelector(
-  selectLocalSettings,
-  R.propOr({}, 'defaults')
-)
-export const selectShowToolbar = createSelector(
-  selectSettingsDefaults,
-  R.propOr(true, 'showToolbar')
-)
 // Data
 export const selectData = (state) => R.prop('data')(state)
 export const selectIgnoreData = createSelector(selectData, (data) =>

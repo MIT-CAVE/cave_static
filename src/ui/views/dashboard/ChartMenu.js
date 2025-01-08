@@ -91,8 +91,6 @@ const ChartMenu = ({
   onToggleDefaultToZero,
   showNA,
   onToggleShowNA,
-  showToolbar,
-  onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
   chartHoverOrder,
@@ -118,14 +116,13 @@ const ChartMenu = ({
       container
       sx={[
         styles.root,
-        !showToolbar && { top: isMaximized ? '4px' : '8px' },
         !isMaximized && editLayoutMode && { top: '20px', right: '8px' },
       ]}
     >
       <ButtonGroup
         variant="contained"
         orientation="vertical"
-        sx={[styles.actionBtn, showToolbar && { bgcolor: 'transparent' }]}
+        sx={[styles.actionBtn]}
       >
         <TooltipButton
           title="Chart Tools"
@@ -176,11 +173,6 @@ const ChartMenu = ({
         slotProps={{ paper: { sx: { width: '20ch' } } }}
         sx={{ p: 0 }}
       >
-        <ToggleMenuItem
-          label="Show Toolbar"
-          value={showToolbar}
-          onClick={onShowToolbar}
-        />
         <BaseMenuItem
           label={isMaximized ? 'Minimize' : 'Maximize'}
           ReactIcon={isMaximized ? MdFullscreenExit : MdFullscreen}
