@@ -217,7 +217,7 @@ const FlexibleChart = ({
                 )
               }}
               size="small"
-              sx={{ minWidth: 120 }}
+              sx={{ minWidth: 120, height: 30, ml: 1 }}
             >
               <MenuItem value="default">Default</MenuItem>
               <MenuItem value="ascending">Ascending</MenuItem>
