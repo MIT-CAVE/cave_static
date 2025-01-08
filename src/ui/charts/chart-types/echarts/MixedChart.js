@@ -36,6 +36,8 @@ const MixedChart = ({
   leftVariant,
   rightVariant,
   chartHoverOrder,
+  path,
+  xAxisOrder,
 }) => {
   const [syncAxes, setSyncAxes] = useState(true)
   const hasSubgroups = R.has('children', R.head(data))
@@ -205,7 +207,7 @@ const MixedChart = ({
   }
   return (
     <>
-      <FlexibleChart {...{ options, chartHoverOrder }} />
+      <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
       <FormControlLabel
         sx={{ position: 'absolute', right: 10, bottom: 10 }}
         control={

@@ -1,3 +1,4 @@
+import { FormControlLabel, Select, MenuItem } from '@mui/material'
 import {
   LineChart,
   BarChart,
@@ -58,9 +59,11 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
+import { useDispatch } from 'react-redux'
 
 import FlexibleContainer from './FlexibleContainer'
 
+import { mutateLocal } from '../../../../data/local'
 import {
   NumberFormat,
   findSubgroupLabels,
@@ -175,20 +178,57 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({ options, chartHoverOrder, ...props }) => {
+const FlexibleChart = ({
+  options,
+  chartHoverOrder,
+  path,
+  xAxisOrder,
+  ...props
+}) => {
+  const dispatch = useDispatch()
+
   return (
-    <FlexibleContainer>
-      <ReactEChartsCore
-        echarts={echarts}
-        option={R.mergeDeepRight(
-          R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-        )(options)}
-        notMerge
-        theme="dark"
-        // lazyUpdate
-        {...props}
-      />
-    </FlexibleContainer>
+    <>
+      <FlexibleContainer>
+        <ReactEChartsCore
+          echarts={echarts}
+          option={R.mergeDeepRight(
+            R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
+          )(options)}
+          notMerge
+          theme="dark"
+          // lazyUpdate
+          {...props}
+        />
+      </FlexibleContainer>
+      {path && (
+        <FormControlLabel
+          sx={{ position: 'absolute', right: 160, bottom: 10 }}
+          control={
+            <Select
+              value={xAxisOrder}
+              onChange={(e) => {
+                dispatch(
+                  mutateLocal({
+                    path: [...path, 'xAxisOrder'],
+                    value: e.target.value,
+                    sync: true,
+                  })
+                )
+              }}
+              size="small"
+              sx={{ minWidth: 120 }}
+            >
+              <MenuItem value="default">Default</MenuItem>
+              <MenuItem value="ascending">Ascending</MenuItem>
+              <MenuItem value="descending">Descending</MenuItem>
+            </Select>
+          }
+          label="Sort by"
+          labelPlacement="start"
+        />
+      )}
+    </>
   )
 }
 
@@ -204,6 +244,8 @@ const EchartsPlot = ({
   distribution = false,
   showNA,
   chartHoverOrder,
+  path,
+  xAxisOrder,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -388,7 +430,7 @@ const EchartsPlot = ({
     ...lineMap,
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder }} />
+  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
 }
 
 export default EchartsPlot

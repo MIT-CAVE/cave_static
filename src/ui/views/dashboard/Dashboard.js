@@ -261,13 +261,13 @@ const DashboardItem = ({ chartObj, index, path }) => {
       {vizType === 'groupedOutput' ? (
         chartObj.stats && (
           <Suspense fallback={<CircularProgress sx={styles.loader} />}>
-            <DashboardChart {...{ chartObj }} />
+            <DashboardChart {...{ chartObj, path }} />
           </Suspense>
         )
       ) : vizType === 'map' && chartObj.mapId ? (
         <Map mapId={chartObj.mapId} />
       ) : vizType === 'globalOutput' ? (
-        <DashboardGlobalOutput {...{ chartObj }} />
+        <DashboardGlobalOutput {...{ chartObj, path }} />
       ) : null}
     </Paper>
   )
