@@ -10,7 +10,7 @@ import {
   ICON_RESOLUTION,
   MAX_MEMOIZED_CHARTS,
 } from './constants'
-import { propId } from './enums'
+import { propId, scaleId } from './enums'
 import { getScaledValueAlt } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
@@ -599,7 +599,6 @@ export const getQuartiles = R.ifElse(
 
 export const ALLOWED_RANGE_KEYS = [
   'timeValues',
-  'gradients',
   'gradient',
   'min',
   'max',
@@ -735,45 +734,58 @@ export const cleanUndefinedStats = (chartObj) => {
 
 export const getNumActiveFilters = R.count(R.propEq('rule', 'type'))
 
+// REVIEW: Change to a selector?
 export const parseGradient = R.memoizeWith(
-  ([attrKey, parseRangeAsNumber, range]) =>
-    JSON.stringify({ attrKey, parseRangeAsNumber, range }),
-  R.curry(
-    (attrKey, parseRangeAsNumber = false) =>
-      (range) =>
-        R.ifElse(
-          R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
-          R.pipe(
-            R.path(['gradient', 'data']),
-            R.applySpec({
-              [`${attrKey}s`]: R.map(
-                R.pipe(
-                  R.prop(attrKey),
-                  R.when(R.always(parseRangeAsNumber), parseFloat)
-                )
-              ),
-              values: R.map(
-                R.pipe(
-                  R.prop('value'),
-                  R.cond([
-                    [R.equals('min'), R.always(range?.min)],
-                    [R.equals('max'), R.always(range?.max)],
-                    [R.T, R.identity],
-                  ])
-                )
-              ),
-              labels: R.pluck('label'),
-            })
+  ([attrKey, precision, parseRangeAsNumber, range]) =>
+    JSON.stringify({ attrKey, precision, parseRangeAsNumber, range }),
+  R.curry((attrKey, precision = 2, parseRangeAsNumber = false) => (range) => {
+    // Avoid negative exponents to prevent floating-point precision issues
+    const minPositiveValue = 1 / Math.pow(10, precision)
+    return R.ifElse(
+      R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
+      R.pipe(
+        R.path(['gradient', 'data']),
+        R.applySpec({
+          [`${attrKey}s`]: R.map(
+            R.pipe(
+              R.prop(attrKey),
+              R.when(R.always(parseRangeAsNumber), parseFloat)
+            )
           ),
-          R.always({ [`${attrKey}s`]: [], values: [], labels: [] })
-        )(range)
-  )
+          rawValues: R.map(
+            R.pipe(
+              R.prop('value'),
+              R.cond([
+                [R.equals('min'), R.always(range?.min)],
+                [R.equals('max'), R.always(range?.max)],
+                [R.T, R.identity],
+              ])
+            )
+          ),
+          labels: R.pluck('label'),
+        }),
+        R.converge(R.mergeLeft, [
+          R.pipe(
+            R.propOr([], 'rawValues'),
+            R.when(
+              R.always(range?.gradient?.scale === scaleId.LOG),
+              R.map(R.when(R.gte(0), R.always(minPositiveValue)))
+            ),
+            R.objOf('values')
+          ),
+          R.identity,
+        ])
+      ),
+      R.always({ [`${attrKey}s`]: [], rawValues: [], values: [], labels: [] })
+    )(range)
+  })
 )
 
 export const constructFetchedGeoJson = (
   matchingKeysByTypeFunc,
   itemRange,
   enabledItemsFunc,
+  legendNumberFormatFunc,
   types,
   cacheName
 ) =>
@@ -844,10 +856,15 @@ export const constructFetchedGeoJson = (
                   ['fallback', 'color'],
                   colorRange
                 )
-                const parsedColor = parseGradient('color')(colorRange)
-                const colorProp = R.path(['props', colorBy], geoObj)
+                const colorByProp = R.path(['props', colorBy], geoObj)
+                const colorByPrecision =
+                  legendNumberFormatFunc(colorByProp).precision
+                const parsedColor = parseGradient(
+                  'color',
+                  colorByPrecision
+                )(colorRange)
 
-                const isColorCategorical = colorProp.type !== propId.NUMBER
+                const isColorCategorical = colorByProp.type !== propId.NUMBER
                 const rawColor =
                   colorByPropVal === ''
                     ? colorFallback
@@ -875,10 +892,16 @@ export const constructFetchedGeoJson = (
                   ['fallback', 'height'],
                   heightRange
                 )
-                const parsedHeight = parseGradient('height', true)(heightRange)
-                const heightProp = R.pathOr({}, ['props', heightBy], geoObj)
+                const heightByProp = R.pathOr({}, ['props', heightBy], geoObj)
+                const heightByPrecision =
+                  legendNumberFormatFunc(heightByProp).precision
+                const parsedHeight = parseGradient(
+                  'height',
+                  heightByPrecision,
+                  true
+                )(heightRange)
 
-                const isHeightCategorical = heightProp.type !== propId.NUMBER
+                const isHeightCategorical = heightByProp.type !== propId.NUMBER
                 const rawHeight =
                   heightByPropVal == null
                     ? heightFallback
@@ -913,10 +936,16 @@ export const constructFetchedGeoJson = (
                   ['fallback', 'size'],
                   sizeRange
                 )
-                const parsedSize = parseGradient('size', true)(sizeRange)
-                const sizeProp = R.path(['props', sizeBy], geoObj)
+                const sizeByProp = R.path(['props', sizeBy], geoObj)
+                const sizeByPrecision =
+                  legendNumberFormatFunc(sizeByProp).precision
+                const parsedSize = parseGradient(
+                  'size',
+                  sizeByPrecision,
+                  true
+                )(sizeRange)
 
-                const isSizeCategorical = sizeProp.type !== propId.NUMBER
+                const isSizeCategorical = sizeByProp.type !== propId.NUMBER
                 const rawSize =
                   sizeByPropVal == null
                     ? sizeFallback
@@ -972,6 +1001,7 @@ export const constructGeoJson = (
   itemDataFunc,
   legendObjectsFunc,
   geometryFunc,
+  legendNumberFormatFunc,
   type
 ) =>
   maxSizedMemoization(
@@ -999,8 +1029,13 @@ export const constructGeoJson = (
             ['fallback', 'color'],
             colorRange
           )
-          const parsedColor = parseGradient('color')(colorRange)
           const colorByProp = R.path(['props', colorBy], item)
+          const colorByPrecision = legendNumberFormatFunc(colorByProp).precision
+          const parsedColor = parseGradient(
+            'color',
+            colorByPrecision
+          )(colorRange)
+
           const isColorCategorical = colorByProp.type !== propId.NUMBER
           const rawColor =
             colorByPropVal === ''
@@ -1024,10 +1059,15 @@ export const constructGeoJson = (
             const sizeRange = itemRange(item.type, sizeBy, mapId)
             const sizeByPropVal = item.values[sizeBy]
             const sizeFallback = R.pathOr('0', ['fallback', 'size'], sizeRange)
-            const parsedSize = parseGradient('size', true)(sizeRange)
+            const sizeByProp = R.path(['props', sizeBy], item)
+            const sizeByPrecision = legendNumberFormatFunc(sizeByProp).precision
+            const parsedSize = parseGradient(
+              'size',
+              sizeByPrecision,
+              true
+            )(sizeRange)
 
-            const sizeProp = R.path(['props', sizeBy], item)
-            const isSizeCategorical = sizeProp.type !== propId.NUMBER
+            const isSizeCategorical = sizeByProp.type !== propId.NUMBER
             rawSize =
               sizeByPropVal == null
                 ? sizeFallback
@@ -1058,11 +1098,16 @@ export const constructGeoJson = (
               ['fallback', 'height'],
               heightRange
             )
-            const parsedHeight = parseGradient('height', true)(heightRange)
+            const heightByProp = R.pathOr({}, ['props', heightBy], item)
+            const heightByPrecision =
+              legendNumberFormatFunc(heightByProp).precision
+            const parsedHeight = parseGradient(
+              'height',
+              heightByPrecision,
+              true
+            )(heightRange)
 
-            const heightProp = R.pathOr({}, ['props', heightBy], item)
-
-            const isHeightCategorical = heightProp.type !== propId.NUMBER
+            const isHeightCategorical = heightByProp.type !== propId.NUMBER
             rawHeight =
               heightByPropVal == null
                 ? heightFallback

@@ -327,6 +327,23 @@ export const selectNumberFormatPropsFn = createSelector(
     R.mergeRight(numberFormat, pickPaths(NUMBER_FORMAT_KEY_PATHS)(props))
   )
 )
+export const selectLegendNumberFormatFunc = createSelector(
+  selectNumberFormatPropsFn,
+  (numberFormatPropsFn) => (prop) => {
+    const numberFormat = numberFormatPropsFn(prop)
+    return {
+      ...numberFormat,
+      // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
+      ...{
+        precision: numberFormat.gradient?.precision || numberFormat.precision,
+        notation: numberFormat.gradient?.notation || numberFormat.notation,
+        notationDisplay:
+          numberFormat.gradient?.notationDisplay ||
+          numberFormat.notationDisplay,
+      },
+    }
+  }
+)
 export const selectDemoSettings = createSelector(
   selectSettings,
   R.propOr({}, 'demo')
@@ -1780,8 +1797,14 @@ export const selectArcRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['values', prop], value)),
-                  min: R.min(acc.min, R.path(['values', prop], value)),
+                  max: R.max(
+                    acc.max,
+                    R.pathOr(acc.max, ['values', prop], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    R.pathOr(acc.min, ['values', prop], value)
+                  ),
                 }),
                 { min: Infinity, max: -Infinity }
               )(effectiveArcs)
@@ -1909,8 +1932,14 @@ export const selectNodeRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['values', prop], value)),
-                  min: R.min(acc.min, R.path(['values', prop], value)),
+                  max: R.max(
+                    acc.max,
+                    R.pathOr(acc.max, ['values', prop], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    R.pathOr(acc.min, ['values', prop], value)
+                  ),
                 }),
                 { min: Infinity, max: -Infinity }
               )(effectiveNodes)
@@ -1936,8 +1965,14 @@ export const selectGeoRange = createSelector(
             R.mergeRight(
               R.reduce(
                 (acc, value) => ({
-                  max: R.max(acc.max, R.path(['values', prop], value)),
-                  min: R.min(acc.min, R.path(['values', prop], value)),
+                  max: R.max(
+                    acc.max,
+                    R.pathOr(acc.max, ['values', prop], value)
+                  ),
+                  min: R.min(
+                    acc.min,
+                    R.pathOr(acc.min, ['values', prop], value)
+                  ),
                 }),
                 { min: Infinity, max: -Infinity }
               )(effectiveGeos)
@@ -2201,8 +2236,13 @@ export const selectNodeRangeAtZoomFunc = createSelector(
 )
 
 export const selectNodeGeoJsonObjectFunc = createSelector(
-  [selectSplitNodeDataFunc, selectNodeRange, selectEnabledNodesFunc],
-  (nodeDataSplitFunc, nodeRange, legendObjectsFunc) => {
+  [
+    selectSplitNodeDataFunc,
+    selectNodeRange,
+    selectEnabledNodesFunc,
+    selectLegendNumberFormatFunc,
+  ],
+  (nodeDataSplitFunc, nodeRange, legendObjectsFunc, legendNumberFormatFunc) => {
     const nodeDataFunc = R.pipe(nodeDataSplitFunc, R.propOr({}, 'false'))
     const geometryFunc = (item) => ({
       type: 'Point',
@@ -2213,6 +2253,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
       nodeDataFunc,
       legendObjectsFunc,
       geometryFunc,
+      legendNumberFormatFunc,
       'node'
     )
   }
@@ -2222,8 +2263,14 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
     selectNodeClustersAtZoomFunc,
     selectEnabledNodesFunc,
     selectEffectiveNodesBy,
+    selectLegendNumberFormatFunc,
   ],
-  (nodeClustersFunc, legendObjectsFunc, effectiveNodesBy) =>
+  (
+    nodeClustersFunc,
+    legendObjectsFunc,
+    effectiveNodesBy,
+    legendNumberFormatFunc
+  ) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
@@ -2240,7 +2287,11 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
           const isSizeCategorical = sizeByProp.type !== propId.NUMBER
           const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
-          const parsedSize = parseGradient('size', true)(sizeByProp)
+          const parsedSize = parseGradient(
+            'size',
+            legendNumberFormatFunc(sizeByProp).precision,
+            true
+          )(sizeByProp)
           const rawSize =
             sizeByPropVal == null
               ? sizeFallback
@@ -2264,7 +2315,10 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           )
           const isColorCategorical = colorByProp.type !== propId.NUMBER
           const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
-          const parsedColor = parseGradient('color')(colorByProp)
+          const parsedColor = parseGradient(
+            'color',
+            legendNumberFormatFunc(colorByProp).precision
+          )(colorByProp)
 
           const rawColor =
             colorByPropVal === ''
@@ -2319,8 +2373,13 @@ export const selectNodeLayerGeoJsonFunc = createSelector(
 )
 
 export const selectArcLayerGeoJsonFunc = createSelector(
-  [selectArcRange, selectLineDataFunc, selectEnabledArcsFunc],
-  (arcRange, arcDataFunc, legendObjectsFunc) => {
+  [
+    selectArcRange,
+    selectLineDataFunc,
+    selectEnabledArcsFunc,
+    selectLegendNumberFormatFunc,
+  ],
+  (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
     const geometryFunc = (item) => {
       const finalEndLong =
         item.endLongitude - item.startLongitude >= 180
@@ -2344,14 +2403,20 @@ export const selectArcLayerGeoJsonFunc = createSelector(
       modifiedArcDataFunc,
       legendObjectsFunc,
       geometryFunc,
+      legendNumberFormatFunc,
       'arc'
     )
   }
 )
 
 export const selectArcLayer3DGeoJsonFunc = createSelector(
-  [selectArcRange, selectArcDataFunc, selectEnabledArcsFunc],
-  (arcRange, arcDataFunc, legendObjectsFunc) => {
+  [
+    selectArcRange,
+    selectArcDataFunc,
+    selectEnabledArcsFunc,
+    selectLegendNumberFormatFunc,
+  ],
+  (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
     const geometryFunc = (item) => {
       const finalEndLong =
         item.endLongitude - item.startLongitude >= 180
@@ -2375,6 +2440,7 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
       modifiedArcDataFunc,
       legendObjectsFunc,
       geometryFunc,
+      legendNumberFormatFunc,
       'arc'
     )
   }
@@ -2386,20 +2452,38 @@ export const selectFetchedArcGeoJsonFunc = createSelector(
     selectArcRange,
     selectEnabledArcsFunc,
     selectArcTypes,
+    selectLegendNumberFormatFunc,
   ],
-  (lineMatchingKeysByTypeFunc, arcRange, enabledArcsFunc, arcTypes) =>
+  (
+    lineMatchingKeysByTypeFunc,
+    arcRange,
+    enabledArcsFunc,
+    arcTypes,
+    legendNumberFormatFunc
+  ) =>
     constructFetchedGeoJson(
       lineMatchingKeysByTypeFunc,
       arcRange,
       enabledArcsFunc,
+      legendNumberFormatFunc,
       arcTypes,
       'arc'
     )
 )
 
 export const selectIncludedGeoJsonFunc = createSelector(
-  [selectIncludedGeoDataFunc, selectGeoRange, selectEnabledGeosFunc],
-  (includedGeoDataFunc, geoRange, legendObjectsFunc) => {
+  [
+    selectIncludedGeoDataFunc,
+    selectGeoRange,
+    selectEnabledGeosFunc,
+    selectLegendNumberFormatFunc,
+  ],
+  (
+    includedGeoDataFunc,
+    geoRange,
+    legendObjectsFunc,
+    legendNumberFormatFunc
+  ) => {
     const geometryFunc = (item) => ({
       type: 'Polygon',
       coordinates: [item.path],
@@ -2414,6 +2498,7 @@ export const selectIncludedGeoJsonFunc = createSelector(
       modifiedIncludedGeoDataFunc,
       legendObjectsFunc,
       geometryFunc,
+      legendNumberFormatFunc,
       'geo'
     )
   }
@@ -2425,12 +2510,20 @@ export const selectFetchedGeoJsonFunc = createSelector(
     selectEnabledGeosFunc,
     selectGeoTypes,
     selectMatchingKeysByTypeFunc,
+    selectLegendNumberFormatFunc,
   ],
-  (geoRange, enabledGeosFunc, geoTypes, matchingKeysByTypeFunc) =>
+  (
+    geoRange,
+    enabledGeosFunc,
+    geoTypes,
+    matchingKeysByTypeFunc,
+    legendNumberFormatFunc
+  ) =>
     constructFetchedGeoJson(
       matchingKeysByTypeFunc,
       geoRange,
       enabledGeosFunc,
+      legendNumberFormatFunc,
       geoTypes,
       'geo'
     )

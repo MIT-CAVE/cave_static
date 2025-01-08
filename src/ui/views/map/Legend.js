@@ -301,77 +301,99 @@ export const useLegendPopper = () => {
   }
 }
 
-const getNumLabel = (value, numberFormatRaw) => {
-  // eslint-disable-next-line no-unused-vars
-  const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
-  return NumberFormat.format(value, {
-    ...numberFormat,
-    // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
-    ...{
-      precision: numberFormat['gradient']?.precision || numberFormat.precision,
-      notation: numberFormat['gradient']?.notation || numberFormat.notation,
-      notationDisplay:
-        numberFormat['gradient']?.notationDisplay ||
-        numberFormat.notationDisplay,
-    },
-  })
-}
-
-export const getGradientLabel = (labels, values, index, numberFormat, group) =>
-  group || labels[index] == null
-    ? getNumLabel(values[index], numberFormat)
-    : labels[index]
-
-export const getMinLabel = (labels, values, numberFormat, group) =>
-  getGradientLabel(labels, values, 0, numberFormat, group)
-
-export const getMaxLabel = (labels, values, numberFormat, group) =>
-  getGradientLabel(labels, values, values.length - 1, numberFormat, group)
-
 export const useGradientLabels = ({
   labels,
   values,
-  numberFormat,
+  rawValues,
+  numberFormat: numberFormatRaw,
   group,
-  isStepScale,
+  scale,
 }) => {
+  const lastIndex = values.length - 1
+  const isStepScale = scale === scaleId.STEP
+
+  const numberFormat = useMemo(
+    () => R.omit(['unit', 'unitPlacement'])(numberFormatRaw),
+    [numberFormatRaw]
+  )
+
   const getFormattedValueAt = useCallback(
-    (index) => getNumLabel(values[index], numberFormat),
+    (index) => NumberFormat.format(values[index], numberFormat),
     [numberFormat, values]
   )
 
   const getLabel = useCallback(
-    (index) => getGradientLabel(labels, values, index, numberFormat, group),
-    [group, labels, numberFormat, values]
+    (index) => {
+      const label = labels[index]
+      return group || label == null || values[index] !== rawValues[index]
+        ? getFormattedValueAt(index)
+        : label
+    },
+    [getFormattedValueAt, group, labels, rawValues, values]
   )
 
   const getAttrLabelAt = useCallback(
     (index) =>
-      index > 0 && index < values.length - 1 // Within the bounds
+      index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
           ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
           : `"${getLabel(index)}"`
         : isStepScale
           ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
           : `${index < 1 ? 'Min' : 'Max'}`,
-    [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
+    [getFormattedValueAt, getLabel, isStepScale, labels, lastIndex]
   )
 
   const getValueLabelAt = useCallback(
-    (index) =>
-      index > 0 && index < values.length - 1 // Within the bounds
+    (index) => {
+      const label = getLabel(index)
+      const isValueAdjusted = values[index] !== rawValues[index]
+      return index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
-          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
-          : `Value${labels[index] != null ? ` \u279D "${getLabel(index)}"` : ''}`
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${label}"` : ''}`
+          : `Value${
+              isValueAdjusted
+                ? ` \u279D Adjusted to ${label}`
+                : labels[index] != null
+                  ? ` \u279D "${label}"`
+                  : ''
+            }`
         : isStepScale
           ? index < 1
             ? `Threshold \u279D (-\u221E, ${getFormattedValueAt(index)})`
             : null // This should not happen as the max value for a step function is not displayed
-          : `Value \u279D ${index < 1 ? 'Min' : 'Max'}`,
-    [getFormattedValueAt, getLabel, isStepScale, labels, values.length]
+          : `Value \u279D ${
+              isValueAdjusted
+                ? `Adjusted to ${label}`
+                : index < 1
+                  ? 'Min'
+                  : 'Max'
+            }`
+    },
+    [
+      getFormattedValueAt,
+      getLabel,
+      isStepScale,
+      labels,
+      lastIndex,
+      rawValues,
+      values,
+    ]
   )
 
-  return { getLabel, getAttrLabelAt, getValueLabelAt }
+  const getAdjustedLabel = useCallback(
+    (label, index) =>
+      values[index] === rawValues[index] ? label : `${label} (Adjusted)`,
+    [rawValues, values]
+  )
+
+  return {
+    isStepScale,
+    getLabel,
+    getAdjustedLabel,
+    getAttrLabelAt,
+    getValueLabelAt,
+  }
 }
 
 // TODO: Move this to some `legendUtils.js` module
