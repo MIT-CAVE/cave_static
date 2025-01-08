@@ -88,6 +88,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
+  const chartType = R.propOr('bar', 'chartType')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
@@ -223,14 +224,13 @@ const DashboardItem = ({ chartObj, index, path }) => {
       />
       {!lockedLayout && !chartObj.lockedLayout && (
         <ChartMenu
-          {...{ isMaximized, chartHoverOrder }}
+          {...{ isMaximized, chartHoverOrder, vizType, chartType }}
           onRemoveChart={handleRemoveChart}
           onToggleMaximize={handleToggleMaximize}
           defaultToZero={defaultToZero}
           onToggleDefaultToZero={handleDefaultToZero}
           showNA={showNA}
           onToggleShowNA={handleToggleShowNA}
-          isGroupedOutput={vizType === 'groupedOutput'}
           onChartHover={handleChartHover}
           numFilters={numActiveStatFilters + numGroupingFilters}
           onOpenFilter={handleOpenModal}

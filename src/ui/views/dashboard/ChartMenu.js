@@ -29,6 +29,7 @@ import {
 import { useSelector } from 'react-redux'
 
 import { selectEditLayoutMode } from '../../../data/selectors'
+import { chartVariant } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
@@ -86,7 +87,6 @@ const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
 
 const ChartMenu = ({
   isMaximized,
-  isGroupedOutput,
   defaultToZero,
   onToggleDefaultToZero,
   showNA,
@@ -98,9 +98,14 @@ const ChartMenu = ({
   numFilters,
   onOpenFilter,
   onOpenChartTools,
+  vizType,
+  chartType,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+
+  const isGroupedOutput = vizType === 'groupedOutput'
+  const isMap = vizType === 'map'
 
   const handleEventAndCloseMenu = (onEvent) => (e) => {
     onEvent(e)
@@ -179,22 +184,36 @@ const ChartMenu = ({
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
-        <Select value={chartHoverOrder} onChange={onChartHover} sx={{ ml: 2 }}>
-          <MenuItem value="seriesAsc">
-            <FaSortAlphaDown fontSize={20} /> Name
-          </MenuItem>
-          <MenuItem value="seriesDesc">
-            <FaSortAlphaUp fontSize={20} /> Name
-          </MenuItem>
-          <MenuItem value="valueAsc">
-            <FaSortNumericDown fontSize={20} /> Value
-          </MenuItem>
-          <MenuItem value="valueDesc">
-            <FaSortNumericUp fontSize={20} /> Value
-          </MenuItem>
-        </Select>
-        <Divider />
+        {!isMap &&
+          ![
+            chartVariant.TABLE,
+            chartVariant.OVERVIEW,
+            chartVariant.TREEMAP,
+            chartVariant.GAUGE,
+          ].includes(chartType) && (
+            <>
+              <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
+              <Select
+                value={chartHoverOrder}
+                onChange={onChartHover}
+                sx={{ ml: 2 }}
+              >
+                <MenuItem value="seriesAsc">
+                  <FaSortAlphaDown fontSize={20} /> Name
+                </MenuItem>
+                <MenuItem value="seriesDesc">
+                  <FaSortAlphaUp fontSize={20} /> Name
+                </MenuItem>
+                <MenuItem value="valueAsc">
+                  <FaSortNumericDown fontSize={20} /> Value
+                </MenuItem>
+                <MenuItem value="valueDesc">
+                  <FaSortNumericUp fontSize={20} /> Value
+                </MenuItem>
+              </Select>
+              <Divider />
+            </>
+          )}
         {isGroupedOutput && [
           <ToggleMenuItem
             key="defaultToZero"
