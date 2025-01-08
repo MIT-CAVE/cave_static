@@ -14,7 +14,6 @@ import { useSelector } from 'react-redux'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 import ChartMenu from './ChartMenu'
-import ChartToolbar from './ChartToolbar'
 import DashboardGlobalOutput from './DashboardGlobalOutputs'
 
 import {
@@ -235,15 +234,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
         open={chartToolsOpen}
         onClose={handleCloseChartTools}
       />
-      {showToolbar && (
-        <ChartToolbar
-          numFilters={numActiveStatFilters + numGroupingFilters}
-          showFilter={vizType === 'groupedOutput'}
-          onOpenFilter={handleOpenModal}
-          onOpenChartTools={handleOpenChartTools}
-          {...{ chartObj, index, path }}
-        />
-      )}
       {!lockedLayout && !chartObj.lockedLayout && (
         <ChartMenu
           {...{ isMaximized, showToolbar, chartHoverOrder }}
@@ -256,6 +246,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
           onToggleShowNA={handleToggleShowNA}
           isGroupedOutput={vizType === 'groupedOutput'}
           onChartHover={handleChartHover}
+          numFilters={numActiveStatFilters + numGroupingFilters}
+          onOpenFilter={handleOpenModal}
+          onOpenChartTools={handleOpenChartTools}
         />
       )}
       {vizType === 'groupedOutput' ? (

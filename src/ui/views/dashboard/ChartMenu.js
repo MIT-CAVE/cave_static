@@ -17,6 +17,8 @@ import {
   FaSortNumericDown,
   FaSortAlphaDown,
   FaSortAlphaUp,
+  FaChartBar,
+  FaFilter,
 } from 'react-icons/fa'
 import {
   MdClose,
@@ -95,6 +97,9 @@ const ChartMenu = ({
   onToggleMaximize,
   chartHoverOrder,
   onChartHover,
+  numFilters,
+  onOpenFilter,
+  onOpenChartTools,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
@@ -119,8 +124,41 @@ const ChartMenu = ({
     >
       <ButtonGroup
         variant="contained"
+        orientation="vertical"
         sx={[styles.actionBtn, showToolbar && { bgcolor: 'transparent' }]}
       >
+        <TooltipButton
+          title="Chart Tools"
+          placement="bottom-start"
+          onClick={onOpenChartTools}
+        >
+          <Badge
+            {...{
+              color: 'info',
+              badgeContent: numFilters,
+              invisible: numFilters < 1,
+            }}
+          >
+            <FaChartBar />
+          </Badge>
+        </TooltipButton>
+        {isGroupedOutput && (
+          <TooltipButton
+            title="Filter"
+            placement="bottom-start"
+            onClick={onOpenFilter}
+          >
+            <Badge
+              {...{
+                color: 'info',
+                badgeContent: numFilters,
+                invisible: numFilters < 1,
+              }}
+            >
+              <FaFilter />
+            </Badge>
+          </TooltipButton>
+        )}
         <TooltipButton
           title="View more Actions"
           placement="bottom-start"
