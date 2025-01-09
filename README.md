@@ -39,8 +39,8 @@ npm start
 
 - Compiles `client`, available in the browser at `localhost:3000`
 - Notes:
-  - cave-test-app does NOT currently support a standalone mode. For functionality you should have an instance of [cave_server](https://github.com/MIT-CAVE/cave_app_server) running.
-  - The `cave_static` should be accessed through the `cave_server` UI at `localhost:8000`, and not directly at `localhost:3000`.
+  - cave-test-app does NOT currently support a standalone mode. For functionality you should have an instance of [cave_server](https://github.com/MIT-CAVE/cave_app) running.
+  - The `cave_static` should be accessed through the `cave_app` UI at `localhost:8000`, and not directly at `localhost:3000`.
 
 ## Create a static build
 
@@ -84,7 +84,7 @@ npm run build
 
 ## License Notice
 
-Copyright 2022 Massachusetts Institute of Technology (MIT), Center for Transportation & Logistics (CTL)
+Copyright 2025 Massachusetts Institute of Technology (MIT), Center for Transportation & Logistics (CTL)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 

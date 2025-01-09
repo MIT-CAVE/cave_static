@@ -326,30 +326,6 @@ const LegendRowDetails = ({
             }
             spacing={1}
           >
-            {sizeBy != null && (
-              <Grid2 size="grow">
-                <SizeLegend
-                  valueRange={
-                    group && clusterRange.size
-                      ? R.mergeDeepLeft(clusterRange.size, sizeRange)
-                      : sizeRange
-                  }
-                  {...{
-                    icon,
-                    group,
-                    sizeBy,
-                    sizeByOptions,
-                    featureTypeProps,
-                  }}
-                  hasAnyNullValue={hasAnyNullValue(sizeBy)}
-                  groupCalcValue={groupCalcBySize}
-                  onSelectProp={handleSelectProp}
-                  onSelectGroupCalc={handleSelectGroupCalc}
-                  onChangePropAttr={handleChangePropAttr}
-                  onChangeSize={handleChangeSize}
-                />
-              </Grid2>
-            )}
             {colorBy != null && (
               <Grid2 size="grow">
                 <ColorLegend
@@ -371,6 +347,30 @@ const LegendRowDetails = ({
                   onSelectGroupCalc={handleSelectGroupCalc}
                   onChangePropAttr={handleChangePropAttr}
                   onChangeColor={handleChangeColor}
+                />
+              </Grid2>
+            )}
+            {sizeBy != null && (
+              <Grid2 size="grow">
+                <SizeLegend
+                  valueRange={
+                    group && clusterRange.size
+                      ? R.mergeDeepLeft(clusterRange.size, sizeRange)
+                      : sizeRange
+                  }
+                  {...{
+                    icon,
+                    group,
+                    sizeBy,
+                    sizeByOptions,
+                    featureTypeProps,
+                  }}
+                  hasAnyNullValue={hasAnyNullValue(sizeBy)}
+                  groupCalcValue={groupCalcBySize}
+                  onSelectProp={handleSelectProp}
+                  onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangePropAttr={handleChangePropAttr}
+                  onChangeSize={handleChangeSize}
                 />
               </Grid2>
             )}

@@ -42,8 +42,10 @@ export const overwriteData = createAsyncThunk(
   async (arg, { dispatch, getState }) => {
     const localVersions = R.path(['data', 'versions'], getState())
     const versions = R.prop('versions', arg)
+    const forceOverwrite = R.propOr(false, 'forceOverwrite', arg)
     // Check for Matching Versions or Button Response (Noop)
-    if (R.equals(versions)(localVersions)) {
+
+    if (R.equals(versions)(localVersions) && !forceOverwrite) {
       return {
         noOperation: true,
         data: {},
