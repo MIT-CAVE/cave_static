@@ -203,7 +203,7 @@ const FlexibleChart = ({
       </FlexibleContainer>
       {path && (
         <FormControlLabel
-          sx={{ position: 'absolute', right: 160, bottom: 10 }}
+          sx={{ position: 'absolute', left: 10, bottom: 10 }}
           control={
             <Select
               value={xAxisOrder}
@@ -224,7 +224,7 @@ const FlexibleChart = ({
               <MenuItem value="descending">Descending</MenuItem>
             </Select>
           }
-          label="Sort by"
+          label="Sort By"
           labelPlacement="start"
         />
       )}
