@@ -8,6 +8,13 @@ import {
   Typography,
 } from '@mui/material'
 import { styled } from '@mui/system'
+import {
+  FaSort,
+  FaSortAlphaDown,
+  FaSortAlphaUp,
+  FaSortNumericDown,
+  FaSortNumericUp,
+} from 'react-icons/fa'
 import { useDispatch } from 'react-redux'
 
 import { mutateLocal } from '../../../../data/local'
@@ -19,8 +26,36 @@ const CustomSlider = styled(Slider)(() => ({
   },
 }))
 
+const styles = {
+  sortItem: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 1,
+  },
+  iconSize: 20,
+  select: {
+    height: 30,
+    width: 140,
+    '& .MuiSelect-select': {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 1,
+    },
+  },
+}
+
 const SortControl = ({ xAxisOrder, path }) => {
   const dispatch = useDispatch()
+  const validOrders = [
+    'default',
+    'value_ascending',
+    'value_descending',
+    'alpha_ascending',
+    'alpha_descending',
+  ]
+  const currentOrder = validOrders.includes(xAxisOrder) ? xAxisOrder : 'default'
 
   const handleOrderChange = (value) => {
     dispatch(
@@ -42,14 +77,26 @@ const SortControl = ({ xAxisOrder, path }) => {
     >
       <Typography sx={{ whiteSpace: 'nowrap' }}>Sort By</Typography>
       <Select
-        value={xAxisOrder}
+        value={currentOrder}
         onChange={(e) => handleOrderChange(e.target.value)}
         size="small"
-        sx={{ height: 30 }}
+        sx={styles.select}
       >
-        <MenuItem value="default">Default</MenuItem>
-        <MenuItem value="ascending">Ascending</MenuItem>
-        <MenuItem value="descending">Descending</MenuItem>
+        <MenuItem value="default" sx={styles.sortItem}>
+          <FaSort fontSize={styles.iconSize} /> Default
+        </MenuItem>
+        <MenuItem value="value_ascending" sx={styles.sortItem}>
+          <FaSortNumericUp fontSize={styles.iconSize} /> Value
+        </MenuItem>
+        <MenuItem value="value_descending" sx={styles.sortItem}>
+          <FaSortNumericDown fontSize={styles.iconSize} /> Value
+        </MenuItem>
+        <MenuItem value="alpha_ascending" sx={styles.sortItem}>
+          <FaSortAlphaUp fontSize={styles.iconSize} /> Name
+        </MenuItem>
+        <MenuItem value="alpha_descending" sx={styles.sortItem}>
+          <FaSortAlphaDown fontSize={styles.iconSize} /> Name
+        </MenuItem>
       </Select>
     </Box>
   )

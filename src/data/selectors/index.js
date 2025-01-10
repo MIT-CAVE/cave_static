@@ -1644,14 +1644,13 @@ export const selectMemoizedChartFunc = createSelector(
             R.has('children', item)
               ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
               : R.path(['value', 0], item)
-          const sortedResult =
-            xAxisOrder === 'default'
-              ? result
-              : R.sort((a, b) => {
-                  const sumA = getValue(a)
-                  const sumB = getValue(b)
-                  return xAxisOrder === 'ascending' ? sumA - sumB : sumB - sumA
-                }, result)
+          const sortFn = {
+            value_ascending: (a, b) => getValue(a) - getValue(b),
+            value_descending: (a, b) => getValue(b) - getValue(a),
+            alpha_ascending: (a, b) => a.name.localeCompare(b.name),
+            alpha_descending: (a, b) => b.name.localeCompare(a.name),
+          }[xAxisOrder]
+          const sortedResult = sortFn ? R.sort(sortFn, result) : result
           return sortedResult
         })
       },
