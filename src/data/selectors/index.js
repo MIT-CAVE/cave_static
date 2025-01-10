@@ -1642,11 +1642,7 @@ export const selectMemoizedChartFunc = createSelector(
           const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
           const getValue = (item) =>
             R.has('children', item)
-              ? R.pipe(
-                  R.prop('children'),
-                  R.map(R.path(['value', 0])),
-                  R.sum
-                )(item)
+              ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
               : R.path(['value', 0], item)
           const sortedResult =
             xAxisOrder === 'default'
