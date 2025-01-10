@@ -1,69 +1,34 @@
-import { FormControlLabel, Select, MenuItem } from '@mui/material'
 import {
   LineChart,
   BarChart,
-  // PieChart,
   ScatterChart,
-  // RadarChart,
-  // MapChart,
-  // TreeChart,
   TreemapChart,
   GraphChart,
   GaugeChart,
-  // FunnelChart,
-  // ParallelChart,
-  // SankeyChart,
   BoxplotChart,
-  // CandlestickChart,
-  // EffectScatterChart,
-  // LinesChart,
   HeatmapChart,
-  // PictorialBarChart,
-  // ThemeRiverChart,
   SunburstChart,
   CustomChart,
 } from 'echarts/charts'
 import {
-  // GridSimpleComponent,
   GridComponent,
-  // PolarComponent,
-  // RadarComponent,
-  // GeoComponent,
-  // SingleAxisComponent,
-  // ParallelComponent,
-  // CalendarComponent,
-  // GraphicComponent,
-  // ToolboxComponent,
   TooltipComponent,
-  // AxisPointerComponent,
-  // BrushComponent,
   TitleComponent,
-  // TimelineComponent,
-  // MarkPointComponent,
-  // MarkLineComponent,
-  // MarkAreaComponent,
+  TransformComponent,
   LegendComponent,
-  // LegendScrollComponent,
-  // LegendPlainComponent,
-  // DataZoomComponent,
-  // DataZoomInsideComponent,
-  // DataZoomSliderComponent,
-  // VisualMapComponent,
   VisualMapContinuousComponent,
   VisualMapPiecewiseComponent,
   AriaComponent,
-  TransformComponent,
   DatasetComponent,
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import { useDispatch } from 'react-redux'
 
+import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
 
-import { mutateLocal } from '../../../../data/local'
 import {
   NumberFormat,
   findSubgroupLabels,
@@ -183,10 +148,12 @@ const FlexibleChart = ({
   chartHoverOrder,
   path,
   xAxisOrder,
-  ...props
+  syncAxes,
+  onSyncAxesChange,
+  numBuckets,
+  onNumBucketsChange,
+  ...restProps
 }) => {
-  const dispatch = useDispatch()
-
   return (
     <>
       <FlexibleContainer>
@@ -197,37 +164,19 @@ const FlexibleChart = ({
           )(options)}
           notMerge
           theme="dark"
-          // lazyUpdate
-          {...props}
+          {...restProps}
         />
       </FlexibleContainer>
-      {path && (
-        <FormControlLabel
-          sx={{ position: 'absolute', left: 10, bottom: 10 }}
-          control={
-            <Select
-              value={xAxisOrder}
-              onChange={(e) => {
-                dispatch(
-                  mutateLocal({
-                    path: [...path, 'xAxisOrder'],
-                    value: e.target.value,
-                    sync: true,
-                  })
-                )
-              }}
-              size="small"
-              sx={{ minWidth: 120, height: 30, ml: 1 }}
-            >
-              <MenuItem value="default">Default</MenuItem>
-              <MenuItem value="ascending">Ascending</MenuItem>
-              <MenuItem value="descending">Descending</MenuItem>
-            </Select>
-          }
-          label="Sort By"
-          labelPlacement="start"
-        />
-      )}
+      <ChartControls
+        {...{
+          path,
+          xAxisOrder,
+          syncAxes,
+          onSyncAxesChange,
+          numBuckets,
+          onNumBucketsChange,
+        }}
+      />
     </>
   )
 }
@@ -246,6 +195,8 @@ const EchartsPlot = ({
   chartHoverOrder,
   path,
   xAxisOrder,
+  numBuckets,
+  onNumBucketsChange,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -430,7 +381,18 @@ const EchartsPlot = ({
     ...lineMap,
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return (
+    <FlexibleChart
+      {...{
+        options,
+        chartHoverOrder,
+        path,
+        xAxisOrder,
+        numBuckets,
+        onNumBucketsChange,
+      }}
+    />
+  )
 }
 
 export default EchartsPlot
