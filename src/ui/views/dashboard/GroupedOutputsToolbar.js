@@ -597,7 +597,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     const label = `${statName} Aggregation`
     const selector = (
       <Select
-        labelId={index}
         label={label}
         getLabel={(item) => capitalize(item)}
         value={R.pathOr('', ['stats', index, 'aggregationType'], chartObj)}
@@ -635,13 +634,20 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       ['stats', index, 'aggregationType'],
       chartObj
     )
+
+    if (statAggregation === chartAggrFunc.SUM) {
+      return null
+    }
+
     const statName = getGroupLabelFn(statisticTypes, [
       chartObj.dataset,
       R.pathOr('', ['stats', index, 'statId'], chartObj),
     ])
+    const label = `${statAggregation === chartAggrFunc.DIVISOR ? 'Divide' : 'Aggregate'} ${statName} By`
     const selector =
       statAggregation === chartAggrFunc.DIVISOR ? (
         <Select
+          label={label}
           disabled={chartObj.dataset == null}
           id={`divide-${statName}`}
           value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
@@ -664,7 +670,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         />
       ) : (
         <SelectAccordion
-          disabled={statAggregation === chartAggrFunc.SUM}
+          label={label}
           fullWidth
           itemGroups={itemGroups}
           values={[
@@ -696,7 +702,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         />
       )
 
-    const label = `${statAggregation === chartAggrFunc.DIVISOR ? 'Divide' : 'Aggregate'} ${statName} By`
     return renderLabelledSelector(selector, label, index)
   })(chartObj.stats || [])
 
