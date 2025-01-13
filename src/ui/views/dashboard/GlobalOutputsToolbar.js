@@ -3,8 +3,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
@@ -14,6 +12,7 @@ import { MdCheckBox, MdCheckBoxOutlineBlank } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
+import ChartTypeSelector from './ChartTypeSelector'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
@@ -96,39 +95,30 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     [currentPage, index]
   )
 
+  const handleSelectChart = (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('chartType', value)(chartObj),
+      })
+    )
+  }
+
   const globalOutputsOptions = R.pipe(
     R.reject(R.pipe(R.prop('value'), R.isNil)),
     withIndex,
     R.project(['id', 'name', 'icon']),
     R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
   )(props)
+
   return (
     <>
-      <Tabs
-        value={R.propOr(chartVariant.BAR, 'chartType', chartObj)}
-        onChange={(_, value) => {
-          dispatch(
-            mutateLocal({
-              path,
-              sync: !includesPath(R.values(sync), path),
-              value: R.assoc('chartType', value)(chartObj),
-            })
-          )
-        }}
-        variant="scrollable"
-        scrollButtons="auto"
-      >
-        {CHART_OPTIONS.map((option) => {
-          return (
-            <Tab
-              key={option.label}
-              label={option.label}
-              value={option.value}
-              icon={<FetchedIcon iconName={option.iconName} />}
-            />
-          )
-        })}
-      </Tabs>
+      <ChartTypeSelector
+        value={chartObj.chartType}
+        onChange={handleSelectChart}
+        chartOptions={CHART_OPTIONS}
+      />
       <Box sx={styles.content}>
         {chartObj.chartType !== chartVariant.OVERVIEW && (
           <>

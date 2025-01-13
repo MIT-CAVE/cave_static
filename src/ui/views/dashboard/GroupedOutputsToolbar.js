@@ -6,8 +6,6 @@ import {
   FormHelperText,
   InputLabel,
   Stack,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
@@ -17,6 +15,7 @@ import { MdCheckBox, MdCheckBoxOutlineBlank } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
+import ChartTypeSelector from './ChartTypeSelector'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -37,12 +36,7 @@ import {
   distributionVariants,
 } from '../../../utils/enums'
 
-import {
-  FetchedIcon,
-  Select,
-  SelectAccordion,
-  SelectAccordionList,
-} from '../../compound'
+import { Select, SelectAccordion, SelectAccordionList } from '../../compound'
 
 import {
   withIndex,
@@ -298,7 +292,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       R.when(R.any(R.isNil), R.always(''))
     )(chartObj)
 
-  const handleSelectChart = (_, value) => {
+  const handleSelectChart = (value) => {
     const statUsesChanged =
       chartStatUses[chartObj.chartType] !== chartStatUses[value]
 
@@ -495,23 +489,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
   return (
     <>
-      <Tabs
-        value={R.propOr(chartVariant.BAR, 'chartType', chartObj)}
+      <ChartTypeSelector
+        value={chartObj.chartType}
         onChange={handleSelectChart}
-        variant="scrollable"
-        scrollButtons="auto"
-      >
-        {R.map((option) => {
-          return (
-            <Tab
-              key={option.label}
-              label={option.label}
-              value={option.value}
-              icon={<FetchedIcon iconName={option.iconName} />}
-            />
-          )
-        })(CHART_OPTIONS)}
-      </Tabs>
+        chartOptions={CHART_OPTIONS}
+      />
       <Box sx={styles.content}>
         <Typography variant="overline" sx={styles.header}>
           DATA CONFIGURATION
