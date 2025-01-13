@@ -3,12 +3,8 @@ import {
   Divider,
   Paper,
   IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Typography,
+  Grid2 as Grid,
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
@@ -30,29 +26,31 @@ const styles = {
     width: '100%',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden',
+    overflow: 'auto',
   },
-  headerCell: {
-    fontWeight: 'bold',
-    backgroundColor: 'background.paper',
-  },
-  row: {
+  mapOption: {
+    p: 2,
     cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 2,
+    // width: '300px',
+    color: 'common.white',
+    bgcolor: 'grey.800',
     '&:hover': {
-      bgcolor: 'action.hover',
+      bgcolor: 'grey.700',
     },
   },
   selected: {
-    bgcolor: 'action.selected',
+    bgcolor: 'primary.dark',
     '&:hover': {
-      bgcolor: 'action.selected',
+      bgcolor: 'primary.dark',
     },
   },
-  cell: {
-    py: 1,
-  },
   placeholder: {
-    p: 1,
+    p: 2,
     textAlign: 'center',
     color: 'text.secondary',
   },
@@ -114,63 +112,59 @@ const MapToolbar = memo(({ chartObj, index }) => {
   }
 
   return (
-    <Paper sx={styles.wrapper}>
+    <Box sx={styles.wrapper}>
       {availableValue === '' && (
         <>
           <Box sx={styles.placeholder}>Select A Map</Box>
-          <Divider />
+          <Divider sx={{ mb: 2 }} />
         </>
       )}
-      <TableContainer component={Paper}>
-        <Table stickyHeader aria-label="sticky table">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={styles.headerCell}>Map Name</TableCell>
-              <TableCell sx={styles.headerCell} align="right">
-                Actions
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {R.keys(maps).map((mapId) => (
-              <TableRow
-                key={mapId}
-                hover
-                onClick={() => handleMapSelect(mapId)}
-                sx={[styles.row, mapId === availableValue && styles.selected]}
-              >
-                <TableCell sx={styles.cell}>
-                  {R.pathOr(mapId, [mapId, 'name'], maps)}
-                </TableCell>
-                <TableCell sx={styles.cell} align="right">
-                  {R.pathOr(false, [mapId, 'duplicate'], maps) ? (
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(mapId)
-                      }}
-                    >
-                      <MdDelete />
-                    </IconButton>
-                  ) : (
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDuplicate(mapId)
-                      }}
-                    >
-                      <MdCopyAll />
-                    </IconButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
+      <Grid
+        container
+        spacing={2}
+        justifyContent="flex-start"
+        sx={{ width: '100%' }}
+        columns={3}
+      >
+        {R.keys(maps).map((mapId) => (
+          <Grid item key={mapId} size={1}>
+            <Paper
+              sx={[
+                styles.mapOption,
+                mapId === availableValue && styles.selected,
+              ]}
+              elevation={mapId === availableValue ? 3 : 1}
+              onClick={() => handleMapSelect(mapId)}
+            >
+              <Typography>{R.pathOr(mapId, [mapId, 'name'], maps)}</Typography>
+              <Box>
+                {R.pathOr(false, [mapId, 'duplicate'], maps) ? (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(mapId)
+                    }}
+                  >
+                    <MdDelete />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDuplicate(mapId)
+                    }}
+                  >
+                    <MdCopyAll />
+                  </IconButton>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   )
 })
 

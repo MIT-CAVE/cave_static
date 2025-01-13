@@ -40,8 +40,6 @@ const ChartToolsModal = ({
 }) => {
   const sync = useSelector(selectSync)
 
-  const isMap = R.propOr('groupedOutput', 'type', chartObj) === 'map'
-
   const handleSelectVizType = useMutateState(
     (value) => {
       return {
@@ -61,8 +59,8 @@ const ChartToolsModal = ({
       slotProps={{
         paper: {
           sx: {
-            width: isMap ? '340px' : '1200px',
-            height: isMap ? '500px' : '900px',
+            width: '1200px',
+            height: '900px',
           },
         },
       }}

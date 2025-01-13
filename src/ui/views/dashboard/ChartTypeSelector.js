@@ -37,7 +37,7 @@ const ChartTypeSelector = ({ value, onChange, chartOptions }) => {
                   },
                 },
               ]}
-              elevation={isSelected ? 30 : 1}
+              elevation={isSelected ? 3 : 1}
               onClick={() => onChange(chartType.value)}
             >
               <FetchedIcon iconName={chartType.iconName} />
