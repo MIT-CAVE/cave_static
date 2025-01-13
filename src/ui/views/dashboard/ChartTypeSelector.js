@@ -1,4 +1,4 @@
-import { Grid2, Paper, Typography } from '@mui/material'
+import { Grid2 as Grid, Paper, Typography } from '@mui/material'
 import * as R from 'ramda'
 
 import { chartVariant } from '../../../utils/enums'
@@ -7,14 +7,14 @@ import { FetchedIcon } from '../../compound'
 
 const styles = {
   displayIcon: {
-    p: 1,
+    py: 1,
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 1,
     color: 'common.white',
-    minWidth: '100px',
   },
 }
 
@@ -22,11 +22,17 @@ const ChartTypeSelector = ({ value, onChange, chartOptions }) => {
   const selectedValue = value || chartVariant.BAR
 
   return (
-    <Grid2 container spacing={1} justifyContent="center" alignItems="center">
+    <Grid
+      container
+      spacing={1}
+      justifyContent="center"
+      alignItems="center"
+      columns={10}
+    >
       {R.map((chartType) => {
         const isSelected = selectedValue === chartType.value
         return (
-          <Grid2 item key={chartType.label}>
+          <Grid item key={chartType.label} size={1}>
             <Paper
               sx={[
                 styles.displayIcon,
@@ -45,10 +51,10 @@ const ChartTypeSelector = ({ value, onChange, chartOptions }) => {
                 {chartType.label}
               </Typography>
             </Paper>
-          </Grid2>
+          </Grid>
         )
       }, chartOptions)}
-    </Grid2>
+    </Grid>
   )
 }
 
