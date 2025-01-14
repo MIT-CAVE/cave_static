@@ -1,13 +1,15 @@
 import {
   Box,
+  Divider,
   FormControl,
+  Grid2 as Grid,
   InputLabel,
   Stack,
   Typography,
   IconButton,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, Fragment } from 'react'
 import { MdClose } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -58,7 +60,7 @@ const styles = {
     gap: 2,
   },
   row: {
-    width: '99%',
+    width: '100%',
     display: 'flex',
     flexDirection: 'row',
     gap: 1,
@@ -390,31 +392,27 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   )
 
   const singleStatisticSelector = (
-    <FormControl fullWidth>
-      <InputLabel id="stat-label">Statistic</InputLabel>
-      <Select
-        disabled={chartObj.dataset == null}
-        id="stat"
-        labelId="stat-label"
-        label="Statistic"
-        value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
-        optionsList={R.values(statNames)}
-        getLabel={(stat) =>
-          getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-        }
-        onSelect={(value) => {
-          dispatch(
-            mutateLocal({
-              path,
-              sync: !includesPath(R.values(sync), path),
-              value: R.assoc('stats', [
-                { statId: value, aggregationType: 'sum' },
-              ])(chartObj),
-            })
-          )
-        }}
-      />
-    </FormControl>
+    <Select
+      fullWidth
+      disabled={chartObj.dataset == null}
+      id="stat"
+      value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
+      optionsList={R.values(statNames)}
+      getLabel={(stat) =>
+        getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+      }
+      onSelect={(value) => {
+        dispatch(
+          mutateLocal({
+            path,
+            sync: !includesPath(R.values(sync), path),
+            value: R.assoc('stats', [
+              { statId: value, aggregationType: 'sum' },
+            ])(chartObj),
+          })
+        )
+      }}
+    />
   )
 
   const distributionTypeSelector = (
@@ -566,60 +564,51 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   spacing={1}
                   alignItems="center"
                 >
-                  <FormControl fullWidth>
-                    <InputLabel id={`stat-${index}-label`}>
-                      Statistic
-                    </InputLabel>
-                    <Select
-                      labelId={`stat-${index}-label`}
-                      label="Statistic"
-                      disabled={chartObj.dataset == null}
-                      getLabel={(stat) =>
-                        getGroupLabelFn(statisticTypes, [
-                          chartObj.dataset,
-                          stat,
-                        ])
-                      }
-                      value={statId || ' '}
-                      optionsList={availableOptions}
-                      onSelect={(value) => {
-                        const currentStats = R.propOr([], 'stats', chartObj)
-                        let newStats
+                  <Select
+                    fullWidth
+                    disabled={chartObj.dataset == null}
+                    getLabel={(stat) =>
+                      getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+                    }
+                    value={statId || ' '}
+                    optionsList={availableOptions}
+                    onSelect={(value) => {
+                      const currentStats = R.propOr([], 'stats', chartObj)
+                      let newStats
 
-                        if (value === undefined) {
-                          // Remove the stat at this index
-                          newStats = R.remove(index, 1, currentStats)
-                        } else if (statId === null) {
-                          // Add new stat
-                          newStats = [
-                            ...currentStats,
-                            {
-                              statId: value,
-                              aggregationType: 'sum',
-                            },
-                          ]
-                        } else {
-                          // Update existing stat
-                          newStats = R.update(
-                            index,
-                            {
-                              statId: value,
-                              aggregationType: 'sum',
-                            },
-                            currentStats
-                          )
-                        }
-
-                        dispatch(
-                          mutateLocal({
-                            path,
-                            sync: !includesPath(R.values(sync), path),
-                            value: R.assoc('stats', newStats, chartObj),
-                          })
+                      if (value === undefined) {
+                        // Remove the stat at this index
+                        newStats = R.remove(index, 1, currentStats)
+                      } else if (statId === null) {
+                        // Add new stat
+                        newStats = [
+                          ...currentStats,
+                          {
+                            statId: value,
+                            aggregationType: 'sum',
+                          },
+                        ]
+                      } else {
+                        // Update existing stat
+                        newStats = R.update(
+                          index,
+                          {
+                            statId: value,
+                            aggregationType: 'sum',
+                          },
+                          currentStats
                         )
-                      }}
-                    />
-                  </FormControl>
+                      }
+
+                      dispatch(
+                        mutateLocal({
+                          path,
+                          sync: !includesPath(R.values(sync), path),
+                          value: R.assoc('stats', newStats, chartObj),
+                        })
+                      )
+                    }}
+                  />
                   {currentStats.length > 1 && statId !== null && (
                     <IconButton
                       size="small"
@@ -636,15 +625,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       : singleStatisticSelector,
   ])
 
-  const AggregationSelector = mapIndexed((_, index) => {
-    const statName = getGroupLabelFn(statisticTypes, [
-      chartObj.dataset,
-      R.pathOr('', ['stats', index, 'statId'], chartObj),
-    ])
-    const label = `${statName} Aggregation`
-    const selector = (
+  const AggregationSelector = mapIndexed(
+    (_, index) => (
       <Select
-        label={label}
+        key={index}
+        fullWidth
         getLabel={(item) => capitalize(item)}
         value={R.pathOr('', ['stats', index, 'aggregationType'], chartObj)}
         optionsList={[
@@ -668,12 +653,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             })
           )
         }}
-        sx={{ width: '100%' }}
       />
-    )
-
-    return renderLabelledSelector(selector, label, index)
-  })(R.propOr([], 'stats', chartObj))
+    ),
+    R.propOr([], 'stats', chartObj)
+  )
 
   const AggregationBySelector = mapIndexed(
     (_, index) => {
@@ -691,69 +674,63 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         chartObj.dataset,
         R.pathOr('', ['stats', index, 'statId'], chartObj),
       ])
-      const label = `${statAggregation === chartAggrFunc.DIVISOR ? 'Divide' : 'Aggregate'} ${statName} By`
-      const selector =
-        statAggregation === chartAggrFunc.DIVISOR ? (
-          <Select
-            label={label}
-            disabled={chartObj.dataset == null}
-            id={`divide-${statName}`}
-            value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
-            optionsList={R.values(statNames)}
-            getLabel={(stat) =>
-              getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-            }
-            onSelect={(value) => {
-              dispatch(
-                mutateLocal({
-                  path,
-                  sync: !includesPath(R.values(sync), path),
-                  value: R.assocPath(
-                    ['stats', index, 'statIdDivisor'],
-                    value
-                  )(chartObj),
-                })
-              )
-            }}
-          />
-        ) : (
-          <SelectAccordion
-            label={label}
-            fullWidth
-            itemGroups={itemGroups}
-            values={[
-              R.pathOr('', ['stats', index, 'aggregationGroupingId'], chartObj),
-              R.pathOr(
-                '',
-                ['stats', index, 'aggregationGroupingLevel'],
-                chartObj
-              ),
-            ]}
-            header={`Aggregate By`}
-            getLabel={getLabelFn(categories)}
-            getSubLabel={getSubLabelFn(categories)}
-            onSelect={(item, value) => {
-              dispatch(
-                mutateLocal({
-                  path,
-                  sync: !includesPath(R.values(sync), path),
-                  value: R.pipe(
-                    R.assocPath(
-                      ['stats', index, 'aggregationGroupingId'],
-                      item
-                    ),
-                    R.assocPath(
-                      ['stats', index, 'aggregationGroupingLevel'],
-                      value
-                    )
-                  )(chartObj),
-                })
-              )
-            }}
-          />
-        )
 
-      return renderLabelledSelector(selector, label, index)
+      return statAggregation === chartAggrFunc.DIVISOR ? (
+        <Select
+          key={index}
+          fullWidth
+          disabled={chartObj.dataset == null}
+          id={`divide-${statName}`}
+          value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
+          optionsList={R.values(statNames)}
+          getLabel={(stat) =>
+            getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+          }
+          onSelect={(value) => {
+            dispatch(
+              mutateLocal({
+                path,
+                sync: !includesPath(R.values(sync), path),
+                value: R.assocPath(
+                  ['stats', index, 'statIdDivisor'],
+                  value
+                )(chartObj),
+              })
+            )
+          }}
+        />
+      ) : (
+        <SelectAccordion
+          key={index}
+          fullWidth
+          itemGroups={itemGroups}
+          values={[
+            R.pathOr('', ['stats', index, 'aggregationGroupingId'], chartObj),
+            R.pathOr(
+              '',
+              ['stats', index, 'aggregationGroupingLevel'],
+              chartObj
+            ),
+          ]}
+          getLabel={getLabelFn(categories)}
+          getSubLabel={getSubLabelFn(categories)}
+          onSelect={(item, value) => {
+            dispatch(
+              mutateLocal({
+                path,
+                sync: !includesPath(R.values(sync), path),
+                value: R.pipe(
+                  R.assocPath(['stats', index, 'aggregationGroupingId'], item),
+                  R.assocPath(
+                    ['stats', index, 'aggregationGroupingLevel'],
+                    value
+                  )
+                )(chartObj),
+              })
+            )
+          }}
+        />
+      )
     },
     R.propOr([], 'stats', chartObj)
   )
@@ -766,9 +743,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         chartOptions={CHART_OPTIONS}
       />
 
-      <Typography variant="overline" sx={styles.header}>
-        DATASET SELECTION
-      </Typography>
+      <Divider />
+
       <Stack direction="row">
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
@@ -777,137 +753,186 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         </Box>
       </Stack>
 
-      <Typography variant="overline" sx={styles.header}>
-        AGGREGATION
-      </Typography>
       <ChartDropdownWrapper
-        sx={[styles.field, { flexDirection: 'column', flexGrow: 0 }]}
+        sx={[styles.field, { flexDirection: 'column', flexGrow: 0, gap: 1 }]}
       >
         <>
-          {mapIndexed((statSelector, index) => {
-            return (
-              <Stack
-                key={index}
-                direction="row"
-                spacing={2}
-                sx={{ width: '100%' }}
+          <Grid container spacing={1} spacsx={{ width: '100%' }} columns={3}>
+            <Grid item xs={4} size={1}>
+              <Box
+                sx={{
+                  p: 1,
+                  bgcolor: 'action.hover',
+                  borderRadius: 1,
+                }}
               >
-                {statSelector && <Box sx={{ flex: 1 }}>{statSelector}</Box>}
-                <Box sx={{ flex: 1 }}>{R.prop(index, AggregationSelector)}</Box>
-                <Box sx={{ flex: 1 }}>
-                  {R.prop(index, AggregationBySelector)}
-                </Box>
-              </Stack>
-            )
-          }, StatSelectors)}
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                  }}
+                >
+                  STATISTIC
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={4} size={1}>
+              <Box
+                sx={{
+                  p: 1,
+                  bgcolor: 'action.hover',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                  }}
+                >
+                  AGGREGATION
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={4} size={1}>
+              <Box
+                sx={{
+                  p: 1,
+                  bgcolor: 'action.hover',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                  }}
+                >
+                  AGGREGATE BY
+                </Typography>
+              </Box>
+            </Grid>
+            {mapIndexed((statSelector, index) => {
+              return (
+                <Fragment key={index}>
+                  <Grid item xs={4} size={1}>
+                    {statSelector}
+                  </Grid>
+                  <Grid item xs={4} size={1}>
+                    {R.prop(index, AggregationSelector)}
+                  </Grid>
+                  <Grid item xs={4} size={1}>
+                    {R.prop(index, AggregationBySelector)}
+                  </Grid>
+                </Fragment>
+              )
+            }, StatSelectors)}
+          </Grid>
         </>
       </ChartDropdownWrapper>
 
-      {showFull(chartObj) && (
+      {chartObj.chartType === chartVariant.MIXED && (
         <>
-          {chartObj.chartType === chartVariant.MIXED && (
-            <>
-              <Typography variant="overline" sx={styles.header}>
-                CHART TYPES
-              </Typography>
-              <Box sx={styles.row}>
-                <ChartDropdownWrapper sx={styles.field}>
-                  <>
-                    {R.map((variant) => {
-                      const selector = (
-                        <Select
-                          getLabel={(item) =>
-                            item === 'cumulative_line'
-                              ? 'Cumulative Line'
-                              : capitalize(item)
-                          }
-                          value={R.propOr(
-                            'line',
-                            `${variant}Variant`,
-                            chartObj
-                          )}
-                          optionsList={['bar', 'line', 'cumulative_line']}
-                          onSelect={(value) => {
-                            dispatch(
-                              mutateLocal({
-                                path,
-                                sync: !includesPath(R.values(sync), path),
-                                value: R.assoc(
-                                  `${variant}Variant`,
-                                  value === 'Cumulative Line'
-                                    ? 'cumulative_line'
-                                    : value.toLowerCase(),
-                                  chartObj
-                                ),
-                              })
-                            )
-                          }}
-                        />
-                      )
-                      const label = `${capitalize(variant)}`
-                      return renderLabelledSelector(selector, label)
-                    })(['left', 'right'])}
-                  </>
-                </ChartDropdownWrapper>
-              </Box>
-            </>
-          )}
-
           <Typography variant="overline" sx={styles.header}>
-            GROUP BY
+            CHART TYPES
           </Typography>
           <Box sx={styles.row}>
             <ChartDropdownWrapper sx={styles.field}>
-              <SelectAccordionList
-                disabled={chartObj.dataset == null}
-                {...{ itemGroups }}
-                values={R.pipe(
-                  R.props(['groupingId', 'groupingLevel']),
-                  R.map(R.defaultTo('')),
-                  R.apply(R.zip)
-                )(chartObj)}
-                maxGrouping={chartMaxGrouping[chartObj.chartType]}
-                getLabel={getLabelFn(categories)}
-                getSubLabel={getSubLabelFn(categories)}
-                onAddGroup={handleAddGroup}
-                onChangeGroupIndex={handleChangeGroupIndexFn}
-                onDeleteGroup={handleDeleteGroupFn}
-                onSelectGroup={handleSelectGroupFn}
-              />
+              <>
+                {R.map((variant) => {
+                  const selector = (
+                    <Select
+                      disabled={!showFull(chartObj)}
+                      getLabel={(item) =>
+                        item === 'cumulative_line'
+                          ? 'Cumulative Line'
+                          : capitalize(item)
+                      }
+                      value={R.propOr('line', `${variant}Variant`, chartObj)}
+                      optionsList={['bar', 'line', 'cumulative_line']}
+                      onSelect={(value) => {
+                        dispatch(
+                          mutateLocal({
+                            path,
+                            sync: !includesPath(R.values(sync), path),
+                            value: R.assoc(
+                              `${variant}Variant`,
+                              value === 'Cumulative Line'
+                                ? 'cumulative_line'
+                                : value.toLowerCase(),
+                              chartObj
+                            ),
+                          })
+                        )
+                      }}
+                    />
+                  )
+                  const label = `${capitalize(variant)}`
+                  return renderLabelledSelector(selector, label)
+                })(['left', 'right'])}
+              </>
             </ChartDropdownWrapper>
           </Box>
-
-          {chartObj.chartType === chartVariant.DISTRIBUTION && (
-            <>
-              <Typography variant="overline" sx={styles.header}>
-                DISTRIBUTION
-              </Typography>
-              <Box sx={styles.row}>
-                <ChartDropdownWrapper sx={styles.field}>
-                  <>
-                    {R.map(({ selector, label }) =>
-                      renderLabelledSelector(selector, label)
-                    )([
-                      {
-                        selector: distributionTypeSelector,
-                        label: 'Type',
-                      },
-                      {
-                        selector: distributionYAxisSelector,
-                        label: 'Y Axis',
-                      },
-                      {
-                        selector: distributionVariantSelector,
-                        label: 'Variant',
-                      },
-                    ])}
-                  </>
-                </ChartDropdownWrapper>
-              </Box>
-            </>
-          )}
         </>
       )}
+
+      <Typography variant="overline" sx={styles.header}>
+        Group By
+      </Typography>
+      <Box sx={styles.row}>
+        <ChartDropdownWrapper sx={styles.field}>
+          <SelectAccordionList
+            disabled={!showFull(chartObj) || chartObj.dataset == null}
+            {...{ itemGroups }}
+            values={R.pipe(
+              R.props(['groupingId', 'groupingLevel']),
+              R.map(R.defaultTo('')),
+              R.apply(R.zip)
+            )(chartObj)}
+            maxGrouping={chartMaxGrouping[chartObj.chartType]}
+            getLabel={getLabelFn(categories)}
+            getSubLabel={getSubLabelFn(categories)}
+            onAddGroup={handleAddGroup}
+            onChangeGroupIndex={handleChangeGroupIndexFn}
+            onDeleteGroup={handleDeleteGroupFn}
+            onSelectGroup={handleSelectGroupFn}
+          />
+        </ChartDropdownWrapper>
+      </Box>
+
+      {showFull(chartObj) &&
+        chartObj.chartType === chartVariant.DISTRIBUTION && (
+          <>
+            <Typography variant="overline" sx={styles.header}>
+              DISTRIBUTION
+            </Typography>
+            <Box sx={styles.row}>
+              <ChartDropdownWrapper sx={styles.field}>
+                <>
+                  {R.map(({ selector, label }) =>
+                    renderLabelledSelector(selector, label)
+                  )([
+                    {
+                      selector: distributionTypeSelector,
+                      label: 'Type',
+                    },
+                    {
+                      selector: distributionYAxisSelector,
+                      label: 'Y Axis',
+                    },
+                    {
+                      selector: distributionVariantSelector,
+                      label: 'Variant',
+                    },
+                  ])}
+                </>
+              </ChartDropdownWrapper>
+            </Box>
+          </>
+        )}
       <Typography variant="overline" />
     </Box>
   )
