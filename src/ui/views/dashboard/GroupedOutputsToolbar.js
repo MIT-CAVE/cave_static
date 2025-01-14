@@ -474,25 +474,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     />
   )
 
-  const distributionVariantSelector = (
-    <Select
-      value={distributionVariant}
-      optionsList={[
-        {
-          label: 'Bar',
-          value: distributionVariants.BAR,
-          iconName: 'md/MdBarChart',
-        },
-        {
-          label: 'Line',
-          value: distributionVariants.LINE,
-          iconName: 'md/MdShowChart',
-        },
-      ]}
-      onSelect={handleSelectDistributionVariant}
-    />
-  )
-
   const showFull = (obj) => {
     const selectedStats = R.propOr([], 'stats', obj)
     if (
@@ -757,38 +738,64 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     R.propOr([], 'stats', chartObj)
   )
 
-  const MixedChartTypeSelector =
-    chartObj.chartType === chartVariant.MIXED &&
-    R.map(
-      (variant) => (
-        <Select
-          key={variant}
-          fullWidth
-          disabled={!showFull(chartObj)}
-          getLabel={(item) =>
-            item === 'cumulative_line' ? 'Cumulative Line' : capitalize(item)
-          }
-          value={R.propOr('line', `${variant}Variant`, chartObj)}
-          optionsList={['bar', 'line', 'cumulative_line']}
-          onSelect={(value) => {
-            dispatch(
-              mutateLocal({
-                path,
-                sync: !includesPath(R.values(sync), path),
-                value: R.assoc(
-                  `${variant}Variant`,
-                  value === 'Cumulative Line'
-                    ? 'cumulative_line'
-                    : value.toLowerCase(),
-                  chartObj
-                ),
-              })
-            )
-          }}
-        />
-      ),
-      ['left', 'right']
-    )
+  const DistributionVariantSelector = [
+    <Select
+      fullWidth
+      disabled={!showFull(chartObj)}
+      value={distributionVariant}
+      optionsList={[
+        {
+          label: 'Bar',
+          value: distributionVariants.BAR,
+          iconName: 'md/MdBarChart',
+        },
+        {
+          label: 'Line',
+          value: distributionVariants.LINE,
+          iconName: 'md/MdShowChart',
+        },
+      ]}
+      onSelect={handleSelectDistributionVariant}
+    />,
+  ]
+
+  const MixedVariantSelector = R.map(
+    (variant) => (
+      <Select
+        key={variant}
+        fullWidth
+        disabled={!showFull(chartObj)}
+        getLabel={(item) =>
+          item === 'cumulative_line' ? 'Cumulative Line' : capitalize(item)
+        }
+        value={R.propOr('line', `${variant}Variant`, chartObj)}
+        optionsList={['bar', 'line', 'cumulative_line']}
+        onSelect={(value) => {
+          dispatch(
+            mutateLocal({
+              path,
+              sync: !includesPath(R.values(sync), path),
+              value: R.assoc(
+                `${variant}Variant`,
+                value === 'Cumulative Line'
+                  ? 'cumulative_line'
+                  : value.toLowerCase(),
+                chartObj
+              ),
+            })
+          )
+        }}
+      />
+    ),
+    ['left', 'right']
+  )
+
+  const VariantSelector =
+    chartObj.chartType === chartVariant.DISTRIBUTION
+      ? DistributionVariantSelector
+      : chartObj.chartType === chartVariant.MIXED
+        ? MixedVariantSelector
+        : null
 
   return (
     <Box sx={styles.content}>
@@ -816,10 +823,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             container
             spacing={1}
             sx={{ width: '100%' }}
-            columns={MixedChartTypeSelector ? 4 : 3}
+            columns={VariantSelector ? 4 : 3}
           >
             <HeaderGrid text="Statistic" />
-            {MixedChartTypeSelector && <HeaderGrid text="Chart Type" />}
+            {VariantSelector && <HeaderGrid text="Chart Type" />}
             <HeaderGrid text="Aggregation" />
             <HeaderGrid text="Aggregate By" />
             {mapIndexed((statSelector, index) => {
@@ -828,9 +835,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                   <Grid item xs={4} size={1}>
                     {statSelector}
                   </Grid>
-                  {MixedChartTypeSelector && (
+                  {VariantSelector && (
                     <Grid item xs={4} size={1}>
-                      {R.prop(index, MixedChartTypeSelector)}
+                      {R.prop(index, VariantSelector)}
                     </Grid>
                   )}
                   <Grid item xs={4} size={1}>
@@ -866,10 +873,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                       {
                         selector: distributionYAxisSelector,
                         label: 'Y Axis',
-                      },
-                      {
-                        selector: distributionVariantSelector,
-                        label: 'Variant',
                       },
                     ]
                   )}
