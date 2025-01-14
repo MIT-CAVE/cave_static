@@ -818,10 +818,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             sx={{ width: '100%' }}
             columns={MixedChartTypeSelector ? 4 : 3}
           >
-            <HeaderGrid text="STATISTIC" />
-            {MixedChartTypeSelector && <HeaderGrid text="CHART TYPE" />}
-            <HeaderGrid text="AGGREGATION" />
-            <HeaderGrid text="AGGREGATE BY" />
+            <HeaderGrid text="Statistic" />
+            {MixedChartTypeSelector && <HeaderGrid text="Chart Type" />}
+            <HeaderGrid text="Aggregation" />
+            <HeaderGrid text="Aggregate By" />
             {mapIndexed((statSelector, index) => {
               return (
                 <Fragment key={index}>
@@ -846,30 +846,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         </>
       </ChartDropdownWrapper>
 
-      <Typography variant="overline" sx={styles.header}>
-        Group By
-      </Typography>
-      <Box sx={styles.row}>
-        <ChartDropdownWrapper sx={styles.field}>
-          <SelectAccordionList
-            disabled={!showFull(chartObj) || chartObj.dataset == null}
-            {...{ itemGroups }}
-            values={R.pipe(
-              R.props(['groupingId', 'groupingLevel']),
-              R.map(R.defaultTo('')),
-              R.apply(R.zip)
-            )(chartObj)}
-            maxGrouping={chartMaxGrouping[chartObj.chartType]}
-            getLabel={getLabelFn(categories)}
-            getSubLabel={getSubLabelFn(categories)}
-            onAddGroup={handleAddGroup}
-            onChangeGroupIndex={handleChangeGroupIndexFn}
-            onDeleteGroup={handleDeleteGroupFn}
-            onSelectGroup={handleSelectGroupFn}
-          />
-        </ChartDropdownWrapper>
-      </Box>
-
       {showFull(chartObj) &&
         chartObj.chartType === chartVariant.DISTRIBUTION && (
           <>
@@ -879,28 +855,57 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             <Box sx={styles.row}>
               <ChartDropdownWrapper sx={styles.field}>
                 <>
-                  {R.map(({ selector, label }) =>
-                    renderLabelledSelector(selector, label)
-                  )([
-                    {
-                      selector: distributionTypeSelector,
-                      label: 'Type',
-                    },
-                    {
-                      selector: distributionYAxisSelector,
-                      label: 'Y Axis',
-                    },
-                    {
-                      selector: distributionVariantSelector,
-                      label: 'Variant',
-                    },
-                  ])}
+                  {R.map(
+                    ({ selector, label }) =>
+                      renderLabelledSelector(selector, label),
+                    [
+                      {
+                        selector: distributionTypeSelector,
+                        label: 'Type',
+                      },
+                      {
+                        selector: distributionYAxisSelector,
+                        label: 'Y Axis',
+                      },
+                      {
+                        selector: distributionVariantSelector,
+                        label: 'Variant',
+                      },
+                    ]
+                  )}
                 </>
               </ChartDropdownWrapper>
             </Box>
           </>
         )}
-      <Typography variant="overline" />
+
+      <Box sx={styles.row}>
+        <ChartDropdownWrapper sx={styles.field}>
+          <FormControl fullWidth>
+            <InputLabel id="group-by-label" shrink>
+              Group By
+            </InputLabel>
+            <SelectAccordionList
+              labelId="group-by-label"
+              label="Group By"
+              disabled={!showFull(chartObj) || chartObj.dataset == null}
+              {...{ itemGroups }}
+              values={R.pipe(
+                R.props(['groupingId', 'groupingLevel']),
+                R.map(R.defaultTo('')),
+                R.apply(R.zip)
+              )(chartObj)}
+              maxGrouping={chartMaxGrouping[chartObj.chartType]}
+              getLabel={getLabelFn(categories)}
+              getSubLabel={getSubLabelFn(categories)}
+              onAddGroup={handleAddGroup}
+              onChangeGroupIndex={handleChangeGroupIndexFn}
+              onDeleteGroup={handleDeleteGroupFn}
+              onSelectGroup={handleSelectGroupFn}
+            />
+          </FormControl>
+        </ChartDropdownWrapper>
+      </Box>
     </Box>
   )
 }
