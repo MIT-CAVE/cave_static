@@ -172,6 +172,28 @@ const CHART_OPTIONS = [
   },
 ]
 
+const HeaderGrid = ({ text }) => (
+  <Grid item size={1}>
+    <Box
+      sx={{
+        p: 1,
+        bgcolor: 'action.hover',
+        borderRadius: 1,
+      }}
+    >
+      <Typography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          color: 'text.primary',
+        }}
+      >
+        {text}
+      </Typography>
+    </Box>
+  </Grid>
+)
+
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
@@ -735,6 +757,39 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     R.propOr([], 'stats', chartObj)
   )
 
+  const MixedChartTypeSelector =
+    chartObj.chartType === chartVariant.MIXED &&
+    R.map(
+      (variant) => (
+        <Select
+          key={variant}
+          fullWidth
+          disabled={!showFull(chartObj)}
+          getLabel={(item) =>
+            item === 'cumulative_line' ? 'Cumulative Line' : capitalize(item)
+          }
+          value={R.propOr('line', `${variant}Variant`, chartObj)}
+          optionsList={['bar', 'line', 'cumulative_line']}
+          onSelect={(value) => {
+            dispatch(
+              mutateLocal({
+                path,
+                sync: !includesPath(R.values(sync), path),
+                value: R.assoc(
+                  `${variant}Variant`,
+                  value === 'Cumulative Line'
+                    ? 'cumulative_line'
+                    : value.toLowerCase(),
+                  chartObj
+                ),
+              })
+            )
+          }}
+        />
+      ),
+      ['left', 'right']
+    )
+
   return (
     <Box sx={styles.content}>
       <ChartTypeSelector
@@ -757,70 +812,27 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         sx={[styles.field, { flexDirection: 'column', flexGrow: 0, gap: 1 }]}
       >
         <>
-          <Grid container spacing={1} spacsx={{ width: '100%' }} columns={3}>
-            <Grid item xs={4} size={1}>
-              <Box
-                sx={{
-                  p: 1,
-                  bgcolor: 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: 600,
-                    color: 'text.primary',
-                  }}
-                >
-                  STATISTIC
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={4} size={1}>
-              <Box
-                sx={{
-                  p: 1,
-                  bgcolor: 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: 600,
-                    color: 'text.primary',
-                  }}
-                >
-                  AGGREGATION
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={4} size={1}>
-              <Box
-                sx={{
-                  p: 1,
-                  bgcolor: 'action.hover',
-                  borderRadius: 1,
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: 600,
-                    color: 'text.primary',
-                  }}
-                >
-                  AGGREGATE BY
-                </Typography>
-              </Box>
-            </Grid>
+          <Grid
+            container
+            spacing={1}
+            sx={{ width: '100%' }}
+            columns={MixedChartTypeSelector ? 4 : 3}
+          >
+            <HeaderGrid text="STATISTIC" />
+            {MixedChartTypeSelector && <HeaderGrid text="CHART TYPE" />}
+            <HeaderGrid text="AGGREGATION" />
+            <HeaderGrid text="AGGREGATE BY" />
             {mapIndexed((statSelector, index) => {
               return (
                 <Fragment key={index}>
                   <Grid item xs={4} size={1}>
                     {statSelector}
                   </Grid>
+                  {MixedChartTypeSelector && (
+                    <Grid item xs={4} size={1}>
+                      {R.prop(index, MixedChartTypeSelector)}
+                    </Grid>
+                  )}
                   <Grid item xs={4} size={1}>
                     {R.prop(index, AggregationSelector)}
                   </Grid>
@@ -833,51 +845,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           </Grid>
         </>
       </ChartDropdownWrapper>
-
-      {chartObj.chartType === chartVariant.MIXED && (
-        <>
-          <Typography variant="overline" sx={styles.header}>
-            CHART TYPES
-          </Typography>
-          <Box sx={styles.row}>
-            <ChartDropdownWrapper sx={styles.field}>
-              <>
-                {R.map((variant) => {
-                  const selector = (
-                    <Select
-                      disabled={!showFull(chartObj)}
-                      getLabel={(item) =>
-                        item === 'cumulative_line'
-                          ? 'Cumulative Line'
-                          : capitalize(item)
-                      }
-                      value={R.propOr('line', `${variant}Variant`, chartObj)}
-                      optionsList={['bar', 'line', 'cumulative_line']}
-                      onSelect={(value) => {
-                        dispatch(
-                          mutateLocal({
-                            path,
-                            sync: !includesPath(R.values(sync), path),
-                            value: R.assoc(
-                              `${variant}Variant`,
-                              value === 'Cumulative Line'
-                                ? 'cumulative_line'
-                                : value.toLowerCase(),
-                              chartObj
-                            ),
-                          })
-                        )
-                      }}
-                    />
-                  )
-                  const label = `${capitalize(variant)}`
-                  return renderLabelledSelector(selector, label)
-                })(['left', 'right'])}
-              </>
-            </ChartDropdownWrapper>
-          </Box>
-        </>
-      )}
 
       <Typography variant="overline" sx={styles.header}>
         Group By
