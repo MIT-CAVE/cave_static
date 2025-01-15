@@ -33,7 +33,7 @@ const styles = {
   },
 }
 
-const DashboardGlobalOutput = ({ chartObj }) => {
+const DashboardGlobalOutput = ({ chartObj, path }) => {
   const dispatch = useDispatch()
   const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -41,6 +41,8 @@ const DashboardGlobalOutput = ({ chartObj }) => {
   const layout = useSelector(selectGlobalOutputsLayout)
   const items = useSelector(selectMergedGlobalOutputs)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
+
+  const xAxisOrder = R.propOr('default', 'xAxisOrder', chartObj)
 
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
@@ -137,7 +139,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
           data={formattedGlobalOutputs}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
-          {...{ numberFormat }}
+          {...{ numberFormat, path, xAxisOrder }}
           // The data structure of the globalOutput chart is the same
           // as that of a statistics chart with subgrouped data
           subGrouped
@@ -145,7 +147,7 @@ const DashboardGlobalOutput = ({ chartObj }) => {
       ) : chartObj.chartType === chartVariant.LINE ? (
         <LinePlot
           data={formattedGlobalOutputs}
-          {...{ numberFormat }}
+          {...{ numberFormat, path, xAxisOrder }}
           xAxisTitle="Sessions"
           yAxisTitle={R.join(', ')(globalOutputUnits)}
         />

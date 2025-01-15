@@ -1,57 +1,24 @@
 import {
   LineChart,
   BarChart,
-  // PieChart,
   ScatterChart,
-  // RadarChart,
-  // MapChart,
-  // TreeChart,
   TreemapChart,
   GraphChart,
   GaugeChart,
-  // FunnelChart,
-  // ParallelChart,
-  // SankeyChart,
   BoxplotChart,
-  // CandlestickChart,
-  // EffectScatterChart,
-  // LinesChart,
   HeatmapChart,
-  // PictorialBarChart,
-  // ThemeRiverChart,
   SunburstChart,
   CustomChart,
 } from 'echarts/charts'
 import {
-  // GridSimpleComponent,
   GridComponent,
-  // PolarComponent,
-  // RadarComponent,
-  // GeoComponent,
-  // SingleAxisComponent,
-  // ParallelComponent,
-  // CalendarComponent,
-  // GraphicComponent,
-  // ToolboxComponent,
   TooltipComponent,
-  // AxisPointerComponent,
-  // BrushComponent,
   TitleComponent,
-  // TimelineComponent,
-  // MarkPointComponent,
-  // MarkLineComponent,
-  // MarkAreaComponent,
+  TransformComponent,
   LegendComponent,
-  // LegendScrollComponent,
-  // LegendPlainComponent,
-  // DataZoomComponent,
-  // DataZoomInsideComponent,
-  // DataZoomSliderComponent,
-  // VisualMapComponent,
   VisualMapContinuousComponent,
   VisualMapPiecewiseComponent,
   AriaComponent,
-  TransformComponent,
   DatasetComponent,
 } from 'echarts/components'
 import * as echarts from 'echarts/core'
@@ -59,6 +26,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
 
+import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
 
 import {
@@ -175,20 +143,41 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({ options, chartHoverOrder, ...props }) => {
+const FlexibleChart = ({
+  options,
+  chartHoverOrder,
+  path,
+  xAxisOrder,
+  syncAxes,
+  onSyncAxesChange,
+  numBuckets,
+  onNumBucketsChange,
+  ...restProps
+}) => {
   return (
-    <FlexibleContainer>
-      <ReactEChartsCore
-        echarts={echarts}
-        option={R.mergeDeepRight(
-          R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-        )(options)}
-        notMerge
-        theme="dark"
-        // lazyUpdate
-        {...props}
+    <>
+      <FlexibleContainer>
+        <ReactEChartsCore
+          echarts={echarts}
+          option={R.mergeDeepRight(
+            R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
+          )(options)}
+          notMerge
+          theme="dark"
+          {...restProps}
+        />
+      </FlexibleContainer>
+      <ChartControls
+        {...{
+          path,
+          xAxisOrder,
+          syncAxes,
+          onSyncAxesChange,
+          numBuckets,
+          onNumBucketsChange,
+        }}
       />
-    </FlexibleContainer>
+    </>
   )
 }
 
@@ -204,6 +193,10 @@ const EchartsPlot = ({
   distribution = false,
   showNA,
   chartHoverOrder,
+  path,
+  xAxisOrder,
+  numBuckets,
+  onNumBucketsChange,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -388,7 +381,18 @@ const EchartsPlot = ({
     ...lineMap,
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder }} />
+  return (
+    <FlexibleChart
+      {...{
+        options,
+        chartHoverOrder,
+        path,
+        xAxisOrder,
+        numBuckets,
+        onNumBucketsChange,
+      }}
+    />
+  )
 }
 
 export default EchartsPlot

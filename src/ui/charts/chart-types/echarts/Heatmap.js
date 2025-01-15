@@ -10,6 +10,8 @@ const Heatmap = ({
   yAxisTitle,
   numberFormat,
   chartHoverOrder,
+  path,
+  xAxisOrder,
 }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -88,7 +90,7 @@ const Heatmap = ({
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder }} />
+  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
 }
 
 export { Heatmap }

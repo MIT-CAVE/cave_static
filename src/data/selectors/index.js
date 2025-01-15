@@ -1657,9 +1657,23 @@ export const selectMemoizedChartFunc = createSelector(
             R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
             R.values
           )
-          return obj.stats.length > 1
-            ? mergeMultiStatData(formattedData)
-            : R.head(formattedData)
+          const result =
+            obj.stats.length > 1
+              ? mergeMultiStatData(formattedData)
+              : R.head(formattedData)
+          const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
+          const getValue = (item) =>
+            R.has('children', item)
+              ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
+              : R.path(['value', 0], item)
+          const sortFn = {
+            value_ascending: (a, b) => getValue(a) - getValue(b),
+            value_descending: (a, b) => getValue(b) - getValue(a),
+            alpha_ascending: (a, b) => a.name.localeCompare(b.name),
+            alpha_descending: (a, b) => b.name.localeCompare(a.name),
+          }[xAxisOrder]
+          const sortedResult = sortFn ? R.sort(sortFn, result) : result
+          return sortedResult
         })
       },
       MAX_MEMOIZED_CHARTS
