@@ -157,11 +157,104 @@ export const chartVariant = {
   OVERVIEW: 'overview',
 }
 
+export const chartOption = {
+  BAR: {
+    label: 'Bar',
+    value: chartVariant.BAR,
+    iconName: 'md/MdBarChart',
+  },
+  STACKED_BAR: {
+    label: 'Stacked Bar',
+    value: chartVariant.STACKED_BAR,
+    iconName: 'md/MdStackedBarChart',
+  },
+  LINE: {
+    label: 'Line',
+    value: chartVariant.LINE,
+    iconName: 'md/MdShowChart',
+  },
+  CUMULATIVE_LINE: {
+    label: 'Cumulative Line',
+    value: chartVariant.CUMULATIVE_LINE,
+    iconName: 'md/MdStackedLineChart',
+  },
+  AREA: {
+    label: 'Area',
+    value: chartVariant.AREA,
+    iconName: 'tb/TbChartAreaLineFilled',
+  },
+  STACKED_AREA: {
+    label: 'Stacked Area',
+    value: chartVariant.STACKED_AREA,
+    iconName: 'md/MdAreaChart',
+  },
+  WATERFALL: {
+    label: 'Waterfall',
+    value: chartVariant.WATERFALL,
+    iconName: 'md/MdWaterfallChart',
+  },
+  STACKED_WATERFALL: {
+    label: 'Stacked Waterfall',
+    value: chartVariant.STACKED_WATERFALL,
+    iconName: 'tb/TbStack2',
+  },
+  BOX_PLOT: {
+    label: 'Box Plot',
+    value: chartVariant.BOX_PLOT,
+    iconName: 'md/MdGraphicEq',
+  },
+  TABLE: {
+    label: 'Table',
+    value: chartVariant.TABLE,
+    iconName: 'md/MdTableChart',
+  },
+  SUNBURST: {
+    label: 'Sunburst',
+    value: chartVariant.SUNBURST,
+    iconName: 'md/MdDonutLarge',
+  },
+  TREEMAP: {
+    label: 'Treemap',
+    value: chartVariant.TREEMAP,
+    iconName: 'tb/TbChartTreemap',
+  },
+  GAUGE: {
+    label: 'Gauge',
+    value: chartVariant.GAUGE,
+    iconName: 'tb/TbGauge',
+  },
+  HEATMAP: {
+    label: 'Heatmap',
+    value: chartVariant.HEATMAP,
+    iconName: 'tb/TbLayoutDashboard',
+  },
+  SCATTER: {
+    label: 'Scatter',
+    value: chartVariant.SCATTER,
+    iconName: 'md/MdScatterPlot',
+  },
+  DISTRIBUTION: {
+    label: 'Distribution',
+    value: chartVariant.DISTRIBUTION,
+    iconName: 'md/MdBarChart',
+  },
+  MIXED: {
+    label: 'Mixed',
+    value: chartVariant.MIXED,
+    iconName: 'tb/TbChartHistogram',
+  },
+  OVERVIEW: {
+    label: 'Overview',
+    value: chartVariant.OVERVIEW,
+    iconName: 'md/MdViewQuilt',
+  },
+}
+
 export const chartAggrFunc = {
   SUM: 'sum',
+  MEAN: 'mean',
   MIN: 'min',
   MAX: 'max',
-  MEAN: 'mean',
   DIVISOR: 'divisor',
 }
 

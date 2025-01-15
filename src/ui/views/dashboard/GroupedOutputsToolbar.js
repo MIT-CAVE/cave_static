@@ -27,6 +27,7 @@ import {
 } from '../../../data/selectors'
 import {
   chartAggrFunc,
+  chartOption,
   chartMaxGrouping,
   chartStatUses,
   chartVariant,
@@ -86,93 +87,25 @@ const styles = {
   },
 }
 
-const CHART_OPTIONS = {
-  Bar: {
-    label: 'Bar',
-    value: chartVariant.BAR,
-    iconName: 'md/MdBarChart',
-  },
-  StackedBar: {
-    label: 'Stacked Bar',
-    value: chartVariant.STACKED_BAR,
-    iconName: 'md/MdStackedBarChart',
-  },
-  Line: {
-    label: 'Line',
-    value: chartVariant.LINE,
-    iconName: 'md/MdShowChart',
-  },
-  CumulativeLine: {
-    label: 'Cumulative Line',
-    value: chartVariant.CUMULATIVE_LINE,
-    iconName: 'md/MdStackedLineChart',
-  },
-  Area: {
-    label: 'Area',
-    value: chartVariant.AREA,
-    iconName: 'tb/TbChartAreaLineFilled',
-  },
-  StackedArea: {
-    label: 'Stacked Area',
-    value: chartVariant.STACKED_AREA,
-    iconName: 'md/MdAreaChart',
-  },
-  Waterfall: {
-    label: 'Waterfall',
-    value: chartVariant.WATERFALL,
-    iconName: 'md/MdWaterfallChart',
-  },
-  StackedWaterfall: {
-    label: 'Stacked Waterfall',
-    value: chartVariant.STACKED_WATERFALL,
-    iconName: 'tb/TbStack2',
-  },
-  BoxPlot: {
-    label: 'Box Plot',
-    value: chartVariant.BOX_PLOT,
-    iconName: 'md/MdGraphicEq',
-  },
-  Table: {
-    label: 'Table',
-    value: chartVariant.TABLE,
-    iconName: 'md/MdTableChart',
-  },
-  Sunburst: {
-    label: 'Sunburst',
-    value: chartVariant.SUNBURST,
-    iconName: 'md/MdDonutLarge',
-  },
-  Treemap: {
-    label: 'Treemap',
-    value: chartVariant.TREEMAP,
-    iconName: 'tb/TbChartTreemap',
-  },
-  Gauge: {
-    label: 'Gauge',
-    value: chartVariant.GAUGE,
-    iconName: 'tb/TbGauge',
-  },
-  Heatmap: {
-    label: 'Heatmap',
-    value: chartVariant.HEATMAP,
-    iconName: 'tb/TbLayoutDashboard',
-  },
-  Scatter: {
-    label: 'Scatter',
-    value: chartVariant.SCATTER,
-    iconName: 'md/MdScatterPlot',
-  },
-  Distribution: {
-    label: 'Distribution',
-    value: chartVariant.DISTRIBUTION,
-    iconName: 'md/MdBarChart',
-  },
-  Mixed: {
-    label: 'Mixed',
-    value: chartVariant.MIXED,
-    iconName: 'tb/TbChartHistogram',
-  },
-}
+const CHART_OPTIONS = [
+  chartOption.BAR,
+  chartOption.STACKED_BAR,
+  chartOption.LINE,
+  chartOption.CUMULATIVE_LINE,
+  chartOption.AREA,
+  chartOption.STACKED_AREA,
+  chartOption.WATERFALL,
+  chartOption.STACKED_WATERFALL,
+  chartOption.BOX_PLOT,
+  chartOption.TABLE,
+  chartOption.SUNBURST,
+  chartOption.TREEMAP,
+  chartOption.GAUGE,
+  chartOption.HEATMAP,
+  chartOption.SCATTER,
+  chartOption.DISTRIBUTION,
+  chartOption.MIXED,
+]
 
 const HeaderGrid = ({ text }) => (
   <Grid item size={1}>
@@ -649,13 +582,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         sx={styles.item}
         getLabel={(item) => capitalize(item)}
         value={R.pathOr('', ['stats', index, 'aggregationType'], chartObj)}
-        optionsList={[
-          chartAggrFunc.SUM,
-          chartAggrFunc.MEAN,
-          chartAggrFunc.MIN,
-          chartAggrFunc.MAX,
-          chartAggrFunc.DIVISOR,
-        ]}
+        optionsList={R.values(chartAggrFunc)}
         onSelect={(value) => {
           dispatch(
             mutateLocal({
@@ -755,32 +682,33 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   )
 
   const DistributionVariantSelector = [
-    <Select
-      fullWidth
-      sx={styles.item}
-      disabled={!showFull(chartObj)}
-      value={distributionVariant}
-      optionsList={[CHART_OPTIONS.Bar, CHART_OPTIONS.Line]}
-      onSelect={handleSelectDistributionVariant}
-    />,
+    showFull(chartObj) && (
+      <Select
+        fullWidth
+        sx={styles.item}
+        value={distributionVariant}
+        optionsList={[chartOption.BAR, chartOption.LINE]}
+        onSelect={handleSelectDistributionVariant}
+      />
+    ),
   ]
 
   const MixedVariantSelector = R.map(
-    (variant) => (
-      <Select
-        key={variant}
-        fullWidth
-        sx={styles.item}
-        disabled={!showFull(chartObj)}
-        value={R.propOr('line', `${variant}Variant`, chartObj)}
-        optionsList={[
-          CHART_OPTIONS.Bar,
-          CHART_OPTIONS.Line,
-          CHART_OPTIONS.CumulativeLine,
-        ]}
-        onSelect={handleSelectMixedVariant(variant)}
-      />
-    ),
+    (variant) =>
+      showFull(chartObj) && (
+        <Select
+          key={variant}
+          fullWidth
+          sx={styles.item}
+          value={R.propOr('line', `${variant}Variant`, chartObj)}
+          optionsList={[
+            chartOption.BAR,
+            chartOption.LINE,
+            chartOption.CUMULATIVE_LINE,
+          ]}
+          onSelect={handleSelectMixedVariant(variant)}
+        />
+      ),
     ['left', 'right']
   )
 
@@ -796,7 +724,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       <ChartTypeSelector
         value={chartObj.chartType}
         onChange={handleSelectChart}
-        chartOptions={R.values(CHART_OPTIONS)}
+        chartOptions={CHART_OPTIONS}
       />
 
       <Divider />

@@ -22,7 +22,7 @@ import {
   selectCurrentPage,
   selectMergedGlobalOutputs,
 } from '../../../data/selectors'
-import { chartVariant } from '../../../utils/enums'
+import { chartOption, chartVariant } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
@@ -57,26 +57,10 @@ const styles = {
 }
 
 const CHART_OPTIONS = [
-  {
-    label: 'Bar',
-    value: chartVariant.BAR,
-    iconName: 'md/MdBarChart',
-  },
-  {
-    label: 'Line',
-    value: chartVariant.LINE,
-    iconName: 'md/MdShowChart',
-  },
-  {
-    label: 'Table',
-    value: chartVariant.TABLE,
-    iconName: 'md/MdTableChart',
-  },
-  {
-    label: 'Overview',
-    value: chartVariant.OVERVIEW,
-    iconName: 'md/MdViewQuilt',
-  },
+  chartOption.BAR,
+  chartOption.LINE,
+  chartOption.TABLE,
+  chartOption.OVERVIEW,
 ]
 
 const GlobalOutputsToolbar = ({ chartObj, index }) => {
