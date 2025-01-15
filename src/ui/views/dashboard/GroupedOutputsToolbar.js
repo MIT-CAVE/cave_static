@@ -32,7 +32,6 @@ import {
   chartVariant,
   distributionTypes,
   distributionYAxes,
-  distributionVariants,
 } from '../../../utils/enums'
 
 import { Select, SelectAccordion, SelectAccordionList } from '../../compound'
@@ -82,95 +81,98 @@ const styles = {
   header: {
     marginLeft: 1,
   },
+  item: {
+    height: '55px',
+  },
 }
 
-const CHART_OPTIONS = [
-  {
+const CHART_OPTIONS = {
+  Bar: {
     label: 'Bar',
     value: chartVariant.BAR,
     iconName: 'md/MdBarChart',
   },
-  {
+  StackedBar: {
     label: 'Stacked Bar',
     value: chartVariant.STACKED_BAR,
     iconName: 'md/MdStackedBarChart',
   },
-  {
+  Line: {
     label: 'Line',
     value: chartVariant.LINE,
     iconName: 'md/MdShowChart',
   },
-  {
+  CumulativeLine: {
     label: 'Cumulative Line',
     value: chartVariant.CUMULATIVE_LINE,
     iconName: 'md/MdStackedLineChart',
   },
-  {
+  Area: {
     label: 'Area',
     value: chartVariant.AREA,
     iconName: 'tb/TbChartAreaLineFilled',
   },
-  {
+  StackedArea: {
     label: 'Stacked Area',
     value: chartVariant.STACKED_AREA,
     iconName: 'md/MdAreaChart',
   },
-  {
+  Waterfall: {
     label: 'Waterfall',
     value: chartVariant.WATERFALL,
     iconName: 'md/MdWaterfallChart',
   },
-  {
+  StackedWaterfall: {
     label: 'Stacked Waterfall',
     value: chartVariant.STACKED_WATERFALL,
     iconName: 'tb/TbStack2',
   },
-  {
+  BoxPlot: {
     label: 'Box Plot',
     value: chartVariant.BOX_PLOT,
     iconName: 'md/MdGraphicEq',
   },
-  {
+  Table: {
     label: 'Table',
     value: chartVariant.TABLE,
     iconName: 'md/MdTableChart',
   },
-  {
+  Sunburst: {
     label: 'Sunburst',
     value: chartVariant.SUNBURST,
     iconName: 'md/MdDonutLarge',
   },
-  {
+  Treemap: {
     label: 'Treemap',
     value: chartVariant.TREEMAP,
     iconName: 'tb/TbChartTreemap',
   },
-  {
+  Gauge: {
     label: 'Gauge',
     value: chartVariant.GAUGE,
     iconName: 'tb/TbGauge',
   },
-  {
+  Heatmap: {
     label: 'Heatmap',
     value: chartVariant.HEATMAP,
     iconName: 'tb/TbLayoutDashboard',
   },
-  {
+  Scatter: {
     label: 'Scatter',
     value: chartVariant.SCATTER,
     iconName: 'md/MdScatterPlot',
   },
-  {
+  Distribution: {
     label: 'Distribution',
     value: chartVariant.DISTRIBUTION,
     iconName: 'md/MdBarChart',
   },
-  {
+  Mixed: {
     label: 'Mixed',
     value: chartVariant.MIXED,
     iconName: 'tb/TbChartHistogram',
   },
-]
+}
 
 const HeaderGrid = ({ text }) => (
   <Grid item size={1}>
@@ -374,6 +376,16 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
+  const handleSelectMixedVariant = (variant) => (value) => {
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc(`${variant}Variant`, value, chartObj),
+      })
+    )
+  }
+
   const handleChangeDataset = (value) => {
     dispatch(
       mutateLocal({
@@ -416,6 +428,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const singleStatisticSelector = (
     <Select
       fullWidth
+      sx={styles.item}
       disabled={chartObj.dataset == null}
       id="stat"
       value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
@@ -491,7 +504,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         ? mapIndexed((_, index) => {
             const label = chartStatUses[chartObj.chartType][index]
             return (
-              <FormControl key={index} fullWidth>
+              <FormControl key={index} fullWidth sx={styles.item}>
                 <InputLabel id={`stat-${label}-label`}>{label}</InputLabel>
                 <Select
                   labelId={`stat-${label}-label`}
@@ -633,6 +646,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       <Select
         key={index}
         fullWidth
+        sx={styles.item}
         getLabel={(item) => capitalize(item)}
         value={R.pathOr('', ['stats', index, 'aggregationType'], chartObj)}
         optionsList={[
@@ -682,6 +696,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         <Select
           key={index}
           fullWidth
+          sx={styles.item}
           disabled={chartObj.dataset == null}
           id={`divide-${statName}`}
           value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
@@ -706,6 +721,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         <SelectAccordion
           key={index}
           fullWidth
+          sx={styles.item}
           itemGroups={itemGroups}
           values={[
             R.pathOr('', ['stats', index, 'aggregationGroupingId'], chartObj),
@@ -741,20 +757,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const DistributionVariantSelector = [
     <Select
       fullWidth
+      sx={styles.item}
       disabled={!showFull(chartObj)}
       value={distributionVariant}
-      optionsList={[
-        {
-          label: 'Bar',
-          value: distributionVariants.BAR,
-          iconName: 'md/MdBarChart',
-        },
-        {
-          label: 'Line',
-          value: distributionVariants.LINE,
-          iconName: 'md/MdShowChart',
-        },
-      ]}
+      optionsList={[CHART_OPTIONS.Bar, CHART_OPTIONS.Line]}
       onSelect={handleSelectDistributionVariant}
     />,
   ]
@@ -764,27 +770,15 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       <Select
         key={variant}
         fullWidth
+        sx={styles.item}
         disabled={!showFull(chartObj)}
-        getLabel={(item) =>
-          item === 'cumulative_line' ? 'Cumulative Line' : capitalize(item)
-        }
         value={R.propOr('line', `${variant}Variant`, chartObj)}
-        optionsList={['bar', 'line', 'cumulative_line']}
-        onSelect={(value) => {
-          dispatch(
-            mutateLocal({
-              path,
-              sync: !includesPath(R.values(sync), path),
-              value: R.assoc(
-                `${variant}Variant`,
-                value === 'Cumulative Line'
-                  ? 'cumulative_line'
-                  : value.toLowerCase(),
-                chartObj
-              ),
-            })
-          )
-        }}
+        optionsList={[
+          CHART_OPTIONS.Bar,
+          CHART_OPTIONS.Line,
+          CHART_OPTIONS.CumulativeLine,
+        ]}
+        onSelect={handleSelectMixedVariant(variant)}
       />
     ),
     ['left', 'right']
@@ -802,7 +796,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       <ChartTypeSelector
         value={chartObj.chartType}
         onChange={handleSelectChart}
-        chartOptions={CHART_OPTIONS}
+        chartOptions={R.values(CHART_OPTIONS)}
       />
 
       <Divider />
@@ -818,39 +812,37 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       <ChartDropdownWrapper
         sx={[styles.field, { flexDirection: 'column', flexGrow: 0, gap: 1 }]}
       >
-        <>
-          <Grid
-            container
-            spacing={1}
-            sx={{ width: '100%' }}
-            columns={VariantSelector ? 4 : 3}
-          >
-            <HeaderGrid text="Statistic" />
-            {VariantSelector && <HeaderGrid text="Chart Type" />}
-            <HeaderGrid text="Aggregation" />
-            <HeaderGrid text="Aggregate By" />
-            {mapIndexed((statSelector, index) => {
-              return (
-                <Fragment key={index}>
-                  <Grid item xs={4} size={1}>
-                    {statSelector}
+        <Grid
+          container
+          spacing={1}
+          sx={{ width: '100%' }}
+          columns={VariantSelector ? 4 : 3}
+        >
+          <HeaderGrid text="Statistic" />
+          {VariantSelector && <HeaderGrid text="Chart Type" />}
+          <HeaderGrid text="Aggregation" />
+          <HeaderGrid text="Aggregate By" />
+          {mapIndexed((statSelector, index) => {
+            return (
+              <Fragment key={index}>
+                <Grid item size={1}>
+                  {statSelector}
+                </Grid>
+                {VariantSelector && (
+                  <Grid item size={1}>
+                    {R.prop(index, VariantSelector)}
                   </Grid>
-                  {VariantSelector && (
-                    <Grid item xs={4} size={1}>
-                      {R.prop(index, VariantSelector)}
-                    </Grid>
-                  )}
-                  <Grid item xs={4} size={1}>
-                    {R.prop(index, AggregationSelector)}
-                  </Grid>
-                  <Grid item xs={4} size={1}>
-                    {R.prop(index, AggregationBySelector)}
-                  </Grid>
-                </Fragment>
-              )
-            }, StatSelectors)}
-          </Grid>
-        </>
+                )}
+                <Grid item size={1}>
+                  {R.prop(index, AggregationSelector)}
+                </Grid>
+                <Grid item size={1}>
+                  {R.prop(index, AggregationBySelector)}
+                </Grid>
+              </Fragment>
+            )
+          }, StatSelectors)}
+        </Grid>
       </ChartDropdownWrapper>
 
       {showFull(chartObj) &&

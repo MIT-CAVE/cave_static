@@ -247,8 +247,3 @@ export const distributionYAxes = {
   COUNTS: 'counts',
   DENSITY: 'density',
 }
-
-export const distributionVariants = {
-  BAR: 'bar',
-  LINE: 'line',
-}
