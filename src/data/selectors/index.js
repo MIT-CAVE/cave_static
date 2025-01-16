@@ -367,27 +367,11 @@ export const selectSyncToggles = createSelector(selectSettings, (data) =>
 // Data -> groupedOutputs
 export const selectGroupedOutputNames = createSelector(
   selectGroupedOutputsData,
-  R.pipe(
-    R.map((obj) =>
-      R.pipe(
-        R.propOr({}, 'stats'),
-        R.keys,
-        R.reduce(
-          (acc, statKey) =>
-            R.assoc(
-              R.pathOr(statKey, ['stats', statKey, 'name'], obj),
-              statKey,
-              acc
-            ),
-          {}
-        )
-      )(obj)
-    )
-  )
+  R.map(R.pipe(R.propOr({}, 'stats'), R.keys))
 )
 export const selectGroupedOutputTypes = createSelector(
   selectGroupedOutputsData,
-  R.map((obj) => R.propOr({}, 'stats')(obj))
+  R.map(R.propOr({}, 'stats'))
 )
 // Data -> dashboard
 export const selectDashboardData = createSelector(selectPages, (data) =>

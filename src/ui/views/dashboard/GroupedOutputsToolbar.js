@@ -73,15 +73,6 @@ const styles = {
     flexGrow: 1,
     gap: 2,
   },
-  labelled: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  header: {
-    marginLeft: 1,
-  },
   item: {
     height: '55px',
   },
@@ -129,14 +120,24 @@ const HeaderGrid = ({ text }) => (
   </Grid>
 )
 
+const LabelledInput = ({ children, label, labelId }) => (
+  <FormControl fullWidth sx={styles.item}>
+    <InputLabel id={labelId}>{label}</InputLabel>
+    {children}
+  </FormControl>
+)
+
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
+  const dispatch = useDispatch()
+
   const categories = useSelector(selectStatGroupings)
   const statisticTypes = useSelector(selectAllowedStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
   const statNamesByDataset = useSelector(selectGroupedOutputNames)
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
+
+  const path = ['pages', 'data', currentPage, 'charts', index]
   const distributionType = R.propOr(
     distributionTypes.PDF,
     'distributionType',
@@ -148,7 +149,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     chartObj
   )
   const distributionVariant = R.propOr('bar', 'distributionVariant', chartObj)
-  const statNames = R.propOr({}, chartObj.dataset, statNamesByDataset)
+  const statNames = R.propOr([], chartObj.dataset, statNamesByDataset)
 
   const getGroupsById = (groupedOutputDataId) =>
     R.pipe(R.path([groupedOutputDataId, 'groupLists']), R.keys)(groupedOutputs)
@@ -165,8 +166,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     ? categories
     : R.pick(groupByOptions, categories)
 
-  const sortedLevelsByCategory =
-    R.mapObjIndexed(getCategoryItems)(groupableCategories)
+  const sortedLevelsByCategory = R.mapObjIndexed(
+    getCategoryItems,
+    groupableCategories
+  )
   const itemGroups = R.pipe(
     R.pick(R.keys(sortedLevelsByCategory)), // Drop any category not included in `levels`
     withIndex,
@@ -176,16 +179,15 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   )(categories)
 
   const removeExtraLevels = (obj) => {
+    if (!R.has(obj.chartType, chartMaxGrouping)) return obj
+
     const maxGrouping = chartMaxGrouping[obj.chartType]
-    if (maxGrouping == null) return obj
 
     return R.pipe(
       R.assoc('groupingId', R.slice(0, maxGrouping, obj.groupingId || [])),
       R.assoc('groupingLevel', R.slice(0, maxGrouping, obj.groupingLevel || []))
     )(obj)
   }
-
-  const path = ['pages', 'data', currentPage, 'charts', index]
 
   const handleAddGroup = () => {
     dispatch(
@@ -199,6 +201,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       })
     )
   }
+
   const handleDeleteGroupFn = (n = 0) => {
     dispatch(
       mutateLocal({
@@ -211,6 +214,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       })
     )
   }
+
   const handleChangeGroupIndexFn = (prevN, n) => {
     const [grouping, level] = getGroupValues(prevN)
     const [grouping2, level2] = getGroupValues(n)
@@ -227,6 +231,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       })
     )
   }
+
   const handleSelectGroupFn =
     (n = 0) =>
     (item, subItem) => {
@@ -241,6 +246,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         })
       )
     }
+
   const getGroupValues = (n = 0) =>
     R.pipe(
       R.props(['groupingId', 'groupingLevel']),
@@ -334,58 +340,22 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     )
   }
 
-  const renderLabelledSelector = (child, label, extraKey = '') => {
-    return (
-      <FormControl sx={styles.labelled} key={`${label}${extraKey}`}>
-        <InputLabel id={extraKey}>{label}</InputLabel>
-        {child}
-      </FormControl>
-    )
+  const showFull = (obj) => {
+    const selectedStats = R.propOr([], 'stats', obj)
+    if (
+      R.has(R.prop('chartType', obj), chartStatUses) &&
+      !R.isEmpty(chartStatUses[obj.chartType])
+    ) {
+      return R.length(selectedStats) >= 2
+    }
+    return !R.isEmpty(selectedStats)
   }
 
-  const datasetSelector = (
-    <FormControl fullWidth>
-      <InputLabel id="dataset-label">Dataset</InputLabel>
-      <Select
-        id="dataset"
-        labelId="dataset-label"
-        label="Dataset"
-        value={R.propOr(' ', 'dataset', chartObj)}
-        optionsList={R.keys(groupedOutputs)}
-        getLabel={getLabelFn(groupedOutputs)}
-        onSelect={handleChangeDataset}
-      />
-    </FormControl>
-  )
-
-  const singleStatisticSelector = (
-    <Select
-      fullWidth
-      sx={styles.item}
-      disabled={chartObj.dataset == null}
-      id="stat"
-      value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
-      optionsList={R.values(statNames)}
-      getLabel={(stat) =>
-        getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-      }
-      onSelect={(value) => {
-        dispatch(
-          mutateLocal({
-            path,
-            sync: !includesPath(R.values(sync), path),
-            value: R.assoc('stats', [
-              { statId: value, aggregationType: 'sum' },
-            ])(chartObj),
-          })
-        )
-      }}
-    />
-  )
-
-  const distributionTypeSelector = (
+  const DistributionTypeSelector = (
     <Select
       sx={{ height: '100%' }}
+      label="Type"
+      labelId="distribution-type-label"
       value={distributionType}
       optionsList={[
         {
@@ -401,8 +371,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     />
   )
 
-  const distributionYAxisSelector = (
+  const DistributionYAxisSelector = (
     <Select
+      sx={{ height: '100%' }}
+      label="Y Axis"
+      labelId="distribution-y-axis-label"
       value={distributionYAxis}
       optionsList={[
         {
@@ -420,158 +393,165 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     />
   )
 
-  const showFull = (obj) => {
-    const selectedStats = R.propOr([], 'stats', obj)
-    if (
-      R.has(R.prop('chartType', obj), chartStatUses) &&
-      !R.isEmpty(chartStatUses[obj.chartType])
-    ) {
-      return R.length(selectedStats) >= 2
-    }
-    return !R.isEmpty(selectedStats)
+  const DatasetSelector = (
+    <LabelledInput label="Dataset" labelId="dataset-label">
+      <Select
+        id="dataset"
+        labelId="dataset-label"
+        label="Dataset"
+        value={R.propOr(' ', 'dataset', chartObj)}
+        optionsList={R.keys(groupedOutputs)}
+        getLabel={getLabelFn(groupedOutputs)}
+        handleChangeDataset={handleChangeDataset}
+      />
+    </LabelledInput>
+  )
+
+  const isDatasetNotSelected = !R.has('dataset', chartObj)
+
+  const SingleStatisticSelector = (
+    <Select
+      fullWidth
+      sx={styles.item}
+      disabled={isDatasetNotSelected}
+      value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
+      optionsList={statNames}
+      getLabel={(stat) =>
+        getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+      }
+      onSelect={(value) => {
+        dispatch(
+          mutateLocal({
+            path,
+            sync: !includesPath(R.values(sync), path),
+            value: R.assoc('stats', [
+              { statId: value, aggregationType: 'sum' },
+            ])(chartObj),
+          })
+        )
+      }}
+    />
+  )
+
+  const MultiStatisticSelector = mapIndexed(
+    (label, index) => {
+      const value = R.pathOr(' ', ['stats', index, 'statId'], chartObj)
+      const labelId = `multi-stat-${index}-label`
+
+      return (
+        <LabelledInput key={index} label={label} labelId={labelId}>
+          <Select
+            fullWidth
+            label={label}
+            labelId={labelId}
+            disabled={isDatasetNotSelected}
+            value={value}
+            optionsList={statNames}
+            getLabel={(stat) =>
+              getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+            }
+            onSelect={(newVal) => {
+              newVal = R.equals(value, newVal) ? undefined : newVal
+              dispatch(
+                mutateLocal({
+                  path,
+                  sync: !includesPath(R.values(sync), path),
+                  value: R.assocPath(
+                    ['stats', index],
+                    {
+                      statId: newVal,
+                      aggregationType: 'sum',
+                    },
+                    chartObj
+                  ),
+                })
+              )
+            }}
+          />
+        </LabelledInput>
+      )
+    },
+    R.propOr([], chartObj.chartType, chartStatUses)
+  )
+
+  const currentStats = R.pipe(
+    R.propOr([], 'stats'),
+    R.pluck('statId')
+  )(chartObj)
+
+  const unusedOptions = R.filter(
+    (option) => !currentStats.includes(option),
+    statNames
+  )
+
+  // Show an extra dropdown only if there are unused options
+  const statsToShow = [
+    ...currentStats,
+    ...(unusedOptions.length > 0 ? [null] : []),
+  ]
+
+  const handleTableStatisticRemove = (index) => {
+    const currentStats = R.propOr([], 'stats', chartObj)
+    const newStats = R.remove(index, 1, currentStats)
+    dispatch(
+      mutateLocal({
+        path,
+        sync: !includesPath(R.values(sync), path),
+        value: R.assoc('stats', newStats, chartObj),
+      })
+    )
   }
 
-  const StatSelectors = R.flatten([
-    R.has(R.prop('chartType', chartObj), chartStatUses)
-      ? R.length(chartStatUses[chartObj.chartType]) !== 0
-        ? mapIndexed((_, index) => {
-            const label = chartStatUses[chartObj.chartType][index]
-            return (
-              <FormControl key={index} fullWidth sx={styles.item}>
-                <InputLabel id={`stat-${label}-label`}>{label}</InputLabel>
-                <Select
-                  labelId={`stat-${label}-label`}
-                  label={label}
-                  disabled={chartObj.dataset == null}
-                  getLabel={(stat) =>
-                    getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-                  }
-                  value={R.pathOr(' ', ['stats', index, 'statId'], chartObj)}
-                  optionsList={R.values(statNames)}
-                  onSelect={(value) => {
-                    const newVal = R.equals(
-                      R.path(['stats', index, 'statId'], chartObj),
-                      value
-                    )
-                      ? undefined
-                      : value
-                    dispatch(
-                      mutateLocal({
-                        path,
-                        sync: !includesPath(R.values(sync), path),
-                        value: R.assocPath(['stats', index], {
-                          statId: newVal,
-                          aggregationType: 'sum',
-                        })(chartObj),
-                      })
-                    )
-                  }}
-                />
-              </FormControl>
+  const TableStatisticSelector = mapIndexed(
+    (statId, index) => (
+      <Stack key={index} direction="row" spacing={1} alignItems="center">
+        <Select
+          fullWidth
+          disabled={isDatasetNotSelected}
+          getLabel={(stat) =>
+            getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+          }
+          value={statId || ' '}
+          optionsList={[...unusedOptions, ...(statId ? [statId] : [])]}
+          onSelect={(value) => {
+            const currentStats = R.propOr([], 'stats', chartObj)
+            const defaultStatData = {
+              statId: value,
+              aggregationType: 'sum',
+            }
+            const newStats =
+              statId === null
+                ? [...currentStats, defaultStatData]
+                : R.update(index, defaultStatData, currentStats)
+
+            dispatch(
+              mutateLocal({
+                path,
+                sync: !includesPath(R.values(sync), path),
+                value: R.assoc('stats', newStats, chartObj),
+              })
             )
-          })(chartStatUses[chartObj.chartType])
-        : (() => {
-            const currentStats = R.pipe(
-              R.propOr([], 'stats'),
-              R.pluck('statId')
-            )(chartObj)
+          }}
+        />
+        {currentStats.length > 1 && statId !== null && (
+          <IconButton
+            size="small"
+            onClick={() => handleTableStatisticRemove(index)}
+          >
+            <MdClose />
+          </IconButton>
+        )}
+      </Stack>
+    ),
+    statsToShow
+  )
 
-            // Get all unused options
-            const unusedOptions = R.pipe(
-              R.values,
-              R.filter((option) => !currentStats.includes(option))
-            )(statNames)
-
-            // Determine whether to show an extra dropdown
-            const statsToShow = [
-              ...currentStats,
-              ...(unusedOptions.length > 0 ? [null] : []),
-            ]
-
-            return mapIndexed((statId, index) => {
-              // Filter out already selected options, except for the current value
-              const availableOptions = R.values(statNames).filter(
-                (option) => !currentStats.includes(option) || option === statId
-              )
-
-              const handleRemove = () => {
-                const currentStats = R.propOr([], 'stats', chartObj)
-                const newStats = R.remove(index, 1, currentStats)
-                dispatch(
-                  mutateLocal({
-                    path,
-                    sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('stats', newStats, chartObj),
-                  })
-                )
-              }
-
-              return (
-                <Stack
-                  key={index}
-                  direction="row"
-                  spacing={1}
-                  alignItems="center"
-                >
-                  <Select
-                    fullWidth
-                    disabled={chartObj.dataset == null}
-                    getLabel={(stat) =>
-                      getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
-                    }
-                    value={statId || ' '}
-                    optionsList={availableOptions}
-                    onSelect={(value) => {
-                      const currentStats = R.propOr([], 'stats', chartObj)
-                      let newStats
-
-                      if (value === undefined) {
-                        // Remove the stat at this index
-                        newStats = R.remove(index, 1, currentStats)
-                      } else if (statId === null) {
-                        // Add new stat
-                        newStats = [
-                          ...currentStats,
-                          {
-                            statId: value,
-                            aggregationType: 'sum',
-                          },
-                        ]
-                      } else {
-                        // Update existing stat
-                        newStats = R.update(
-                          index,
-                          {
-                            statId: value,
-                            aggregationType: 'sum',
-                          },
-                          currentStats
-                        )
-                      }
-
-                      dispatch(
-                        mutateLocal({
-                          path,
-                          sync: !includesPath(R.values(sync), path),
-                          value: R.assoc('stats', newStats, chartObj),
-                        })
-                      )
-                    }}
-                  />
-                  {currentStats.length > 1 && statId !== null && (
-                    <IconButton
-                      size="small"
-                      onClick={handleRemove}
-                      sx={{ marginTop: 1 }}
-                    >
-                      <MdClose />
-                    </IconButton>
-                  )}
-                </Stack>
-              )
-            }, statsToShow)
-          })()
-      : singleStatisticSelector,
+  const StatSelectors = R.flatten([
+    R.has(chartObj.chartType, chartStatUses)
+      ? R.length(chartStatUses[chartObj.chartType]) !== 0
+        ? MultiStatisticSelector
+        : TableStatisticSelector
+      : SingleStatisticSelector,
   ])
 
   const AggregationSelector = mapIndexed(
@@ -583,7 +563,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         getLabel={(item) => capitalize(item)}
         value={R.pathOr('', ['stats', index, 'aggregationType'], chartObj)}
         optionsList={R.values(chartAggrFunc)}
-        onSelect={(value) => {
+        onSelect={(value) =>
           dispatch(
             mutateLocal({
               path,
@@ -596,7 +576,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               )(chartObj),
             })
           )
-        }}
+        }
       />
     ),
     R.propOr([], 'stats', chartObj)
@@ -624,10 +604,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           key={index}
           fullWidth
           sx={styles.item}
-          disabled={chartObj.dataset == null}
+          disabled={isDatasetNotSelected}
           id={`divide-${statName}`}
           value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
-          optionsList={R.values(statNames)}
+          optionsList={statNames}
           getLabel={(stat) =>
             getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
           }
@@ -638,8 +618,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                 sync: !includesPath(R.values(sync), path),
                 value: R.assocPath(
                   ['stats', index, 'statIdDivisor'],
-                  value
-                )(chartObj),
+                  value,
+                  chartObj
+                ),
               })
             )
           }}
@@ -660,7 +641,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           ]}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
-          onSelect={(item, value) => {
+          onSelect={(item, value) =>
             dispatch(
               mutateLocal({
                 path,
@@ -674,7 +655,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
                 )(chartObj),
               })
             )
-          }}
+          }
         />
       )
     },
@@ -693,9 +674,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     ),
   ]
 
-  const MixedVariantSelector = R.map(
-    (variant) =>
-      showFull(chartObj) && (
+  const MixedVariantSelector = mapIndexed(
+    (variant, index) =>
+      R.hasPath(['stats', index], chartObj) && (
         <Select
           key={variant}
           fullWidth
@@ -732,7 +713,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       <Stack direction="row">
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
-            <>{datasetSelector}</>
+            {DatasetSelector}
           </ChartDropdownWrapper>
         </Box>
       </Stack>
@@ -775,31 +756,31 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
       {showFull(chartObj) &&
         chartObj.chartType === chartVariant.DISTRIBUTION && (
-          <>
-            <Typography variant="overline" sx={styles.header}>
-              DISTRIBUTION
-            </Typography>
-            <Box sx={styles.row}>
-              <ChartDropdownWrapper sx={styles.field}>
-                <>
-                  {R.map(
-                    ({ selector, label }) =>
-                      renderLabelledSelector(selector, label),
-                    [
-                      {
-                        selector: distributionTypeSelector,
-                        label: 'Type',
-                      },
-                      {
-                        selector: distributionYAxisSelector,
-                        label: 'Y Axis',
-                      },
-                    ]
-                  )}
-                </>
-              </ChartDropdownWrapper>
-            </Box>
-          </>
+          <Box sx={styles.row}>
+            <ChartDropdownWrapper sx={styles.field}>
+              <>
+                {mapIndexed(
+                  ({ selector, label, labelId }, index) => (
+                    <LabelledInput key={index} labelId={labelId} label={label}>
+                      {selector}
+                    </LabelledInput>
+                  ),
+                  [
+                    {
+                      selector: DistributionTypeSelector,
+                      label: 'Type',
+                      labelId: 'distribution-type-label',
+                    },
+                    {
+                      selector: DistributionYAxisSelector,
+                      label: 'Y Axis',
+                      labelId: 'distribution-y-axis-label',
+                    },
+                  ]
+                )}
+              </>
+            </ChartDropdownWrapper>
+          </Box>
         )}
 
       <Box sx={styles.row}>
@@ -811,8 +792,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             <SelectAccordionList
               labelId="group-by-label"
               label="Group By"
-              disabled={!showFull(chartObj) || chartObj.dataset == null}
-              {...{ itemGroups }}
+              disabled={!showFull(chartObj) || isDatasetNotSelected}
+              itemGroups={itemGroups}
               values={R.pipe(
                 R.props(['groupingId', 'groupingLevel']),
                 R.map(R.defaultTo('')),
