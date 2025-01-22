@@ -3,34 +3,16 @@ class ThreadMaxWorkers {
     this.maxWorkers = navigator.hardwareConcurrency || 8
     this.activeWorkers = []
     this.messageQueue = []
-    this.sleepingWorkers = []
   }
 
   doWork(message) {
-    if (
-      this.activeWorkers.length + this.sleepingWorkers.length <
-      this.maxWorkers
-    ) {
+    if (this.activeWorkers.length < this.maxWorkers) {
       return new Promise((resolve, reject) => {
         const worker = new Worker(
           new URL('./computationWorker.js', import.meta.url)
         )
         this.activeWorkers.push(worker)
         worker.postMessage(message)
-        worker.onmessage = (e) => {
-          this.processQueue(worker)
-          resolve(e.data)
-        }
-        worker.onerror = (e) => {
-          this.endWork(worker)
-          reject(e)
-        }
-      })
-    } else if (this.sleepingWorkers.length > 0) {
-      const worker = this.sleepingWorkers.shift()
-      this.activeWorkers.push(worker)
-      worker.postMessage(message)
-      return new Promise((resolve, reject) => {
         worker.onmessage = (e) => {
           this.processQueue(worker)
           resolve(e.data)
@@ -60,8 +42,7 @@ class ThreadMaxWorkers {
         reject(e)
       }
     } else {
-      this.activeWorkers = this.activeWorkers.filter((w) => w !== worker)
-      this.sleepingWorkers.push(worker)
+      this.endWork(worker)
     }
   }
 
