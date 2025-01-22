@@ -148,6 +148,17 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   )
   const distributionVariant = R.propOr('bar', 'distributionVariant', chartObj)
   const statNames = R.propOr([], chartObj.dataset, statNamesByDataset)
+  const currentStats = R.propOr([], 'stats', chartObj)
+  const currentStatIds = R.pluck('statId', currentStats)
+  const unusedOptions = R.filter(
+    (option) => !currentStatIds.includes(option),
+    statNames
+  )
+  // Show an extra dropdown only if there are unused options
+  const statsToShow = [
+    ...currentStatIds,
+    ...(unusedOptions.length > 0 ? [null] : []),
+  ]
 
   const getGroupsById = (groupedOutputDataId) =>
     R.pipe(R.path([groupedOutputDataId, 'groupLists']), R.keys)(groupedOutputs)
@@ -198,6 +209,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       R.assoc('groupingId', R.slice(0, maxGrouping, obj.groupingId || [])),
       R.assoc('groupingLevel', R.slice(0, maxGrouping, obj.groupingLevel || []))
     )(obj)
+  }
+
+  const handleDeleteStatistic = (index) => {
+    const newStats = R.remove(index, 1, currentStats)
+    updateChartObj(R.assoc('stats', newStats, chartObj))
   }
 
   const handleAddGroup = () => {
@@ -413,7 +429,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
             getLabel={getStatName}
             onSelect={(newVal) => {
               if (R.equals(value, newVal)) {
-                handleStatisticRemove(index)
+                handleDeleteStatistic(index)
               } else {
                 updateChartObj(
                   R.assocPath(
@@ -434,29 +450,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     R.propOr([], chartObj.chartType, chartStatUses)
   )
 
-  const currentStats = R.pipe(
-    R.propOr([], 'stats'),
-    R.pluck('statId')
-  )(chartObj)
-
-  const unusedOptions = R.filter(
-    (option) => !currentStats.includes(option),
-    statNames
-  )
-
-  // Show an extra dropdown only if there are unused options
-  const statsToShow = [
-    ...currentStats,
-    ...(unusedOptions.length > 0 ? [null] : []),
-  ]
-
-  const handleStatisticRemove = (index) => {
-    const currentStats = R.propOr([], 'stats', chartObj)
-    const newStats = R.remove(index, 1, currentStats)
-
-    updateChartObj(R.assoc('stats', newStats, chartObj))
-  }
-
   const TableStatisticSelector = mapIndexed(
     (statId, index) => (
       <Select
@@ -464,21 +457,35 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         disabled={isDatasetNotSelected}
         getLabel={getStatName}
         value={statId || ' '}
-        optionsList={[...unusedOptions, ...(statId ? [statId] : [])]}
+        optionsList={statId ? statNames : unusedOptions}
         onSelect={(value) => {
           if (R.equals(value, statId)) {
-            handleStatisticRemove(index)
+            handleDeleteStatistic(index)
+            return
+          }
+
+          const defaultStatData = {
+            statId: value,
+            aggregationType: 'sum',
+          }
+
+          const existingIndex = currentStats.findIndex(
+            (stat) => stat.statId === value
+          )
+
+          // If selecting a stat that's already in use, swap them
+          if (existingIndex !== -1 && statId !== null) {
+            const newStats = [...currentStats]
+            const currentStatData = { statId, aggregationType: 'sum' }
+            newStats[existingIndex] = currentStatData
+            newStats[index] = defaultStatData
+            updateChartObj(R.assoc('stats', newStats, chartObj))
           } else {
-            const currentStats = R.propOr([], 'stats', chartObj)
-            const defaultStatData = {
-              statId: value,
-              aggregationType: 'sum',
-            }
+            // Otherwise select unused value
             const newStats =
               statId === null
                 ? [...currentStats, defaultStatData]
                 : R.update(index, defaultStatData, currentStats)
-
             updateChartObj(R.assoc('stats', newStats, chartObj))
           }
         }}
