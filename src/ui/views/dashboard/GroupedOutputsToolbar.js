@@ -95,6 +95,38 @@ const CHART_OPTIONS = [
   chartOption.MIXED,
 ]
 
+const DISTRIBUTION_TYPES = [
+  {
+    label: 'PDF',
+    value: distributionTypes.PDF,
+  },
+  {
+    label: 'CDF',
+    value: distributionTypes.CDF,
+  },
+]
+
+const DISTRIBUTION_Y_AXIS = [
+  {
+    label: 'Density',
+    value: distributionYAxes.DENSITY,
+    iconName: 'md/MdPercent',
+  },
+  {
+    label: 'Counts',
+    value: distributionYAxes.COUNTS,
+    iconName: 'md/MdNumbers',
+  },
+]
+
+const DISTRIBUTION_VARIANTS = [chartOption.BAR, chartOption.LINE]
+
+const MIXED_VARIANTS = [
+  chartOption.BAR,
+  chartOption.LINE,
+  chartOption.CUMULATIVE_LINE,
+]
+
 const HeaderGrid = ({ text }) => (
   <Grid item size={1}>
     <Box
@@ -339,16 +371,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       label="Type"
       labelId="distribution-type-label"
       value={distributionType}
-      optionsList={[
-        {
-          label: 'PDF',
-          value: distributionTypes.PDF,
-        },
-        {
-          label: 'CDF',
-          value: distributionTypes.CDF,
-        },
-      ]}
+      optionsList={DISTRIBUTION_TYPES}
       onSelect={handleSelectDistributionType}
     />
   )
@@ -359,18 +382,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       label="Y Axis"
       labelId="distribution-y-axis-label"
       value={distributionYAxis}
-      optionsList={[
-        {
-          label: 'Density',
-          value: distributionYAxes.DENSITY,
-          iconName: 'md/MdPercent',
-        },
-        {
-          label: 'Counts',
-          value: distributionYAxes.COUNTS,
-          iconName: 'md/MdNumbers',
-        },
-      ]}
+      optionsList={DISTRIBUTION_Y_AXIS}
       onSelect={handleSelectYAxis}
     />
   )
@@ -594,7 +606,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         fullWidth
         sx={styles.item}
         value={distributionVariant}
-        optionsList={[chartOption.BAR, chartOption.LINE]}
+        optionsList={DISTRIBUTION_VARIANTS}
         onSelect={handleSelectDistributionVariant}
       />
     ),
@@ -608,11 +620,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           fullWidth
           sx={styles.item}
           value={R.propOr('line', `${variant}Variant`, chartObj)}
-          optionsList={[
-            chartOption.BAR,
-            chartOption.LINE,
-            chartOption.CUMULATIVE_LINE,
-          ]}
+          optionsList={MIXED_VARIANTS}
           onSelect={handleSelectMixedVariant(variant)}
         />
       ),
