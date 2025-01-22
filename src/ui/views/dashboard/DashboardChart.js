@@ -89,7 +89,8 @@ const DashboardChart = ({ chartObj, path }) => {
         setLoading(false)
       })
     }
-    const workerRunner = setTimeout(runWorkers, 1)
+    setLoading(true)
+    const workerRunner = setTimeout(runWorkers, 10)
     return () => clearTimeout(workerRunner)
   }, [cleanedChartObj, memoizedChartFunc])
 
