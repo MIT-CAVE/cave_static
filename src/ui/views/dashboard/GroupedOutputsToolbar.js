@@ -53,9 +53,8 @@ const styles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'flex-start',
+    gap: 1,
     overflow: 'auto',
-    gap: 2,
   },
   row: {
     width: '100%',

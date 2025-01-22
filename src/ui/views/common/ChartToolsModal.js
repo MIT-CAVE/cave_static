@@ -18,14 +18,8 @@ import { includesPath } from '../../../utils'
 
 const styles = {
   content: {
-    marginTop: 2,
-    marginBottom: 1,
     padding: 1,
     height: '100%',
-    gap: 2,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
   },
 }
 
@@ -61,6 +55,9 @@ const ChartToolsModal = ({
           sx: {
             width: '1200px',
             height: '900px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
           },
         },
       }}
