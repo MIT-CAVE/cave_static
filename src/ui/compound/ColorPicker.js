@@ -51,6 +51,7 @@ const ColorPicker = ({ colorLabel, value, onChange }) => {
   return (
     <MuiColorInput
       // size="small"
+      fullWidth
       focused
       color="warning"
       format="hex8"

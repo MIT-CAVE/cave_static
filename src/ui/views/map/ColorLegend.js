@@ -2,6 +2,7 @@ import {
   capitalize,
   FormControl,
   Grid2,
+  IconButton,
   InputLabel,
   Paper,
   Stack,
@@ -9,13 +10,14 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useMemo } from 'react'
+import { TbFocusAuto } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
 import {
   GroupCalcSelector,
   RippleBox,
   ScaleSelector,
-  useGradientLabels,
+  useGradient,
   WithEditBadge,
 } from './Legend'
 
@@ -74,7 +76,6 @@ const styles = {
     background: `linear-gradient(to right, ${gradientColors})`,
   }),
   valueInput: {
-    width: 'auto',
     mt: '20px !important',
     flex: '1 1 auto',
     fieldset: {
@@ -115,20 +116,23 @@ const NumericalColorLegend = ({
 
   const {
     isStepScale,
+    lastIndex,
+    minAuto,
+    maxAuto,
     getLabel,
     getAttrLabelAt: getColorLabelAt,
     getAdjustedLabel,
     getValueLabelAt,
-  } = useGradientLabels({
+    handleSetAutoValueAt,
+  } = useGradient({
     labels,
     values,
     rawValues,
+    gradient: valueRange.gradient,
     numberFormat,
     group,
-    scale: valueRange.gradient.scale,
+    onChangeValueAt,
   })
-
-  const lastIndex = values.length - 1
 
   const gradientStyle = useMemo(() => {
     const { scale, scaleParams } = valueRange.gradient
@@ -228,6 +232,18 @@ const NumericalColorLegend = ({
                         sx: { borderRadius: 0, pr: 1.75 },
                       },
                     }}
+                    endAdornments={
+                      // Show the auto-min/max button when the min/max value is custom
+                      (index < 1 && !minAuto) ||
+                      (index === lastIndex && !maxAuto) ? (
+                        <IconButton
+                          size="small"
+                          onClick={handleSetAutoValueAt(index)}
+                        >
+                          <TbFocusAuto />
+                        </IconButton>
+                      ) : null
+                    }
                     label={getValueLabelAt(index)}
                     {...{ value, numberFormat }}
                     onClickAway={onChangeValueAt(index)}
