@@ -1,6 +1,6 @@
 {
   "name": "cave_static",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "scripts": {
     "build": "export $(cat .env | xargs) && craco build",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",

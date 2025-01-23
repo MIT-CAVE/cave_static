@@ -301,16 +301,19 @@ export const useLegendPopper = () => {
   }
 }
 
-export const useGradientLabels = ({
+export const useGradient = ({
   labels,
   values,
   rawValues,
+  gradient,
   numberFormat: numberFormatRaw,
   group,
-  scale,
+  onChangeValueAt,
 }) => {
   const lastIndex = values.length - 1
-  const isStepScale = scale === scaleId.STEP
+  const isStepScale = gradient.scale === scaleId.STEP
+  const minAuto = gradient.data[0].value === 'min'
+  const maxAuto = gradient.data[lastIndex].value === 'max'
 
   const numberFormat = useMemo(
     () => R.omit(['unit', 'unitPlacement'])(numberFormatRaw),
@@ -366,8 +369,12 @@ export const useGradientLabels = ({
               isValueAdjusted
                 ? `Adjusted to ${label}`
                 : index < 1
-                  ? 'Min'
-                  : 'Max'
+                  ? minAuto
+                    ? 'Min (Auto)'
+                    : 'Min'
+                  : maxAuto
+                    ? 'Max (Auto)'
+                    : 'Max'
             }`
     },
     [
@@ -376,6 +383,8 @@ export const useGradientLabels = ({
       isStepScale,
       labels,
       lastIndex,
+      maxAuto,
+      minAuto,
       rawValues,
       values,
     ]
@@ -387,12 +396,21 @@ export const useGradientLabels = ({
     [rawValues, values]
   )
 
+  const handleSetAutoValueAt = useCallback(
+    (index) => () => onChangeValueAt(index)(index < 1 ? 'min' : 'max'),
+    [onChangeValueAt]
+  )
+
   return {
     isStepScale,
+    lastIndex,
+    minAuto,
+    maxAuto,
     getLabel,
     getAdjustedLabel,
     getAttrLabelAt,
     getValueLabelAt,
+    handleSetAutoValueAt,
   }
 }
 

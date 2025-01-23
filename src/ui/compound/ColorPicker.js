@@ -1,16 +1,21 @@
 import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useRef } from 'react'
 
 export const useColorPicker = (onChangeColor) => {
   const [colorPickerProps, setColorPickerProps] = useState({})
+  const setColorTimeout = useRef(-1)
 
   const handleChange = useCallback(
     (value, colorOutputs, pathTail = colorPickerProps.key) => {
       setColorPickerProps(R.assoc('value', value))
       if (!matchIsValidColor(value)) return
-      onChangeColor(pathTail)(value)
+      if (setColorTimeout.current !== -1) clearTimeout(setColorTimeout.current)
+      setColorTimeout.current = setTimeout(() => {
+        onChangeColor(pathTail)(value)
+        setColorTimeout.current = -1
+      }, 500)
     },
     [colorPickerProps, onChangeColor]
   )
@@ -46,6 +51,7 @@ const ColorPicker = ({ colorLabel, value, onChange }) => {
   return (
     <MuiColorInput
       // size="small"
+      fullWidth
       focused
       color="warning"
       format="hex8"
