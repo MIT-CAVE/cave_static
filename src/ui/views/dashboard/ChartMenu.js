@@ -134,15 +134,7 @@ const ChartMenu = ({
           placement="bottom-start"
           onClick={onOpenChartTools}
         >
-          <Badge
-            {...{
-              color: 'info',
-              badgeContent: numFilters,
-              invisible: numFilters < 1,
-            }}
-          >
-            <FaChartBar />
-          </Badge>
+          <FaChartBar />
         </TooltipButton>
         {isGroupedOutput && (
           <TooltipButton
