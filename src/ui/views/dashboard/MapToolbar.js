@@ -127,7 +127,7 @@ const MapToolbar = memo(({ chartObj, index }) => {
         columns={3}
       >
         {R.keys(maps).map((mapId) => (
-          <Grid item key={mapId} size={1}>
+          <Grid key={mapId} size={1}>
             <Paper
               sx={[
                 styles.mapOption,

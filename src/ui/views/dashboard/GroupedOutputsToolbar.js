@@ -128,7 +128,7 @@ const MIXED_VARIANTS = [
 ]
 
 const HeaderGrid = ({ text }) => (
-  <Grid item size={1}>
+  <Grid size={1}>
     <Box
       sx={{
         p: 1,
@@ -668,20 +668,12 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
           {mapIndexed((statSelector, index) => {
             return (
               <Fragment key={index}>
-                <Grid item size={1}>
-                  {statSelector}
-                </Grid>
+                <Grid size={1}>{statSelector}</Grid>
                 {VariantSelector && (
-                  <Grid item size={1}>
-                    {R.prop(index, VariantSelector)}
-                  </Grid>
+                  <Grid size={1}>{R.prop(index, VariantSelector)}</Grid>
                 )}
-                <Grid item size={1}>
-                  {R.prop(index, AggregationSelector)}
-                </Grid>
-                <Grid item size={1}>
-                  {R.prop(index, AggregationBySelector)}
-                </Grid>
+                <Grid size={1}>{R.prop(index, AggregationSelector)}</Grid>
+                <Grid size={1}>{R.prop(index, AggregationBySelector)}</Grid>
               </Fragment>
             )
           }, StatSelectors)}
@@ -724,8 +716,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               Group By
             </InputLabel>
             <SelectAccordionList
-              labelId="group-by-label"
-              label="Group By"
               disabled={!showFull(chartObj) || isDatasetNotSelected}
               itemGroups={itemGroups}
               values={R.pipe(

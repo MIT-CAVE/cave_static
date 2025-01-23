@@ -32,7 +32,7 @@ const ChartTypeSelector = ({ value, onChange, chartOptions }) => {
       {R.map((chartType) => {
         const isSelected = selectedValue === chartType.value
         return (
-          <Grid item key={chartType.label} size={1}>
+          <Grid key={chartType.label} size={1}>
             <Paper
               sx={[
                 styles.displayIcon,
