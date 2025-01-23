@@ -46,8 +46,6 @@ LinePlot.propTypes = {
   yAxisTitle: PropTypes.string,
   area: PropTypes.bool,
   showNA: PropTypes.bool,
-  path: PropTypes.string,
-  xAxisOrder: PropTypes.array,
 }
 
 export { LinePlot }
