@@ -1,4 +1,4 @@
-import { InputAdornment, TextField, Box } from '@mui/material'
+import { IconButton, InputAdornment, TextField } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
@@ -58,6 +58,7 @@ const NumberInput = ({
   statusIcon,
   sx = [],
   slotProps,
+  endAdornments,
   onClickAway,
 }) => {
   const dispatch = useDispatch()
@@ -305,8 +306,9 @@ const NumberInput = ({
           ...(enabled && {
             endAdornment: (
               <InputAdornment position="end">
-                <Box
-                  sx={{ cursor: 'pointer' }}
+                {endAdornments}
+                <IconButton
+                  size="small"
                   onClick={() => {
                     if (!focused.current) {
                       inputRef.current.focus()
@@ -325,7 +327,7 @@ const NumberInput = ({
                   }}
                 >
                   <BiSolidKeyboard />
-                </Box>
+                </IconButton>
                 {color !== 'default' && statusIcon && getStatusIcon(color)}
               </InputAdornment>
             ),

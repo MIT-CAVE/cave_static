@@ -2,6 +2,7 @@ import {
   capitalize,
   FormControl,
   Grid2,
+  IconButton,
   InputLabel,
   Paper,
   Stack,
@@ -9,13 +10,14 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useMemo } from 'react'
+import { TbFocusAuto } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
 import {
   GroupCalcSelector,
   PropIcon,
   ScaleSelector,
-  useGradientLabels,
+  useGradient,
   WithEditBadge,
 } from './Legend'
 
@@ -61,7 +63,6 @@ const styles = {
     maxWidth: '56px',
   },
   valueInput: {
-    width: 'auto',
     mt: '20px !important',
     flex: '1 1 auto',
     fieldset: {
@@ -95,20 +96,23 @@ const NumericalSizeLegend = ({
 
   const {
     isStepScale,
+    lastIndex,
+    minAuto,
+    maxAuto,
     getLabel,
     getAdjustedLabel,
     getAttrLabelAt: getSizeLabelAt,
     getValueLabelAt,
-  } = useGradientLabels({
+    handleSetAutoValueAt,
+  } = useGradient({
     labels,
     values,
     rawValues,
+    gradient: valueRange.gradient,
     numberFormat,
     group,
-    scale: valueRange.gradient.scale,
+    onChangeValueAt,
   })
-
-  const lastIndex = values.length - 1
 
   const handleChangeComittedAt = useCallback(
     (index) => (event, value) => {
@@ -225,6 +229,18 @@ const NumericalSizeLegend = ({
                     sx: { borderRadius: 0, pr: 1.75 },
                   },
                 }}
+                // Show the auto-min/max button when the min/max value is custom
+                endAdornments={
+                  (sizeSliderProps.key < 1 && !minAuto) ||
+                  (sizeSliderProps.key === lastIndex && !maxAuto) ? (
+                    <IconButton
+                      size="small"
+                      onClick={handleSetAutoValueAt(sizeSliderProps.key)}
+                    >
+                      <TbFocusAuto />
+                    </IconButton>
+                  ) : null
+                }
                 label={getValueLabelAt(sizeSliderProps.key)}
                 value={rawValues[sizeSliderProps.key]}
                 {...{ numberFormat }}
