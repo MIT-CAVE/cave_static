@@ -36,11 +36,10 @@ import {
 const styles = {
   content: {
     width: '100%',
-    height: '80%',
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'flex-start',
     overflow: 'auto',
     gap: 2,
   },
@@ -97,144 +96,140 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
   )(props)
 
   return (
-    <>
+    <Box sx={styles.content}>
       <ChartTypeSelector
         value={chartObj.chartType}
         onChange={handleSelectChart}
         chartOptions={CHART_OPTIONS}
       />
-      <Box sx={styles.content}>
-        {chartObj.chartType !== chartVariant.OVERVIEW && (
-          <>
-            <ChartDropdownWrapper sx={styles.sessions}>
-              <Autocomplete
-                value={R.propOr([], 'sessions', chartObj)}
-                limitTags={5}
-                multiple
-                fullWidth
-                disableCloseOnSelect
-                options={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
-                renderInput={(params) => (
+
+      {chartObj.chartType !== chartVariant.OVERVIEW && (
+        <>
+          <ChartDropdownWrapper sx={styles.sessions}>
+            <Autocomplete
+              value={R.propOr([], 'sessions', chartObj)}
+              limitTags={5}
+              multiple
+              fullWidth
+              disableCloseOnSelect
+              options={R.pipe(R.values, R.pluck('name'))(globalOutputs)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Select Sessions"
+                  variant="standard"
+                />
+              )}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...optionProps } = props
+                return (
+                  <li key={key} {...optionProps}>
+                    <Checkbox
+                      icon={<MdCheckBoxOutlineBlank />}
+                      checkedIcon={<MdCheckBox />}
+                      checked={selected}
+                    />
+                    {option}
+                  </li>
+                )
+              }}
+              onChange={(_, value) => {
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.assoc('sessions', value, chartObj),
+                  })
+                )
+              }}
+            />
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper sx={styles.sessions}>
+            <Autocomplete
+              disabled={R.isEmpty(R.propOr([], 'sessions', chartObj))}
+              value={R.propOr([], 'globalOutput', chartObj)}
+              limitTags={5}
+              multiple
+              fullWidth
+              disableCloseOnSelect
+              options={R.pluck('value')(globalOutputsOptions)}
+              renderInput={(params) => {
+                return (
                   <TextField
                     {...params}
                     fullWidth
-                    label="Select Sessions"
+                    label="Select Global Outputs"
                     variant="standard"
                   />
-                )}
-                renderOption={(props, option, { selected }) => {
-                  const { key, ...optionProps } = props
-                  return (
-                    <li key={key} {...optionProps}>
-                      <Checkbox
-                        icon={<MdCheckBoxOutlineBlank />}
-                        checkedIcon={<MdCheckBox />}
-                        checked={selected}
-                      />
-                      {option}
-                    </li>
-                  )
-                }}
-                onChange={(_, value) => {
-                  dispatch(
-                    mutateLocal({
-                      path,
-                      sync: !includesPath(R.values(sync), path),
-                      value: R.assoc('sessions', value, chartObj),
-                    })
-                  )
-                }}
-              />
-            </ChartDropdownWrapper>
-            <ChartDropdownWrapper sx={styles.sessions}>
-              <Autocomplete
-                disabled={R.isEmpty(R.propOr([], 'sessions', chartObj))}
-                value={R.propOr([], 'globalOutput', chartObj)}
-                limitTags={5}
-                multiple
-                fullWidth
-                disableCloseOnSelect
-                options={R.pluck('value')(globalOutputsOptions)}
-                renderInput={(params) => {
-                  return (
-                    <TextField
-                      {...params}
-                      fullWidth
-                      label="Select Global Outputs"
-                      variant="standard"
+                )
+              }}
+              getOptionLabel={(option) => {
+                return R.pipe(
+                  R.find(({ value }) => value === option),
+                  R.prop('label')
+                )(globalOutputsOptions)
+              }}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...optionProps } = props
+                const { label, iconName } = R.find(
+                  ({ value }) => value === option
+                )(globalOutputsOptions)
+                return (
+                  <li key={key} {...optionProps}>
+                    <Checkbox
+                      icon={<MdCheckBoxOutlineBlank />}
+                      checkedIcon={<MdCheckBox />}
+                      checked={selected}
                     />
-                  )
-                }}
-                getOptionLabel={(option) => {
-                  return R.pipe(
-                    R.find(({ value }) => value === option),
-                    R.prop('label')
-                  )(globalOutputsOptions)
-                }}
-                renderOption={(props, option, { selected }) => {
-                  const { key, ...optionProps } = props
-                  const { label, iconName } = R.find(
-                    ({ value }) => value === option
-                  )(globalOutputsOptions)
-                  return (
-                    <li key={key} {...optionProps}>
-                      <Checkbox
-                        icon={<MdCheckBoxOutlineBlank />}
-                        checkedIcon={<MdCheckBox />}
-                        checked={selected}
-                      />
-                      <FetchedIcon
-                        iconName={iconName}
-                        sx={{ marginRight: 1 }}
-                      />
-                      <Typography sx={{ marginLeft: 1 }}> {label} </Typography>
-                    </li>
-                  )
-                }}
-                onChange={(_, value) => {
-                  dispatch(
-                    mutateLocal({
-                      path,
-                      sync: !includesPath(R.values(sync), path),
-                      value: R.assoc('globalOutput', value, chartObj),
-                    })
-                  )
-                }}
-              />
-            </ChartDropdownWrapper>
-            <ChartDropdownWrapper sx={styles.refresh}>
-              <Button
-                sx={{ minWidth: 0 }}
-                variant="outlined"
-                color="greyscale"
-                onClick={() => {
-                  dispatch(
-                    sendCommand({
-                      command: 'get_associated_session_data',
-                      data: {
-                        data_names: ['globalOutputs'],
-                      },
-                    })
-                  )
+                    <FetchedIcon iconName={iconName} sx={{ marginRight: 1 }} />
+                    <Typography sx={{ marginLeft: 1 }}> {label} </Typography>
+                  </li>
+                )
+              }}
+              onChange={(_, value) => {
+                dispatch(
+                  mutateLocal({
+                    path,
+                    sync: !includesPath(R.values(sync), path),
+                    value: R.assoc('globalOutput', value, chartObj),
+                  })
+                )
+              }}
+            />
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper sx={styles.refresh}>
+            <Button
+              sx={{ minWidth: 0 }}
+              variant="outlined"
+              color="greyscale"
+              onClick={() => {
+                dispatch(
+                  sendCommand({
+                    command: 'get_associated_session_data',
+                    data: {
+                      data_names: ['globalOutputs'],
+                    },
+                  })
+                )
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '40px',
                 }}
               >
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: '40px',
-                  }}
-                >
-                  <FetchedIcon iconName="md/MdRefresh" size={32} />
-                </Box>
-              </Button>
-            </ChartDropdownWrapper>
-          </>
-        )}
-      </Box>
-    </>
+                <FetchedIcon iconName="md/MdRefresh" size={32} />
+              </Box>
+            </Button>
+          </ChartDropdownWrapper>
+        </>
+      )}
+    </Box>
   )
 }
 

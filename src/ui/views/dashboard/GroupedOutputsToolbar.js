@@ -1,6 +1,5 @@
 import {
   Box,
-  Divider,
   FormControl,
   Grid2 as Grid,
   InputLabel,
@@ -641,8 +640,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         onChange={handleSelectChart}
         chartOptions={CHART_OPTIONS}
       />
-
-      <Divider />
 
       <Stack direction="row">
         <Box sx={styles.row}>
