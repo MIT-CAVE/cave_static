@@ -189,6 +189,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     ...currentStatIds,
     ...(unusedOptions.length > 0 ? [null] : []),
   ]
+  const showFull =
+    R.has(chartObj.chartType, chartStatUses) &&
+    !R.isEmpty(chartStatUses[chartObj.chartType])
+      ? R.length(currentStats) >= 2
+      : !R.isEmpty(currentStats)
 
   const getGroupsById = (groupedOutputDataId) =>
     R.pipe(R.path([groupedOutputDataId, 'groupLists']), R.keys)(groupedOutputs)
@@ -351,17 +356,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         R.assoc('groupingLevel', [])
       )(chartObj)
     )
-  }
-
-  const showFull = (obj) => {
-    const selectedStats = R.propOr([], 'stats', obj)
-    if (
-      R.has(R.prop('chartType', obj), chartStatUses) &&
-      !R.isEmpty(chartStatUses[obj.chartType])
-    ) {
-      return R.length(selectedStats) >= 2
-    }
-    return !R.isEmpty(selectedStats)
   }
 
   const DistributionTypeSelector = (
@@ -600,7 +594,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   )
 
   const DistributionVariantSelector = [
-    showFull(chartObj) && (
+    showFull && (
       <Select
         fullWidth
         sx={styles.item}
@@ -677,34 +671,33 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         </Grid>
       </ChartDropdownWrapper>
 
-      {showFull(chartObj) &&
-        chartObj.chartType === chartVariant.DISTRIBUTION && (
-          <Box sx={styles.row}>
-            <ChartDropdownWrapper sx={styles.field}>
-              <>
-                {mapIndexed(
-                  ({ selector, label, labelId }, index) => (
-                    <LabelledInput key={index} labelId={labelId} label={label}>
-                      {selector}
-                    </LabelledInput>
-                  ),
-                  [
-                    {
-                      selector: DistributionTypeSelector,
-                      label: 'Type',
-                      labelId: 'distribution-type-label',
-                    },
-                    {
-                      selector: DistributionYAxisSelector,
-                      label: 'Y Axis',
-                      labelId: 'distribution-y-axis-label',
-                    },
-                  ]
-                )}
-              </>
-            </ChartDropdownWrapper>
-          </Box>
-        )}
+      {showFull && chartObj.chartType === chartVariant.DISTRIBUTION && (
+        <Box sx={styles.row}>
+          <ChartDropdownWrapper sx={styles.field}>
+            <>
+              {mapIndexed(
+                ({ selector, label, labelId }, index) => (
+                  <LabelledInput key={index} labelId={labelId} label={label}>
+                    {selector}
+                  </LabelledInput>
+                ),
+                [
+                  {
+                    selector: DistributionTypeSelector,
+                    label: 'Type',
+                    labelId: 'distribution-type-label',
+                  },
+                  {
+                    selector: DistributionYAxisSelector,
+                    label: 'Y Axis',
+                    labelId: 'distribution-y-axis-label',
+                  },
+                ]
+              )}
+            </>
+          </ChartDropdownWrapper>
+        </Box>
+      )}
 
       <Box sx={styles.row}>
         <ChartDropdownWrapper sx={styles.field}>
@@ -713,7 +706,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
               Group By
             </InputLabel>
             <SelectAccordionList
-              disabled={!showFull(chartObj) || isDatasetNotSelected}
+              disabled={!showFull || isDatasetNotSelected}
               itemGroups={itemGroups}
               values={R.pipe(
                 R.props(['groupingId', 'groupingLevel']),
