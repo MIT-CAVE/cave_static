@@ -1,12 +1,4 @@
-import {
-  Button,
-  Paper,
-  Stack,
-  Select,
-  MenuItem,
-  TextField,
-  Box,
-} from '@mui/material'
+import { Paper, Select, MenuItem, TextField, Box } from '@mui/material'
 import { darken, lighten, styled } from '@mui/material/styles'
 import {
   DataGrid,
@@ -15,15 +7,9 @@ import {
 } from '@mui/x-data-grid'
 import dayjs from 'dayjs'
 import * as R from 'ramda'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { BiBracket } from 'react-icons/bi'
-import {
-  MdAddCircleOutline,
-  MdCheck,
-  MdDelete,
-  MdEdit,
-  MdRestore,
-} from 'react-icons/md'
+import { MdAddCircleOutline, MdDelete } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
 import GridEditMultiSelectCell, {
@@ -174,6 +160,31 @@ const getDateFormat = R.cond([
   [R.equals('dateTime'), R.always('MM-DD-YYYY hh:mm:ss A')],
 ])
 
+const EditableTextField = ({ value: initialValue, onSave, onBlur }) => {
+  const [value, setValue] = useState(initialValue || '')
+
+  const handleBlur = () => {
+    onSave(value)
+    onBlur()
+  }
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.target.blur()
+    }
+  }
+
+  return (
+    <TextField
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      autoFocus
+    />
+  )
+}
+
 const GridFilter = ({
   defaultFilters,
   sourceHeaderName = 'Source',
@@ -182,8 +193,9 @@ const GridFilter = ({
   onSave,
 }) => {
   const renamedFilters = R.map(
-    renameKeys({ option: 'relation', prop: 'source' })
-  )(defaultFilters)
+    renameKeys({ option: 'relation', prop: 'source' }),
+    defaultFilters
+  )
   const maxId = renamedFilters.reduce((max, row) => {
     return row.id > max ? row.id : max
   }, 0)
@@ -192,9 +204,11 @@ const GridFilter = ({
   }, 0)
   const [idCount, setIdCount] = useState(maxId + 1)
   const [groupIdCount, setGroupIdCount] = useState(maxGroupId + 1)
-  const [rows, setRows] = useState(renamedFilters)
-  const [initialRows, setInitialRows] = useState(renamedFilters)
-  const [editing, setEditing] = useState(false)
+  const [rows, setRows] = useState([
+    { id: 0, edit: true, depth: 0 },
+    ...renamedFilters,
+  ])
+  const [editingId, setEditingId] = useState(-1)
 
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
@@ -218,18 +232,54 @@ const GridFilter = ({
     [filterables, getNumberFormat]
   )
 
+  const handleSave = useCallback(
+    (newRows) => {
+      const newFilters = R.map(
+        R.pipe(
+          // R.dissoc('id'),
+          R.dissoc('depth'),
+          renameKeys({ relation: 'option', source: 'prop' })
+        )
+      )(newRows)
+      onSave(newFilters)
+    },
+    [onSave]
+  )
+
+  useEffect(() => {
+    // Check if all rule rows have required fields filled out
+    const filledRows = rows.slice(1).filter((row) => {
+      if (row.type === 'rule') {
+        return row.source !== '' && row.relation !== '' && row.value !== ''
+      }
+      return true // Non-rule rows (like groups) are always valid
+    })
+
+    const newFilters = R.map(
+      R.pipe(
+        // R.dissoc('id'),
+        R.dissoc('depth'),
+        renameKeys({ relation: 'option', source: 'prop' })
+      )
+    )(filledRows)
+
+    if (R.equals(newFilters, defaultFilters)) return
+
+    console.log('saving')
+    handleSave(filledRows)
+  }, [rows, handleSave, defaultFilters])
+
   const handleAddRow = useCallback(
     (groupId, depth) => {
       const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
         id: idCount,
         type: 'rule',
-        parentGroupId: groupId,
+        ...(groupId !== undefined && { parentGroupId: groupId }),
         source: '',
         relation: '',
         value: '',
         depth: depth + 1,
-        edit: true,
       }
       const newRows = [
         ...rows.slice(0, index + 1),
@@ -249,10 +299,9 @@ const GridFilter = ({
         id: idCount,
         type: 'group',
         groupId: groupIdCount,
-        parentGroupId: groupId,
+        ...(groupId !== undefined && { parentGroupId: groupId }),
         logic: 'and',
         depth: depth + 1,
-        edit: true,
       }
       const newRows = [
         ...rows.slice(0, index + 1),
@@ -297,49 +346,17 @@ const GridFilter = ({
     [deleteRow, rows]
   )
 
-  const unsavedChanges = useMemo(() => {
-    const removeEditProp = R.map(R.dissoc('edit'))
-    const cleanedRows = removeEditProp(rows).slice(1)
-    const cleanedInitialRows = removeEditProp(initialRows)
-    return !R.equals(cleanedRows)(cleanedInitialRows)
-  }, [rows, initialRows])
+  const resetEditing = () => setEditingId(-1)
 
-  const canCancel = useMemo(() => {
-    return rows.some((row) => row.edit) || unsavedChanges
-  }, [rows, unsavedChanges])
-
-  const canSaveAll = useMemo(() => {
-    const hasBlanks = rows
-      .filter((row) => row.type === 'rule')
-      .some(
-        (row) => row.source === '' || row.relation === '' || row.value === ''
+  const columns = useMemo(() => {
+    const handleRowChange = (id, field, value) => {
+      const newRows = rows.map((row) =>
+        row.id === id ? { ...row, [field]: value } : row
       )
-    return unsavedChanges && !hasBlanks
-  }, [rows, unsavedChanges])
+      setRows(newRows)
+    }
 
-  const handleClickSaveAll = useCallback(
-    (newRows) => {
-      const newFilters = R.map(
-        R.pipe(
-          // R.dissoc('id'),
-          R.dissoc('edit'),
-          R.dissoc('depth'),
-          renameKeys({ relation: 'option', source: 'prop' })
-        )
-      )(newRows)
-      onSave(newFilters)
-    },
-    [onSave]
-  )
-
-  const handleRowChange = (id, field, value) => {
-    setRows((prevRows) =>
-      prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-    )
-  }
-
-  const columns = useMemo(
-    () => [
+    return [
       {
         field: 'logic',
         headerName: 'Logic',
@@ -347,47 +364,51 @@ const GridFilter = ({
         display: 'flex',
         width: 90,
         editable: false,
-        renderCell: ({ row }) =>
-          row.edit ? (
-            row.type === 'group' ? (
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ marginRight: '3px', display: 'flex' }}>
+              {Array.from({ length: row.depth }).map((_, index) => {
+                const colors = ['#21cf46', '#db2323', '#277ee3']
+                const color = colors[index % colors.length]
+
+                return (
+                  <Box
+                    key={index}
+                    sx={{
+                      marginRight: '3px',
+                      width: '4px',
+                      height: '44px',
+                      color: color,
+                      backgroundColor: color,
+                    }}
+                  >
+                    |
+                  </Box>
+                )
+              })}
+            </Box>
+            {row.type === 'group' ? (
               <Select
                 value={row.logic}
                 onChange={(event) =>
                   handleRowChange(row.id, 'logic', event.target.value)
                 }
+                sx={{
+                  minWidth: 0,
+                  width: '100%',
+                  '& .MuiSelect-select': {
+                    padding: '4px 24px 4px 8px',
+                  },
+                }}
               >
                 <MenuItem value={'and'}>AND</MenuItem>
                 <MenuItem value={'or'}>OR</MenuItem>
               </Select>
             ) : (
               ''
-            )
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ marginRight: '3px', display: 'flex' }}>
-                {Array.from({ length: row.depth }).map((_, index) => {
-                  const colors = ['#21cf46', '#db2323', '#277ee3']
-                  const color = colors[index % colors.length]
-
-                  return (
-                    <Box
-                      key={index}
-                      sx={{
-                        marginRight: '3px',
-                        width: '4px',
-                        height: '44px',
-                        color: color,
-                        backgroundColor: color,
-                      }}
-                    >
-                      |
-                    </Box>
-                  )
-                })}
-              </Box>
-              {row.type === 'group' ? <Box>{row.logic.toUpperCase()}</Box> : ''}
-            </Box>
-          ),
+            )}
+          </Box>
+        ),
       },
       {
         field: 'source',
@@ -398,28 +419,19 @@ const GridFilter = ({
         editable: false,
         renderCell: ({ row }) => {
           return row.type === 'rule' ? (
-            row.edit ? (
-              <Select
-                value={row.source}
-                onChange={(event) =>
-                  handleRowChange(row.id, 'source', event.target.value)
-                }
-                sx={{ flex: 1 }}
-              >
-                {sourceValueOpts.map((option, index) => (
-                  <MenuItem key={index} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            ) : (
-              <OverflowText
-                text={
-                  sourceValueOpts.find((opts) => opts.value === row.source)
-                    .label
-                }
-              />
-            )
+            <Select
+              value={row.source}
+              onChange={(event) =>
+                handleRowChange(row.id, 'source', event.target.value)
+              }
+              sx={{ flex: 1 }}
+            >
+              {sourceValueOpts.map((option, index) => (
+                <MenuItem key={index} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
           ) : (
             ''
           )
@@ -439,7 +451,7 @@ const GridFilter = ({
           const valueType =
             value && value !== '' ? sourceValueTypes[value] : 'number'
           const relationValueOpts = getRelationValueOptsByType(valueType)
-          return row.edit ? (
+          return (
             <Select
               value={row.relation}
               onChange={(event) =>
@@ -453,8 +465,6 @@ const GridFilter = ({
                 </MenuItem>
               ))}
             </Select>
-          ) : (
-            relationValueOpts.find((opts) => opts.value === row.relation).label
           )
         },
       },
@@ -469,27 +479,31 @@ const GridFilter = ({
         renderCell: (params) => {
           const { value, row } = params
           if (row.type === 'group' || row.id === 0) return ''
-          if (row.edit) {
-            const valueType = sourceValueTypes[params.row.source]
+          if (editingId === row.id) {
+            const valueType = sourceValueTypes[row.source]
             if (valueType === 'multiSelect') {
               return (
                 <GridEditMultiSelectCell
-                  options={filterables[row.source].options}
-                  colorOptions={R.path([row.source, 'colorOptions'])(
+                  options={R.path([row.source, 'options'], filterables)}
+                  colorOptions={R.path(
+                    [row.source, 'colorOptions'],
                     filterableExtraProps
                   )}
-                  onChange={(event, newValue) =>
+                  onChange={(_, newValue) =>
                     handleRowChange(row.id, 'value', newValue)
                   }
+                  autoFocus
+                  onBlur={resetEditing}
                 />
               )
             } else {
               return (
-                <TextField
-                  value={row.value || ''}
-                  onChange={(event) =>
-                    handleRowChange(row.id, 'value', event.target.value)
+                <EditableTextField
+                  value={row.value}
+                  onSave={(newValue) =>
+                    handleRowChange(row.id, 'value', newValue)
                   }
+                  onBlur={resetEditing}
                 />
               )
             }
@@ -507,20 +521,45 @@ const GridFilter = ({
                     ).format(getDateFormat(valueType))
                   : value
             return R.cond([
-              [R.equals('boolean'), R.always(<GridBooleanCell {...params} />)],
+              [
+                R.equals('boolean'),
+                R.always(
+                  <Box
+                    onClick={() => setEditingId(row.id)}
+                    sx={{ cursor: 'pointer', width: '100%' }}
+                  >
+                    <GridBooleanCell {...params} />
+                  </Box>
+                ),
+              ],
               [
                 R.equals('multiSelect'),
                 R.always(
-                  <GridMultiSelectCell
-                    options={R.path([row.source, 'options'])(filterables)}
-                    colorOptions={R.path([row.source, 'colorOptions'])(
-                      filterableExtraProps
-                    )}
-                    {...params}
+                  <Box
+                    onClick={() => setEditingId(row.id)}
+                    sx={{ cursor: 'pointer', width: '100%' }}
+                  >
+                    <GridMultiSelectCell
+                      options={R.path([row.source, 'options'], filterables)}
+                      colorOptions={R.path(
+                        [row.source, 'colorOptions'],
+                        filterableExtraProps
+                      )}
+                      {...params}
+                    />
+                  </Box>
+                ),
+              ],
+              [
+                R.T,
+                R.always(
+                  <OverflowText
+                    text={`${formattedValue}`}
+                    onClick={() => setEditingId(row.id)}
+                    sx={{ cursor: 'pointer', width: '100%' }}
                   />
                 ),
               ],
-              [R.T, R.always(<OverflowText text={`${formattedValue}`} />)],
             ])(valueType)
           }
         },
@@ -579,20 +618,22 @@ const GridFilter = ({
               ]
         },
       },
-    ],
-    [
-      filterableExtraProps,
-      filterables,
-      handleAddRow,
-      handleAddGroup,
-      handleDeleteRow,
-      handleDeleteGroup,
-      numberFormatProps,
-      sourceHeaderName,
-      sourceValueOpts,
-      sourceValueTypes,
     ]
-  )
+  }, [
+    filterableExtraProps,
+    filterables,
+    handleAddRow,
+    handleAddGroup,
+    handleDeleteRow,
+    handleDeleteGroup,
+    numberFormatProps,
+    sourceHeaderName,
+    sourceValueOpts,
+    sourceValueTypes,
+    editingId,
+    setEditingId,
+    rows,
+  ])
 
   const maxDepth = useMemo(
     () => R.pipe(R.map(R.propOr(0, 'depth')), R.reduce(R.max, 0))(rows),
@@ -600,71 +641,18 @@ const GridFilter = ({
   )
 
   return (
-    <>
-      <Paper sx={styles.content}>
-        <StyledDataGrid
-          {...{ columns, rows }}
-          getRowHeight={R.always('auto')}
-          hideFooter
-          disableColumnMenu
-          disableColumnResize
-          disableColumnSorting
-          maxDepth={maxDepth}
-          getRowClassName={(params) => `row-color-${params.row.depth}`}
-        />
-      </Paper>
-
-      <Stack mt={1} spacing={1} direction="row" justifyContent="end">
-        {!editing && (
-          <Button
-            color="primary"
-            variant="contained"
-            startIcon={<MdEdit />}
-            onClick={() => {
-              const editableRows = rows.map((row) => ({ ...row, edit: true }))
-              editableRows.unshift({ id: 0, edit: true, depth: 0 })
-              setRows(editableRows)
-              setEditing(true)
-            }}
-          >
-            Edit
-          </Button>
-        )}
-        {editing && (
-          <Button
-            disabled={!canCancel}
-            color="error"
-            variant="contained"
-            startIcon={<MdRestore />}
-            onClick={() => {
-              setRows(initialRows)
-              setEditing(false)
-            }}
-          >
-            Cancel
-          </Button>
-        )}
-        {editing && (
-          <Button
-            disabled={!canSaveAll}
-            color="primary"
-            variant="contained"
-            startIcon={<MdCheck />}
-            onClick={() => {
-              const newRows = rows
-                .map((row) => ({ ...row, edit: false }))
-                .slice(1)
-              setRows(newRows)
-              handleClickSaveAll(newRows)
-              setInitialRows(newRows)
-              setEditing(false)
-            }}
-          >
-            Save Constraints
-          </Button>
-        )}
-      </Stack>
-    </>
+    <Paper sx={styles.content}>
+      <StyledDataGrid
+        {...{ columns, rows }}
+        getRowHeight={R.always('auto')}
+        hideFooter
+        disableColumnMenu
+        disableColumnResize
+        disableColumnSorting
+        maxDepth={maxDepth}
+        getRowClassName={(params) => `row-color-${params.row.depth}`}
+      />
+    </Paper>
   )
 }
 
