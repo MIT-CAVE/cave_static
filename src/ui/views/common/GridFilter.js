@@ -66,6 +66,13 @@ const styles = {
     bgcolor: 'rgba(18, 18, 18, 0.38)',
     height: '100%',
   },
+  select: {
+    minWidth: 0,
+    width: '100%',
+    '& .MuiSelect-select': {
+      padding: '4px 24px 4px 8px',
+    },
+  },
 }
 
 const RELATION_COL_BOOL_VALUE_OPTS = [
@@ -362,11 +369,19 @@ const GridFilter = ({
         headerName: 'Logic',
         headerAlign: 'center',
         display: 'flex',
-        width: 90,
+        width: 120,
         editable: false,
         renderCell: ({ row }) => (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ marginRight: '3px', display: 'flex' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              width: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            <Box sx={{ display: 'flex', flexShrink: 0 }}>
               {Array.from({ length: row.depth }).map((_, index) => {
                 const colors = ['#21cf46', '#db2323', '#277ee3']
                 const color = colors[index % colors.length]
@@ -387,23 +402,20 @@ const GridFilter = ({
                 )
               })}
             </Box>
+
             {row.type === 'group' ? (
-              <Select
-                value={row.logic}
-                onChange={(event) =>
-                  handleRowChange(row.id, 'logic', event.target.value)
-                }
-                sx={{
-                  minWidth: 0,
-                  width: '100%',
-                  '& .MuiSelect-select': {
-                    padding: '4px 24px 4px 8px',
-                  },
-                }}
-              >
-                <MenuItem value={'and'}>AND</MenuItem>
-                <MenuItem value={'or'}>OR</MenuItem>
-              </Select>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Select
+                  value={row.logic}
+                  onChange={(event) =>
+                    handleRowChange(row.id, 'logic', event.target.value)
+                  }
+                  sx={styles.select}
+                >
+                  <MenuItem value={'and'}>AND</MenuItem>
+                  <MenuItem value={'or'}>OR</MenuItem>
+                </Select>
+              </Box>
             ) : (
               ''
             )}
@@ -424,7 +436,7 @@ const GridFilter = ({
               onChange={(event) =>
                 handleRowChange(row.id, 'source', event.target.value)
               }
-              sx={{ flex: 1 }}
+              sx={styles.select}
             >
               {sourceValueOpts.map((option, index) => (
                 <MenuItem key={index} value={option.value}>
@@ -457,7 +469,7 @@ const GridFilter = ({
               onChange={(event) =>
                 handleRowChange(row.id, 'relation', event.target.value)
               }
-              sx={{ flex: 1 }}
+              sx={styles.select}
             >
               {relationValueOpts.map((option, index) => (
                 <MenuItem key={index} value={option.value}>
