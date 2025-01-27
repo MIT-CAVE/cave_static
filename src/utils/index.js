@@ -157,39 +157,30 @@ const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
   const filterValue = R.prop('value', filterObj)
   const type = R.path(['props', prop, 'type'], featureObj)
   const value = R.path(['values', prop], featureObj)
+  const option = R.prop('option', filterObj)
 
   if (type === 'selector') {
-    if (R.has('option', filterObj)) {
-      if (filterObj.option === 'exc') {
-        if (R.any(R.flip(R.includes)(value), filterValue)) {
-          return false
-        }
-      } else if (filterObj.option === 'inc') {
-        if (R.none(R.flip(R.includes)(value), filterValue)) {
-          return false
-        }
+    if (R.isNotNil(option)) {
+      if (option === 'exc') {
+        return !R.any(R.flip(R.includes)(value), filterValue)
+      } else if (option === 'inc') {
+        return !R.none(R.flip(R.includes)(value), filterValue)
       }
     } else {
-      if (R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)) {
-        return false
-      }
+      return R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
     }
-  } else if (type === 'num' && filterObj['option'] !== 'eq') {
-    if (!R.has('option', filterObj)) {
-      return true
-    }
-    return R.prop('option', filterObj) === 'gt'
-      ? R.gt(value, filterValue)
-      : R.prop('option', filterObj) === 'gte'
-        ? R.gte(value, filterValue)
-        : R.prop('option', filterObj) === 'lt'
-          ? R.lt(value, filterValue)
-          : R.lte(value, filterValue)
+  } else if (type === 'num' && option !== 'eq') {
+    return R.cond([
+      [R.equals('gt'), R.always(R.gt(value, filterValue))],
+      [R.equals('gte'), R.always(R.gte(value, filterValue))],
+      [R.equals('lt'), R.always(R.lt(value, filterValue))],
+      [R.equals('lte'), R.always(R.lte(value, filterValue))],
+      [R.T, R.T],
+    ])(option)
   } else {
-    if (filterValue !== value) {
-      return false
-    }
+    return filterValue === value
   }
+
   return true
 }
 
@@ -244,39 +235,34 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
                 R.path(['groupLists', format, i], statistics)
               ]
             ]
+      const option = R.prop('option', filterObj)
+
       if (format !== 'stat') {
-        if (R.has('option', filterObj)) {
-          if (R.any(R.flip(R.includes)(value), filterValue)) {
-            allow = false
-          }
+        if (R.isNotNil(option)) {
+          allow = !R.any(R.flip(R.includes)(value), filterValue)
         } else {
-          if (R.all(R.pipe(R.equals(value), R.not), filterValue)) {
-            allow = false
-          }
+          allow = !R.all(R.pipe(R.equals(value), R.not), filterValue)
         }
-      } else if (filterObj['option'] !== 'eq') {
-        return !R.has('option', filterObj)
-          ? true
-          : R.prop('option', filterObj) === 'gt'
-            ? R.gt(value, filterValue)
-            : R.prop('option', filterObj) === 'gte'
-              ? R.gte(value, filterValue)
-              : R.prop('option', filterObj) === 'lt'
-                ? R.lt(value, filterValue)
-                : R.lte(value, filterValue)
-      } else {
-        if (filterValue !== value) {
-          allow = false
-        }
+      } else if (R.isNotNil(option)) {
+        allow = R.cond([
+          [R.equals('eq'), R.always(R.equals(value, filterValue))],
+          [R.equals('gt'), R.always(R.gt(value, filterValue))],
+          [R.equals('gte'), R.always(R.gte(value, filterValue))],
+          [R.equals('lt'), R.always(R.lt(value, filterValue))],
+          [R.equals('lte'), R.always(R.lte(value, filterValue))],
+          [R.T, R.T],
+        ])(option)
       }
     }
+
     if (allow) {
-      if (window.crossOriginIsolated)
-        indiciesBuffer.grow(indiciesView.byteLength + 4)
-      else indiciesBuffer.resize(indiciesView.byteLength + 4)
+      window.crossOriginIsolated
+        ? indiciesBuffer.grow(indiciesView.byteLength + 4)
+        : indiciesBuffer.resize(indiciesView.byteLength + 4)
       indiciesView[indiciesView.length - 1] = i
     }
   }
+
   return indiciesBuffer
 }
 
