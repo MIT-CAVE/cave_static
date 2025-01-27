@@ -152,6 +152,25 @@ export const parseArray = (input) => {
   return R.map(R.trim)(items)
 }
 
+/**
+ * True if the value satisfies the condition, false otherwise. If condition is not
+ * one of the expected options, returns true.
+ *
+ * @param {number} value
+ * @param {'eq' | 'gt' | 'gte' | 'lt' | 'lte'} condition
+ * @param {number} filterValue
+ * @returns {boolean}
+ */
+const checkIfValueSatisfiesCondition = (value, condition, filterValue) =>
+  R.cond([
+    [R.equals('eq'), R.always(R.equals(value, filterValue))],
+    [R.equals('gt'), R.always(R.gt(value, filterValue))],
+    [R.equals('gte'), R.always(R.gte(value, filterValue))],
+    [R.equals('lt'), R.always(R.lt(value, filterValue))],
+    [R.equals('lte'), R.always(R.lte(value, filterValue))],
+    [R.T, R.T],
+  ])(condition)
+
 const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
   const prop = R.prop('prop', filterObj)
   const filterValue = R.prop('value', filterObj)
@@ -170,13 +189,7 @@ const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
       return R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
     }
   } else if (type === 'num' && option !== 'eq') {
-    return R.cond([
-      [R.equals('gt'), R.always(R.gt(value, filterValue))],
-      [R.equals('gte'), R.always(R.gte(value, filterValue))],
-      [R.equals('lt'), R.always(R.lt(value, filterValue))],
-      [R.equals('lte'), R.always(R.lte(value, filterValue))],
-      [R.T, R.T],
-    ])(option)
+    return checkIfValueSatisfiesCondition(value, option, filterValue)
   } else {
     return filterValue === value
   }
@@ -207,55 +220,50 @@ export const filterMapFeature = (filters, featureObj) => {
   )
 }
 
-export const filterGroupedOutputs = (statistics, filters, groupingIndicies) => {
-  const valueLists = statistics['valueLists']
-  const indicies = R.pipe(
-    R.prop('valueLists'),
-    R.values,
-    R.head,
-    R.length
-  )(statistics)
+const checkIfStatSatisfiesFilter = (statistics, groupingIndices, i, filter) => {
+  const valueLists = R.prop('valueLists', statistics)
+  const format = R.propOr('stat', 'format', filter)
+  const prop = R.prop('prop', filter)
+  const filterValue = R.prop('value', filter)
+  const data = R.path([format, 'data'], groupingIndices)
+  const value =
+    format === 'stat'
+      ? R.path([prop, i], valueLists)
+      : R.path(
+          [
+            prop,
+            R.path(['id', R.path(['groupLists', format, i], statistics)], data),
+          ],
+          data
+        )
+  const option = R.prop('option', filter)
+
+  if (format !== 'stat') {
+    return R.isNotNil(option)
+      ? !R.any(R.flip(R.includes)(value), filterValue)
+      : !R.all(R.pipe(R.equals(value), R.not), filterValue)
+  } else if (R.isNotNil(option)) {
+    return checkIfValueSatisfiesCondition(value, option, filterValue)
+  }
+
+  return true
+}
+
+export const filterGroupedOutputs = (statistics, filters, groupingIndices) => {
+  const valueLists = R.prop('valueLists', statistics)
+  const indicies = R.pipe(R.values, R.head, R.length)(valueLists)
   const indiciesBuffer = window.crossOriginIsolated
     ? new SharedArrayBuffer(0, { maxByteLength: indicies * 4 })
     : new ArrayBuffer(0, { maxByteLength: indicies * 4 })
   const indiciesView = new Uint32Array(indiciesBuffer)
+  const filterFunc = R.curry(checkIfStatSatisfiesFilter)(
+    statistics,
+    groupingIndices
+  )
 
   // fill and grow indicies buffer with filtered values
   for (let i = 0; i < indicies; i++) {
-    let allow = true
-    for (const filterObj of filters) {
-      const format = R.propOr('stat', 'format', filterObj)
-      const prop = R.prop('prop', filterObj)
-      const filterValue = R.prop('value', filterObj)
-      const value =
-        format === 'stat'
-          ? R.path([prop, i], valueLists)
-          : groupingIndicies[format]['data'][prop][
-              groupingIndicies[format]['data']['id'][
-                R.path(['groupLists', format, i], statistics)
-              ]
-            ]
-      const option = R.prop('option', filterObj)
-
-      if (format !== 'stat') {
-        if (R.isNotNil(option)) {
-          allow = !R.any(R.flip(R.includes)(value), filterValue)
-        } else {
-          allow = !R.all(R.pipe(R.equals(value), R.not), filterValue)
-        }
-      } else if (R.isNotNil(option)) {
-        allow = R.cond([
-          [R.equals('eq'), R.always(R.equals(value, filterValue))],
-          [R.equals('gt'), R.always(R.gt(value, filterValue))],
-          [R.equals('gte'), R.always(R.gte(value, filterValue))],
-          [R.equals('lt'), R.always(R.lt(value, filterValue))],
-          [R.equals('lte'), R.always(R.lte(value, filterValue))],
-          [R.T, R.T],
-        ])(option)
-      }
-    }
-
-    if (allow) {
+    if (R.all(R.curry(filterFunc)(i), filters)) {
       window.crossOriginIsolated
         ? indiciesBuffer.grow(indiciesView.byteLength + 4)
         : indiciesBuffer.resize(indiciesView.byteLength + 4)
