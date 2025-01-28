@@ -17,6 +17,8 @@ import {
   FaSortNumericDown,
   FaSortAlphaDown,
   FaSortAlphaUp,
+  FaChartBar,
+  FaFilter,
 } from 'react-icons/fa'
 import {
   MdClose,
@@ -27,6 +29,7 @@ import {
 import { useSelector } from 'react-redux'
 
 import { selectEditLayoutMode } from '../../../data/selectors'
+import { chartVariant } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
@@ -84,20 +87,25 @@ const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
 
 const ChartMenu = ({
   isMaximized,
-  isGroupedOutput,
   defaultToZero,
   onToggleDefaultToZero,
   showNA,
   onToggleShowNA,
-  showToolbar,
-  onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
   chartHoverOrder,
   onChartHover,
+  numFilters,
+  onOpenFilter,
+  onOpenChartTools,
+  vizType,
+  chartType,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+
+  const isGroupedOutput = vizType === 'groupedOutput'
+  const isMap = vizType === 'map'
 
   const handleEventAndCloseMenu = (onEvent) => (e) => {
     onEvent(e)
@@ -113,14 +121,38 @@ const ChartMenu = ({
       container
       sx={[
         styles.root,
-        !showToolbar && { top: isMaximized ? '4px' : '8px' },
         !isMaximized && editLayoutMode && { top: '20px', right: '8px' },
       ]}
     >
       <ButtonGroup
         variant="contained"
-        sx={[styles.actionBtn, showToolbar && { bgcolor: 'transparent' }]}
+        orientation="vertical"
+        sx={[styles.actionBtn]}
       >
+        <TooltipButton
+          title="Chart Tools"
+          placement="bottom-start"
+          onClick={onOpenChartTools}
+        >
+          <FaChartBar />
+        </TooltipButton>
+        {isGroupedOutput && (
+          <TooltipButton
+            title="Filter"
+            placement="bottom-start"
+            onClick={onOpenFilter}
+          >
+            <Badge
+              {...{
+                color: 'info',
+                badgeContent: numFilters,
+                invisible: numFilters < 1,
+              }}
+            >
+              <FaFilter />
+            </Badge>
+          </TooltipButton>
+        )}
         <TooltipButton
           title="View more Actions"
           placement="bottom-start"
@@ -138,33 +170,42 @@ const ChartMenu = ({
         slotProps={{ paper: { sx: { width: '20ch' } } }}
         sx={{ p: 0 }}
       >
-        <ToggleMenuItem
-          label="Show Toolbar"
-          value={showToolbar}
-          onClick={onShowToolbar}
-        />
         <BaseMenuItem
           label={isMaximized ? 'Minimize' : 'Maximize'}
           ReactIcon={isMaximized ? MdFullscreenExit : MdFullscreen}
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
-        <Select value={chartHoverOrder} onChange={onChartHover} sx={{ ml: 2 }}>
-          <MenuItem value="seriesAsc">
-            <FaSortAlphaDown fontSize={20} /> Name
-          </MenuItem>
-          <MenuItem value="seriesDesc">
-            <FaSortAlphaUp fontSize={20} /> Name
-          </MenuItem>
-          <MenuItem value="valueAsc">
-            <FaSortNumericDown fontSize={20} /> Value
-          </MenuItem>
-          <MenuItem value="valueDesc">
-            <FaSortNumericUp fontSize={20} /> Value
-          </MenuItem>
-        </Select>
-        <Divider />
+        {!isMap &&
+          ![
+            chartVariant.TABLE,
+            chartVariant.OVERVIEW,
+            chartVariant.TREEMAP,
+            chartVariant.GAUGE,
+          ].includes(chartType) && (
+            <>
+              <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
+              <Select
+                value={chartHoverOrder}
+                onChange={onChartHover}
+                sx={{ ml: 2 }}
+              >
+                <MenuItem value="seriesAsc">
+                  <FaSortAlphaDown fontSize={20} /> Name
+                </MenuItem>
+                <MenuItem value="seriesDesc">
+                  <FaSortAlphaUp fontSize={20} /> Name
+                </MenuItem>
+                <MenuItem value="valueAsc">
+                  <FaSortNumericDown fontSize={20} /> Value
+                </MenuItem>
+                <MenuItem value="valueDesc">
+                  <FaSortNumericUp fontSize={20} /> Value
+                </MenuItem>
+              </Select>
+              <Divider />
+            </>
+          )}
         {isGroupedOutput && [
           <ToggleMenuItem
             key="defaultToZero"

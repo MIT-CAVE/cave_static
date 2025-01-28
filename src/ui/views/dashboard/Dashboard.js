@@ -14,7 +14,6 @@ import { useSelector } from 'react-redux'
 import AutoSizer from 'react-virtualized-auto-sizer'
 
 import ChartMenu from './ChartMenu'
-import ChartToolbar from './ChartToolbar'
 import DashboardGlobalOutput from './DashboardGlobalOutputs'
 
 import {
@@ -24,7 +23,6 @@ import {
   selectSync,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
-  selectShowToolbar,
   selectEditLayoutMode,
   selectCharts,
 } from '../../../data/selectors'
@@ -77,7 +75,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
-  const showToolbarDefault = useSelector(selectShowToolbar)
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const sync = useSelector(selectSync)
 
@@ -85,13 +82,13 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const { chartToolsOpen, handleOpenChartTools, handleCloseChartTools } =
     useChartTools()
 
-  const showToolbar = R.propOr(showToolbarDefault, 'showToolbar')(chartObj)
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const defaultFilters = R.propOr([], 'filters')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
+  const chartType = R.propOr('bar', 'chartType')(chartObj)
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
@@ -101,15 +98,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
       sync: !includesPath(R.values(sync), path),
     }),
     [chartHoverOrder, sync, chartObj, path]
-  )
-
-  const handleShowToolbar = useMutateState(
-    () => ({
-      path,
-      value: R.assoc('showToolbar', !showToolbar)(chartObj),
-      sync: !includesPath(R.values(sync), path),
-    }),
-    [showToolbar, sync, chartObj, path]
   )
 
   const handleToggleMaximize = useMutateState(
@@ -201,7 +189,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
     <Paper
       sx={[
         styles.paper,
-        isMaximized && !showToolbar && { p: 0 },
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
         (chartToolsOpen || modalOpen) && {
           outline: 'none',
@@ -235,27 +222,19 @@ const DashboardItem = ({ chartObj, index, path }) => {
         open={chartToolsOpen}
         onClose={handleCloseChartTools}
       />
-      {showToolbar && (
-        <ChartToolbar
-          numFilters={numActiveStatFilters + numGroupingFilters}
-          showFilter={vizType === 'groupedOutput'}
-          onOpenFilter={handleOpenModal}
-          onOpenChartTools={handleOpenChartTools}
-          {...{ chartObj, index, path }}
-        />
-      )}
       {!lockedLayout && !chartObj.lockedLayout && (
         <ChartMenu
-          {...{ isMaximized, showToolbar, chartHoverOrder }}
+          {...{ isMaximized, chartHoverOrder, vizType, chartType }}
           onRemoveChart={handleRemoveChart}
           onToggleMaximize={handleToggleMaximize}
-          onShowToolbar={handleShowToolbar}
           defaultToZero={defaultToZero}
           onToggleDefaultToZero={handleDefaultToZero}
           showNA={showNA}
           onToggleShowNA={handleToggleShowNA}
-          isGroupedOutput={vizType === 'groupedOutput'}
           onChartHover={handleChartHover}
+          numFilters={numActiveStatFilters + numGroupingFilters}
+          onOpenFilter={handleOpenModal}
+          onOpenChartTools={handleOpenChartTools}
         />
       )}
       {vizType === 'groupedOutput' ? (

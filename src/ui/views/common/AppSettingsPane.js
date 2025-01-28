@@ -28,7 +28,6 @@ import {
   selectLocalDraggables,
   selectMirrorMode,
   selectPaneState,
-  selectShowToolbar,
   selectSync,
   selectSyncToggles,
 } from '../../../data/selectors'
@@ -209,39 +208,6 @@ const DemoSwitch = () => {
   )
 }
 
-const ToolbarSwitch = () => {
-  const showToolbar = useSelector(selectShowToolbar)
-  const dispatch = useDispatch()
-
-  const handleChange = () => {
-    dispatch(
-      mutateLocal({
-        path: ['settings', 'defaults', 'showToolbar'],
-        value: !showToolbar,
-        sync: false,
-      })
-    )
-  }
-  return (
-    <FormControl component="fieldset">
-      <FormGroup row>
-        <FormControlLabel
-          value="start"
-          control={
-            <Switch
-              name="cave-toggle-chart-toolbar"
-              checked={showToolbar}
-              onChange={handleChange}
-            />
-          }
-          label="Show Chart Toolbar"
-          labelPlacement="start"
-        />
-      </FormGroup>
-    </FormControl>
-  )
-}
-
 const DraggableSwitch = ({ id, name }) => {
   const draggables = useSelector(selectLocalDraggables)
   const dispatch = useDispatch()
@@ -313,9 +279,6 @@ const AppSettingsPane = () => {
       </FieldContainer>
       <FieldContainer title="Demo">
         <DemoSwitch />
-      </FieldContainer>
-      <FieldContainer title="Defaults">
-        <ToolbarSwitch />
       </FieldContainer>
       <FieldContainer title="Draggables">
         <FormControl component="fieldset">
