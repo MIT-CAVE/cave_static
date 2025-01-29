@@ -224,7 +224,10 @@ const LegendRowDetails = ({
         {...{ expanded }}
         onChange={onToggleExpanded}
       >
-        <AccordionSummary expandIcon={<MdExpandMore size={24} />}>
+        <AccordionSummary
+          component="div"
+          expandIcon={<MdExpandMore size={24} />}
+        >
           <Grid2
             key={id}
             container
@@ -233,7 +236,7 @@ const LegendRowDetails = ({
           >
             <Grid2 size="auto">
               <Switch
-                name={`cave-toggle-map-${id}`}
+                name={`map-feature-switch-${id}`}
                 size="small"
                 checked={value}
                 onClick={handleChangeVisibility}
