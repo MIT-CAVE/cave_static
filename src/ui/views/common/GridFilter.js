@@ -272,7 +272,6 @@ const GridFilter = ({
 
     if (R.equals(newFilters, defaultFilters)) return
 
-    console.log('saving')
     handleSave(filledRows)
   }, [rows, handleSave, defaultFilters])
 

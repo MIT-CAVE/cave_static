@@ -1533,7 +1533,6 @@ export const selectMemoizedChartFunc = createSelector(
             resolvedStats
           )
 
-          console.log(resolvedStats, 'merged into:', mergedValues)
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])
