@@ -47,6 +47,7 @@ import {
   selectEffectiveNodesBy,
   selectGeoRange,
   selectLegendLayoutFunc,
+  selectLegendNumberFormatFunc,
   selectLegendViewFunc,
   selectLegendWidthFunc,
   selectNodeRange,
@@ -67,6 +68,7 @@ import {
 } from '../../../utils/enums'
 import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 import {
+  getScaledValueAlt,
   getScaleParamDefaults,
   getScaleParamLabel,
   scaleIndexedOptions,
@@ -81,6 +83,7 @@ import {
   getColorString,
   includesPath,
   NumberFormat,
+  parseGradient,
 } from '../../../utils'
 
 const styles = {
@@ -412,6 +415,175 @@ export const useGradient = ({
     getValueLabelAt,
     handleSetAutoValueAt,
   }
+}
+
+const GradientColorMarker = ({
+  mapId,
+  id,
+  group,
+  colorBy,
+  colorByProp,
+  getRange,
+}) => {
+  const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
+  const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
+
+  const valueRange = useMemo(() => {
+    const colorRange = getRange(id, colorBy, mapId)
+    // Groupable nodes (only)
+    const clusterRange =
+      getRangeOnZoom != null ? (getRangeOnZoom(mapId)[id] ?? {}) : {}
+    return group && clusterRange.color
+      ? R.mergeDeepLeft(clusterRange.color, colorRange)
+      : colorRange
+  }, [colorBy, getRange, getRangeOnZoom, group, id, mapId])
+
+  const { colors, values } = useMemo(() => {
+    const numberFormat = legendNumberFormatFunc(colorByProp)
+    return parseGradient('color', numberFormat.precision)(valueRange)
+  }, [colorByProp, legendNumberFormatFunc, valueRange])
+
+  const gradientColors = useMemo(() => {
+    const { scale, scaleParams } = valueRange.gradient
+    const minValue = Math.min(...values)
+    const maxValue = Math.max(...values)
+    const lastIndex = values.length - 1
+    const isStepScale = scale === scaleId.STEP
+
+    const scaledValues = R.map((value) =>
+      getScaledValueAlt(
+        [minValue, maxValue],
+        [0, 100],
+        value,
+        isStepScale ? scaleId.LINEAR : scale,
+        scaleParams
+      )
+    )(values)
+
+    const scaledColors =
+      minValue === maxValue
+        ? isStepScale
+          ? [`${colors[0]} 1%`, `${colors[lastIndex]} 1% 100%`]
+          : [`${colors[lastIndex]} 0% 100%`]
+        : R.addIndex(R.zipWith)(
+            (color, scaledValue, idx) =>
+              !isStepScale
+                ? `${color} ${scaledValue}%`
+                : idx > 0
+                  ? `${color} ${scaledValues[idx - 1]}% ${scaledValue}%`
+                  : `${color} 1%`,
+            colors
+          )(scaledValues)
+
+    return scaledColors.filter((value) => value != null)
+  }, [colors, valueRange, values])
+
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        width: '100%',
+        background: `linear-gradient(to right, ${gradientColors.join(', ')})`,
+        borderRadius: 1,
+      }}
+    />
+  )
+}
+
+const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
+  const { options, fallback } = colorByProp
+
+  const displayedColors = useMemo(() => {
+    const maxVisible = 9 // Max number of color dots
+    return R.pipe(
+      R.pluck('color'),
+      R.values,
+      R.when(
+        R.always(anyNullValue && fallback?.color != null),
+        R.append(fallback?.color)
+      ),
+      R.slice(0, maxVisible)
+    )(options)
+  }, [anyNullValue, fallback?.color, options])
+
+  const width = 28
+  const height = 20
+  const numColors = displayedColors.length
+  const circleCoords = useMemo(
+    () =>
+      numColors < 5
+        ? [
+            { cx: width * 0.2, cy: height * 0.2 },
+            { cx: width * 0.8, cy: height * 0.2 },
+            { cx: width * 0.2, cy: height * 0.8 },
+            { cx: width * 0.8, cy: height * 0.8 },
+          ]
+        : numColors < 7
+          ? [
+              { cx: width * 0.2, cy: height * 0.2 },
+              { cx: width * 0.8, cy: height * 0.2 },
+              { cx: width * 0.5, cy: height * 0.2 },
+              { cx: width * 0.5, cy: height * 0.8 },
+              { cx: width * 0.2, cy: height * 0.8 },
+              { cx: width * 0.8, cy: height * 0.8 },
+            ]
+          : [
+              { cx: width * 0.1, cy: height * 0.1 },
+              { cx: width * 0.5, cy: height * 0.1 },
+              { cx: width * 0.9, cy: height * 0.1 },
+              { cx: width * 0.1, cy: height * 0.5 },
+              { cx: width * 0.5, cy: height * 0.5 },
+              { cx: width * 0.9, cy: height * 0.5 },
+              { cx: width * 0.1, cy: height * 0.9 },
+              { cx: width * 0.5, cy: height * 0.9 },
+              { cx: width * 0.9, cy: height * 0.9 },
+            ],
+    [numColors]
+  )
+  const radius = useMemo(
+    () =>
+      Math.min(height, width) *
+      (numColors < 5 ? 0.2 : numColors < 7 ? 0.15 : 0.1),
+    [numColors]
+  )
+
+  return (
+    <svg {...{ height, width }}>
+      {displayedColors.map((color, index) => (
+        <circle key={index} {...circleCoords[index]} r={radius} fill={color} />
+      ))}
+    </svg>
+  )
+}
+
+export const LegendColorMarker = ({
+  mapId,
+  id,
+  group,
+  colorBy,
+  colorByProp,
+  anyNullValue,
+  getRange,
+}) => {
+  const isCategorical = colorByProp.type !== propId.NUMBER
+  return (
+    <Box sx={{ height: '20px', width: '28px' }}>
+      {isCategorical ? (
+        <CategoricalColorMarker {...{ colorByProp, anyNullValue }} />
+      ) : (
+        <GradientColorMarker
+          {...{
+            mapId,
+            id,
+            group,
+            colorBy,
+            colorByProp,
+            getRange,
+          }}
+        />
+      )}
+    </Box>
+  )
 }
 
 // TODO: Move this to some `legendUtils.js` module

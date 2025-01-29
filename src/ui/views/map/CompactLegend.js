@@ -10,8 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
-import { BiDetail } from 'react-icons/bi'
+import { memo, useCallback, useMemo } from 'react'
 import { LuGroup, LuUngroup } from 'react-icons/lu'
 import { MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -29,6 +28,7 @@ import {
   LegendRowGeo,
   LegendPopper,
   LegendSettings,
+  LegendColorMarker,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
@@ -341,29 +341,29 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({
-  mapId,
-  id,
-  mapFeaturesBy,
-  anchorEl,
-  onOpen,
-  onClose,
-  ...props
-}) => {
+const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
+  const { mapId, id, group, icon, colorBy, filters, getRange } = props
   const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
 
   const mapFeatures = mapFeaturesBy(id, mapId)
   const firstFeature = mapFeatures[0] ?? {}
+  const featureTypeProps = mapFeatures[0].props
   const name = firstFeature.name ?? id
 
   const numActiveFilters = useMemo(
-    () => getNumActiveFilters(props.filters),
-    [props.filters]
+    () => getNumActiveFilters(filters),
+    [filters]
   )
   const featureTypeValues = useMemo(
     () => mapFeatures.map((feature) => feature.values),
     [mapFeatures]
   )
+  const hasAnyNullValue = useCallback(
+    (propId) =>
+      !group && R.pipe(R.pluck(propId), R.any(R.isNil))(featureTypeValues),
+    [featureTypeValues, group]
+  )
+
   if (mapFeatures.length === 0) return null
 
   const popperWidth =
@@ -384,15 +384,22 @@ const LegendRow = ({
         />
       </Grid2>
       <Grid2 size="auto">
-        <FetchedIcon iconName={props.icon} />
+        <FetchedIcon iconName={icon} />
       </Grid2>
       <Grid2 size="grow" sx={{ textAlign: 'start' }}>
         <Typography variant="caption">{name}</Typography>
       </Grid2>
       <Grid2 size="auto">
         <LegendPopper
+          sx={{ p: 0.75 }}
           {...{ mapId, anchorEl, onOpen, onClose }}
-          IconComponent={BiDetail}
+          IconComponent={() => (
+            <LegendColorMarker
+              colorByProp={featureTypeProps[colorBy]}
+              anyNullValue={hasAnyNullValue(colorBy)}
+              {...{ mapId, id, group, colorBy, getRange }}
+            />
+          )}
           slotProps={{
             badge: {
               showBadge: numActiveFilters > 0,
@@ -406,8 +413,12 @@ const LegendRow = ({
           }}
         >
           <LegendRowDetails
-            featureTypeProps={mapFeatures[0].props}
-            {...{ mapId, id, name, featureTypeValues, ...props }}
+            {...{
+              name,
+              featureTypeProps,
+              featureTypeValues,
+              ...props,
+            }}
           />
         </LegendPopper>
       </Grid2>
