@@ -72,7 +72,6 @@ const styles = {
   },
   legendGroup: {
     alignItems: 'start',
-    py: 0.75,
     border: '1px outset rgb(128 128 128)',
   },
   details: {
@@ -342,7 +341,16 @@ const LegendRowDetails = ({
 }
 
 const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
-  const { mapId, id, group, icon, colorBy, filters, getRange } = props
+  const {
+    mapId,
+    id,
+    group,
+    icon,
+    colorBy,
+    filters,
+    getRange,
+    onChangeVisibility,
+  } = props
   const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
 
   const mapFeatures = mapFeaturesBy(id, mapId)
@@ -363,66 +371,84 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
       !group && R.pipe(R.pluck(propId), R.any(R.isNil))(featureTypeValues),
     [featureTypeValues, group]
   )
+  const handleChangeVisibility = useCallback(
+    (event) => {
+      onChangeVisibility(event)
+      event.stopPropagation()
+    },
+    [onChangeVisibility]
+  )
 
   if (mapFeatures.length === 0) return null
 
+  const open = Boolean(anchorEl)
   const popperWidth =
     legendWidth === legendWidths.WIDE ? LEGEND_WIDE_WIDTH : LEGEND_SLIM_WIDTH
   return (
-    <Grid2
-      key={id}
-      container
-      spacing={1}
-      sx={{ alignItems: 'center', width: '100%', px: 1 }}
+    <ToggleButton
+      fullWidth
+      size="small"
+      color="primary"
+      value="details"
+      selected={open}
+      sx={{ textTransform: 'initial', borderRadius: 0, border: 'none' }}
+      // Toggle when clicking on the opened popper
+      onClick={anchorEl == null ? onOpen : onClose}
     >
-      <Grid2 size="auto">
-        <Switch
-          name={`cave-toggle-map-${id}`}
-          size="small"
-          checked={props.value}
-          onClick={props.onChangeVisibility}
-        />
-      </Grid2>
-      <Grid2 size="auto">
-        <FetchedIcon iconName={icon} />
-      </Grid2>
-      <Grid2 size="grow" sx={{ textAlign: 'start' }}>
-        <Typography variant="caption">{name}</Typography>
-      </Grid2>
-      <Grid2 size="auto">
-        <LegendPopper
-          sx={{ p: 0.75 }}
-          {...{ mapId, anchorEl, onOpen, onClose }}
-          IconComponent={() => (
-            <LegendColorMarker
-              colorByProp={featureTypeProps[colorBy]}
-              anyNullValue={hasAnyNullValue(colorBy)}
-              {...{ mapId, id, group, colorBy, getRange }}
-            />
-          )}
-          slotProps={{
-            badge: {
-              showBadge: numActiveFilters > 0,
-              overlap: 'rectangular',
-              size: 14,
-              color: '#29b6f6',
-              reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
-              sx: { right: 0, top: 0 },
-            },
-            popper: { sx: { width: popperWidth } },
-          }}
-        >
-          <LegendRowDetails
-            {...{
-              name,
-              featureTypeProps,
-              featureTypeValues,
-              ...props,
-            }}
+      <Grid2
+        key={id}
+        container
+        spacing={1}
+        sx={{ alignItems: 'center', width: '100%' }}
+      >
+        <Grid2 size="auto">
+          <Switch
+            name={`cave-toggle-map-${id}`}
+            size="small"
+            checked={props.value}
+            onClick={handleChangeVisibility}
           />
-        </LegendPopper>
+        </Grid2>
+        <Grid2 size="auto">
+          <FetchedIcon iconName={icon} size={20} />
+        </Grid2>
+        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+          <Typography variant="caption">{name}</Typography>
+        </Grid2>
+        <Grid2 size="auto">
+          <LegendPopper
+            {...{ mapId, anchorEl, onOpen, onClose }}
+            IconComponent={() => (
+              <LegendColorMarker
+                colorByProp={featureTypeProps[colorBy]}
+                anyNullValue={hasAnyNullValue(colorBy)}
+                {...{ mapId, id, group, colorBy, getRange }}
+              />
+            )}
+            slotProps={{
+              badge: {
+                showBadge: numActiveFilters > 0,
+                overlap: 'rectangular',
+                size: 14,
+                color: '#29b6f6',
+                reactIcon: () => <MdFilterAlt color="#4a4a4a" />,
+                sx: { right: 0, top: 0 },
+              },
+              popper: { sx: { width: popperWidth } },
+            }}
+          >
+            <LegendRowDetails
+              {...{
+                name,
+                featureTypeProps,
+                featureTypeValues,
+                ...props,
+              }}
+            />
+          </LegendPopper>
+        </Grid2>
       </Grid2>
-    </Grid2>
+    </ToggleButton>
   )
 }
 
@@ -463,7 +489,11 @@ const MapFeature = ({ mapId, legendGroupId, id, value, ...props }) => {
 const StyledWrapper = (props) => (
   <OptionalWrapper
     component={Paper}
-    wrapperProps={{ component: Stack, spacing: 0.5, sx: styles.legendGroup }}
+    wrapperProps={{
+      component: Stack,
+      sx: styles.legendGroup,
+      divider: <Divider flexItem />,
+    }}
     {...props}
   />
 )
@@ -484,23 +514,25 @@ const LegendGroup = ({
   return (
     <StyledWrapper wrap={showLegendGroupNames}>
       {showLegendGroupNames && (
-        <>
-          <Typography sx={{ alignItems: 'center', px: 1 }} variant="subtitle1">
-            {legendGroup.name}
-          </Typography>
-          <Divider sx={{ width: '100%', mb: '2px !important' }} />
-        </>
+        <Typography
+          sx={{ alignItems: 'center', px: 1, my: 1 }}
+          variant="subtitle1"
+        >
+          {legendGroup.name}
+        </Typography>
       )}
-      {legendGroupData.map(({ id, value, ...props }) => (
-        <MapFeature
-          key={id}
-          legendGroupId={legendGroup.id}
-          anchorEl={id === openId || openId == null ? anchorEl : null}
-          onOpen={handleOpenById(id)}
-          onClose={handleClose}
-          {...{ mapId, id, value, ...props }}
-        />
-      ))}
+      <Stack divider={<Divider flexItem />}>
+        {legendGroupData.map(({ id, value, ...props }) => (
+          <MapFeature
+            key={id}
+            legendGroupId={legendGroup.id}
+            anchorEl={id === openId || openId == null ? anchorEl : null}
+            onOpen={handleOpenById(id)}
+            onClose={handleClose}
+            {...{ mapId, id, value, ...props }}
+          />
+        ))}
+      </Stack>
     </StyledWrapper>
   )
 }
@@ -536,9 +568,10 @@ const CompactLegend = ({ mapId }) => {
     <LegendRoot sx={styles.root} elevation={12} {...{ mapId }}>
       <LegendHeader
         {...{ mapId, popperProps }}
+        sx={{ my: 0 }}
         slotProps={{
           popper: { sx: { zIndex: 3 } },
-          icon: { size: 16 },
+          icon: { size: 20 },
         }}
       >
         <LegendSettings {...{ mapId }} />

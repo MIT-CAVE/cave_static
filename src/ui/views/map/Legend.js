@@ -732,7 +732,6 @@ export const LegendPopper = ({
   children,
   slotProps = {},
   anchorEl,
-  onOpen,
   onClose,
   ...props
 }) => {
@@ -746,15 +745,7 @@ export const LegendPopper = ({
   } = slotProps
 
   return (
-    <ToggleButton
-      size="small"
-      color="primary"
-      value="details"
-      // Toggle when clicking on the opened popper
-      onClick={anchorEl == null ? onOpen : onClose}
-      selected={open}
-      {...props}
-    >
+    <Box sx={{ p: 0.25, ml: 1, borderRadius: 1 }} {...props}>
       <WithBadge
         size={14}
         color="#29b6f6"
@@ -794,8 +785,8 @@ export const LegendPopper = ({
                   ? 'calc(100% - 165px)'
                   : 'calc(100% - 88px)',
                 maxWidth: showPitchSlider
-                  ? 'calc(100% - 164px)'
-                  : 'calc(100% - 128px)',
+                  ? 'calc(100% - 334px)'
+                  : 'calc(100% - 300px)',
               },
               ...forceArray(muiSlotProps.popper?.sx),
             ]}
@@ -804,7 +795,7 @@ export const LegendPopper = ({
           </Popper>
         </ClickAwayListener>
       </MapPortal>
-    </ToggleButton>
+    </Box>
   )
 }
 
@@ -1072,37 +1063,58 @@ export const LegendHeader = ({
   mapId,
   slotProps = {},
   sx = [],
-  popperProps: { anchorEl, openId, handleOpenById, handleClose },
+  popperProps,
   children,
-}) => (
-  <Grid2
-    container
-    spacing={1}
-    sx={[{ alignItems: 'center', px: 0.8, my: 1 }, ...forceArray(sx)]}
-  >
-    <Grid2 size="grow" sx={{ textAlign: 'start' }}>
-      <Typography variant="h6" {...slotProps.label}>
-        {label}
-      </Typography>
-    </Grid2>
-    <Grid2 size="auto">
-      <LegendPopper
-        sx={styles.toggleButton}
-        IconComponent={RiSettings5Line}
-        {...{ mapId, slotProps }}
-        anchorEl={
-          openId === LEGEND_SETTINGS_POPPER_ID || openId == null
-            ? anchorEl
-            : null
-        }
-        onOpen={handleOpenById(LEGEND_SETTINGS_POPPER_ID)}
-        onClose={handleClose}
+}) => {
+  const { openId, handleOpenById, handleClose } = popperProps
+  const anchorEl =
+    openId === LEGEND_SETTINGS_POPPER_ID || openId == null
+      ? popperProps.anchorEl
+      : null
+  const handleOpen = handleOpenById(LEGEND_SETTINGS_POPPER_ID)
+  return (
+    <ToggleButton
+      fullWidth
+      size="small"
+      color="primary"
+      value="details"
+      selected={Boolean(anchorEl)}
+      sx={{
+        p: 0,
+        textTransform: 'initial',
+        border: 'none',
+        borderRadius: 0,
+      }}
+      // Toggle when clicking on the opened popper
+      onClick={anchorEl == null ? handleOpen : handleClose}
+    >
+      <Grid2
+        container
+        spacing={1}
+        sx={[
+          { alignItems: 'center', px: 0.8, my: 1, width: '100%' },
+          ...forceArray(sx),
+        ]}
       >
-        {children}
-      </LegendPopper>
-    </Grid2>
-  </Grid2>
-)
+        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+          <Typography variant="h6" {...slotProps.label}>
+            {label}
+          </Typography>
+        </Grid2>
+        <Grid2 size="auto">
+          <LegendPopper
+            sx={styles.toggleButton}
+            IconComponent={RiSettings5Line}
+            {...{ anchorEl, mapId, slotProps }}
+            onClose={handleClose}
+          >
+            {children}
+          </LegendPopper>
+        </Grid2>
+      </Grid2>
+    </ToggleButton>
+  )
+}
 
 export const LegendRoot = ({ mapId, ...props }) => {
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
