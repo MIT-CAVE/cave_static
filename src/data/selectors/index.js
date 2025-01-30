@@ -521,7 +521,7 @@ export const selectAllowedStats = createSelector(
 export const selectChartStats = createSelector(
   [selectAllowedStats],
   R.pipe(
-    R.map(R.filter(R.curry(R.propOr(true, 'allowCharting', R.__)))),
+    R.map(R.filter(R.propOr(true, 'allowCharting'))),
     R.filter(R.isNotEmpty)
   )
 )
