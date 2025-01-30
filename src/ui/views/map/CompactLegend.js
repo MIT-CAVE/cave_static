@@ -417,7 +417,7 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
         </Grid2>
         <Grid2 size="auto">
           <LegendPopper
-            {...{ mapId, anchorEl, onOpen, onClose }}
+            {...{ mapId, anchorEl, onClose }}
             IconComponent={() => (
               <LegendColorMarker
                 colorByProp={featureTypeProps[colorBy]}
