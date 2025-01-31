@@ -43,6 +43,7 @@ const styles = {
 const SelectAccordionList = ({
   disabled,
   values,
+  label,
   placeholder,
   maxGrouping,
   itemGroups = {},
@@ -191,7 +192,8 @@ const SelectAccordionList = ({
           // rendered as part of the `startAdornment` prop of a MUI `InputBase` component.
           return (
             <TextField
-              {...other}
+              fullWidth
+              {...{ label, ...other }}
               InputProps={{
                 ...InputProps,
                 startAdornment: (

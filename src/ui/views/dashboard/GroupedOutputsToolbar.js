@@ -3,7 +3,6 @@ import {
   FormControl,
   Grid2 as Grid,
   InputLabel,
-  Stack,
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
@@ -635,13 +634,11 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         chartOptions={CHART_OPTIONS}
       />
 
-      <Stack direction="row">
-        <Box sx={styles.row}>
-          <ChartDropdownWrapper sx={styles.field}>
-            {DatasetSelector}
-          </ChartDropdownWrapper>
-        </Box>
-      </Stack>
+      <Box sx={styles.row}>
+        <ChartDropdownWrapper sx={styles.field}>
+          {DatasetSelector}
+        </ChartDropdownWrapper>
+      </Box>
 
       <ChartDropdownWrapper
         sx={[styles.field, { flexDirection: 'column', flexGrow: 0, gap: 1 }]}
@@ -701,27 +698,23 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
 
       <Box sx={styles.row}>
         <ChartDropdownWrapper sx={styles.field}>
-          <FormControl fullWidth>
-            <InputLabel id="group-by-label" shrink>
-              Group By
-            </InputLabel>
-            <SelectAccordionList
-              disabled={!showFull || isDatasetNotSelected}
-              itemGroups={itemGroups}
-              values={R.pipe(
-                R.props(['groupingId', 'groupingLevel']),
-                R.map(R.defaultTo('')),
-                R.apply(R.zip)
-              )(chartObj)}
-              maxGrouping={chartMaxGrouping[chartObj.chartType]}
-              getLabel={getLabelFn(categories)}
-              getSubLabel={getSubLabelFn(categories)}
-              onAddGroup={handleAddGroup}
-              onChangeGroupIndex={handleChangeGroupIndexFn}
-              onDeleteGroup={handleDeleteGroupFn}
-              onSelectGroup={handleSelectGroupFn}
-            />
-          </FormControl>
+          <SelectAccordionList
+            disabled={!showFull || isDatasetNotSelected}
+            itemGroups={itemGroups}
+            values={R.pipe(
+              R.props(['groupingId', 'groupingLevel']),
+              R.map(R.defaultTo('')),
+              R.apply(R.zip)
+            )(chartObj)}
+            label="Group By"
+            maxGrouping={chartMaxGrouping[chartObj.chartType]}
+            getLabel={getLabelFn(categories)}
+            getSubLabel={getSubLabelFn(categories)}
+            onAddGroup={handleAddGroup}
+            onChangeGroupIndex={handleChangeGroupIndexFn}
+            onDeleteGroup={handleDeleteGroupFn}
+            onSelectGroup={handleSelectGroupFn}
+          />
         </ChartDropdownWrapper>
       </Box>
     </Box>

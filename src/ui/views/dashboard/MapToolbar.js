@@ -1,13 +1,13 @@
 import {
   Box,
   Divider,
-  Paper,
-  IconButton,
   Typography,
   Grid2 as Grid,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { MdDelete, MdCopyAll } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -17,6 +17,9 @@ import {
   selectCurrentPage,
   selectMapData,
 } from '../../../data/selectors'
+import { RippleBox } from '../map/Legend'
+
+import { OverflowText } from '../../compound'
 
 import { getFreeName, includesPath } from '../../../utils'
 
@@ -28,27 +31,27 @@ const styles = {
     flexDirection: 'column',
     overflow: 'auto',
   },
-  mapOption: {
-    p: 2,
-    cursor: 'pointer',
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 2,
-    // width: '300px',
-    color: 'common.white',
-    bgcolor: 'grey.800',
-    '&:hover': {
-      bgcolor: 'grey.700',
-    },
-  },
-  selected: {
-    bgcolor: 'primary.dark',
-    '&:hover': {
-      bgcolor: 'primary.dark',
-    },
-  },
+  // mapOption: {
+  //   p: 2,
+  //   cursor: 'pointer',
+  //   display: 'flex',
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   justifyContent: 'space-between',
+  //   gap: 2,
+  //   // width: '300px',
+  //   color: 'common.white',
+  //   bgcolor: 'grey.800',
+  //   '&:hover': {
+  //     bgcolor: 'grey.700',
+  //   },
+  // },
+  // selected: {
+  //   bgcolor: 'primary.dark',
+  //   '&:hover': {
+  //     bgcolor: 'primary.dark',
+  //   },
+  // },
   placeholder: {
     p: 2,
     textAlign: 'center',
@@ -68,20 +71,28 @@ const MapToolbar = memo(({ chartObj, index }) => {
     [currentPage, index]
   )
 
-  const availableValue = R.pipe(
-    R.propOr('', 'mapId'),
-    R.unless(R.has(R.__, maps), R.always(''))
-  )(chartObj)
+  const selectedValue = useMemo(
+    () =>
+      R.pipe(
+        R.propOr('', 'mapId'),
+        R.unless(R.has(R.__, maps), R.always(''))
+      )(chartObj),
+    [chartObj, maps]
+  )
 
-  const handleMapSelect = (mapId) => {
-    dispatch(
-      mutateLocal({
-        path: [...path, 'mapId'],
-        value: mapId,
-        sync: !includesPath(R.values(sync), path),
-      })
-    )
-  }
+  const handleChange = useCallback(
+    (event, mapId) => {
+      if (mapId == null) return
+      dispatch(
+        mutateLocal({
+          path: [...path, 'mapId'],
+          value: mapId,
+          sync: !includesPath(R.values(sync), path),
+        })
+      )
+    },
+    [dispatch, path, sync]
+  )
 
   const handleDuplicate = (value) => {
     const key = getFreeName(value, R.keys(maps))
@@ -113,57 +124,67 @@ const MapToolbar = memo(({ chartObj, index }) => {
 
   return (
     <Box sx={styles.wrapper}>
-      {availableValue === '' && (
-        <>
-          <Box sx={styles.placeholder}>Select A Map</Box>
-          <Divider sx={{ mb: 2 }} />
-        </>
-      )}
-      <Grid
-        container
-        spacing={2}
-        justifyContent="flex-start"
-        sx={{ width: '100%' }}
-        columns={3}
+      <Typography sx={styles.placeholder}>Select a Map</Typography>
+      <Divider sx={{ mb: 2 }} />
+      <ToggleButtonGroup
+        exclusive
+        fullWidth
+        value={selectedValue}
+        onChange={handleChange}
       >
-        {R.keys(maps).map((mapId) => (
-          <Grid key={mapId} size={1}>
-            <Paper
-              sx={[
-                styles.mapOption,
-                mapId === availableValue && styles.selected,
-              ]}
-              elevation={mapId === availableValue ? 3 : 1}
-              onClick={() => handleMapSelect(mapId)}
-            >
-              <Typography>{R.pathOr(mapId, [mapId, 'name'], maps)}</Typography>
-              <Box>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            width: '100%',
+            alignItems: 'stretch',
+            justifyContent: 'flex-start',
+          }}
+          columns={3}
+        >
+          {R.keys(maps).map((mapId) => (
+            <Grid key={mapId} size={1}>
+              <ToggleButton
+                color="primary"
+                value={mapId}
+                selected={selectedValue === mapId}
+                sx={{ height: '100%' }}
+              >
+                <Typography
+                  noWrap
+                  variant="subtitle1"
+                  sx={{
+                    maxWidth: '100%',
+                    textTransform: 'initial',
+                    flex: '1 1 auto',
+                  }}
+                >
+                  <OverflowText text={R.pathOr(mapId, [mapId, 'name'], maps)} />
+                </Typography>
                 {R.pathOr(false, [mapId, 'duplicate'], maps) ? (
-                  <IconButton
-                    size="small"
+                  <RippleBox
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDelete(mapId)
                     }}
                   >
-                    <MdDelete />
-                  </IconButton>
+                    <MdDelete color="#fff" size={18} />
+                  </RippleBox>
                 ) : (
-                  <IconButton
-                    size="small"
+                  <RippleBox
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDuplicate(mapId)
                     }}
                   >
-                    <MdCopyAll />
-                  </IconButton>
+                    <MdCopyAll color="#fff" size={18} />
+                  </RippleBox>
                 )}
-              </Box>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
+              </ToggleButton>
+            </Grid>
+          ))}
+        </Grid>
+      </ToggleButtonGroup>
     </Box>
   )
 })

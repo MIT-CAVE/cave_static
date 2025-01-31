@@ -19,7 +19,6 @@ import { includesPath } from '../../../utils'
 const styles = {
   content: {
     padding: 1,
-    width: '100%',
     height: '100%',
   },
 }

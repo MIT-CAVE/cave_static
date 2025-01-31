@@ -1,64 +1,82 @@
-import { Grid2 as Grid, Paper, Typography, Divider } from '@mui/material'
+import {
+  Grid2 as Grid,
+  Typography,
+  Divider,
+  ToggleButton,
+  ToggleButtonGroup,
+} from '@mui/material'
 import * as R from 'ramda'
 
 import { chartVariant } from '../../../utils/enums'
 
-import { FetchedIcon } from '../../compound'
+import { FetchedIcon, OverflowText } from '../../compound'
 
-const styles = {
-  displayIcon: {
-    py: 1,
-    cursor: 'pointer',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 1,
-    color: 'common.white',
-  },
-}
+// const styles = {
+//   displayIcon: {
+//     py: 1,
+//     cursor: 'pointer',
+//     display: 'flex',
+//     flexDirection: 'column',
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     gap: 1,
+//     color: 'common.white',
+//   },
+// }
 
-const ChartTypeSelector = ({ value, onChange, chartOptions }) => {
+const ChartTypeSelector = ({ value, onChange, chartOptions, extraOptions }) => {
   const selectedValue = value || chartVariant.BAR
-
+  const handleChange = (event, newValue) => {
+    if (newValue == null) return
+    onChange(newValue)
+  }
   return (
     <>
-      <Grid
-        container
-        sx={{ width: '100%' }}
-        spacing={1}
-        justifyContent="center"
-        alignItems="center"
-        columns={10}
+      <ToggleButtonGroup
+        exclusive
+        fullWidth
+        value={selectedValue}
+        onChange={handleChange}
       >
-        {R.map((chartType) => {
-          const isSelected = selectedValue === chartType.value
-          return (
-            <Grid key={chartType.label} size={1}>
-              <Paper
-                sx={[
-                  styles.displayIcon,
-                  {
-                    bgcolor: isSelected ? 'primary.dark' : 'grey.800',
-                    '&:hover': {
-                      bgcolor: isSelected ? 'primary.dark' : 'grey.700',
-                    },
-                  },
-                ]}
-                elevation={isSelected ? 3 : 1}
-                onClick={() => onChange(chartType.value)}
-              >
-                <FetchedIcon iconName={chartType.iconName} />
-                <Typography variant="caption" align="center">
-                  {chartType.label}
-                </Typography>
-              </Paper>
-            </Grid>
-          )
-        }, chartOptions)}
-      </Grid>
-
-      <Divider sx={{ width: '100%' }} />
+        <Grid
+          container
+          sx={{ width: '100%', alignItems: 'stretch', justifyContent: 'start' }}
+          spacing={1}
+          columns={9}
+        >
+          {R.map((chartType) => {
+            const isSelected = selectedValue === chartType.value
+            return (
+              <Grid key={chartType.label} size={1}>
+                <ToggleButton
+                  color="primary"
+                  value={chartType.value}
+                  selected={isSelected}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                  }}
+                >
+                  <FetchedIcon iconName={chartType.iconName} size={24} />
+                  <Typography
+                    noWrap
+                    variant="caption"
+                    sx={{
+                      maxWidth: '100%',
+                      textTransform: 'initial',
+                    }}
+                  >
+                    <OverflowText text={chartType.label} />
+                  </Typography>
+                </ToggleButton>
+              </Grid>
+            )
+          }, chartOptions)}
+          {extraOptions}
+        </Grid>
+      </ToggleButtonGroup>
+      <Divider flexItem />
     </>
   )
 }
