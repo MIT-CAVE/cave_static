@@ -1,14 +1,15 @@
 import {
   Autocomplete,
   Box,
-  Button,
+  IconButton,
   Checkbox,
   TextField,
   Typography,
+  Grid2,
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
-import { MdCheckBox, MdCheckBoxOutlineBlank } from 'react-icons/md'
+import { MdCheckBox, MdCheckBoxOutlineBlank, MdRefresh } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
@@ -40,18 +41,21 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    gap: 1,
     overflow: 'auto',
-    gap: 2,
   },
   sessions: {
-    width: '95%',
     padding: 2,
-    minHeight: 100,
+    width: '100%',
+    mx: 0,
+    // minHeight: 100,
   },
   refresh: {
-    marginTop: 2,
-    height: 50,
-    width: 50,
+    minWidth: 0,
+    borderRadius: 1,
+    height: '100%',
+    width: '64px',
+    border: '1px solid rgb(255 255 255 / .12)',
   },
 }
 
@@ -101,6 +105,30 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
         value={chartObj.chartType}
         onChange={handleSelectChart}
         chartOptions={CHART_OPTIONS}
+        extraOptions={
+          <Grid2
+            size="grow"
+            sx={{ height: '100%', display: 'flex', justifyContent: 'end' }}
+          >
+            <IconButton
+              sx={styles.refresh}
+              variant="outlined"
+              color="greyscale"
+              onClick={() => {
+                dispatch(
+                  sendCommand({
+                    command: 'get_associated_session_data',
+                    data: {
+                      data_names: ['globalOutputs'],
+                    },
+                  })
+                )
+              }}
+            >
+              <MdRefresh size={32} />
+            </IconButton>
+          </Grid2>
+        }
       />
 
       {chartObj.chartType !== chartVariant.OVERVIEW && (
@@ -197,35 +225,6 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                 )
               }}
             />
-          </ChartDropdownWrapper>
-          <ChartDropdownWrapper sx={styles.refresh}>
-            <Button
-              sx={{ minWidth: 0 }}
-              variant="outlined"
-              color="greyscale"
-              onClick={() => {
-                dispatch(
-                  sendCommand({
-                    command: 'get_associated_session_data',
-                    data: {
-                      data_names: ['globalOutputs'],
-                    },
-                  })
-                )
-              }}
-            >
-              <Box
-                component="span"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '40px',
-                }}
-              >
-                <FetchedIcon iconName="md/MdRefresh" size={32} />
-              </Box>
-            </Button>
           </ChartDropdownWrapper>
         </>
       )}

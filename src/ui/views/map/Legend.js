@@ -47,6 +47,7 @@ import {
   selectEffectiveNodesBy,
   selectGeoRange,
   selectLegendLayoutFunc,
+  selectLegendNumberFormatFunc,
   selectLegendViewFunc,
   selectLegendWidthFunc,
   selectNodeRange,
@@ -67,6 +68,7 @@ import {
 } from '../../../utils/enums'
 import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 import {
+  getScaledValueAlt,
   getScaleParamDefaults,
   getScaleParamLabel,
   scaleIndexedOptions,
@@ -81,6 +83,7 @@ import {
   getColorString,
   includesPath,
   NumberFormat,
+  parseGradient,
 } from '../../../utils'
 
 const styles = {
@@ -113,7 +116,7 @@ const styles = {
     },
     [`& .${toggleButtonGroupClasses.selected}`]: {
       m: 0.5,
-      border: '1px solid rgb(128 128 128)',
+      borderStyle: 'inset',
       borderRadius: 0,
     },
   },
@@ -414,10 +417,179 @@ export const useGradient = ({
   }
 }
 
+const GradientColorMarker = ({
+  mapId,
+  id,
+  group,
+  colorBy,
+  colorByProp,
+  getRange,
+}) => {
+  const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
+  const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
+
+  const valueRange = useMemo(() => {
+    const colorRange = getRange(id, colorBy, mapId)
+    // Groupable nodes (only)
+    const clusterRange =
+      getRangeOnZoom != null ? (getRangeOnZoom(mapId)[id] ?? {}) : {}
+    return group && clusterRange.color
+      ? R.mergeDeepLeft(clusterRange.color, colorRange)
+      : colorRange
+  }, [colorBy, getRange, getRangeOnZoom, group, id, mapId])
+
+  const { colors, values } = useMemo(() => {
+    const numberFormat = legendNumberFormatFunc(colorByProp)
+    return parseGradient('color', numberFormat.precision)(valueRange)
+  }, [colorByProp, legendNumberFormatFunc, valueRange])
+
+  const gradientColors = useMemo(() => {
+    const { scale, scaleParams } = valueRange.gradient
+    const minValue = Math.min(...values)
+    const maxValue = Math.max(...values)
+    const lastIndex = values.length - 1
+    const isStepScale = scale === scaleId.STEP
+
+    const scaledValues = R.map((value) =>
+      getScaledValueAlt(
+        [minValue, maxValue],
+        [0, 100],
+        value,
+        isStepScale ? scaleId.LINEAR : scale,
+        scaleParams
+      )
+    )(values)
+
+    const scaledColors =
+      minValue === maxValue
+        ? isStepScale
+          ? [`${colors[0]} 1%`, `${colors[lastIndex]} 1% 100%`]
+          : [`${colors[lastIndex]} 0% 100%`]
+        : R.addIndex(R.zipWith)(
+            (color, scaledValue, idx) =>
+              !isStepScale
+                ? `${color} ${scaledValue}%`
+                : idx > 0
+                  ? `${color} ${scaledValues[idx - 1]}% ${scaledValue}%`
+                  : `${color} 1%`,
+            colors
+          )(scaledValues)
+
+    return scaledColors.filter((value) => value != null)
+  }, [colors, valueRange, values])
+
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        width: '100%',
+        background: `linear-gradient(to right, ${gradientColors.join(', ')})`,
+        borderRadius: 1,
+      }}
+    />
+  )
+}
+
+const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
+  const { options, fallback } = colorByProp
+
+  const displayedColors = useMemo(() => {
+    const maxVisible = 9 // Max number of color dots
+    return R.pipe(
+      R.pluck('color'),
+      R.values,
+      R.when(
+        R.always(anyNullValue && fallback?.color != null),
+        R.append(fallback?.color)
+      ),
+      R.slice(0, maxVisible)
+    )(options)
+  }, [anyNullValue, fallback?.color, options])
+
+  const width = 28
+  const height = 20
+  const numColors = displayedColors.length
+  const circleCoords = useMemo(
+    () =>
+      numColors < 5
+        ? [
+            { cx: width * 0.2, cy: height * 0.2 },
+            { cx: width * 0.8, cy: height * 0.2 },
+            { cx: width * 0.2, cy: height * 0.8 },
+            { cx: width * 0.8, cy: height * 0.8 },
+          ]
+        : numColors < 7
+          ? [
+              { cx: width * 0.2, cy: height * 0.2 },
+              { cx: width * 0.8, cy: height * 0.2 },
+              { cx: width * 0.5, cy: height * 0.2 },
+              { cx: width * 0.5, cy: height * 0.8 },
+              { cx: width * 0.2, cy: height * 0.8 },
+              { cx: width * 0.8, cy: height * 0.8 },
+            ]
+          : [
+              { cx: width * 0.1, cy: height * 0.1 },
+              { cx: width * 0.5, cy: height * 0.1 },
+              { cx: width * 0.9, cy: height * 0.1 },
+              { cx: width * 0.1, cy: height * 0.5 },
+              { cx: width * 0.5, cy: height * 0.5 },
+              { cx: width * 0.9, cy: height * 0.5 },
+              { cx: width * 0.1, cy: height * 0.9 },
+              { cx: width * 0.5, cy: height * 0.9 },
+              { cx: width * 0.9, cy: height * 0.9 },
+            ],
+    [numColors]
+  )
+  const radius = useMemo(
+    () =>
+      Math.min(height, width) *
+      (numColors < 5 ? 0.2 : numColors < 7 ? 0.15 : 0.1),
+    [numColors]
+  )
+
+  return (
+    <svg {...{ height, width }}>
+      {displayedColors.map((color, index) => (
+        <circle key={index} {...circleCoords[index]} r={radius} fill={color} />
+      ))}
+    </svg>
+  )
+}
+
+export const LegendColorMarker = ({
+  mapId,
+  id,
+  group,
+  colorBy,
+  colorByProp,
+  anyNullValue,
+  getRange,
+}) => {
+  const isCategorical = colorByProp.type !== propId.NUMBER
+  return (
+    <Box sx={{ height: '20px', width: '28px' }}>
+      {isCategorical ? (
+        <CategoricalColorMarker {...{ colorByProp, anyNullValue }} />
+      ) : (
+        <GradientColorMarker
+          {...{
+            mapId,
+            id,
+            group,
+            colorBy,
+            colorByProp,
+            getRange,
+          }}
+        />
+      )}
+    </Box>
+  )
+}
+
 // TODO: Move this to some `legendUtils.js` module
 export const RippleBox = ({ selected, sx = [], ...props }) => (
   <ButtonBase
-    // component="div"
+    component="div"
     sx={[styles.getRippleBox(selected), ...forceArray(sx)]}
     {...props}
   />
@@ -560,7 +732,6 @@ export const LegendPopper = ({
   children,
   slotProps = {},
   anchorEl,
-  onOpen,
   onClose,
   ...props
 }) => {
@@ -574,15 +745,7 @@ export const LegendPopper = ({
   } = slotProps
 
   return (
-    <ToggleButton
-      size="small"
-      color="primary"
-      value="details"
-      // Toggle when clicking on the opened popper
-      onClick={anchorEl == null ? onOpen : onClose}
-      selected={open}
-      {...props}
-    >
+    <Box sx={{ p: 0.25, ml: 1, borderRadius: 1 }} {...props}>
       <WithBadge
         size={14}
         color="#29b6f6"
@@ -622,8 +785,8 @@ export const LegendPopper = ({
                   ? 'calc(100% - 165px)'
                   : 'calc(100% - 88px)',
                 maxWidth: showPitchSlider
-                  ? 'calc(100% - 164px)'
-                  : 'calc(100% - 128px)',
+                  ? 'calc(100% - 334px)'
+                  : 'calc(100% - 300px)',
               },
               ...forceArray(muiSlotProps.popper?.sx),
             ]}
@@ -632,7 +795,7 @@ export const LegendPopper = ({
           </Popper>
         </ClickAwayListener>
       </MapPortal>
-    </ToggleButton>
+    </Box>
   )
 }
 
@@ -821,6 +984,7 @@ export const LegendSettings = ({
         <ToggleButtonGroup
           exclusive
           fullWidth
+          color="primary"
           sx={styles.toggleGroup}
           value={legendWidth}
           onChange={handleChangeLegendWidth}
@@ -858,6 +1022,7 @@ export const LegendSettings = ({
         <ToggleButtonGroup
           exclusive
           fullWidth
+          color="primary"
           sx={styles.toggleGroup}
           value={legendLayout}
           onChange={handleChangeLegendLayout}
@@ -900,37 +1065,58 @@ export const LegendHeader = ({
   mapId,
   slotProps = {},
   sx = [],
-  popperProps: { anchorEl, openId, handleOpenById, handleClose },
+  popperProps,
   children,
-}) => (
-  <Grid2
-    container
-    spacing={1}
-    sx={[{ alignItems: 'center', px: 0.8, my: 1 }, ...forceArray(sx)]}
-  >
-    <Grid2 size="grow" sx={{ textAlign: 'start' }}>
-      <Typography variant="h6" {...slotProps.label}>
-        {label}
-      </Typography>
-    </Grid2>
-    <Grid2 size="auto">
-      <LegendPopper
-        sx={styles.toggleButton}
-        IconComponent={RiSettings5Line}
-        {...{ mapId, slotProps }}
-        anchorEl={
-          openId === LEGEND_SETTINGS_POPPER_ID || openId == null
-            ? anchorEl
-            : null
-        }
-        onOpen={handleOpenById(LEGEND_SETTINGS_POPPER_ID)}
-        onClose={handleClose}
+}) => {
+  const { openId, handleOpenById, handleClose } = popperProps
+  const anchorEl =
+    openId === LEGEND_SETTINGS_POPPER_ID || openId == null
+      ? popperProps.anchorEl
+      : null
+  const handleOpen = handleOpenById(LEGEND_SETTINGS_POPPER_ID)
+  return (
+    <ToggleButton
+      fullWidth
+      size="small"
+      color="primary"
+      value="details"
+      selected={Boolean(anchorEl)}
+      sx={{
+        p: 0,
+        textTransform: 'initial',
+        border: 'none',
+        borderRadius: 0,
+      }}
+      // Toggle when clicking on the opened popper
+      onClick={anchorEl == null ? handleOpen : handleClose}
+    >
+      <Grid2
+        container
+        spacing={1}
+        sx={[
+          { alignItems: 'center', px: 0.8, my: 1, width: '100%' },
+          ...forceArray(sx),
+        ]}
       >
-        {children}
-      </LegendPopper>
-    </Grid2>
-  </Grid2>
-)
+        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+          <Typography variant="h6" {...slotProps.label}>
+            {label}
+          </Typography>
+        </Grid2>
+        <Grid2 size="auto">
+          <LegendPopper
+            sx={styles.toggleButton}
+            IconComponent={RiSettings5Line}
+            {...{ anchorEl, mapId, slotProps }}
+            onClose={handleClose}
+          >
+            {children}
+          </LegendPopper>
+        </Grid2>
+      </Grid2>
+    </ToggleButton>
+  )
+}
 
 export const LegendRoot = ({ mapId, ...props }) => {
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)

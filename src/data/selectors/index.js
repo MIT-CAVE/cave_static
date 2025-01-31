@@ -1481,7 +1481,7 @@ export const selectMemoizedChartFunc = createSelector(
 
         const filteredStatsToCalc = filterGroupedOutputs(
           groupedOutputs[obj.dataset],
-          R.pipe(R.propOr([], 'filters'))(obj),
+          R.propOr([], 'filters', obj),
           groupingIndicies
         )
 
@@ -1539,6 +1539,7 @@ export const selectMemoizedChartFunc = createSelector(
               ),
             resolvedStats
           )
+
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])

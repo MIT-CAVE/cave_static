@@ -39,6 +39,10 @@ body {
   visibility: hidden;
 }
 
+.MuiPopover-root {
+  z-index: 2001;
+}
+
 .mapboxgl-ctrl-bottom-left {
   z-index: 101;
 }
