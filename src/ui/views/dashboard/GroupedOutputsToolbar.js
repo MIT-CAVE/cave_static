@@ -166,8 +166,6 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
 
-  console.log(statNamesByDataset, chartStats)
-
   const path = ['pages', 'data', currentPage, 'charts', index]
   const distributionType = R.propOr(
     distributionTypes.PDF,
