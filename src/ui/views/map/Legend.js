@@ -116,7 +116,7 @@ const styles = {
     },
     [`& .${toggleButtonGroupClasses.selected}`]: {
       m: 0.5,
-      border: '1px solid rgb(128 128 128)',
+      borderStyle: 'inset',
       borderRadius: 0,
     },
   },
@@ -589,7 +589,7 @@ export const LegendColorMarker = ({
 // TODO: Move this to some `legendUtils.js` module
 export const RippleBox = ({ selected, sx = [], ...props }) => (
   <ButtonBase
-    // component="div"
+    component="div"
     sx={[styles.getRippleBox(selected), ...forceArray(sx)]}
     {...props}
   />
@@ -984,6 +984,7 @@ export const LegendSettings = ({
         <ToggleButtonGroup
           exclusive
           fullWidth
+          color="primary"
           sx={styles.toggleGroup}
           value={legendWidth}
           onChange={handleChangeLegendWidth}
@@ -1021,6 +1022,7 @@ export const LegendSettings = ({
         <ToggleButtonGroup
           exclusive
           fullWidth
+          color="primary"
           sx={styles.toggleGroup}
           value={legendLayout}
           onChange={handleChangeLegendLayout}
