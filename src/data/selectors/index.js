@@ -365,10 +365,6 @@ export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )
 // Data -> groupedOutputs
-export const selectGroupedOutputNames = createSelector(
-  selectGroupedOutputsData,
-  R.map(R.pipe(R.propOr({}, 'stats'), R.keys))
-)
 export const selectGroupedOutputTypes = createSelector(
   selectGroupedOutputsData,
   R.map(R.propOr({}, 'stats'))
@@ -521,6 +517,17 @@ export const selectAllowedStats = createSelector(
     R.isEmpty(statOptions)
       ? statisticTypes
       : R.pick(statOptions, statisticTypes)
+)
+export const selectChartStats = createSelector(
+  [selectAllowedStats],
+  R.pipe(
+    R.map(R.filter(R.propOr(true, 'allowCharting'))),
+    R.filter(R.isNotEmpty)
+  )
+)
+export const selectChartStatsNames = createSelector(
+  selectChartStats,
+  R.map(R.keys)
 )
 
 export const selectCurrentMapDataByMap = createSelector(

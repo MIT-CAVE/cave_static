@@ -17,7 +17,8 @@ import {
   selectSync,
   selectCurrentPage,
   selectAllowedStats,
-  selectGroupedOutputNames,
+  selectChartStats,
+  selectChartStatsNames,
   selectStatGroupings,
   selectGroupedOutputsData,
 } from '../../../data/selectors'
@@ -158,9 +159,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const dispatch = useDispatch()
 
   const categories = useSelector(selectStatGroupings)
-  const statisticTypes = useSelector(selectAllowedStats)
+  const allowedStats = useSelector(selectAllowedStats)
+  const chartStats = useSelector(selectChartStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
-  const statNamesByDataset = useSelector(selectGroupedOutputNames)
+  const statNamesByDataset = useSelector(selectChartStatsNames)
   const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
 
@@ -232,7 +234,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   }
 
   const getStatName = (stat) =>
-    getGroupLabelFn(statisticTypes, [chartObj.dataset, stat])
+    getGroupLabelFn(allowedStats, [chartObj.dataset, stat])
 
   const removeExtraLevels = (obj) => {
     if (!R.has(obj.chartType, chartMaxGrouping)) return obj
@@ -386,8 +388,8 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         labelId="dataset-label"
         label="Dataset"
         value={R.propOr(' ', 'dataset', chartObj)}
-        optionsList={R.keys(groupedOutputs)}
-        getLabel={getLabelFn(groupedOutputs)}
+        optionsList={R.keys(chartStats)}
+        getLabel={getLabelFn(chartStats)}
         onSelect={handleChangeDataset}
       />
     </LabelledInput>
@@ -541,7 +543,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         return null
       }
 
-      const statName = getGroupLabelFn(statisticTypes, [
+      const statName = getGroupLabelFn(chartStats, [
         chartObj.dataset,
         R.pathOr('', ['stats', index, 'statId'], chartObj),
       ])
