@@ -10,7 +10,14 @@ import {
 
 // import { exampleNestedData } from './testData'
 
-const Sunburst = ({ data, colors, numberFormat, chartHoverOrder }) => {
+const Sunburst = ({
+  data,
+  colors,
+  numberFormat,
+  chartHoverOrder,
+  path,
+  xAxisOrder,
+}) => {
   const findNames = (data) =>
     R.has('children', R.head(data))
       ? R.map((d) => R.prepend(R.prop('name', d), findNames(d.children)), data)
@@ -110,7 +117,7 @@ const Sunburst = ({ data, colors, numberFormat, chartHoverOrder }) => {
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder }} />
+  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
 }
 
 export { Sunburst }

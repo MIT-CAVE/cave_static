@@ -1,4 +1,9 @@
-import { Box, ListItemIcon, MenuItem, Select as MuiSelect } from '@mui/material'
+import {
+  ListItemIcon,
+  MenuItem,
+  Select as MuiSelect,
+  Stack,
+} from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useRef, useState } from 'react'
@@ -10,13 +15,6 @@ import WrappedText from './WrappedText'
 import { forceArray } from '../../utils'
 
 const styles = {
-  displayIcon: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'start',
-    minWidth: '30px',
-    maxWidth: '50px',
-  },
   icon: {
     mr: 1,
     minWidth: 0,
@@ -27,6 +25,12 @@ const styles = {
     minWidth: 0,
     color: 'text.primary',
     ml: 1,
+  },
+  selectedValue: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'start',
+    minWidth: '30px',
   },
   select: {
     minWidth: 0,
@@ -45,7 +49,7 @@ const styles = {
  * @param {Array} items - An array of strings or objects...
  * @param selectedValue
  * @param placeholder
- * @param displayIcon
+ * @param iconOnlyOnSelect
  * @param disabled
  * @param getLabel
  * @param onClickAway
@@ -57,7 +61,7 @@ const Select = ({
   optionsList: items,
   value: selectedValue,
   placeholder,
-  displayIcon,
+  iconOnlyOnSelect,
   disabled,
   sx = [],
   getLabel = (label) => label,
@@ -90,17 +94,23 @@ const Select = ({
         sessionStorage.removeItem('mui-select-open-flag')
       }}
       // Display only the icon when an item is selected
-      {...((selectedValue !== '' || displayIcon) && {
+      {...((selectedValue !== '' || iconOnlyOnSelect) && {
         renderValue: (value) => {
           const item = items.find((prop) => prop.value === value)
-          return item && item.iconName ? (
-            <Box component="span" sx={styles.displayIcon}>
-              <FetchedIcon iconName={item.iconName} size={32} />
-            </Box>
-          ) : (
-            <OverflowText
-              text={getLabel(R.propOr(false, 'label', item) || value)}
-            />
+          return (
+            <Stack
+              component="span"
+              direction="row"
+              spacing={1}
+              sx={styles.selectedValue}
+            >
+              {item?.iconName && (
+                <FetchedIcon iconName={item.iconName} size={32} />
+              )}
+              {(item || value) && !iconOnlyOnSelect && (
+                <OverflowText text={getLabel(item?.label ?? value)} />
+              )}
+            </Stack>
           )
         },
       })}

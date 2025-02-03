@@ -33,7 +33,7 @@ const useMapFilter = ({
       R.reject(
         R.whereAny({
           type: R.equals('head'), // Drop layout props
-          filterable: R.equals('false'),
+          allowFiltering: R.equals(false),
         })
       )(featureTypeProps),
     [featureTypeProps]

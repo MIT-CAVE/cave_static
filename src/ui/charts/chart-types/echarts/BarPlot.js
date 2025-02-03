@@ -11,6 +11,8 @@ const BarPlot = ({
   stack = false,
   showNA,
   chartHoverOrder,
+  path,
+  xAxisOrder,
 }) => {
   return (
     <EchartsPlot
@@ -24,6 +26,8 @@ const BarPlot = ({
         colors,
         showNA,
         chartHoverOrder,
+        path,
+        xAxisOrder,
       }}
     />
   )

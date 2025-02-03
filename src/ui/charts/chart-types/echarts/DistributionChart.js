@@ -1,5 +1,3 @@
-import { Slider, Typography, Box } from '@mui/material'
-import { styled } from '@mui/system'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useState, useMemo } from 'react'
@@ -7,13 +5,6 @@ import { useState, useMemo } from 'react'
 import EchartsPlot from './BaseChart'
 
 import { findSubgroupLabels } from '../../../../utils'
-
-const CustomSlider = styled(Slider)(() => ({
-  '& .MuiSlider-valueLabel': {
-    fontSize: '9px',
-    padding: '2px 6px',
-  },
-}))
 
 const formatToSignificantFigures = (num, sigFigs) => {
   return Number.parseFloat(num.toPrecision(sigFigs))
@@ -136,45 +127,23 @@ const DistributionChart = ({
   }, [data, numBuckets, cumulative, counts])
 
   return (
-    <>
-      <EchartsPlot
-        distribution={true}
-        data={calcDistributionData}
-        seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
-        xAxisTitle={yAxisTitle}
-        {...{
-          numberFormat,
-          stack,
-          colors,
-          xAxisTitle,
-          yAxisTitle,
-          chartType,
-          chartHoverOrder,
-        }}
-      />
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          position: 'absolute',
-          width: '25%',
-          right: '10%',
-          bottom: '15px',
-        }}
-      >
-        <Typography sx={{ whiteSpace: 'nowrap', mr: 2 }}>
-          Number of buckets
-        </Typography>
-        <CustomSlider
-          aria-label="bucket slider"
-          valueLabelDisplay="auto"
-          value={numBuckets}
-          max={20}
-          min={2}
-          onChange={(e) => setNumBuckets(e.target.value)}
-        />
-      </Box>
-    </>
+    <EchartsPlot
+      distribution={true}
+      data={calcDistributionData}
+      seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
+      xAxisTitle={yAxisTitle}
+      onNumBucketsChange={setNumBuckets}
+      {...{
+        numberFormat,
+        stack,
+        colors,
+        xAxisTitle,
+        yAxisTitle,
+        chartType,
+        chartHoverOrder,
+        numBuckets,
+      }}
+    />
   )
 }
 

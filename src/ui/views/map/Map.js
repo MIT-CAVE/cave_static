@@ -79,12 +79,7 @@ const Map = ({ mapId }) => {
         () => dispatch(viewportRotate({ mapId, rate })),
         13
       )
-    } else if (demoMode) {
-      demoInterval.current = setInterval(
-        () => dispatch(viewportRotate({ mapId, rate })),
-        13
-      )
-    } else if (demoInterval.current !== -1) {
+    } else if (demoInterval.current !== -1 && !demoMode) {
       clearInterval(demoInterval.current)
       demoInterval.current = -1
     }
