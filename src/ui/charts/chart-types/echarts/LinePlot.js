@@ -17,13 +17,15 @@ const LinePlot = ({
   area = false,
   showNA,
   chartHoverOrder,
+  path,
+  xAxisOrder,
 }) => {
   return (
     <EchartsPlot
-      data={data}
       chartType="line"
       seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
       {...{
+        data,
         xAxisTitle,
         yAxisTitle,
         numberFormat,
@@ -31,6 +33,8 @@ const LinePlot = ({
         colors,
         showNA,
         chartHoverOrder,
+        path,
+        xAxisOrder,
       }}
     />
   )

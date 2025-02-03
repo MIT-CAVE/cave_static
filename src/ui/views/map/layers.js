@@ -165,13 +165,15 @@ export const Geos = memo(({ mapId }) => {
           'line-color': DARKEN_FILL_ON_HOVER,
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
+          // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
+          // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
           'line-dasharray': [
             'case',
             ['==', ['get', 'dash'], 'dashed'],
-            LINE_TYPES['dashed'],
+            ['literal', LINE_TYPES.dashed],
             ['==', ['get', 'dash'], 'dotted'],
-            LINE_TYPES['dotted'],
-            LINE_TYPES['solid'],
+            ['literal', LINE_TYPES.dotted],
+            ['literal', LINE_TYPES.solid],
           ],
         }}
       />
@@ -287,13 +289,15 @@ export const Arcs = memo(({ mapId }) => {
           'line-color': DARKEN_FILL_ON_HOVER,
           'line-opacity': 0.8,
           'line-width': ['get', 'size'],
+          // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
+          // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
           'line-dasharray': [
             'case',
             ['==', ['get', 'dash'], 'dashed'],
-            LINE_TYPES['dashed'],
+            ['literal', LINE_TYPES.dashed],
             ['==', ['get', 'dash'], 'dotted'],
-            LINE_TYPES['dotted'],
-            LINE_TYPES['solid'],
+            ['literal', LINE_TYPES.dotted],
+            ['literal', LINE_TYPES.solid],
           ],
         }}
       />

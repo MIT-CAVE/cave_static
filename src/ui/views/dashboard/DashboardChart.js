@@ -1,4 +1,4 @@
-import { Box, CircularProgress } from '@mui/material'
+import { Box, CircularProgress, Stack } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
@@ -42,7 +42,7 @@ import {
   cleanUndefinedStats,
 } from '../../../utils'
 
-const DashboardChart = ({ chartObj }) => {
+const DashboardChart = ({ chartObj, path }) => {
   const [formattedData, setFormattedData] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -52,7 +52,8 @@ const DashboardChart = ({ chartObj }) => {
   const categories = useSelector(selectStatGroupings)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
   const cleanedChartObj = cleanUndefinedStats(chartObj)
-  const chartType = R.propOr('', 'variant', cleanedChartObj)
+
+  const chartType = R.propOr('bar', 'chartType', cleanedChartObj)
   const distributionType = R.propOr(
     distributionTypes.PDF,
     'distributionType',
@@ -71,7 +72,12 @@ const DashboardChart = ({ chartObj }) => {
   const leftVariant = R.propOr('line', 'leftVariant', cleanedChartObj)
   const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
-  const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
+  const chartHoverOrder = R.propOr(
+    'seriesDesc',
+    'chartHoverOrder',
+    cleanedChartObj
+  )
+  const xAxisOrder = R.propOr('default', 'xAxisOrder', cleanedChartObj)
 
   // for some reason useLayoutEffect doesn't set the state before the chart is rendered
   // so we use useMemo to trigger the loading state
@@ -87,7 +93,8 @@ const DashboardChart = ({ chartObj }) => {
         setLoading(false)
       })
     }
-    const workerRunner = setTimeout(runWorkers, 1)
+    setLoading(true)
+    const workerRunner = setTimeout(runWorkers, 10)
     return () => clearTimeout(workerRunner)
   }, [cleanedChartObj, memoizedChartFunc])
 
@@ -99,8 +106,7 @@ const DashboardChart = ({ chartObj }) => {
   )(cleanedChartObj)
 
   const colors =
-    cleanedChartObj.chartType === chartVariant.SUNBURST ||
-    cleanedChartObj.chartType === chartVariant.TREEMAP
+    chartType === chartVariant.SUNBURST || chartType === chartVariant.TREEMAP
       ? R.mergeAll(
           R.map((idx) =>
             getColoringFn(
@@ -257,9 +263,29 @@ const DashboardChart = ({ chartObj }) => {
     />
   )
 
-  if (R.isEmpty(statisticTypes)) {
-    return loadingComponent
-  }
+  if (R.isEmpty(statisticTypes) || loading) return loadingComponent
+
+  if (R.isEmpty(formattedData))
+    return (
+      <Stack
+        sx={{
+          justifyContent: 'center',
+          height: '100%',
+          width: '100%',
+          fontSize: '1.5rem',
+        }}
+      >
+        <Box
+          sx={{
+            fontWeight: 'bold',
+          }}
+        >
+          Empty Chart Data
+        </Box>
+        <Box>Please check your data or your filters.</Box>
+      </Stack>
+    )
+
   const numberFormats = R.reduce(
     (acc, [dataset, statId]) =>
       R.assoc(
@@ -279,36 +305,6 @@ const DashboardChart = ({ chartObj }) => {
           R.propOr('', 'statId', R.pathOr({}, ['stats', 0], cleanedChartObj))
         ]
 
-  if (loading) return loadingComponent
-  if (R.isEmpty(formattedData))
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-          width: '100%',
-        }}
-      >
-        <Box
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-          }}
-        >
-          Empty Chart Data
-        </Box>
-        <Box
-          sx={{
-            fontSize: '1.5rem',
-          }}
-        >
-          Please check your data or your filters.
-        </Box>
-      </Box>
-    )
   return (
     <Box
       sx={{
@@ -317,7 +313,7 @@ const DashboardChart = ({ chartObj }) => {
         flex: '1 1 auto',
       }}
     >
-      {cleanedChartObj.chartType === chartVariant.TABLE &&
+      {chartType === chartVariant.TABLE &&
       cleanedChartObj.groupingId &&
       cleanedChartObj.groupingId[0] ? (
         <TableChart
@@ -325,83 +321,154 @@ const DashboardChart = ({ chartObj }) => {
           numberFormat={numberFormats}
           {...{ labelProps }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.BOX_PLOT ? (
+      ) : chartType === chartVariant.BOX_PLOT ? (
         <BoxPlot
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.BAR ? (
+      ) : chartType === chartVariant.BAR ? (
         <BarPlot
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.STACKED_BAR ? (
+      ) : chartType === chartVariant.STACKED_BAR ? (
         <BarPlot
           stack="x"
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.STACKED_WATERFALL ? (
+      ) : chartType === chartVariant.STACKED_WATERFALL ? (
         <StackedWaterfallChart
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.LINE ? (
+      ) : chartType === chartVariant.LINE ? (
         <LinePlot
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.WATERFALL ? (
+      ) : chartType === chartVariant.WATERFALL ? (
         <WaterfallChart
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.CUMULATIVE_LINE ? (
+      ) : chartType === chartVariant.CUMULATIVE_LINE ? (
         <CumulativeLineChart
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.SUNBURST ? (
+      ) : chartType === chartVariant.SUNBURST ? (
         <Sunburst
           data={formattedData}
-          {...{ colors, numberFormat, chartHoverOrder }}
+          {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.TREEMAP ? (
+      ) : chartType === chartVariant.TREEMAP ? (
         <Treemap
           data={formattedData}
-          {...{ colors, numberFormat, chartHoverOrder }}
+          {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.GAUGE ? (
+      ) : chartType === chartVariant.GAUGE ? (
         <GaugeChart
           data={formattedData}
           {...{ colors, numberFormat, ...labels }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.HEATMAP ? (
+      ) : chartType === chartVariant.HEATMAP ? (
         <Heatmap
           data={formattedData}
-          {...{ numberFormat, chartHoverOrder, ...labels }}
+          {...{ numberFormat, chartHoverOrder, path, xAxisOrder, ...labels }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.AREA ? (
+      ) : chartType === chartVariant.AREA ? (
         <LinePlot
           area
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.STACKED_AREA ? (
+      ) : chartType === chartVariant.STACKED_AREA ? (
         <LinePlot
           area
           stack="x"
           data={formattedData}
-          {...{ colors, numberFormat, showNA, chartHoverOrder, ...labels }}
+          {...{
+            colors,
+            numberFormat,
+            showNA,
+            chartHoverOrder,
+            path,
+            xAxisOrder,
+            ...labels,
+          }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.SCATTER &&
+      ) : chartType === chartVariant.SCATTER &&
         R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
         <ScatterPlot
           data={formattedData}
           labelProps={R.dissoc(3)(labelProps)}
           {...{ colors, numberFormat, chartHoverOrder }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.DISTRIBUTION ? (
+      ) : chartType === chartVariant.DISTRIBUTION ? (
         <DistributionChart
           data={formattedData}
           cumulative={distributionType === distributionTypes.CDF}
@@ -417,14 +484,14 @@ const DashboardChart = ({ chartObj }) => {
           xAxisTitle={yAxisTitle}
           {...{ colors, numberFormat, chartHoverOrder }}
         />
-      ) : cleanedChartObj.chartType === chartVariant.MIXED ? (
+      ) : chartType === chartVariant.MIXED ? (
         <MixedChart
           data={formattedData}
-          {...{ labelProps, chartHoverOrder }}
+          {...{ labelProps, chartHoverOrder, path, xAxisOrder }}
           leftVariant={leftVariant}
           rightVariant={rightVariant}
         />
-      ) : cleanedChartObj.chartType === chartVariant.SCATTER ? (
+      ) : chartType === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
           {...{ labelProps, colors, numberFormat, chartHoverOrder }}

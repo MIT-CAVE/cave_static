@@ -139,15 +139,6 @@ export const selectEditLayoutMode = createSelector(
 export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'mirror', data)
 )
-// Local -> settings -> defaults
-const selectSettingsDefaults = createSelector(
-  selectLocalSettings,
-  R.propOr({}, 'defaults')
-)
-export const selectShowToolbar = createSelector(
-  selectSettingsDefaults,
-  R.propOr(true, 'showToolbar')
-)
 // Data
 export const selectData = (state) => R.prop('data')(state)
 export const selectIgnoreData = createSelector(selectData, (data) =>
@@ -374,29 +365,9 @@ export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )
 // Data -> groupedOutputs
-export const selectGroupedOutputNames = createSelector(
-  selectGroupedOutputsData,
-  R.pipe(
-    R.map((obj) =>
-      R.pipe(
-        R.propOr({}, 'stats'),
-        R.keys,
-        R.reduce(
-          (acc, statKey) =>
-            R.assoc(
-              R.pathOr(statKey, ['stats', statKey, 'name'], obj),
-              statKey,
-              acc
-            ),
-          {}
-        )
-      )(obj)
-    )
-  )
-)
 export const selectGroupedOutputTypes = createSelector(
   selectGroupedOutputsData,
-  R.map((obj) => R.propOr({}, 'stats')(obj))
+  R.map(R.propOr({}, 'stats'))
 )
 // Data -> dashboard
 export const selectDashboardData = createSelector(selectPages, (data) =>
@@ -546,6 +517,17 @@ export const selectAllowedStats = createSelector(
     R.isEmpty(statOptions)
       ? statisticTypes
       : R.pick(statOptions, statisticTypes)
+)
+export const selectChartStats = createSelector(
+  [selectAllowedStats],
+  R.pipe(
+    R.map(R.filter(R.propOr(true, 'allowCharting'))),
+    R.filter(R.isNotEmpty)
+  )
+)
+export const selectChartStatsNames = createSelector(
+  selectChartStats,
+  R.map(R.keys)
 )
 
 export const selectCurrentMapDataByMap = createSelector(
@@ -1499,7 +1481,7 @@ export const selectMemoizedChartFunc = createSelector(
 
         const filteredStatsToCalc = filterGroupedOutputs(
           groupedOutputs[obj.dataset],
-          R.pipe(R.propOr([], 'filters'))(obj),
+          R.propOr([], 'filters', obj),
           groupingIndicies
         )
 
@@ -1557,6 +1539,7 @@ export const selectMemoizedChartFunc = createSelector(
               ),
             resolvedStats
           )
+
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])
@@ -1657,9 +1640,23 @@ export const selectMemoizedChartFunc = createSelector(
             R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
             R.values
           )
-          return obj.stats.length > 1
-            ? mergeMultiStatData(formattedData)
-            : R.head(formattedData)
+          const result =
+            obj.stats.length > 1
+              ? mergeMultiStatData(formattedData)
+              : R.head(formattedData)
+          const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
+          const getValue = (item) =>
+            R.has('children', item)
+              ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
+              : R.path(['value', 0], item)
+          const sortFn = {
+            value_ascending: (a, b) => getValue(a) - getValue(b),
+            value_descending: (a, b) => getValue(b) - getValue(a),
+            alpha_ascending: (a, b) => a.name.localeCompare(b.name),
+            alpha_descending: (a, b) => b.name.localeCompare(a.name),
+          }[xAxisOrder]
+          const sortedResult = sortFn ? R.sort(sortFn, result) : result
+          return sortedResult
         })
       },
       MAX_MEMOIZED_CHARTS

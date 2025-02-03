@@ -562,13 +562,14 @@ const FilterModal = ({
 
   const statsByGroup = useSelector(selectGroupedOutputTypes)
 
-  const filterables = useMemo(
+  const filterableStats = useMemo(
     () =>
       R.pipe(
         R.values,
         R.unnest,
         R.mergeAll,
-        R.map(R.assoc('type', 'num'))
+        R.map(R.assoc('type', 'num')),
+        R.filter(R.propOr(true, 'allowFiltering'))
       )(statsByGroup),
     [statsByGroup]
   )
@@ -601,7 +602,7 @@ const FilterModal = ({
         <GridFilter
           sourceHeaderName="Statistic"
           defaultFilters={statFilters}
-          {...{ filterables }}
+          {...{ filterables: filterableStats }}
           onSave={handleSaveFilters(groupingFilters)}
         />
       ) : filterTab === 'groups' ? (

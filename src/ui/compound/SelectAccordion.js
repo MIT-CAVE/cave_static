@@ -71,6 +71,7 @@ const SelectAccordion = ({
   getSubLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
+  sx,
   ...props
 } = {}) => {
   const [openState, setOpenState] = useState(false)
@@ -126,7 +127,7 @@ const SelectAccordion = ({
   return (
     <Select
       {...{ disabled, ...props }}
-      sx={styles.select}
+      sx={[styles.select, sx]}
       name="cave-select-accordion"
       displayEmpty
       value={values}

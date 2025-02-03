@@ -5,7 +5,7 @@ import {
   FormControlLabel,
   FormGroup,
   FormLabel,
-  Grid,
+  Stack,
   Select,
   Menu,
   MenuItem,
@@ -17,6 +17,8 @@ import {
   FaSortNumericDown,
   FaSortAlphaDown,
   FaSortAlphaUp,
+  FaChartBar,
+  FaFilter,
 } from 'react-icons/fa'
 import {
   MdClose,
@@ -27,6 +29,7 @@ import {
 import { useSelector } from 'react-redux'
 
 import { selectEditLayoutMode } from '../../../data/selectors'
+import { chartVariant } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
@@ -54,6 +57,61 @@ const styles = {
     mx: 0.5,
   },
 }
+
+const UNSORTABLE_HOVERED_CHARTS = [
+  chartVariant.TABLE,
+  chartVariant.OVERVIEW,
+  chartVariant.TREEMAP,
+  chartVariant.GAUGE,
+]
+
+const MainButtons = ({
+  isGroupedOutput,
+  numFilters,
+  onOpenFilter,
+  onOpenChartTools,
+  handleOpenMenu,
+}) => (
+  <ButtonGroup
+    variant="contained"
+    orientation="vertical"
+    sx={[styles.actionBtn]}
+  >
+    <TooltipButton
+      title="Chart Tools"
+      placement="bottom-start"
+      onClick={onOpenChartTools}
+    >
+      <FaChartBar />
+    </TooltipButton>
+
+    {isGroupedOutput && (
+      <TooltipButton
+        title="Filter"
+        placement="bottom-start"
+        onClick={onOpenFilter}
+      >
+        <Badge
+          {...{
+            color: 'info',
+            badgeContent: numFilters,
+            invisible: numFilters < 1,
+          }}
+        >
+          <FaFilter />
+        </Badge>
+      </TooltipButton>
+    )}
+
+    <TooltipButton
+      title="View more Actions"
+      placement="bottom-start"
+      onClick={handleOpenMenu}
+    >
+      <MdMoreVert />
+    </TooltipButton>
+  </ButtonGroup>
+)
 
 const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
   <MenuItem {...{ disabled }}>
@@ -84,20 +142,25 @@ const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
 
 const ChartMenu = ({
   isMaximized,
-  isGroupedOutput,
   defaultToZero,
   onToggleDefaultToZero,
   showNA,
   onToggleShowNA,
-  showToolbar,
-  onShowToolbar,
   onRemoveChart,
   onToggleMaximize,
   chartHoverOrder,
   onChartHover,
+  numFilters,
+  onOpenFilter,
+  onOpenChartTools,
+  vizType,
+  chartType,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+
+  const isGroupedOutput = vizType === 'groupedOutput'
+  const isMap = vizType === 'map'
 
   const handleEventAndCloseMenu = (onEvent) => (e) => {
     onEvent(e)
@@ -109,26 +172,22 @@ const ChartMenu = ({
   // }
 
   return (
-    <Grid
-      container
+    <Stack
       sx={[
         styles.root,
-        !showToolbar && { top: isMaximized ? '4px' : '8px' },
         !isMaximized && editLayoutMode && { top: '20px', right: '8px' },
       ]}
     >
-      <ButtonGroup
-        variant="contained"
-        sx={[styles.actionBtn, showToolbar && { bgcolor: 'transparent' }]}
-      >
-        <TooltipButton
-          title="View more Actions"
-          placement="bottom-start"
-          onClick={handleOpenMenu}
-        >
-          <MdMoreVert />
-        </TooltipButton>
-      </ButtonGroup>
+      <MainButtons
+        {...{
+          isGroupedOutput,
+          numFilters,
+          onOpenFilter,
+          onOpenChartTools,
+          handleOpenMenu,
+        }}
+      />
+
       <Menu
         {...{ anchorEl }}
         open={Boolean(anchorEl)}
@@ -138,56 +197,66 @@ const ChartMenu = ({
         slotProps={{ paper: { sx: { width: '20ch' } } }}
         sx={{ p: 0 }}
       >
-        <ToggleMenuItem
-          label="Show Toolbar"
-          value={showToolbar}
-          onClick={onShowToolbar}
-        />
         <BaseMenuItem
           label={isMaximized ? 'Minimize' : 'Maximize'}
           ReactIcon={isMaximized ? MdFullscreenExit : MdFullscreen}
           onClick={handleEventAndCloseMenu(onToggleMaximize)}
         />
         <Divider />
-        <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
-        <Select value={chartHoverOrder} onChange={onChartHover} sx={{ ml: 2 }}>
-          <MenuItem value="seriesAsc">
-            <FaSortAlphaDown fontSize={20} /> Name
-          </MenuItem>
-          <MenuItem value="seriesDesc">
-            <FaSortAlphaUp fontSize={20} /> Name
-          </MenuItem>
-          <MenuItem value="valueAsc">
-            <FaSortNumericDown fontSize={20} /> Value
-          </MenuItem>
-          <MenuItem value="valueDesc">
-            <FaSortNumericUp fontSize={20} /> Value
-          </MenuItem>
-        </Select>
-        <Divider />
-        {isGroupedOutput && [
-          <ToggleMenuItem
-            key="defaultToZero"
-            label="0 NA Values"
-            value={defaultToZero}
-            onClick={onToggleDefaultToZero}
-          />,
-          <ToggleMenuItem
-            key="showNA"
-            label="NA Groupings"
-            value={showNA}
-            onClick={onToggleShowNA}
-          />,
-        ]}
-        {isGroupedOutput && <Divider />}
+
+        {!isMap && !UNSORTABLE_HOVERED_CHARTS.includes(chartType) && (
+          <>
+            <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
+            <Select
+              value={chartHoverOrder}
+              onChange={onChartHover}
+              sx={{ ml: 2 }}
+            >
+              <MenuItem value="seriesAsc">
+                <FaSortAlphaDown fontSize={20} /> Name
+              </MenuItem>
+              <MenuItem value="seriesDesc">
+                <FaSortAlphaUp fontSize={20} /> Name
+              </MenuItem>
+              <MenuItem value="valueAsc">
+                <FaSortNumericDown fontSize={20} /> Value
+              </MenuItem>
+              <MenuItem value="valueDesc">
+                <FaSortNumericUp fontSize={20} /> Value
+              </MenuItem>
+            </Select>
+            <Divider />
+          </>
+        )}
+
+        {isGroupedOutput && (
+          <>
+            <ToggleMenuItem
+              key="defaultToZero"
+              label="0 NA Values"
+              value={defaultToZero}
+              onClick={onToggleDefaultToZero}
+            />
+            <ToggleMenuItem
+              key="showNA"
+              label="NA Groupings"
+              value={showNA}
+              onClick={onToggleShowNA}
+            />
+            <Divider />
+          </>
+        )}
+
         <BaseMenuItem
           label="Remove Chart"
           ReactIcon={MdClose}
           onClick={handleEventAndCloseMenu(onRemoveChart)}
         />
+
         {/* <MenuItem sx={{ pl: 6 }} onClick={onShowAllToolbars}>
               Some action with no icon
             </MenuItem> */}
+
         {/* <MenuItem
               disabled={pageLayout.length > 3}
               onClick={handleDuplicate}
@@ -196,7 +265,7 @@ const ChartMenu = ({
               Duplicate this Chart
             </MenuItem> */}
       </Menu>
-    </Grid>
+    </Stack>
   )
 }
 
