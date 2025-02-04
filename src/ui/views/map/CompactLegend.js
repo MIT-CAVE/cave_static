@@ -114,16 +114,7 @@ const LegendRowDetails = ({
   group,
   groupCalcByColor = statId.COUNT,
   groupCalcBySize = statId.COUNT,
-  filters = [
-    {
-      id: 0,
-      type: 'group',
-      groupId: 0,
-      logic: 'and',
-      depth: 0,
-      edit: false,
-    },
-  ],
+  filters,
   featureTypeProps,
   featureTypeValues,
   getRange,
