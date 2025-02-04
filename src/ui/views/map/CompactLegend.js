@@ -512,7 +512,7 @@ const LegendGroup = ({
           {legendGroup.name}
         </Typography>
       )}
-      <Stack divider={<Divider flexItem />}>
+      <Stack sx={{ width: '100%' }} divider={<Divider flexItem />}>
         {legendGroupData.map(({ id, value, ...props }) => (
           <MapFeature
             key={id}
