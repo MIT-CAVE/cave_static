@@ -345,8 +345,10 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
   const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
 
   const mapFeatures = mapFeaturesBy(id, mapId)
+
+  // Some features may be empty, so we need to default to an empty object to avoid errors
   const firstFeature = mapFeatures[0] ?? {}
-  const featureTypeProps = mapFeatures[0].props
+  const featureTypeProps = firstFeature.props
   const name = firstFeature.name ?? id
 
   const numActiveFilters = useMemo(
