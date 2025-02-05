@@ -53,10 +53,11 @@ const GridEditMultiSelectCell = ({
 
   return (
     <Autocomplete
-      // sx={styles.root}
+      size="small"
+      sx={styles.root}
       multiple
       fullWidth
-      disablePortal
+      // disablePortal
       disableClearable
       disableCloseOnSelect
       filterSelectedOptions
@@ -67,7 +68,7 @@ const GridEditMultiSelectCell = ({
       renderOption={(props, option) => {
         const chipColors = getChipColor(option)
         return (
-          <li {...props}>
+          <li key={option} {...R.dissoc('key')(props)}>
             <Chip
               size="small"
               sx={[
@@ -84,12 +85,14 @@ const GridEditMultiSelectCell = ({
       renderTags={(value, getTagProps) =>
         value.map((option, index) => {
           const chipColors = getChipColor(option)
+          const tagProps = getTagProps({ index })
           return (
             <Chip
+              key={option}
               size="small"
               sx={styles.getChip(chipColors)}
               label={getOptionLabel(option)}
-              {...getTagProps({ index })}
+              {...R.dissoc('key')(tagProps)}
             />
           )
         })
