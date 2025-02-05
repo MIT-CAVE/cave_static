@@ -73,6 +73,7 @@ const getNumberPropRenderFn = R.cond([
   [R.T, invalidVariant('num')],
 ])
 const getSelectorPropRenderFn = R.cond([
+  [R.isNil, R.always(PropDropdown)],
   [R.equals(propVariant.CHECKBOX), R.always(PropCheckbox)],
   [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
   [R.equals(propVariant.COMBOBOX_MULTI), R.always(PropComboBoxMulti)],
@@ -85,6 +86,7 @@ const getSelectorPropRenderFn = R.cond([
   [R.T, invalidVariant('selector')],
 ])
 const getDatePropRenderFn = R.cond([
+  [R.isNil, R.always(PropDateTime)],
   [R.equals(propVariant.DATE), R.always(PropDate)],
   [R.equals(propVariant.DATETIME), R.always(PropDateTime)],
   [R.equals(propVariant.TIME), R.always(PropTime)],

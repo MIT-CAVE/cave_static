@@ -167,13 +167,38 @@ const getDateFormat = R.cond([
   [R.equals('dateTime'), R.always('MM-DD-YYYY hh:mm:ss A')],
 ])
 
-const EditableTextField = ({ value: initialValue, onSave, onBlur }) => {
+const EditableTextField = ({
+  valueType,
+  value: initialValue,
+  onSave,
+  onBlur,
+}) => {
   const [value, setValue] = useState(initialValue || '')
 
-  const handleBlur = () => {
-    onSave(value)
+  const parseDate = useCallback(
+    (dateTimeStr, parseFormat) => {
+      const newValue = dayjs(dateTimeStr, parseFormat)
+      return newValue.isValid() ? newValue.format(getDateFormat(valueType)) : ''
+    },
+    [valueType]
+  )
+
+  const parse = useCallback(
+    (value) =>
+      R.cond([
+        [R.equals('boolean'), R.always(Boolean(value))],
+        [R.equals('number'), R.always(value === '' ? '' : +value)],
+        [R.equals('time'), R.always(parseDate(value, 'HH:mm:ss'))],
+        [R.flip(R.includes)(['date', 'dateTime']), R.always(parseDate(value))],
+        [R.T, R.always(value)],
+      ])(valueType),
+    [parseDate, valueType]
+  )
+
+  const handleBlur = useCallback(() => {
+    onSave(parse(value))
     onBlur()
-  }
+  }, [onBlur, onSave, parse, value])
 
   const handleKeyDown = (event) => {
     if (event.key === 'Enter') {
@@ -193,15 +218,18 @@ const EditableTextField = ({ value: initialValue, onSave, onBlur }) => {
 }
 
 const GridFilter = ({
-  defaultFilters,
+  defaultFilters = [],
   sourceHeaderName = 'Source',
   filterables,
   filterableExtraProps,
   onSave,
 }) => {
-  const renamedFilters = R.map(
-    renameKeys({ option: 'relation', prop: 'source' }),
-    defaultFilters
+  const [filters, setFilters] = useState(defaultFilters)
+  const [editingId, setEditingId] = useState(-1)
+
+  const renamedFilters = useMemo(
+    () => R.map(renameKeys({ option: 'relation', prop: 'source' }), filters),
+    [filters]
   )
   const maxId = renamedFilters.reduce((max, row) => {
     return row.id > max ? row.id : max
@@ -211,11 +239,7 @@ const GridFilter = ({
   }, 0)
   const [idCount, setIdCount] = useState(maxId + 1)
   const [groupIdCount, setGroupIdCount] = useState(maxGroupId + 1)
-  const [rows, setRows] = useState([
-    { id: 0, edit: true, depth: 0 },
-    ...renamedFilters,
-  ])
-  const [editingId, setEditingId] = useState(-1)
+  const [rows, setRows] = useState(renamedFilters)
 
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
 
@@ -244,36 +268,57 @@ const GridFilter = ({
       const newFilters = R.map(
         R.pipe(
           // R.dissoc('id'),
-          R.dissoc('depth'),
+          // R.dissoc('depth'),
           renameKeys({ relation: 'option', source: 'prop' })
         )
       )(newRows)
+      setFilters(newFilters)
+
+      // console.log('before-saving', { newRows, newFilters })
       onSave(newFilters)
     },
     [onSave]
   )
 
   useEffect(() => {
+    setFilters(
+      R.when(
+        R.isEmpty,
+        R.always([
+          {
+            id: 0,
+            type: 'group',
+            groupId: 0,
+            logic: 'and',
+            depth: 0,
+            edit: true,
+          },
+        ])
+      )
+    )
+  }, [])
+
+  useEffect(() => {
+    setRows(renamedFilters)
+  }, [renamedFilters])
+
+  useEffect(() => {
     // Check if all rule rows have required fields filled out
-    const filledRows = rows.slice(1).filter((row) => {
+    const filledRows = rows.filter((row) => {
       if (row.type === 'rule') {
         return row.source !== '' && row.relation !== '' && row.value !== ''
       }
       return true // Non-rule rows (like groups) are always valid
     })
 
-    const newFilters = R.map(
-      R.pipe(
-        // R.dissoc('id'),
-        R.dissoc('depth'),
-        renameKeys({ relation: 'option', source: 'prop' })
-      )
-    )(filledRows)
+    if (R.equals(renamedFilters, filledRows)) return
 
-    if (R.equals(newFilters, defaultFilters)) return
+    const timer = setTimeout(() => {
+      handleSave(filledRows)
+    }, 500)
 
-    handleSave(filledRows)
-  }, [rows, handleSave, defaultFilters])
+    return () => clearTimeout(timer)
+  }, [handleSave, renamedFilters, rows])
 
   const handleAddRow = useCallback(
     (groupId, depth) => {
@@ -326,7 +371,7 @@ const GridFilter = ({
   }, [])
 
   const handleDeleteRow = useCallback(
-    (id) => () => {
+    (id) => {
       deleteRow(id)
     },
     [deleteRow]
@@ -510,6 +555,7 @@ const GridFilter = ({
             } else {
               return (
                 <EditableTextField
+                  {...{ valueType }}
                   value={row.value}
                   onSave={(newValue) =>
                     handleRowChange(row.id, 'value', newValue)
@@ -595,7 +641,7 @@ const GridFilter = ({
                 icon={<BiBracket size="20px" />}
                 label="Add Group"
                 onClick={() => handleAddGroup(row.groupId, row.depth)}
-                sx={{ marginLeft: '-10px', paddingY: '12px' }}
+                sx={{ marginLeft: '-10px', my: 1 }}
               />,
             ]
           }
@@ -616,15 +662,15 @@ const GridFilter = ({
                   icon={<MdDelete size="20px" />}
                   label="Remove Group"
                   onClick={() => handleDeleteGroup(id, row.groupId)}
-                  sx={{ paddingY: '12px' }}
+                  sx={{ my: 1 }}
                 />,
               ]
             : [
                 <GridActionsCellItem
                   icon={<MdDelete size="20px" />}
                   label="Delete"
-                  onClick={handleDeleteRow(id)}
-                  sx={{ paddingY: '12px' }}
+                  onClick={() => handleDeleteRow(id)}
+                  sx={{ my: 1 }}
                 />,
               ]
         },

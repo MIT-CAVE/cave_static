@@ -1,17 +1,15 @@
 import * as R from 'ramda'
-import { useCallback, useMemo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useMemo } from 'react'
+import { useSelector } from 'react-redux'
 
-import { mutateLocal } from '../../../data/local'
 import {
   selectCharts,
   selectMapData,
   selectPageLayout,
-  selectSync,
 } from '../../../data/selectors'
-import { useMenu } from '../../../utils/hooks'
+import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 
-import { getNumActiveFilters, includesPath } from '../../../utils'
+import { getNumActiveFilters } from '../../../utils'
 
 const useMapFilter = ({
   mapId,
@@ -22,9 +20,7 @@ const useMapFilter = ({
 }) => {
   const mapData = useSelector(selectMapData)
   const charts = useSelector(selectCharts)
-  const sync = useSelector(selectSync)
   const pageLayout = useSelector(selectPageLayout)
-  const dispatch = useDispatch()
 
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
@@ -87,17 +83,9 @@ const useMapFilter = ({
         } Chart`
   }, [charts, mapData, mapId, pageLayout])
 
-  const handleSaveFilters = useCallback(
-    (newFilters) => {
-      dispatch(
-        mutateLocal({
-          path: filtersPath,
-          value: newFilters,
-          sync: !includesPath(Object.values(sync), filtersPath),
-        })
-      )
-    },
-    [dispatch, filtersPath, sync]
+  const handleSaveFilters = useMutateStateWithSync(
+    (newFilters) => ({ path: filtersPath, value: newFilters }),
+    [filtersPath]
   )
 
   return {
