@@ -167,13 +167,38 @@ const getDateFormat = R.cond([
   [R.equals('dateTime'), R.always('MM-DD-YYYY hh:mm:ss A')],
 ])
 
-const EditableTextField = ({ value: initialValue, onSave, onBlur }) => {
+const EditableTextField = ({
+  valueType,
+  value: initialValue,
+  onSave,
+  onBlur,
+}) => {
   const [value, setValue] = useState(initialValue || '')
 
-  const handleBlur = () => {
-    onSave(value)
+  const parseDate = useCallback(
+    (dateTimeStr, parseFormat) => {
+      const newValue = dayjs(dateTimeStr, parseFormat)
+      return newValue.isValid() ? newValue.format(getDateFormat(valueType)) : ''
+    },
+    [valueType]
+  )
+
+  const parse = useCallback(
+    (value) =>
+      R.cond([
+        [R.equals('boolean'), R.always(Boolean(value))],
+        [R.equals('number'), R.always(value === '' ? '' : +value)],
+        [R.equals('time'), R.always(parseDate(value, 'HH:mm:ss'))],
+        [R.flip(R.includes)(['date', 'dateTime']), R.always(parseDate(value))],
+        [R.T, R.always(value)],
+      ])(valueType),
+    [parseDate, valueType]
+  )
+
+  const handleBlur = useCallback(() => {
+    onSave(parse(value))
     onBlur()
-  }
+  }, [onBlur, onSave, parse, value])
 
   const handleKeyDown = (event) => {
     if (event.key === 'Enter') {
@@ -530,6 +555,7 @@ const GridFilter = ({
             } else {
               return (
                 <EditableTextField
+                  {...{ valueType }}
                   value={row.value}
                   onSave={(newValue) =>
                     handleRowChange(row.id, 'value', newValue)
