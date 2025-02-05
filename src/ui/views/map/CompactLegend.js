@@ -114,16 +114,7 @@ const LegendRowDetails = ({
   group,
   groupCalcByColor = statId.COUNT,
   groupCalcBySize = statId.COUNT,
-  filters = [
-    {
-      id: 0,
-      type: 'group',
-      groupId: 0,
-      logic: 'and',
-      depth: 0,
-      edit: false,
-    },
-  ],
+  filters,
   featureTypeProps,
   featureTypeValues,
   getRange,
@@ -409,7 +400,7 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
             onClick={handleChangeVisibility}
           />
         </Grid2>
-        <Grid2 size="auto">
+        <Grid2 size="auto" sx={{ display: 'flex' }}>
           <FetchedIcon iconName={icon} size={20} />
         </Grid2>
         <Grid2 size="grow" sx={{ textAlign: 'start' }}>
@@ -521,7 +512,7 @@ const LegendGroup = ({
           {legendGroup.name}
         </Typography>
       )}
-      <Stack divider={<Divider flexItem />}>
+      <Stack sx={{ width: '100%' }} divider={<Divider flexItem />}>
         {legendGroupData.map(({ id, value, ...props }) => (
           <MapFeature
             key={id}
