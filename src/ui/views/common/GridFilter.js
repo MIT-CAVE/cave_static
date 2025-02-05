@@ -346,7 +346,7 @@ const GridFilter = ({
   }, [])
 
   const handleDeleteRow = useCallback(
-    (id) => () => {
+    (id) => {
       deleteRow(id)
     },
     [deleteRow]
@@ -615,7 +615,7 @@ const GridFilter = ({
                 icon={<BiBracket size="20px" />}
                 label="Add Group"
                 onClick={() => handleAddGroup(row.groupId, row.depth)}
-                sx={{ marginLeft: '-10px', paddingY: '12px' }}
+                sx={{ marginLeft: '-10px', my: 1 }}
               />,
             ]
           }
@@ -636,15 +636,15 @@ const GridFilter = ({
                   icon={<MdDelete size="20px" />}
                   label="Remove Group"
                   onClick={() => handleDeleteGroup(id, row.groupId)}
-                  sx={{ paddingY: '12px' }}
+                  sx={{ my: 1 }}
                 />,
               ]
             : [
                 <GridActionsCellItem
                   icon={<MdDelete size="20px" />}
                   label="Delete"
-                  onClick={handleDeleteRow(id)}
-                  sx={{ paddingY: '12px' }}
+                  onClick={() => handleDeleteRow(id)}
+                  sx={{ my: 1 }}
                 />,
               ]
         },
