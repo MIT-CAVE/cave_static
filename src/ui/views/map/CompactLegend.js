@@ -400,7 +400,7 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
             onClick={handleChangeVisibility}
           />
         </Grid2>
-        <Grid2 size="auto">
+        <Grid2 size="auto" sx={{ display: 'flex' }}>
           <FetchedIcon iconName={icon} size={20} />
         </Grid2>
         <Grid2 size="grow" sx={{ textAlign: 'start' }}>
