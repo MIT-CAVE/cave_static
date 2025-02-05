@@ -55,7 +55,13 @@ const BaseModal = ({
   } = slotProps
   return (
     <Modal sx={[styles.root, sxRoot]} {...{ open, onClose, ...rootProps }}>
-      <Box sx={[styles.paper, sxPaper]} {...paperProps}>
+      <Box
+        sx={[styles.paper, sxPaper]}
+        {...paperProps}
+        onClick={(event) => {
+          event.stopPropagation()
+        }}
+      >
         <Typography sx={styles.header} component="span" variant="h5">
           {label}
         </Typography>
