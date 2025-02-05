@@ -189,6 +189,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
     <Paper
       sx={[
         styles.paper,
+        isMaximized && { p: 0 },
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
         (chartToolsOpen || modalOpen) && {
           outline: 'none',
