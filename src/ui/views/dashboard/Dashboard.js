@@ -32,7 +32,7 @@ import ChartToolsModal from '../common/ChartToolsModal'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
-import { getFreeName, includesPath } from '../../../utils'
+import { getFreeName, getNumActiveFilters, includesPath } from '../../../utils'
 
 import 'react-grid-layout/css/styles.css'
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -171,7 +171,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const numActiveStatFilters = useMemo(
-    () => R.count(R.propOr(true, 'active'))(statFilters),
+    () => getNumActiveFilters(statFilters),
     [statFilters]
   )
 
