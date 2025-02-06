@@ -178,8 +178,8 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
                           if (!focused.current) {
                             inputRef.current.focus()
                             inputRef.current.setSelectionRange(
-                              value.length,
-                              value.length
+                              value?.length,
+                              value?.length
                             )
                           }
 

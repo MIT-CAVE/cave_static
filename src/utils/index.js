@@ -726,7 +726,9 @@ export const cleanUndefinedStats = (chartObj) => {
     : reduced_chart
 }
 
-export const getNumActiveFilters = R.count(R.propEq('rule', 'type'))
+export const getNumActiveFilters = R.count(
+  R.both(R.propOr(true, 'active'), R.propEq('rule', 'type'))
+)
 
 // REVIEW: Change to a selector?
 export const parseGradient = R.memoizeWith(

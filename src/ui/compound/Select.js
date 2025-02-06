@@ -62,6 +62,7 @@ const Select = ({
   value: selectedValue,
   placeholder,
   iconOnlyOnSelect,
+  iconSize = '32px', // TODO: Replace this with `slotProps`
   disabled,
   sx = [],
   getLabel = (label) => label,
@@ -105,7 +106,7 @@ const Select = ({
               sx={styles.selectedValue}
             >
               {item?.iconName && (
-                <FetchedIcon iconName={item.iconName} size={32} />
+                <FetchedIcon iconName={item.iconName} size={iconSize} />
               )}
               {(item || value) && !iconOnlyOnSelect && (
                 <OverflowText text={getLabel(item?.label ?? value)} />
@@ -152,7 +153,7 @@ const Select = ({
           >
             {iconName && (
               <ListItemIcon sx={styles.icon}>
-                <FetchedIcon {...{ iconName }} size={32} />
+                <FetchedIcon {...{ iconName }} size={iconSize} />
               </ListItemIcon>
             )}
             <span
@@ -179,7 +180,7 @@ const Select = ({
                   >
                     <FetchedIcon
                       {...{ iconName: R.prop('iconName', subObj) }}
-                      size={32}
+                      size={iconSize}
                     />
                   </ListItemIcon>
                 ))}
