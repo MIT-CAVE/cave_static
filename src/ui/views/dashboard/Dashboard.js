@@ -92,9 +92,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
-    (event) => ({
+    (value) => ({
       path,
-      value: R.assoc('chartHoverOrder', event.target.value)(chartObj),
+      value: R.assoc('chartHoverOrder', value)(chartObj),
       sync: !includesPath(R.values(sync), path),
     }),
     [chartHoverOrder, sync, chartObj, path]

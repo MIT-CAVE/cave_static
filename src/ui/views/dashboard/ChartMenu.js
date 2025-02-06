@@ -200,7 +200,7 @@ const ChartMenu = ({
         {!isMap && !UNSORTABLE_HOVERED_CHARTS.includes(chartType) && (
           <>
             <FormControl
-              size="small"
+              // size="small"
               fullWidth
               sx={{ m: 1, maxWidth: 'calc(100% - 16px)' }}
             >
@@ -212,7 +212,7 @@ const ChartMenu = ({
                 label={'Chart Hover \u279D Sort By'}
                 id="chart-hover"
                 value={chartHoverOrder}
-                onChange={onChartHover}
+                iconSize="28px"
                 optionsList={[
                   {
                     iconName: 'bs/BsSortAlphaDown',
@@ -235,6 +235,7 @@ const ChartMenu = ({
                     value: 'valueDesc',
                   },
                 ]}
+                onSelect={onChartHover}
               />
             </FormControl>
             <Divider />
