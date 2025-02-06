@@ -4,22 +4,15 @@ import {
   Divider,
   FormControlLabel,
   FormGroup,
-  FormLabel,
   Stack,
-  Select,
   Menu,
   MenuItem,
   Switch,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 import { memo } from 'react'
-import {
-  FaSortNumericUp,
-  FaSortNumericDown,
-  FaSortAlphaDown,
-  FaSortAlphaUp,
-  FaChartBar,
-  FaFilter,
-} from 'react-icons/fa'
+import { FaChartBar, FaFilter } from 'react-icons/fa'
 import {
   MdClose,
   MdFullscreen,
@@ -32,7 +25,7 @@ import { selectEditLayoutMode } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 
-import { TooltipButton } from '../../compound'
+import { Select, TooltipButton } from '../../compound'
 
 const styles = {
   root: {
@@ -194,7 +187,7 @@ const ChartMenu = ({
         onClose={handleCloseMenu}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        slotProps={{ paper: { sx: { width: '20ch' } } }}
+        slotProps={{ paper: { sx: { width: '21.5ch' } } }}
         sx={{ p: 0 }}
       >
         <BaseMenuItem
@@ -206,25 +199,44 @@ const ChartMenu = ({
 
         {!isMap && !UNSORTABLE_HOVERED_CHARTS.includes(chartType) && (
           <>
-            <FormLabel sx={{ ml: 2 }}>Chart Hover</FormLabel>
-            <Select
-              value={chartHoverOrder}
-              onChange={onChartHover}
-              sx={{ ml: 2 }}
+            <FormControl
+              size="small"
+              fullWidth
+              sx={{ m: 1, maxWidth: 'calc(100% - 16px)' }}
             >
-              <MenuItem value="seriesAsc">
-                <FaSortAlphaDown fontSize={20} /> Name
-              </MenuItem>
-              <MenuItem value="seriesDesc">
-                <FaSortAlphaUp fontSize={20} /> Name
-              </MenuItem>
-              <MenuItem value="valueAsc">
-                <FaSortNumericDown fontSize={20} /> Value
-              </MenuItem>
-              <MenuItem value="valueDesc">
-                <FaSortNumericUp fontSize={20} /> Value
-              </MenuItem>
-            </Select>
+              <InputLabel id="chart-hover-label">
+                {'Chart Hover \u279D Sort By'}
+              </InputLabel>
+              <Select
+                labelId="chart-hover-label"
+                label={'Chart Hover \u279D Sort By'}
+                id="chart-hover"
+                value={chartHoverOrder}
+                onChange={onChartHover}
+                optionsList={[
+                  {
+                    iconName: 'bs/BsSortAlphaDown',
+                    label: 'Name (Asc)',
+                    value: 'seriesAsc',
+                  },
+                  {
+                    iconName: 'bs/BsSortAlphaUp',
+                    label: 'Name (Desc)',
+                    value: 'seriesDesc',
+                  },
+                  {
+                    iconName: 'bs/BsSortNumericDown',
+                    label: 'Value (Asc)',
+                    value: 'valueAsc',
+                  },
+                  {
+                    iconName: 'bs/BsSortNumericUp',
+                    label: 'Value (Desc)',
+                    value: 'valueDesc',
+                  },
+                ]}
+              />
+            </FormControl>
             <Divider />
           </>
         )}
