@@ -32,7 +32,7 @@ import ChartToolsModal from '../common/ChartToolsModal'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
-import { getFreeName, includesPath } from '../../../utils'
+import { getFreeName, getNumActiveFilters, includesPath } from '../../../utils'
 
 import 'react-grid-layout/css/styles.css'
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -92,9 +92,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
-    (event) => ({
+    (value) => ({
       path,
-      value: R.assoc('chartHoverOrder', event.target.value)(chartObj),
+      value: R.assoc('chartHoverOrder', value)(chartObj),
       sync: !includesPath(R.values(sync), path),
     }),
     [chartHoverOrder, sync, chartObj, path]
@@ -171,7 +171,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
   )
 
   const numActiveStatFilters = useMemo(
-    () => R.count(R.propOr(true, 'active'))(statFilters),
+    () => getNumActiveFilters(statFilters),
     [statFilters]
   )
 

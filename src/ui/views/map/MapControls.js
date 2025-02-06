@@ -1,8 +1,9 @@
-import { Badge, Box, ButtonGroup, Slider } from '@mui/material'
+import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useState, useMemo } from 'react'
 import {
   MdAdd,
+  MdFilterAlt,
   MdGpsFixed,
   MdHeight,
   MdRemove,
@@ -12,6 +13,8 @@ import {
   MdMap,
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { WithBadge } from './Legend'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -213,7 +216,13 @@ const MapControls = ({ allowProjections, mapId }) => {
           )
         ),
         R.unnest,
-        R.any(R.both(R.isNotNil, R.propOr(true, 'active')))
+        R.any(
+          R.allPass([
+            R.isNotNil,
+            R.propOr(true, 'active'),
+            R.propEq('rule', 'type'),
+          ])
+        )
       )(legendData),
     [legendData]
   )
@@ -274,9 +283,21 @@ const MapControls = ({ allowProjections, mapId }) => {
               placement="top"
               onClick={() => dispatch(toggleMapLegend(mapId))}
             >
-              <Badge color="info" variant="dot" invisible={!anyActiveFilter}>
-                <MdApps />
-              </Badge>
+              <WithBadge
+                size={14}
+                color="#29b6f6"
+                showBadge={anyActiveFilter}
+                reactIcon={() => <MdFilterAlt color="#4a4a4a" />}
+                overlap="rectangular"
+                sx={{ top: '4px', right: '2px' }}
+              >
+                <MdApps
+                  style={
+                    // Adjusting position to compensate for the badge's top-right placement
+                    { marginTop: '-4px', marginRight: '-2px' }
+                  }
+                />
+              </WithBadge>
             </TooltipButton>
           </ButtonGroup>
 
