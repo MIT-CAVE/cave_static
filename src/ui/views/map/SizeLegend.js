@@ -103,6 +103,7 @@ const NumericalSizeLegend = ({
     getAdjustedLabel,
     getAttrLabelAt: getSizeLabelAt,
     getValueLabelAt,
+    getFormattedValueAt,
     handleSetAutoValueAt,
   } = useGradient({
     labels,
@@ -198,7 +199,11 @@ const NumericalSizeLegend = ({
                   >
                     <OverflowText
                       text={
-                        isStepScale ? getSizeLabelAt(index) : getLabel(index)
+                        isStepScale
+                          ? getSizeLabelAt(index)
+                          : labels[index] != null
+                            ? getFormattedValueAt(index)
+                            : getLabel(index)
                       }
                     />
                   </Typography>
