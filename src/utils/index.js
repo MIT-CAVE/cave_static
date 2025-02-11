@@ -741,6 +741,7 @@ export const parseGradient = R.memoizeWith(
       R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
       R.pipe(
         R.path(['gradient', 'data']),
+        R.filter(R.has(attrKey)),
         R.applySpec({
           [`${attrKey}s`]: R.map(
             R.pipe(
