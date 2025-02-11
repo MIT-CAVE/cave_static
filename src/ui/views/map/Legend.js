@@ -413,6 +413,7 @@ export const useGradient = ({
     getAdjustedLabel,
     getAttrLabelAt,
     getValueLabelAt,
+    getFormattedValueAt,
     handleSetAutoValueAt,
   }
 }

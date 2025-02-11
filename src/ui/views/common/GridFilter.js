@@ -1,4 +1,4 @@
-import { Paper, Select, MenuItem, TextField, Box } from '@mui/material'
+import { Paper, TextField, Box } from '@mui/material'
 import { darken, lighten, styled } from '@mui/material/styles'
 import {
   DataGrid,
@@ -18,7 +18,7 @@ import GridEditMultiSelectCell, {
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
-import { OverflowText } from '../../compound'
+import { OverflowText, Select } from '../../compound'
 
 import { NumberFormat, renameKeys } from '../../../utils'
 
@@ -447,7 +447,7 @@ const GridFilter = ({
               })}
             </Box>
 
-            {row.type === 'group' ? (
+            {row.type === 'group' && (
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Select
                   value={row.logic}
@@ -455,13 +455,12 @@ const GridFilter = ({
                     handleRowChange(row.id, 'logic', event.target.value)
                   }
                   sx={styles.select}
-                >
-                  <MenuItem value={'and'}>AND</MenuItem>
-                  <MenuItem value={'or'}>OR</MenuItem>
-                </Select>
+                  optionsList={[
+                    { label: 'OR', value: 'or' },
+                    { label: 'AND', value: 'and' },
+                  ]}
+                />
               </Box>
-            ) : (
-              ''
             )}
           </Box>
         ),
@@ -474,22 +473,17 @@ const GridFilter = ({
         flex: 1,
         editable: false,
         renderCell: ({ row }) => {
-          return row.type === 'rule' ? (
-            <Select
-              value={row.source}
-              onChange={(event) =>
-                handleRowChange(row.id, 'source', event.target.value)
-              }
-              sx={styles.select}
-            >
-              {sourceValueOpts.map((option, index) => (
-                <MenuItem key={index} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          ) : (
-            ''
+          return (
+            row.type === 'rule' && (
+              <Select
+                value={row.source}
+                onChange={(event) =>
+                  handleRowChange(row.id, 'source', event.target.value)
+                }
+                sx={styles.select}
+                optionsList={sourceValueOpts}
+              />
+            )
           )
         },
       },
@@ -514,13 +508,8 @@ const GridFilter = ({
                 handleRowChange(row.id, 'relation', event.target.value)
               }
               sx={styles.select}
-            >
-              {relationValueOpts.map((option, index) => (
-                <MenuItem key={index} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
+              optionsList={relationValueOpts}
+            />
           )
         },
       },
