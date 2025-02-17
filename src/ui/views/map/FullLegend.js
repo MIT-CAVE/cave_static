@@ -133,7 +133,7 @@ const LegendRowDetails = ({
   featureTypeProps,
   featureTypeValues,
   expanded,
-  setExpanded,
+  setExpandedBy,
   onToggleExpanded,
   getRange,
 }) => {
@@ -185,15 +185,15 @@ const LegendRowDetails = ({
   })
   // Automatically expand the `Accordion` when the Shape Picker toggle is enabled
   useEffect(() => {
-    if (showShapePicker) setExpanded(true)
-  }, [setExpanded, showShapePicker])
+    if (showShapePicker) setExpandedBy(id, true)
+  }, [setExpandedBy, id, showShapePicker])
 
   const handleChangeVisibility = useMutateStateWithSync(
     (event) => {
       // Sync the `Accordion`'s expanded/collapsed state
       // with the value of the map feature toggle
       const newValue = event.target.checked
-      setExpanded(newValue)
+      setExpandedBy(id, newValue)
       event.stopPropagation()
       return {
         path: [...basePath, 'value'],
@@ -450,6 +450,11 @@ const LegendGroup = ({
     setExpanded(R.map(R.always(expandAll)))
   }, [expandAll, setExpandedLegendGroup])
 
+  const setExpandedBy = useCallback(
+    (id, value) => setExpanded(R.assoc(id, value)),
+    [setExpanded]
+  )
+
   const handleToggleExpandedBy = useCallback(
     (id) => () => {
       setExpanded(R.assoc(id, !(expanded[id] ?? true)))
@@ -492,8 +497,10 @@ const LegendGroup = ({
             key={id}
             legendGroupId={legendGroup.id}
             expanded={expanded[id] ?? true}
-            {...{ mapId, id, legendLayout, ...props }}
-            setExpanded={(value) => setExpanded(R.assoc(id, value))}
+            // Unlike `expanded` and `onToggleExpanded` where `id` is
+            // is embedded, `setExpandedBy` is passed as is to avoid
+            // an infinite loop on `LegendRowDetails`'s `useEffect`.
+            {...{ mapId, id, legendLayout, setExpandedBy, ...props }}
             onToggleExpanded={handleToggleExpandedBy(id)}
           />
         ))}
