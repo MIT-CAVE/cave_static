@@ -1422,62 +1422,58 @@ export const selectMemoizedChartFunc = createSelector(
             )
         }
 
+        const groupLength = R.values(
+          groupedOutputs[obj.dataset]['valueLists']
+        )[0].length
+
         // Given an index returns a string to group all similar indicies by
-        const categoryFunc = R.curry((category, level, outputGroup) => {
+        const categoryFunc = R.curry((category, level) => {
           const parentalPath = createParentalPath([], category, level)
-          const groupList = R.path([outputGroup, 'groupLists', category])(
+          const groupList = R.path([obj.dataset, 'groupLists', category])(
             groupedOutputs
           )
-
           const groupingVal = R.pipe(
             R.path([category, 'data']),
             R.pick(parentalPath),
             R.values
           )(groupings)
-          const groupBys = Array(
-            R.values(groupedOutputs[outputGroup]['valueLists'])[0].length
-          )
-          for (let index = 0; index < groupBys.length; index++) {
+          let groupBy = Array(groupLength * groupingVal.length)
+          for (let index = 0; index < groupLength; index++) {
             if (groupList == null) return []
             const groupName = groupList[index]
             const groupingIndex =
               groupingIndicies[category]['data']['id'][groupName]
-            const pluckedValues = Array(groupingVal.length)
             for (let i = 0; i < groupingVal.length; i++) {
-              pluckedValues[i] = groupingVal[i][groupingIndex]
+              groupBy[index * groupingVal.length + i] =
+                groupingVal[i][groupingIndex]
             }
-            groupBys[index] = pluckedValues
           }
-          return groupBys
+          return {
+            groupBy,
+            parentLength: groupingVal.length,
+            groupLength,
+          }
         })
-
-        // List of groupBy, subGroupBy etc...
-        const groupBys = R.pipe(
-          R.prop('groupingId'),
-          R.length,
-          R.range(0),
-          R.map((idx) =>
-            obj.groupingId[idx] != null
-              ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
-              : R.always(
-                  R.repeat(
-                    ['All'],
-                    R.values(groupedOutputs[obj.dataset]['valueLists'])[0]
-                      .length
-                  )
-                )
-          ),
-          R.ifElse(
-            R.isEmpty,
-            R.always([
-              R.repeat(
-                ['All'],
-                R.values(groupedOutputs[obj.dataset]['valueLists'])[0].length
-              ),
-            ]),
-            R.map(R.applyTo(obj.dataset))
-          )
-        )(obj)
+        let groupBys = []
+        const parentLengths = []
+        // For each grouping, calculate the groupBy and parentLength
+        for (let i = 0; i < obj.groupingId.length; i++) {
+          if (obj.groupingId[i] != null) {
+            const category = categoryFunc(
+              obj.groupingId[i],
+              obj.groupingLevel[i]
+            )
+            groupBys = groupBys.concat(category.groupBy)
+            parentLengths.push(category.parentLength)
+          } else {
+            groupBys = groupBys.concat(R.repeat('All', groupLength))
+            parentLengths.push(1)
+          }
+        }
+        if (R.isEmpty(groupBys)) {
+          groupBys = groupBys.concat(R.repeat('All', groupLength))
+          parentLengths.push(1)
+        }
 
         const filteredStatsToCalc = filterGroupedOutputs(
           groupedOutputs[obj.dataset],
@@ -1487,30 +1483,38 @@ export const selectMemoizedChartFunc = createSelector(
 
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) => {
-          const statGroupBys = R.has('aggregationGroupingLevel', stat)
-            ? R.append(
-                categoryFunc(
-                  stat.aggregationGroupingId,
-                  stat.aggregationGroupingLevel,
-                  obj.dataset
-                )
-              )(groupBys)
-            : R.append(R.last(groupBys))(groupBys)
-
+          // Add the aggregationGroupingLevel to the groupBys
+          let statGroupBys = []
+          let statParentLengths = []
+          if (R.has('aggregationGroupingLevel', stat)) {
+            const category = categoryFunc(
+              stat.aggregationGroupingId,
+              stat.aggregationGroupingLevel
+            )
+            statGroupBys = groupBys.concat(category.groupBy)
+            statParentLengths = parentLengths.concat(category.parentLength)
+          } else {
+            statGroupBys = groupBys.concat(
+              groupBys.slice(-groupLength * parentLengths.at(-1))
+            )
+            statParentLengths = parentLengths.concat(parentLengths.at(-1))
+          }
           const statGroup = workerManager.doWork({
             groupBys: statGroupBys,
-            statId: stat.statId,
+            parentLengths: statParentLengths,
+            groupLength,
             indicies: filteredStatsToCalc,
-            valueLists: valueBuffers[obj.dataset],
+            valueList: valueBuffers[obj.dataset][stat.statId],
           })
           return R.has('statIdDivisor', stat)
             ? Promise.all([
                 statGroup,
                 workerManager.doWork({
                   groupBys: statGroupBys,
-                  statId: stat.statIdDivisor,
+                  parentLengths: statParentLengths,
+                  groupLength,
                   indicies: filteredStatsToCalc,
-                  valueLists: valueBuffers[obj.dataset],
+                  valueList: valueBuffers[obj.dataset][stat.statIdDivisor],
                 }),
               ])
             : statGroup
