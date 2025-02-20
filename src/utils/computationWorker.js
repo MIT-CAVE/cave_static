@@ -32,8 +32,9 @@ onmessage = (e) => {
   const { valueList, groupBys, indicies, parentLengths, groupLength } = e.data
   const indiciesArr = new Uint32Array(indicies)
   const valueListArr = new Float64Array(valueList)
+  const groupBysArr = new Uint32Array(groupBys)
   const result = group(
-    groupBys,
+    groupBysArr,
     indiciesArr,
     valueListArr,
     parentLengths,

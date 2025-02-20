@@ -1391,6 +1391,8 @@ export const selectMemoizedChartFunc = createSelector(
     maxSizedMemoization(
       (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
       async (obj) => {
+        const groupDict = { All: 0 }
+        const intToGroup = ['All']
         const statObjs = obj.stats ?? []
         // Helper function to find the parental path of a given level
         const createParentalPath = (
@@ -1444,8 +1446,12 @@ export const selectMemoizedChartFunc = createSelector(
             const groupingIndex =
               groupingIndicies[category]['data']['id'][groupName]
             for (let i = 0; i < groupingVal.length; i++) {
+              if (groupDict[groupingVal[i][groupingIndex]] == null) {
+                groupDict[groupingVal[i][groupingIndex]] = intToGroup.length
+                intToGroup.push(groupingVal[i][groupingIndex])
+              }
               groupBy[index * groupingVal.length + i] =
-                groupingVal[i][groupingIndex]
+                groupDict[groupingVal[i][groupingIndex]]
             }
           }
           return {
@@ -1466,12 +1472,12 @@ export const selectMemoizedChartFunc = createSelector(
             groupBys = groupBys.concat(category.groupBy)
             parentLengths.push(category.parentLength)
           } else {
-            groupBys = groupBys.concat(R.repeat('All', groupLength))
+            groupBys = groupBys.concat(R.repeat(0, groupLength))
             parentLengths.push(1)
           }
         }
         if (R.isEmpty(groupBys)) {
-          groupBys = groupBys.concat(R.repeat('All', groupLength))
+          groupBys = groupBys.concat(R.repeat(0, groupLength))
           parentLengths.push(1)
         }
 
@@ -1484,23 +1490,28 @@ export const selectMemoizedChartFunc = createSelector(
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) => {
           // Add the aggregationGroupingLevel to the groupBys
-          let statGroupBys = []
+          let finalGroupBy = []
           let statParentLengths = []
           if (R.has('aggregationGroupingLevel', stat)) {
             const category = categoryFunc(
               stat.aggregationGroupingId,
               stat.aggregationGroupingLevel
             )
-            statGroupBys = groupBys.concat(category.groupBy)
+            finalGroupBy = category.groupBy
             statParentLengths = parentLengths.concat(category.parentLength)
           } else {
-            statGroupBys = groupBys.concat(
-              groupBys.slice(-groupLength * parentLengths.at(-1))
-            )
+            finalGroupBy = groupBys.slice(-groupLength * parentLengths.at(-1))
             statParentLengths = parentLengths.concat(parentLengths.at(-1))
           }
+          const buffersize = (finalGroupBy.length + groupBys.length) * 4
+          const buffer = window.crossOriginIsolated
+            ? new SharedArrayBuffer(buffersize)
+            : new ArrayBuffer(buffersize)
+          const view = new Uint32Array(buffer)
+          view.set(groupBys)
+          view.set(finalGroupBy, groupBys.length)
           const statGroup = workerManager.doWork({
-            groupBys: statGroupBys,
+            groupBys: buffer,
             parentLengths: statParentLengths,
             groupLength,
             indicies: filteredStatsToCalc,
@@ -1510,7 +1521,7 @@ export const selectMemoizedChartFunc = createSelector(
             ? Promise.all([
                 statGroup,
                 workerManager.doWork({
-                  groupBys: statGroupBys,
+                  groupBys: buffer,
                   parentLengths: statParentLengths,
                   groupLength,
                   indicies: filteredStatsToCalc,
@@ -1537,7 +1548,16 @@ export const selectMemoizedChartFunc = createSelector(
                       )
                     : R.identity
                 ),
-                R.identity,
+                (d) => {
+                  if (R.type(d) === 'Object') {
+                    for (const key in d) {
+                      delete Object.assign(d, { [intToGroup[key]]: d[key] })[
+                        key
+                      ]
+                    }
+                  }
+                  return d
+                },
                 R.filter(R.isNotEmpty),
                 val
               ),
