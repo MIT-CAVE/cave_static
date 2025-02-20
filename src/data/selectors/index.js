@@ -1551,9 +1551,11 @@ export const selectMemoizedChartFunc = createSelector(
                 (d) => {
                   if (R.type(d) === 'Object') {
                     for (const key in d) {
-                      delete Object.assign(d, { [intToGroup[key]]: d[key] })[
-                        key
-                      ]
+                      const newKey = key
+                        .split(' \u279D ')
+                        .map((item) => intToGroup[item])
+                        .join(' \u279D ')
+                      delete Object.assign(d, { [newKey]: d[key] })[key]
                     }
                   }
                   return d
