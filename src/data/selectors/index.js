@@ -188,8 +188,13 @@ export const selectPages = createSelector(selectData, (data) =>
 export const selectAssociated = createSelector(selectData, (data) =>
   R.propOr({}, 'associated')(data)
 )
-export const selectSettings = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'settings')(data))
+export const selectSettings = createSelector(
+  selectData,
+  (data) => orderEntireDict(R.propOr({}, 'settings')(data)),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
