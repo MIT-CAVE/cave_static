@@ -178,18 +178,6 @@ export const DEFAULT_MAP_STYLES = {
 
 export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
 
-export const CHART_PALETTE = [
-  '#4992ff',
-  '#7cffb2',
-  '#fddd60',
-  '#ff6e76',
-  '#58d9f9',
-  '#05c091',
-  '#ff8a45',
-  '#8d48e3',
-  '#dd79ff',
-]
-
 export const CHART_DEFAULTS = {
   chartType: chartVariant.BAR,
 }
