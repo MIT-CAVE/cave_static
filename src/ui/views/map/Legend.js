@@ -46,15 +46,15 @@ import {
   selectEffectiveGeosBy,
   selectEffectiveNodesBy,
   selectGeoRange,
-  selectLegendLayoutFunc,
+  selectLegendLayout,
   selectLegendNumberFormatFunc,
   selectLegendViewFunc,
-  selectLegendWidthFunc,
+  selectLegendWidth,
   selectNodeRange,
   selectNodeRangeAtZoomFunc,
   selectPitchSliderToggleFunc,
   selectSettingsIconUrl,
-  selectShowLegendGroupNamesFunc,
+  selectShowLegendGroupNames,
   selectSync,
 } from '../../../data/selectors'
 import {
@@ -899,11 +899,9 @@ export const LegendSettings = ({
   onToggleAdvancedControls,
 }) => {
   const legendView = useSelector(selectLegendViewFunc)(mapId)
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
-  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
-  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
+  const legendLayout = useSelector(selectLegendLayout)[mapId]
+  const legendWidth = useSelector(selectLegendWidth)[mapId]
 
   const handleChangeView = useMutateStateWithSync(() => {
     // Toggle between `full` and `compact` legend views,

@@ -36,10 +36,10 @@ import useMapFilter from './useMapFilter'
 import {
   selectArcTypeKeys,
   selectLegendDataFunc,
-  selectLegendLayoutFunc,
-  selectLegendWidthFunc,
+  selectLegendLayout,
+  selectLegendWidth,
   selectNodeTypeKeys,
-  selectShowLegendGroupNamesFunc,
+  selectShowLegendGroupNames,
 } from '../../../data/selectors'
 import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
 import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
@@ -120,7 +120,7 @@ const LegendRowDetails = ({
   getRange,
   onChangeVisibility,
 }) => {
-  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
+  const legendLayout = useSelector(selectLegendLayout)[mapId]
   const [showShapePicker, handleToggleShapePicker] = useToggle(false)
   const {
     basePath,
@@ -342,7 +342,7 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
     getRange,
     onChangeVisibility,
   } = props
-  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
+  const legendWidth = useSelector(selectLegendWidth)[mapId]
 
   const mapFeatures = mapFeaturesBy(id, mapId)
 
@@ -496,9 +496,7 @@ const LegendGroup = ({
   legendGroup,
   popperProps: { anchorEl, openId, handleClose, handleOpenById },
 }) => {
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
     [legendGroup]
@@ -531,9 +529,7 @@ const LegendGroup = ({
 }
 
 const LegendGroups = ({ mapId, ...props }) => {
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
 
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])

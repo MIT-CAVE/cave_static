@@ -757,32 +757,29 @@ export const selectLegendViewFunc = createSelector(
     )(currentLocalMapDataByMap)
 )
 
-export const selectShowLegendGroupNamesFunc = createSelector(
+export const selectShowLegendGroupNames = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
+    R.pathOr(R.pathOr(true, ['showLegendGroupNames'])(currentMapDataByMap), [
+      'showLegendGroupNames',
+    ])(currentLocalMapDataByMap)
+)
+
+export const selectLegendLayout = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
     R.pathOr(
-      R.pathOr(true, ['showLegendGroupNames', mapId])(currentMapDataByMap),
-      ['showLegendGroupNames', mapId]
+      R.pathOr(legendLayouts.AUTO, ['legendLayout'])(currentMapDataByMap),
+      ['legendLayout']
     )(currentLocalMapDataByMap)
 )
 
-export const selectLegendLayoutFunc = createSelector(
+export const selectLegendWidth = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
     R.pathOr(
-      R.pathOr(legendLayouts.AUTO, ['legendLayout', mapId])(
-        currentMapDataByMap
-      ),
-      ['legendLayout', mapId]
-    )(currentLocalMapDataByMap)
-)
-
-export const selectLegendWidthFunc = createSelector(
-  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
-    R.pathOr(
-      R.pathOr(legendWidths.AUTO, ['legendWidth', mapId])(currentMapDataByMap),
-      ['legendWidth', mapId]
+      R.pathOr(legendWidths.AUTO, ['legendWidth'])(currentMapDataByMap),
+      ['legendWidth']
     )(currentLocalMapDataByMap)
 )
 

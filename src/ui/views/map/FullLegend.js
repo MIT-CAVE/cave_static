@@ -37,9 +37,9 @@ import {
   selectLegendDataFunc,
   selectArcTypeKeys,
   selectNodeTypeKeys,
-  selectLegendLayoutFunc,
-  selectLegendWidthFunc,
-  selectShowLegendGroupNamesFunc,
+  selectLegendLayout,
+  selectLegendWidth,
+  selectShowLegendGroupNames,
 } from '../../../data/selectors'
 import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
 import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
@@ -137,7 +137,8 @@ const LegendRowDetails = ({
   onToggleExpanded,
   getRange,
 }) => {
-  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
+  const legendLayout = useSelector(selectLegendLayout)[mapId]
+
   const [showShapePicker, handleToggleShapePicker] = useToggle(false, true)
   const {
     basePath,
@@ -521,10 +522,8 @@ const LegendGroups = ({ mapId, ...props }) => {
 }
 
 const FullLegend = ({ mapId }) => {
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
-  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
+  const legendWidth = useSelector(selectLegendWidth)[mapId]
   const [expandAll, handleExpandAll] = useToggle(true)
   const [showAdvancedControls, handleToggleAdvancedControls] = useToggle(false)
   const popperProps = useLegendPopper()
