@@ -28,7 +28,12 @@ import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
 import { NumberInput, OverflowText, Select } from '../../compound'
 
-import { getContrastText, orderEntireDict, parseGradient } from '../../../utils'
+import {
+  getChartItemColor,
+  getContrastText,
+  orderEntireDict,
+  parseGradient,
+} from '../../../utils'
 
 const styles = {
   legendSection: {
@@ -284,8 +289,7 @@ const CategoricalColorLegend = ({
       R.map(
         R.applySpec({
           name: R.prop('name'),
-          color: R.propOr('#000', 'color'), // In case `color` is missing
-          // TODO: Think more about this: unspecified `color`s
+          color: (d) => R.propOr(getChartItemColor(d['name']), 'color', d), // In case `color` is missing
         })
       )
     )(options)

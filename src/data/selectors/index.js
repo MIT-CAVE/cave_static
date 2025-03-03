@@ -48,6 +48,7 @@ import {
   ALLOWED_RANGE_KEYS,
   getColorString,
   parseGradient,
+  getChartItemColor,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -2352,9 +2353,11 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
             colorByPropVal === ''
               ? colorFallback
               : isColorCategorical
-                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
-                    colorByProp
-                  )
+                ? R.pathOr(getChartItemColor(colorByPropVal), [
+                    'options',
+                    colorByPropVal,
+                    'color',
+                  ])(colorByProp)
                 : getScaledValueAlt(
                     [colorDomain.min, colorDomain.max],
                     parsedColor.colors,

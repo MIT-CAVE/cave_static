@@ -855,9 +855,11 @@ export const constructFetchedGeoJson = (
                   colorByPropVal === ''
                     ? colorFallback
                     : isColorCategorical
-                      ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
-                          colorRange
-                        )
+                      ? R.pathOr(getChartItemColor(colorByPropVal), [
+                          'options',
+                          colorByPropVal,
+                          'color',
+                        ])(colorRange)
                       : getScaledValueAlt(
                           parsedColor.values,
                           parsedColor.colors,
@@ -1027,9 +1029,11 @@ export const constructGeoJson = (
             colorByPropVal === ''
               ? colorFallback
               : isColorCategorical
-                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
-                    colorRange
-                  )
+                ? R.pathOr(getChartItemColor(colorByPropVal), [
+                    'options',
+                    colorByPropVal,
+                    'color',
+                  ])(colorRange)
                 : getScaledValueAlt(
                     parsedColor.values,
                     parsedColor.colors,

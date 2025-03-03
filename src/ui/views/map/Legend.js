@@ -80,6 +80,7 @@ import { FetchedIcon, NumberInput, Select } from '../../compound'
 
 import {
   forceArray,
+  getChartItemColor,
   getColorString,
   includesPath,
   NumberFormat,
@@ -497,7 +498,7 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
   const displayedColors = useMemo(() => {
     const maxVisible = 9 // Max number of color dots
     return R.pipe(
-      R.pluck('color'),
+      R.map((d) => R.propOr(getChartItemColor(d['name']), 'color', d)),
       R.values,
       R.when(
         R.always(anyNullValue && fallback?.color != null),
