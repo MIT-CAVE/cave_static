@@ -25,14 +25,14 @@ const styles = (theme) => ({
 const PropNumberSlider = ({ prop, currentVal, onChange }) => {
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
 
-  const enabled = prop.enabled || false
+  const { enabled, slotProps } = prop
   const min = R.propOr(-Infinity, 'minValue', prop)
   const max = R.propOr(Infinity, 'maxValue', prop)
   return (
     <ValueRange
-      {...{ enabled }}
+      disabled={!enabled}
       numberFormat={numberFormatProps}
-      sliderProps={{ sx: styles }}
+      slotProps={{ slider: { sx: styles }, ...slotProps }}
       minValue={min}
       maxValue={max}
       valueStart={R.clamp(

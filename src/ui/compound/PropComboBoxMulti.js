@@ -1,6 +1,8 @@
-import { Autocomplete, Box, TextField } from '@mui/material'
+import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+
+import Combobox from './ComboboxBase'
 
 import { withIndex, forceArray } from '../../utils'
 
@@ -10,9 +12,7 @@ const getStyles = (enabled) => ({
   pt: 1,
   pointerEvents: enabled ? '' : 'none',
   opacity: enabled ? '' : 0.7,
-  '& .MuiAutocomplete-root': {
-    p: 1,
-  },
+  '& .MuiAutocomplete-root': { p: 1 },
 })
 
 const PropComboBoxMulti = ({
@@ -22,30 +22,19 @@ const PropComboBoxMulti = ({
   onChange,
   ...props
 }) => {
-  const { enabled = false, options, placeholder, numVisibleTags } = prop
-  const optionsList = withIndex(options)
-  const indexedOptions = R.indexBy(R.prop('id'))(optionsList)
+  const { enabled, options, placeholder, numVisibleTags, slotProps } = prop
+  const optionsListRaw = withIndex(options)
+  const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <Autocomplete
+      <Combobox
         multiple
-        fullWidth
-        sx={{ p: 1.5, maxWidth: 300 }}
         disabled={!enabled}
-        limitTags={numVisibleTags}
+        sx={{ maxWidth: '300px' }}
+        options={R.pluck('id')(optionsListRaw)}
         value={R.defaultTo(prop.value)(currentVal)}
-        options={R.pluck('id')(optionsList)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            fullWidth
-            label={placeholder}
-            variant="standard"
-          />
-        )}
-        onChange={(_, updatedValue) => {
-          if (enabled) onChange(updatedValue)
-        }}
+        limitTags={numVisibleTags}
+        {...{ placeholder, slotProps, onChange }}
         getOptionLabel={(option) =>
           R.pathOr(option, [option, 'name'])(indexedOptions)
         }

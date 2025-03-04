@@ -46,7 +46,7 @@ const DELAY = 10
 const KEYBOARD_LAYOUT = 'numPad'
 
 const NumberInput = ({
-  enabled = true,
+  disabled,
   help,
   min,
   max,
@@ -157,7 +157,7 @@ const NumberInput = ({
   // Update this field's value when user types on virtual keyboard
   useEffect(() => {
     if (
-      !enabled ||
+      disabled ||
       !focused.current ||
       virtualKeyboard.inputValue === valueText
     )
@@ -178,7 +178,7 @@ const NumberInput = ({
     handleChange({ target: { value: virtualKeyboard.inputValue } })
   }, [
     dispatch,
-    enabled,
+    disabled,
     validNaNs,
     virtualKeyboard.inputValue,
     virtualKeyboard.caretPosition,
@@ -242,7 +242,7 @@ const NumberInput = ({
       onChange={handleChange}
       onSelect={syncCaretPosition}
       onFocus={() => {
-        if (!enabled) return
+        if (disabled) return
         // delay to ensure the keyboard closing is overriden
         // if user focuses to another input field
         if (virtualKeyboard.isOpen) {
@@ -256,7 +256,7 @@ const NumberInput = ({
         setAllValues(value)
       }}
       onBlur={() => {
-        if (!enabled) return
+        if (disabled) return
 
         // delay so that focusing to another input field keeps
         // the keyboard open
@@ -276,17 +276,17 @@ const NumberInput = ({
         onClickAway(clampedVal)
       }}
       onTouchStart={() => {
-        if (!enabled) return
+        if (disabled) return
 
         isTouchDragging.current = false
       }}
       onTouchMove={() => {
-        if (!enabled) return
+        if (disabled) return
 
         isTouchDragging.current = true
       }}
       onTouchEnd={() => {
-        if (!enabled) return
+        if (disabled) return
 
         // delay so that clicking on the keyboard button doesn't immediately
         // close the keyboard due to onClick event
@@ -302,8 +302,8 @@ const NumberInput = ({
       slotProps={{
         ...slotProps,
         input: {
-          readOnly: !enabled,
-          ...(enabled && {
+          readOnly: disabled,
+          ...(!disabled && {
             endAdornment: (
               <InputAdornment position="end">
                 {endAdornments}
@@ -341,7 +341,7 @@ const NumberInput = ({
 NumberInput.propTypes = {
   color: PropTypes.string,
   statusIcon: PropTypes.bool,
-  enabled: PropTypes.bool,
+  disabled: PropTypes.bool,
   help: PropTypes.string,
   min: PropTypes.number,
   max: PropTypes.number,

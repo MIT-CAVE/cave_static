@@ -21,7 +21,7 @@ const getStyles = (enabled) => ({
 })
 
 const PropIncSlider = ({ prop, sx = [] }) => {
-  const { enabled = false, valueOptions } = prop
+  const { enabled, valueOptions } = prop
   const [value, setValue] = useState(prop.value)
   const marks = R.map(
     (x) => ({

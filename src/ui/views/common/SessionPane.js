@@ -263,12 +263,11 @@ const ListItemSessionCardInput = ({
           <>
             {teamOptions && teamOptions.length > 0 && (
               <Autocomplete
-                autoSelect
                 fullWidth
-                value={inputValues.team}
-                sx={{ mt: 3 }}
-                enabled
+                autoSelect
                 disablePortal
+                sx={{ mt: 3 }}
+                value={inputValues.team}
                 options={R.pluck('label', teamOptions)}
                 renderInput={(params) => (
                   // The placeholder in the API serves as a label in the context of the MUI component.
@@ -280,11 +279,10 @@ const ListItemSessionCardInput = ({
               />
             )}
             <TextInput
-              enabled
               controlled
               sx={{ mt: 3 }}
-              value={inputValues.name}
               label="Session name"
+              value={inputValues.name}
               onChange={(value) =>
                 setInputValues(R.assoc('name', value, inputValues))
               }
@@ -294,12 +292,11 @@ const ListItemSessionCardInput = ({
       />
       <CardContent>
         <TextInput
-          enabled
-          controlled
           multiline
-          value={inputValues.description}
-          label="Session description"
+          controlled
           rows={6}
+          label="Session description"
+          value={inputValues.description}
           onChange={(value) =>
             setInputValues(R.assoc('description', value, inputValues))
           }

@@ -5,20 +5,20 @@ import NumberInput from './NumberInput'
 
 import { NumberFormat, getSliderMarks } from '../../utils'
 
-const getStyles = (enabled) => ({
+const getStyles = (disabled) => ({
   display: 'flex',
   flexDirection: 'column',
   maxWidth: '50%',
   mx: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
+  pointerEvents: disabled ? 'none' : '',
+  opacity: disabled ? 0.7 : '',
 })
 
 const adjustRangeMax = ([min, max], delta = 1) =>
   min === max ? min + delta : max
 
 export const ValueRange = ({
-  enabled,
+  disabled,
   valueStart,
   minValue,
   maxValue,
@@ -26,7 +26,7 @@ export const ValueRange = ({
   // they are rendered in the prop container
   // eslint-disable-next-line no-unused-vars
   numberFormat: { unit, unitPlacement, ...numberFormat },
-  sliderProps,
+  slotProps,
   onClickAwayHandler,
 }) => {
   const [min, setMin] = useState(minValue)
@@ -50,9 +50,8 @@ export const ValueRange = ({
     <Grid container spacing={2} alignItems="center">
       <Grid item xs sx={{ mx: 2 }}>
         <Slider
-          {...{ max, min, step }}
+          {...{ disabled, max, min, step }}
           track={false}
-          disabled={!enabled}
           valueLabelDisplay="auto"
           valueLabelFormat={getLabelFormat}
           value={valueCurrent}
@@ -63,12 +62,12 @@ export const ValueRange = ({
           onChangeCommitted={() => {
             onClickAwayHandler(Math.round(valueCurrent * 10000) / 10000)
           }}
-          {...sliderProps}
+          {...slotProps?.slider}
         />
       </Grid>
-      <Grid container item xs sx={getStyles(enabled)}>
+      <Grid container item xs sx={getStyles(disabled)}>
         <NumberInput
-          {...{ enabled, max, min, numberFormat }}
+          {...{ disabled, max, min, numberFormat, slotProps }}
           value={valueCurrent}
           onClickAway={onClickAwayHandler}
         />

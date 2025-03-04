@@ -1,4 +1,4 @@
-import { InputAdornment, TextField, Box } from '@mui/material'
+import { InputAdornment, TextField, IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useEffect, useState, useRef } from 'react'
@@ -25,14 +25,15 @@ const KEYBOARD_LAYOUT = 'default'
 // `controlled` and `onChange` should be used together.
 const TextInput = ({
   controlled,
-  sx,
   color = 'default',
-  enabled,
+  disabled,
   multiline,
   label,
   placeholder,
   help,
   value: valueParent,
+  sx = [],
+  slotProps,
   onChange,
   onClickAway = () => {},
   ...props
@@ -70,7 +71,7 @@ const TextInput = ({
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
   useEffect(() => {
-    if (!enabled || !focused.current || virtualKeyboard.inputValue === value)
+    if (disabled || !focused.current || virtualKeyboard.inputValue === value)
       return
 
     if (controlled) {
@@ -78,7 +79,7 @@ const TextInput = ({
     } else {
       setValue(virtualKeyboard.inputValue)
     }
-  }, [onChange, enabled, controlled, virtualKeyboard.inputValue, value])
+  }, [onChange, disabled, controlled, virtualKeyboard.inputValue, value])
 
   // Keep cursor position synced with virtual keyboard's
   useEffect(() => {
@@ -117,8 +118,7 @@ const TextInput = ({
 
   return (
     <TextField
-      {...{ label, placeholder, multiline, sx, ...props }}
-      disabled={!enabled}
+      {...{ disabled, label, placeholder, multiline, sx, ...props }}
       fullWidth
       value={controlled ? valueParent : value}
       color={color === 'default' ? 'primary' : color}
@@ -130,7 +130,7 @@ const TextInput = ({
       }}
       onSelect={syncCaretPosition}
       onFocus={() => {
-        if (!enabled) return
+        if (disabled) return
 
         // delay to ensure the keyboard closing is overriden
         // if user focuses to another input field
@@ -145,7 +145,7 @@ const TextInput = ({
         setAllValues(value)
       }}
       onBlur={() => {
-        if (!enabled) return
+        if (disabled) return
 
         // delay so that focusing to another input field keeps
         // the keyboard open
@@ -160,17 +160,17 @@ const TextInput = ({
         dispatch(setIsTextArea(false))
       }}
       onTouchStart={() => {
-        if (!enabled) return
+        if (disabled) return
 
         isTouchDragging.current = false
       }}
       onTouchMove={() => {
-        if (!enabled) return
+        if (disabled) return
 
         isTouchDragging.current = true
       }}
       onTouchEnd={() => {
-        if (!enabled) return
+        if (disabled) return
 
         // delay so that clicking on the keyboard button doesn't immediately
         // close the keyboard due to onClick event
@@ -183,44 +183,48 @@ const TextInput = ({
       }}
       helperText={help}
       inputRef={inputRef}
-      InputProps={{
-        name: multiline ? 'cave-textarea-input' : 'cave-text-input',
-        readOnly: !enabled,
-        ...(enabled && {
-          endAdornment: (
-            <InputAdornment position="end">
-              <Box
-                sx={{ cursor: 'pointer' }}
-                onClick={() => {
-                  if (!focused.current) {
-                    inputRef.current.focus()
-                    inputRef.current.setSelectionRange(
-                      value.length,
-                      value.length
-                    )
-                  }
+      slotProps={{
+        ...slotProps,
+        input: {
+          readOnly: disabled,
+          ...(!disabled && {
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    if (!focused.current) {
+                      inputRef.current.focus()
+                      inputRef.current.setSelectionRange(
+                        value.length,
+                        value.length
+                      )
+                    }
 
-                  dispatch(setIsOpen(!virtualKeyboard.isOpen))
-                  dispatch(setLayout(KEYBOARD_LAYOUT))
-                  syncCaretPosition()
-                }}
-                onMouseDown={(event) => {
-                  if (focused.current) event.preventDefault()
-                }}
-              >
-                <BiSolidKeyboard />
-              </Box>
-              {color !== 'default' && getStatusIcon(color)}
-            </InputAdornment>
-          ),
-        }),
+                    dispatch(setIsOpen(!virtualKeyboard.isOpen))
+                    dispatch(setLayout(KEYBOARD_LAYOUT))
+                    syncCaretPosition()
+                  }}
+                  onMouseDown={(event) => {
+                    if (focused.current) event.preventDefault()
+                  }}
+                >
+                  <BiSolidKeyboard />
+                </IconButton>
+                {color !== 'default' && getStatusIcon(color)}
+              </InputAdornment>
+            ),
+          }),
+          ...slotProps?.input,
+        },
+        name: multiline ? 'cave-textarea-input' : 'cave-text-input',
       }}
     />
   )
 }
 TextInput.propTypes = {
   color: PropTypes.string,
-  enabled: PropTypes.bool,
+  disabled: PropTypes.bool,
   help: PropTypes.string,
   placeholder: PropTypes.string,
   value: PropTypes.string,

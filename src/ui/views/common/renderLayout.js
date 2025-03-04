@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
 
-import renderProp from './renderProp'
+import Prop from './renderProp'
 
 import { layoutType } from '../../../utils/enums'
 
@@ -19,11 +19,14 @@ const renderPropItem = ({
 }) => {
   const { container, elevation, marquee } = layoutItem
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
-  return renderProp({
-    prop: container ? { container, elevation, marquee, ...prop } : prop,
-    currentVal: currentValue,
-    onChange: onChangeProp(prop, prop.id),
-  })
+  return (
+    <Prop
+      key={prop.key}
+      prop={container ? { container, elevation, marquee, ...prop } : prop}
+      currentVal={currentValue}
+      onChange={onChangeProp(prop, prop.id)}
+    />
+  )
 }
 
 const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
