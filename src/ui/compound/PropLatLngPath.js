@@ -88,7 +88,7 @@ const displayPath = (path) => {
 const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const { enabled = false, placeholder, label } = prop
+  const { enabled, placeholder, label } = prop
 
   const mapSettings = {
     style: {
@@ -189,7 +189,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           <Box sx={[styles.getBoxStyle(enabled), ...forceArray(sx)]} {...props}>
             <Typography> Latitude </Typography>
             <NumberInput
-              {...{ enabled, placeholder, label, max: 90, min: -90 }}
+              disabled={!enabled}
+              {...{ placeholder, label, max: 90, min: -90 }}
               numberFormat={numberFormatProps}
               value={manual[1]}
               onClickAway={inputLat}
@@ -198,7 +199,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           <Box sx={[styles.getBoxStyle(enabled), ...forceArray(sx)]} {...props}>
             <Typography> Longitude </Typography>
             <NumberInput
-              {...{ enabled, placeholder, label, max: 180, min: -180 }}
+              disabled={!enabled}
+              {...{ placeholder, label, max: 180, min: -180 }}
               numberFormat={numberFormatProps}
               value={manual[0]}
               onClickAway={inputLng}

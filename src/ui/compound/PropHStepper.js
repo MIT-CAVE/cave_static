@@ -23,7 +23,7 @@ const getStyles = (enabled) => ({
 const valueToIndex = (val, options) => R.pipe(R.keys, R.indexOf(val))(options)
 
 const PropHStepper = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, options } = prop
+  const { enabled, options } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
   const [index, setIndex] = useState(valueToIndex(value, options))
 
