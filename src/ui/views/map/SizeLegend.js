@@ -370,7 +370,7 @@ const SizeLegend = ({
   sizeByOptions,
   groupCalcValue,
   onSelectProp,
-  onSelectGroupCalc,
+  onChangeLegendAttr,
   onChangePropAttr,
   onChangeSize,
 }) => {
@@ -452,7 +452,7 @@ const SizeLegend = ({
         <GroupCalcSelector
           type={sizeByProp.type}
           value={groupCalcValue}
-          onSelect={onSelectGroupCalc('groupCalcBySize')}
+          onSelect={onChangeLegendAttr('groupCalcBySize')}
         />
       )}
     </Paper>

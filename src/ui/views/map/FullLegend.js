@@ -13,7 +13,7 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { LuGroup, LuUngroup } from 'react-icons/lu'
+import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdExpandMore, MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
@@ -29,6 +29,7 @@ import {
   useLegendDetails,
   WithEditBadge,
   LegendSettings,
+  GroupScaleControls,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
@@ -40,10 +41,12 @@ import {
   selectLegendLayout,
   selectLegendWidth,
   selectShowLegendGroupNames,
+  selectShowLegendAdvancedControls,
 } from '../../../data/selectors'
 import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
 import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
 import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
+import { useSizeSlider } from '../../compound/SizeSlider'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
 
@@ -127,6 +130,8 @@ const LegendRowDetails = ({
   getShapeIcon,
   getShapeLabel,
   group,
+  groupScale = 50,
+  groupScaleWithZoom = false,
   groupCalcByColor = statId.COUNT,
   groupCalcBySize = statId.COUNT,
   filters,
@@ -138,7 +143,9 @@ const LegendRowDetails = ({
   getRange,
 }) => {
   const legendLayout = useSelector(selectLegendLayout)[mapId]
-
+  const showLegendAdvancedControls = useSelector(
+    selectShowLegendAdvancedControls
+  )[mapId]
   const [showShapePicker, handleToggleShapePicker] = useToggle(false, true)
   const {
     basePath,
@@ -147,9 +154,9 @@ const LegendRowDetails = ({
     clusterRange,
     heightRange,
     hasAnyNullValue,
-    handleSelectGroupCalc,
+    handleChangeLegendAttr,
     handleSelectProp,
-    handleToggleGroup,
+    handleToggleGroup: handleToggleGroupRaw,
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
@@ -184,10 +191,20 @@ const LegendRowDetails = ({
     filtersPath: [...basePath, 'filters'],
     filters,
   })
-  // Automatically expand the `Accordion` when the Shape Picker toggle is enabled
+  const {
+    showSizeSlider: showGroupControls,
+    handleOpen: handleOpenGroupScale,
+    ...groupScaleSlider
+  } = useSizeSlider(handleChangeLegendAttr, null)
+  const layoutDirection =
+    legendLayout === legendLayouts.AUTO || legendLayout === legendLayouts.COLUMN
+      ? 'row'
+      : 'column'
+
+  // Expand the Accordion when Shape Picker or Scale Group is enabled
   useEffect(() => {
-    if (showShapePicker) setExpandedBy(id, true)
-  }, [setExpandedBy, id, showShapePicker])
+    if (showShapePicker || showGroupControls) setExpandedBy(id, true)
+  }, [showGroupControls, setExpandedBy, showShapePicker, id])
 
   const handleChangeVisibility = useMutateStateWithSync(
     (event) => {
@@ -196,12 +213,17 @@ const LegendRowDetails = ({
       const newValue = event.target.checked
       setExpandedBy(id, newValue)
       event.stopPropagation()
-      return {
-        path: [...basePath, 'value'],
-        value: newValue ?? true,
-      }
+      return { path: [...basePath, 'value'], value: newValue ?? true }
     },
     [basePath]
+  )
+
+  const handleToggleGroup = useCallback(
+    (event, value) => {
+      if (value) groupScaleSlider.handleClose(event) // Close the Scale Group when grouping is disabled
+      handleToggleGroupRaw(event, value)
+    },
+    [handleToggleGroupRaw, groupScaleSlider]
   )
   return (
     <Stack
@@ -258,15 +280,32 @@ const LegendRowDetails = ({
             </Grid2>
             <Grid2 size="auto">
               {allowGrouping && (
-                <ToggleButton
-                  color={group ? 'primary' : null}
-                  selected={group}
-                  value={group}
-                  sx={styles.toggleButton}
-                  onClick={handleToggleGroup}
-                >
-                  {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
-                </ToggleButton>
+                <>
+                  <ToggleButton
+                    color={group ? 'primary' : null}
+                    selected={group}
+                    value={group}
+                    sx={styles.toggleButton}
+                    onClick={handleToggleGroup}
+                  >
+                    {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
+                  </ToggleButton>
+
+                  {showLegendAdvancedControls && (
+                    <WithEditBadge editing={showGroupControls}>
+                      <ToggleButton
+                        disabled={!group}
+                        color={showGroupControls ? 'warning' : null}
+                        selected={showGroupControls}
+                        value="showGroupControls"
+                        sx={[styles.toggleButton, { mx: 0.5 }]}
+                        onClick={handleOpenGroupScale('groupScale', groupScale)}
+                      >
+                        <LuRadius size={24} />
+                      </ToggleButton>
+                    </WithEditBadge>
+                  )}
+                </>
               )}
               {/* Filter */}
               <DataGridModal
@@ -298,29 +337,29 @@ const LegendRowDetails = ({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, px: 1 }}>
           {/* TODO: Improve location/width of `ShapePicker` */}
-          {showShapePicker && (
-            <ShapePicker
-              label={shapeLabel}
-              value={shape}
-              options={shapeOptions}
-              color="warning"
-              {...{ ListboxComponent, groupBy }}
-              getIcon={getShapeIcon}
-              getLabel={getShapeLabel}
-              onChange={handleChangeShape}
-            />
-          )}
+          <Stack spacing={1} sx={{ mb: 1 }}>
+            {showShapePicker && (
+              <ShapePicker
+                label={shapeLabel}
+                value={shape}
+                options={shapeOptions}
+                color="warning"
+                {...{ ListboxComponent, groupBy }}
+                getIcon={getShapeIcon}
+                getLabel={getShapeLabel}
+                onChange={handleChangeShape}
+              />
+            )}
 
-          <Grid2
-            container
-            direction={
-              legendLayout === legendLayouts.AUTO ||
-              legendLayout === legendLayouts.COLUMN
-                ? 'row'
-                : 'column'
-            }
-            spacing={1}
-          >
+            {showLegendAdvancedControls && showGroupControls && (
+              <GroupScaleControls
+                {...{ mapId, groupScaleWithZoom, ...groupScaleSlider }}
+                onChangeLegendAttr={handleChangeLegendAttr}
+              />
+            )}
+          </Stack>
+
+          <Grid2 container direction={layoutDirection} spacing={1}>
             {colorBy != null && (
               <Grid2 size="grow">
                 <ColorLegend
@@ -339,7 +378,7 @@ const LegendRowDetails = ({
                   hasAnyNullValue={hasAnyNullValue(colorBy)}
                   groupCalcValue={groupCalcByColor}
                   onSelectProp={handleSelectProp}
-                  onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangeLegendAttr={handleChangeLegendAttr}
                   onChangePropAttr={handleChangePropAttr}
                   onChangeColor={handleChangeColor}
                 />
@@ -354,6 +393,7 @@ const LegendRowDetails = ({
                       : sizeRange
                   }
                   {...{
+                    mapId,
                     icon,
                     group,
                     sizeBy,
@@ -363,7 +403,7 @@ const LegendRowDetails = ({
                   hasAnyNullValue={hasAnyNullValue(sizeBy)}
                   groupCalcValue={groupCalcBySize}
                   onSelectProp={handleSelectProp}
-                  onSelectGroupCalc={handleSelectGroupCalc}
+                  onChangeLegendAttr={handleChangeLegendAttr}
                   onChangePropAttr={handleChangePropAttr}
                   onChangeSize={handleChangeSize}
                 />
@@ -458,9 +498,14 @@ const LegendGroup = ({
 
   const handleToggleExpandedBy = useCallback(
     (id) => () => {
-      setExpanded(R.assoc(id, !(expanded[id] ?? true)))
+      setExpanded(
+        R.converge(R.assoc(id), [
+          R.pipe(R.prop(id), R.defaultTo(true), R.not),
+          R.identity,
+        ])
+      )
     },
-    [expanded]
+    []
   )
 
   const legendGroupData = useMemo(
@@ -498,11 +543,11 @@ const LegendGroup = ({
             key={id}
             legendGroupId={legendGroup.id}
             expanded={expanded[id] ?? true}
-            // Unlike `expanded` and `onToggleExpanded` where `id` is
-            // is embedded, `setExpandedBy` is passed as is to avoid
-            // an infinite loop on `LegendRowDetails`'s `useEffect`.
-            {...{ mapId, id, legendLayout, setExpandedBy, ...props }}
             onToggleExpanded={handleToggleExpandedBy(id)}
+            // Unlike `expanded` and `onToggleExpanded` where `id` is
+            // embedded, `setExpandedBy` is passed as is to avoid an
+            // infinite loop on `LegendRowDetails`'s `useEffect`.
+            {...{ mapId, id, legendLayout, setExpandedBy, ...props }}
           />
         ))}
       </OptionalWrapper>
@@ -532,7 +577,6 @@ const FullLegend = ({ mapId }) => {
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendWidth = useSelector(selectLegendWidth)[mapId]
   const [expandAll, handleExpandAll] = useToggle(true)
-  const [showAdvancedControls, handleToggleAdvancedControls] = useToggle(false)
   const popperProps = useLegendPopper()
   return (
     <LegendRoot
@@ -552,13 +596,8 @@ const FullLegend = ({ mapId }) => {
         }}
       >
         <LegendSettings
-          {...{
-            mapId,
-            expandAll,
-            showAdvancedControls,
-          }}
+          {...{ mapId, expandAll }}
           onExpandAll={handleExpandAll}
-          onToggleAdvancedControls={handleToggleAdvancedControls}
         />
       </LegendHeader>
       <LegendGroups {...{ mapId, expandAll, showLegendGroupNames }} />

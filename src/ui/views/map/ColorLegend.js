@@ -371,7 +371,7 @@ const ColorLegend = ({
   anyNullValue,
   groupCalcValue,
   onSelectProp,
-  onSelectGroupCalc,
+  onChangeLegendAttr,
   onChangePropAttr,
   onChangeColor,
 }) => {
@@ -452,7 +452,7 @@ const ColorLegend = ({
         <GroupCalcSelector
           type={colorByProp.type}
           value={groupCalcValue}
-          onSelect={onSelectGroupCalc('groupCalcByColor')}
+          onSelect={onChangeLegendAttr('groupCalcByColor')}
         />
       )}
     </Paper>

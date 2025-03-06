@@ -783,6 +783,15 @@ export const selectLegendWidth = createSelector(
     )(currentLocalMapDataByMap)
 )
 
+export const selectShowLegendAdvancedControls = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
+    R.pathOr(
+      R.pathOr(false, ['showLegendAdvancedControls'])(currentMapDataByMap),
+      ['showLegendAdvancedControls']
+    )(currentLocalMapDataByMap)
+)
+
 export const selectMapControlsByMap = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) => R.propOr({}, 'mapControls')(dataObj)
@@ -2050,28 +2059,20 @@ export const selectNodeClustersFunc = createSelector(
       R.identity,
       (mapId) => {
         const data = dataFunc(mapId)
+        const legendObj = legendObjectsFunc(mapId)
         // define helper functions
         const getVarByProp = R.curry((varByKey, nodeObj) =>
-          R.path([nodeObj.type, varByKey])(legendObjectsFunc(mapId))
+          R.path([nodeObj.type, varByKey])(legendObj)
         )
         const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
-          R.path([nodeCluster.properties.type, varByKey])(
-            legendObjectsFunc(mapId)
-          )
+          R.path([nodeCluster.properties.type, varByKey])(legendObj)
         )
-        const getGroups = (ungroupedData, fn) =>
-          ungroupedData.reduce((acc, d) => {
-            const result = fn(d)
-            acc[result] = acc[result] || []
-            acc[result].push(d)
-            return acc
-          }, {})
         const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
         const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
           R.pathOr(statId.COUNT, [
             nodeCluster.properties.type,
             groupCalculation,
-          ])(legendObjectsFunc(mapId))
+          ])(legendObj)
         )
 
         const getColorGroupFn = R.pipe(
@@ -2144,7 +2145,7 @@ export const selectNodeClustersFunc = createSelector(
           },
         }
         // create groups
-        const groupsRaw = Object.values(getGroups(data, (d) => d.type))
+        const groupsRaw = R.pipe(R.groupBy(R.prop('name')), R.values)(data)
         const superCluster = new Supercluster(options)
         const groups = {}
         if (data.length > 0) {
@@ -2157,10 +2158,12 @@ export const selectNodeClustersFunc = createSelector(
               }))
 
               superCluster.load(points)
-              const groupClustersRaw = superCluster.getClusters(
-                [-180, -90, 180, 90],
-                z
-              )
+              const nodeType = dataGroup[0].type
+              const { groupScaleWithZoom, groupScale } = legendObj[nodeType]
+              const doNotCluster = !groupScaleWithZoom && groupScale > z
+              const groupClustersRaw = doNotCluster
+                ? points
+                : superCluster.getClusters([-180, -90, 180, 90], z)
 
               // Aggregate clusters into a single data structure
               return acc.concat(groupClustersRaw)

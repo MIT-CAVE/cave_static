@@ -14,6 +14,7 @@ import {
   InputLabel,
   Paper,
   Popper,
+  Slider,
   Stack,
   Switch,
   ToggleButton,
@@ -55,8 +56,11 @@ import {
   selectPitchSliderToggleFunc,
   selectSettingsIconUrl,
   selectShowLegendGroupNames,
+  selectShowLegendAdvancedControls,
   selectSync,
+  selectZoomFunc,
 } from '../../../data/selectors'
+import { MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import {
   legendLayouts,
   legendViews,
@@ -183,9 +187,9 @@ export const useLegendDetails = ({
     () => ['maps', 'data', mapId, 'legendGroups', legendGroupId, 'data', id],
     [id, legendGroupId, mapId]
   )
-  const handleSelectGroupCalc = useCallback(
-    (pathEnd) => (value, event) => {
-      const path = [...basePath, pathEnd]
+  const handleChangeLegendAttr = useCallback(
+    (pathTail) => (value, event) => {
+      const path = [...basePath, ...forceArray(pathTail)]
       dispatch(
         mutateLocal({
           path,
@@ -198,11 +202,11 @@ export const useLegendDetails = ({
     [basePath, dispatch, sync]
   )
   const handleToggleGroup = useMutateStateWithSync(
-    (event) => {
+    (event, value) => {
       event.stopPropagation()
-      return { path: [...basePath, 'group'], value: !group }
+      return { path: [...basePath, 'group'], value: !value }
     },
-    [basePath, group]
+    [basePath]
   )
   const handleChangeShape = useMutateStateWithSync(
     (event, value) => ({ path: [...basePath, shapePathEnd], value }),
@@ -216,7 +220,7 @@ export const useLegendDetails = ({
         // If the selected aggregation function is not
         // valid for the new prop type, set a default
         const [defaultGroupCalc] = getStatFuncsByType(newPropType)
-        handleSelectGroupCalc(groupCalcPathTail)(defaultGroupCalc)
+        handleChangeLegendAttr(groupCalcPathTail)(defaultGroupCalc)
       }
       dispatch(
         mutateLocal({
@@ -227,7 +231,7 @@ export const useLegendDetails = ({
       )
       event.stopPropagation()
     },
-    [basePath, dispatch, featureTypeProps, handleSelectGroupCalc, sync]
+    [basePath, dispatch, featureTypeProps, handleChangeLegendAttr, sync]
   )
 
   const basePathProp = useMemo(() => ['mapFeatures', 'data', id, 'props'], [id])
@@ -241,6 +245,7 @@ export const useLegendDetails = ({
           sync: !includesPath(Object.values(sync), path),
         })
       )
+      // TODO: if (event != null) event.stopPropagation()
     },
     [basePathProp, dispatch, sync]
   )
@@ -266,7 +271,7 @@ export const useLegendDetails = ({
     clusterRange,
     heightRange,
     hasAnyNullValue,
-    handleSelectGroupCalc,
+    handleChangeLegendAttr,
     handleSelectProp,
     handleToggleGroup,
     handleChangeColor,
@@ -589,6 +594,43 @@ export const LegendColorMarker = ({
 }
 
 // TODO: Move this to some `legendUtils.js` module
+// eslint-disable-next-line no-unused-vars
+const FormToggle = ({ id, value, label, icon: Icon, selected }) => (
+  <FormControlLabel
+    value={`${id}-${value}`}
+    control={
+      <ToggleButton {...{ value, selected }} sx={{ mb: 1 }}>
+        <Icon size={24} />
+      </ToggleButton>
+    }
+    {...{ label }}
+    labelPlacement="bottom"
+  />
+)
+
+// TODO: Move this to some `legendUtils.js` module
+const FormSwitch = ({
+  disabled,
+  value,
+  checked,
+  label,
+  slotProps,
+  onChange,
+  ...props
+}) => (
+  <FormControlLabel
+    {...{ disabled, value, label, ...props }}
+    control={
+      <Switch
+        name={`cave-${value}`}
+        {...{ checked, onChange, ...slotProps?.switch }}
+      />
+    }
+    labelPlacement="end"
+  />
+)
+
+// TODO: Move this to some `legendUtils.js` module
 export const RippleBox = ({ selected, sx = [], ...props }) => (
   <ButtonBase
     component="div"
@@ -725,6 +767,89 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
         {...{ value, onSelect }}
       />
     </FormControl>
+  )
+}
+
+export const GroupScaleControls = ({
+  mapId,
+  groupScaleWithZoom,
+  sizeSliderProps,
+  handleChange,
+  handleChangeComitted,
+  onChangeLegendAttr,
+}) => {
+  const zoom = useSelector(selectZoomFunc)(mapId)
+  const [sliderValue] = sizeSliderProps.value
+  const [minZoom, maxZoom] = useMemo(
+    () => [Math.floor(MIN_ZOOM), Math.floor(MAX_ZOOM)],
+    []
+  )
+  const handleToggleGroupScaleWithZoom = useCallback(
+    (event, value) => {
+      onChangeLegendAttr('groupScaleWithZoom')(value)
+    },
+    [onChangeLegendAttr]
+  )
+  const marks = useMemo(
+    () => [
+      ...(sliderValue - 2 > minZoom ? [{ value: minZoom, label: 'Min' }] : []),
+      { value: sliderValue, label: 'Start at' },
+      ...(sliderValue + 2 < maxZoom ? [{ value: maxZoom, label: 'Max' }] : []),
+    ],
+    [maxZoom, minZoom, sliderValue]
+  )
+  return (
+    <Stack
+      sx={{
+        py: 2,
+        m: '8px !important',
+        border: '2px solid #ffa726',
+        borderRadius: 1,
+        boxSizing: 'border-box',
+      }}
+    >
+      <FormSwitch
+        label="Group with no zoom restrictions"
+        value="toggle-group-with-no-zoom-restrictions"
+        slotProps={{
+          switch: {
+            color: 'warning',
+            size: 'small',
+            sx: { ml: 3 },
+          },
+        }}
+        checked={groupScaleWithZoom}
+        onChange={handleToggleGroupScaleWithZoom}
+      />
+      <Slider
+        disabled={groupScaleWithZoom}
+        sx={{
+          mt: 5,
+          width: '85%',
+          alignSelf: 'center',
+          boxSizing: 'border-box',
+        }}
+        min={minZoom}
+        max={maxZoom}
+        {...{ marks }}
+        color="warning"
+        value={sizeSliderProps.value}
+        onChange={handleChange}
+        onChangeCommitted={handleChangeComitted}
+        valueLabelDisplay={groupScaleWithZoom ? 'off' : 'on'}
+        // valueLabelFormat={(value) => `${value}x`}
+      />
+      <Typography
+        color={groupScaleWithZoom ? 'text.secondary' : 'text.primary'}
+        variant="body1"
+        sx={{ mt: 2 }}
+      >
+        {'Current zoom level: '}
+        <span style={{ fontWeight: 'bold' }}>
+          {NumberFormat.format(zoom, { precision: 2 })}
+        </span>
+      </Typography>
+    </Stack>
   )
 }
 
@@ -869,36 +994,11 @@ const SettingsToggle = ({ value, label, icon: Icon, selected }) => (
   </ToggleButton>
 )
 
-// eslint-disable-next-line no-unused-vars
-const FormToggle = ({ id, value, label, icon: Icon, selected }) => (
-  <FormControlLabel
-    value={`${id}-${value}`}
-    control={
-      <ToggleButton {...{ value, selected }} sx={{ mb: 1 }}>
-        <Icon size={24} />
-      </ToggleButton>
-    }
-    {...{ label }}
-    labelPlacement="bottom"
-  />
-)
-
-const FormSwitch = ({ disabled, value, checked, label, onChange }) => (
-  <FormControlLabel
-    {...{ disabled, value, label }}
-    control={<Switch name={`cave-${value}`} {...{ checked, onChange }} />}
-    labelPlacement="end"
-  />
-)
-
-export const LegendSettings = ({
-  mapId,
-  expandAll,
-  showAdvancedControls,
-  onExpandAll,
-  onToggleAdvancedControls,
-}) => {
+export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
   const legendView = useSelector(selectLegendViewFunc)(mapId)
+  const showLegendAdvancedControls = useSelector(
+    selectShowLegendAdvancedControls
+  )[mapId]
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const legendWidth = useSelector(selectLegendWidth)[mapId]
@@ -915,11 +1015,11 @@ export const LegendSettings = ({
   }, [mapId, legendView])
 
   const handleToggleLegendGroupNames = useMutateStateWithSync(
-    () => ({
+    (event, value) => ({
       path: ['maps', 'data', mapId, 'showLegendGroupNames'],
-      value: !showLegendGroupNames,
+      value,
     }),
-    [mapId, showLegendGroupNames]
+    [mapId]
   )
 
   const handleChangeLegendLayout = useMutateStateWithSync(
@@ -933,6 +1033,14 @@ export const LegendSettings = ({
   const handleChangeLegendWidth = useMutateStateWithSync(
     (event, value) => ({
       path: ['maps', 'data', mapId, 'legendWidth'],
+      value,
+    }),
+    [mapId]
+  )
+
+  const handleToggleAdvancedControls = useMutateStateWithSync(
+    (event, value) => ({
+      path: ['maps', 'data', mapId, 'showLegendAdvancedControls'],
       value,
     }),
     [mapId]
@@ -966,15 +1074,12 @@ export const LegendSettings = ({
           checked={showLegendGroupNames}
           onChange={handleToggleLegendGroupNames}
         />
-        {isFullView && (
-          <FormSwitch
-            disabled
-            value="toggle-advanced-controls"
-            label="Show advanced controls"
-            checked={showAdvancedControls}
-            onChange={onToggleAdvancedControls}
-          />
-        )}
+        <FormSwitch
+          value="toggle-advanced-controls"
+          label="Show advanced controls"
+          checked={showLegendAdvancedControls}
+          onChange={handleToggleAdvancedControls}
+        />
       </FormGroup>
 
       <Stack>

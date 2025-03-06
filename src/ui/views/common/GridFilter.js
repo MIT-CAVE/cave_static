@@ -451,9 +451,7 @@ const GridFilter = ({
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Select
                   value={row.logic}
-                  onChange={(event) =>
-                    handleRowChange(row.id, 'logic', event.target.value)
-                  }
+                  onSelect={(value) => handleRowChange(row.id, 'logic', value)}
                   sx={styles.select}
                   optionsList={[
                     { label: 'OR', value: 'or' },
@@ -477,9 +475,7 @@ const GridFilter = ({
             row.type === 'rule' && (
               <Select
                 value={row.source}
-                onChange={(event) =>
-                  handleRowChange(row.id, 'source', event.target.value)
-                }
+                onSelect={(value) => handleRowChange(row.id, 'source', value)}
                 sx={styles.select}
                 optionsList={sourceValueOpts}
               />
@@ -504,9 +500,7 @@ const GridFilter = ({
           return (
             <Select
               value={row.relation}
-              onChange={(event) =>
-                handleRowChange(row.id, 'relation', event.target.value)
-              }
+              onSelect={(value) => handleRowChange(row.id, 'relation', value)}
               sx={styles.select}
               optionsList={relationValueOpts}
             />
