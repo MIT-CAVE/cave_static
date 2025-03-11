@@ -1401,7 +1401,7 @@ export const selectMemoizedChartFunc = createSelector(
   ],
   (groupedOutputs, groupings, groupingIndicies, valueBuffers) =>
     maxSizedMemoization(
-      (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
+      (obj) => JSON.stringify(obj),
       async (obj) => {
         const groupDict = { All: 0 }
         const intToGroup = ['All']
