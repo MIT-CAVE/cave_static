@@ -19,7 +19,7 @@ const PropDateBase = ({
   onChange,
 }) => {
   const value = R.defaultTo(prop.value, currentVal)
-  const { enabled = false, readOnly, views } = prop
+  const { enabled, readOnly, views } = prop
   const Component = component
   return (
     <Component

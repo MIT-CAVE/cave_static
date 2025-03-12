@@ -4,14 +4,15 @@ import { useCallback, useMemo, useState } from 'react'
 
 import OverflowText from './OverflowText'
 
-export const useSizeSlider = (onChangeSize) => {
+export const useSizeSlider = (onChangeSize, unit = 'px') => {
   const [sizeSliderProps, setSizeSliderProps] = useState({})
 
   const handleOpen = useCallback(
-    (key, value) => () => {
+    (key, value) => (event) => {
       setSizeSliderProps(
         key === sizeSliderProps.key ? {} : { key, value: [parseInt(value)] }
       )
+      event.stopPropagation()
     },
     [sizeSliderProps.key]
   )
@@ -22,9 +23,9 @@ export const useSizeSlider = (onChangeSize) => {
 
   const handleChangeComitted = useCallback(
     (event, value, pathTail = sizeSliderProps.key) => {
-      onChangeSize(pathTail)(`${value[0]}px`)
+      onChangeSize(pathTail)(unit ? `${value[0]}${unit}` : value[0])
     },
-    [onChangeSize, sizeSliderProps.key]
+    [onChangeSize, sizeSliderProps.key, unit]
   )
 
   const handleClose = useCallback((event) => {
@@ -45,12 +46,16 @@ export const useSizeSlider = (onChangeSize) => {
 const SizeSlider = ({
   sizeLabel,
   value,
+  unit = 'px',
+  min: minValue = 1,
+  max: maxValue = 100,
   styleOverrides,
   onChange,
   onChangeCommitted,
+  ...props
 }) => {
   const isRange = value.length > 1
-  const [minValue, maxValue] = useMemo(
+  const range = useMemo(
     () => (isRange ? [Math.min(...value), Math.max(...value)] : []),
     [isRange, value]
   )
@@ -60,8 +65,8 @@ const SizeSlider = ({
         value: value[0],
         label: <OverflowText text={sizeLabel} sx={{ maxWidth: '64px' }} />,
       },
-      ...(minValue > 16 || (!isRange && value[0] > 16)
-        ? [{ value: 1, label: '1px' }]
+      ...(range[0] > minValue + 15 || (!isRange && value[0] > minValue + 15)
+        ? [{ value: minValue, label: `${minValue}${unit ?? ''}` }]
         : []),
       ...(isRange
         ? [
@@ -69,11 +74,11 @@ const SizeSlider = ({
             { value: value[value.length - 1], label: 'Max' },
           ]
         : []),
-      ...(maxValue < 83 || (!isRange && value[0] < 83)
-        ? [{ value: 100, label: '100px' }]
+      ...(range[1] < maxValue - 17 || (!isRange && value[0] < maxValue - 17)
+        ? [{ value: maxValue, label: `${maxValue}${unit ?? ''}` }]
         : []),
     ],
-    [isRange, maxValue, minValue, sizeLabel, value]
+    [isRange, maxValue, minValue, range, sizeLabel, unit, value]
   )
   return (
     <Slider
@@ -85,12 +90,12 @@ const SizeSlider = ({
         boxSizing: 'border-box',
         ...styleOverrides,
       }}
-      min={1}
-      max={100}
+      min={minValue}
+      max={maxValue}
       valueLabelDisplay="on"
       color="warning"
-      {...{ value, marks, onChange, onChangeCommitted }}
-      valueLabelFormat={(value) => `${value}px`}
+      {...{ value, marks, onChange, onChangeCommitted, ...props }}
+      valueLabelFormat={(value) => `${value}${unit ?? ''}`}
     />
   )
 }

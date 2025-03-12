@@ -13,7 +13,7 @@ const getStyles = (enabled) => ({
 })
 
 const PropRadio = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, options } = prop
+  const { enabled, options } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
   return (
     <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>

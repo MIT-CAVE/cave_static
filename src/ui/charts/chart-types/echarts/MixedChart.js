@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react'
 
 import { FlexibleChart } from './BaseChart'
 
+import { getChartItemColor } from '../../../../utils'
+
 const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const leftDataMin = Math.min(...R.filter(R.is(Number), leftData))
   const leftDataMax = Math.max(...R.filter(R.is(Number), leftData))
@@ -110,10 +112,10 @@ const MixedChart = ({
         rightData,
         syncAxes
       )
-
       return {
         series: R.flatten([
           subGroups.map((sg) => ({
+            color: getChartItemColor(sg.name),
             name: `${leftLabelWithoutUnits}: ${sg.name}`,
             type: variantType[leftVariant],
             data: sg.leftData,
@@ -121,6 +123,7 @@ const MixedChart = ({
             smooth: smoothLeft,
           })),
           subGroups.map((sg) => ({
+            color: getChartItemColor(sg.name),
             name: `${rightLabelWithoutUnits}: ${sg.name}`,
             type: variantType[rightVariant],
             data: sg.rightData,
@@ -144,6 +147,7 @@ const MixedChart = ({
       return {
         series: [
           {
+            color: getChartItemColor(leftLabelWithoutUnits),
             name: leftLabelWithoutUnits,
             type: variantType[leftVariant],
             data: leftData,
@@ -151,6 +155,7 @@ const MixedChart = ({
             smooth: smoothLeft,
           },
           {
+            color: getChartItemColor(rightLabelWithoutUnits),
             name: rightLabelWithoutUnits,
             type: variantType[rightVariant],
             data: rightData,

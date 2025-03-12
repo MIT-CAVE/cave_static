@@ -109,7 +109,7 @@ const getCoordinatePropRenderFn = R.cond([
   [R.T, invalidVariant('coordinate')],
 ])
 
-const getRendererFn = R.cond([
+export const getRendererFn = R.cond([
   [R.equals(propId.MEDIA), R.always(getMediaPropRenderFn)],
   [R.equals(propId.BUTTON), R.always(getButtonPropRenderFn)],
   [R.equals(propId.TEXT), R.always(getTextPropRenderFn)],
@@ -127,7 +127,7 @@ const getRendererFn = R.cond([
   ],
 ])
 
-const PropBase = ({ prop, children }) => {
+export const PropBase = ({ prop, children }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
@@ -154,15 +154,13 @@ const PropBase = ({ prop, children }) => {
   return <PropContainer {...containerProps}>{children}</PropContainer>
 }
 
-const renderProp = ({ ...props }) => {
+const Prop = (props) => {
   const prop = R.propOr({}, 'prop')(props)
-  const { type, variant } = prop
+  const { type, variant, enabled = true } = prop
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
-  // default enabled to true
-  const enabled = R.propOr(true, 'enabled', prop)
   return (
-    <PropBase {...{ prop }} key={prop.key}>
+    <PropBase {...{ prop }}>
       <PropComponent
         sx={{ boxSizing: 'border-box' }}
         {...R.assocPath(['prop', 'enabled'], enabled, props)}
@@ -171,4 +169,4 @@ const renderProp = ({ ...props }) => {
   )
 }
 
-export default renderProp
+export default Prop

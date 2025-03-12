@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useMemo } from 'react'
-import { LuGroup, LuUngroup } from 'react-icons/lu'
+import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
@@ -29,6 +29,7 @@ import {
   LegendPopper,
   LegendSettings,
   LegendColorMarker,
+  GroupScaleControls,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import useMapFilter from './useMapFilter'
@@ -36,14 +37,16 @@ import useMapFilter from './useMapFilter'
 import {
   selectArcTypeKeys,
   selectLegendDataFunc,
-  selectLegendLayoutFunc,
-  selectLegendWidthFunc,
+  selectLegendLayout,
+  selectLegendWidth,
   selectNodeTypeKeys,
-  selectShowLegendGroupNamesFunc,
+  selectShowLegendAdvancedControls,
+  selectShowLegendGroupNames,
 } from '../../../data/selectors'
 import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
 import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
 import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
+import { useSizeSlider } from '../../compound/SizeSlider'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
 
@@ -112,6 +115,8 @@ const LegendRowDetails = ({
   getShapeIcon,
   getShapeLabel,
   group,
+  groupScale = 50,
+  groupScaleWithZoom,
   groupCalcByColor = statId.COUNT,
   groupCalcBySize = statId.COUNT,
   filters,
@@ -120,7 +125,10 @@ const LegendRowDetails = ({
   getRange,
   onChangeVisibility,
 }) => {
-  const legendLayout = useSelector(selectLegendLayoutFunc)(mapId)
+  const legendLayout = useSelector(selectLegendLayout)[mapId]
+  const showLegendAdvancedControls = useSelector(
+    selectShowLegendAdvancedControls
+  )[mapId]
   const [showShapePicker, handleToggleShapePicker] = useToggle(false)
   const {
     basePath,
@@ -129,7 +137,7 @@ const LegendRowDetails = ({
     clusterRange,
     heightRange,
     hasAnyNullValue,
-    handleSelectGroupCalc,
+    handleChangeLegendAttr,
     handleSelectProp,
     handleToggleGroup,
     handleChangeColor,
@@ -166,6 +174,11 @@ const LegendRowDetails = ({
     filtersPath: [...basePath, 'filters'],
     filters,
   })
+  const {
+    showSizeSlider: showGroupControls,
+    handleOpen: handleOpenGroupScale,
+    ...groupScaleSlider
+  } = useSizeSlider(handleChangeLegendAttr, null)
   const layoutDirection =
     legendLayout === legendLayouts.AUTO || legendLayout === legendLayouts.ROW
       ? 'column'
@@ -205,15 +218,31 @@ const LegendRowDetails = ({
         </Grid2>
         <Grid2 size="auto">
           {allowGrouping && (
-            <ToggleButton
-              color={group ? 'primary' : null}
-              selected={group}
-              value={group}
-              sx={styles.toggleButton}
-              onClick={handleToggleGroup}
-            >
-              {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
-            </ToggleButton>
+            <>
+              <ToggleButton
+                color={group ? 'primary' : null}
+                selected={group}
+                value={group}
+                sx={styles.toggleButton}
+                onClick={handleToggleGroup}
+              >
+                {group ? <LuGroup size={24} /> : <LuUngroup size={24} />}
+              </ToggleButton>
+              {showLegendAdvancedControls && (
+                <WithEditBadge editing={showGroupControls}>
+                  <ToggleButton
+                    disabled={!group}
+                    color={showGroupControls ? 'warning' : null}
+                    selected={showGroupControls}
+                    value="showGroupControls"
+                    sx={[styles.toggleButton, { mx: 0.5 }]}
+                    onClick={handleOpenGroupScale('groupScale', groupScale)}
+                  >
+                    <LuRadius size={24} />
+                  </ToggleButton>
+                </WithEditBadge>
+              )}
+            </>
           )}
           {/* Filter */}
           <DataGridModal
@@ -239,18 +268,27 @@ const LegendRowDetails = ({
           </IconButton>
         </Grid2>
       </Grid2>
-      {showShapePicker && (
-        <ShapePicker
-          label={shapeLabel}
-          value={shape}
-          options={shapeOptions}
-          color="warning"
-          {...{ ListboxComponent, groupBy }}
-          getIcon={getShapeIcon}
-          getLabel={getShapeLabel}
-          onChange={handleChangeShape}
-        />
-      )}
+      <Stack spacing={1} sx={{ mb: 1 }}>
+        {showShapePicker && (
+          <ShapePicker
+            label={shapeLabel}
+            value={shape}
+            options={shapeOptions}
+            color="warning"
+            {...{ ListboxComponent, groupBy }}
+            getIcon={getShapeIcon}
+            getLabel={getShapeLabel}
+            onChange={handleChangeShape}
+          />
+        )}
+        {showLegendAdvancedControls && showGroupControls && (
+          <GroupScaleControls
+            {...{ mapId, groupScaleWithZoom, ...groupScaleSlider }}
+            onChangeLegendAttr={handleChangeLegendAttr}
+          />
+        )}
+      </Stack>
+
       <Divider sx={{ mx: -1.5 }} />
       <Grid2
         container
@@ -277,7 +315,7 @@ const LegendRowDetails = ({
               anyNullValue={hasAnyNullValue(colorBy)}
               groupCalcValue={groupCalcByColor}
               onSelectProp={handleSelectProp}
-              onSelectGroupCalc={handleSelectGroupCalc}
+              onChangeLegendAttr={handleChangeLegendAttr}
               onChangePropAttr={handleChangePropAttr}
               onChangeColor={handleChangeColor}
             />
@@ -301,7 +339,7 @@ const LegendRowDetails = ({
               anyNullValue={hasAnyNullValue(sizeBy)}
               groupCalcValue={groupCalcBySize}
               onSelectProp={handleSelectProp}
-              onSelectGroupCalc={handleSelectGroupCalc}
+              onChangeLegendAttr={handleChangeLegendAttr}
               onChangePropAttr={handleChangePropAttr}
               onChangeSize={handleChangeSize}
             />
@@ -342,7 +380,7 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
     getRange,
     onChangeVisibility,
   } = props
-  const legendWidth = useSelector(selectLegendWidthFunc)(mapId)
+  const legendWidth = useSelector(selectLegendWidth)[mapId]
 
   const mapFeatures = mapFeaturesBy(id, mapId)
 
@@ -496,9 +534,7 @@ const LegendGroup = ({
   legendGroup,
   popperProps: { anchorEl, openId, handleClose, handleOpenById },
 }) => {
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
     [legendGroup]
@@ -531,9 +567,7 @@ const LegendGroup = ({
 }
 
 const LegendGroups = ({ mapId, ...props }) => {
-  const showLegendGroupNames = useSelector(selectShowLegendGroupNamesFunc)(
-    mapId
-  )
+  const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
 
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])

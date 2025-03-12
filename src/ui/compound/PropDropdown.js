@@ -18,7 +18,7 @@ const getStyles = (enabled) => ({
 // a `ClickAwayListener` + `Select` bug is resolved in MUI.
 // See: https://github.com/mui/material-ui/issues/25578#issuecomment-846222712
 const PropDropdown = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, options } = prop
+  const { enabled, options } = prop
   const [value] = R.defaultTo(prop.value, currentVal)
   const optionsListRaw = withIndex(options)
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)

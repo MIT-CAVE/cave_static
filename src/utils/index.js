@@ -4,8 +4,8 @@ import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
+import { colorGen } from './ColorGen'
 import {
-  CHART_PALETTE,
   DEFAULT_ICON_URL,
   ICON_RESOLUTION,
   MAX_MEMOIZED_CHARTS,
@@ -392,20 +392,9 @@ export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
   return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
-export const generateHash = (str) => {
-  var hash = 0
-  if (str.length === 0) return hash
-  for (let i = 0; i < str.length; i++) {
-    const chr = str.charCodeAt(i)
-    hash = (hash << 5) - hash + chr
-    hash |= 0 // Convert to 32bit integer
-  }
-  return hash
-}
-
 export const getChartItemColor = (name) => {
-  const colorIndex = Math.abs(generateHash(name))
-  return CHART_PALETTE[colorIndex % CHART_PALETTE.length]
+  const color = colorGen(name)
+  return color
 }
 
 export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
@@ -741,6 +730,7 @@ export const parseGradient = R.memoizeWith(
       R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
       R.pipe(
         R.path(['gradient', 'data']),
+        R.filter(R.has(attrKey)),
         R.applySpec({
           [`${attrKey}s`]: R.map(
             R.pipe(
@@ -865,9 +855,11 @@ export const constructFetchedGeoJson = (
                   colorByPropVal === ''
                     ? colorFallback
                     : isColorCategorical
-                      ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
-                          colorRange
-                        )
+                      ? R.pathOr(getChartItemColor(colorByPropVal), [
+                          'options',
+                          colorByPropVal,
+                          'color',
+                        ])(colorRange)
                       : getScaledValueAlt(
                           parsedColor.values,
                           parsedColor.colors,
@@ -1037,9 +1029,11 @@ export const constructGeoJson = (
             colorByPropVal === ''
               ? colorFallback
               : isColorCategorical
-                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
-                    colorRange
-                  )
+                ? R.pathOr(getChartItemColor(colorByPropVal), [
+                    'options',
+                    colorByPropVal,
+                    'color',
+                  ])(colorRange)
                 : getScaledValueAlt(
                     parsedColor.values,
                     parsedColor.colors,
