@@ -48,6 +48,7 @@ import {
   ALLOWED_RANGE_KEYS,
   getColorString,
   parseGradient,
+  getChartItemColor,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -188,8 +189,13 @@ export const selectPages = createSelector(selectData, (data) =>
 export const selectAssociated = createSelector(selectData, (data) =>
   R.propOr({}, 'associated')(data)
 )
-export const selectSettings = createSelector(selectData, (data) =>
-  orderEntireDict(R.propOr({}, 'settings')(data))
+export const selectSettings = createSelector(
+  selectData,
+  (data) => orderEntireDict(R.propOr({}, 'settings')(data)),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { resultEqualityCheck: R.equals },
+  }
 )
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
@@ -751,32 +757,38 @@ export const selectLegendViewFunc = createSelector(
     )(currentLocalMapDataByMap)
 )
 
-export const selectShowLegendGroupNamesFunc = createSelector(
+export const selectShowLegendGroupNames = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
+    R.pathOr(R.pathOr(true, ['showLegendGroupNames'])(currentMapDataByMap), [
+      'showLegendGroupNames',
+    ])(currentLocalMapDataByMap)
+)
+
+export const selectLegendLayout = createSelector(
+  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
     R.pathOr(
-      R.pathOr(true, ['showLegendGroupNames', mapId])(currentMapDataByMap),
-      ['showLegendGroupNames', mapId]
+      R.pathOr(legendLayouts.AUTO, ['legendLayout'])(currentMapDataByMap),
+      ['legendLayout']
     )(currentLocalMapDataByMap)
 )
 
-export const selectLegendLayoutFunc = createSelector(
+export const selectLegendWidth = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
     R.pathOr(
-      R.pathOr(legendLayouts.AUTO, ['legendLayout', mapId])(
-        currentMapDataByMap
-      ),
-      ['legendLayout', mapId]
+      R.pathOr(legendWidths.AUTO, ['legendWidth'])(currentMapDataByMap),
+      ['legendWidth']
     )(currentLocalMapDataByMap)
 )
 
-export const selectLegendWidthFunc = createSelector(
+export const selectShowLegendAdvancedControls = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
+  (currentLocalMapDataByMap, currentMapDataByMap) =>
     R.pathOr(
-      R.pathOr(legendWidths.AUTO, ['legendWidth', mapId])(currentMapDataByMap),
-      ['legendWidth', mapId]
+      R.pathOr(false, ['showLegendAdvancedControls'])(currentMapDataByMap),
+      ['showLegendAdvancedControls']
     )(currentLocalMapDataByMap)
 )
 
@@ -1389,8 +1401,10 @@ export const selectMemoizedChartFunc = createSelector(
   ],
   (groupedOutputs, groupings, groupingIndicies, valueBuffers) =>
     maxSizedMemoization(
-      (obj) => JSON.stringify(R.dissoc('showToolbar', obj)),
+      (obj) => JSON.stringify(obj),
       async (obj) => {
+        const groupDict = { All: 0 }
+        const intToGroup = ['All']
         const statObjs = obj.stats ?? []
         // Helper function to find the parental path of a given level
         const createParentalPath = (
@@ -1422,62 +1436,62 @@ export const selectMemoizedChartFunc = createSelector(
             )
         }
 
+        const groupLength = R.values(
+          groupedOutputs[obj.dataset]['valueLists']
+        )[0].length
+
         // Given an index returns a string to group all similar indicies by
-        const categoryFunc = R.curry((category, level, outputGroup) => {
+        const categoryFunc = R.curry((category, level) => {
           const parentalPath = createParentalPath([], category, level)
-          const groupList = R.path([outputGroup, 'groupLists', category])(
+          const groupList = R.path([obj.dataset, 'groupLists', category])(
             groupedOutputs
           )
-
           const groupingVal = R.pipe(
             R.path([category, 'data']),
             R.pick(parentalPath),
             R.values
           )(groupings)
-          const groupBys = Array(
-            R.values(groupedOutputs[outputGroup]['valueLists'])[0].length
-          )
-          for (let index = 0; index < groupBys.length; index++) {
+          let groupBy = Array(groupLength * groupingVal.length)
+          for (let index = 0; index < groupLength; index++) {
             if (groupList == null) return []
             const groupName = groupList[index]
             const groupingIndex =
               groupingIndicies[category]['data']['id'][groupName]
-            const pluckedValues = Array(groupingVal.length)
             for (let i = 0; i < groupingVal.length; i++) {
-              pluckedValues[i] = groupingVal[i][groupingIndex]
+              if (groupDict[groupingVal[i][groupingIndex]] == null) {
+                groupDict[groupingVal[i][groupingIndex]] = intToGroup.length
+                intToGroup.push(groupingVal[i][groupingIndex])
+              }
+              groupBy[index * groupingVal.length + i] =
+                groupDict[groupingVal[i][groupingIndex]]
             }
-            groupBys[index] = pluckedValues
           }
-          return groupBys
+          return {
+            groupBy,
+            parentLength: groupingVal.length,
+            groupLength,
+          }
         })
-
-        // List of groupBy, subGroupBy etc...
-        const groupBys = R.pipe(
-          R.prop('groupingId'),
-          R.length,
-          R.range(0),
-          R.map((idx) =>
-            obj.groupingId[idx] != null
-              ? categoryFunc(obj.groupingId[idx], obj.groupingLevel[idx])
-              : R.always(
-                  R.repeat(
-                    ['All'],
-                    R.values(groupedOutputs[obj.dataset]['valueLists'])[0]
-                      .length
-                  )
-                )
-          ),
-          R.ifElse(
-            R.isEmpty,
-            R.always([
-              R.repeat(
-                ['All'],
-                R.values(groupedOutputs[obj.dataset]['valueLists'])[0].length
-              ),
-            ]),
-            R.map(R.applyTo(obj.dataset))
-          )
-        )(obj)
+        let groupBys = []
+        const parentLengths = []
+        // For each grouping, calculate the groupBy and parentLength
+        for (let i = 0; i < obj.groupingId.length; i++) {
+          if (obj.groupingId[i] != null) {
+            const category = categoryFunc(
+              obj.groupingId[i],
+              obj.groupingLevel[i]
+            )
+            groupBys = groupBys.concat(category.groupBy)
+            parentLengths.push(category.parentLength)
+          } else {
+            groupBys = groupBys.concat(R.repeat(0, groupLength))
+            parentLengths.push(1)
+          }
+        }
+        if (R.isEmpty(groupBys)) {
+          groupBys = groupBys.concat(R.repeat(0, groupLength))
+          parentLengths.push(1)
+        }
 
         const filteredStatsToCalc = filterGroupedOutputs(
           groupedOutputs[obj.dataset],
@@ -1487,30 +1501,43 @@ export const selectMemoizedChartFunc = createSelector(
 
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) => {
-          const statGroupBys = R.has('aggregationGroupingLevel', stat)
-            ? R.append(
-                categoryFunc(
-                  stat.aggregationGroupingId,
-                  stat.aggregationGroupingLevel,
-                  obj.dataset
-                )
-              )(groupBys)
-            : R.append(R.last(groupBys))(groupBys)
-
+          // Add the aggregationGroupingLevel to the groupBys
+          let finalGroupBy = []
+          let statParentLengths = []
+          if (R.has('aggregationGroupingLevel', stat)) {
+            const category = categoryFunc(
+              stat.aggregationGroupingId,
+              stat.aggregationGroupingLevel
+            )
+            finalGroupBy = category.groupBy
+            statParentLengths = parentLengths.concat(category.parentLength)
+          } else {
+            finalGroupBy = groupBys.slice(-groupLength * parentLengths.at(-1))
+            statParentLengths = parentLengths.concat(parentLengths.at(-1))
+          }
+          const buffersize = (finalGroupBy.length + groupBys.length) * 4
+          const buffer = window.crossOriginIsolated
+            ? new SharedArrayBuffer(buffersize)
+            : new ArrayBuffer(buffersize)
+          const view = new Uint32Array(buffer)
+          view.set(groupBys)
+          view.set(finalGroupBy, groupBys.length)
           const statGroup = workerManager.doWork({
-            groupBys: statGroupBys,
-            statId: stat.statId,
+            groupBys: buffer,
+            parentLengths: statParentLengths,
+            groupLength,
             indicies: filteredStatsToCalc,
-            valueLists: valueBuffers[obj.dataset],
+            valueList: valueBuffers[obj.dataset][stat.statId],
           })
           return R.has('statIdDivisor', stat)
             ? Promise.all([
                 statGroup,
                 workerManager.doWork({
-                  groupBys: statGroupBys,
-                  statId: stat.statIdDivisor,
+                  groupBys: buffer,
+                  parentLengths: statParentLengths,
+                  groupLength,
                   indicies: filteredStatsToCalc,
-                  valueLists: valueBuffers[obj.dataset],
+                  valueList: valueBuffers[obj.dataset][stat.statIdDivisor],
                 }),
               ])
             : statGroup
@@ -1533,7 +1560,18 @@ export const selectMemoizedChartFunc = createSelector(
                       )
                     : R.identity
                 ),
-                R.identity,
+                (d) => {
+                  if (R.type(d) === 'Object') {
+                    for (const key in d) {
+                      const newKey = key
+                        .split(' \u279D ')
+                        .map((item) => intToGroup[item])
+                        .join(' \u279D ')
+                      delete Object.assign(d, { [newKey]: d[key] })[key]
+                    }
+                  }
+                  return d
+                },
                 R.filter(R.isNotEmpty),
                 val
               ),
@@ -2021,28 +2059,20 @@ export const selectNodeClustersFunc = createSelector(
       R.identity,
       (mapId) => {
         const data = dataFunc(mapId)
+        const legendObj = legendObjectsFunc(mapId)
         // define helper functions
         const getVarByProp = R.curry((varByKey, nodeObj) =>
-          R.path([nodeObj.type, varByKey])(legendObjectsFunc(mapId))
+          R.path([nodeObj.type, varByKey])(legendObj)
         )
         const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
-          R.path([nodeCluster.properties.type, varByKey])(
-            legendObjectsFunc(mapId)
-          )
+          R.path([nodeCluster.properties.type, varByKey])(legendObj)
         )
-        const getGroups = (ungroupedData, fn) =>
-          ungroupedData.reduce((acc, d) => {
-            const result = fn(d)
-            acc[result] = acc[result] || []
-            acc[result].push(d)
-            return acc
-          }, {})
         const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
         const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
           R.pathOr(statId.COUNT, [
             nodeCluster.properties.type,
             groupCalculation,
-          ])(legendObjectsFunc(mapId))
+          ])(legendObj)
         )
 
         const getColorGroupFn = R.pipe(
@@ -2115,7 +2145,7 @@ export const selectNodeClustersFunc = createSelector(
           },
         }
         // create groups
-        const groupsRaw = Object.values(getGroups(data, (d) => d.type))
+        const groupsRaw = R.pipe(R.groupBy(R.prop('name')), R.values)(data)
         const superCluster = new Supercluster(options)
         const groups = {}
         if (data.length > 0) {
@@ -2128,10 +2158,12 @@ export const selectNodeClustersFunc = createSelector(
               }))
 
               superCluster.load(points)
-              const groupClustersRaw = superCluster.getClusters(
-                [-180, -90, 180, 90],
-                z
-              )
+              const nodeType = dataGroup[0].type
+              const { groupScaleWithZoom, groupScale } = legendObj[nodeType]
+              const doNotCluster = !groupScaleWithZoom && groupScale > z
+              const groupClustersRaw = doNotCluster
+                ? points
+                : superCluster.getClusters([-180, -90, 180, 90], z)
 
               // Aggregate clusters into a single data structure
               return acc.concat(groupClustersRaw)
@@ -2321,9 +2353,11 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
             colorByPropVal === ''
               ? colorFallback
               : isColorCategorical
-                ? R.pathOr('#000', ['options', colorByPropVal, 'color'])(
-                    colorByProp
-                  )
+                ? R.pathOr(getChartItemColor(colorByPropVal), [
+                    'options',
+                    colorByPropVal,
+                    'color',
+                  ])(colorByProp)
                 : getScaledValueAlt(
                     [colorDomain.min, colorDomain.max],
                     parsedColor.colors,

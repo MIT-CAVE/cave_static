@@ -102,7 +102,7 @@ const updateChecked = (nodeKey, nodes, prevChecked) => {
 }
 
 const PropNested = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled = false, options } = prop
+  const { enabled, options } = prop
   const value = R.defaultTo(prop.value, currentVal)
   const { nodes, initialChecked } = getNodes(options, value)
   const [checked, setChecked] = React.useState(initialChecked)
@@ -132,7 +132,7 @@ const PropNested = ({ prop, currentVal, sx = [], onChange, ...props }) => {
           )
           setChecked(updatedChecked)
         }}
-        enabled={enabled}
+        disabled={!enabled}
       />
     </Box>
   )
@@ -159,7 +159,7 @@ const PropNestedHelper = ({
   checked,
   rootKey,
   handleClick,
-  enabled,
+  disabled,
 }) => {
   return (
     <FormGroup>
@@ -167,19 +167,15 @@ const PropNestedHelper = ({
         const { name: label, childrenKeys } = nodes.get(key)
         const childrenNodes = R.isEmpty(childrenKeys) ? null : (
           <PropNestedHelper
-            depth={depth + 1}
-            nodes={nodes}
-            checked={checked}
             rootKey={key}
-            handleClick={handleClick}
-            enabled={enabled}
+            depth={depth + 1}
+            {...{ disabled, nodes, checked, handleClick }}
           />
         )
         return (
           <React.Fragment key={key}>
             <FormControlLabel
-              {...{ label }}
-              disabled={!enabled}
+              {...{ disabled, label }}
               sx={{ pl: 1, ml: depth * 5 }}
               control={
                 <Checkbox

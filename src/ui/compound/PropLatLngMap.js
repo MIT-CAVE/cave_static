@@ -32,7 +32,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
-  const { enabled = false, placeholder, label } = prop
+  const { enabled, placeholder, label } = prop
   const [value, setValue] = useState(
     R.defaultTo(R.prop('value', prop), currentVal)[0]
   )
@@ -78,7 +78,8 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
         <Typography> Latitude </Typography>
         <NumberInput
-          {...{ enabled, placeholder, label, max: 90, min: -90 }}
+          disabled={!enabled}
+          {...{ placeholder, label, max: 90, min: -90 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-90, 90, value[1])}
           onClickAway={inputLat}
@@ -87,7 +88,8 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
         <Typography> Longitude </Typography>
         <NumberInput
-          {...{ enabled, placeholder, label, max: 180, min: -180 }}
+          disabled={!enabled}
+          {...{ placeholder, label, max: 180, min: -180 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-180, 180, value[0])}
           onClickAway={inputLng}
