@@ -25,7 +25,7 @@ import {
   selectSync,
   selectVirtualKeyboard,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH } from '../../../utils/constants'
+import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
 
 import { includesPath } from '../../../utils'
 
@@ -112,8 +112,10 @@ const Panes = () => {
   const handlePaneClickAway = useCallback(
     (e) => {
       const xPosition = R.propOr(0, 'x', e)
-      const overMin = xPosition > APP_BAR_WIDTH
-      const underMax = xPosition < window.innerWidth - APP_BAR_WIDTH
+
+      const overMin = xPosition > APP_BAR_WIDTH + PANE_WIDTH
+      const underMax =
+        xPosition < window.innerWidth - (APP_BAR_WIDTH + PANE_WIDTH)
       R.forEach(
         ([side, open, pin, pageClick]) => {
           if (!pin && R.isNotNil(open) && open !== '' && pageClick) {
