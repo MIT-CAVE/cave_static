@@ -2412,20 +2412,9 @@ export const selectArcLayerGeoJsonFunc = createSelector(
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
     const geometryFunc = (item) => {
-      const finalEndLong =
-        item.endLongitude - item.startLongitude >= 180
-          ? (item.endLongitude -= 360)
-          : item.endLongitude - item.startLongitude <= -180
-            ? (item.endLongitude += 360)
-            : item.endLongitude
       return {
         type: 'LineString',
-        coordinates: item.path
-          ? adjustArcPath(item.path)
-          : [
-              [item.startLongitude, item.startLatitude],
-              [finalEndLong, item.endLatitude],
-            ],
+        coordinates: adjustArcPath(item.path),
       }
     }
     const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
@@ -2449,20 +2438,9 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
     const geometryFunc = (item) => {
-      const finalEndLong =
-        item.endLongitude - item.startLongitude >= 180
-          ? (item.endLongitude -= 360)
-          : item.endLongitude - item.startLongitude <= -180
-            ? (item.endLongitude += 360)
-            : item.endLongitude
       return {
         type: 'LineString',
-        coordinates: item.path
-          ? adjustArcPath(item.path)
-          : [
-              [item.startLongitude, item.startLatitude],
-              [finalEndLong, item.endLatitude],
-            ],
+        coordinates: adjustArcPath(item.path),
       }
     }
     const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
