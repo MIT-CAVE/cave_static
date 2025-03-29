@@ -748,48 +748,38 @@ export const selectLegendDataFunc = createSelector(
     )
 )
 
-export const selectLegendViewFunc = createSelector(
+export const selectLegendPropFunc = createSelector(
   [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) => (mapId) =>
-    R.pathOr(
-      R.pathOr(legendViews.COMPACT, ['legendView', mapId])(currentMapDataByMap),
-      ['legendView', mapId]
-    )(currentLocalMapDataByMap)
+  (currentLocalMapDataByMap, currentMapDataByMap) => (prop, defaultValue) =>
+    currentLocalMapDataByMap[prop] ??
+    new Proxy(currentMapDataByMap[prop] ?? {}, {
+      get: (dataByMap, mapId) => dataByMap[mapId] ?? defaultValue,
+    })
+)
+
+export const selectLegendView = createSelector(
+  selectLegendPropFunc,
+  (legendPropFunc) => legendPropFunc('legendView', legendViews.COMPACT)
 )
 
 export const selectShowLegendGroupNames = createSelector(
-  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) =>
-    R.pathOr(R.pathOr(true, ['showLegendGroupNames'])(currentMapDataByMap), [
-      'showLegendGroupNames',
-    ])(currentLocalMapDataByMap)
+  selectLegendPropFunc,
+  (legendPropFunc) => legendPropFunc('showLegendGroupNames', true)
 )
 
 export const selectLegendLayout = createSelector(
-  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) =>
-    R.pathOr(
-      R.pathOr(legendLayouts.AUTO, ['legendLayout'])(currentMapDataByMap),
-      ['legendLayout']
-    )(currentLocalMapDataByMap)
+  selectLegendPropFunc,
+  (legendPropFunc) => legendPropFunc('legendLayout', legendLayouts.AUTO)
 )
 
 export const selectLegendWidth = createSelector(
-  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) =>
-    R.pathOr(
-      R.pathOr(legendWidths.AUTO, ['legendWidth'])(currentMapDataByMap),
-      ['legendWidth']
-    )(currentLocalMapDataByMap)
+  selectLegendPropFunc,
+  (legendPropFunc) => legendPropFunc('legendWidth', legendWidths.AUTO)
 )
 
 export const selectShowLegendAdvancedControls = createSelector(
-  [selectCurrentLocalMapDataByMap, selectCurrentMapDataByMap],
-  (currentLocalMapDataByMap, currentMapDataByMap) =>
-    R.pathOr(
-      R.pathOr(false, ['showLegendAdvancedControls'])(currentMapDataByMap),
-      ['showLegendAdvancedControls']
-    )(currentLocalMapDataByMap)
+  selectLegendPropFunc,
+  (legendPropFunc) => legendPropFunc('showLegendAdvancedControls', false)
 )
 
 export const selectMapControlsByMap = createSelector(

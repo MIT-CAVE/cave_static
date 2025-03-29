@@ -49,7 +49,7 @@ import {
   selectGeoRange,
   selectLegendLayout,
   selectLegendNumberFormatFunc,
-  selectLegendViewFunc,
+  selectLegendView,
   selectLegendWidth,
   selectNodeRange,
   selectNodeRangeAtZoomFunc,
@@ -995,7 +995,7 @@ const SettingsToggle = ({ value, label, icon: Icon, selected }) => (
 )
 
 export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
-  const legendView = useSelector(selectLegendViewFunc)(mapId)
+  const legendView = useSelector(selectLegendView)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
   )[mapId]

@@ -5,14 +5,14 @@ import CompactLegend from './CompactLegend'
 import FullLegend from './FullLegend'
 
 import {
-  selectLegendViewFunc,
+  selectLegendView,
   selectIsMapLegendOpenFunc,
 } from '../../../data/selectors'
 import { legendViews } from '../../../utils/enums'
 
 const MapLegend = ({ mapId }) => {
   const isMapLegendOpen = useSelector(selectIsMapLegendOpenFunc)(mapId)
-  const legendView = useSelector(selectLegendViewFunc)(mapId)
+  const legendView = useSelector(selectLegendView)[mapId]
 
   if (!isMapLegendOpen) return null
 
