@@ -139,7 +139,7 @@ const LegendRowDetails = ({
     hasAnyNullValue,
     handleChangeLegendAttr,
     handleSelectProp,
-    handleToggleGroup,
+    handleToggleGroup: handleToggleGroupRaw,
     handleChangeColor,
     handleChangeSize,
     handleChangeShape,
@@ -183,6 +183,14 @@ const LegendRowDetails = ({
     legendLayout === legendLayouts.AUTO || legendLayout === legendLayouts.ROW
       ? 'column'
       : 'row'
+
+  const handleToggleGroup = useCallback(
+    (event, value) => {
+      if (value) groupScaleSlider.handleClose(event) // Close the Scale Group when grouping is disabled
+      handleToggleGroupRaw(event, value)
+    },
+    [handleToggleGroupRaw, groupScaleSlider]
+  )
   return (
     <Stack component={Paper} elevation={1} spacing={1} sx={styles.details}>
       <Grid2 container sx={{ alignItems: 'center' }} spacing={1}>
