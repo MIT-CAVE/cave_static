@@ -1,5 +1,4 @@
 import { colord } from 'colord'
-import { quantileSorted } from 'd3-array'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
@@ -11,6 +10,7 @@ import {
   MAX_MEMOIZED_CHARTS,
 } from './constants'
 import { propId, scaleId } from './enums'
+import { quantileSorted } from './quantile'
 import { getScaledValueAlt } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'

@@ -1,5 +1,4 @@
-import { Paper, TextField, Box } from '@mui/material'
-import { darken, lighten, styled } from '@mui/material/styles'
+import { Paper, TextField, Box, darken, lighten, styled } from '@mui/material'
 import {
   DataGrid,
   GridActionsCellItem,
