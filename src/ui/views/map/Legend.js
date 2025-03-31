@@ -406,7 +406,8 @@ export const useGradient = ({
   )
 
   const handleSetAutoValueAt = useCallback(
-    (index) => () => onChangeValueAt(index)(index < 1 ? 'min' : 'max'),
+    (dataIndex) => () =>
+      onChangeValueAt(dataIndex)(dataIndex < 1 ? 'min' : 'max'),
     [onChangeValueAt]
   )
 
