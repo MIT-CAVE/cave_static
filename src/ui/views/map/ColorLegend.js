@@ -1,16 +1,28 @@
 import {
   capitalize,
+  Divider,
   FormControl,
   Grid2,
   IconButton,
   InputLabel,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
+  ToggleButton,
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useMemo } from 'react'
-import { TbFocusAuto } from 'react-icons/tb'
+import { memo, useCallback, useMemo, useState } from 'react'
+import {
+  MdClose,
+  MdMoreVert,
+  MdOutlineEdit,
+  // MdOutlineSwapVert,
+} from 'react-icons/md'
+import { TbFocusAuto, TbRowInsertBottom, TbRowInsertTop } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
 import {
@@ -23,6 +35,7 @@ import {
 
 import { selectLegendNumberFormatFunc } from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
+import { useMenu } from '../../../utils/hooks'
 import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
@@ -99,25 +112,127 @@ const WithEditColorBadge = ({ showBadge, ...props }) => (
   />
 )
 
+const BaseMenuItem = ({ disabled, label, reactIcon: ReactIcon, onClick }) => (
+  <MenuItem {...{ disabled, onClick }}>
+    <ListItemIcon>
+      <ReactIcon size={20} />
+    </ListItemIcon>
+    <ListItemText slotProps={{ primary: { variant: 'body2' } }}>
+      {label}
+    </ListItemText>
+  </MenuItem>
+)
+
+const ColorMenu = ({ dataIndices, index, onAddColorAt, onRemoveColorAt }) => {
+  const [menuIndex, setMenuIndex] = useState(null)
+
+  const {
+    anchorEl,
+    handleOpenMenu: handleOpenMenuRaw,
+    handleCloseMenu: handleCloseMenuRaw,
+  } = useMenu()
+
+  const handleOpenMenu = useCallback(
+    (index) => (event) => {
+      handleOpenMenuRaw(event)
+      setMenuIndex(index)
+    },
+    [handleOpenMenuRaw]
+  )
+
+  const handleCloseMenu = useCallback(
+    (event) => {
+      handleCloseMenuRaw(event)
+      setMenuIndex(null)
+    },
+    [handleCloseMenuRaw]
+  )
+  return (
+    <div>
+      <ToggleButton
+        sx={{
+          p: '1px',
+          mt: '20px !important',
+          borderRadius: '50%',
+        }}
+        color="warning"
+        value="color-menu"
+        selected={index === menuIndex}
+        onClick={handleOpenMenu(index)}
+      >
+        <MdMoreVert size={18} />
+      </ToggleButton>
+      <Menu
+        {...{ anchorEl }}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+        transformOrigin={{
+          horizontal: 'right',
+          vertical: 'top',
+        }}
+        slotProps={{ paper: { sx: { width: '21.5ch' } } }}
+        sx={{ p: 0 }}
+      >
+        <BaseMenuItem
+          label="Add Color Above"
+          reactIcon={TbRowInsertTop}
+          onClick={(event) => {
+            onAddColorAt(dataIndices[menuIndex])()
+            handleCloseMenu(event)
+          }}
+        />
+        <BaseMenuItem
+          label="Add Color Below"
+          reactIcon={TbRowInsertBottom}
+          onClick={(event) => {
+            onAddColorAt(dataIndices[menuIndex] + 1)()
+            handleCloseMenu(event)
+          }}
+        />
+        <Divider />
+        <BaseMenuItem
+          disabled
+          label="Edit Label"
+          reactIcon={MdOutlineEdit}
+          // onClick={handleEditLabelAt(dataIndices[menuIndex])}
+        />
+        <Divider />
+        <BaseMenuItem
+          disabled={dataIndices.length < 2}
+          label="Remove Color"
+          reactIcon={MdClose}
+          onClick={(event) => {
+            onRemoveColorAt(dataIndices[menuIndex])()
+            handleCloseMenu(event)
+          }}
+        />
+      </Menu>
+    </div>
+  )
+}
+
 const NumericalColorLegend = ({
   group,
   valueRange,
   numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
+  onAddColorAt,
   onChangeColor,
+  onRemoveColorAt,
   onChangeValueAt,
 }) => {
+  const { colors, values, rawValues, labels, dataIndices } = useMemo(
+    () => parseGradient('color', numberFormat.precision)(valueRange),
+    [numberFormat.precision, valueRange]
+  )
+
   const {
     showColorPicker: showColorPickers,
     handleOpen,
     handleChange,
     handleClose,
   } = useColorPicker(onChangeColor)
-
-  const { colors, values, rawValues, labels, dataIndices } = useMemo(
-    () => parseGradient('color', numberFormat.precision)(valueRange),
-    [numberFormat.precision, valueRange]
-  )
 
   const {
     isStepScale,
@@ -129,10 +244,12 @@ const NumericalColorLegend = ({
     getAdjustedLabel,
     getValueLabelAt,
     handleSetAutoValueAt,
+    // handleSwapColorsAt,
   } = useGradient({
     labels,
     values,
     rawValues,
+    dataIndices,
     gradient: valueRange.gradient,
     numberFormat,
     group,
@@ -218,13 +335,26 @@ const NumericalColorLegend = ({
       {showColorPickers && (
         <Stack spacing={1} style={{ marginTop: 0 }}>
           {rawValues.map((value, index) => (
-            <Stack key={index} direction="row" spacing={1}>
-              <ColorPicker
-                colorLabel={getColorLabelAt(index)}
-                value={colors[index]}
-                onChange={handleChangeColorAt(dataIndices[index])}
-                onClose={handleClose}
-              />
+            /* <div key={index} style={{ position: 'relative' }}>
+
+              {index > 0 && (
+                <RippleBox
+                  sx={{
+                    zIndex: 1,
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '20px',
+                    width: 'fit-content',
+                    p: '1px',
+                    border: '2px outset #ffa726',
+                    borderRadius: '50%',
+                  }}
+                  onClick={handleSwapColorsAt(dataIndices[index])}
+                >
+                  <MdOutlineSwapVert size={16} />
+                </RippleBox>
+              )} */
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               {
                 // Do not display the max value for a step function
                 // scale, as it does not affect the function output
@@ -240,10 +370,13 @@ const NumericalColorLegend = ({
                     endAdornments={
                       // Show the auto-min/max button when the min/max value is custom
                       (index < 1 && !minAuto) ||
-                      (index === lastIndex && !maxAuto) ? (
+                      (index === lastIndex && lastIndex > 0 && !maxAuto) ? (
                         <IconButton
                           size="small"
-                          onClick={handleSetAutoValueAt(dataIndices[index])}
+                          onClick={handleSetAutoValueAt(
+                            dataIndices[index],
+                            index
+                          )}
                         >
                           <TbFocusAuto />
                         </IconButton>
@@ -255,7 +388,17 @@ const NumericalColorLegend = ({
                   />
                 )
               }
+              <ColorPicker
+                colorLabel={getColorLabelAt(index)}
+                value={colors[index]}
+                onChange={handleChangeColorAt(dataIndices[index])}
+                onClose={handleClose}
+              />
+              <ColorMenu
+                {...{ index, dataIndices, onAddColorAt, onRemoveColorAt }}
+              />
             </Stack>
+            // </div>
           ))}
         </Stack>
       )}
@@ -317,6 +460,7 @@ const CategoricalColorLegend = ({
     },
     [handleChangeRaw, colorPickerProps.key]
   )
+
   return (
     <>
       <OverflowText
@@ -379,6 +523,37 @@ const ColorLegend = ({
   const colorByProp = featureTypeProps[colorBy]
   const numberFormat = legendNumberFormatFunc(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
+
+  const handleAddColorAt = useCallback(
+    (dataIndex) => () => {
+      const newItem = {
+        value: 0, // FIXME: Use getScaledValueAlt
+        color: '#fff', // FIXME: Use getScaledValueAlt
+      }
+      const newGradientData = R.insert(
+        dataIndex,
+        newItem
+      )(valueRange.gradient.data)
+      onChangePropAttr([colorBy, 'gradient', 'data'])(newGradientData)
+    },
+    [colorBy, onChangePropAttr, valueRange.gradient?.data]
+  )
+
+  const handleRemoveColorAt = useCallback(
+    (dataIndex) => () => {
+      const gradientItem = valueRange.gradient.data[dataIndex]
+      if ('size' in gradientItem) {
+        const newItem = R.dissoc('color')(gradientItem)
+        onChangePropAttr([colorBy, 'gradient', 'data', dataIndex])(newItem)
+      } else {
+        // Remove the entire gradient item for orphan entries (no `size` or `color`)
+        const newGradientData = R.remove(dataIndex, 1)(valueRange.gradient.data)
+        onChangePropAttr([colorBy, 'gradient', 'data'])(newGradientData)
+      }
+    },
+    [colorBy, onChangePropAttr, valueRange.gradient?.data]
+  )
+
   return (
     <Paper
       elevation={3}
@@ -437,6 +612,8 @@ const ColorLegend = ({
                 'value',
               ])
             }
+            onAddColorAt={handleAddColorAt}
+            onRemoveColorAt={handleRemoveColorAt}
           />
           <ScaleSelector
             scale={valueRange.gradient.scale}
