@@ -82,10 +82,10 @@ const PropNumberIcon = ({ prop, sx = [], ...props }) => {
       // {...props}
     >
       <Grid container flexDirection="column" spacing={3}>
-        <Grid item sx={styles.title}>
+        <Grid sx={styles.title}>
           <OverflowText text={name} />
         </Grid>
-        <Grid container item spacing={1} wrap="nowrap">
+        <Grid container spacing={1} wrap="nowrap">
           {icon && (
             <Grid sx={styles.icon}>
               <FetchedIcon iconName={icon} size={36} />

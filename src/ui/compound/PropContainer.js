@@ -66,13 +66,13 @@ const PropTitle = ({
   ...props
 }) => (
   <Grid container alignSelf="center" {...props}>
-    <Grid item zeroMinWidth xs>
+    <Grid size="grow">
       <Typography noWrap={marquee} variant={titleVariant}>
         {marquee ? <OverflowText text={title} /> : title}
       </Typography>
     </Grid>
     {unit && (
-      <Grid item zeroMinWidth maxWidth="33.33%">
+      <Grid maxWidth="33.33%">
         <Typography variant="subtitle1" minWidth="1ch" sx={styles.unit}>
           <OverflowText text={unit} />
         </Typography>
@@ -98,12 +98,10 @@ const HorizontalContainer = ({
       overflow="auto"
       height="100%"
     >
-      <Grid item zeroMinWidth xs minWidth="5ch" pl={1}>
+      <Grid minWidth="5ch" pl={1} size="grow">
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid item xs={7.5}>
-        {children}
-      </Grid>
+      <Grid size={7.5}>{children}</Grid>
     </Grid>
   </BaseContainer>
 )
@@ -118,10 +116,10 @@ const VerticalContainer = ({
 }) => (
   <BaseContainer {...{ tooltipTitle, ...props }}>
     <Grid container direction="column" flexGrow={1}>
-      <Grid item pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
+      <Grid pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid item container alignItems="start" overflow="visible">
+      <Grid container alignItems="start" overflow="visible">
         {children}
       </Grid>
     </Grid>
@@ -137,7 +135,7 @@ const TitledContainer = ({ elevation = 0, sx, ...props }) => (
 
 const UntitledContainer = ({ children, ...props }) => (
   <BaseContainer {...props}>
-    <Grid container item xs alignContent="start" mt={3.5}>
+    <Grid container alignContent="start" mt={3.5} size="grow">
       {children}
     </Grid>
   </BaseContainer>

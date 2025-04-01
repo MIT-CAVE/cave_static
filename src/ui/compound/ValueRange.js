@@ -48,7 +48,7 @@ export const ValueRange = ({
 
   return (
     <Grid container spacing={2} alignItems="center">
-      <Grid item xs sx={{ mx: 2 }}>
+      <Grid sx={{ mx: 2 }} size="grow">
         <Slider
           {...{ disabled, max, min, step }}
           track={false}
@@ -65,7 +65,7 @@ export const ValueRange = ({
           {...slotProps?.slider}
         />
       </Grid>
-      <Grid container item xs sx={getStyles(disabled)}>
+      <Grid container sx={getStyles(disabled)} size="grow">
         <NumberInput
           {...{ disabled, max, min, numberFormat, slotProps }}
           value={valueCurrent}

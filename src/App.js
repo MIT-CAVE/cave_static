@@ -1,10 +1,6 @@
 import './App.css'
-import {
-  StyledEngineProvider,
-  ThemeProvider,
-  Box,
-  createTheme,
-} from '@mui/material'
+import { ThemeProvider, Box, createTheme } from '@mui/material'
+import { StyledEngineProvider } from '@mui/material/styles'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import * as R from 'ramda'
@@ -31,7 +27,6 @@ import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
 import { paneId } from './utils/enums'
-// import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
 
 const styles = {
   root: {

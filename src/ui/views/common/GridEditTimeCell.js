@@ -15,16 +15,6 @@ const GridEditTimeCell = ({ id, field, value: defaultValue, api }) => {
   )
 
   return (
-    <InputBase
-      {...{ value }}
-      inputProps={{
-        type: 'time', // Set the native input type
-        step: 1,
-        max: '23:59:59',
-        style: { colorScheme: 'dark', textAlign: 'center' },
-      }}
-      onChange={handleChange}
-    />
     // BUG: The time input field is shown empty
     // <GridEditDateCell
     //   {...{ value }}
@@ -37,6 +27,16 @@ const GridEditTimeCell = ({ id, field, value: defaultValue, api }) => {
     //   }}
     //   onChange={handleChange}
     // />
+    <InputBase
+      {...{ value }}
+      inputProps={{
+        type: 'time', // Set the native input type
+        step: 1,
+        max: '23:59:59',
+        style: { colorScheme: 'dark', textAlign: 'center' },
+      }}
+      onChange={handleChange}
+    />
   )
 }
 

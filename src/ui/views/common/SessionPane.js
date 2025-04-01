@@ -96,9 +96,11 @@ const ActionItems = ({ items = [], disabled }) => {
           <Tooltip
             key={label.toLocaleLowerCase()}
             title={label}
-            PopperProps={{ sx: { zIndex: 2002 } }}
             enterDelay={300}
             leaveDelay={300}
+            slotProps={{
+              popper: { sx: { zIndex: 2002 } },
+            }}
           >
             {/* A `span` wrapper to acommodate disabled actions */}
             <span>
@@ -119,13 +121,15 @@ const ActionItems = ({ items = [], disabled }) => {
           </IconButton>
           <Menu
             id="long-menu"
-            MenuListProps={{
-              'aria-labelledby': 'long-button',
-            }}
             {...{ anchorEl }}
             open={Boolean(anchorEl)}
             onClose={handleCloseMenu}
             sx={{ zIndex: 2002 }}
+            slotProps={{
+              list: {
+                'aria-labelledby': 'long-button',
+              },
+            }}
           >
             {hiddenItems.map(({ label, iconName, onClick, disabled }) => (
               <MenuItem
@@ -411,13 +415,14 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
   return (
     <GridToolbarContainer>
       <GridToolbarFilterButton />
-
       <Tooltip
         key={'Create a new session'.toLocaleLowerCase()}
         title="Create a new session"
-        PopperProps={{ sx: { zIndex: 2002 } }}
         enterDelay={300}
         leaveDelay={300}
+        slotProps={{
+          popper: { sx: { zIndex: 2002 } },
+        }}
       >
         {/* A `span` wrapper to acommodate disabled actions */}
         <span>

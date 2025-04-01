@@ -2,7 +2,7 @@ import {
   capitalize,
   Divider,
   FormControl,
-  Grid2,
+  Grid,
   IconButton,
   InputLabel,
   ListItemIcon,
@@ -304,16 +304,16 @@ const NumericalColorLegend = ({
 
   return (
     <>
-      <Grid2 container spacing={1.5} sx={styles.rangeRoot} wrap="nowrap">
-        <Grid2 size={3} sx={styles.rangeLabel}>
+      <Grid container spacing={1.5} sx={styles.rangeRoot} wrap="nowrap">
+        <Grid size={3} sx={styles.rangeLabel}>
           <Typography variant="caption" noWrap>
             <OverflowText text={getAdjustedLabel('Min', 0)} />
           </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={getLabel(0)} />
           </Typography>
-        </Grid2>
-        <Grid2 size="grow">
+        </Grid>
+        <Grid size="grow">
           <WithEditColorBadge showBadge={showColorPickers}>
             <RippleBox
               selected={showColorPickers}
@@ -321,17 +321,16 @@ const NumericalColorLegend = ({
               onClick={handleOpen(null, null)}
             />
           </WithEditColorBadge>
-        </Grid2>
-        <Grid2 size={3} sx={styles.rangeLabel}>
+        </Grid>
+        <Grid size={3} sx={styles.rangeLabel}>
           <Typography variant="caption">
             <OverflowText text={getAdjustedLabel('Max', lastIndex)} />
           </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
             <OverflowText text={getLabel(lastIndex)} />
           </Typography>
-        </Grid2>
-      </Grid2>
-
+        </Grid>
+      </Grid>
       {showColorPickers && (
         <Stack spacing={1} style={{ marginTop: 0 }}>
           {rawValues.map((value, index) => (
@@ -561,8 +560,8 @@ const ColorLegend = ({
       spacing={2}
       sx={styles.legendSection}
     >
-      <Grid2 container spacing={1}>
-        <Grid2 size="grow">
+      <Grid container spacing={1}>
+        <Grid size="grow">
           <FormControl fullWidth>
             <InputLabel id="color-by-label">Color by</InputLabel>
             <Select
@@ -579,15 +578,15 @@ const ColorLegend = ({
               )}
             />
           </FormControl>
-        </Grid2>
+        </Grid>
         {numberFormat.unit && (
-          <Grid2 size={4}>
+          <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
               <OverflowText text={numberFormat.unit} />
             </Typography>
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
       {isCategorical ? (
         <CategoricalColorLegend
           type={colorByProp.type}

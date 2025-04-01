@@ -3,7 +3,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Badge,
-  Grid2,
+  Grid,
   IconButton,
   Paper,
   Stack,
@@ -242,21 +242,21 @@ const LegendRowDetails = ({
           component="div"
           expandIcon={<MdExpandMore size={24} />}
         >
-          <Grid2
+          <Grid
             key={id}
             container
             spacing={1}
             sx={{ alignItems: 'center', width: '100%' }}
           >
-            <Grid2 size="auto">
+            <Grid size="auto">
               <Switch
                 name={`map-feature-switch-${id}`}
                 size="small"
                 checked={value}
                 onClick={handleChangeVisibility}
               />
-            </Grid2>
-            <Grid2 size="auto">
+            </Grid>
+            <Grid size="auto">
               <WithEditBadge editing={showShapePicker}>
                 <OptionalWrapper
                   component={ToggleButton}
@@ -272,13 +272,13 @@ const LegendRowDetails = ({
                   <FetchedIcon iconName={icon} size={24} />
                 </OptionalWrapper>
               </WithEditBadge>
-            </Grid2>
-            <Grid2 size="grow">
+            </Grid>
+            <Grid size="grow">
               <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
                 <OverflowText text={name} />
               </Typography>
-            </Grid2>
-            <Grid2 size="auto">
+            </Grid>
+            <Grid size="auto">
               {allowGrouping && (
                 <>
                   <ToggleButton
@@ -332,8 +332,8 @@ const LegendRowDetails = ({
                   <MdFilterAlt size={24} />
                 </Badge>
               </IconButton>
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, px: 1 }}>
           {/* TODO: Improve location/width of `ShapePicker` */}
@@ -359,9 +359,9 @@ const LegendRowDetails = ({
             )}
           </Stack>
 
-          <Grid2 container direction={layoutDirection} spacing={1}>
+          <Grid container direction={layoutDirection} spacing={1}>
             {colorBy != null && (
-              <Grid2 size="grow">
+              <Grid size="grow">
                 <ColorLegend
                   valueRange={
                     group && clusterRange.color
@@ -382,10 +382,10 @@ const LegendRowDetails = ({
                   onChangePropAttr={handleChangePropAttr}
                   onChangeColor={handleChangeColor}
                 />
-              </Grid2>
+              </Grid>
             )}
             {sizeBy != null && (
-              <Grid2 size="grow">
+              <Grid size="grow">
                 <SizeLegend
                   valueRange={
                     group && clusterRange.size
@@ -407,11 +407,11 @@ const LegendRowDetails = ({
                   onChangePropAttr={handleChangePropAttr}
                   onChangeSize={handleChangeSize}
                 />
-              </Grid2>
+              </Grid>
             )}
             {/* FIXME: `heightBy` is temporarily hidden */}
             {heightBy != null && false && (
-              <Grid2 size="grow">
+              <Grid size="grow">
                 <HeightLegend
                   valueRange={heightRange}
                   {...{
@@ -426,9 +426,9 @@ const LegendRowDetails = ({
                   onChangePropAttr={handleChangePropAttr}
                   onSelectProp={handleSelectProp('heightBy')}
                 />
-              </Grid2>
+              </Grid>
             )}
-          </Grid2>
+          </Grid>
         </AccordionDetails>
       </Accordion>
     </Stack>

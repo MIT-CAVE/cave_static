@@ -1,7 +1,7 @@
 import {
   capitalize,
   FormControl,
-  Grid2,
+  Grid,
   IconButton,
   InputLabel,
   Paper,
@@ -391,8 +391,8 @@ const SizeLegend = ({
       spacing={2}
       sx={styles.legendSection}
     >
-      <Grid2 container spacing={1}>
-        <Grid2 size="grow">
+      <Grid container spacing={1}>
+        <Grid size="grow">
           <FormControl fullWidth>
             <InputLabel id="size-by-label">Size by</InputLabel>
             <Select
@@ -409,15 +409,15 @@ const SizeLegend = ({
               )}
             />
           </FormControl>
-        </Grid2>
+        </Grid>
         {numberFormat.unit && (
-          <Grid2 size={4}>
+          <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
               <OverflowText text={numberFormat.unit} />
             </Typography>
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}

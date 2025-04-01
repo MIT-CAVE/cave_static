@@ -194,29 +194,31 @@ const SelectAccordionList = ({
             <TextField
               fullWidth
               {...{ label, ...other }}
-              InputProps={{
-                ...InputProps,
-                startAdornment: (
-                  <>
-                    <OverflowText>
-                      {InputProps.startAdornment ?? placeholder}
-                    </OverflowText>
-                    {values.length < maxGrouping && (
-                      <IconButton
-                        {...{ disabled }}
-                        size="small"
-                        sx={{ ml: 0.5 }}
-                        onClick={onAddGroup}
-                      >
-                        <MdAddCircle />
-                      </IconButton>
-                    )}
-                  </>
-                ),
-              }}
-              inputProps={{
-                ...inputProps,
-                readOnly: true,
+              slotProps={{
+                input: {
+                  ...InputProps,
+                  startAdornment: (
+                    <>
+                      <OverflowText>
+                        {InputProps.startAdornment ?? placeholder}
+                      </OverflowText>
+                      {values.length < maxGrouping && (
+                        <IconButton
+                          {...{ disabled }}
+                          size="small"
+                          sx={{ ml: 0.5 }}
+                          onClick={onAddGroup}
+                        >
+                          <MdAddCircle />
+                        </IconButton>
+                      )}
+                    </>
+                  ),
+                },
+                htmlInput: {
+                  ...inputProps,
+                  readOnly: true,
+                },
               }}
             />
           )

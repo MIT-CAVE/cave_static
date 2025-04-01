@@ -1,11 +1,11 @@
 import {
   Autocomplete,
   Box,
+  Grid,
   IconButton,
   Checkbox,
   TextField,
   Typography,
-  Grid2,
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
@@ -106,7 +106,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
         onChange={handleSelectChart}
         chartOptions={CHART_OPTIONS}
         extraOptions={
-          <Grid2
+          <Grid
             size="grow"
             sx={{ height: '100%', display: 'flex', justifyContent: 'end' }}
           >
@@ -127,7 +127,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
             >
               <MdRefresh size={32} />
             </IconButton>
-          </Grid2>
+          </Grid>
         }
       />
 

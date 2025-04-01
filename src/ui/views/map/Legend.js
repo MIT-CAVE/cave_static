@@ -9,7 +9,7 @@ import {
   FormControl,
   FormControlLabel,
   FormGroup,
-  Grid2,
+  Grid,
   InputAdornment,
   InputLabel,
   Paper,
@@ -1206,7 +1206,7 @@ export const LegendHeader = ({
       // Toggle when clicking on the opened popper
       onClick={anchorEl == null ? handleOpen : handleClose}
     >
-      <Grid2
+      <Grid
         container
         spacing={1}
         sx={[
@@ -1214,12 +1214,12 @@ export const LegendHeader = ({
           ...forceArray(sx),
         ]}
       >
-        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+        <Grid size="grow" sx={{ textAlign: 'start' }}>
           <Typography variant="h6" {...slotProps.label}>
             {label}
           </Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <LegendPopper
             sx={styles.toggleButton}
             IconComponent={RiSettings5Line}
@@ -1228,8 +1228,8 @@ export const LegendHeader = ({
           >
             {children}
           </LegendPopper>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
     </ToggleButton>
   )
 }

@@ -45,18 +45,11 @@ const BaseContainer = ({
     sx={[variantStyle, styles.root, style, ...forceArray(sx)]}
     {...R.dissoc('currentVal')(props)}
   >
-    <Grid
-      item
-      zeroMinWidth
-      xs
-      component={Typography}
-      variant="h5"
-      sx={styles.title}
-    >
+    <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
       <OverflowText text={name || id} />
     </Grid>
     {help && (
-      <Grid item p={0.5}>
+      <Grid p={0.5}>
         <InfoButton text={help} sx={{ fontSize: 24 }} />
       </Grid>
     )}
@@ -78,7 +71,7 @@ BaseContainer.propTypes = {
 
 const PropHeadColumn = (props) => (
   <BaseContainer variantStyle={styles.column} {...props}>
-    <Grid item xs={12} component={Divider} sx={styles.divider} />
+    <Grid component={Divider} sx={styles.divider} size={12} />
   </BaseContainer>
 )
 

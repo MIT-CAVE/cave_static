@@ -1,7 +1,7 @@
 import {
   Badge,
   Divider,
-  Grid2,
+  Grid,
   IconButton,
   Paper,
   Stack,
@@ -193,16 +193,16 @@ const LegendRowDetails = ({
   )
   return (
     <Stack component={Paper} elevation={1} spacing={1} sx={styles.details}>
-      <Grid2 container sx={{ alignItems: 'center' }} spacing={1}>
-        <Grid2 size="auto">
+      <Grid container sx={{ alignItems: 'center' }} spacing={1}>
+        <Grid size="auto">
           <Switch
             name="map-feature-switch"
             size="small"
             checked={value}
             onClick={onChangeVisibility}
           />
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <WithEditBadge editing={showShapePicker}>
             <OptionalWrapper
               component={ToggleButton}
@@ -218,13 +218,13 @@ const LegendRowDetails = ({
               <FetchedIcon iconName={icon} size={24} />
             </OptionalWrapper>
           </WithEditBadge>
-        </Grid2>
-        <Grid2 size="grow">
+        </Grid>
+        <Grid size="grow">
           <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
             <OverflowText text={name} />
           </Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           {allowGrouping && (
             <>
               <ToggleButton
@@ -274,8 +274,8 @@ const LegendRowDetails = ({
               <MdFilterAlt />
             </Badge>
           </IconButton>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
       <Stack spacing={1} sx={{ mb: 1 }}>
         {showShapePicker && (
           <ShapePicker
@@ -298,7 +298,7 @@ const LegendRowDetails = ({
       </Stack>
 
       <Divider sx={{ mx: -1.5 }} />
-      <Grid2
+      <Grid
         container
         direction={layoutDirection}
         spacing={1}
@@ -306,7 +306,7 @@ const LegendRowDetails = ({
         wrap={layoutDirection === 'row' ? 'wrap' : 'nowrap'}
       >
         {colorBy != null && (
-          <Grid2 size="grow">
+          <Grid size="grow">
             <ColorLegend
               valueRange={
                 group && clusterRange.color
@@ -327,10 +327,10 @@ const LegendRowDetails = ({
               onChangePropAttr={handleChangePropAttr}
               onChangeColor={handleChangeColor}
             />
-          </Grid2>
+          </Grid>
         )}
         {sizeBy != null && (
-          <Grid2 size="grow">
+          <Grid size="grow">
             <SizeLegend
               valueRange={
                 group && clusterRange.size
@@ -351,11 +351,11 @@ const LegendRowDetails = ({
               onChangePropAttr={handleChangePropAttr}
               onChangeSize={handleChangeSize}
             />
-          </Grid2>
+          </Grid>
         )}
         {/* FIXME: `heightBy` is temporarily hidden */}
         {heightBy != null && false && (
-          <Grid2 size="grow">
+          <Grid size="grow">
             <HeightLegend
               valueRange={heightRange}
               {...{
@@ -370,9 +370,9 @@ const LegendRowDetails = ({
               onChangePropAttr={handleChangePropAttr}
               onSelectProp={handleSelectProp('heightBy')}
             />
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
     </Stack>
   )
 }
@@ -434,27 +434,27 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
       // Toggle when clicking on the opened popper
       onClick={anchorEl == null ? onOpen : onClose}
     >
-      <Grid2
+      <Grid
         key={id}
         container
         spacing={1}
         sx={{ alignItems: 'center', width: '100%' }}
       >
-        <Grid2 size="auto">
+        <Grid size="auto">
           <Switch
             name={`cave-toggle-map-${id}`}
             size="small"
             checked={props.value}
             onClick={handleChangeVisibility}
           />
-        </Grid2>
-        <Grid2 size="auto" sx={{ display: 'flex' }}>
+        </Grid>
+        <Grid size="auto" sx={{ display: 'flex' }}>
           <FetchedIcon iconName={icon} size={20} />
-        </Grid2>
-        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+        </Grid>
+        <Grid size="grow" sx={{ textAlign: 'start' }}>
           <Typography variant="caption">{name}</Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <LegendPopper
             {...{ mapId, anchorEl, onClose }}
             IconComponent={() => (
@@ -485,8 +485,8 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
               }}
             />
           </LegendPopper>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
     </ToggleButton>
   )
 }

@@ -1,4 +1,4 @@
-import { Divider, IconButton, Tab, Tabs, alpha, Box } from '@mui/material'
+import { Box, Divider, IconButton, Tab, Tabs } from '@mui/material'
 import * as R from 'ramda'
 import React, { useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -54,10 +54,7 @@ const styles = {
     minWidth: `${APP_BAR_WIDTH}px`,
     mb: 1,
     '&:hover': (theme) => ({
-      bgcolor: alpha(
-        theme.palette.action.active,
-        theme.palette.action.hoverOpacity
-      ),
+      bgcolor: `color-mix(in srgb, ${theme.palette.action.active}, transparent 90%)`,
       // Reset on touch devices, it doesn't add specificity
       '@media (hover: none)': {
         bgcolor: 'transparent',

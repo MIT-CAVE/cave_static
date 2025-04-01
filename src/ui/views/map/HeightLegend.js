@@ -1,7 +1,7 @@
 // TODO: Update this component to match the new prop/size API structure
 import {
   FormControl,
-  Grid2,
+  Grid,
   InputLabel,
   Paper,
   Stack,
@@ -42,8 +42,8 @@ const HeightLegend = ({
 
   const renderNumericHeight = () => {
     return (
-      <Grid2 container spacing={1}>
-        <Grid2 size={3} sx={{ textAlign: 'center' }}>
+      <Grid container spacing={1}>
+        <Grid size={3} sx={{ textAlign: 'center' }}>
           <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
             Min
           </Typography>
@@ -53,10 +53,10 @@ const HeightLegend = ({
           >
             {valueRange.min}
           </Typography>
-        </Grid2>
+        </Grid>
 
-        <Grid2 size={6} container alignItems="center" justifyContent="center">
-          <Grid2 container size={6} alignItems="center" justifyContent="center">
+        <Grid size={6} container alignItems="center" justifyContent="center">
+          <Grid container size={6} alignItems="center" justifyContent="center">
             {icon && (
               <icon.type
                 {...icon.props}
@@ -69,8 +69,8 @@ const HeightLegend = ({
                 }}
               />
             )}
-          </Grid2>
-          <Grid2 container size={6} alignItems="center" justifyContent="center">
+          </Grid>
+          <Grid container size={6} alignItems="center" justifyContent="center">
             {icon && (
               <icon.type
                 {...icon.props}
@@ -83,10 +83,10 @@ const HeightLegend = ({
                 }}
               />
             )}
-          </Grid2>
-        </Grid2>
+          </Grid>
+        </Grid>
 
-        <Grid2 size={3} sx={{ textAlign: 'center' }}>
+        <Grid size={3} sx={{ textAlign: 'center' }}>
           <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
             Max
           </Typography>
@@ -96,8 +96,8 @@ const HeightLegend = ({
           >
             {valueRange.max}
           </Typography>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
     )
   }
 
@@ -113,8 +113,8 @@ const HeightLegend = ({
 
   return (
     <Stack spacing={2} sx={{ width: '100%' }}>
-      <Grid2 container spacing={1}>
-        <Grid2 size="grow">
+      <Grid container spacing={1}>
+        <Grid size="grow">
           <FormControl fullWidth>
             <InputLabel id="height-by-label">Height by</InputLabel>
             <Select
@@ -127,15 +127,15 @@ const HeightLegend = ({
               onSelect={onSelectProp}
             />
           </FormControl>
-        </Grid2>
+        </Grid>
         {numberFormat.unit && (
-          <Grid2 size={4}>
+          <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
               <OverflowText text={numberFormat.unit} />
             </Typography>
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
 
       {isCategorical ? renderCategoricalHeight() : renderNumericHeight()}
     </Stack>

@@ -33,10 +33,10 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
         <OverflowText text={name} />
       </Typography>
       <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
-        <Grid item xs>
+        <Grid size="grow">
           <FetchedIcon iconName={icon} />
         </Grid>
-        <Grid item xs={10}>
+        <Grid size={10}>
           <OverflowText
             sx={styles.value}
             text={NumberFormat.format(value, numberFormatProps)}
