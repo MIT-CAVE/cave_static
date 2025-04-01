@@ -5,7 +5,7 @@
     "build": "export $(cat .env | xargs) && craco build",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
     "reset": "npx rimraf ./package-lock.json && npm run setup",
-    "setup": "npx rimraf ./node_modules && npm install --legacy-peer-deps && npx simple-git-hooks",
+    "setup": "npx rimraf ./node_modules && npm install && npx simple-git-hooks",
     "start": "BROWSER=none ESLINT_NO_DEV_ERRORS=true craco start"
   },
   "dependencies": {
@@ -60,5 +60,10 @@
   "engines": {
     "node": "^18.20.0 || ^20.10.0 || ^ 22.0.0",
     "npm": "^9.0.0 || ^10.0.0 || ^11.0.0"
+  },
+  "overrides": {
+    "mui-color-input": {
+      "@mui/material": "^7.0.1"
+    }
   }
 }
