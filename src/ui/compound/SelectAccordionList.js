@@ -126,7 +126,7 @@ const SelectAccordionList = ({
                   onSelect={onSelectGroup(optionIndex)}
                 />
                 {values.length > 1 && (
-                  <Stack direction="column" ml={1} spacing={0.5}>
+                  <Stack direction="column" spacing={0.5} sx={{ ml: 1 }}>
                     <IconButton
                       size="small"
                       disabled={optionIndex < 1}

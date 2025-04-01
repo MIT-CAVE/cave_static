@@ -49,7 +49,7 @@ const BaseContainer = ({
       <OverflowText text={name || id} />
     </Grid>
     {help && (
-      <Grid p={0.5}>
+      <Grid sx={{ p: 0.5 }}>
         <InfoButton text={help} sx={{ fontSize: 24 }} />
       </Grid>
     )}

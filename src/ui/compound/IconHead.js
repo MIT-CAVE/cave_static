@@ -51,9 +51,9 @@ const GlobalOutputHead = ({
   const other = R.omit(['currentVal', 'mapGlobalOutput'])(props)
   return (
     <Grid sx={[rootStyle, style, ...forceArray(sx)]} {...other}>
-      <Grid container spacing={gridSpacing} flexWrap="nowrap">
+      <Grid container spacing={gridSpacing} sx={{ flexWrap: 'nowrap' }}>
         {icon && (
-          <Grid alignSelf="center">
+          <Grid sx={{ alignSelf: 'center' }}>
             <FetchedIcon iconName={icon} size={iconSize} />
           </Grid>
         )}

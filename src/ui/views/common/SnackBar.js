@@ -69,12 +69,12 @@ const SnackBar = () => {
     []
   ) : (
     <Stack
-      justifyContent="center"
-      alignItems="center"
       sx={{
         position: 'fixed',
-        bottom: 20,
-        right: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        bottom: '20px',
+        right: '20px',
         bgcolor: 'background.paper',
         zIndex: 2001,
       }}

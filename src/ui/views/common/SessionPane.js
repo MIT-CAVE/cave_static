@@ -205,8 +205,7 @@ const ListItemCard = ({
                 <Typography
                   {...subheaderTypographyProps}
                   component="span"
-                  fontWeight={600}
-                  color="primary"
+                  sx={{ color: 'primary.main', fontWeight: 600 }}
                 >
                   {subtitleExtra}
                 </Typography>
@@ -217,7 +216,7 @@ const ListItemCard = ({
         />
         {description && (
           <CardContent>
-            <Typography sx={{ pt: 0 }} variant="body1" color="text.secondary">
+            <Typography variant="body1" sx={{ color: 'text.secondary', pt: 0 }}>
               {description}
             </Typography>
           </CardContent>
@@ -310,7 +309,7 @@ const ListItemSessionCardInput = ({
         disableSpacing
         sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0 }}
       >
-        <Stack direction="row" spacing={1} paddingBottom={0.75}>
+        <Stack direction="row" spacing={1} sx={{ pb: 0.75 }}>
           <ConfirmCancelButtons
             onConfirm={() =>
               onClickConfirm(
@@ -556,10 +555,8 @@ const ActionModal = ({ open, label, confirmText, onConfirm, onCancel }) => {
     >
       <Stack
         direction="row"
-        justifyContent="center"
-        alignItems="center"
         spacing={1}
-        paddingY={2}
+        sx={{ justifyContent: 'center', alignItems: 'center', py: 2 }}
       >
         <ConfirmCancelButtons
           confirmText={confirmText}

@@ -47,7 +47,7 @@ export const ValueRange = ({
     })
 
   return (
-    <Grid container spacing={2} alignItems="center">
+    <Grid container spacing={2} sx={{ alignItems: 'center' }}>
       <Grid sx={{ mx: 2 }} size="grow">
         <Slider
           {...{ disabled, max, min, step }}

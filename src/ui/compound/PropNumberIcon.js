@@ -81,7 +81,7 @@ const PropNumberIcon = ({ prop, sx = [], ...props }) => {
       sx={[styles.root, style, ...forceArray(sx)]}
       // {...props}
     >
-      <Grid container flexDirection="column" spacing={3}>
+      <Grid container spacing={3} sx={{ flexDirection: 'column' }}>
         <Grid sx={styles.title}>
           <OverflowText text={name} />
         </Grid>

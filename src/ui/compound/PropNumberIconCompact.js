@@ -32,7 +32,12 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
       <Typography sx={styles.name} variant="subtitle1">
         <OverflowText text={name} />
       </Typography>
-      <Grid container spacing={1.5} alignItems="flex-start" wrap="nowrap">
+      <Grid
+        container
+        spacing={1.5}
+        wrap="nowrap"
+        sx={{ alignItems: 'flex-start' }}
+      >
         <Grid size="grow">
           <FetchedIcon iconName={icon} />
         </Grid>

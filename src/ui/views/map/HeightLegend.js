@@ -54,9 +54,16 @@ const HeightLegend = ({
             {valueRange.min}
           </Typography>
         </Grid>
-
-        <Grid size={6} container alignItems="center" justifyContent="center">
-          <Grid container size={6} alignItems="center" justifyContent="center">
+        <Grid
+          size={6}
+          container
+          sx={{ alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Grid
+            container
+            size={6}
+            sx={{ alignItems: 'center', justifyContent: 'center' }}
+          >
             {icon && (
               <icon.type
                 {...icon.props}
@@ -70,7 +77,11 @@ const HeightLegend = ({
               />
             )}
           </Grid>
-          <Grid container size={6} alignItems="center" justifyContent="center">
+          <Grid
+            container
+            size={6}
+            sx={{ alignItems: 'center', justifyContent: 'center' }}
+          >
             {icon && (
               <icon.type
                 {...icon.props}
@@ -85,7 +96,6 @@ const HeightLegend = ({
             )}
           </Grid>
         </Grid>
-
         <Grid size={3} sx={{ textAlign: 'center' }}>
           <Typography variant="caption" sx={{ fontWeight: 'normal' }}>
             Max
@@ -102,7 +112,7 @@ const HeightLegend = ({
   }
 
   const renderCategoricalHeight = () => (
-    <Stack direction="row" spacing={1.5} justifyContent="center">
+    <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center' }}>
       {Object.entries(heightByOptions).map(([category]) => (
         <Paper key={category} sx={{ padding: 0.5, textAlign: 'center' }}>
           <Typography variant="caption">{category}</Typography>

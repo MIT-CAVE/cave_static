@@ -32,10 +32,12 @@ export const SimpleDropdown = ({
         {marquee ? <OverflowText text={getLabel(value)} /> : getLabel(value)}
         <Box
           component="span"
-          display="flex"
-          alignItems="center"
-          justifyContent="end"
-          paddingLeft="4px"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'end',
+            pl: 0.5,
+          }}
         >
           <FetchedIcon
             size={20}

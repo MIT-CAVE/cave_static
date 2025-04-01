@@ -34,6 +34,7 @@ const styles = {
     borderColor: 'text.secondary',
     fontWeight: 700,
     justifyContent: 'center',
+    minWidth: '1ch',
   },
 }
 
@@ -65,15 +66,15 @@ const PropTitle = ({
   titleVariant = 'subtitle1',
   ...props
 }) => (
-  <Grid container alignSelf="center" {...props}>
+  <Grid container sx={{ alignSelf: 'center' }} {...props}>
     <Grid size="grow">
       <Typography noWrap={marquee} variant={titleVariant}>
         {marquee ? <OverflowText text={title} /> : title}
       </Typography>
     </Grid>
     {unit && (
-      <Grid maxWidth="33.33%">
-        <Typography variant="subtitle1" minWidth="1ch" sx={styles.unit}>
+      <Grid sx={{ maxWidth: '33.33%' }}>
+        <Typography variant="subtitle1" sx={styles.unit}>
           <OverflowText text={unit} />
         </Typography>
       </Grid>
@@ -92,13 +93,15 @@ const HorizontalContainer = ({
   <BaseContainer {...{ tooltipTitle, ...props }}>
     <Grid
       container
-      alignItems="center"
-      alignContent="start"
-      mt={tooltipTitle ? 3.5 : 0}
-      overflow="auto"
-      height="100%"
+      sx={{
+        alignItems: 'center',
+        alignContent: 'start',
+        mt: tooltipTitle ? 3.5 : 0,
+        overflow: 'auto',
+        height: '100%',
+      }}
     >
-      <Grid minWidth="5ch" pl={1} size="grow">
+      <Grid size="grow" sx={{ minWidth: '5ch', pl: 1 }}>
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
       <Grid size={7.5}>{children}</Grid>
@@ -115,11 +118,18 @@ const VerticalContainer = ({
   ...props
 }) => (
   <BaseContainer {...{ tooltipTitle, ...props }}>
-    <Grid container direction="column" flexGrow={1}>
-      <Grid pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
+    <Grid container direction="column" sx={{ flexGrow: 1 }}>
+      <Grid
+        sx={{
+          pl: 1,
+          pt: 0.5,
+          pr: tooltipTitle ? 4.5 : 1,
+          width: '100%',
+        }}
+      >
         <PropTitle {...{ title, marquee, unit }} />
       </Grid>
-      <Grid container alignItems="start" overflow="visible">
+      <Grid container sx={{ alignItems: 'start', overflow: 'visible' }}>
         {children}
       </Grid>
     </Grid>
@@ -135,7 +145,7 @@ const TitledContainer = ({ elevation = 0, sx, ...props }) => (
 
 const UntitledContainer = ({ children, ...props }) => (
   <BaseContainer {...props}>
-    <Grid container alignContent="start" mt={3.5} size="grow">
+    <Grid container size="grow" sx={{ alignContent: 'start', mt: 3.5 }}>
       {children}
     </Grid>
   </BaseContainer>

@@ -547,7 +547,6 @@ const Dashboard = () => {
                           ? `${index}`
                           : `${gridItem.x}x${gridItem.y}null`
                       }
-                      display="flex"
                       data-grid={R.mergeLeft({
                         isDraggable: chartObj != null && editLayoutMode,
                         isResizable: chartObj != null && editLayoutMode,
@@ -559,6 +558,7 @@ const Dashboard = () => {
                         ),
                       })(dataGrid)}
                       sx={{
+                        display: 'flex',
                         cursor: `${cursor} !important`,
                       }}
                     >
