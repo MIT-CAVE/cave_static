@@ -1,5 +1,4 @@
 import {
-  capitalize,
   FormControl,
   Grid,
   IconButton,
@@ -27,7 +26,7 @@ import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 
 import { NumberInput, OverflowText, Select } from '../../compound'
 
-import { orderEntireDict, parseGradient } from '../../../utils'
+import { capitalize, orderEntireDict, parseGradient } from '../../../utils'
 
 const styles = {
   legendSection: {

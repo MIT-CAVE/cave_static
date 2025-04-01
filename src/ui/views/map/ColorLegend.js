@@ -1,5 +1,4 @@
 import {
-  capitalize,
   Divider,
   FormControl,
   Grid,
@@ -42,6 +41,7 @@ import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 import { NumberInput, OverflowText, Select } from '../../compound'
 
 import {
+  capitalize,
   getChartItemColor,
   getContrastText,
   orderEntireDict,
