@@ -392,19 +392,20 @@ const NumericalColorLegend = ({
               </RippleBox>
             )} */
             const isLabelEmpty = labels[index] == null || labels[index] === ''
+            const isLastStepScaleItem = isStepScale && index === lastIndex
             return (
-              <Stack
+              <Grid
                 key={index}
-                direction="row"
+                container
                 spacing={1}
                 sx={{ alignItems: 'center' }}
               >
-                <Grid container spacing={1}>
-                  <Grid size={6}>
-                    {
-                      // Do not display the max value for a step function
-                      // scale, as it does not affect the function output
-                      !(isStepScale && index === lastIndex) && (
+                <Grid container spacing={1} size="grow">
+                  {
+                    // Do not display the max value for a step function
+                    // scale, as it does not affect the function output
+                    !isLastStepScaleItem && (
+                      <Grid size={6}>
                         <NumberInput
                           color="warning"
                           sx={styles.valueInput}
@@ -431,10 +432,10 @@ const NumericalColorLegend = ({
                           {...{ value, numberFormat }}
                           onClickAway={onChangeValueAt(dataIndex)}
                         />
-                      )
-                    }
-                  </Grid>
-                  <Grid size={6}>
+                      </Grid>
+                    )
+                  }
+                  <Grid size={isLastStepScaleItem ? 12 : 6}>
                     <ColorPicker
                       colorLabel={getAttrLabelAt(index)}
                       value={colors[index]}
@@ -453,17 +454,19 @@ const NumericalColorLegend = ({
                     </Grid>
                   )}
                 </Grid>
-                <ColorMenu
-                  {...{
-                    index,
-                    dataIndices,
-                    editLabelAt,
-                    onAddColorAt,
-                    onRemoveColorAt,
-                  }}
-                  onToggleEditLabelAt={handleToggleEditLabelAt}
-                />
-              </Stack>
+                <Grid size="auto">
+                  <ColorMenu
+                    {...{
+                      index,
+                      dataIndices,
+                      editLabelAt,
+                      onAddColorAt,
+                      onRemoveColorAt,
+                    }}
+                    onToggleEditLabelAt={handleToggleEditLabelAt}
+                  />
+                </Grid>
+              </Grid>
               // </div>
             )
           })}
