@@ -114,7 +114,7 @@ const NumericalColorLegend = ({
     handleClose,
   } = useColorPicker(onChangeColor)
 
-  const { colors, values, rawValues, labels } = useMemo(
+  const { colors, values, rawValues, labels, dataIndices } = useMemo(
     () => parseGradient('color', numberFormat.precision)(valueRange),
     [numberFormat.precision, valueRange]
   )
@@ -175,11 +175,11 @@ const NumericalColorLegend = ({
   }, [colors, isStepScale, lastIndex, valueRange, values])
 
   const handleChangeColorAt = useCallback(
-    (index) => (value, colorOutputs) => {
+    (dataIndex) => (value, colorOutputs) => {
       const pathTail =
-        index == null // Updating fallback color?
+        dataIndex == null // Updating fallback color?
           ? ['fallback', 'color']
-          : ['gradient', 'data', index, 'color']
+          : ['gradient', 'data', dataIndex, 'color']
       handleChange(value, colorOutputs, pathTail)
     },
     [handleChange]
@@ -222,7 +222,7 @@ const NumericalColorLegend = ({
               <ColorPicker
                 colorLabel={getColorLabelAt(index)}
                 value={colors[index]}
-                onChange={handleChangeColorAt(index)}
+                onChange={handleChangeColorAt(dataIndices[index])}
                 onClose={handleClose}
               />
               {
@@ -243,7 +243,7 @@ const NumericalColorLegend = ({
                       (index === lastIndex && !maxAuto) ? (
                         <IconButton
                           size="small"
-                          onClick={handleSetAutoValueAt(index)}
+                          onClick={handleSetAutoValueAt(dataIndices[index])}
                         >
                           <TbFocusAuto />
                         </IconButton>
@@ -251,7 +251,7 @@ const NumericalColorLegend = ({
                     }
                     label={getValueLabelAt(index)}
                     {...{ value, numberFormat }}
-                    onClickAway={onChangeValueAt(index)}
+                    onClickAway={onChangeValueAt(dataIndices[index])}
                   />
                 )
               }
@@ -428,8 +428,14 @@ const ColorLegend = ({
               anyNullValue,
               onChangeColor,
             }}
-            onChangeValueAt={(index) =>
-              onChangePropAttr([colorBy, 'gradient', 'data', index, 'value'])
+            onChangeValueAt={(dataIndex) =>
+              onChangePropAttr([
+                colorBy,
+                'gradient',
+                'data',
+                dataIndex,
+                'value',
+              ])
             }
           />
           <ScaleSelector
