@@ -25,13 +25,14 @@ const KEYBOARD_LAYOUT = 'default'
 // `controlled` and `onChange` should be used together.
 const TextInput = ({
   controlled,
-  color = 'default',
   disabled,
   multiline,
   label,
   placeholder,
   help,
   value: valueParent,
+  color = 'default',
+  statusIcon,
   sx = [],
   slotProps,
   onChange,
@@ -211,7 +212,7 @@ const TextInput = ({
                 >
                   <BiSolidKeyboard />
                 </IconButton>
-                {color !== 'default' && getStatusIcon(color)}
+                {color !== 'default' && statusIcon && getStatusIcon(color)}
               </InputAdornment>
             ),
           }),

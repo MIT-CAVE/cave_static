@@ -1,6 +1,7 @@
 import {
   Divider,
   FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputLabel,
@@ -10,6 +11,7 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Switch,
   ToggleButton,
   Typography,
 } from '@mui/material'
@@ -18,7 +20,6 @@ import { memo, useCallback, useMemo, useState } from 'react'
 import {
   MdClose,
   MdMoreVert,
-  MdOutlineEdit,
   // MdOutlineSwapVert,
 } from 'react-icons/md'
 import { TbFocusAuto, TbRowInsertBottom, TbRowInsertTop } from 'react-icons/tb'
@@ -38,7 +39,7 @@ import { useMenu } from '../../../utils/hooks'
 import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
-import { NumberInput, OverflowText, Select } from '../../compound'
+import { NumberInput, OverflowText, Select, TextInput } from '../../compound'
 
 import {
   capitalize,
@@ -112,6 +113,22 @@ const WithEditColorBadge = ({ showBadge, ...props }) => (
   />
 )
 
+const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
+  <MenuItem {...{ disabled }}>
+    <FormControlLabel
+      {...{ label }}
+      control={
+        <Switch
+          sx={{ mr: 1 }}
+          size="small"
+          checked={value}
+          onChange={onClick}
+        />
+      }
+    />
+  </MenuItem>
+)
+
 const BaseMenuItem = ({ disabled, label, reactIcon: ReactIcon, onClick }) => (
   <MenuItem {...{ disabled, onClick }}>
     <ListItemIcon>
@@ -123,7 +140,14 @@ const BaseMenuItem = ({ disabled, label, reactIcon: ReactIcon, onClick }) => (
   </MenuItem>
 )
 
-const ColorMenu = ({ dataIndices, index, onAddColorAt, onRemoveColorAt }) => {
+const ColorMenu = ({
+  index,
+  dataIndices,
+  editLabelAt,
+  onAddColorAt,
+  onRemoveColorAt,
+  onToggleEditLabelAt,
+}) => {
   const [menuIndex, setMenuIndex] = useState(null)
 
   const {
@@ -147,6 +171,8 @@ const ColorMenu = ({ dataIndices, index, onAddColorAt, onRemoveColorAt }) => {
     },
     [handleCloseMenuRaw]
   )
+
+  const dataIndex = dataIndices[index]
   return (
     <div>
       <ToggleButton
@@ -178,7 +204,7 @@ const ColorMenu = ({ dataIndices, index, onAddColorAt, onRemoveColorAt }) => {
           label="Add Color Above"
           reactIcon={TbRowInsertTop}
           onClick={(event) => {
-            onAddColorAt(dataIndices[menuIndex])()
+            onAddColorAt(dataIndex)()
             handleCloseMenu(event)
           }}
         />
@@ -186,24 +212,23 @@ const ColorMenu = ({ dataIndices, index, onAddColorAt, onRemoveColorAt }) => {
           label="Add Color Below"
           reactIcon={TbRowInsertBottom}
           onClick={(event) => {
-            onAddColorAt(dataIndices[menuIndex] + 1)()
+            onAddColorAt(dataIndex + 1)()
             handleCloseMenu(event)
           }}
         />
         <Divider />
-        <BaseMenuItem
-          disabled
+        <ToggleMenuItem
           label="Edit Label"
-          reactIcon={MdOutlineEdit}
-          // onClick={handleEditLabelAt(dataIndices[menuIndex])}
+          onClick={onToggleEditLabelAt(dataIndex)}
+          value={editLabelAt[dataIndex]}
         />
         <Divider />
         <BaseMenuItem
-          disabled={dataIndices.length < 2}
+          disabled={dataIndices.length < 3}
           label="Remove Color"
           reactIcon={MdClose}
           onClick={(event) => {
-            onRemoveColorAt(dataIndices[menuIndex])()
+            onRemoveColorAt(dataIndex)()
             handleCloseMenu(event)
           }}
         />
@@ -219,9 +244,11 @@ const NumericalColorLegend = ({
   // anyNullValue, // TODO: Implement `fallback` UI
   onAddColorAt,
   onChangeColor,
+  onChangeLabelAt,
   onRemoveColorAt,
   onChangeValueAt,
 }) => {
+  const [editLabelAt, setEditLabelAt] = useState({})
   const { colors, values, rawValues, labels, dataIndices } = useMemo(
     () => parseGradient('color', numberFormat.precision)(valueRange),
     [numberFormat.precision, valueRange]
@@ -240,7 +267,7 @@ const NumericalColorLegend = ({
     minAuto,
     maxAuto,
     getLabel,
-    getAttrLabelAt: getColorLabelAt,
+    getAttrLabelAt,
     getAdjustedLabel,
     getValueLabelAt,
     handleSetAutoValueAt,
@@ -302,6 +329,16 @@ const NumericalColorLegend = ({
     [handleChange]
   )
 
+  const handleToggleEditLabelAt = useCallback(
+    (dataIndex) => () => {
+      setEditLabelAt((oldValue) => ({
+        ...oldValue,
+        [dataIndex]: !oldValue[dataIndex],
+      }))
+    },
+    []
+  )
+
   return (
     <>
       <Grid container spacing={1.5} sx={styles.rangeRoot} wrap="nowrap">
@@ -333,72 +370,103 @@ const NumericalColorLegend = ({
       </Grid>
       {showColorPickers && (
         <Stack spacing={1} style={{ marginTop: 0 }}>
-          {rawValues.map((value, index) => (
+          {rawValues.map((value, index) => {
+            const dataIndex = dataIndices[index]
             /* <div key={index} style={{ position: 'relative' }}>
 
-              {index > 0 && (
-                <RippleBox
-                  sx={{
-                    zIndex: 1,
-                    position: 'absolute',
-                    top: '-5px',
-                    right: '20px',
-                    width: 'fit-content',
-                    p: '1px',
-                    border: '2px outset #ffa726',
-                    borderRadius: '50%',
+          {index > 0 && (
+            <RippleBox
+            sx={{
+                  zIndex: 1,
+                  position: 'absolute',
+                  top: '-5px',
+                  right: '20px',
+                  width: 'fit-content',
+                  p: '1px',
+                  border: '2px outset #ffa726',
+                  borderRadius: '50%',
                   }}
-                  onClick={handleSwapColorsAt(dataIndices[index])}
-                >
-                  <MdOutlineSwapVert size={16} />
-                </RippleBox>
-              )} */
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              {
-                // Do not display the max value for a step function
-                // scale, as it does not affect the function output
-                !(isStepScale && index === lastIndex) && (
-                  <NumberInput
-                    color="warning"
-                    sx={styles.valueInput}
-                    slotProps={{
-                      input: {
-                        sx: { borderRadius: 0, pr: 1.75 },
-                      },
-                    }}
-                    endAdornments={
-                      // Show the auto-min/max button when the min/max value is custom
-                      (index < 1 && !minAuto) ||
-                      (index === lastIndex && lastIndex > 0 && !maxAuto) ? (
-                        <IconButton
-                          size="small"
-                          onClick={handleSetAutoValueAt(
-                            dataIndices[index],
-                            index
-                          )}
-                        >
-                          <TbFocusAuto />
-                        </IconButton>
-                      ) : null
+                onClick={handleSwapColorsAt(dataIndex)}
+              >
+                <MdOutlineSwapVert size={16} />
+              </RippleBox>
+            )} */
+            const isLabelEmpty = labels[index] == null || labels[index] === ''
+            return (
+              <Stack
+                key={index}
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: 'center' }}
+              >
+                <Grid container spacing={1}>
+                  <Grid size={6}>
+                    {
+                      // Do not display the max value for a step function
+                      // scale, as it does not affect the function output
+                      !(isStepScale && index === lastIndex) && (
+                        <NumberInput
+                          color="warning"
+                          sx={styles.valueInput}
+                          slotProps={{
+                            input: {
+                              sx: { borderRadius: 0, pr: 1.75 },
+                            },
+                          }}
+                          endAdornments={
+                            // Show the auto-min/max button when the min/max value is custom
+                            (index < 1 && !minAuto) ||
+                            (index === lastIndex &&
+                              lastIndex > 0 &&
+                              !maxAuto) ? (
+                              <IconButton
+                                size="small"
+                                onClick={handleSetAutoValueAt(dataIndex, index)}
+                              >
+                                <TbFocusAuto />
+                              </IconButton>
+                            ) : null
+                          }
+                          label={getValueLabelAt(index)}
+                          {...{ value, numberFormat }}
+                          onClickAway={onChangeValueAt(dataIndex)}
+                        />
+                      )
                     }
-                    label={getValueLabelAt(index)}
-                    {...{ value, numberFormat }}
-                    onClickAway={onChangeValueAt(dataIndices[index])}
-                  />
-                )
-              }
-              <ColorPicker
-                colorLabel={getColorLabelAt(index)}
-                value={colors[index]}
-                onChange={handleChangeColorAt(dataIndices[index])}
-                onClose={handleClose}
-              />
-              <ColorMenu
-                {...{ index, dataIndices, onAddColorAt, onRemoveColorAt }}
-              />
-            </Stack>
-            // </div>
-          ))}
+                  </Grid>
+                  <Grid size={6}>
+                    <ColorPicker
+                      colorLabel={getAttrLabelAt(index)}
+                      value={colors[index]}
+                      onChange={handleChangeColorAt(dataIndex)}
+                      onClose={handleClose}
+                    />
+                  </Grid>
+                  {editLabelAt[dataIndex] && (
+                    <Grid size={12} sx={{ mt: 1 }}>
+                      <TextInput
+                        color="warning"
+                        label={`Label${isLabelEmpty ? ` \u279D ${getAttrLabelAt(index)}` : ''}`}
+                        value={labels[index]}
+                        onClickAway={onChangeLabelAt(dataIndex)}
+                      ></TextInput>
+                    </Grid>
+                  )}
+                </Grid>
+                <ColorMenu
+                  {...{
+                    index,
+                    dataIndices,
+                    editLabelAt,
+                    onAddColorAt,
+                    onRemoveColorAt,
+                  }}
+                  onToggleEditLabelAt={handleToggleEditLabelAt}
+                />
+              </Stack>
+              // </div>
+            )
+          })}
         </Stack>
       )}
     </>
@@ -609,6 +677,15 @@ const ColorLegend = ({
                 'data',
                 dataIndex,
                 'value',
+              ])
+            }
+            onChangeLabelAt={(dataIndex) =>
+              onChangePropAttr([
+                colorBy,
+                'gradient',
+                'data',
+                dataIndex,
+                'label',
               ])
             }
             onAddColorAt={handleAddColorAt}

@@ -337,39 +337,42 @@ export const useGradient = ({
 
   const getLabel = useCallback(
     (index) => {
-      const label = labels[index]
-      return group || label == null || values[index] !== rawValues[index]
+      const isLabelEmpty = labels[index] == null || labels[index] === ''
+      return group || isLabelEmpty || values[index] !== rawValues[index]
         ? getFormattedValueAt(index)
-        : label
+        : labels[index]
     },
     [getFormattedValueAt, group, labels, rawValues, values]
   )
 
   const getAttrLabelAt = useCallback(
-    (index) =>
-      index > 0 && index < lastIndex // Within the bounds
+    (index) => {
+      const isLabelEmpty = labels[index] == null || labels[index] === ''
+      return index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
-          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${isLabelEmpty ? '' : ` "${getLabel(index)}"`}`
           : `"${getLabel(index)}"`
         : isStepScale
           ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
-          : `${index < 1 ? 'Min' : 'Max'}`,
+          : `${index < 1 ? 'Min' : 'Max'}`
+    },
     [getFormattedValueAt, getLabel, isStepScale, labels, lastIndex]
   )
 
   const getValueLabelAt = useCallback(
     (index) => {
       const label = getLabel(index)
+      const isLabelEmpty = labels[index] == null || labels[index] === ''
       const isValueAdjusted = values[index] !== rawValues[index]
       return index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
-          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${label}"` : ''}`
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${isLabelEmpty ? '' : ` "${label}"`}`
           : `Value${
               isValueAdjusted
                 ? ` \u279D Adjusted to ${label}`
-                : labels[index] != null
-                  ? ` \u279D "${label}"`
-                  : ''
+                : isLabelEmpty
+                  ? ''
+                  : ` \u279D "${label}"`
             }`
         : isStepScale
           ? index < 1
