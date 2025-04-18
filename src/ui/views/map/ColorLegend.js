@@ -117,6 +117,7 @@ const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
   <MenuItem {...{ disabled }}>
     <FormControlLabel
       {...{ label }}
+      slotProps={{ typography: { variant: 'body2' } }}
       control={
         <Switch
           sx={{ mr: 1 }}
