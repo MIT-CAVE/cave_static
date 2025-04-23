@@ -726,6 +726,7 @@ const SessionPane = ({ width }) => {
         },
       })
     )
+    setCurrentAction({})
     handleCloseDeleteModal()
   }
 
