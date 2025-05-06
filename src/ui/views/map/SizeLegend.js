@@ -89,7 +89,7 @@ const NumericalSizeLegend = ({
     handleChangeComitted: handleChangeComittedRaw,
   } = useSizeSlider(onChangeSize)
 
-  const { sizes, values, rawValues, labels } = useMemo(
+  const { sizes, values, rawValues, labels, dataIndices } = useMemo(
     () => parseGradient('size', numberFormat.precision)(valueRange),
     [numberFormat.precision, valueRange]
   )
@@ -109,6 +109,7 @@ const NumericalSizeLegend = ({
     labels,
     values,
     rawValues,
+    dataIndices,
     gradient: valueRange.gradient,
     numberFormat,
     group,
@@ -116,11 +117,11 @@ const NumericalSizeLegend = ({
   })
 
   const handleChangeComittedAt = useCallback(
-    (index) => (event, value) => {
+    (dataIndex) => (event, value) => {
       const pathTail =
-        index == null // Updating fallback size?
+        dataIndex == null // Updating fallback size?
           ? ['fallback', 'size']
-          : ['gradient', 'data', index, 'size']
+          : ['gradient', 'data', dataIndex, 'size']
       handleChangeComittedRaw(event, value, pathTail)
     },
     [handleChangeComittedRaw]
@@ -220,7 +221,9 @@ const NumericalSizeLegend = ({
             value={sizeSliderProps.value}
             onClose={handleClose}
             onChange={handleChange}
-            onChangeCommitted={handleChangeComittedAt(sizeSliderProps.key)}
+            onChangeCommitted={handleChangeComittedAt(
+              dataIndices[sizeSliderProps.key]
+            )}
           />
           {
             // Do not display the max value for a step function
@@ -240,7 +243,10 @@ const NumericalSizeLegend = ({
                   (sizeSliderProps.key === lastIndex && !maxAuto) ? (
                     <IconButton
                       size="small"
-                      onClick={handleSetAutoValueAt(sizeSliderProps.key)}
+                      onClick={handleSetAutoValueAt(
+                        dataIndices[sizeSliderProps.key],
+                        sizeSliderProps.key
+                      )}
                     >
                       <TbFocusAuto />
                     </IconButton>
@@ -249,7 +255,7 @@ const NumericalSizeLegend = ({
                 label={getValueLabelAt(sizeSliderProps.key)}
                 value={rawValues[sizeSliderProps.key]}
                 {...{ numberFormat }}
-                onClickAway={onChangeValueAt(sizeSliderProps.key)}
+                onClickAway={onChangeValueAt(dataIndices[sizeSliderProps.key])}
               />
             )
           }
@@ -428,8 +434,8 @@ const SizeLegend = ({
               anyNullValue,
               onChangeSize,
             }}
-            onChangeValueAt={(index) =>
-              onChangePropAttr([sizeBy, 'gradient', 'data', index, 'value'])
+            onChangeValueAt={(dataIndex) =>
+              onChangePropAttr([sizeBy, 'gradient', 'data', dataIndex, 'value'])
             }
           />
           <ScaleSelector

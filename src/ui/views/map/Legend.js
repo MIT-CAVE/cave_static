@@ -49,7 +49,7 @@ import {
   selectGeoRange,
   selectLegendLayout,
   selectLegendNumberFormatFunc,
-  selectLegendViewFunc,
+  selectLegendView,
   selectLegendWidth,
   selectNodeRange,
   selectNodeRangeAtZoomFunc,
@@ -314,6 +314,7 @@ export const useGradient = ({
   labels,
   values,
   rawValues,
+  dataIndices,
   gradient,
   numberFormat: numberFormatRaw,
   group,
@@ -321,8 +322,8 @@ export const useGradient = ({
 }) => {
   const lastIndex = values.length - 1
   const isStepScale = gradient.scale === scaleId.STEP
-  const minAuto = gradient.data[0].value === 'min'
-  const maxAuto = gradient.data[lastIndex].value === 'max'
+  const minAuto = gradient.data[dataIndices[0]].value === 'min'
+  const maxAuto = gradient.data[dataIndices[lastIndex]].value === 'max'
 
   const numberFormat = useMemo(
     () => R.omit(['unit', 'unitPlacement'])(numberFormatRaw),
@@ -406,7 +407,8 @@ export const useGradient = ({
   )
 
   const handleSetAutoValueAt = useCallback(
-    (index) => () => onChangeValueAt(index)(index < 1 ? 'min' : 'max'),
+    (dataIndex, index) => () =>
+      onChangeValueAt(dataIndex)(index < 1 ? 'min' : 'max'),
     [onChangeValueAt]
   )
 
@@ -995,7 +997,7 @@ const SettingsToggle = ({ value, label, icon: Icon, selected }) => (
 )
 
 export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
-  const legendView = useSelector(selectLegendViewFunc)(mapId)
+  const legendView = useSelector(selectLegendView)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
   )[mapId]

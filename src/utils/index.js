@@ -730,6 +730,9 @@ export const parseGradient = R.memoizeWith(
       R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
       R.pipe(
         R.path(['gradient', 'data']),
+        // `dataIndex` tracks the original index of a gradient item before filtering
+        // for color/size viz, allowing changes to be traced and updated consistently.
+        R.addIndex(R.map)((val, idx) => R.assoc('dataIndex', idx)(val)),
         R.filter(R.has(attrKey)),
         R.applySpec({
           [`${attrKey}s`]: R.map(
@@ -749,6 +752,7 @@ export const parseGradient = R.memoizeWith(
             )
           ),
           labels: R.pluck('label'),
+          dataIndices: R.pluck('dataIndex'),
         }),
         R.converge(R.mergeLeft, [
           R.pipe(
@@ -762,7 +766,13 @@ export const parseGradient = R.memoizeWith(
           R.identity,
         ])
       ),
-      R.always({ [`${attrKey}s`]: [], rawValues: [], values: [], labels: [] })
+      R.always({
+        [`${attrKey}s`]: [],
+        rawValues: [],
+        values: [],
+        labels: [],
+        dataIndices: [],
+      })
     )(range)
   })
 )

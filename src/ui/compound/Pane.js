@@ -1,6 +1,7 @@
-import { Box, Drawer, IconButton } from '@mui/material'
+import { Box, Drawer, IconButton, Stack, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { MdPushPin, MdOutlinePushPin } from 'react-icons/md'
 
 import FetchedIcon from './FetchedIcon'
 
@@ -32,10 +33,6 @@ const styles = {
     borderColor: 'text.secondary',
     borderBottom: '2px',
   },
-  title: {
-    ml: 0.5,
-    mr: 0.5,
-  },
   leftButton: {
     ml: 0.5,
     mr: 'auto',
@@ -64,7 +61,7 @@ const PaneRoot = ({
       R.assocPath(
         ['& .MuiDrawer-paper', side],
         `${APP_BAR_WIDTH + 1}px`,
-        styles.drawerPaper
+        styles.drawer
       ),
       ...forceArray(sx),
     ]}
@@ -98,7 +95,6 @@ const PaneHeader = ({
   sx = [],
   ...props
 }) => {
-  const icon = <FetchedIcon {...{ iconName }} />
   const pinButton = (
     <IconButton
       sx={[
@@ -108,16 +104,17 @@ const PaneHeader = ({
       ]}
       onClick={onPin}
     >
-      <FetchedIcon iconName={pin ? 'md/MdPushPin' : 'md/MdOutlinePushPin'} />
+      {pin ? <MdPushPin /> : <MdOutlinePushPin />}
     </IconButton>
   )
   return (
     <Box sx={[styles.header, ...forceArray(sx)]} {...props}>
       {pin != null && side === 'right' && pinButton}
       <Box sx={styles.leftButton}>{leftButton}</Box>
-      <Box sx={styles.title}>
-        {title} {icon}
-      </Box>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Typography variant="h6">{title}</Typography>
+        <FetchedIcon {...{ iconName }} />
+      </Stack>
       <Box sx={styles.rightButton}>{rightButton}</Box>
       {pin != null && side === 'left' && pinButton}
     </Box>
