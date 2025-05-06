@@ -595,7 +595,12 @@ const GridFilter = ({
                   <OverflowText
                     text={`${formattedValue}`}
                     onClick={() => setEditingId(row.id)}
-                    sx={{ cursor: 'pointer', width: '100%' }}
+                    sx={{
+                      width: '100%',
+                      height: '31px',
+                      minHeight: '60%',
+                      cursor: 'pointer',
+                    }}
                   />
                 ),
               ],

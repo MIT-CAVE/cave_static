@@ -61,7 +61,7 @@ const PaneRoot = ({
       R.assocPath(
         ['& .MuiDrawer-paper', side],
         `${APP_BAR_WIDTH + 1}px`,
-        styles.drawerPaper
+        styles.drawer
       ),
       ...forceArray(sx),
     ]}
