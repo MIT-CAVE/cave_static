@@ -133,6 +133,7 @@ const NumericalColorLegend = ({
     labels,
     values,
     rawValues,
+    dataIndices,
     gradient: valueRange.gradient,
     numberFormat,
     group,
@@ -243,7 +244,10 @@ const NumericalColorLegend = ({
                       (index === lastIndex && !maxAuto) ? (
                         <IconButton
                           size="small"
-                          onClick={handleSetAutoValueAt(dataIndices[index])}
+                          onClick={handleSetAutoValueAt(
+                            dataIndices[index],
+                            index
+                          )}
                         >
                           <TbFocusAuto />
                         </IconButton>

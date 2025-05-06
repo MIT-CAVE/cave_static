@@ -109,6 +109,7 @@ const NumericalSizeLegend = ({
     labels,
     values,
     rawValues,
+    dataIndices,
     gradient: valueRange.gradient,
     numberFormat,
     group,
@@ -243,7 +244,8 @@ const NumericalSizeLegend = ({
                     <IconButton
                       size="small"
                       onClick={handleSetAutoValueAt(
-                        dataIndices[sizeSliderProps.key]
+                        dataIndices[sizeSliderProps.key],
+                        sizeSliderProps.key
                       )}
                     >
                       <TbFocusAuto />
