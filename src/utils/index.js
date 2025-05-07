@@ -252,26 +252,36 @@ const checkIfStatSatisfiesFilter = (statistics, groupingIndices, i, filter) => {
 export const filterGroupedOutputs = (statistics, filters, groupingIndices) => {
   const valueLists = R.prop('valueLists', statistics)
   const indicies = R.pipe(R.values, R.head, R.length)(valueLists)
-  const indiciesBuffer = window.crossOriginIsolated
-    ? new SharedArrayBuffer(0, { maxByteLength: indicies * 4 })
-    : new ArrayBuffer(0, { maxByteLength: indicies * 4 })
-  const indiciesView = new Uint32Array(indiciesBuffer)
-  const filterFunc = R.curry(checkIfStatSatisfiesFilter)(
-    statistics,
-    groupingIndices
-  )
-
-  // fill and grow indicies buffer with filtered values
-  for (let i = 0; i < indicies; i++) {
-    if (R.all(R.curry(filterFunc)(i), filters)) {
-      window.crossOriginIsolated
-        ? indiciesBuffer.grow(indiciesView.byteLength + 4)
-        : indiciesBuffer.resize(indiciesView.byteLength + 4)
-      indiciesView[indiciesView.length - 1] = i
+  if (R.isEmpty(filters)) {
+    const indiciesBuffer = window.crossOriginIsolated
+      ? new SharedArrayBuffer(indicies * 4)
+      : new ArrayBuffer(indicies * 4)
+    const indiciesView = new Uint32Array(indiciesBuffer)
+    for (let i = 0; i < indicies; i++) {
+      indiciesView[i] = i
     }
-  }
+    return indiciesBuffer
+  } else {
+    const indiciesBuffer = window.crossOriginIsolated
+      ? new SharedArrayBuffer(0, { maxByteLength: indicies * 4 })
+      : new ArrayBuffer(0, { maxByteLength: indicies * 4 })
+    const indiciesView = new Uint32Array(indiciesBuffer)
+    const filterFunc = R.curry(checkIfStatSatisfiesFilter)(
+      statistics,
+      groupingIndices
+    )
 
-  return indiciesBuffer
+    // fill and grow indicies buffer with filtered values
+    for (let i = 0; i < indicies; i++) {
+      if (R.all(R.curry(filterFunc)(i), filters)) {
+        window.crossOriginIsolated
+          ? indiciesBuffer.grow(indiciesView.byteLength + 4)
+          : indiciesBuffer.resize(indiciesView.byteLength + 4)
+        indiciesView[indiciesView.length - 1] = i
+      }
+    }
+    return indiciesBuffer
+  }
 }
 
 export const recursiveMap = R.curry(
