@@ -15,6 +15,8 @@ import { FixedSizeList } from 'react-window'
 
 import FetchedIcon from './FetchedIcon'
 
+import { fetchResource } from '../../utils'
+
 export const ListboxPropsContext = createContext({
   getLabel: R.identity,
   getIcon: R.identity,
@@ -55,18 +57,14 @@ export const EnhancedListbox = forwardRef((props, ref) => {
 
 export const useIconDataLoader = (iconUrl, onSuccess, onReject) => {
   const fetchIconList = useCallback(async () => {
-    const cache = await caches.open('icon_list')
     const url = `${iconUrl}/icon_list.txt`
-    let response = await cache.match(url)
-    // add to cache if not found
-    if (R.isNil(response)) {
-      await cache.add(url)
-      response = await cache.match(url)
-    }
-    return R.pipe(
-      R.split('\n'),
-      R.reject(R.pipe(R.trim, R.isEmpty))
-    )(await response.text())
+    const rawIconsList = await fetchResource({
+      url,
+      cacheName: 'icon_list',
+      rawBody: true,
+    })
+    const iconsList = await rawIconsList.text()
+    return R.pipe(R.split('\n'), R.reject(R.pipe(R.trim, R.isEmpty)))(iconsList)
   }, [iconUrl])
 
   useEffect(() => {

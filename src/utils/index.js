@@ -431,20 +431,36 @@ export const removeExtraProps = (Component, extraProps) => {
   return <ComponentType {...R.omit(extraProps, Component.props)} />
 }
 
-export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {
-  const cache = await caches.open('icons')
-  const url = `${iconUrl}/${iconName}.js`
-  const response = await cache.match(url)
-  // If not in cache, fetch from cdn
-  if (R.isNil(response)) {
-    await cache.add(url)
-    const nowCached = await cache.match(url)
-    const item = await nowCached.json()
-    return GenIcon(item)
-  } else {
-    const item = await response.json()
-    return GenIcon(item)
+export const fetchResource = async ({
+  url,
+  cacheName,
+  cache = null,
+  rawBody = false,
+}) => {
+  try {
+    // Open cache only if it's not provided
+    const activeCache = cache || (await caches.open(cacheName))
+    let response = await activeCache.match(url)
+    // Add to cache if not found
+    if (response == null) {
+      console.log({ url })
+      await activeCache.add(url)
+      response = await activeCache.match(url)
+    }
+    return rawBody ? response : await response.json()
+  } catch (error) {
+    console.error('Error fetching resource:', error)
   }
+}
+
+export const fetchIcon = async (
+  iconName,
+  iconUrl = DEFAULT_ICON_URL,
+  rawIcon = false
+) => {
+  const url = `${iconUrl}/${iconName}.js`
+  const iconTree = (await fetchResource({ url, cacheName: 'icons' })) ?? {}
+  return rawIcon ? iconTree : GenIcon(iconTree)
 }
 
 export const getStatusIcon = (color) => {
@@ -798,28 +814,20 @@ export const constructFetchedGeoJson = (
     R.identity,
     async (mapId) => {
       const enabledItems = enabledItemsFunc(mapId)
-      const itemNames = R.keys(R.filter(R.identity, enabledItems))
 
-      const fetchCache = async () => {
+      const itemKeys = R.keys(R.filter(R.identity, enabledItems))
+      const fetchItems = async () => {
         const cache = await caches.open(cacheName)
         const items = {}
-        for (let itemName of itemNames) {
-          const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'], types)
-          // Special catch for empty urls on initial call
-          if (url === '') {
-            continue
-          }
-          let response = await cache.match(url)
-          // add to cache if not found
-          if (R.isNil(response)) {
-            await cache.add(url)
-            response = await cache.match(url)
-          }
-          items[itemName] = await response.json()
-        }
+        itemKeys.forEach(async (itemName) => {
+          const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'])(types)
+          if (url === '') return // Special catch for empty urls on initial call
+          items[itemName] = await fetchResource({ url, cache })
+        })
         return items
       }
-      return fetchCache().then((selecteditems) =>
+
+      return fetchItems().then((selecteditems) =>
         R.pipe(
           R.map(
             R.pipe(
