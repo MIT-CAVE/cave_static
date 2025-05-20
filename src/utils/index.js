@@ -817,39 +817,38 @@ export const constructFetchedGeoJson = (
       const itemKeys = R.keys(R.filter(R.identity, enabledItems))
       const fetchItems = async () => {
         const cache = await caches.open(cacheName)
-        const items = {}
-        for (let itemName of itemKeys) {
-          const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'])(types)
-          if (url === '') continue // Special catch for empty URLs on initial call
-          items[itemName] = await fetchResource({ url, cache })
-        }
-        return items
+        // Create an array of promises for concurrent fetching
+        const fetchPromises = itemKeys.map(async (key) => {
+          const url = R.pathOr('', [key, 'geoJson', 'geoJsonLayer'])(types)
+          if (url === '') return // Special catch for empty URLs on initial call
+          return { [key]: await fetchResource({ url, cache }) }
+        })
+        // Here, `Promise.all` will return all fulfilled promises because
+        // `fetchResource` is handling its own exceptions via a `try`/`catch`
+        return await Promise.all(fetchPromises)
       }
 
-      return fetchItems().then((selecteditems) =>
-        R.pipe(
+      return fetchItems().then((selectedItems) => {
+        const items = R.pipe(R.reject(R.isNil), R.mergeAll)(selectedItems)
+        return R.pipe(
           R.map(
             R.pipe(
               R.mapObjIndexed((geoObj, geoJsonValue) => {
                 const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
                 const geoType = geoObj.type
                 const geoId = geoObj.data_key
+                const geoFeatures = R.pathOr({}, [geoType, 'features'])(items)
+
                 const filteredFeature = R.find(
-                  (feature) =>
-                    R.path(['properties', geoJsonProp])(feature) ===
-                    geoJsonValue
-                )(R.pathOr({}, [geoType, 'features'])(selecteditems))
+                  R.pathEq(geoJsonValue)(['properties', geoJsonProp])
+                )(geoFeatures)
 
                 const filters = R.pipe(
                   R.pathOr([], [geoObj.type, 'filters']),
                   R.reject(R.propEq(false, 'active'))
                 )(enabledItems)
-                if (
-                  R.isNil(filteredFeature) &&
-                  R.isNotEmpty(
-                    R.pathOr({}, [geoType, 'features'])(selecteditems)
-                  )
-                ) {
+
+                if (R.isNil(filteredFeature) && R.isNotEmpty(geoFeatures)) {
                   console.warn(
                     `No feature with ${geoJsonValue} for property ${geoJsonProp}`
                   )
@@ -1005,7 +1004,7 @@ export const constructFetchedGeoJson = (
           R.values,
           R.unnest
         )(matchingKeysByTypeFunc(mapId))
-      )
+      })
     },
     MAX_MEMOIZED_CHARTS
   )
