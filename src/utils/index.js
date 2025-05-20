@@ -443,7 +443,6 @@ export const fetchResource = async ({
     let response = await activeCache.match(url)
     // Add to cache if not found
     if (response == null) {
-      console.log({ url })
       await activeCache.add(url)
       response = await activeCache.match(url)
     }
@@ -819,11 +818,11 @@ export const constructFetchedGeoJson = (
       const fetchItems = async () => {
         const cache = await caches.open(cacheName)
         const items = {}
-        itemKeys.forEach(async (itemName) => {
+        for (let itemName of itemKeys) {
           const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'])(types)
-          if (url === '') return // Special catch for empty urls on initial call
+          if (url === '') continue // Special catch for empty URLs on initial call
           items[itemName] = await fetchResource({ url, cache })
-        })
+        }
         return items
       }
 
