@@ -1,25 +1,34 @@
 import { Box, Button, Menu, MenuItem, Paper } from '@mui/material'
-import React from 'react'
+import { MdArrowDropDown, MdArrowDropUp } from 'react-icons/md'
 
-import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 
 import { useMenu } from '../../utils/hooks'
 
+import { forceArray } from '../../utils'
+
 export const SimpleDropdown = ({
   value,
-  onSelect,
   optionsList,
-  getLabel = (label) => label,
-  enabled = true,
-  paperProps,
+  fullWidth,
   marquee,
+  enabled = true,
+  slotProps = {},
+  getLabel = (label) => label,
+  onSelect,
   ...props
 }) => {
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
-
   return (
-    <Paper elevation={0} {...paperProps} sx={{ mx: 0.5, my: 1.5 }}>
+    <Paper
+      elevation={0}
+      {...slotProps.paper}
+      sx={[
+        { mx: 0.5, my: 1.5 },
+        fullWidth && { width: '100%' },
+        ...forceArray(slotProps.paper?.sx),
+      ]}
+    >
       <Button
         fullWidth
         variant="outlined"
@@ -39,17 +48,16 @@ export const SimpleDropdown = ({
             pl: 0.5,
           }}
         >
-          <FetchedIcon
-            size={20}
-            iconName={
-              anchorEl == null ? 'md/MdArrowDropDown' : 'md/MdArrowDropUp'
-            }
-          />
+          {anchorEl ? (
+            <MdArrowDropUp size={20} />
+          ) : (
+            <MdArrowDropDown size={20} />
+          )}
         </Box>
       </Button>
       <Menu
         id="simple-menu"
-        anchorEl={anchorEl}
+        {...{ anchorEl }}
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}

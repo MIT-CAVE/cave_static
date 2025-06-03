@@ -1,22 +1,25 @@
 import {
-  Box,
   Button,
+  ClickAwayListener,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
-  Typography,
+  Popper,
+  Stack,
+  ToggleButton,
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
-  MdAddBox,
-  MdCancel,
-  MdCheckCircle,
-  MdDeleteForever,
+  MdAddCircleOutline,
+  MdOutlineCancel,
+  MdOutlineCheck,
   MdUndo,
 } from 'react-icons/md'
+import { PiEraser } from 'react-icons/pi'
+import { TfiMapAlt } from 'react-icons/tfi'
 import ReactMapboxGL, {
   Marker,
   NavigationControl,
@@ -32,24 +35,29 @@ import {
   selectIsMapboxTokenProvided,
   selectMapboxToken,
 } from '../../data/selectors'
+import { useMenu } from '../../utils/hooks'
 
 import { adjustArcPath, forceArray } from '../../utils'
 
 const styles = {
-  getBoxStyle: (enabled) => ({
-    p: 1,
-    width: '100%',
-    pointerEvents: enabled ? '' : 'none',
-    opacity: enabled ? '' : 0.7,
-  }),
-  button: {
-    margin: 10,
-  },
   text: {
     overflow: 'auto',
     maxHeight: 200,
     border: 1,
-    margin: 1,
+  },
+  popper: {
+    width: '100%',
+    height: '100%',
+    // overflow: 'hidden',
+    zIndex: 2,
+  },
+  map: {
+    minHeight: '480px',
+    height: 'auto',
+    width: '100%',
+    borderRadius: '4px',
+    border: '1px solid rgb(128 128 128)',
+    boxSizing: 'border-box',
   },
 }
 
@@ -85,16 +93,20 @@ const displayPath = (path) => {
   )
 }
 
-const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
+const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const { enabled, placeholder, label } = prop
+  const { enabled, placeholder } = prop
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const mapSettings = {
     style: {
-      width: 480,
-      height: 480,
-      margin: 10,
+      minHeight: '480px',
+      height: 'auto',
+      width: '100%',
+      borderRadius: '4px',
+      border: '1px solid rgb(128 128 128)',
+      boxSizing: 'border-box',
     },
     mapStyle: isMapboxTokenProvided
       ? 'mapbox://styles/mapbox/dark-v11'
@@ -117,16 +129,17 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     },
   }
 
-  const getPathData = (path) =>
-    R.assocPath(
-      ['geometry', 'coordinates'],
-      adjustArcPath(path),
-      mapSettings.pathSource
-    )
-
-  const [value, setValue] = useState(
-    R.defaultTo(R.prop('value', prop), currentVal)
+  const getPathData = useCallback(
+    (path) =>
+      R.assocPath(
+        ['geometry', 'coordinates'],
+        adjustArcPath(path),
+        mapSettings.pathSource
+      ),
+    [mapSettings.pathSource]
   )
+
+  const [value, setValue] = useState(R.defaultTo(prop.value)(currentVal))
   const [viewState, setViewState] = useState({
     latitude: getLastLat(value),
     longitude: getLastLng(value),
@@ -135,18 +148,25 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   const [editState, setEditState] = useState(edit.NONE)
   const [pathData, setPathData] = useState(getPathData(value))
 
-  const inputLat = (lat) => {
-    if (!enabled) return
-    setManual([manual[0], lat])
-  }
+  const handleChangeLatitude = useCallback(
+    (latitude) => {
+      if (!enabled) return
+      setManual([manual[0], latitude])
+    },
+    [enabled, manual]
+  )
 
-  const inputLng = (lng) => {
-    if (!enabled) return
-    setManual([lng, manual[1]])
-  }
+  const handleChangeLongitude = useCallback(
+    (longitude) => {
+      if (!enabled) return
+      setManual([longitude, manual[1]])
+    },
+    [enabled, manual]
+  )
 
-  const addManual = () => {
+  const handleAddManualInput = useCallback(() => {
     if (!enabled) return
+
     const updatedValue = (editState === edit.RESET ? [] : value).concat([
       manual,
     ])
@@ -154,23 +174,31 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
     setValue(updatedValue)
     setPathData(getPathData(updatedValue))
     setViewState({ latitude: manual[1], longitude: manual[0] })
-  }
 
-  const onDragEnd = (event) => {
-    if (!enabled) return
-    const updatedValue = (editState === edit.RESET ? [] : value).concat([
-      [event.lngLat.lng, event.lngLat.lat],
-    ])
-    onChange(updatedValue)
-    setValue(updatedValue)
-    setPathData(getPathData(updatedValue))
-    setViewState({ latitude: event.lngLat.lat, longitude: event.lngLat.lng })
-    setManual([event.lngLat.lng, event.lngLat.lat])
-  }
+    editState === edit.RESET && setEditState(edit.NONE)
+  }, [editState, enabled, getPathData, manual, onChange, value])
 
-  const slicePath = (endIndex) => {
-    if (!enabled || value.length <= 1) return
-    const slicedPath = value.slice(0, endIndex)
+  const handleDragEnd = useCallback(
+    (event) => {
+      if (!enabled) return
+      const { lat: latitude, lng: longitude } = event.lngLat
+      const updatedValue = (editState === edit.RESET ? [] : value).concat([
+        [longitude, latitude],
+      ])
+      onChange(updatedValue)
+      setValue(updatedValue)
+      setPathData(getPathData(updatedValue))
+      setViewState({ latitude, longitude })
+      setManual([longitude, latitude])
+    },
+    [editState, enabled, getPathData, onChange, value]
+  )
+
+  const handleUndoLast = useCallback(() => {
+    const lastIndex = value.length - 1
+    if (!enabled || lastIndex <= 1) return
+
+    const slicedPath = value.slice(0, lastIndex)
     onChange(slicedPath)
     setValue(slicedPath)
     setPathData(getPathData(slicedPath))
@@ -178,116 +206,145 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange, ...props }) => {
       latitude: getLastLat(slicedPath),
       longitude: getLastLng(slicedPath),
     })
-  }
+  }, [enabled, getPathData, onChange, value])
+
+  const handleClearPath = useCallback(() => {
+    setPathData(getPathData([value[0]]))
+    setManual(value[0])
+    setEditState(edit.RESET)
+  }, [getPathData, value])
 
   const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
+  const showMap = Boolean(anchorEl)
   return (
-    <Box>
+    <Stack useFlexGap spacing={2} sx={[{ width: '100%' }, ...forceArray(sx)]}>
+      <ClickAwayListener
+        onClickAway={(event) => {
+          // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+          if (sessionStorage.getItem('mui-select-open-flag') === '1') return
+          handleCloseMenu(event)
+        }}
+      >
+        <Popper
+          disablePortal
+          placement="auto"
+          {...{ anchorEl }}
+          open={showMap}
+          sx={styles.popper}
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+        >
+          <ReactMapGL
+            {...viewState}
+            mapboxAccessToken={mapboxToken}
+            style={mapSettings.style}
+            mapStyle={mapSettings.mapStyle}
+            onMove={(event) => setViewState(event.viewState)}
+          >
+            <Marker
+              draggable
+              anchor="center"
+              longitude={getLastLng(value)}
+              latitude={getLastLat(value)}
+              onDragEnd={handleDragEnd}
+            />
+            <Source id="polylineLayer" type="geojson" data={pathData}>
+              <Layer
+                id="path-line"
+                type="line"
+                source="my-data"
+                layout={mapSettings.lineLayout}
+                paint={mapSettings.linePaint}
+              />
+            </Source>
+            <NavigationControl />
+          </ReactMapGL>
+        </Popper>
+      </ClickAwayListener>
       {editState !== edit.NONE ? (
         <>
-          <Box sx={[styles.getBoxStyle(enabled), ...forceArray(sx)]} {...props}>
-            <Typography> Latitude </Typography>
+          <Stack useFlexGap direction="row" spacing={1}>
             <NumberInput
               disabled={!enabled}
-              {...{ placeholder, label, max: 90, min: -90 }}
+              label="Latitude"
+              {...{ placeholder, max: 90, min: -90 }}
               numberFormat={numberFormatProps}
               value={manual[1]}
-              onClickAway={inputLat}
+              onClickAway={handleChangeLatitude}
             />
-          </Box>
-          <Box sx={[styles.getBoxStyle(enabled), ...forceArray(sx)]} {...props}>
-            <Typography> Longitude </Typography>
             <NumberInput
               disabled={!enabled}
-              {...{ placeholder, label, max: 180, min: -180 }}
+              label="Longitude"
+              {...{ placeholder, max: 180, min: -180 }}
               numberFormat={numberFormatProps}
               value={manual[0]}
-              onClickAway={inputLng}
+              onClickAway={handleChangeLongitude}
             />
-          </Box>
-          <Button
-            style={styles.button}
-            variant="contained"
-            startIcon={<MdCheckCircle />}
-            onClick={() => {
-              addManual()
-              editState === edit.RESET && setEditState(edit.NONE)
-            }}
-          >
-            {editState === edit.ADD ? 'Add Input' : 'Set As Start'}
-          </Button>
-          {editState === edit.ADD && (
-            <Button
-              style={styles.button}
-              variant="contained"
-              startIcon={<MdCancel />}
-              onClick={() => setEditState(edit.NONE)}
+            <ToggleButton
+              selected={showMap}
+              value="prop-lat-lng-map-view"
+              onClick={showMap ? handleCloseMenu : handleOpenMenu}
             >
-              Quit Input
+              <TfiMapAlt size={28} />
+            </ToggleButton>
+          </Stack>
+          <Stack useFlexGap direction="row" spacing={1}>
+            {editState === edit.ADD && (
+              <Button
+                fullWidth
+                color="error"
+                variant="contained"
+                startIcon={<MdOutlineCancel />}
+                onClick={() => setEditState(edit.NONE)}
+              >
+                Exit Input Mode
+              </Button>
+            )}
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<MdOutlineCheck />}
+              onClick={handleAddManualInput}
+            >
+              {editState === edit.ADD ? 'Add Input' : 'Set As Start'}
             </Button>
-          )}
+          </Stack>
         </>
       ) : (
-        <>
+        <Stack spacing={1} direction="row">
           <Button
-            style={styles.button}
+            sx={{ flexGrow: 5 }}
             variant="contained"
-            startIcon={<MdAddBox />}
+            startIcon={<MdAddCircleOutline />}
             onClick={() => setEditState(edit.ADD)}
           >
-            Add Input
+            Enter Input Mode
           </Button>
           <Button
-            style={styles.button}
+            disabled={value.length - 1 <= 1}
+            sx={{ flexGrow: 3.5 }}
+            color="warning"
             variant="contained"
             startIcon={<MdUndo />}
-            onClick={() => slicePath(value.length - 1)}
+            onClick={handleUndoLast}
           >
             Undo Last
           </Button>
           <Button
-            style={styles.button}
+            sx={{ flexGrow: 3.5 }}
+            color="error"
             variant="contained"
-            startIcon={<MdDeleteForever />}
-            onClick={() => {
-              setPathData(getPathData([value[0]]))
-              setManual(value[0])
-              setEditState(edit.RESET)
-            }}
+            startIcon={<PiEraser />}
+            onClick={handleClearPath}
           >
             Clear Path
           </Button>
-        </>
+        </Stack>
       )}
-
-      <ReactMapGL
-        {...viewState}
-        mapboxAccessToken={mapboxToken}
-        style={mapSettings.style}
-        mapStyle={mapSettings.mapStyle}
-        onMove={(event) => setViewState(event.viewState)}
-      >
-        <Marker
-          longitude={getLastLng(value)}
-          latitude={getLastLat(value)}
-          onDragEnd={onDragEnd}
-          draggable={true}
-          anchor="center"
-        />
-        <Source id="polylineLayer" type="geojson" data={pathData}>
-          <Layer
-            id="path-line"
-            type="line"
-            source="my-data"
-            layout={mapSettings.lineLayout}
-            paint={mapSettings.linePaint}
-          />
-        </Source>
-        <NavigationControl />
-      </ReactMapGL>
       {editState !== edit.RESET && displayPath(value)}
-    </Box>
+    </Stack>
   )
 }
 PropLatLngPath.propTypes = {

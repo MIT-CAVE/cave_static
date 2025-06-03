@@ -34,7 +34,7 @@ import {
 import { draggableId } from '../../../utils/enums'
 import { useMutateState } from '../../../utils/hooks'
 
-import { InfoButton, List, OverflowText } from '../../compound'
+import { HelpTooltip, List, OverflowText } from '../../compound'
 
 import { includesPath, renameKeys, withIndex } from '../../../utils'
 
@@ -71,7 +71,7 @@ const FieldTitle = ({ title, titleVariant = 'h6', help }) => (
     <Typography variant={titleVariant}>{title}</Typography>
     {help && (
       <Box sx={styles.info}>
-        <InfoButton text={help} />
+        <HelpTooltip text={help} />
       </Box>
     )}
   </Box>

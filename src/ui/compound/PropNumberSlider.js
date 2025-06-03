@@ -1,49 +1,116 @@
+import { Stack, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 
-import { ValueRange } from './ValueRange'
+import NumberInput from './NumberInput'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
-const styles = (theme) => ({
-  mt: 2,
-  '& .MuiSlider-rail': {
-    height: theme.spacing(0.5),
-    borderRadius: 'shape.borderRadius',
-  },
-  '& .MuiSlider-thumb': {
-    height: theme.spacing(3),
-    width: theme.spacing(3),
-  },
-  '& .MuiSlider-track': {
-    height: theme.spacing(0.5),
-    borderRadius: 'shape.borderRadius',
-  },
-})
+import { forceArray, getSliderMarks, NumberFormat } from '../../utils'
 
-const PropNumberSlider = ({ prop, currentVal, onChange }) => {
-  const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
+const styles = {
+  root: { alignItems: 'center' },
+  slider: {
+    mx: '27px',
+    mb: 1,
+    py: 1.5,
+    '& .MuiSlider-rail': {
+      height: '4px',
+      borderRadius: 'shape.borderRadius',
+    },
+    '& .MuiSlider-thumb': {
+      height: '24px',
+      width: '24px',
+    },
+    '& .MuiSlider-track': {
+      height: '4px',
+      borderRadius: 'shape.borderRadius',
+    },
+  },
+}
 
-  const { enabled, slotProps } = prop
-  const min = R.propOr(-Infinity, 'minValue', prop)
-  const max = R.propOr(Infinity, 'maxValue', prop)
+const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
+  const [value, setValue] = useState(null)
+  const selectNumberFormatProps = useSelector(selectNumberFormatPropsFn)
+  // Here, units are excluded from `format` as
+  // they are rendered in the prop container
+  // eslint-disable-next-line no-unused-vars
+  const { unit, unitPlacement, ...numberFormat } = selectNumberFormatProps(prop)
+
+  const { enabled, slotProps = {} } = prop
+
+  const minValue = prop.minValue ?? -Infinity
+  const maxValue = useMemo(() => {
+    const rawMaxValue = prop.maxValue ?? Infinity
+    return minValue === rawMaxValue ? minValue + 1 : rawMaxValue
+  }, [minValue, prop.maxValue])
+
+  useEffect(() => {
+    setValue(R.defaultTo(prop.value)(currentVal))
+  }, [currentVal, prop.value])
+
+  const getLabelFormat = useCallback(
+    (sliderValue) =>
+      NumberFormat.format(sliderValue, {
+        ...numberFormat,
+        trailingZeros: false,
+      }),
+    [numberFormat]
+  )
+
+  const marks = useMemo(
+    () => getSliderMarks(minValue, maxValue, 2, getLabelFormat),
+    [getLabelFormat, maxValue, minValue]
+  )
+
+  const handleChange = useCallback(
+    (newValue) => {
+      if (!enabled) return
+      onChange(newValue)
+    },
+    [enabled, onChange]
+  )
+
+  const step = useMemo(
+    () => 1 / Math.pow(10, numberFormat.precision),
+    [numberFormat.precision]
+  )
+
   return (
-    <ValueRange
-      disabled={!enabled}
-      numberFormat={numberFormatProps}
-      slotProps={{ slider: { sx: styles }, ...slotProps }}
-      minValue={min}
-      maxValue={max}
-      valueStart={R.clamp(
-        min,
-        max,
-        R.defaultTo(R.prop('value', prop), currentVal)
-      )}
-      onClickAwayHandler={(value) => {
-        if (enabled) onChange(value)
-      }}
-    />
+    <Stack
+      direction="row"
+      useFlexGap
+      spacing={1}
+      sx={[styles.root, ...forceArray(sx)]}
+    >
+      <Slider
+        disabled={!enabled}
+        min={minValue}
+        max={maxValue}
+        track={false}
+        valueLabelDisplay="auto"
+        valueLabelFormat={getLabelFormat}
+        {...{ marks, step, value, ...slotProps.slider }}
+        sx={[styles.slider, ...forceArray(slotProps.slider?.sx)]}
+        onChange={(event, newValue) => {
+          setValue(newValue)
+        }}
+        onChangeCommitted={(event, newValue) => {
+          handleChange(newValue)
+        }}
+      />
+
+      <NumberInput
+        sx={{ maxWidth: '50%' }}
+        disabled={!enabled}
+        min={minValue}
+        max={maxValue}
+        {...{ value, numberFormat, slotProps }}
+        onClickAway={handleChange}
+      />
+    </Stack>
   )
 }
 PropNumberSlider.propTypes = {

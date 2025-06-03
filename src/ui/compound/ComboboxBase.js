@@ -1,75 +1,67 @@
 import { Autocomplete, TextField, IconButton } from '@mui/material'
 import * as R from 'ramda'
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  Children,
-  cloneElement,
-} from 'react'
+import { useState, useEffect, useCallback, Children, cloneElement } from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
-import { selectVirtualKeyboard } from '../../data/selectors'
-import {
-  setIsOpen,
-  setLayout,
-  setInputValue,
-  setCaretPosition,
-  setEnter,
-  setIsTextArea,
-} from '../../data/utilities/virtualKeyboardSlice'
-
-import { forceArray } from '../../utils'
-
-const DELAY = 10
-const KEYBOARD_LAYOUT = 'default'
+import { setInputValue } from '../../data/utilities/virtualKeyboardSlice'
+import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
 
 const ComboboxBase = ({
   disabled,
+  readOnly,
   multiple,
   placeholder,
   options,
   value: defaultValue,
   limitTags,
+  fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
   sx = [],
   slotProps,
   getOptionLabel,
   onChange,
-  ...props
 }) => {
-  const dispatch = useDispatch()
-  const virtualKeyboard = useSelector(selectVirtualKeyboard)
-
-  const inputRef = useRef(null)
-  const selfChanged = useRef(false)
-  const isTouchDragging = useRef(false)
-  const focused = useRef(false)
-
   const [value, setValue] = useState(defaultValue ?? (multiple ? [] : ''))
   const [justFocused, setJustFocused] = useState(false)
-
   const valueName = multiple ? '' : getOptionLabel(value)
   const [valueText, setValueText] = useState(valueName)
+  const dispatch = useDispatch()
 
-  useEffect(() => {
-    if (focused.current && virtualKeyboard.enter) {
-      inputRef.current.blur()
-      dispatch(setIsOpen(false))
-      dispatch(setEnter(false))
-    }
-  }, [dispatch, virtualKeyboard.enter])
+  const {
+    inputRef,
+    virtualKeyboard,
+    focused,
+    isInternalChange,
+    handleFocus,
+    handleBlur,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleKeyboardToggle,
+    handleKeyboardMouseDown,
+    handleSelectionChange,
+  } = useVirtualKeyboard({
+    keyboardLayout: 'default',
+    disabled,
+    onBlur: () => {
+      // component-specific blur logic
+      setKeyboardValue(valueName)
+    },
+    onFocus: () => {
+      // component-specific focus logic
+      setJustFocused(true)
+    },
+  })
 
   // Update virtual keyboard's value when this field's value changes
   // from anything besides the virtual keyboard
-  const setAllValues = useCallback(
+  const setKeyboardValue = useCallback(
     (inputValue) => {
       setValueText(inputValue)
       dispatch(setInputValue(inputValue))
-      selfChanged.current = true
+      isInternalChange.current = true
     },
-    [dispatch]
+    [dispatch, isInternalChange]
   )
 
   // Update this field's value when user types on virtual keyboard
@@ -86,105 +78,87 @@ const ComboboxBase = ({
     }
 
     setValueText(virtualKeyboard.inputValue)
-  }, [disabled, multiple, valueText, virtualKeyboard.inputValue])
-
-  // Keep cursor position synced with virtual keyboard's
-  useEffect(() => {
-    if (!focused.current) return
-
-    if (
-      inputRef.current &&
-      !selfChanged.current &&
-      !R.equals(virtualKeyboard.caretPosition, [
-        inputRef.current.selectionStart,
-        inputRef.current.selectionEnd,
-      ])
-    ) {
-      inputRef.current.setSelectionRange(
-        virtualKeyboard.caretPosition[0],
-        virtualKeyboard.caretPosition[1]
-      )
-    }
-
-    if (selfChanged.current) {
-      selfChanged.current = false
-    }
-  }, [virtualKeyboard.caretPosition, virtualKeyboard.inputValue, valueText])
-
-  const syncCaretPosition = () => {
-    if (inputRef.current.selectionStart === inputRef.current.selectionEnd) {
-      dispatch(
-        setCaretPosition([
-          inputRef.current.selectionStart,
-          inputRef.current.selectionStart,
-        ])
-      )
-      selfChanged.current = true
-    }
-  }
+  }, [disabled, focused, multiple, valueText, virtualKeyboard.inputValue])
 
   // Delay update from focus to here so that focusing via
   // clicking the clear button can correctly clear text
   useEffect(() => {
     if (justFocused) {
       setJustFocused(false)
-      setAllValues(valueName)
+      setKeyboardValue(valueName)
     }
-  }, [justFocused, setAllValues, valueName])
+  }, [justFocused, setKeyboardValue, valueName])
 
   // NOTE: Need this workaround as duplicate combobox props
   // aren't re-rendered when `value`|`defaultValue` changes
   useEffect(() => {
     setValue(defaultValue)
-    setAllValues(valueName)
-  }, [defaultValue, setAllValues, valueName])
+    setKeyboardValue(valueName)
+  }, [defaultValue, setKeyboardValue, valueName])
 
-  const addAdornment = (adornment) => {
-    const children = Children.toArray(adornment.props.children)
-    children.unshift(
-      <IconButton
-        key="virtual-kb"
-        size="small"
-        onClick={() => {
-          if (!focused.current) {
-            inputRef.current.focus()
-            inputRef.current.setSelectionRange(value.length, value.length)
-          }
+  const addAdornment = useCallback(
+    (adornment) => {
+      const children = Children.toArray(adornment.props.children)
+      children.unshift(
+        <IconButton
+          key="virtual-kb"
+          size="small"
+          onClick={handleKeyboardToggle}
+          onMouseDown={handleKeyboardMouseDown}
+        >
+          <BiSolidKeyboard />
+        </IconButton>
+      )
+      return cloneElement(adornment, {}, children)
+    },
+    [handleKeyboardMouseDown, handleKeyboardToggle]
+  )
 
-          dispatch(setIsOpen(!virtualKeyboard.isOpen))
-          dispatch(setLayout(KEYBOARD_LAYOUT))
-          syncCaretPosition()
-        }}
-        onMouseDown={(event) => {
-          if (focused.current) event.preventDefault()
-        }}
-      >
-        <BiSolidKeyboard />
-      </IconButton>
-    )
-    return cloneElement(adornment, {}, children)
-  }
+  const handleInputChange = useCallback(
+    (event, newInputValue, reason) => {
+      if (reason === 'input') {
+        // avoid infinite loop when loading component
+        setKeyboardValue(newInputValue)
+      }
+    },
+    [setKeyboardValue]
+  )
+
+  const handleChange = useCallback(
+    (event, newValue) => {
+      if (disabled) return
+      onChange(multiple ? newValue : [newValue])
+      setValue(newValue)
+      if (!multiple) setKeyboardValue(getOptionLabel(newValue))
+    },
+    [disabled, getOptionLabel, multiple, onChange, setKeyboardValue]
+  )
 
   return (
     <Autocomplete
-      {...{ disabled, multiple, options, value, limitTags }}
-      fullWidth
       disablePortal
-      sx={[{ p: 1.5 }, ...forceArray(sx)]}
       inputValue={valueText}
+      {...{
+        disabled,
+        multiple,
+        options,
+        value,
+        limitTags,
+        sx,
+        fullWidth,
+        getOptionLabel,
+      }}
       renderInput={({ InputProps, ...params }) => (
         // The placeholder in the API serves as a label in the context of the MUI component.
         <TextField
-          fullWidth
           label={placeholder}
-          {...params}
-          onSelect={syncCaretPosition}
-          inputRef={inputRef}
+          {...{ inputRef, fullWidth, ...params }}
+          onSelect={handleSelectionChange}
           slotProps={{
             ...slotProps,
             input: {
               ...InputProps,
-              ...(!disabled && {
+              ...(!(disabled || readOnly) && {
                 endAdornment: addAdornment(InputProps.endAdornment),
               }),
               ...slotProps?.input,
@@ -192,71 +166,13 @@ const ComboboxBase = ({
           }}
         />
       )}
-      onInputChange={(event, newInputValue, reason) => {
-        if (reason === 'input') {
-          // avoid infinite loop when loading component
-          setAllValues(newInputValue)
-        }
-      }}
-      onChange={(event, newValue) => {
-        if (disabled) return
-        onChange(multiple ? newValue : [newValue])
-        setValue(newValue)
-        if (!multiple) setAllValues(getOptionLabel(newValue))
-      }}
-      onFocus={() => {
-        if (disabled) return
-
-        // delay to ensure the keyboard closing is overriden
-        // if user focuses to another input field
-        if (virtualKeyboard.isOpen) {
-          setTimeout(() => {
-            dispatch(setIsOpen(true))
-            dispatch(setLayout(KEYBOARD_LAYOUT))
-          }, DELAY)
-        }
-
-        focused.current = true
-        setJustFocused(true)
-      }}
-      onBlur={() => {
-        if (disabled) return
-
-        // delay so that focusing to another input field keeps
-        // the keyboard open
-        if (virtualKeyboard.isOpen) {
-          setTimeout(() => {
-            dispatch(setIsOpen(false))
-          }, DELAY)
-        }
-
-        setAllValues(valueName)
-        focused.current = false
-        dispatch(setIsTextArea(false))
-      }}
-      onTouchStart={() => {
-        if (disabled) return
-
-        isTouchDragging.current = false
-      }}
-      onTouchMove={() => {
-        if (disabled) return
-
-        isTouchDragging.current = true
-      }}
-      onTouchEnd={() => {
-        if (disabled) return
-
-        // delay so that clicking on the keyboard button doesn't immediately
-        // close the keyboard due to onClick event
-        if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
-          setTimeout(() => {
-            dispatch(setIsOpen(true))
-            dispatch(setLayout(KEYBOARD_LAYOUT))
-          }, DELAY)
-        }
-      }}
-      {...{ getOptionLabel, ...props }}
+      onInputChange={handleInputChange}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     />
   )
 }

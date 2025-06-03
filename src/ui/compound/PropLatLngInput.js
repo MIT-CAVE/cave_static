@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Stack } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
@@ -6,49 +6,42 @@ import NumberInput from './NumberInput'
 
 import { forceArray } from '../../utils'
 
-const getStyles = (enabled) => ({
-  p: 1,
-  width: '100%',
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
-
-const PropLatLngInput = ({ prop, currentVal, sx = [], onChange, ...props }) => {
+const PropLatLngInput = ({ prop, currentVal, sx = [], onChange }) => {
+  const { enabled, placeholder, direction = 'row' } = prop
+  const value = R.defaultTo(prop.value, currentVal)[0]
   const numberFormatProps = {
     precision: 6,
     trailingZeros: true,
     unitPlacement: 'afterWithSpace',
   }
-  const { enabled, placeholder, label } = prop
-  const value = R.defaultTo(R.prop('value', prop), currentVal)[0]
-
   return (
-    <>
-      <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-        <Typography> Latitude </Typography>
-        <NumberInput
-          disabled={!enabled}
-          {...{ placeholder, label, max: 90, min: -90 }}
-          numberFormat={numberFormatProps}
-          value={R.clamp(-90, 90, value[1])}
-          onClickAway={(lat) => {
-            if (enabled) onChange([[value[0], lat]])
-          }}
-        />
-      </Box>
-      <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-        <Typography> Longitude </Typography>
-        <NumberInput
-          disabled={!enabled}
-          {...{ placeholder, label, max: 180, min: -180 }}
-          numberFormat={numberFormatProps}
-          value={R.clamp(-180, 180, value[0])}
-          onClickAway={(lng) => {
-            if (enabled) onChange([[lng, value[1]]])
-          }}
-        />
-      </Box>
-    </>
+    <Stack
+      useFlexGap
+      {...{ direction }}
+      spacing={direction === 'row' ? 1 : 2}
+      sx={[{ width: '100%' }, ...forceArray(sx)]}
+    >
+      <NumberInput
+        disabled={!enabled}
+        label="Latitude"
+        {...{ placeholder, max: 90, min: -90 }}
+        numberFormat={numberFormatProps}
+        value={R.clamp(-90, 90)(value[1])}
+        onClickAway={(lat) => {
+          if (enabled) onChange([[value[0], lat]])
+        }}
+      />
+      <NumberInput
+        disabled={!enabled}
+        label="Longitude"
+        {...{ placeholder, max: 180, min: -180 }}
+        numberFormat={numberFormatProps}
+        value={R.clamp(-180, 180)(value[0])}
+        onClickAway={(lng) => {
+          if (enabled) onChange([[lng, value[1]]])
+        }}
+      />
+    </Stack>
   )
 }
 PropLatLngInput.propTypes = {

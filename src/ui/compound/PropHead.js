@@ -1,9 +1,8 @@
 import { Divider, Grid, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React from 'react'
 
-import InfoButton from './InfoButton'
+import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
 
 import { PROP_MIN_WIDTH } from '../../utils/constants'
@@ -19,8 +18,9 @@ const styles = {
     alignContent: 'end',
   },
   row: {
-    border: 1,
-    borderColor: 'grey.500',
+    border: '1px solid rgb(128 128 128)',
+    borderRadius: 1,
+    height: '100%',
   },
   divider: {
     height: '2px',
@@ -34,7 +34,13 @@ const styles = {
 }
 
 const BaseContainer = ({
-  prop: { id, name, help, style },
+  prop: {
+    id,
+    name,
+    help,
+    style, // `style` will become the default escape hatch for prop styling in `4.0.0`.
+    propStyle, // Adding the `propStyle` key here for consistency.
+  },
   variantStyle,
   sx,
   children,
@@ -42,15 +48,15 @@ const BaseContainer = ({
 }) => (
   <Grid
     container
-    sx={[variantStyle, styles.root, style, ...forceArray(sx)]}
+    sx={[styles.root, variantStyle, ...forceArray(sx), style, propStyle]}
     {...R.dissoc('currentVal')(props)}
   >
     <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
       <OverflowText text={name || id} />
     </Grid>
     {help && (
-      <Grid sx={{ p: 0.5 }}>
-        <InfoButton text={help} sx={{ fontSize: 24 }} />
+      <Grid sx={{ p: 0.5, pr: 1 }}>
+        <HelpTooltip text={help} size={26} />
       </Grid>
     )}
     {children}

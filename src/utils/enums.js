@@ -41,14 +41,17 @@ export const propId = {
 }
 
 export const propVariant = {
+  BUTTON: 'button',
+  SWITCH: 'switch',
   CHECKBOX: 'checkbox',
   COLUMN: 'column',
-  COMBOBOX: 'combobox',
-  COMBOBOX_MULTI: 'comboboxMulti',
   DATE: 'date',
   DATETIME: 'datetime',
+  COMBOBOX: 'combobox',
+  COMBOBOX_MULTI: 'comboboxMulti',
   DROPDOWN: 'dropdown',
   FIELD: 'field',
+  HCHECKBOX: 'hcheckbox',
   HRADIO: 'hradio',
   HSTEPPER: 'hstepper',
   INCSLIDER: 'incslider',
@@ -61,6 +64,7 @@ export const propVariant = {
   ROW: 'row',
   SINGLE: 'single',
   SLIDER: 'slider',
+  TEXT: 'text',
   TEXTAREA: 'textarea',
   TIME: 'time',
   VIDEO: 'video',
@@ -68,10 +72,13 @@ export const propVariant = {
   ICON: 'icon',
   ICON_ROW: 'iconRow',
   ICON_COMPACT: 'iconCompact',
+  FILLED: 'filled',
+  OUTLINED: 'outlined',
 }
 
 export const propContainer = {
   HORIZONTAL: 'horizontal',
+  MINIMAL: 'minimal',
   NONE: 'none',
   UNTITLED: 'untitled',
   TITLED: 'titled',
@@ -308,6 +315,21 @@ export const unitPlacements = {
   AFTER_WITH_SPACE: 'afterWithSpace',
   BEFORE: 'before',
   BEFORE_WITH_SPACE: 'beforeWithSpace',
+}
+
+export const propPlacements = {
+  // Top alignments
+  TOP_LEFT: 'topLeft',
+  TOP_CENTER: 'topCenter',
+  TOP_RIGHT: 'topRight',
+  // Center alignments
+  CENTER: 'center',
+  LEFT: 'left',
+  RIGHT: 'right',
+  // Bottom alignments
+  BOTTOM_LEFT: 'bottomLeft',
+  BOTTOM_CENTER: 'bottomCenter',
+  BOTTOM_RIGHT: 'bottomRight',
 }
 
 export const notationOptions = {

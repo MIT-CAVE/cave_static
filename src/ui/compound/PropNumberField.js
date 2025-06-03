@@ -1,4 +1,3 @@
-import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useSelector } from 'react-redux'
@@ -7,42 +6,33 @@ import NumberInput from './NumberInput'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
-import { forceArray } from '../../utils'
-
-const getStyles = (enabled) => ({
-  p: 1,
-  width: '100%',
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
-
-const PropNumberField = ({ prop, currentVal, sx = [], onChange, ...props }) => {
+const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const {
     enabled,
+    readOnly,
     maxValue = Infinity,
     minValue = -Infinity,
     placeholder,
     label,
+    fullWidth,
     slotProps,
   } = prop
   return (
-    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <NumberInput
-        disabled={!enabled}
-        {...{ placeholder, label, slotProps }}
-        min={minValue}
-        max={maxValue}
-        value={R.pipe(
-          R.defaultTo(prop.value),
-          R.clamp(minValue, maxValue)
-        )(currentVal)}
-        numberFormat={numberFormatProps}
-        onClickAway={(value) => {
-          if (enabled) onChange(value)
-        }}
-      />
-    </Box>
+    <NumberInput
+      disabled={!enabled}
+      {...{ readOnly, placeholder, label, slotProps, sx, fullWidth }}
+      min={minValue}
+      max={maxValue}
+      value={R.pipe(
+        R.defaultTo(prop.value),
+        R.clamp(minValue, maxValue)
+      )(currentVal)}
+      numberFormat={numberFormatProps}
+      onClickAway={(value) => {
+        if (enabled) onChange(value)
+      }}
+    />
   )
 }
 PropNumberField.propTypes = {

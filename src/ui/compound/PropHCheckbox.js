@@ -4,12 +4,12 @@ import CheckboxBase from './CheckboxBase'
 
 import { forceArray } from '../../utils'
 
-const PropCheckbox = ({
+const PropHCheckbox = ({
   prop: {
     value,
     options,
     enabled,
-    labelPlacement = 'end',
+    labelPlacement = 'bottom',
     helperText,
     fullWidth,
     propStyle,
@@ -20,14 +20,14 @@ const PropCheckbox = ({
   onChange,
 }) => (
   <CheckboxBase
+    isHorizontal
     disabled={!enabled}
-    value={currentVal ?? value}
     sx={[...forceArray(sx), fullWidth && { width: '100%' }, propStyle]}
+    value={currentVal ?? value}
     {...{ options, labelPlacement, helperText, propAttrs, onChange }}
   />
 )
-
-PropCheckbox.propTypes = {
+PropHCheckbox.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.array,
   sx: PropTypes.oneOfType([
@@ -40,4 +40,4 @@ PropCheckbox.propTypes = {
   onChange: PropTypes.func,
 }
 
-export default PropCheckbox
+export default PropHCheckbox

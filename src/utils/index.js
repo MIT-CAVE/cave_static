@@ -419,7 +419,7 @@ export const getContrastText = (bgColor) => {
     0.7152 * Math.pow(background.g / 255, 2.2) +
     0.0722 * Math.pow(background.b / 255, 2.2)
   // Using 0.179 threshold from the WCAG guidelines instead of 0.5 for better contrast
-  return luminance > 0.179 ? 'black' : 'white'
+  return luminance > 0.179 ? '#000' : '#fff'
 }
 
 export const addExtraProps = (Component, extraProps) => {
@@ -840,7 +840,7 @@ export const constructFetchedGeoJson = (
                 const geoFeatures = R.pathOr({}, [geoType, 'features'])(items)
 
                 const filteredFeature = R.find(
-                  R.pathEq(geoJsonValue)(['properties', geoJsonProp])
+                  R.pathEq(geoJsonValue, ['properties', geoJsonProp])
                 )(geoFeatures)
 
                 const filters = R.pipe(

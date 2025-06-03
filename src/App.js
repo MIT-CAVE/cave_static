@@ -128,22 +128,28 @@ const App = () => {
             background: {
               paper: '#4a4a4a',
             },
+            DataGrid: {
+              bg: '#4a4a4a',
+              // headerBg: '#353535',
+            },
           },
           components: {
             MuiDataGrid: {
               styleOverrides: {
                 root: {
-                  // Fixes MUI style bug in horizontal scroll bar
-                  '.MuiDataGrid-scrollbar--horizontal': {
-                    display: 'block',
+                  borderColor: 'rgb(128 128 128 / .4)',
+                  '.MuiDataGrid-withBorderColor': {
+                    borderColor: 'rgb(128 128 128 / .4)',
                   },
+                  // 'MuiDataGrid-filler': {
+                  //   backgroundColor: '#353535',
+                  // },
+                  // // Fixes MUI style bug in horizontal scroll bar
+                  // '.MuiDataGrid-scrollbar--horizontal': {
+                  //   display: 'block',
+                  // },
                 },
               },
-            },
-          },
-          mixins: {
-            MuiDataGrid: {
-              containerBackground: '#4a4a4a',
             },
           },
           typography: {
