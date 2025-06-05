@@ -39,7 +39,7 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
   // eslint-disable-next-line no-unused-vars
   const { unit, unitPlacement, ...numberFormat } = selectNumberFormatProps(prop)
 
-  const { enabled, slotProps = {} } = prop
+  const { enabled, slotProps = {}, fullWidth = true, propStyle } = prop
 
   const minValue = prop.minValue ?? -Infinity
   const maxValue = useMemo(() => {
@@ -80,10 +80,15 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
 
   return (
     <Stack
-      direction="row"
       useFlexGap
+      direction="row"
       spacing={1}
-      sx={[styles.root, ...forceArray(sx)]}
+      sx={[
+        styles.root,
+        ...forceArray(sx),
+        fullWidth && { width: '100%' },
+        ...forceArray(propStyle),
+      ]}
     >
       <Slider
         disabled={!enabled}

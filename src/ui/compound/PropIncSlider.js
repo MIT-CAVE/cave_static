@@ -9,11 +9,11 @@ const rootStyle = {
   mt: 2,
   mb: 3.5,
   mx: 3,
-  width: '100%',
+  maxWidth: (theme) => `calc(100% - ${theme.spacing(6)})`,
 }
 
 const PropIncSlider = ({ prop, sx = [] }) => {
-  const { enabled, valueOptions } = prop
+  const { enabled, valueOptions, propStyle } = prop
   const [value, setValue] = useState(prop.value)
   const marks = useMemo(
     () =>
@@ -28,7 +28,7 @@ const PropIncSlider = ({ prop, sx = [] }) => {
   )
   return (
     <Slider
-      sx={[rootStyle, ...forceArray(sx)]}
+      sx={[rootStyle, ...forceArray(sx), ...forceArray(propStyle)]}
       min={0}
       max={R.length(valueOptions) - 1}
       step={null}

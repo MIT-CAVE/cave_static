@@ -6,6 +6,8 @@ import NumberInput from './NumberInput'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
+import { forceArray } from '../../utils'
+
 const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const {
@@ -16,12 +18,14 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
     placeholder,
     label,
     fullWidth,
+    propStyle,
     slotProps,
   } = prop
   return (
     <NumberInput
       disabled={!enabled}
-      {...{ readOnly, placeholder, label, slotProps, sx, fullWidth }}
+      {...{ readOnly, placeholder, label, slotProps, fullWidth }}
+      sx={[...forceArray(sx), ...forceArray(propStyle)]}
       min={minValue}
       max={maxValue}
       value={R.pipe(
