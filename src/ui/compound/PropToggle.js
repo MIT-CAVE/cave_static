@@ -25,9 +25,13 @@ const styles = {
       },
     },
   }),
-  getCheckbox: ({ color, activeColor }) => ({
+  getCheckbox: ({ color, size, activeColor, activeSize }) => ({
     color,
-    '&.Mui-checked': { color: activeColor },
+    '& .MuiSvgIcon-root': { fontSize: size },
+    '&.Mui-checked': {
+      color: activeColor,
+      '& .MuiSvgIcon-root': { fontSize: activeSize },
+    },
   }),
   getSwitch: ({
     // TODO: Adjust the track and thumb to match sizes for consistent styling.
@@ -163,7 +167,7 @@ const PropToggleCheckbox = ({ prop, currentVal, sx = [], onChange }) => {
     label,
     icon,
     color,
-    size,
+    size = 24,
     activeLabel,
     activeIcon,
     activeColor,
@@ -218,7 +222,7 @@ const PropToggleCheckbox = ({ prop, currentVal, sx = [], onChange }) => {
             checked={value}
             {...(icon && { icon: Icon })}
             {...(activeIconName && { checkedIcon: ActiveIcon })}
-            sx={styles.getCheckbox({ color, activeColor })}
+            sx={styles.getCheckbox({ color, size, activeColor, activeSize })}
             onChange={handleChange}
           />
         }
@@ -241,7 +245,7 @@ const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
     activeLabel,
     activeColor,
     activeSize,
-    labelPlacement = 'end',
+    labelPlacement,
     fullWidth,
     propStyle,
   } = prop
