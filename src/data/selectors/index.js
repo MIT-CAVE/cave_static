@@ -1745,7 +1745,21 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
             }))
           )
         )(associatedData)
-        return formattedGlobalOutputs
+        const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
+        const getValue = (item) =>
+          R.has('children', item)
+            ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
+            : R.path(['value', 0], item)
+        const sortFn = {
+          value_ascending: (a, b) => getValue(a) - getValue(b),
+          value_descending: (a, b) => getValue(b) - getValue(a),
+          alpha_ascending: (a, b) => a.name.localeCompare(b.name),
+          alpha_descending: (a, b) => b.name.localeCompare(a.name),
+        }[xAxisOrder]
+        const sortedFormattedGlobalOutputs = sortFn
+          ? R.sort(sortFn, formattedGlobalOutputs)
+          : formattedGlobalOutputs
+        return sortedFormattedGlobalOutputs
       },
       MAX_MEMOIZED_CHARTS
     )
