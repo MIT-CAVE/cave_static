@@ -1,7 +1,7 @@
 import { Stack } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { GiEmptyChessboard } from 'react-icons/gi'
 import { IoSquareSharp } from 'react-icons/io5'
 
@@ -48,27 +48,21 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
     propStyle,
   } = prop
   const [value] = currentVal ?? prop.value
-  const optionsListRaw = withIndex(options)
-  const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
+
+  const optionsListRaw = useMemo(() => withIndex(options), [options])
 
   const getLabel = useCallback(
     (option) => {
       const {
         icon,
-        label,
         name,
         color,
         size,
         activeIcon,
-        activeLabel,
         activeName,
         activeColor,
         activeSize,
-      } = indexedOptions[option] ?? {}
-      const selected = option === value
-      const currentLabel = selected
-        ? getOrDefault(activeLabel ?? activeName, label ?? name)
-        : (label ?? name)
+      } = options[option] ?? {}
 
       const direction =
         labelPlacement === 'start'
@@ -77,6 +71,8 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
             ? 'row'
             : ''
 
+      const selected = option === value
+      const currentLabel = getCurrentAttr(selected, name, activeName)
       const currentIcon = getCurrentAttr(selected, icon, activeIcon)
       const currentColor = getCurrentAttr(selected, color, activeColor)
       const currentSize = getCurrentAttr(selected, size, activeSize)
@@ -110,7 +106,7 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
         </Stack>
       )
     },
-    [indexedOptions, labelPlacement, value]
+    [labelPlacement, options, value]
   )
 
   return (
