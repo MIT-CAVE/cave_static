@@ -27,7 +27,8 @@ const TooltipButton = ({
   ...props
 }) => (
   <Tooltip
-    {...{ ariaLabel, title, placement, ...slotProps?.tooltip }}
+    aria-label={ariaLabel}
+    {...{ title, placement, ...slotProps?.tooltip }}
     slotProps={{
       tooltip: { sx: [styles.tooltip, ...forceArray(slotProps?.tooltip?.sx)] },
     }}
