@@ -1,59 +1,15 @@
-import { Slider } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
-import { useEffect, useMemo, useState } from 'react'
 
-import { forceArray } from '../../utils'
-
-const getRootStyle = (nOpts) => ({
-  height: nOpts * 25,
-  my: 3,
-  mx: 1,
-})
-
-const valueToIndex = (val, options) =>
-  R.pipe(R.keys, R.reverse, R.indexOf(val))(options)
+import StepperBase from './StepperBase'
 
 const PropVStepper = ({ prop, currentVal, sx = [], onChange }) => {
-  const { enabled, options } = prop
-  const [value] = R.defaultTo(prop.value)(currentVal)
-  const [index, setIndex] = useState(valueToIndex(value, options))
-
-  useEffect(() => {
-    setIndex(valueToIndex(value, options))
-  }, [value, options])
-
-  const nOpts = useMemo(() => R.pipe(R.keys, R.length)(options), [options])
-  const marks = useMemo(
-    () =>
-      R.pipe(
-        R.addIndex(R.map)((val, idx) => ({
-          value: R.dec(nOpts - idx),
-          label: R.prop('name', val),
-        })),
-        R.values
-      )(options),
-    [nOpts, options]
-  )
+  const { options, enabled, propStyle, ...propAttrs } = prop
+  const [value] = currentVal ?? prop.value
   return (
-    <Slider
+    <StepperBase
+      isVertical
       disabled={!enabled}
-      orientation="vertical"
-      valueLabelDisplay="off"
-      sx={[getRootStyle(nOpts), ...forceArray(sx)]}
-      min={0}
-      max={R.dec(nOpts)}
-      step={null}
-      track={false}
-      value={index}
-      {...{ marks }}
-      onChange={(event, val) => {
-        if (enabled) setIndex(val)
-      }}
-      onChangeCommitted={(event, val) => {
-        if (!enabled) return
-        onChange([R.pipe(R.keys, R.reverse, R.nth(val))(options)])
-      }}
+      {...{ options, value, propAttrs, sx, propStyle, onChange }}
     />
   )
 }

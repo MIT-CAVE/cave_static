@@ -253,6 +253,7 @@ const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
 
   const fetchSvgIcon = useCallback(
     async (iconName) => {
+      if (iconName == null) return
       const iconRootNode = await fetchIcon(iconName, undefined, true)
       const currentColor =
         getCurrentAttr(value, color, activeColor) ??

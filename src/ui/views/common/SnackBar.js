@@ -1,6 +1,6 @@
 import { Alert, AlertTitle, Collapse, IconButton, Stack } from '@mui/material'
 import * as R from 'ramda'
-import React, { Fragment, useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
 import { useDispatch, useSelector } from 'react-redux'
 import { TransitionGroup } from 'react-transition-group'
