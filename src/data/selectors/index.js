@@ -172,7 +172,7 @@ export const selectAppBar = createSelector(selectData, (data) => {
   appBar = R.assocPath(['order', 'data'], updatedOrder, appBar)
   appBar = R.assocPath(
     ['data'],
-    R.mergeDeepRight(R.propOr({}, 'data', appBar), systemAppBar),
+    R.mergeDeepLeft(R.propOr({}, 'data', appBar), systemAppBar),
     appBar
   )
   return appBar
