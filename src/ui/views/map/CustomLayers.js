@@ -137,14 +137,14 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
 
   useEffect(() => {
     // Generate meshes from array of geoJson features
-    if (layer)
+    if (layer?.implementation)
       layer.implementation.updateMeshes(geoJsonToSegments(features || [], id))
-  }, [features, layer])
+  }, [features, layer?.implementation])
 
   useEffect(() => {
     // Update onClick if changed
-    if (layer) layer.implementation.onClick = onClick
-  }, [onClick, layer])
+    if (layer?.implementation) layer.implementation.onClick = onClick
+  }, [layer?.implementation, onClick])
 
   // Cleans up event listeners
   useEffect(
@@ -707,15 +707,15 @@ const CustomLayer = memo(
     }
 
     useEffect(() => {
-      if (layer)
-        layer.implementation.updateObjects(
+      if (layer?.implementation)
+        layer.implementation?.updateObjects(
           convertFeaturesToObjects(features, id)
         )
-    }, [features, id, layer, convertFeaturesToObjects])
+    }, [features, id, convertFeaturesToObjects, layer?.implementation])
 
     useEffect(() => {
-      if (layer) layer.implementation.onClick = onClick
-    }, [onClick, layer])
+      if (layer?.implementation) layer.implementation.onClick = onClick
+    }, [layer?.implementation, onClick])
 
     useEffect(
       () => () => {
