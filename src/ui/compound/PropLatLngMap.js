@@ -1,7 +1,8 @@
-import { Box, Typography } from '@mui/material'
+import { ClickAwayListener, Popper, Stack, ToggleButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { TfiMapAlt } from 'react-icons/tfi'
 import ReactMapboxGL, { Marker, NavigationControl } from 'react-map-gl'
 import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
@@ -12,15 +13,26 @@ import {
   selectIsMapboxTokenProvided,
   selectMapboxToken,
 } from '../../data/selectors'
+import { useMenu } from '../../utils/hooks'
 
 import { forceArray } from '../../utils'
 
-const getStyles = (enabled) => ({
-  p: 1,
-  width: '100%',
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
+const styles = {
+  popper: {
+    width: '100%',
+    height: '100%',
+    // overflow: 'hidden',
+    zIndex: 2,
+  },
+  map: {
+    minHeight: '480px',
+    height: 'auto',
+    width: '100%',
+    borderRadius: '4px',
+    border: '1px solid rgb(128 128 128)',
+    boxSizing: 'border-box',
+  },
+}
 
 const numberFormatProps = {
   precision: 6,
@@ -28,90 +40,117 @@ const numberFormatProps = {
   unitPlacement: 'afterWithSpace',
 }
 
-const PropLatLngMap = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const mapboxToken = useSelector(selectMapboxToken)
-  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
-  const { enabled, placeholder, label } = prop
-  const [value, setValue] = useState(
-    R.defaultTo(R.prop('value', prop), currentVal)[0]
-  )
+const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
+  const [value, setValue] = useState(R.defaultTo(prop.value)(currentVal)[0])
   const [viewState, setViewState] = useState({
     latitude: value[1],
     longitude: value[0],
   })
 
-  const mapSettings = {
-    style: {
-      width: 480,
-      height: 480,
-      margin: 10,
+  const { enabled, placeholder } = prop
+  const mapboxToken = useSelector(selectMapboxToken)
+  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
+  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
+
+  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+
+  const mapStyle = isMapboxTokenProvided
+    ? 'mapbox://styles/mapbox/dark-v11'
+    : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+
+  const handleChangeLatitude = useCallback(
+    (latitude) => {
+      if (!enabled) return
+      onChange([[value[0], latitude]])
+      setValue([value[0], latitude])
+      setViewState({ latitude, longitude: value[0] })
     },
-    mapStyle: isMapboxTokenProvided
-      ? 'mapbox://styles/mapbox/dark-v11'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  }
+    [enabled, onChange, value]
+  )
 
-  const inputLat = (lat) => {
-    if (!enabled) return
-    onChange([[value[0], lat]])
-    setValue([value[0], lat])
-    setViewState({ latitude: lat, longitude: value[0] })
-  }
+  const handleChangeLongitude = useCallback(
+    (longitude) => {
+      if (!enabled) return
+      onChange([[longitude, value[1]]])
+      setValue([longitude, value[1]])
+      setViewState({ latitude: value[1], longitude })
+    },
+    [enabled, onChange, value]
+  )
 
-  const inputLng = (lng) => {
-    if (!enabled) return
-    onChange([[lng, value[1]]])
-    setValue([lng, value[1]])
-    setViewState({ latitude: value[1], longitude: lng })
-  }
-
-  const onDragEnd = (event) => {
-    if (!enabled) return
-    onChange([[event.lngLat.lng, event.lngLat.lat]])
-    setValue([event.lngLat.lng, event.lngLat.lat])
-    setViewState({ latitude: event.lngLat.lat, longitude: event.lngLat.lng })
-  }
-
+  const handleDragEnd = useCallback(
+    (event) => {
+      if (!enabled) return
+      onChange([[event.lngLat.lng, event.lngLat.lat]])
+      setValue([event.lngLat.lng, event.lngLat.lat])
+      setViewState({ latitude: event.lngLat.lat, longitude: event.lngLat.lng })
+    },
+    [enabled, onChange]
+  )
+  const showMap = Boolean(anchorEl)
   return (
-    <Box>
-      <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-        <Typography> Latitude </Typography>
+    <Stack useFlexGap spacing={2} sx={[{ width: '100%' }, ...forceArray(sx)]}>
+      <ClickAwayListener
+        onClickAway={(event) => {
+          // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+          if (sessionStorage.getItem('mui-select-open-flag') === '1') return
+          handleCloseMenu(event)
+        }}
+      >
+        <Popper
+          disablePortal
+          placement="auto"
+          {...{ anchorEl }}
+          open={showMap}
+          sx={styles.popper}
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+        >
+          <ReactMapGL
+            mapboxAccessToken={mapboxToken}
+            style={styles.map}
+            {...{ mapStyle, ...viewState }}
+            onMove={(event) => setViewState(event.viewState)}
+          >
+            <Marker
+              draggable
+              anchor="center"
+              longitude={value[0]}
+              latitude={value[1]}
+              onDragEnd={handleDragEnd}
+            />
+            <NavigationControl />
+          </ReactMapGL>
+        </Popper>
+      </ClickAwayListener>
+
+      <Stack useFlexGap direction="row" spacing={1}>
         <NumberInput
           disabled={!enabled}
-          {...{ placeholder, label, max: 90, min: -90 }}
+          label="Latitude"
+          {...{ placeholder, max: 90, min: -90 }}
           numberFormat={numberFormatProps}
-          value={R.clamp(-90, 90, value[1])}
-          onClickAway={inputLat}
+          value={R.clamp(-90, 90)(value[1])}
+          onClickAway={handleChangeLatitude}
         />
-      </Box>
-      <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-        <Typography> Longitude </Typography>
         <NumberInput
           disabled={!enabled}
-          {...{ placeholder, label, max: 180, min: -180 }}
+          label="Longitude"
+          {...{ placeholder, max: 180, min: -180 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-180, 180, value[0])}
-          onClickAway={inputLng}
+          onClickAway={handleChangeLongitude}
         />
-      </Box>
-      <ReactMapGL
-        {...viewState}
-        mapboxAccessToken={mapboxToken}
-        style={mapSettings.style}
-        mapStyle={mapSettings.mapStyle}
-        onMove={(event) => setViewState(event.viewState)}
-      >
-        <Marker
-          longitude={value[0]}
-          latitude={value[1]}
-          onDragEnd={onDragEnd}
-          draggable={true}
-          anchor="center"
-        />
-        <NavigationControl />
-      </ReactMapGL>
-    </Box>
+        <ToggleButton
+          selected={showMap}
+          value="prop-lat-lng-map-view"
+          onClick={showMap ? handleCloseMenu : handleOpenMenu}
+        >
+          <TfiMapAlt size={28} />
+        </ToggleButton>
+      </Stack>
+    </Stack>
   )
 }
 PropLatLngMap.propTypes = {

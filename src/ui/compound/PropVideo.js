@@ -1,33 +1,47 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 
 import { forceArray } from '../../utils'
 
 const styles = {
-  box: {
+  root: {
     display: 'flex',
-    width: '100%',
-    p: 1,
+    position: 'relative',
   },
-  video: {
-    width: '100%',
-    minWith: '100px',
-    maxWidth: '300px',
+  iframe: {
     height: '100%',
+    width: '100%',
+    border: '1px solid rgb(128 128 128)',
+    boxSizing: 'border-box',
   },
 }
 
-const PropVideo = ({ prop, sx = [], ...props }) => (
-  <Box sx={[styles.box, ...forceArray(sx)]} {...R.dissoc('currentVal', props)}>
+const scaleModeStyles = {
+  fitWidth: { maxWidth: '100%', width: '100%' },
+  fitHeight: { maxHeight: '100%', height: '100%' },
+  fitContainer: { height: '100%', width: '100%' },
+}
+
+const PropVideo = ({
+  prop: { value: url, scaleMode, propStyle = [] },
+  sx = [],
+}) => (
+  <Box
+    sx={[
+      styles.root,
+      scaleModeStyles[scaleMode],
+      ...forceArray(sx),
+      ...forceArray(propStyle),
+    ]}
+  >
     <iframe
       credentialless="true"
       title="Embedded Video"
-      src={prop.value}
-      style={styles.video}
-      frameBorder="0"
-      allow="autoplay; fullscreen; picture-in-picture; cross-origin-isolated"
-    ></iframe>
+      src={url}
+      style={styles.iframe}
+      allowFullScreen
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; cross-origin-isolated"
+    />
   </Box>
 )
 PropVideo.propTypes = {

@@ -1,4 +1,4 @@
-import { Checkbox, FormGroup, FormControlLabel, Box } from '@mui/material'
+import { Box, Checkbox, FormGroup, FormControlLabel } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import React, { useEffect } from 'react'
@@ -10,14 +10,6 @@ const box = {
   PARTIAL: 'partial',
   UNCHECKED: 'unchecked',
 }
-
-const getStyles = (enabled) => ({
-  display: 'flex',
-  width: '100%',
-  p: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
 
 const getNodes = (options, value) => {
   const rootKey = ''
@@ -101,7 +93,7 @@ const updateChecked = (nodeKey, nodes, prevChecked) => {
   return checked
 }
 
-const PropNested = ({ prop, currentVal, sx = [], onChange, ...props }) => {
+const PropNested = ({ prop, currentVal, sx = [], onChange }) => {
   const { enabled, options } = prop
   const value = R.defaultTo(prop.value, currentVal)
   const { nodes, initialChecked } = getNodes(options, value)
@@ -113,7 +105,7 @@ const PropNested = ({ prop, currentVal, sx = [], onChange, ...props }) => {
   }, [value, options])
 
   return (
-    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
+    <Box sx={[{ p: 1 }, ...forceArray(sx)]}>
       <PropNestedHelper
         depth={0}
         nodes={nodes}

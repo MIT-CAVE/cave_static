@@ -21,20 +21,27 @@ const TooltipButton = ({
   ariaLabel,
   placement = 'left',
   sx,
+  slotProps,
   onClick,
   children,
   ...props
 }) => (
   <Tooltip
-    {...{ title, placement }}
-    aria-label={ariaLabel || title}
-    slotProps={{ tooltip: { sx: styles.tooltip } }}
+    {...{ ariaLabel, title, placement, ...slotProps?.tooltip }}
+    slotProps={{
+      tooltip: { sx: [styles.tooltip, ...forceArray(slotProps?.tooltip?.sx)] },
+    }}
   >
     <Box component="span">
       <IconButton
-        sx={[styles.iconButton, ...forceArray(sx)]}
-        {...{ onClick, ...props }}
         size="large"
+        {...slotProps?.button}
+        sx={[
+          styles.iconButton,
+          ...forceArray(sx),
+          ...forceArray(slotProps?.button?.sx),
+        ]}
+        {...{ onClick, ...props }}
       >
         {children}
       </IconButton>
@@ -58,6 +65,10 @@ TooltipButton.propTypes = {
     'top-start',
     'top',
   ]),
+  slotProps: PropTypes.shape({
+    tooltip: PropTypes.object,
+    button: PropTypes.object,
+  }),
   onClick: PropTypes.func,
   children: PropTypes.node,
 }

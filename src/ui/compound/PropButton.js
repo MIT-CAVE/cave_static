@@ -1,61 +1,169 @@
-import { Box, Button } from '@mui/material'
+import { Button, IconButton as MuiIconButton } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
+import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
+
+import FetchedIcon from './FetchedIcon'
 
 import { sendCommand } from '../../data/data'
 
-import { forceArray } from '../../utils'
+import { forceArray, getContrastText } from '../../utils'
 
-const getStyles = (enabled) => ({
-  display: 'flex',
-  width: '100%',
-  p: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
+const styles = {
+  getFilled: (color) => ({
+    bgcolor: color,
+    color: getContrastText(color),
+    '&:hover': {
+      bgcolor: `color-mix(in srgb, ${color}, transparent 25%)`,
+    },
+  }),
+  getOutlined: (color) => ({
+    borderColor: color,
+    '&:hover': {
+      bgcolor: `color-mix(in srgb, ${color}, transparent 85%)`,
+    },
+  }),
+  getText: (color) => ({
+    '&:hover': {
+      bgcolor: `color-mix(in srgb, ${color}, transparent 85%)`,
+    },
+  }),
+}
 
-const PropButton = ({ prop, sx = [], ...props }) => {
+const StandardButton = ({
+  prop: { name, value, startIcon, endIcon, color, fullWidth, propStyle },
+  sx = [],
+  ...props
+}) => (
+  <Button
+    {...(startIcon && {
+      startIcon: <FetchedIcon iconName={startIcon} />,
+    })}
+    {...(endIcon && {
+      endIcon: <FetchedIcon iconName={endIcon} />,
+    })}
+    sx={[{ color }, ...forceArray(sx), propStyle]}
+    {...{ fullWidth, ...props }}
+  >
+    {value ?? name}
+  </Button>
+)
+
+const IconButton = ({
+  prop: { icon, color, size, propStyle },
+  sx = [],
+  ...props
+}) => (
+  <MuiIconButton
+    sx={[{ color, p: 0 }, ...forceArray(sx), propStyle]}
+    {...props}
+  >
+    <FetchedIcon
+      iconName={icon}
+      {...{ color }}
+      style={{ width: size, height: size }}
+    />
+  </MuiIconButton>
+)
+
+const ButtonBase = ({ component: Component, prop, variant, sx }) => {
+  const {
+    enabled,
+    url,
+    apiCommand,
+    apiCommandKeys,
+    dataName,
+    dataPath,
+    dataValue,
+  } = prop
   const dispatch = useDispatch()
-  const enabled = prop.enabled
+  const handleClick = useCallback(() => {
+    if (!enabled) return
+    dispatch(
+      sendCommand({
+        command: 'mutate_session',
+        data: {
+          api_command: apiCommand,
+          api_command_keys: apiCommandKeys,
+          data_name: dataName,
+          data_path: dataPath,
+          data_value: dataValue,
+        },
+      })
+    )
+  }, [
+    dispatch,
+    enabled,
+    apiCommand,
+    apiCommandKeys,
+    dataName,
+    dataPath,
+    dataValue,
+  ])
   return (
-    <Box
-      sx={[getStyles(enabled), ...forceArray(sx)]}
-      {...R.dissoc('currentVal', props)}
-    >
-      <Button
-        variant="contained" // TODO: customizable
-        disabled={!enabled}
-        onClick={() => {
-          if (!enabled) return
-          dispatch(
-            sendCommand({
-              command: 'mutate_session',
-              data: {
-                api_command: R.prop('apiCommand')(prop),
-                api_command_keys: R.prop('apiCommandKeys')(prop),
-                data_name: R.prop('dataName')(prop),
-                data_path: R.prop('dataPath')(prop),
-                data_value: R.prop('dataValue')(prop),
-              },
-            })
-          )
-        }}
-      >
-        {prop.value || prop.name}
-      </Button>
-    </Box>
+    <Component
+      disabled={!enabled}
+      href={url}
+      target="_blank"
+      {...{ variant, prop, sx }}
+      onClick={handleClick}
+    />
   )
 }
-PropButton.propTypes = {
+ButtonBase.propTypes = {
   prop: PropTypes.object,
-  sx: PropTypes.oneOfType([
-    PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
-    ),
-    PropTypes.func,
-    PropTypes.object,
-  ]),
 }
 
-export default PropButton
+const PropButtonFilled = (props) => (
+  <ButtonBase
+    variant="contained"
+    component={({ sx = [], ...btnProps }) => (
+      <StandardButton
+        sx={[
+          btnProps.prop.color && styles.getFilled(btnProps.prop.color),
+          ...forceArray(sx),
+        ]}
+        {...btnProps}
+      />
+    )}
+    {...props}
+  />
+)
+
+const PropButtonOutlined = (props) => (
+  <ButtonBase
+    variant="outlined"
+    component={({ sx = [], ...btnProps }) => (
+      <StandardButton
+        sx={[
+          btnProps.prop.color && styles.getOutlined(btnProps.prop.color),
+          ...forceArray(sx),
+        ]}
+        {...btnProps}
+      />
+    )}
+    {...props}
+  />
+)
+
+const PropButtonText = (props) => (
+  <ButtonBase
+    variant="text"
+    component={({ sx = [], ...btnProps }) => (
+      <StandardButton
+        sx={[
+          btnProps.prop.color && styles.getText(btnProps.prop.color),
+          ...forceArray(sx),
+        ]}
+        {...btnProps}
+      />
+    )}
+    {...props}
+  />
+)
+
+const PropButtonIcon = (props) => (
+  <ButtonBase component={IconButton} {...props} />
+)
+
+export { PropButtonFilled, PropButtonOutlined, PropButtonText, PropButtonIcon }

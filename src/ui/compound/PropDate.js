@@ -9,37 +9,40 @@ import * as R from 'ramda'
 
 import { forceArray } from '../../utils'
 
-const PropDateBase = ({
-  component,
-  prop,
+const DateTimeBase = ({
+  component: Component,
+  prop: {
+    enabled,
+    value: defaultValue,
+    readOnly,
+    views,
+    propStyle,
+    fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
+  },
   currentVal,
   format,
   parseFormat,
   sx = [],
   onChange,
 }) => {
-  const value = R.defaultTo(prop.value, currentVal)
-  const { enabled, readOnly, views } = prop
-  const Component = component
+  const value = R.defaultTo(defaultValue)(currentVal)
   return (
     <Component
-      sx={[{ p: 1 }, ...forceArray(sx)]}
-      value={dayjs(value, parseFormat)}
       disabled={!enabled}
-      slotProps={{
-        textField: {
-          fullWidth: true,
-        },
-      }}
+      value={dayjs(value, parseFormat)}
+      sx={[...forceArray(sx), propStyle]}
+      slotProps={{ textField: { fullWidth } }}
       {...{ readOnly, views, format, onChange }}
       onAccept={onChange}
     />
   )
 }
-PropDateBase.propTypes = {
+DateTimeBase.propTypes = {
   component: PropTypes.object,
   prop: PropTypes.object,
   currentVal: PropTypes.string,
+  format: PropTypes.string,
+  parseFormat: PropTypes.string,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -51,15 +54,15 @@ PropDateBase.propTypes = {
 }
 
 const PropDate = (props) => (
-  <PropDateBase component={DatePicker} format="MM-DD-YYYY" {...props} />
+  <DateTimeBase component={DatePicker} format="MM-DD-YYYY" {...props} />
 )
 
 const PropTime = (props) => (
-  <PropDateBase component={TimePicker} parseFormat="HH:mm:ss" {...props} />
+  <DateTimeBase component={TimePicker} parseFormat="HH:mm:ss" {...props} />
 )
 
 const PropDateTime = (props) => (
-  <PropDateBase
+  <DateTimeBase
     component={DateTimePicker}
     format="MM-DD-YYYY hh:mm:ss A"
     {...props}

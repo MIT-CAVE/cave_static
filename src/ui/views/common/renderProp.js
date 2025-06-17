@@ -2,8 +2,12 @@ import * as R from 'ramda'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormat } from '../../../data/selectors'
-import { propContainer, propId, propVariant } from '../../../utils/enums'
-import PropButton from '../../compound/PropButton'
+import {
+  propContainer,
+  propId,
+  propPlacements,
+  propVariant,
+} from '../../../utils/enums'
 
 import {
   PropCheckbox,
@@ -13,6 +17,7 @@ import {
   PropDate,
   PropDateTime,
   PropDropdown,
+  PropHCheckbox,
   PropHRadio,
   PropHStepper,
   PropHeadColumn,
@@ -29,29 +34,40 @@ import {
   PropText,
   PropTextArea,
   PropTime,
-  PropToggle,
   PropVideo,
   PropVStepper,
   PropNumberIcon,
   PropNumberIconCompact,
   IconHeadColumn,
   IconHeadRow,
+  PropButtonFilled,
+  PropButtonOutlined,
+  PropButtonText,
+  PropButtonIcon,
+  PropToggleSwitch,
+  PropToggleButton,
+  PropToggleCheckbox,
 } from '../../compound'
 
 const invalidVariant = R.curry((type, variant) => {
   throw Error(`Invalid variant '${variant}' for prop type '${type}`)
 })
 
-const getButtonPropRenderFn = R.ifElse(
-  R.isNil,
-  R.always(PropButton),
-  invalidVariant('button')
-)
-const getTogglePropRenderFn = R.ifElse(
-  R.isNil,
-  R.always(PropToggle),
-  invalidVariant('toggle')
-)
+const getButtonPropRenderFn = R.cond([
+  [R.isNil, R.always(PropButtonFilled)],
+  [R.equals(propVariant.FILLED), R.always(PropButtonFilled)],
+  [R.equals(propVariant.OUTLINED), R.always(PropButtonOutlined)],
+  [R.equals(propVariant.TEXT), R.always(PropButtonText)],
+  [R.equals(propVariant.ICON), R.always(PropButtonIcon)],
+  [R.T, invalidVariant('button')],
+])
+const getTogglePropRenderFn = R.cond([
+  [R.isNil, R.always(PropToggleSwitch)],
+  [R.equals(propVariant.SWITCH), R.always(PropToggleSwitch)],
+  [R.equals(propVariant.BUTTON), R.always(PropToggleButton)],
+  [R.equals(propVariant.CHECKBOX), R.always(PropToggleCheckbox)],
+  [R.T, invalidVariant('toggle')],
+])
 const getMediaPropRenderFn = R.cond([
   [R.equals(propVariant.PICTURE), R.always(PropPicture)],
   [R.equals(propVariant.VIDEO), R.always(PropVideo)],
@@ -78,6 +94,7 @@ const getSelectorPropRenderFn = R.cond([
   [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
   [R.equals(propVariant.COMBOBOX_MULTI), R.always(PropComboBoxMulti)],
   [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
+  [R.equals(propVariant.HCHECKBOX), R.always(PropHCheckbox)],
   [R.equals(propVariant.HRADIO), R.always(PropHRadio)],
   [R.equals(propVariant.HSTEPPER), R.always(PropHStepper)],
   [R.equals(propVariant.NESTED), R.always(PropNested)],
@@ -127,45 +144,75 @@ export const getRendererFn = R.cond([
   ],
 ])
 
-export const PropBase = ({ prop, children }) => {
+export const PropWrapper = ({ prop, children }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     tooltipTitle: R.prop('help'),
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
+    subtitle: R.prop('subtitle'),
     type: R.cond([
       [
-        R.pipe(
-          R.prop('variant'),
-          R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
+        R.both(
+          R.pipe(R.prop('type'), R.equals(propId.BUTTON), R.not),
+          R.pipe(
+            R.prop('variant'),
+            R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
+          )
         ),
         R.always(propContainer.NONE),
       ],
       [R.has('container'), R.prop('container')],
       [
         R.pipe(R.prop('type'), R.equals(propId.HEAD)),
-        R.always(propContainer.NONE),
+        R.always(propContainer.MINIMAL),
       ],
     ]),
     marquee: R.prop('marquee'),
     elevation: R.prop('elevation'),
-    style: R.prop('style'),
+    // NOTE: `style` is deprecated and will be
+    // removed in v4.0.0 in favor of `containerStyle`
+    style: R.propOr(prop.style, 'containerStyle'),
   })(prop)
   return <PropContainer {...containerProps}>{children}</PropContainer>
 }
 
+const placementStyles = {
+  // Top alignments
+  [propPlacements.TOP_LEFT]: { mr: 'auto', mb: 'auto' },
+  [propPlacements.TOP_CENTER]: { mx: 'auto', mb: 'auto' },
+  [propPlacements.TOP_RIGHT]: { ml: 'auto', mb: 'auto' },
+  // Center alignments
+  [propPlacements.LEFT]: { mr: 'auto', my: 'auto' },
+  [propPlacements.CENTER]: { m: 'auto' },
+  [propPlacements.RIGHT]: { ml: 'auto', my: 'auto' },
+  // Bottom alignments
+  [propPlacements.BOTTOM_LEFT]: { mr: 'auto', mt: 'auto' },
+  [propPlacements.BOTTOM_CENTER]: { mx: 'auto', mt: 'auto' },
+  [propPlacements.BOTTOM_RIGHT]: { ml: 'auto', mt: 'auto' },
+}
+
 const Prop = (props) => {
   const prop = R.propOr({}, 'prop')(props)
-  const { type, variant, enabled = true } = prop
+  const { type, variant, enabled = true, placement, propStyle } = prop
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
   return (
-    <PropBase {...{ prop }}>
+    <PropWrapper {...{ prop }}>
       <PropComponent
-        sx={{ boxSizing: 'border-box' }}
-        {...R.assocPath(['prop', 'enabled'], enabled, props)}
+        sx={[
+          {
+            boxSizing: 'border-box',
+            // bgcolor: 'rgb(255 0 0 / .08)', // FIXME: Remove after debugging
+          },
+          placement && placementStyles[placement],
+        ]}
+        {...R.pipe(
+          R.assocPath(['prop', 'enabled'], enabled),
+          R.assocPath(['prop', 'style'], propStyle)
+        )(props)}
       />
-    </PropBase>
+    </PropWrapper>
   )
 }
 
