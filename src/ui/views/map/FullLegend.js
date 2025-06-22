@@ -12,7 +12,14 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdExpandMore, MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -32,6 +39,7 @@ import {
   GroupScaleControls,
 } from './Legend'
 import SizeLegend from './SizeLegend'
+import { MapContext } from './useMapApi'
 import useMapFilter from './useMapFilter'
 
 import {
@@ -107,7 +115,6 @@ const styles = {
 }
 
 const LegendRowDetails = ({
-  mapId,
   legendGroupId,
   id,
   icon,
@@ -142,6 +149,7 @@ const LegendRowDetails = ({
   onToggleExpanded,
   getRange,
 }) => {
+  const { mapId } = useContext(MapContext)
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -162,7 +170,6 @@ const LegendRowDetails = ({
     handleChangeShape,
     handleChangePropAttr,
   } = useLegendDetails({
-    mapId,
     legendGroupId,
     id,
     group,
@@ -185,7 +192,6 @@ const LegendRowDetails = ({
     handleCloseFilter,
     handleSaveFilters,
   } = useMapFilter({
-    mapId,
     group,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
@@ -337,7 +343,7 @@ const LegendRowDetails = ({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, px: 1 }}>
           {/* TODO: Improve location/width of `ShapePicker` */}
-          <Stack spacing={1} sx={{ mb: 1 }}>
+          <Stack useFlexGap spacing={1} sx={{ mb: 1 }}>
             {showShapePicker && (
               <ShapePicker
                 label={shapeLabel}
@@ -353,7 +359,7 @@ const LegendRowDetails = ({
 
             {showLegendAdvancedControls && showGroupControls && (
               <GroupScaleControls
-                {...{ mapId, groupScaleWithZoom, ...groupScaleSlider }}
+                {...{ groupScaleWithZoom, ...groupScaleSlider }}
                 onChangeLegendAttr={handleChangeLegendAttr}
               />
             )}
@@ -369,7 +375,6 @@ const LegendRowDetails = ({
                       : colorRange
                   }
                   {...{
-                    mapId,
                     group,
                     colorBy,
                     colorByOptions,
@@ -393,7 +398,6 @@ const LegendRowDetails = ({
                       : sizeRange
                   }
                   {...{
-                    mapId,
                     icon,
                     group,
                     sizeBy,
@@ -416,7 +420,6 @@ const LegendRowDetails = ({
                   valueRange={heightRange}
                   {...{
                     legendGroupId,
-                    mapId,
                     heightBy,
                     heightByOptions,
                     featureTypeProps,
@@ -435,7 +438,8 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
+const LegendRow = ({ id, mapFeaturesBy, ...props }) => {
+  const { mapId } = useContext(MapContext)
   const mapFeatures = mapFeaturesBy(id, mapId)
   const featureTypeValues = useMemo(
     () => R.pluck('values')(mapFeatures),
@@ -447,7 +451,7 @@ const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
     <LegendRowDetails
       name={mapFeatures[0].name ?? id}
       featureTypeProps={mapFeatures[0].props}
-      {...{ id, mapId, featureTypeValues, ...props }}
+      {...{ id, featureTypeValues, ...props }}
     />
   )
 }
@@ -465,7 +469,6 @@ const MapFeature = ({ id, ...props }) => {
 
 const LegendGroup = ({
   expandAll,
-  mapId,
   legendGroup,
   showLegendGroupNames,
   legendLayout,
@@ -547,7 +550,7 @@ const LegendGroup = ({
             // Unlike `expanded` and `onToggleExpanded` where `id` is
             // embedded, `setExpandedBy` is passed as is to avoid an
             // infinite loop on `LegendRowDetails`'s `useEffect`.
-            {...{ mapId, id, legendLayout, setExpandedBy, ...props }}
+            {...{ id, legendLayout, setExpandedBy, ...props }}
           />
         ))}
       </OptionalWrapper>
@@ -555,7 +558,8 @@ const LegendGroup = ({
   )
 }
 
-const LegendGroups = ({ mapId, ...props }) => {
+const LegendGroups = (props) => {
+  const { mapId } = useContext(MapContext)
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])
   const showWrapper = useMemo(() => {
@@ -564,23 +568,20 @@ const LegendGroups = ({ mapId, ...props }) => {
   return (
     <OptionalWrapper component="div" wrap={showWrapper}>
       {legendData.map((legendGroup) => (
-        <LegendGroup
-          key={legendGroup.id}
-          {...{ mapId, legendGroup, ...props }}
-        />
+        <LegendGroup key={legendGroup.id} {...{ legendGroup, ...props }} />
       ))}
     </OptionalWrapper>
   )
 }
 
-const FullLegend = ({ mapId }) => {
+const FullLegend = () => {
+  const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendWidth = useSelector(selectLegendWidth)[mapId]
   const [expandAll, handleExpandAll] = useToggle(true)
   const popperProps = useLegendPopper()
   return (
     <LegendRoot
-      {...{ mapId }}
       spacing={showLegendGroupNames ? 0 : 1}
       sx={[
         styles.root,
@@ -589,18 +590,15 @@ const FullLegend = ({ mapId }) => {
       ]}
     >
       <LegendHeader
-        {...{ mapId, popperProps }}
+        {...{ popperProps }}
         slotProps={{
           label: { variant: 'h5', sx: { pl: 1 } },
           icon: { size: 24 },
         }}
       >
-        <LegendSettings
-          {...{ mapId, expandAll }}
-          onExpandAll={handleExpandAll}
-        />
+        <LegendSettings {...{ expandAll }} onExpandAll={handleExpandAll} />
       </LegendHeader>
-      <LegendGroups {...{ mapId, expandAll, showLegendGroupNames }} />
+      <LegendGroups {...{ expandAll, showLegendGroupNames }} />
     </LegendRoot>
   )
 }

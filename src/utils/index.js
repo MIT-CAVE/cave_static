@@ -1165,3 +1165,35 @@ export const constructGeoJson = (
       )(itemDataFunc(mapId)),
     MAX_MEMOIZED_CHARTS
   )
+
+const isMapboxUrl = (url) =>
+  typeof url === 'string' &&
+  (url.startsWith('mapbox://') ||
+    url.includes('api.mapbox.com') ||
+    url.includes('tiles.mapbox.com') ||
+    url.includes('fonts.mapbox.com') ||
+    url.includes('mapbox.com'))
+
+export const isMapboxStyle = (mapStyle) => {
+  // Check if it's a known Mapbox style endpoint
+  if (typeof mapStyle === 'string') {
+    return isMapboxUrl(mapStyle)
+  }
+
+  if (!mapStyle || typeof mapStyle !== 'object') return false
+
+  const { glyphs, sprite, sources, metadata } = mapStyle
+  if (isMapboxUrl(glyphs) || isMapboxUrl(sprite)) return true
+  if (sources) {
+    for (const source of Object.values(sources)) {
+      if (isMapboxUrl(source.url)) return true
+    }
+  }
+  if (metadata) {
+    for (const key in metadata) {
+      if (key.startsWith('mapbox:')) return true
+    }
+  }
+
+  return false
+}

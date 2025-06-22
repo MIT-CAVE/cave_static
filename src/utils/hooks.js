@@ -98,6 +98,7 @@ export const useMutateStateWithSync = (getArgs, deps) => {
       //   return useRecursiveCallback(callback, deps)
       // }
       const args = getArgs(...params)
+      if (!args) return
       dispatch(
         mutateLocal({
           sync: !includesPath(Object.values(sync), args.path),

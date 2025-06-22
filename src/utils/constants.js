@@ -101,7 +101,7 @@ export const LIGHT_GLOBE_FOG = {
   ],
 }
 
-export const DEFAULT_MAP_STYLES = {
+export const DEFAULT_MAP_STYLE_OBJECTS = {
   mapboxDark: {
     name: 'Mapbox Dark',
     icon: 'si/SiMapbox',

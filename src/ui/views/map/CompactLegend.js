@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useContext, useMemo } from 'react'
 import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -32,6 +32,7 @@ import {
   GroupScaleControls,
 } from './Legend'
 import SizeLegend from './SizeLegend'
+import { MapContext } from './useMapApi'
 import useMapFilter from './useMapFilter'
 
 import {
@@ -92,7 +93,6 @@ const styles = {
 }
 
 const LegendRowDetails = ({
-  mapId,
   legendGroupId,
   id,
   icon,
@@ -125,6 +125,7 @@ const LegendRowDetails = ({
   getRange,
   onChangeVisibility,
 }) => {
+  const { mapId } = useContext(MapContext)
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -145,7 +146,6 @@ const LegendRowDetails = ({
     handleChangeShape,
     handleChangePropAttr,
   } = useLegendDetails({
-    mapId,
     legendGroupId,
     id,
     group,
@@ -168,7 +168,6 @@ const LegendRowDetails = ({
     handleCloseFilter,
     handleSaveFilters,
   } = useMapFilter({
-    mapId,
     group,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
@@ -276,7 +275,7 @@ const LegendRowDetails = ({
           </IconButton>
         </Grid>
       </Grid>
-      <Stack spacing={1} sx={{ mb: 1 }}>
+      <Stack useFlexGap spacing={1} sx={{ mb: 1 }}>
         {showShapePicker && (
           <ShapePicker
             label={shapeLabel}
@@ -291,7 +290,7 @@ const LegendRowDetails = ({
         )}
         {showLegendAdvancedControls && showGroupControls && (
           <GroupScaleControls
-            {...{ mapId, groupScaleWithZoom, ...groupScaleSlider }}
+            {...{ groupScaleWithZoom, ...groupScaleSlider }}
             onChangeLegendAttr={handleChangeLegendAttr}
           />
         )}
@@ -314,7 +313,6 @@ const LegendRowDetails = ({
                   : colorRange
               }
               {...{
-                mapId,
                 group,
                 colorBy,
                 colorByOptions,
@@ -360,7 +358,6 @@ const LegendRowDetails = ({
               valueRange={heightRange}
               {...{
                 legendGroupId,
-                mapId,
                 heightBy,
                 heightByOptions,
                 featureTypeProps,
@@ -378,16 +375,10 @@ const LegendRowDetails = ({
 }
 
 const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
-  const {
-    mapId,
-    id,
-    group,
-    icon,
-    colorBy,
-    filters,
-    getRange,
-    onChangeVisibility,
-  } = props
+  const { mapId } = useContext(MapContext)
+
+  const { id, group, icon, colorBy, filters, getRange, onChangeVisibility } =
+    props
   const legendWidth = useSelector(selectLegendWidth)[mapId]
 
   const mapFeatures = mapFeaturesBy(id, mapId)
@@ -456,12 +447,12 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
         </Grid>
         <Grid size="auto">
           <LegendPopper
-            {...{ mapId, anchorEl, onClose }}
+            {...{ anchorEl, onClose }}
             IconComponent={() => (
               <LegendColorMarker
                 colorByProp={featureTypeProps[colorBy]}
                 anyNullValue={hasAnyNullValue(colorBy)}
-                {...{ mapId, id, group, colorBy, getRange }}
+                {...{ id, group, colorBy, getRange }}
               />
             )}
             slotProps={{
@@ -491,7 +482,8 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
   )
 }
 
-const MapFeature = ({ mapId, legendGroupId, id, value, ...props }) => {
+const MapFeature = ({ legendGroupId, id, value, ...props }) => {
+  const { mapId } = useContext(MapContext)
   const nodeTypes = useSelector(selectNodeTypeKeys)
   const arcTypes = useSelector(selectArcTypeKeys)
   const handleChangeVisibility = useMutateStateWithSync(
@@ -519,7 +511,7 @@ const MapFeature = ({ mapId, legendGroupId, id, value, ...props }) => {
   return (
     <LegendRowClass
       LegendRowComponent={LegendRow}
-      {...{ mapId, legendGroupId, id, value, ...props }}
+      {...{ legendGroupId, id, value, ...props }}
       onChangeVisibility={handleChangeVisibility}
     />
   )
@@ -538,10 +530,10 @@ const StyledWrapper = (props) => (
 )
 
 const LegendGroup = ({
-  mapId,
   legendGroup,
   popperProps: { anchorEl, openId, handleClose, handleOpenById },
 }) => {
+  const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
@@ -566,7 +558,7 @@ const LegendGroup = ({
             anchorEl={id === openId || openId == null ? anchorEl : null}
             onOpen={handleOpenById(id)}
             onClose={handleClose}
-            {...{ mapId, id, value, ...props }}
+            {...{ id, value, ...props }}
           />
         ))}
       </Stack>
@@ -574,7 +566,8 @@ const LegendGroup = ({
   )
 }
 
-const LegendGroups = ({ mapId, ...props }) => {
+const LegendGroups = ({ ...props }) => {
+  const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
 
@@ -588,30 +581,27 @@ const LegendGroups = ({ mapId, ...props }) => {
   return (
     <StyledWrapper wrap={showWrapper}>
       {legendData.map((legendGroup) => (
-        <LegendGroup
-          key={legendGroup.id}
-          {...{ mapId, legendGroup, ...props }}
-        />
+        <LegendGroup key={legendGroup.id} {...{ legendGroup, ...props }} />
       ))}
     </StyledWrapper>
   )
 }
 
-const CompactLegend = ({ mapId }) => {
+const CompactLegend = () => {
   const popperProps = useLegendPopper()
   return (
-    <LegendRoot sx={styles.root} elevation={12} {...{ mapId }}>
+    <LegendRoot sx={styles.root} elevation={12}>
       <LegendHeader
-        {...{ mapId, popperProps }}
+        {...{ popperProps }}
         sx={{ my: 0 }}
         slotProps={{
           popper: { sx: { zIndex: 3 } },
           icon: { size: 20 },
         }}
       >
-        <LegendSettings {...{ mapId }} />
+        <LegendSettings />
       </LegendHeader>
-      <LegendGroups {...{ mapId, popperProps }} />
+      <LegendGroups {...{ popperProps }} />
     </LegendRoot>
   )
 }

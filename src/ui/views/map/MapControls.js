@@ -1,6 +1,6 @@
 import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useState, useMemo } from 'react'
+import { memo, useState, useMemo, useContext } from 'react'
 import {
   MdAdd,
   MdFilterAlt,
@@ -15,6 +15,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import { WithBadge } from './Legend'
+import { MapContext } from './useMapApi'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -190,8 +191,10 @@ const MapNavButtons = memo(({ mapId }) => {
   )
 })
 
-const MapControls = ({ allowProjections, mapId }) => {
+const MapControls = ({ allowProjections }) => {
   const [hover, setHover] = useState(false)
+  const { mapId } = useContext(MapContext)
+
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
   const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)

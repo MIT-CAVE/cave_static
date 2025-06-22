@@ -3,8 +3,6 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useState } from 'react'
 import { TfiMapAlt } from 'react-icons/tfi'
-import ReactMapboxGL, { Marker, NavigationControl } from 'react-map-gl'
-import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
 
 import NumberInput from './NumberInput'
@@ -14,6 +12,7 @@ import {
   selectMapboxToken,
 } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
+import useMapApi from '../views/map/useMapApi'
 
 import { forceArray } from '../../utils'
 
@@ -50,13 +49,16 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const { enabled, placeholder } = prop
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
 
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
-  const mapStyle = isMapboxTokenProvided
-    ? 'mapbox://styles/mapbox/dark-v11'
-    : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+  const mapStyle =
+    prop.mapStyle ??
+    (isMapboxTokenProvided
+      ? 'mapbox://styles/mapbox/dark-v11'
+      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json')
+
+  const { ReactMapGl, Marker, NavigationControl } = useMapApi(mapStyle)
 
   const handleChangeLatitude = useCallback(
     (latitude) => {
@@ -107,7 +109,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
             event.stopPropagation()
           }}
         >
-          <ReactMapGL
+          <ReactMapGl
             mapboxAccessToken={mapboxToken}
             style={styles.map}
             {...{ mapStyle, ...viewState }}
@@ -121,7 +123,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
               onDragEnd={handleDragEnd}
             />
             <NavigationControl />
-          </ReactMapGL>
+          </ReactMapGl>
         </Popper>
       </ClickAwayListener>
 

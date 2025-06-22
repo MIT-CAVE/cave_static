@@ -2,12 +2,20 @@ import { colord } from 'colord'
 import earcut from 'earcut'
 import { MercatorCoordinate } from 'maplibre-gl'
 import * as R from 'ramda'
-import { memo, useState, useEffect, useRef, useCallback } from 'react'
+import {
+  memo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
-import { Layer, useMap } from 'react-map-gl'
 import { useSelector } from 'react-redux'
 import * as THREE from 'three'
+
+import useMapApi, { MapContext } from './useMapApi'
 
 import { selectSettingsIconUrl } from '../../../data/selectors'
 import { ICON_RESOLUTION } from '../../../utils/constants'
@@ -126,14 +134,16 @@ const geoJsonToSegments = (features, layerId) => {
 }
 
 export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
-  const { current: map } = useMap()
-  const layer = map.getLayer('3d-model')
-  const canvas = map.getCanvas()
-
+  const { mapId } = useContext(MapContext)
   const clickHandler = useRef()
   const hoverHandler = useRef()
 
+  const { Layer, mapRef } = useMapApi(mapId)
+  const map = mapRef?.current
+
   const id = '3d-model'
+  const layer = map?.getLayer('3d-model')
+  const canvas = map?.getCanvas()
 
   useEffect(() => {
     // Generate meshes from array of geoJson features
@@ -158,6 +168,8 @@ export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
     },
     [canvas]
   )
+
+  if (!map) return null
 
   // configuration of the custom layer per the CustomLayerInterface
   const customLayer = {
@@ -614,22 +626,28 @@ const CustomLayer = memo(
     onClick = () => {},
     getScale = () => [1, 1, 1],
   }) => {
-    const { current: map } = useMap()
-    const layer = map.getLayer(id)
-    const canvas = map.getCanvas()
-
+    const { mapId } = useContext(MapContext)
     const clickHandler = useRef()
     const hoverHandler = useRef()
     const prevObjects = useRef()
+
+    const { Layer, mapRef } = useMapApi(mapId)
+    const map = mapRef?.current
+
+    const layer = map?.getLayer(id)
+    const canvas = map?.getCanvas()
 
     /**
      * Recursively traverse up the scene tree to find the encompassing Three.js
      * object that represents the map feature which contains the given object.
      */
-    const getObjectContainer = (object) =>
-      R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object
+    const getObjectContainer = useCallback(
+      (object) =>
+        R.isEmpty(object.userData) ? getObjectContainer(object.parent) : object,
+      []
+    )
 
-    const createDuplicates = (objects) => {
+    const createDuplicates = useCallback((objects) => {
       const duplicates = []
 
       R.forEach((object) => {
@@ -643,7 +661,7 @@ const CustomLayer = memo(
       }, objects)
 
       return duplicates
-    }
+    }, [])
 
     /**
      * Sets the renderOrder property of the map features based on its distance from the camera.
@@ -651,7 +669,7 @@ const CustomLayer = memo(
      *
      * @param {THREE.Object3D} object The Three.js Group object that contains all the map features.
      */
-    const setRenderOrder = (object) => {
+    const setRenderOrder = useCallback((object) => {
       const cameraPosition = new THREE.Vector3()
       camera.getWorldPosition(cameraPosition)
 
@@ -680,26 +698,35 @@ const CustomLayer = memo(
       }
 
       setChildrenRenderOrder(object)
-    }
+    }, [])
 
-    const setZoom = (object, zoom) => {
-      if (object.isGroup)
-        R.forEach((child) => {
-          setZoom(child, zoom)
-        }, object.children)
-      else object.scale.set(...getScale(object, zoom))
-    }
-
-    const setObjectColor = (object, color) => {
-      const container = getObjectContainer(object)
-      const setChildrenColor = (object, color) => {
+    const setZoom = useCallback(
+      (object, zoom) => {
         if (object.isGroup)
-          R.forEach((child) => setChildrenColor(child, color), object.children)
-        else object.material.color.set(color)
-      }
+          R.forEach((child) => {
+            setZoom(child, zoom)
+          }, object.children)
+        else object.scale.set(...getScale(object, zoom))
+      },
+      [getScale]
+    )
 
-      setChildrenColor(container, color)
-    }
+    const setObjectColor = useCallback(
+      (object, color) => {
+        const container = getObjectContainer(object)
+        const setChildrenColor = (object, color) => {
+          if (object.isGroup)
+            R.forEach(
+              (child) => setChildrenColor(child, color),
+              object.children
+            )
+          else object.material.color.set(color)
+        }
+
+        setChildrenColor(container, color)
+      },
+      [getObjectContainer]
+    )
 
     const clearHighlight = () => {
       if (R.isNotNil(highlightedObject))
@@ -728,6 +755,8 @@ const CustomLayer = memo(
       },
       [canvas]
     )
+
+    if (!map) return null
 
     const customLayer = {
       id,

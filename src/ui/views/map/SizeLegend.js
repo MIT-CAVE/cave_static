@@ -215,7 +215,7 @@ const NumericalSizeLegend = ({
       </OverflowText>
 
       {showSizeSlider && (
-        <Stack>
+        <Stack useFlexGap>
           <SizeSlider
             value={sizeSliderProps.value}
             onClose={handleClose}
@@ -353,7 +353,7 @@ const CategoricalSizeLegend = ({
       </OverflowText>
       {showSizeSlider && (
         <SizeSlider
-          styleOverrides={{ marginBottom: '32px' }}
+          sx={{ mb: 4 }}
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
           value={sizeSliderProps.value}
           onClose={handleClose}
@@ -387,6 +387,7 @@ const SizeLegend = ({
     <Paper
       elevation={3}
       component={Stack}
+      useFlexGap // TODO: Handle sizeSlider's `sx` prop
       spacing={2}
       sx={styles.legendSection}
     >

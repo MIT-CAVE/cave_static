@@ -20,13 +20,6 @@ import {
 } from 'react-icons/md'
 import { PiEraser } from 'react-icons/pi'
 import { TfiMapAlt } from 'react-icons/tfi'
-import ReactMapboxGL, {
-  Marker,
-  NavigationControl,
-  Source,
-  Layer,
-} from 'react-map-gl'
-import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
 
 import NumberInput from './NumberInput'
@@ -36,6 +29,7 @@ import {
   selectMapboxToken,
 } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
+import useMapApi from '../views/map/useMapApi'
 
 import { adjustArcPath, forceArray } from '../../utils'
 
@@ -214,7 +208,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     setEditState(edit.RESET)
   }, [getPathData, value])
 
-  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
+  const { ReactMapGl, Layer, Marker, NavigationControl, Source } = useMapApi()
 
   const showMap = Boolean(anchorEl)
   return (
@@ -236,7 +230,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             event.stopPropagation()
           }}
         >
-          <ReactMapGL
+          <ReactMapGl
             {...viewState}
             mapboxAccessToken={mapboxToken}
             style={mapSettings.style}
@@ -260,7 +254,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
               />
             </Source>
             <NavigationControl />
-          </ReactMapGL>
+          </ReactMapGl>
         </Popper>
       </ClickAwayListener>
       {editState !== edit.NONE ? (

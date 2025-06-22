@@ -4,7 +4,7 @@ import * as R from 'ramda'
 import {
   DEFAULT_ICON_URL,
   DEFAULT_VIEWPORT,
-  DEFAULT_MAP_STYLES,
+  DEFAULT_MAP_STYLE_OBJECTS,
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
@@ -49,6 +49,7 @@ import {
   getColorString,
   parseGradient,
   getChartItemColor,
+  isMapboxStyle,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -914,12 +915,23 @@ export const selectZoomFunc = createSelector(
     },
   }
 )
-export const selectCurrentMapStyleFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
+
+export const selectIsMapboxTokenProvided = createSelector(
+  selectMapboxToken,
+  R.both(R.isNotNil, R.isNotEmpty)
+)
+
+export const selectCurrentMapStyleIdFunc = createSelector(
+  [selectIsMapboxTokenProvided, selectCurrentMapDataByMap],
+  (isMapboxTokenProvided, dataObj) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.path(['currentStyle', mapId])(dataObj),
+      (mapId) => {
+        const defaultMapStyleId = isMapboxTokenProvided
+          ? 'mapboxDark'
+          : 'cartoDarkMatter'
+        return R.pathOr(defaultMapStyleId, ['currentStyle', mapId])(dataObj)
+      },
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -935,12 +947,12 @@ export const selectCurrentMapStyleFunc = createSelector(
 )
 
 export const selectCurrentMapProjectionFunc = createSelector(
-  [selectCurrentMapDataByMap, selectMapboxToken],
-  (dataObj, token) =>
+  [selectCurrentMapDataByMap, selectIsMapboxTokenProvided],
+  (dataObj, isMapboxTokenProvided) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        token !== ''
+        isMapboxTokenProvided
           ? R.pathOr('mercator', ['currentProjection', mapId])(dataObj)
           : 'mercator',
       MAX_MEMOIZED_CHARTS
@@ -957,15 +969,12 @@ export const selectCurrentMapProjectionFunc = createSelector(
   }
 )
 export const selectIsGlobeNotMemoized = createSelector(
-  [selectViewportsByMap, selectCurrentMapDataByMap, selectMapboxToken],
-  (viewportsByMap, dataObj, token) =>
+  [selectViewportsByMap, selectCurrentMapProjectionFunc],
+  (viewportsByMap, currentMapProjectionFunc) =>
     R.pipe(
       R.toPairs,
       R.map(([mapId]) => {
-        const mapProjection =
-          token !== ''
-            ? R.pathOr('mercator', ['currentProjection', mapId], dataObj)
-            : 'mercator'
+        const mapProjection = currentMapProjectionFunc(mapId)
         const zoom = R.path([mapId, 'zoom'], viewportsByMap)
         return [mapId, mapProjection === 'globe' && zoom < 6]
       }),
@@ -998,21 +1007,15 @@ export const selectIsGlobe = createSelector(
     },
   }
 )
-export const selectIsMapboxTokenProvided = createSelector(
-  selectMapboxToken,
-  R.both(R.isNotNil, R.isNotEmpty)
-)
 export const selectMapStyleOptions = createSelector(
   [selectOrderedMaps, selectIsMapboxTokenProvided],
   (data, isMapboxTokenProvided) =>
     R.pipe(
       orderEntireDict,
       R.propOr([], 'additionalMapStyles'),
-      R.mergeRight(DEFAULT_MAP_STYLES),
+      R.mergeRight(DEFAULT_MAP_STYLE_OBJECTS),
       R.filter(
-        (style) =>
-          isMapboxTokenProvided ||
-          R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
+        (styleObj) => isMapboxTokenProvided || !isMapboxStyle(styleObj.spec)
       )
     )(data)
 )

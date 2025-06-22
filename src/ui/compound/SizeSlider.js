@@ -4,6 +4,8 @@ import { useCallback, useMemo, useState } from 'react'
 
 import OverflowText from './OverflowText'
 
+import { forceArray } from '../../utils'
+
 export const useSizeSlider = (onChangeSize, unit = 'px') => {
   const [sizeSliderProps, setSizeSliderProps] = useState({})
 
@@ -49,7 +51,7 @@ const SizeSlider = ({
   unit = 'px',
   min: minValue = 1,
   max: maxValue = 100,
-  styleOverrides,
+  sx = [],
   onChange,
   onChangeCommitted,
   ...props
@@ -83,13 +85,10 @@ const SizeSlider = ({
   return (
     <Slider
       // BUG: For some reason the `sx` prop doesn't work here when used in `CategoricalSizeLegend`
-      style={{
-        marginTop: '40px',
-        width: '85%',
-        alignSelf: 'center',
-        boxSizing: 'border-box',
-        ...styleOverrides,
-      }}
+      sx={[
+        { mt: 4, width: '85%', alignSelf: 'center', boxSizing: 'border-box' },
+        ...forceArray(sx),
+      ]}
       min={minValue}
       max={maxValue}
       valueLabelDisplay="on"
