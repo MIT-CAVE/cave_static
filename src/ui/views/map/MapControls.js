@@ -1,6 +1,7 @@
 import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useState, useMemo, useContext } from 'react'
+import { BsGlobe2, BsMap } from 'react-icons/bs'
 import {
   MdAdd,
   MdFilterAlt,
@@ -15,9 +16,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import { WithBadge } from './Legend'
-import { MapContext } from './useMapApi'
+import useMapApi, { MapContext } from './useMapApi'
 
-import { mutateLocal } from '../../../data/local'
 import {
   bearingSliderToggle,
   bearingUpdate,
@@ -36,7 +36,6 @@ import {
   selectBearingFunc,
   selectPitchFunc,
   selectStaticMap,
-  selectSync,
   selectLegendDataFunc,
 } from '../../../data/selectors'
 import {
@@ -46,13 +45,16 @@ import {
   MIN_PITCH,
 } from '../../../utils/constants'
 import { unitPlacements } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
-import { FetchedIcon, TooltipButton } from '../../compound'
+import { TooltipButton } from '../../compound'
 
-import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
+import { NumberFormat, getSliderMarks } from '../../../utils'
+
+const LIGHT_SLIDER_COLOR = '#0288d1'
 
 const styles = {
-  getRoot: (hover) => ({
+  root: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'end',
@@ -64,10 +66,7 @@ const styles = {
     button: {
       width: '42px',
     },
-    'button,.MuiSlider-root': {
-      opacity: hover ? 1 : 0.8,
-    },
-  }),
+  },
   btnGroup: {
     bgcolor: 'background.paper',
   },
@@ -126,8 +125,8 @@ const styles = {
   },
   bearingSlider: {
     '& .MuiSlider-thumb': {
-      height: 20,
-      width: 20,
+      height: '20px',
+      width: '20px',
       border: 2,
       borderColor: 'currentcolor',
       '&:focus, &:hover, &$active': {
@@ -137,6 +136,20 @@ const styles = {
     '& .MuiSlider-rail': {
       height: 3,
       borderRadius: '4px',
+    },
+  },
+  lightSlider: {
+    '.MuiSlider-track': { color: LIGHT_SLIDER_COLOR },
+    '.MuiSlider-thumb': { color: LIGHT_SLIDER_COLOR },
+    '.MuiSlider-rail': { color: LIGHT_SLIDER_COLOR },
+    '.MuiSlider-markLabel': { color: 'rgba(0 0 0 / 0.87)' },
+    '& .MuiSlider-thumb': {
+      '&:hover': {
+        boxShadow: `0 0 0 8px ${LIGHT_SLIDER_COLOR}0f`,
+      },
+      '&:active': {
+        boxShadow: `0 0 0 14px ${LIGHT_SLIDER_COLOR}0f`,
+      },
     },
   },
 }
@@ -191,9 +204,10 @@ const MapNavButtons = memo(({ mapId }) => {
   )
 })
 
-const MapControls = ({ allowProjections }) => {
+const MapControls = () => {
   const [hover, setHover] = useState(false)
   const { mapId } = useContext(MapContext)
+  const { isMapboxSelected, isDarkStyle } = useMapApi(mapId)
 
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
@@ -202,7 +216,6 @@ const MapControls = ({ allowProjections }) => {
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const isStatic = useSelector(selectStaticMap)
-  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const legendData = useSelector(selectLegendDataFunc)(mapId)
@@ -230,13 +243,6 @@ const MapControls = ({ allowProjections }) => {
     [legendData]
   )
 
-  const syncProjection = !includesPath(R.values(sync), [
-    'maps',
-    'data',
-    mapId,
-    'currentProjection',
-  ])
-
   const getDegreeFormat = (value) =>
     NumberFormat.format(value, {
       unit: 'º',
@@ -244,18 +250,35 @@ const MapControls = ({ allowProjections }) => {
       unitPlacement: unitPlacements.AFTER,
     })
 
+  const rootStyle = useMemo(
+    () => [
+      styles.root,
+      !isMapboxSelected && { bottom: '40px' },
+      { 'button,.MuiSlider-root': { opacity: hover ? 1 : 0.8 } },
+    ],
+    [hover, isMapboxSelected]
+  )
+
+  const createHandleChangeProjection = useMutateStateWithSync(
+    (projection) => ({
+      path: ['maps', 'data', mapId, 'currentProjection'],
+      value: projection,
+    }),
+    [mapId]
+  )
+
   return (
     <>
       {/* Map controls */}
       <Box
-        sx={[styles.getRoot(hover), styles.mapControls]}
+        sx={[...rootStyle, styles.mapControls]}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
         {showPitchSlider && (
           <Box sx={styles.pitch}>
             <Slider
-              sx={styles.pitchSlider}
+              sx={[styles.pitchSlider, !isDarkStyle && styles.lightSlider]}
               min={MIN_PITCH}
               max={MAX_PITCH}
               orientation="vertical"
@@ -270,7 +293,7 @@ const MapControls = ({ allowProjections }) => {
         {isStatic ? [] : <MapNavButtons mapId={mapId} />}
       </Box>
       <Box
-        sx={styles.getRoot(hover)}
+        sx={rootStyle}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
@@ -304,6 +327,24 @@ const MapControls = ({ allowProjections }) => {
             </TooltipButton>
           </ButtonGroup>
 
+          {/* Projection */}
+          <ButtonGroup sx={styles.btnGroup} variant="contained">
+            <TooltipButton
+              title={tooltipTitles.globeProjection}
+              placement="top"
+              onClick={() => createHandleChangeProjection('globe')}
+            >
+              <BsGlobe2 />
+            </TooltipButton>
+            <TooltipButton
+              title={tooltipTitles.mercatorProjection}
+              placement="top"
+              onClick={() => createHandleChangeProjection('mercator')}
+            >
+              <BsMap />
+            </TooltipButton>
+          </ButtonGroup>
+
           {/* Map styles */}
           <ButtonGroup
             sx={styles.btnGroup}
@@ -320,41 +361,6 @@ const MapControls = ({ allowProjections }) => {
               <MdMap />
             </TooltipButton>
           </ButtonGroup>
-          {/* Projection */}
-          {allowProjections && (
-            <ButtonGroup sx={styles.btnGroup} variant="contained">
-              <TooltipButton
-                title={tooltipTitles.globeProjection}
-                placement="top"
-                onClick={() =>
-                  dispatch(
-                    mutateLocal({
-                      path: ['maps', 'data', mapId, 'currentProjection'],
-                      value: 'globe',
-                      sync: syncProjection,
-                    })
-                  )
-                }
-              >
-                <FetchedIcon iconName="bs/BsGlobe2" />
-              </TooltipButton>
-              <TooltipButton
-                title={tooltipTitles.mercatorProjection}
-                placement="top"
-                onClick={() => {
-                  dispatch(
-                    mutateLocal({
-                      path: ['maps', 'data', mapId, 'currentProjection'],
-                      value: 'mercator',
-                      sync: syncProjection,
-                    })
-                  )
-                }}
-              >
-                <FetchedIcon iconName="bs/BsMap" />
-              </TooltipButton>
-            </ButtonGroup>
-          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
@@ -383,9 +389,9 @@ const MapControls = ({ allowProjections }) => {
       </Box>
 
       {showBearingSlider && (
-        <Box sx={styles.bearing}>
+        <Box sx={[styles.bearing, !isMapboxSelected && { bottom: '80px' }]}>
           <Slider
-            sx={styles.bearingSlider}
+            sx={[styles.bearingSlider, !isDarkStyle && styles.lightSlider]}
             min={MIN_BEARING}
             max={MAX_BEARING}
             value={bearing}

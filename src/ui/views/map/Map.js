@@ -25,17 +25,25 @@ import {
   selectAllNodeIcons,
   selectMapboxToken,
 } from '../../../data/selectors'
-import { ICON_RESOLUTION } from '../../../utils/constants'
+import {
+  DARK_GLOBE_FOG,
+  DARK_SKY_SPEC,
+  ICON_RESOLUTION,
+  LIGHT_GLOBE_FOG,
+  LIGHT_SKY_SPEC,
+} from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { fetchIcon } from '../../../utils'
 
+import 'mapbox-gl/dist/mapbox-gl.css'
+import 'maplibre-gl/dist/maplibre-gl.css'
+
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
   const mapRef = useRef(false)
   const highlight = useRef(null)
-  const fogTimeout = useRef(null)
   const containerRef = useRef(null)
   const demoInterval = useRef(-1)
 
@@ -60,8 +68,13 @@ const Map = ({ mapId }) => {
 
   const interactiveLayerIds = useMemo(() => R.values(layerId), [])
 
-  const { ReactMapGl, isMapboxSelected, mapStyle, defaultFog } =
-    useMapApi(mapId)
+  const {
+    ReactMapGl,
+    isDarkStyle,
+    isMapboxSelected,
+    mapStyle,
+    mapStyleOption,
+  } = useMapApi(mapId)
 
   useEffect(() => {
     const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
@@ -103,17 +116,25 @@ const Map = ({ mapId }) => {
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 
-  const loadFog = useCallback(() => {
-    if (!isMapboxSelected) return
+  const loadSkyAndFog = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map || !map.isStyleLoaded()) return
 
-    if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      const map = mapRef.current.getMap()
-      map.setFog(mapStyle.fog ?? defaultFog)
-      fogTimeout.current = null
+    if (isMapboxSelected) {
+      const defaultFog = isDarkStyle ? DARK_GLOBE_FOG : LIGHT_GLOBE_FOG
+      map.setFog(mapStyleOption.fog ?? mapStyle.fog ?? defaultFog)
     } else {
-      fogTimeout.current = setTimeout(loadFog, 100)
+      const defaultSky = isDarkStyle ? DARK_SKY_SPEC : LIGHT_SKY_SPEC
+      map.setSky(mapStyleOption.sky ?? mapStyle.sky ?? defaultSky)
     }
-  }, [mapStyle?.fog, defaultFog, isMapboxSelected])
+  }, [
+    isDarkStyle,
+    isMapboxSelected,
+    mapStyle?.fog,
+    mapStyle?.sky,
+    mapStyleOption?.fog,
+    mapStyleOption?.sky,
+  ])
 
   const loadIconsToStyle = useCallback(() => {
     R.forEachObjIndexed((iconImage, iconName) => {
@@ -125,11 +146,7 @@ const Map = ({ mapId }) => {
 
   useEffect(() => {
     loadIconsToStyle()
-    loadFog()
-    return () => {
-      if (fogTimeout.current) clearTimeout(fogTimeout.current)
-    }
-  }, [iconData, loadFog, loadIconsToStyle])
+  }, [loadIconsToStyle])
 
   const getFeatureFromEvent = useCallback(
     (e) => {
@@ -266,8 +283,8 @@ const Map = ({ mapId }) => {
 
   const handleStyleData = useCallback(() => {
     loadIconsToStyle()
-    loadFog()
-  }, [loadFog, loadIconsToStyle])
+    loadSkyAndFog()
+  }, [loadSkyAndFog, loadIconsToStyle])
 
   useEffect(() => {
     document.addEventListener('clearHighlight', handleMouseOver, false)
@@ -286,20 +303,27 @@ const Map = ({ mapId }) => {
         }}
       >
         <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
-          <MapControls allowProjections={isMapboxSelected} />
+          <MapControls />
           <ReactMapGl
             ref={mapRef}
             hash="map"
             container="map"
+            style={
+              !isMapboxSelected && {
+                backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
+              }
+            }
             mapboxAccessToken={isMapboxSelected && mapboxToken}
             projection={currentMapProjectionFunc(mapId)}
             {...{ mapStyle, interactiveLayerIds, ...viewport }}
+            onStyleData={handleStyleData}
+            onLoad={loadSkyAndFog}
+            onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
+            onRender={handleRender}
             onClick={handleClick}
             onMove={handleMove}
             onMouseMove={handleMouseMove}
-            onStyleData={handleStyleData}
             onMouseOver={handleMouseOver}
-            onRender={handleRender}
           >
             <Geos />
             <IncludedGeos />

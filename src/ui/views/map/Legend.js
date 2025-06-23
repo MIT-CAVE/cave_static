@@ -1181,7 +1181,6 @@ export const LegendHeader = ({
   popperProps,
   children,
 }) => {
-  const { mapId } = useContext(MapContext)
   const { openId, handleOpenById, handleClose } = popperProps
   const anchorEl =
     openId === LEGEND_SETTINGS_POPPER_ID || openId == null
@@ -1221,7 +1220,7 @@ export const LegendHeader = ({
           <LegendPopper
             sx={styles.toggleButton}
             IconComponent={RiSettings5Line}
-            {...{ anchorEl, mapId, slotProps }}
+            {...{ anchorEl, slotProps }}
             onClose={handleClose}
           >
             {children}

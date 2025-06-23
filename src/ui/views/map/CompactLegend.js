@@ -566,7 +566,7 @@ const LegendGroup = ({
   )
 }
 
-const LegendGroups = ({ ...props }) => {
+const LegendGroups = (props) => {
   const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)

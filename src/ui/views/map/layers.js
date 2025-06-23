@@ -1,4 +1,4 @@
-import { useEffect, useState, memo, useContext } from 'react'
+import { useEffect, useState, memo, useContext, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -43,6 +43,8 @@ const DARKEN_FILL_ON_HOVER = [
 
 const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
+  const { Layer, Source, isMapboxSelected } = useMapApi(mapId)
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const useHandleClickFactory = (feature) =>
     useMutateStateWithSync(
@@ -62,7 +64,42 @@ const useMapFeature = () => {
       [mapId]
     )
 
-  return { mapId, createHandleClick: useHandleClickFactory }
+  const arcProps = useMemo(
+    () => ({
+      type: 'line',
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+        visibility: isGlobe ? 'visible' : 'none',
+      },
+      paint: {
+        'line-color': DARKEN_FILL_ON_HOVER,
+        'line-opacity': 0.8,
+        'line-width': ['get', 'size'],
+        // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
+        // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
+        ...(isMapboxSelected && {
+          'line-dasharray': [
+            'case',
+            ['==', ['get', 'dash'], 'dashed'],
+            ['literal', LINE_TYPES.dashed],
+            ['==', ['get', 'dash'], 'dotted'],
+            ['literal', LINE_TYPES.dotted],
+            ['literal', LINE_TYPES.solid],
+          ],
+        }),
+      },
+    }),
+    [isGlobe, isMapboxSelected]
+  )
+
+  return {
+    Layer,
+    Source,
+    arcProps,
+    mapId,
+    createHandleClick: useHandleClickFactory,
+  }
 }
 
 export const Geos = memo(() => {
@@ -72,8 +109,7 @@ export const Geos = memo(() => {
   const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
   const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
 
-  const { mapId, createHandleClick } = useMapFeature()
-  const { Layer, Source } = useMapApi(mapId)
+  const { mapId, arcProps, Layer, Source, createHandleClick } = useMapFeature()
 
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
@@ -135,27 +171,7 @@ export const Geos = memo(() => {
       <Layer
         id={layerId.MULTI_ARC_LAYER_SOLID}
         key={layerId.MULTI_ARC_LAYER_SOLID}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': DARKEN_FILL_ON_HOVER,
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
-          // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'dash'], 'dashed'],
-            ['literal', LINE_TYPES.dashed],
-            ['==', ['get', 'dash'], 'dotted'],
-            ['literal', LINE_TYPES.dotted],
-            ['literal', LINE_TYPES.solid],
-          ],
-        }}
+        {...arcProps}
       />
     </Source>,
   ]
@@ -190,12 +206,9 @@ export const IncludedGeos = memo(() => {
 })
 
 export const Nodes = memo(() => {
-  const { mapId, createHandleClick } = useMapFeature()
-  const { Layer, Source } = useMapApi(mapId)
-
-  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+  const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
   return [
     <NodesWithHeight
       id="nodes-with-altitude"
@@ -232,9 +245,7 @@ export const Nodes = memo(() => {
 })
 
 export const Arcs = memo(() => {
-  const { mapId, createHandleClick } = useMapFeature()
-  const { Layer, Source } = useMapApi(mapId)
-
+  const { Layer, Source, mapId, arcProps, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
@@ -258,27 +269,7 @@ export const Arcs = memo(() => {
       <Layer
         id={layerId.ARC_LAYER_SOLID}
         key={layerId.ARC_LAYER_SOLID}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': DARKEN_FILL_ON_HOVER,
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
-          // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'dash'], 'dashed'],
-            ['literal', LINE_TYPES.dashed],
-            ['==', ['get', 'dash'], 'dotted'],
-            ['literal', LINE_TYPES.dotted],
-            ['literal', LINE_TYPES.solid],
-          ],
-        }}
+        {...arcProps}
       />
     </Source>,
   ]

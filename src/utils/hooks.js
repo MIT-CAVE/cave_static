@@ -93,16 +93,35 @@ export const useMutateStateWithSync = (getArgs, deps) => {
   const dispatch = useDispatch()
   return useCallback(
     (...params) => {
-      // TODO: Add support for high-order functions
-      // if (typeof param === 'function') {
-      //   return useRecursiveCallback(callback, deps)
-      // }
       const args = getArgs(...params)
       if (!args) return
       dispatch(
         mutateLocal({
           sync: !includesPath(Object.values(sync), args.path),
           ...args,
+        })
+      )
+    },
+    // NOTE: `dispatch` is not included in the deps because it
+    // is stable in Redux and will not change between renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sync, ...deps]
+  )
+}
+
+export const useMutateWithSyncFactory = (getArgs, deps) => {
+  const sync = useSelector(selectSync)
+  const dispatch = useDispatch()
+  return useCallback(
+    (...params) => {
+      const argsOrFn = getArgs(...params)
+      // Resolve high-order functions
+      if (typeof argsOrFn === 'function') return argsOrFn
+      if (!argsOrFn) return
+      dispatch(
+        mutateLocal({
+          sync: !includesPath(Object.values(sync), argsOrFn.path),
+          ...argsOrFn,
         })
       )
     },
