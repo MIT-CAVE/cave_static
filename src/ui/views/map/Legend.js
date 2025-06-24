@@ -38,7 +38,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import MapPortal from './MapPortal'
-import { MapContext } from './useMapApi'
+import useMapApi, { MapContext } from './useMapApi'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -958,25 +958,42 @@ export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
+  const { mapId } = useContext(MapContext)
+  const { isMapboxSelected } = useMapApi(mapId)
   const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
-  const indexedOptions = {
-    solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
-    dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
-    dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
-    // '3d': { icon: 'vsc/VscLoading', label: 'Arc' },
-  }
+  const disabled = !isMapboxSelected
+  const indexedOptions = useMemo(
+    () => ({
+      solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
+      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted', disabled },
+      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed', disabled },
+      '3d': { icon: 'vsc/VscLoading', label: 'Arc', disabled: true }, // Always disabled for now
+    }),
+    [disabled]
+  )
+  const shapeOptions = useMemo(
+    () => Object.keys(indexedOptions),
+    [indexedOptions]
+  )
+  const currentLineStyle = isMapboxSelected
+    ? (props.lineStyle ?? 'solid')
+    : 'solid'
   return (
     <LegendRowComponent
       mapFeaturesBy={effectiveArcsBy}
-      shapeOptions={Object.keys(indexedOptions)}
       shapePathEnd="lineStyle"
-      shape={props.lineStyle ?? 'solid'}
-      icon={indexedOptions[props.lineStyle ?? 'solid']?.icon}
+      shape={currentLineStyle}
+      icon={indexedOptions[currentLineStyle]?.icon}
       shapeLabel="Select the line style"
+      {...{ shapeOptions, getRange, ...props }}
+      shapeWarning={
+        !isMapboxSelected &&
+        "Only the 'solid' line style is supported when using MapLibre. Other styles ('dotted', 'dashed', etc.) will be displayed as solid lines."
+      }
       getShapeIcon={(option) => indexedOptions[option]?.icon}
       getShapeLabel={(option) => indexedOptions[option]?.label}
-      {...{ getRange, ...props }}
+      getShapeDisabled={(option) => indexedOptions[option]?.disabled}
     />
   )
 }

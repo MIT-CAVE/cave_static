@@ -90,6 +90,11 @@ const styles = {
     p: 1,
     borderRadius: '50%',
   },
+  warning: {
+    textAlign: 'start',
+    px: 1,
+    py: 0,
+  },
 }
 
 const LegendRowDetails = ({
@@ -110,10 +115,12 @@ const LegendRowDetails = ({
   shapeLabel,
   shapePathEnd,
   shapeOptions,
+  shapeWarning,
   ListboxComponent,
   groupBy,
   getShapeIcon,
   getShapeLabel,
+  getShapeDisabled,
   group,
   groupScale = 50,
   groupScaleWithZoom,
@@ -277,16 +284,24 @@ const LegendRowDetails = ({
       </Grid>
       <Stack useFlexGap spacing={1} sx={{ mb: 1 }}>
         {showShapePicker && (
-          <ShapePicker
-            label={shapeLabel}
-            value={shape}
-            options={shapeOptions}
-            color="warning"
-            {...{ ListboxComponent, groupBy }}
-            getIcon={getShapeIcon}
-            getLabel={getShapeLabel}
-            onChange={handleChangeShape}
-          />
+          <>
+            {shapeWarning && (
+              <Typography variant="caption" sx={styles.warning}>
+                {shapeWarning}
+              </Typography>
+            )}
+            <ShapePicker
+              label={shapeLabel}
+              value={shape}
+              options={shapeOptions}
+              color="warning"
+              {...{ ListboxComponent, groupBy }}
+              getIcon={getShapeIcon}
+              getLabel={getShapeLabel}
+              getDisabled={getShapeDisabled}
+              onChange={handleChangeShape}
+            />
+          </>
         )}
         {showLegendAdvancedControls && showGroupControls && (
           <GroupScaleControls
