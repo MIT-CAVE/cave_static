@@ -44,7 +44,7 @@ import {
   MIN_BEARING,
   MIN_PITCH,
 } from '../../../utils/constants'
-import { unitPlacements } from '../../../utils/enums'
+import { MAP_PROJECTIONS, unitPlacements } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
@@ -332,14 +332,18 @@ const MapControls = () => {
             <TooltipButton
               title={tooltipTitles.globeProjection}
               placement="top"
-              onClick={() => createHandleChangeProjection('globe')}
+              onClick={() =>
+                createHandleChangeProjection(MAP_PROJECTIONS.GLOBE)
+              }
             >
               <BsGlobe2 />
             </TooltipButton>
             <TooltipButton
               title={tooltipTitles.mercatorProjection}
               placement="top"
-              onClick={() => createHandleChangeProjection('mercator')}
+              onClick={() =>
+                createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
+              }
             >
               <BsMap />
             </TooltipButton>

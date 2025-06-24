@@ -22,6 +22,9 @@ import {
   legendViews,
   legendLayouts,
   legendWidths,
+  MAPBOX_PROJECTIONS,
+  MAPLIBRE_PROJECTIONS,
+  MAP_PROJECTIONS,
 } from '../../utils/enums'
 import { getScaledValueAlt } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
@@ -953,8 +956,20 @@ export const selectCurrentMapProjectionFunc = createSelector(
       R.identity,
       (mapId) =>
         isMapboxTokenProvided
-          ? R.pathOr('mercator', ['currentProjection', mapId])(dataObj)
-          : 'mercator',
+          ? R.pipe(
+              R.path(['currentProjection', mapId]),
+              R.when(
+                (proj) => !MAPBOX_PROJECTIONS.has(proj),
+                R.always(MAP_PROJECTIONS.MERCATOR)
+              )
+            )(dataObj)
+          : R.pipe(
+              R.path(['currentProjection', mapId]),
+              R.when(
+                (proj) => !MAPLIBRE_PROJECTIONS.has(proj),
+                R.always(MAP_PROJECTIONS.MERCATOR)
+              )
+            )(dataObj),
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -976,7 +991,7 @@ export const selectIsGlobeNotMemoized = createSelector(
       R.map(([mapId]) => {
         const mapProjection = currentMapProjectionFunc(mapId)
         const zoom = R.path([mapId, 'zoom'], viewportsByMap)
-        return [mapId, mapProjection === 'globe' && zoom < 6]
+        return [mapId, mapProjection === MAP_PROJECTIONS.GLOBE && zoom < 6]
       }),
       R.fromPairs
     )(viewportsByMap),
@@ -1785,7 +1800,9 @@ export const selectGroupedEnabledArcsFunc = createSelector(
                 [
                   R.converge(R.and, [
                     R.propEq('3d', 'displayType'),
-                    R.always(R.equals('mercator', projectionFunc(mapId))),
+                    R.always(
+                      R.equals(MAP_PROJECTIONS.MERCATOR, projectionFunc(mapId))
+                    ),
                   ]),
                   R.always('3d'),
                 ],

@@ -52,7 +52,7 @@ const useMapApi = (mapId) => {
       styleIdLower.includes('light') ||
       styleIdLower.includes('day')
     )
-  }, [currentMapStyleId, mapStyleOption])
+  }, [currentMapStyleId, mapStyleOption?.light, mapStyleOption?.name])
 
   return {
     mapStyle,
