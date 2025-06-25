@@ -63,12 +63,31 @@ const styles = {
     right: '4px',
     zIndex: 1,
     maxWidth: 'calc(100% - 8px)',
-    button: {
-      width: '42px',
-    },
+    button: { width: '42px' },
   },
   btnGroup: {
     bgcolor: 'background.paper',
+    borderRadius: 1,
+    '&> :first-child button': {
+      borderTopLeftRadius: '4px',
+      borderBottomLeftRadius: '4px',
+    },
+    '&> :last-child button': {
+      borderTopRightRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
+  },
+  btnGroupVert: {
+    bgcolor: 'background.paper',
+    borderRadius: 1,
+    '&> :first-child button': {
+      borderTopLeftRadius: '4px',
+      borderTopRightRadius: '4px',
+    },
+    '&> :last-child button': {
+      borderBottomLeftRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
   },
   mapControls: {
     maxHeight: (theme) => `calc(100% - ${theme.spacing(5.5)} - 28px)`,
@@ -142,7 +161,7 @@ const styles = {
     '.MuiSlider-track': { color: LIGHT_SLIDER_COLOR },
     '.MuiSlider-thumb': { color: LIGHT_SLIDER_COLOR },
     '.MuiSlider-rail': { color: LIGHT_SLIDER_COLOR },
-    '.MuiSlider-markLabel': { color: 'rgba(0 0 0 / 0.87)' },
+    '.MuiSlider-markLabel': { color: 'rgba(0 0 0 / .87)' },
     '& .MuiSlider-thumb': {
       '&:hover': {
         boxShadow: `0 0 0 8px ${LIGHT_SLIDER_COLOR}0f`,
@@ -155,51 +174,54 @@ const styles = {
 }
 
 const tooltipTitles = {
-  pitch: 'Map Control \u279C Adjust the map pitch',
-  bearing: 'Map Control \u279C Rotate the map',
-  zoomIn: 'Map Control \u279C Zoom in',
-  zoomOut: 'Map Control \u279C Zoom out',
-  defaultViewport: 'Map Viewport \u279C Go to default viewport',
-  customViewports: 'Map Viewport \u279C See all viewports...',
-  mapLegend: 'Map Legend \u279C Arcs, nodes & geo areas',
-  mapStyles: "Map Style \u279C Choose from the map's styles",
-  globeProjection: 'Projection \u279C Globe',
-  mercatorProjection: 'Projection \u279C Mercator',
+  pitch: 'Adjust map pitch (tilt the view)',
+  bearing: 'Rotate the map',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  defaultViewport: 'Reset to default map view',
+  customViewports: 'Show all viewports',
+  mapLegend: 'Toggle Legend \u279C Arcs, Nodes & Geo areas',
+  mapStyles: 'Change map style',
+  globeProjection: 'Switch to Globe projection',
+  mercatorProjection: 'Switch to Mercator projection',
+  otherProjections: 'Choose another map projection',
 }
+
+const MapButton = ({ icon: Icon, ...props }) => (
+  <TooltipButton {...props}>
+    <Icon size={24} />
+  </TooltipButton>
+)
 
 const MapNavButtons = memo(({ mapId }) => {
   const dispatch = useDispatch()
   return (
     <ButtonGroup
-      sx={styles.btnGroup}
+      sx={styles.btnGroupVert}
       orientation="vertical"
       variant="contained"
       size="small"
     >
-      <TooltipButton
+      <MapButton
         title={tooltipTitles.pitch}
+        icon={MdHeight}
         onClick={() => dispatch(pitchSliderToggle(mapId))}
-      >
-        <MdHeight />
-      </TooltipButton>
-      <TooltipButton
+      />
+      <MapButton
         title={tooltipTitles.zoomIn}
+        icon={MdAdd}
         onClick={() => dispatch(changeZoom({ mapId, value: 0.5 }))}
-      >
-        <MdAdd />
-      </TooltipButton>
-      <TooltipButton
+      />
+      <MapButton
         title={tooltipTitles.zoomOut}
+        icon={MdRemove}
         onClick={() => dispatch(changeZoom({ mapId, value: -0.5 }))}
-      >
-        <MdRemove />
-      </TooltipButton>
-      <TooltipButton
+      />
+      <MapButton
         title={tooltipTitles.bearing}
+        icon={Md360}
         onClick={() => dispatch(bearingSliderToggle(mapId))}
-      >
-        <Md360 />
-      </TooltipButton>
+      />
     </ButtonGroup>
   )
 })
@@ -304,49 +326,52 @@ const MapControls = () => {
             aria-label="contained button group"
             variant="contained"
           >
-            <TooltipButton
+            <MapButton
+              icon={
+                anyActiveFilter
+                  ? () => (
+                      <WithBadge
+                        size={14}
+                        color="#29b6f6"
+                        showBadge={anyActiveFilter}
+                        reactIcon={() => <MdFilterAlt color="#4a4a4a" />}
+                        overlap="rectangular"
+                        sx={{ top: '4px', right: '2px' }}
+                      >
+                        <MdApps
+                          style={
+                            // Adjusting position to compensate for the badge's top-right placement
+                            { marginTop: '-4px', marginRight: '-2px' }
+                          }
+                        />
+                      </WithBadge>
+                    )
+                  : MdApps
+              }
               title={tooltipTitles.mapLegend}
               placement="top"
               onClick={() => dispatch(toggleMapLegend(mapId))}
-            >
-              <WithBadge
-                size={14}
-                color="#29b6f6"
-                showBadge={anyActiveFilter}
-                reactIcon={() => <MdFilterAlt color="#4a4a4a" />}
-                overlap="rectangular"
-                sx={{ top: '4px', right: '2px' }}
-              >
-                <MdApps
-                  style={
-                    // Adjusting position to compensate for the badge's top-right placement
-                    { marginTop: '-4px', marginRight: '-2px' }
-                  }
-                />
-              </WithBadge>
-            </TooltipButton>
+            />
           </ButtonGroup>
 
           {/* Projection */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
-            <TooltipButton
+            <MapButton
+              icon={BsGlobe2}
               title={tooltipTitles.globeProjection}
               placement="top"
               onClick={() =>
                 createHandleChangeProjection(MAP_PROJECTIONS.GLOBE)
               }
-            >
-              <BsGlobe2 />
-            </TooltipButton>
-            <TooltipButton
+            />
+            <MapButton
+              icon={BsMap}
               title={tooltipTitles.mercatorProjection}
               placement="top"
               onClick={() =>
                 createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
               }
-            >
-              <BsMap />
-            </TooltipButton>
+            />
           </ButtonGroup>
 
           {/* Map styles */}
@@ -355,39 +380,36 @@ const MapControls = () => {
             aria-label="contained button group"
             variant="contained"
           >
-            <TooltipButton
+            <MapButton
+              icon={MdMap}
               title={tooltipTitles.mapStyles}
               placement="top"
               onClick={() =>
                 dispatch(openMapModal({ feature: 'mapStyles', mapId }))
               }
-            >
-              <MdMap />
-            </TooltipButton>
+            />
           </ButtonGroup>
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
             {!R.anyPass([R.isEmpty, R.isNil])(optionalViewports) && (
-              <TooltipButton
+              <MapButton
+                icon={MdGpsFixed}
                 title={tooltipTitles.customViewports}
                 placement="top"
                 onClick={() =>
                   dispatch(openMapModal({ feature: 'viewports', mapId }))
                 }
-              >
-                <MdGpsFixed />
-              </TooltipButton>
+              />
             )}
-            <TooltipButton
+            <MapButton
+              icon={MdHome}
               title={tooltipTitles.defaultViewport}
               placement="bottom-start"
               onClick={() => {
                 dispatch(viewportUpdate({ viewport: defaultViewport, mapId }))
               }}
-            >
-              <MdHome />
-            </TooltipButton>
+            />
           </ButtonGroup>
         </Box>
       </Box>

@@ -13,6 +13,8 @@ const styles = {
     left: 0,
     cursor: 'move',
     zIndex: 2001,
+    borderRadius: 1,
+    border: '1px outset rgb(128 128 128)',
   },
   closeBtn: {
     position: 'absolute',
@@ -39,7 +41,7 @@ const Draggable = ({
       >
         {children}
         <IconButton size="small" sx={styles.closeBtn} onClick={onClose}>
-          <MdCancel fontSize="medium" />
+          <MdCancel />
         </IconButton>
       </Box>
     </ReactDraggable>

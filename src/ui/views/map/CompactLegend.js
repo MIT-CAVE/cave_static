@@ -85,6 +85,7 @@ const styles = {
     p: 1,
     border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
+    borderRadius: 1,
   },
   toggleButton: {
     p: 1,

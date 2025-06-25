@@ -188,6 +188,7 @@ export const DEFAULT_MAP_STYLE_OBJECTS = {
   openStreetMap: {
     name: 'Open Street Maps',
     icon: 'si/SiOpenstreetmap',
+    light: true,
     spec: {
       name: 'osm',
       version: 8,

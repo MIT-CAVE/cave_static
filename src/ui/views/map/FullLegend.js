@@ -3,6 +3,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Badge,
+  Box,
   Grid,
   IconButton,
   Paper,
@@ -76,11 +77,20 @@ const styles = {
     p: 1,
     mx: 0,
     color: 'text.primary',
-    borderWidth: 2,
-    borderStyle: 'outset',
-    borderColor: 'grey.500',
+    border: '2px outset',
+    borderColor: 'grey.600',
     borderRadius: 1,
     boxSizing: 'border-box',
+  },
+  accordionGroup: {
+    '&> :first-child': {
+      borderTopLeftRadius: '4px',
+      borderTopRightRadius: '4px',
+    },
+    '&> :last-child': {
+      borderBottomLeftRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
   },
   details: {
     maxHeight: '100%',
@@ -89,12 +99,7 @@ const styles = {
     p: 1,
     border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
-  },
-  settings: {
-    overflow: 'auto',
-    maxWidth: 'fit-content',
-    borderWidth: 2,
-    pt: 2,
+    borderRadius: 0,
   },
   toggleButton: {
     p: 1,
@@ -557,7 +562,7 @@ const LegendGroup = ({
       <OptionalWrapper
         component={AccordionDetails}
         wrap={showLegendGroupNames}
-        wrapperProps={{ sx: { p: 1 } }}
+        wrapperProps={{ sx: [{ p: 1 }, styles.accordionGroup] }}
       >
         {legendGroupData.map(({ id, ...props }) => (
           <MapFeature
@@ -584,7 +589,11 @@ const LegendGroups = (props) => {
     return !props.showSettings && !props.showLegendGroupNames
   }, [props.showSettings, props.showLegendGroupNames])
   return (
-    <OptionalWrapper component="div" wrap={showWrapper}>
+    <OptionalWrapper
+      component={Box}
+      wrap={showWrapper}
+      wrapperProps={{ sx: styles.accordionGroup }}
+    >
       {legendData.map((legendGroup) => (
         <LegendGroup key={legendGroup.id} {...{ legendGroup, ...props }} />
       ))}
