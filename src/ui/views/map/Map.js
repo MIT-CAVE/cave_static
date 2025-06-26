@@ -42,7 +42,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
-  const mapRef = useRef(false)
+  const mapRef = useRef(null)
   const highlight = useRef(null)
   const containerRef = useRef(null)
   const demoInterval = useRef(-1)
@@ -137,8 +137,9 @@ const Map = ({ mapId }) => {
   ])
 
   const loadIconsToStyle = useCallback(() => {
+    if (!mapRef.current) return
     R.forEachObjIndexed((iconImage, iconName) => {
-      if (mapRef.current && !mapRef.current.hasImage(iconName)) {
+      if (!mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     }, iconData)
@@ -219,22 +220,22 @@ const Map = ({ mapId }) => {
 
   const handleMouseMove = useCallback(
     (e) => {
-      if (mapRef.current) {
-        const canvas = mapRef.current.getCanvas()
-        const featureObj = getFeatureFromEvent(e)
-        if (R.isNotNil(highlight.current)) {
-          mapRef.current.setFeatureState(highlight.current, { hover: false })
-          highlight.current = null
-        }
-        if (!featureObj) {
-          if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
-        } else {
-          const id = featureObj[3]
-          const source = featureObj[4]
-          mapRef.current.setFeatureState({ source, id }, { hover: true })
-          highlight.current = { source, id }
-          if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
-        }
+      if (!mapRef.current) return
+
+      const canvas = mapRef.current.getCanvas()
+      const featureObj = getFeatureFromEvent(e)
+      if (R.isNotNil(highlight.current)) {
+        mapRef.current.setFeatureState(highlight.current, { hover: false })
+        highlight.current = null
+      }
+      if (!featureObj) {
+        if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
+      } else {
+        const id = featureObj[3]
+        const source = featureObj[4]
+        mapRef.current.setFeatureState({ source, id }, { hover: true })
+        highlight.current = { source, id }
+        if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
       }
     },
     [getFeatureFromEvent]
@@ -278,7 +279,7 @@ const Map = ({ mapId }) => {
   const handleRender = useCallback(() => {
     // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
     // Checking if token is provided to prevents both issues
-    isMapboxSelected && mapRef.current && mapRef.current.resize()
+    isMapboxSelected && mapRef.current?.resize()
   }, [isMapboxSelected])
 
   const handleStyleData = useCallback(() => {

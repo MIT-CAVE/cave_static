@@ -58,7 +58,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
       ? 'mapbox://styles/mapbox/dark-v11'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json')
 
-  const { ReactMapGl, Marker, NavigationControl } = useMapApi(mapStyle)
+  const { ReactMapGl, Marker, NavigationControl } = useMapApi()
 
   const handleChangeLatitude = useCallback(
     (latitude) => {

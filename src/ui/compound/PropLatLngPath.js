@@ -102,9 +102,11 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       border: '1px solid rgb(128 128 128)',
       boxSizing: 'border-box',
     },
-    mapStyle: isMapboxTokenProvided
-      ? 'mapbox://styles/mapbox/dark-v11'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    mapStyle:
+      prop.mapStyle ??
+      (isMapboxTokenProvided
+        ? 'mapbox://styles/mapbox/dark-v11'
+        : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'),
     lineLayout: {
       'line-join': 'round',
       'line-cap': 'round',
