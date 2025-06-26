@@ -36,7 +36,7 @@ import { useMutateState } from '../../../utils/hooks'
 
 import { HelpTooltip, List, OverflowText } from '../../compound'
 
-import { includesPath, renameKeys, withIndex } from '../../../utils'
+import { includesPath, withIndex } from '../../../utils'
 
 const styles = {
   paperRoot: {
@@ -255,7 +255,9 @@ const GlobalOutputsSwitch = () => {
           optionsList={R.pipe(
             withIndex,
             R.project(['id', 'name', 'icon']),
-            R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
+            R.map(
+              R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
+            )
           )(props)}
           size="small"
           {...{ onSelect }}

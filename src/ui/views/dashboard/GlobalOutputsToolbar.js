@@ -27,12 +27,7 @@ import { chartOption, chartVariant } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
-import {
-  withIndex,
-  includesPath,
-  renameKeys,
-  addValuesToProps,
-} from '../../../utils'
+import { withIndex, includesPath, addValuesToProps } from '../../../utils'
 
 const styles = {
   content: {
@@ -96,7 +91,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     R.reject(R.pipe(R.prop('value'), R.isNil)),
     withIndex,
     R.project(['id', 'name', 'icon']),
-    R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
+    R.map(R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
   )(props)
 
   return (

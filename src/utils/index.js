@@ -74,21 +74,6 @@ export const renameProp = R.curry((oldProp, newProp, obj) =>
   R.pipe(R.assoc(newProp, R.prop(oldProp)(obj)), R.dissoc(oldProp))(obj)
 )
 
-/**
- * Taken from: https://github.com/ramda/ramda/wiki/Cookbook#rename-keys-of-an-object
- *
- * Creates a new object with the own properties of the provided object, but the
- * keys renamed according to the keysMap object as `{oldKey: newKey}`.
- * When some key is not found in the keysMap, then it's passed as-is.
- */
-export const renameKeys = R.curry((keysMap, obj) =>
-  R.reduce(
-    (acc, key) => R.assoc(keysMap[key] || key, obj[key], acc),
-    {},
-    R.keys(obj)
-  )
-)
-
 export const forcePath = (pathOrProp) =>
   R.is(Array, pathOrProp) ? pathOrProp : [pathOrProp]
 export const forceArray = forcePath // Just an alias

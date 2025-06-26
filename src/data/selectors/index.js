@@ -34,7 +34,6 @@ import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
 import {
   checkValidRange,
   getTimeValue,
-  renameKeys,
   sortByOrderNameId,
   forcePath,
   customSortByX,
@@ -93,7 +92,7 @@ export const selectTeams = createSelector(
 export const selectSortedTeams = createSelector(
   selectTeams,
   R.pipe(
-    R.map(renameKeys({ teamId: 'id', teamName: 'name' })),
+    R.map(R.renameKeys({ teamId: 'id', teamName: 'name' })),
     R.values,
     sortByOrderNameId
   )
