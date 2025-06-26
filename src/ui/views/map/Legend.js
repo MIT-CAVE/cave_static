@@ -1250,8 +1250,11 @@ export const LegendHeader = ({
 
 export const LegendRoot = (props) => {
   const { mapId } = useContext(MapContext)
+  const { isMapboxSelected } = useMapApi(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+  const attributionOffset = isMapboxSelected ? 0 : 16
+  console.log(attributionOffset)
   return (
     <Box
       key="map-legend"
@@ -1260,8 +1263,8 @@ export const LegendRoot = (props) => {
         {
           right: showPitchSlider ? 98 : 64,
           maxHeight: showBearingSlider
-            ? 'calc(100% - 165px)'
-            : 'calc(100% - 88px)',
+            ? `calc(100% - ${165 + attributionOffset}px)`
+            : `calc(100% - ${88 + attributionOffset}px)`,
           maxWidth: showPitchSlider
             ? 'calc(100% - 106px)'
             : 'calc(100% - 80px)',
