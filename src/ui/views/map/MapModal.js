@@ -11,6 +11,7 @@ import {
 import * as R from 'ramda'
 import { memo, useCallback, useContext, useMemo } from 'react'
 import { MdGpsFixed, MdMap } from 'react-icons/md'
+import { PiPerspective } from 'react-icons/pi'
 import { useSelector, useDispatch } from 'react-redux'
 
 import SimpleModalOptions from './SimpleModalOptions'
@@ -24,6 +25,7 @@ import {
   selectCurrentTimeUnits,
   selectCurrentTimeLength,
   selectMapStyleOptions,
+  selectMapProjectionOptionsFunc,
 } from '../../../data/selectors'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
@@ -118,6 +120,7 @@ const MapModal = () => {
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
+  const getMapProjectionOptions = useSelector(selectMapProjectionOptionsFunc)
   const dispatch = useDispatch()
 
   const timeOptions = useMemo(
@@ -134,6 +137,11 @@ const MapModal = () => {
   const optionalViewports = useMemo(
     () => getOptionalViewports(mapId),
     [getOptionalViewports, mapId]
+  )
+
+  const projectionOptions = useMemo(
+    () => getMapProjectionOptions(mapId),
+    [getMapProjectionOptions, mapId]
   )
 
   const handleCloseModal = useCallback(
@@ -161,6 +169,17 @@ const MapModal = () => {
       return {
         path: ['maps', 'data', mapId, 'currentStyle'],
         value: mapStyleId,
+      }
+    },
+    [dispatch, handleCloseModal, mapId]
+  )
+
+  const handleSelectProjection = useMutateStateWithSync(
+    (projection) => {
+      handleCloseModal()
+      return {
+        path: ['maps', 'data', mapId, 'currentProjection'],
+        value: projection,
       }
     },
     [dispatch, handleCloseModal, mapId]
@@ -194,6 +213,15 @@ const MapModal = () => {
       defaultIcon={MdMap}
       options={mapStyleOptions}
       onSelect={handleSelectMapStyleId}
+      onClose={handleCloseModal}
+    />
+  ) : feature === 'mapProjections' ? (
+    <ListModal
+      title="Map Projections"
+      placeholder="Choose a map projection..."
+      defaultIcon={PiPerspective}
+      options={projectionOptions}
+      onSelect={handleSelectProjection}
       onClose={handleCloseModal}
     />
   ) : feature === 'setTime' ? (

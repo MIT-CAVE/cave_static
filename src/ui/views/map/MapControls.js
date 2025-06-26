@@ -1,7 +1,8 @@
 import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useState, useMemo, useContext } from 'react'
-import { BsGlobe2, BsMap } from 'react-icons/bs'
+import { BsGlobe2 } from 'react-icons/bs'
+import { FaMapMarkedAlt } from 'react-icons/fa'
 import {
   MdAdd,
   MdFilterAlt,
@@ -11,8 +12,9 @@ import {
   Md360,
   MdHome,
   MdApps,
-  MdMap,
 } from 'react-icons/md'
+import { PiPerspectiveBold } from 'react-icons/pi'
+import { TbMap } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { WithBadge } from './Legend'
@@ -365,11 +367,19 @@ const MapControls = () => {
               }
             />
             <MapButton
-              icon={BsMap}
+              icon={FaMapMarkedAlt}
               title={tooltipTitles.mercatorProjection}
               placement="top"
               onClick={() =>
                 createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
+              }
+            />
+            <MapButton
+              icon={PiPerspectiveBold}
+              title={tooltipTitles.otherProjections}
+              placement="top"
+              onClick={() =>
+                dispatch(openMapModal({ feature: 'mapProjections', mapId }))
               }
             />
           </ButtonGroup>
@@ -381,7 +391,7 @@ const MapControls = () => {
             variant="contained"
           >
             <MapButton
-              icon={MdMap}
+              icon={TbMap}
               title={tooltipTitles.mapStyles}
               placement="top"
               onClick={() =>

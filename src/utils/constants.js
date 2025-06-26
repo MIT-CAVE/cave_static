@@ -1,4 +1,4 @@
-import { chartVariant } from './enums'
+import { chartVariant, MAP_PROJECTIONS } from './enums'
 
 export const DEFAULT_LOCALE = 'en-US'
 
@@ -213,6 +213,44 @@ export const DEFAULT_MAP_STYLE_OBJECTS = {
       ],
     },
     fog: LIGHT_GLOBE_FOG,
+  },
+}
+
+export const DEFAULT_MAP_PROJECTION_OBJECTS = {
+  [MAP_PROJECTIONS.GLOBE]: {
+    name: 'Globe',
+    icon: 'bs/BsGlobe2',
+  },
+  [MAP_PROJECTIONS.EQUAL_EARTH]: {
+    name: 'Equal Earth',
+    icon: 'gi/GiEarthAmerica',
+  },
+  [MAP_PROJECTIONS.NATURAL_EARTH]: {
+    name: 'Natural Earth',
+    icon: 'gi/GiEarthAsiaOceania',
+  },
+  [MAP_PROJECTIONS.WINKEL_TRIPEL]: {
+    name: 'Winkel Tripel',
+    icon: 'fa6/FaEarthEurope',
+  },
+  [MAP_PROJECTIONS.ALBERS]: {
+    name: 'Albers',
+    icon: 'tb/TbCone',
+  },
+  [MAP_PROJECTIONS.LAMBERT_CONFORMAL_CONIC]: {
+    name: 'Lambert Conformal Conic',
+    icon: 'md/MdPanoramaPhotosphere',
+  },
+  [MAP_PROJECTIONS.EQUIRECTANGULAR]: {
+    name: 'Equirectangular',
+  },
+  [MAP_PROJECTIONS.MERCATOR]: {
+    name: 'Mercator',
+    icon: 'fa/FaMapMarkedAlt',
+  },
+  [MAP_PROJECTIONS.VERTICAL_PERSPECTIVE]: {
+    name: 'Vertical Perspective',
+    icon: 'tb/TbPerspective',
   },
 }
 

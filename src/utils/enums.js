@@ -372,11 +372,17 @@ export const MAP_PROJECTIONS = {
   NATURAL_EARTH: 'naturalEarth',
   WINKEL_TRIPEL: 'winkelTripel',
   GLOBE: 'globe',
+  VERTICAL_PERSPECTIVE: 'vertical-perspective',
 }
 
-export const MAPBOX_PROJECTIONS = new Set(Object.values(MAP_PROJECTIONS))
+export const MAPBOX_PROJECTIONS = new Set(
+  Object.values(MAP_PROJECTIONS).filter(
+    (projection) => projection !== MAP_PROJECTIONS.VERTICAL_PERSPECTIVE
+  )
+)
 
 export const MAPLIBRE_PROJECTIONS = new Set([
   MAP_PROJECTIONS.MERCATOR,
   MAP_PROJECTIONS.GLOBE,
+  // MAP_PROJECTIONS.VERTICAL_PERSPECTIVE, // FIXME: Doesn't seem to work for now
 ])

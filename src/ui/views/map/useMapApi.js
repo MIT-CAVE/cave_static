@@ -19,10 +19,9 @@ import { useSelector } from 'react-redux'
 
 import {
   selectCurrentMapStyleIdFunc,
+  selectIsCurrentMapboxStyleFunc,
   selectMapStyleOptions,
 } from '../../../data/selectors'
-
-import { isMapboxStyle } from '../../../utils'
 
 export const MapContext = createContext({
   mapId: null,
@@ -33,24 +32,20 @@ export const MapContext = createContext({
 const useMapApi = (mapId) => {
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const currentMapStyleId = useSelector(selectCurrentMapStyleIdFunc)(mapId)
+  const isMapboxSelected = useSelector(selectIsCurrentMapboxStyleFunc)(mapId)
 
   const mapStyleOption = mapStyleOptions[currentMapStyleId]
   const mapStyle = mapStyleOption?.spec
 
-  const isMapboxSelected = useMemo(
-    () => mapStyleOption.mapbox || isMapboxStyle(mapStyle),
-    [mapStyle, mapStyleOption?.mapbox]
-  )
-
   const isDarkStyle = useMemo(() => {
-    const styleIdLower = currentMapStyleId.toLowerCase()
-    const styleName = mapStyleOption.name.toLowerCase()
+    const styleIdLower = currentMapStyleId?.toLowerCase()
+    const styleName = mapStyleOption?.name.toLowerCase()
     return !(
-      mapStyleOption.light ||
-      styleName.includes('light') ||
-      styleName.includes('day') ||
-      styleIdLower.includes('light') ||
-      styleIdLower.includes('day')
+      mapStyleOption?.light ||
+      styleName?.includes('light') ||
+      styleName?.includes('day') ||
+      styleIdLower?.includes('light') ||
+      styleIdLower?.includes('day')
     )
   }, [currentMapStyleId, mapStyleOption?.light, mapStyleOption?.name])
 

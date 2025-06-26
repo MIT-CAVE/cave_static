@@ -122,10 +122,10 @@ const Map = ({ mapId }) => {
 
     if (isMapboxSelected) {
       const defaultFog = isDarkStyle ? DARK_GLOBE_FOG : LIGHT_GLOBE_FOG
-      map.setFog(mapStyleOption.fog ?? mapStyle.fog ?? defaultFog)
+      map.setFog(mapStyleOption?.fog ?? mapStyle?.fog ?? defaultFog)
     } else {
       const defaultSky = isDarkStyle ? DARK_SKY_SPEC : LIGHT_SKY_SPEC
-      map.setSky(mapStyleOption.sky ?? mapStyle.sky ?? defaultSky)
+      map.setSky(mapStyleOption?.sky ?? mapStyle?.sky ?? defaultSky)
     }
   }, [
     isDarkStyle,

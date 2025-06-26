@@ -10,6 +10,7 @@ import {
   MAX_MEMOIZED_CHARTS,
   NUMBER_FORMAT_KEY_PATHS,
   ICON_RESOLUTION,
+  DEFAULT_MAP_PROJECTION_OBJECTS,
 } from '../../utils/constants'
 import {
   propId,
@@ -1026,13 +1027,45 @@ export const selectMapStyleOptions = createSelector(
   (data, isMapboxTokenProvided) =>
     R.pipe(
       orderEntireDict,
-      R.propOr([], 'additionalMapStyles'),
+      R.propOr({}, 'additionalMapStyles'),
       R.mergeRight(DEFAULT_MAP_STYLE_OBJECTS),
       R.filter(
         (styleObj) =>
           isMapboxTokenProvided ||
           !(styleObj.mapbox || isMapboxStyle(styleObj.spec))
       )
+    )(data)
+)
+
+export const selectIsCurrentMapboxStyleFunc = createSelector(
+  [selectMapStyleOptions, selectCurrentMapStyleIdFunc],
+  (mapStyleOptions, currentMapStyleIdFunc) => (mapId) => {
+    const currentMapStyleId = currentMapStyleIdFunc(mapId)
+    const mapStyleOption = mapStyleOptions[currentMapStyleId]
+    const mapStyle = mapStyleOption?.spec
+    return mapStyleOption?.mapbox || isMapboxStyle(mapStyle)
+  }
+)
+
+export const selectMapProjectionOptionsFunc = createSelector(
+  [selectOrderedMaps, selectIsCurrentMapboxStyleFunc],
+  (data, isCurrentMapboxStyleFunc) => (mapId) =>
+    R.pipe(
+      orderEntireDict,
+      R.converge(R.mergeRight, [
+        R.propOr({}, 'additionalProjections'),
+        R.always(
+          R.pipe(
+            R.ifElse(
+              isCurrentMapboxStyleFunc,
+              R.always(MAPBOX_PROJECTIONS),
+              R.always(MAPLIBRE_PROJECTIONS)
+            ),
+            Array.from,
+            R.flip(R.pick)(DEFAULT_MAP_PROJECTION_OBJECTS)
+          )(mapId)
+        ),
+      ])
     )(data)
 )
 
