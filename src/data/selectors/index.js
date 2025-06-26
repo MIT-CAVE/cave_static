@@ -1029,7 +1029,9 @@ export const selectMapStyleOptions = createSelector(
       R.propOr([], 'additionalMapStyles'),
       R.mergeRight(DEFAULT_MAP_STYLE_OBJECTS),
       R.filter(
-        (styleObj) => isMapboxTokenProvided || !isMapboxStyle(styleObj.spec)
+        (styleObj) =>
+          isMapboxTokenProvided ||
+          !(styleObj.mapbox || isMapboxStyle(styleObj.spec))
       )
     )(data)
 )
