@@ -1254,7 +1254,6 @@ export const LegendRoot = (props) => {
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const attributionOffset = isMapboxSelected ? 0 : 16
-  console.log(attributionOffset)
   return (
     <Box
       key="map-legend"
