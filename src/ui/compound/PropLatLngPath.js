@@ -20,13 +20,6 @@ import {
 } from 'react-icons/md'
 import { PiEraser } from 'react-icons/pi'
 import { TfiMapAlt } from 'react-icons/tfi'
-import ReactMapboxGL, {
-  Marker,
-  NavigationControl,
-  Source,
-  Layer,
-} from 'react-map-gl'
-import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
 
 import NumberInput from './NumberInput'
@@ -36,6 +29,7 @@ import {
   selectMapboxToken,
 } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
+import useMapApi from '../views/map/useMapApi'
 
 import { adjustArcPath, forceArray } from '../../utils'
 
@@ -108,9 +102,11 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       border: '1px solid rgb(128 128 128)',
       boxSizing: 'border-box',
     },
-    mapStyle: isMapboxTokenProvided
-      ? 'mapbox://styles/mapbox/dark-v11'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    mapStyle:
+      prop.mapStyle ??
+      (isMapboxTokenProvided
+        ? 'mapbox://styles/mapbox/dark-v11'
+        : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'),
     lineLayout: {
       'line-join': 'round',
       'line-cap': 'round',
@@ -214,7 +210,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     setEditState(edit.RESET)
   }, [getPathData, value])
 
-  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
+  const { ReactMapGl, Layer, Marker, NavigationControl, Source } = useMapApi()
 
   const showMap = Boolean(anchorEl)
   return (
@@ -236,7 +232,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             event.stopPropagation()
           }}
         >
-          <ReactMapGL
+          <ReactMapGl
             {...viewState}
             mapboxAccessToken={mapboxToken}
             style={mapSettings.style}
@@ -260,7 +256,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
               />
             </Source>
             <NavigationControl />
-          </ReactMapGL>
+          </ReactMapGl>
         </Popper>
       </ClickAwayListener>
       {editState !== edit.NONE ? (

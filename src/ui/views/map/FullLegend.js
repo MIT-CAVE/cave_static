@@ -3,6 +3,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Badge,
+  Box,
   Grid,
   IconButton,
   Paper,
@@ -12,7 +13,14 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdExpandMore, MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -32,6 +40,7 @@ import {
   GroupScaleControls,
 } from './Legend'
 import SizeLegend from './SizeLegend'
+import { MapContext } from './useMapApi'
 import useMapFilter from './useMapFilter'
 
 import {
@@ -68,11 +77,20 @@ const styles = {
     p: 1,
     mx: 0,
     color: 'text.primary',
-    borderWidth: 2,
-    borderStyle: 'outset',
-    borderColor: 'grey.500',
+    border: '2px outset',
+    borderColor: 'grey.600',
     borderRadius: 1,
     boxSizing: 'border-box',
+  },
+  accordionGroup: {
+    '&> :first-child': {
+      borderTopLeftRadius: '4px',
+      borderTopRightRadius: '4px',
+    },
+    '&> :last-child': {
+      borderBottomLeftRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
   },
   details: {
     maxHeight: '100%',
@@ -81,12 +99,7 @@ const styles = {
     p: 1,
     border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
-  },
-  settings: {
-    overflow: 'auto',
-    maxWidth: 'fit-content',
-    borderWidth: 2,
-    pt: 2,
+    borderRadius: 0,
   },
   toggleButton: {
     p: 1,
@@ -104,10 +117,14 @@ const styles = {
     p: '5px 15px',
     fontSize: '0.875rem',
   },
+  warning: {
+    textAlign: 'start',
+    px: 1,
+    py: 0,
+  },
 }
 
 const LegendRowDetails = ({
-  mapId,
   legendGroupId,
   id,
   icon,
@@ -125,10 +142,12 @@ const LegendRowDetails = ({
   shapeLabel,
   shapePathEnd,
   shapeOptions,
+  shapeWarning,
   ListboxComponent,
   groupBy,
   getShapeIcon,
   getShapeLabel,
+  getShapeDisabled,
   group,
   groupScale = 50,
   groupScaleWithZoom = false,
@@ -142,6 +161,7 @@ const LegendRowDetails = ({
   onToggleExpanded,
   getRange,
 }) => {
+  const { mapId } = useContext(MapContext)
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -162,7 +182,6 @@ const LegendRowDetails = ({
     handleChangeShape,
     handleChangePropAttr,
   } = useLegendDetails({
-    mapId,
     legendGroupId,
     id,
     group,
@@ -185,7 +204,6 @@ const LegendRowDetails = ({
     handleCloseFilter,
     handleSaveFilters,
   } = useMapFilter({
-    mapId,
     group,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
@@ -337,23 +355,34 @@ const LegendRowDetails = ({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, px: 1 }}>
           {/* TODO: Improve location/width of `ShapePicker` */}
-          <Stack spacing={1} sx={{ mb: 1 }}>
+          <Stack useFlexGap spacing={1} sx={{ mb: 1 }}>
             {showShapePicker && (
-              <ShapePicker
-                label={shapeLabel}
-                value={shape}
-                options={shapeOptions}
-                color="warning"
-                {...{ ListboxComponent, groupBy }}
-                getIcon={getShapeIcon}
-                getLabel={getShapeLabel}
-                onChange={handleChangeShape}
-              />
+              <>
+                {shapeWarning && (
+                  <Typography
+                    variant="caption"
+                    sx={{ textAlign: 'start', px: 1, py: 0 }}
+                  >
+                    {shapeWarning}
+                  </Typography>
+                )}
+                <ShapePicker
+                  label={shapeLabel}
+                  value={shape}
+                  options={shapeOptions}
+                  color="warning"
+                  {...{ ListboxComponent, groupBy }}
+                  getIcon={getShapeIcon}
+                  getLabel={getShapeLabel}
+                  getDisabled={getShapeDisabled}
+                  onChange={handleChangeShape}
+                />
+              </>
             )}
 
             {showLegendAdvancedControls && showGroupControls && (
               <GroupScaleControls
-                {...{ mapId, groupScaleWithZoom, ...groupScaleSlider }}
+                {...{ groupScaleWithZoom, ...groupScaleSlider }}
                 onChangeLegendAttr={handleChangeLegendAttr}
               />
             )}
@@ -369,7 +398,6 @@ const LegendRowDetails = ({
                       : colorRange
                   }
                   {...{
-                    mapId,
                     group,
                     colorBy,
                     colorByOptions,
@@ -393,7 +421,6 @@ const LegendRowDetails = ({
                       : sizeRange
                   }
                   {...{
-                    mapId,
                     icon,
                     group,
                     sizeBy,
@@ -416,7 +443,6 @@ const LegendRowDetails = ({
                   valueRange={heightRange}
                   {...{
                     legendGroupId,
-                    mapId,
                     heightBy,
                     heightByOptions,
                     featureTypeProps,
@@ -435,7 +461,8 @@ const LegendRowDetails = ({
   )
 }
 
-const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
+const LegendRow = ({ id, mapFeaturesBy, ...props }) => {
+  const { mapId } = useContext(MapContext)
   const mapFeatures = mapFeaturesBy(id, mapId)
   const featureTypeValues = useMemo(
     () => R.pluck('values')(mapFeatures),
@@ -447,7 +474,7 @@ const LegendRow = ({ id, mapFeaturesBy, mapId, ...props }) => {
     <LegendRowDetails
       name={mapFeatures[0].name ?? id}
       featureTypeProps={mapFeatures[0].props}
-      {...{ id, mapId, featureTypeValues, ...props }}
+      {...{ id, featureTypeValues, ...props }}
     />
   )
 }
@@ -465,7 +492,6 @@ const MapFeature = ({ id, ...props }) => {
 
 const LegendGroup = ({
   expandAll,
-  mapId,
   legendGroup,
   showLegendGroupNames,
   legendLayout,
@@ -536,7 +562,7 @@ const LegendGroup = ({
       <OptionalWrapper
         component={AccordionDetails}
         wrap={showLegendGroupNames}
-        wrapperProps={{ sx: { p: 1 } }}
+        wrapperProps={{ sx: [{ p: 1 }, styles.accordionGroup] }}
       >
         {legendGroupData.map(({ id, ...props }) => (
           <MapFeature
@@ -547,7 +573,7 @@ const LegendGroup = ({
             // Unlike `expanded` and `onToggleExpanded` where `id` is
             // embedded, `setExpandedBy` is passed as is to avoid an
             // infinite loop on `LegendRowDetails`'s `useEffect`.
-            {...{ mapId, id, legendLayout, setExpandedBy, ...props }}
+            {...{ id, legendLayout, setExpandedBy, ...props }}
           />
         ))}
       </OptionalWrapper>
@@ -555,32 +581,34 @@ const LegendGroup = ({
   )
 }
 
-const LegendGroups = ({ mapId, ...props }) => {
+const LegendGroups = (props) => {
+  const { mapId } = useContext(MapContext)
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
   const legendData = useMemo(() => withIndex(legendDataRaw), [legendDataRaw])
   const showWrapper = useMemo(() => {
     return !props.showSettings && !props.showLegendGroupNames
   }, [props.showSettings, props.showLegendGroupNames])
   return (
-    <OptionalWrapper component="div" wrap={showWrapper}>
+    <OptionalWrapper
+      component={Box}
+      wrap={showWrapper}
+      wrapperProps={{ sx: styles.accordionGroup }}
+    >
       {legendData.map((legendGroup) => (
-        <LegendGroup
-          key={legendGroup.id}
-          {...{ mapId, legendGroup, ...props }}
-        />
+        <LegendGroup key={legendGroup.id} {...{ legendGroup, ...props }} />
       ))}
     </OptionalWrapper>
   )
 }
 
-const FullLegend = ({ mapId }) => {
+const FullLegend = () => {
+  const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendWidth = useSelector(selectLegendWidth)[mapId]
   const [expandAll, handleExpandAll] = useToggle(true)
   const popperProps = useLegendPopper()
   return (
     <LegendRoot
-      {...{ mapId }}
       spacing={showLegendGroupNames ? 0 : 1}
       sx={[
         styles.root,
@@ -589,18 +617,15 @@ const FullLegend = ({ mapId }) => {
       ]}
     >
       <LegendHeader
-        {...{ mapId, popperProps }}
+        {...{ popperProps }}
         slotProps={{
           label: { variant: 'h5', sx: { pl: 1 } },
           icon: { size: 24 },
         }}
       >
-        <LegendSettings
-          {...{ mapId, expandAll }}
-          onExpandAll={handleExpandAll}
-        />
+        <LegendSettings {...{ expandAll }} onExpandAll={handleExpandAll} />
       </LegendHeader>
-      <LegendGroups {...{ mapId, expandAll, showLegendGroupNames }} />
+      <LegendGroups {...{ expandAll, showLegendGroupNames }} />
     </LegendRoot>
   )
 }

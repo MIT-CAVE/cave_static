@@ -20,6 +20,7 @@ import { fetchResource } from '../../utils'
 export const ListboxPropsContext = createContext({
   getLabel: R.identity,
   getIcon: R.identity,
+  getDisabled: R.F,
 })
 
 export const EnhancedListbox = forwardRef((props, ref) => {
@@ -78,12 +79,13 @@ const ShapePicker = ({
   options,
   color,
   groupBy,
+  getDisabled,
   getIcon,
   getLabel,
   ListboxComponent,
   onChange,
 }) => (
-  <ListboxPropsContext.Provider value={{ getLabel, getIcon }}>
+  <ListboxPropsContext.Provider value={{ getDisabled, getLabel, getIcon }}>
     <Autocomplete
       disableListWrap
       clearIcon={false}
@@ -126,6 +128,7 @@ const ShapePicker = ({
             </Stack>
           )
         },
+        getOptionDisabled: (option) => getDisabled(option),
         getOptionLabel: (option) => getLabel(option) ?? option,
       })}
     />

@@ -1,6 +1,7 @@
 import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useState, useMemo } from 'react'
+import { memo, useState, useMemo, useContext } from 'react'
+import { BsGlobe2, BsMap } from 'react-icons/bs'
 import {
   MdAdd,
   MdFilterAlt,
@@ -15,8 +16,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import { WithBadge } from './Legend'
+import useMapApi, { MapContext } from './useMapApi'
 
-import { mutateLocal } from '../../../data/local'
 import {
   bearingSliderToggle,
   bearingUpdate,
@@ -35,7 +36,6 @@ import {
   selectBearingFunc,
   selectPitchFunc,
   selectStaticMap,
-  selectSync,
   selectLegendDataFunc,
 } from '../../../data/selectors'
 import {
@@ -44,14 +44,17 @@ import {
   MIN_BEARING,
   MIN_PITCH,
 } from '../../../utils/constants'
-import { unitPlacements } from '../../../utils/enums'
+import { MAP_PROJECTIONS, unitPlacements } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
-import { FetchedIcon, TooltipButton } from '../../compound'
+import { TooltipButton } from '../../compound'
 
-import { NumberFormat, getSliderMarks, includesPath } from '../../../utils'
+import { NumberFormat, getSliderMarks } from '../../../utils'
+
+const LIGHT_SLIDER_COLOR = '#0288d1'
 
 const styles = {
-  getRoot: (hover) => ({
+  root: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'end',
@@ -60,15 +63,31 @@ const styles = {
     right: '4px',
     zIndex: 1,
     maxWidth: 'calc(100% - 8px)',
-    button: {
-      width: '42px',
-    },
-    'button,.MuiSlider-root': {
-      opacity: hover ? 1 : 0.8,
-    },
-  }),
+    button: { width: '42px' },
+  },
   btnGroup: {
     bgcolor: 'background.paper',
+    borderRadius: 1,
+    '&> :first-child button': {
+      borderTopLeftRadius: '4px',
+      borderBottomLeftRadius: '4px',
+    },
+    '&> :last-child button': {
+      borderTopRightRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
+  },
+  btnGroupVert: {
+    bgcolor: 'background.paper',
+    borderRadius: 1,
+    '&> :first-child button': {
+      borderTopLeftRadius: '4px',
+      borderTopRightRadius: '4px',
+    },
+    '&> :last-child button': {
+      borderBottomLeftRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
   },
   mapControls: {
     maxHeight: (theme) => `calc(100% - ${theme.spacing(5.5)} - 28px)`,
@@ -125,8 +144,8 @@ const styles = {
   },
   bearingSlider: {
     '& .MuiSlider-thumb': {
-      height: 20,
-      width: 20,
+      height: '20px',
+      width: '20px',
       border: 2,
       borderColor: 'currentcolor',
       '&:focus, &:hover, &$active': {
@@ -138,60 +157,80 @@ const styles = {
       borderRadius: '4px',
     },
   },
+  lightSlider: {
+    '.MuiSlider-track': { color: LIGHT_SLIDER_COLOR },
+    '.MuiSlider-thumb': { color: LIGHT_SLIDER_COLOR },
+    '.MuiSlider-rail': { color: LIGHT_SLIDER_COLOR },
+    '.MuiSlider-markLabel': { color: 'rgba(0 0 0 / .87)' },
+    '& .MuiSlider-thumb': {
+      '&:hover': {
+        boxShadow: `0 0 0 8px ${LIGHT_SLIDER_COLOR}0f`,
+      },
+      '&:active': {
+        boxShadow: `0 0 0 14px ${LIGHT_SLIDER_COLOR}0f`,
+      },
+    },
+  },
 }
 
 const tooltipTitles = {
-  pitch: 'Map Control \u279C Adjust the map pitch',
-  bearing: 'Map Control \u279C Rotate the map',
-  zoomIn: 'Map Control \u279C Zoom in',
-  zoomOut: 'Map Control \u279C Zoom out',
-  defaultViewport: 'Map Viewport \u279C Go to default viewport',
-  customViewports: 'Map Viewport \u279C See all viewports...',
-  mapLegend: 'Map Legend \u279C Arcs, nodes & geo areas',
-  mapStyles: "Map Style \u279C Choose from the map's styles",
-  globeProjection: 'Projection \u279C Globe',
-  mercatorProjection: 'Projection \u279C Mercator',
+  pitch: 'Adjust map pitch (tilt the view)',
+  bearing: 'Rotate the map',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  defaultViewport: 'Reset to default map view',
+  customViewports: 'Show all viewports',
+  mapLegend: 'Toggle Legend \u279C Arcs, Nodes & Geo areas',
+  mapStyles: 'Change map style',
+  globeProjection: 'Switch to Globe projection',
+  mercatorProjection: 'Switch to Mercator projection',
+  otherProjections: 'Choose another map projection',
 }
+
+const MapButton = ({ icon: Icon, ...props }) => (
+  <TooltipButton {...props}>
+    <Icon size={24} />
+  </TooltipButton>
+)
 
 const MapNavButtons = memo(({ mapId }) => {
   const dispatch = useDispatch()
   return (
     <ButtonGroup
-      sx={styles.btnGroup}
+      sx={styles.btnGroupVert}
       orientation="vertical"
       variant="contained"
       size="small"
     >
-      <TooltipButton
+      <MapButton
         title={tooltipTitles.pitch}
+        icon={MdHeight}
         onClick={() => dispatch(pitchSliderToggle(mapId))}
-      >
-        <MdHeight />
-      </TooltipButton>
-      <TooltipButton
+      />
+      <MapButton
         title={tooltipTitles.zoomIn}
+        icon={MdAdd}
         onClick={() => dispatch(changeZoom({ mapId, value: 0.5 }))}
-      >
-        <MdAdd />
-      </TooltipButton>
-      <TooltipButton
+      />
+      <MapButton
         title={tooltipTitles.zoomOut}
+        icon={MdRemove}
         onClick={() => dispatch(changeZoom({ mapId, value: -0.5 }))}
-      >
-        <MdRemove />
-      </TooltipButton>
-      <TooltipButton
+      />
+      <MapButton
         title={tooltipTitles.bearing}
+        icon={Md360}
         onClick={() => dispatch(bearingSliderToggle(mapId))}
-      >
-        <Md360 />
-      </TooltipButton>
+      />
     </ButtonGroup>
   )
 })
 
-const MapControls = ({ allowProjections, mapId }) => {
+const MapControls = () => {
   const [hover, setHover] = useState(false)
+  const { mapId } = useContext(MapContext)
+  const { isMapboxSelected, isDarkStyle } = useMapApi(mapId)
+
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
   const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)
@@ -199,7 +238,6 @@ const MapControls = ({ allowProjections, mapId }) => {
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const isStatic = useSelector(selectStaticMap)
-  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const legendData = useSelector(selectLegendDataFunc)(mapId)
@@ -227,13 +265,6 @@ const MapControls = ({ allowProjections, mapId }) => {
     [legendData]
   )
 
-  const syncProjection = !includesPath(R.values(sync), [
-    'maps',
-    'data',
-    mapId,
-    'currentProjection',
-  ])
-
   const getDegreeFormat = (value) =>
     NumberFormat.format(value, {
       unit: 'º',
@@ -241,18 +272,35 @@ const MapControls = ({ allowProjections, mapId }) => {
       unitPlacement: unitPlacements.AFTER,
     })
 
+  const rootStyle = useMemo(
+    () => [
+      styles.root,
+      !isMapboxSelected && { bottom: '40px' },
+      { 'button,.MuiSlider-root': { opacity: hover ? 1 : 0.8 } },
+    ],
+    [hover, isMapboxSelected]
+  )
+
+  const createHandleChangeProjection = useMutateStateWithSync(
+    (projection) => ({
+      path: ['maps', 'data', mapId, 'currentProjection'],
+      value: projection,
+    }),
+    [mapId]
+  )
+
   return (
     <>
       {/* Map controls */}
       <Box
-        sx={[styles.getRoot(hover), styles.mapControls]}
+        sx={[...rootStyle, styles.mapControls]}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
         {showPitchSlider && (
           <Box sx={styles.pitch}>
             <Slider
-              sx={styles.pitchSlider}
+              sx={[styles.pitchSlider, !isDarkStyle && styles.lightSlider]}
               min={MIN_PITCH}
               max={MAX_PITCH}
               orientation="vertical"
@@ -267,7 +315,7 @@ const MapControls = ({ allowProjections, mapId }) => {
         {isStatic ? [] : <MapNavButtons mapId={mapId} />}
       </Box>
       <Box
-        sx={styles.getRoot(hover)}
+        sx={rootStyle}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
@@ -278,27 +326,52 @@ const MapControls = ({ allowProjections, mapId }) => {
             aria-label="contained button group"
             variant="contained"
           >
-            <TooltipButton
+            <MapButton
+              icon={
+                anyActiveFilter
+                  ? () => (
+                      <WithBadge
+                        size={14}
+                        color="#29b6f6"
+                        showBadge={anyActiveFilter}
+                        reactIcon={() => <MdFilterAlt color="#4a4a4a" />}
+                        overlap="rectangular"
+                        sx={{ top: '4px', right: '2px' }}
+                      >
+                        <MdApps
+                          style={
+                            // Adjusting position to compensate for the badge's top-right placement
+                            { marginTop: '-4px', marginRight: '-2px' }
+                          }
+                        />
+                      </WithBadge>
+                    )
+                  : MdApps
+              }
               title={tooltipTitles.mapLegend}
               placement="top"
               onClick={() => dispatch(toggleMapLegend(mapId))}
-            >
-              <WithBadge
-                size={14}
-                color="#29b6f6"
-                showBadge={anyActiveFilter}
-                reactIcon={() => <MdFilterAlt color="#4a4a4a" />}
-                overlap="rectangular"
-                sx={{ top: '4px', right: '2px' }}
-              >
-                <MdApps
-                  style={
-                    // Adjusting position to compensate for the badge's top-right placement
-                    { marginTop: '-4px', marginRight: '-2px' }
-                  }
-                />
-              </WithBadge>
-            </TooltipButton>
+            />
+          </ButtonGroup>
+
+          {/* Projection */}
+          <ButtonGroup sx={styles.btnGroup} variant="contained">
+            <MapButton
+              icon={BsGlobe2}
+              title={tooltipTitles.globeProjection}
+              placement="top"
+              onClick={() =>
+                createHandleChangeProjection(MAP_PROJECTIONS.GLOBE)
+              }
+            />
+            <MapButton
+              icon={BsMap}
+              title={tooltipTitles.mercatorProjection}
+              placement="top"
+              onClick={() =>
+                createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
+              }
+            />
           </ButtonGroup>
 
           {/* Map styles */}
@@ -307,82 +380,44 @@ const MapControls = ({ allowProjections, mapId }) => {
             aria-label="contained button group"
             variant="contained"
           >
-            <TooltipButton
+            <MapButton
+              icon={MdMap}
               title={tooltipTitles.mapStyles}
               placement="top"
               onClick={() =>
                 dispatch(openMapModal({ feature: 'mapStyles', mapId }))
               }
-            >
-              <MdMap />
-            </TooltipButton>
+            />
           </ButtonGroup>
-          {/* Projection */}
-          {allowProjections && (
-            <ButtonGroup sx={styles.btnGroup} variant="contained">
-              <TooltipButton
-                title={tooltipTitles.globeProjection}
-                placement="top"
-                onClick={() =>
-                  dispatch(
-                    mutateLocal({
-                      path: ['maps', 'data', mapId, 'currentProjection'],
-                      value: 'globe',
-                      sync: syncProjection,
-                    })
-                  )
-                }
-              >
-                <FetchedIcon iconName="bs/BsGlobe2" />
-              </TooltipButton>
-              <TooltipButton
-                title={tooltipTitles.mercatorProjection}
-                placement="top"
-                onClick={() => {
-                  dispatch(
-                    mutateLocal({
-                      path: ['maps', 'data', mapId, 'currentProjection'],
-                      value: 'mercator',
-                      sync: syncProjection,
-                    })
-                  )
-                }}
-              >
-                <FetchedIcon iconName="bs/BsMap" />
-              </TooltipButton>
-            </ButtonGroup>
-          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
             {!R.anyPass([R.isEmpty, R.isNil])(optionalViewports) && (
-              <TooltipButton
+              <MapButton
+                icon={MdGpsFixed}
                 title={tooltipTitles.customViewports}
                 placement="top"
                 onClick={() =>
                   dispatch(openMapModal({ feature: 'viewports', mapId }))
                 }
-              >
-                <MdGpsFixed />
-              </TooltipButton>
+              />
             )}
-            <TooltipButton
+            <MapButton
+              icon={MdHome}
               title={tooltipTitles.defaultViewport}
               placement="bottom-start"
               onClick={() => {
                 dispatch(viewportUpdate({ viewport: defaultViewport, mapId }))
               }}
-            >
-              <MdHome />
-            </TooltipButton>
+            />
           </ButtonGroup>
         </Box>
       </Box>
 
       {showBearingSlider && (
-        <Box sx={styles.bearing}>
+        <Box sx={[styles.bearing, !isMapboxSelected && { bottom: '80px' }]}>
           <Slider
-            sx={styles.bearingSlider}
+            sx={[styles.bearingSlider, !isDarkStyle && styles.lightSlider]}
             min={MIN_BEARING}
             max={MAX_BEARING}
             value={bearing}

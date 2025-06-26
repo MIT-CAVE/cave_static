@@ -362,3 +362,21 @@ export const distributionYAxes = {
   COUNTS: 'counts',
   DENSITY: 'density',
 }
+
+export const MAP_PROJECTIONS = {
+  ALBERS: 'albers',
+  EQUAL_EARTH: 'equalEarth',
+  EQUIRECTANGULAR: 'equirectangular',
+  LAMBERT_CONFORMAL_CONIC: 'lambertConformalConic',
+  MERCATOR: 'mercator',
+  NATURAL_EARTH: 'naturalEarth',
+  WINKEL_TRIPEL: 'winkelTripel',
+  GLOBE: 'globe',
+}
+
+export const MAPBOX_PROJECTIONS = new Set(Object.values(MAP_PROJECTIONS))
+
+export const MAPLIBRE_PROJECTIONS = new Set([
+  MAP_PROJECTIONS.MERCATOR,
+  MAP_PROJECTIONS.GLOBE,
+])

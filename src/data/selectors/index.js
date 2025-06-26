@@ -4,7 +4,7 @@ import * as R from 'ramda'
 import {
   DEFAULT_ICON_URL,
   DEFAULT_VIEWPORT,
-  DEFAULT_MAP_STYLES,
+  DEFAULT_MAP_STYLE_OBJECTS,
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
@@ -22,6 +22,9 @@ import {
   legendViews,
   legendLayouts,
   legendWidths,
+  MAPBOX_PROJECTIONS,
+  MAPLIBRE_PROJECTIONS,
+  MAP_PROJECTIONS,
 } from '../../utils/enums'
 import { getScaledValueAlt } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
@@ -49,6 +52,7 @@ import {
   getColorString,
   parseGradient,
   getChartItemColor,
+  isMapboxStyle,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -914,12 +918,23 @@ export const selectZoomFunc = createSelector(
     },
   }
 )
-export const selectCurrentMapStyleFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
+
+export const selectIsMapboxTokenProvided = createSelector(
+  selectMapboxToken,
+  R.both(R.isNotNil, R.isNotEmpty)
+)
+
+export const selectCurrentMapStyleIdFunc = createSelector(
+  [selectIsMapboxTokenProvided, selectCurrentMapDataByMap],
+  (isMapboxTokenProvided, dataObj) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.path(['currentStyle', mapId])(dataObj),
+      (mapId) => {
+        const defaultMapStyleId = isMapboxTokenProvided
+          ? 'mapboxDark'
+          : 'cartoDarkMatter'
+        return R.pathOr(defaultMapStyleId, ['currentStyle', mapId])(dataObj)
+      },
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -935,14 +950,26 @@ export const selectCurrentMapStyleFunc = createSelector(
 )
 
 export const selectCurrentMapProjectionFunc = createSelector(
-  [selectCurrentMapDataByMap, selectMapboxToken],
-  (dataObj, token) =>
+  [selectCurrentMapDataByMap, selectIsMapboxTokenProvided],
+  (dataObj, isMapboxTokenProvided) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        token !== ''
-          ? R.pathOr('mercator', ['currentProjection', mapId])(dataObj)
-          : 'mercator',
+        isMapboxTokenProvided
+          ? R.pipe(
+              R.path(['currentProjection', mapId]),
+              R.when(
+                (proj) => !MAPBOX_PROJECTIONS.has(proj),
+                R.always(MAP_PROJECTIONS.MERCATOR)
+              )
+            )(dataObj)
+          : R.pipe(
+              R.path(['currentProjection', mapId]),
+              R.when(
+                (proj) => !MAPLIBRE_PROJECTIONS.has(proj),
+                R.always(MAP_PROJECTIONS.MERCATOR)
+              )
+            )(dataObj),
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -957,17 +984,14 @@ export const selectCurrentMapProjectionFunc = createSelector(
   }
 )
 export const selectIsGlobeNotMemoized = createSelector(
-  [selectViewportsByMap, selectCurrentMapDataByMap, selectMapboxToken],
-  (viewportsByMap, dataObj, token) =>
+  [selectViewportsByMap, selectCurrentMapProjectionFunc],
+  (viewportsByMap, currentMapProjectionFunc) =>
     R.pipe(
       R.toPairs,
       R.map(([mapId]) => {
-        const mapProjection =
-          token !== ''
-            ? R.pathOr('mercator', ['currentProjection', mapId], dataObj)
-            : 'mercator'
+        const mapProjection = currentMapProjectionFunc(mapId)
         const zoom = R.path([mapId, 'zoom'], viewportsByMap)
-        return [mapId, mapProjection === 'globe' && zoom < 6]
+        return [mapId, mapProjection === MAP_PROJECTIONS.GLOBE && zoom < 6]
       }),
       R.fromPairs
     )(viewportsByMap),
@@ -998,21 +1022,15 @@ export const selectIsGlobe = createSelector(
     },
   }
 )
-export const selectIsMapboxTokenProvided = createSelector(
-  selectMapboxToken,
-  R.both(R.isNotNil, R.isNotEmpty)
-)
 export const selectMapStyleOptions = createSelector(
   [selectOrderedMaps, selectIsMapboxTokenProvided],
   (data, isMapboxTokenProvided) =>
     R.pipe(
       orderEntireDict,
       R.propOr([], 'additionalMapStyles'),
-      R.mergeRight(DEFAULT_MAP_STYLES),
+      R.mergeRight(DEFAULT_MAP_STYLE_OBJECTS),
       R.filter(
-        (style) =>
-          isMapboxTokenProvided ||
-          R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
+        (styleObj) => isMapboxTokenProvided || !isMapboxStyle(styleObj.spec)
       )
     )(data)
 )
@@ -1782,7 +1800,9 @@ export const selectGroupedEnabledArcsFunc = createSelector(
                 [
                   R.converge(R.and, [
                     R.propEq('3d', 'displayType'),
-                    R.always(R.equals('mercator', projectionFunc(mapId))),
+                    R.always(
+                      R.equals(MAP_PROJECTIONS.MERCATOR, projectionFunc(mapId))
+                    ),
                   ]),
                   R.always('3d'),
                 ],

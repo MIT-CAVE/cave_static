@@ -9,12 +9,13 @@ import {
   Box,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, useCallback, useContext, useMemo } from 'react'
+import { MdGpsFixed, MdMap } from 'react-icons/md'
 import { useSelector, useDispatch } from 'react-redux'
 
 import SimpleModalOptions from './SimpleModalOptions'
+import { MapContext } from './useMapApi'
 
-import { mutateLocal } from '../../../data/local'
 import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import { timeSelection } from '../../../data/local/settingsSlice'
 import {
@@ -23,12 +24,12 @@ import {
   selectCurrentTimeUnits,
   selectCurrentTimeLength,
   selectMapStyleOptions,
-  selectSync,
 } from '../../../data/selectors'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { FetchedIcon } from '../../compound'
 
-import { withIndex, includesPath } from '../../../utils'
+import { withIndex } from '../../../utils'
 
 const styles = {
   modal: {
@@ -72,124 +73,137 @@ const styles = {
   },
 }
 
-const ListModal = ({ title, options, mapId, defaultIcon, onSelect }) => {
-  const dispatch = useDispatch()
-
-  return (
-    <Modal
-      sx={styles.modal}
-      disablePortal
-      disableEnforceFocus
-      disableAutoFocus
-      open
-      onClose={() => dispatch(closeMapModal(mapId))}
-    >
-      <Box sx={styles.listPaper}>
-        <Box sx={styles.flexSpaceBetween}>
-          <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
-            {title}
-          </Typography>
-        </Box>
-        <List>
-          {withIndex(options).map(({ id, name, icon }) => (
-            <ListItemButton key={id} onClick={() => onSelect(id)}>
-              <ListItemAvatar>
-                <Avatar>
-                  <FetchedIcon iconName={icon || defaultIcon} />
-                </Avatar>
-              </ListItemAvatar>
-              <ListItemText primary={name} />
-            </ListItemButton>
-          ))}
-        </List>
+const ListModal = ({
+  title,
+  options,
+  defaultIcon: DefaultIcon,
+  onClose,
+  onSelect,
+}) => (
+  <Modal
+    open
+    disablePortal
+    disableAutoFocus
+    disableEnforceFocus
+    sx={styles.modal}
+    {...{ onClose }}
+  >
+    <Box sx={styles.listPaper}>
+      <Box sx={styles.flexSpaceBetween}>
+        <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
+          {title}
+        </Typography>
       </Box>
-    </Modal>
-  )
-}
+      <List>
+        {withIndex(options).map(({ id, name, icon }) => (
+          <ListItemButton key={id} onClick={() => onSelect(id)}>
+            <ListItemAvatar>
+              <Avatar>
+                {icon ? <FetchedIcon iconName={icon} /> : <DefaultIcon />}
+              </Avatar>
+            </ListItemAvatar>
+            <ListItemText primary={name} />
+          </ListItemButton>
+        ))}
+      </List>
+    </Box>
+  </Modal>
+)
 
-const MapModal = ({ mapId }) => {
+const MapModal = () => {
+  const { mapId } = useContext(MapContext)
+
   const mapModal = useSelector(selectMapModal)
-  const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
+  const getOptionalViewports = useSelector(selectOptionalViewportsFunc)
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
-  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
-  if (!mapModal.isOpen) return null
-  const feature = R.path(['data', 'feature'], mapModal)
-  const modelMap = R.pathOr('', ['data', 'mapId'], mapModal)
-  const timeOptions = R.pipe(
-    R.add(1),
-    R.range(1),
-    R.reduce((acc, value) => R.assoc(value, value, acc), {}),
-    R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
-  )(timeLength)
-  const syncStyles = !includesPath(R.values(sync), [
-    'maps',
-    'data',
-    mapId,
-    'currentStyle',
-  ])
-  return R.cond([
-    [
-      (d) => R.equals('viewports', d) && R.equals(mapId, modelMap),
-      R.always(
-        <ListModal
-          title="Map Viewports"
-          options={optionalViewports}
-          defaultIcon="md/MdGpsFixed"
-          onSelect={(value) => {
-            const viewport = R.pipe(
-              R.prop(value),
-              // `id` is not necessary here, since that is only
-              // added by `withIndex` as a helper property
-              R.omit(['name', 'icon'])
-            )(optionalViewports)
-            dispatch(viewportUpdate({ viewport, mapId }))
-            dispatch(closeMapModal(mapId))
-          }}
-          mapId={mapId}
-        />
-      ),
-    ],
-    [
-      (d) => R.equals('mapStyles', d) && R.equals(mapId, modelMap),
-      R.always(
-        <ListModal
-          title="Map Styles"
-          placeholder="Choose a map style..."
-          defaultIcon="md/MdMap"
-          options={mapStyleOptions}
-          onSelect={(mapStyle) => {
-            dispatch(
-              mutateLocal({
-                sync: syncStyles,
-                path: ['maps', 'data', mapId, 'currentStyle'],
-                value: mapStyle,
-              })
-            )
-            dispatch(closeMapModal(mapId))
-          }}
-          mapId={mapId}
-        />
-      ),
-    ],
-    [
-      (d) => R.equals('setTime', d) && R.equals(mapId, modelMap),
-      R.always(
-        <SimpleModalOptions
-          title={`Set ${timeUnits}`}
-          placeholder={`Choose a ${timeUnits}`}
-          options={timeOptions}
-          onSelect={(value) => {
-            dispatch(timeSelection(value - 1))
-            dispatch(closeMapModal(mapId))
-          }}
-          mapId={mapId}
-        />
-      ),
-    ],
-  ])(feature)
+
+  const timeOptions = useMemo(
+    () =>
+      R.pipe(
+        R.add(1),
+        R.range(1),
+        R.reduce((acc, value) => R.assoc(value, value)(acc), {}),
+        R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
+      )(timeLength),
+    [timeLength]
+  )
+
+  const optionalViewports = useMemo(
+    () => getOptionalViewports(mapId),
+    [getOptionalViewports, mapId]
+  )
+
+  const handleCloseModal = useCallback(
+    () => dispatch(closeMapModal(mapId)),
+    [dispatch, mapId]
+  )
+
+  const handleSelectMapViewports = useCallback(
+    (value) => {
+      const viewport = R.pipe(
+        R.prop(value),
+        // `id` is not necessary here, since that is only
+        // added by `withIndex` as a helper property
+        R.omit(['name', 'icon'])
+      )(optionalViewports)
+      dispatch(viewportUpdate({ viewport, mapId }))
+      handleCloseModal()
+    },
+    [dispatch, handleCloseModal, mapId, optionalViewports]
+  )
+
+  const handleSelectMapStyleId = useMutateStateWithSync(
+    (mapStyleId) => {
+      handleCloseModal()
+      return {
+        path: ['maps', 'data', mapId, 'currentStyle'],
+        value: mapStyleId,
+      }
+    },
+    [dispatch, handleCloseModal, mapId]
+  )
+
+  const handleSelectTime = useCallback(
+    (value) => {
+      dispatch(timeSelection(value - 1))
+      handleCloseModal()
+    },
+    [dispatch, handleCloseModal]
+  )
+
+  if (!mapModal.isOpen || mapId !== R.pathOr('', ['data', 'mapId'])(mapModal))
+    return null
+
+  const feature = R.path(['data', 'feature'])(mapModal)
+
+  return feature === 'viewports' ? (
+    <ListModal
+      title="Map Viewports"
+      options={optionalViewports}
+      defaultIcon={MdGpsFixed}
+      onSelect={handleSelectMapViewports}
+      onClose={handleCloseModal}
+    />
+  ) : feature === 'mapStyles' ? (
+    <ListModal
+      title="Map Styles"
+      placeholder="Choose a map style..."
+      defaultIcon={MdMap}
+      options={mapStyleOptions}
+      onSelect={handleSelectMapStyleId}
+      onClose={handleCloseModal}
+    />
+  ) : feature === 'setTime' ? (
+    (<SimpleModalOptions
+      title={`Set ${timeUnits}`}
+      placeholder={`Choose a ${timeUnits}`}
+      options={timeOptions}
+      onSelect={handleSelectTime}
+    />)(feature)
+  ) : null
 }
 
 export default memo(MapModal)

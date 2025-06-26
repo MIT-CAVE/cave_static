@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip } from '@mui/material'
+import { IconButton, Tooltip } from '@mui/material'
 import PropTypes from 'prop-types'
 
 import { forceArray } from '../../utils'
@@ -10,9 +10,11 @@ const styles = {
     ...theme.typography.caption,
   }),
   iconButton: {
-    p: 0.5,
+    p: 0.75,
     opacity: 1,
-    borderRadius: 'inherit',
+    border: '1px outset rgb(128 128 128)',
+    bgcolor: 'background.paper',
+    borderRadius: 0,
   },
 }
 
@@ -33,7 +35,7 @@ const TooltipButton = ({
       tooltip: { sx: [styles.tooltip, ...forceArray(slotProps?.tooltip?.sx)] },
     }}
   >
-    <Box component="span">
+    <span>
       <IconButton
         size="large"
         {...slotProps?.button}
@@ -46,7 +48,7 @@ const TooltipButton = ({
       >
         {children}
       </IconButton>
-    </Box>
+    </span>
   </Tooltip>
 )
 TooltipButton.propTypes = {

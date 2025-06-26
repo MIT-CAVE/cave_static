@@ -23,7 +23,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useContext, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
 import { PiColumns, PiLayout, PiRows } from 'react-icons/pi'
@@ -38,6 +38,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import MapPortal from './MapPortal'
+import useMapApi, { MapContext } from './useMapApi'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -141,7 +142,6 @@ const styles = {
 }
 
 export const useLegendDetails = ({
-  mapId,
   legendGroupId,
   id,
   group,
@@ -153,6 +153,7 @@ export const useLegendDetails = ({
   featureTypeValues,
   getRange,
 }) => {
+  const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -438,14 +439,8 @@ export const useGradient = ({
   }
 }
 
-const GradientColorMarker = ({
-  mapId,
-  id,
-  group,
-  colorBy,
-  colorByProp,
-  getRange,
-}) => {
+const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
+  const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
   const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
 
@@ -578,7 +573,6 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
 }
 
 export const LegendColorMarker = ({
-  mapId,
   id,
   group,
   colorBy,
@@ -594,7 +588,6 @@ export const LegendColorMarker = ({
       ) : (
         <GradientColorMarker
           {...{
-            mapId,
             id,
             group,
             colorBy,
@@ -785,13 +778,13 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
 }
 
 export const GroupScaleControls = ({
-  mapId,
   groupScaleWithZoom,
   sizeSliderProps,
   handleChange,
   handleChangeComitted,
   onChangeLegendAttr,
 }) => {
+  const { mapId } = useContext(MapContext)
   const zoom = useSelector(selectZoomFunc)(mapId)
   const [sliderValue] = sizeSliderProps.value
   const [minZoom, maxZoom] = useMemo(
@@ -814,9 +807,11 @@ export const GroupScaleControls = ({
   )
   return (
     <Stack
+      spacing={2}
+      useFlexGap
       sx={{
         py: 2,
-        m: '8px !important',
+        m: 1,
         border: '2px solid #ffa726',
         borderRadius: 1,
         boxSizing: 'border-box',
@@ -838,7 +833,7 @@ export const GroupScaleControls = ({
       <Slider
         disabled={groupScaleWithZoom}
         sx={{
-          mt: 5,
+          mt: 3,
           width: '85%',
           alignSelf: 'center',
           boxSizing: 'border-box',
@@ -856,7 +851,6 @@ export const GroupScaleControls = ({
       <Typography
         color={groupScaleWithZoom ? 'text.secondary' : 'text.primary'}
         variant="body1"
-        sx={{ mt: 2 }}
       >
         {'Current zoom level: '}
         <span style={{ fontWeight: 'bold' }}>
@@ -868,7 +862,6 @@ export const GroupScaleControls = ({
 }
 
 export const LegendPopper = ({
-  mapId,
   IconComponent,
   children,
   slotProps = {},
@@ -876,6 +869,7 @@ export const LegendPopper = ({
   onClose,
   ...props
 }) => {
+  const { mapId } = useContext(MapContext)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
 
@@ -913,8 +907,8 @@ export const LegendPopper = ({
           }}
         >
           <Popper
-            placement="left"
             disablePortal
+            placement="left"
             {...{ open, anchorEl, onClose, ...muiSlotProps.popper }}
             onClick={(event) => {
               event.stopPropagation()
@@ -964,25 +958,42 @@ export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
+  const { mapId } = useContext(MapContext)
+  const { isMapboxSelected } = useMapApi(mapId)
   const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
-  const indexedOptions = {
-    solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
-    dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
-    dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
-    // '3d': { icon: 'vsc/VscLoading', label: 'Arc' },
-  }
+  const disabled = !isMapboxSelected
+  const indexedOptions = useMemo(
+    () => ({
+      solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
+      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted', disabled },
+      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed', disabled },
+      '3d': { icon: 'vsc/VscLoading', label: 'Arc', disabled: true }, // Always disabled for now
+    }),
+    [disabled]
+  )
+  const shapeOptions = useMemo(
+    () => Object.keys(indexedOptions),
+    [indexedOptions]
+  )
+  const currentLineStyle = isMapboxSelected
+    ? (props.lineStyle ?? 'solid')
+    : 'solid'
   return (
     <LegendRowComponent
       mapFeaturesBy={effectiveArcsBy}
-      shapeOptions={Object.keys(indexedOptions)}
       shapePathEnd="lineStyle"
-      shape={props.lineStyle ?? 'solid'}
-      icon={indexedOptions[props.lineStyle ?? 'solid']?.icon}
+      shape={currentLineStyle}
+      icon={indexedOptions[currentLineStyle]?.icon}
       shapeLabel="Select the line style"
+      {...{ shapeOptions, getRange, ...props }}
+      shapeWarning={
+        !isMapboxSelected &&
+        "Only the 'solid' line style is supported when using MapLibre. Other styles ('dotted', 'dashed', etc.) will be displayed as solid lines."
+      }
       getShapeIcon={(option) => indexedOptions[option]?.icon}
       getShapeLabel={(option) => indexedOptions[option]?.label}
-      {...{ getRange, ...props }}
+      getShapeDisabled={(option) => indexedOptions[option]?.disabled}
     />
   )
 }
@@ -1008,7 +1019,8 @@ const SettingsToggle = ({ value, label, icon: Icon, selected }) => (
   </ToggleButton>
 )
 
-export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
+export const LegendSettings = ({ expandAll, onExpandAll }) => {
+  const { mapId } = useContext(MapContext)
   const legendView = useSelector(selectLegendView)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -1181,7 +1193,6 @@ export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
 
 export const LegendHeader = ({
   label = 'Legend',
-  mapId,
   slotProps = {},
   sx = [],
   popperProps,
@@ -1226,7 +1237,7 @@ export const LegendHeader = ({
           <LegendPopper
             sx={styles.toggleButton}
             IconComponent={RiSettings5Line}
-            {...{ anchorEl, mapId, slotProps }}
+            {...{ anchorEl, slotProps }}
             onClose={handleClose}
           >
             {children}
@@ -1237,7 +1248,8 @@ export const LegendHeader = ({
   )
 }
 
-export const LegendRoot = ({ mapId, ...props }) => {
+export const LegendRoot = (props) => {
+  const { mapId } = useContext(MapContext)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   return (
