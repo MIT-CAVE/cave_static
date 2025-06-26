@@ -134,13 +134,13 @@ const geoJsonToSegments = (features, layerId) => {
 }
 
 export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
-  const { mapId } = useContext(MapContext)
+  const { mapId, mapRef } = useContext(MapContext)
   const clickHandler = useRef()
   const hoverHandler = useRef()
 
-  const { Layer, mapRef } = useMapApi(mapId)
-  const map = mapRef?.current
+  const { Layer } = useMapApi(mapId)
 
+  const map = mapRef.current
   const id = '3d-model'
   const layer = map?.getLayer('3d-model')
   const canvas = map?.getCanvas()
@@ -626,14 +626,14 @@ const CustomLayer = memo(
     onClick = () => {},
     getScale = () => [1, 1, 1],
   }) => {
-    const { mapId } = useContext(MapContext)
+    const { mapId, mapRef } = useContext(MapContext)
     const clickHandler = useRef()
     const hoverHandler = useRef()
     const prevObjects = useRef()
 
-    const { Layer, mapRef } = useMapApi(mapId)
-    const map = mapRef?.current
+    const { Layer } = useMapApi(mapId)
 
+    const map = mapRef.current
     const layer = map?.getLayer(id)
     const canvas = map?.getCanvas()
 
