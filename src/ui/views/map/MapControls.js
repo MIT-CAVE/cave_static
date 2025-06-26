@@ -39,6 +39,7 @@ import {
   selectPitchFunc,
   selectStaticMap,
   selectLegendDataFunc,
+  selectMapProjectionOptionsFunc,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -239,6 +240,9 @@ const MapControls = () => {
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
+  const mapProjectionOptions = useSelector(selectMapProjectionOptionsFunc)(
+    mapId
+  )
   const isStatic = useSelector(selectStaticMap)
   const dispatch = useDispatch()
 
@@ -374,14 +378,16 @@ const MapControls = () => {
                 createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
               }
             />
-            <MapButton
-              icon={PiPerspectiveBold}
-              title={tooltipTitles.otherProjections}
-              placement="top"
-              onClick={() =>
-                dispatch(openMapModal({ feature: 'mapProjections', mapId }))
-              }
-            />
+            {R.isNotEmpty(mapProjectionOptions) && (
+              <MapButton
+                icon={PiPerspectiveBold}
+                title={tooltipTitles.otherProjections}
+                placement="top"
+                onClick={() =>
+                  dispatch(openMapModal({ feature: 'mapProjections', mapId }))
+                }
+              />
+            )}
           </ButtonGroup>
 
           {/* Map styles */}

@@ -1061,7 +1061,14 @@ export const selectMapProjectionOptionsFunc = createSelector(
               R.always(MAPBOX_PROJECTIONS),
               R.always(MAPLIBRE_PROJECTIONS)
             ),
-            Array.from,
+            Array.from, // Convert from `Set`
+            R.reject(
+              // Exclude map projection shortcuts
+              R.includes(R.__, [
+                MAP_PROJECTIONS.MERCATOR,
+                MAP_PROJECTIONS.GLOBE,
+              ])
+            ),
             R.flip(R.pick)(DEFAULT_MAP_PROJECTION_OBJECTS)
           )(mapId)
         ),
