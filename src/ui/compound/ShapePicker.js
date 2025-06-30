@@ -128,7 +128,7 @@ const ShapePicker = ({
             </Stack>
           )
         },
-        getOptionDisabled: (option) => getDisabled(option),
+        getOptionDisabled: getDisabled,
         getOptionLabel: (option) => getLabel(option) ?? option,
       })}
     />

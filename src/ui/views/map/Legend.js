@@ -500,6 +500,7 @@ const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
         height: '100%',
         width: '100%',
         background: `linear-gradient(to right, ${gradientColors.join(', ')})`,
+        border: '1px outset rgb(128 128 128)',
         borderRadius: 1,
       }}
     />
@@ -510,9 +511,9 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
   const { options, fallback } = colorByProp
 
   const displayedColors = useMemo(() => {
-    const maxVisible = 9 // Max number of color dots
+    const maxVisible = 9 // Max number of color markers
     return R.pipe(
-      R.map((d) => R.propOr(getChartItemColor(d['name']), 'color', d)),
+      R.map((d) => R.propOr(getChartItemColor(d.name), 'color')(d)),
       R.values,
       R.when(
         R.always(anyNullValue && fallback?.color != null),
@@ -524,50 +525,49 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
 
   const width = 28
   const height = 20
+  const gap = 2
   const numColors = displayedColors.length
-  const circleCoords = useMemo(
-    () =>
-      numColors < 5
-        ? [
-            { cx: width * 0.2, cy: height * 0.2 },
-            { cx: width * 0.8, cy: height * 0.2 },
-            { cx: width * 0.2, cy: height * 0.8 },
-            { cx: width * 0.8, cy: height * 0.8 },
-          ]
-        : numColors < 7
-          ? [
-              { cx: width * 0.2, cy: height * 0.2 },
-              { cx: width * 0.8, cy: height * 0.2 },
-              { cx: width * 0.5, cy: height * 0.2 },
-              { cx: width * 0.5, cy: height * 0.8 },
-              { cx: width * 0.2, cy: height * 0.8 },
-              { cx: width * 0.8, cy: height * 0.8 },
-            ]
-          : [
-              { cx: width * 0.1, cy: height * 0.1 },
-              { cx: width * 0.5, cy: height * 0.1 },
-              { cx: width * 0.9, cy: height * 0.1 },
-              { cx: width * 0.1, cy: height * 0.5 },
-              { cx: width * 0.5, cy: height * 0.5 },
-              { cx: width * 0.9, cy: height * 0.5 },
-              { cx: width * 0.1, cy: height * 0.9 },
-              { cx: width * 0.5, cy: height * 0.9 },
-              { cx: width * 0.9, cy: height * 0.9 },
-            ],
-    [numColors]
-  )
-  const radius = useMemo(
-    () =>
-      Math.min(height, width) *
-      (numColors < 5 ? 0.2 : numColors < 7 ? 0.15 : 0.1),
-    [numColors]
-  )
+
+  // Compute grid (max 3 columns)
+  const cols = numColors <= 4 ? 2 : 3
+  const rows = Math.ceil(numColors / cols)
+  const markerWidth = (width - gap * (cols - 1)) / cols
+  const markerHeight = (height - gap * (rows - 1)) / rows
+  // const rx = Math.min(markerWidth, markerHeight) * 0.4 // rounded corners
 
   return (
     <svg {...{ height, width }}>
-      {displayedColors.map((color, index) => (
-        <circle key={index} {...circleCoords[index]} r={radius} fill={color} />
-      ))}
+      <defs>
+        <linearGradient id="outsetBorder" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fff" />
+          <stop offset="100%" stopColor="#888" />
+        </linearGradient>
+      </defs>
+      {displayedColors.map((color, idx) => {
+        const row = Math.floor(idx / cols)
+        const col = idx % cols
+        const x = col * (markerWidth + gap)
+        const y = row * (markerHeight + gap)
+        return (
+          <rect
+            key={idx}
+            {...{
+              x,
+              y,
+              // rx
+            }}
+            width={markerWidth}
+            height={markerHeight}
+            fill={color}
+            stroke="url(#outsetBorder)"
+            strokeWidth="0.5"
+            style={{
+              filter: 'drop-shadow(0 1px 1px rgba(0 0 0 / .18))',
+              transition: 'fill 0.2s',
+            }}
+          />
+        )
+      })}
     </svg>
   )
 }

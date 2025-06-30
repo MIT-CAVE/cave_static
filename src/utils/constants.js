@@ -158,6 +158,7 @@ export const DEFAULT_MAP_STYLE_OBJECTS = {
     name: 'Mapbox Streets',
     icon: 'si/SiMapbox',
     spec: 'mapbox://styles/mapbox/streets-v12',
+    light: true,
   },
   mapboxSatellite: {
     name: 'Mapbox Satellite',
