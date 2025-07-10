@@ -45,23 +45,26 @@ const BaseContainer = ({
   sx,
   children,
   ...props
-}) => (
-  <Grid
-    container
-    sx={[styles.root, variantStyle, ...forceArray(sx), style, propStyle]}
-    {...R.dissoc('currentVal')(props)}
-  >
-    <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
-      <OverflowText text={name || id} />
-    </Grid>
-    {help && (
-      <Grid sx={{ p: 0.5, pr: 1 }}>
-        <HelpTooltip text={help} size={26} />
+}) => {
+  const title = name ?? id
+  return (
+    <Grid
+      container
+      sx={[styles.root, variantStyle, ...forceArray(sx), style, propStyle]}
+      {...R.dissoc('currentVal')(props)}
+    >
+      <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
+        <OverflowText text={title} />
       </Grid>
-    )}
-    {children}
-  </Grid>
-)
+      {help && (
+        <Grid sx={{ p: 0.5, pr: 1 }}>
+          <HelpTooltip {...{ title }} content={help} size={26} />
+        </Grid>
+      )}
+      {children}
+    </Grid>
+  )
+}
 BaseContainer.propTypes = {
   prop: PropTypes.object,
   style: PropTypes.object,

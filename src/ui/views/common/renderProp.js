@@ -148,9 +148,9 @@ export const PropWrapper = ({ prop, children }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
-    tooltipTitle: R.prop('help'),
-    unit: R.propOr(numberFormatDefault.unit, 'unit'),
     subtitle: R.prop('subtitle'),
+    tooltipContent: R.prop('help'),
+    unit: R.propOr(numberFormatDefault.unit, 'unit'),
     type: R.cond([
       [
         R.both(

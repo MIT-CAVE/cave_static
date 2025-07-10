@@ -42,7 +42,8 @@ const styles = {
 }
 
 const BaseContainer = ({
-  tooltipTitle,
+  title,
+  tooltipContent,
   elevation,
   style,
   sx = [],
@@ -53,7 +54,9 @@ const BaseContainer = ({
     sx={[styles.base, style, ...forceArray(sx)]}
     {...{ elevation, ...props }}
   >
-    {tooltipTitle && <HelpTooltip text={tooltipTitle} sx={styles.info} />}
+    {tooltipContent && (
+      <HelpTooltip {...{ title }} content={tooltipContent} sx={styles.info} />
+    )}
     {children}
   </Paper>
 )
@@ -93,18 +96,18 @@ const HorizontalContainer = ({
   title,
   subtitle,
   marquee,
-  tooltipTitle,
+  tooltipContent,
   unit,
   children,
   ...props
 }) => (
-  <BaseContainer {...{ tooltipTitle, ...props }}>
+  <BaseContainer {...{ title, tooltipContent, ...props }}>
     <Grid
       container
       sx={{
         alignItems: 'center',
         alignContent: 'start',
-        mt: tooltipTitle ? 3.5 : 0,
+        mt: tooltipContent ? 3.5 : 0,
         overflow: 'auto',
         height: '100%',
       }}
@@ -121,14 +124,14 @@ const VerticalContainer = ({
   title,
   subtitle,
   marquee,
-  tooltipTitle,
+  tooltipContent,
   unit,
   sx = [],
   children,
   ...props
 }) => (
   <BaseContainer
-    {...{ tooltipTitle, ...props }}
+    {...{ title, tooltipContent, ...props }}
     sx={[{ p: 1 }, ...forceArray(sx)]}
   >
     <Grid container spacing={1} direction="column" sx={{ flexGrow: 1 }}>
@@ -136,7 +139,7 @@ const VerticalContainer = ({
         sx={{
           pl: 1,
           pt: 0.5,
-          pr: tooltipTitle ? 4.5 : 1,
+          pr: tooltipContent ? 4.5 : 1,
           width: '100%',
         }}
       >
@@ -175,8 +178,8 @@ const MinimalContainer = ({ style, children }) => (
       {
         justifyContent: 'start',
         p: 0,
-        // border: '1px solid rgb(255 255 255 / .1)', // FIXME: Remove after debugging
-        // bgcolor: 'rgb(255 255 0 / .02)', // FIXME: Remove after debugging
+        // border: '1px solid rgb(255 255 255 / .1)', // NOTE: Only for debugging
+        // bgcolor: 'rgb(255 255 0 / .02)', // NOTE: Only for debugging
       },
       style,
     ]}
@@ -190,7 +193,7 @@ const PropContainer = ({
   title,
   subtitle,
   marquee,
-  tooltipTitle,
+  tooltipContent,
   unit,
   elevation,
   style,
@@ -222,7 +225,7 @@ const PropContainer = ({
         title,
         subtitle,
         marquee,
-        tooltipTitle,
+        tooltipContent,
         unit,
         elevation,
         style,
@@ -238,7 +241,7 @@ PropContainer.propTypes = {
   title: PropTypes.string,
   subtitle: PropTypes.string,
   marquee: PropTypes.bool,
-  tooltipTitle: PropTypes.string,
+  tooltipContent: PropTypes.string,
   unit: PropTypes.string,
   type: PropTypes.oneOf(Object.values(propContainer)),
   elevation: PropTypes.oneOf([...Array(25).keys()]),

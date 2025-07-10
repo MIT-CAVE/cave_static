@@ -71,7 +71,7 @@ const FieldTitle = ({ title, titleVariant = 'h6', help }) => (
     <Typography variant={titleVariant}>{title}</Typography>
     {help && (
       <Box sx={styles.info}>
-        <HelpTooltip text={help} />
+        <HelpTooltip {...{ title }} content={help} />
       </Box>
     )}
   </Box>

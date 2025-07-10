@@ -16,8 +16,8 @@ const styles = {
   },
 }
 
-const HelpButton = ({ text, size = 22, sx = [], ...props }) => (
-  <RichTooltip content={text} {...props}>
+const HelpTooltip = ({ title, content, size = 22, sx = [], ...props }) => (
+  <RichTooltip {...{ title, content, ...props }}>
     <IconButton
       aria-label="info"
       size="small"
@@ -28,8 +28,9 @@ const HelpButton = ({ text, size = 22, sx = [], ...props }) => (
     </IconButton>
   </RichTooltip>
 )
-HelpButton.propTypes = {
-  text: PropTypes.string.isRequired,
+HelpTooltip.propTypes = {
+  title: PropTypes.string,
+  content: PropTypes.string.isRequired,
   size: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
@@ -40,4 +41,4 @@ HelpButton.propTypes = {
   ]),
 }
 
-export default HelpButton
+export default HelpTooltip

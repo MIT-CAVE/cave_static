@@ -1,7 +1,6 @@
-import { Box, Tooltip, styled } from '@mui/material'
+import { Box, Tooltip, Typography, styled } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useCallback, useRef } from 'react'
-import { MdOutlineRawOn } from 'react-icons/md'
 
 import CopyButton from './CopyButton'
 import MarkdownContent from './MarkdownContent'
@@ -29,20 +28,16 @@ const StyledTooltip = styled(({ className, ...props }) => (
 const HeaderBox = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.action.hover,
   borderBottom: `1px solid ${theme.palette.divider}`,
-  padding: theme.spacing(1),
-  // marginBottom: theme.spacing(1),
   display: 'flex',
-  justifyContent: 'flex-end',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  padding: theme.spacing(1),
   borderTopLeftRadius: theme.shape.borderRadius,
   borderTopRightRadius: theme.shape.borderRadius,
 }))
 
-const RichTooltip = ({ content, children, ...props }) => {
+const RichTooltip = ({ title, content, children, ...props }) => {
   const contentRef = useRef(null)
-  const getFormattedText = useCallback(
-    () => contentRef.current?.textContent ?? '',
-    []
-  )
   const getRawText = useCallback(() => content, [content])
   return (
     <StyledTooltip
@@ -53,14 +48,17 @@ const RichTooltip = ({ content, children, ...props }) => {
       title={
         <div>
           <HeaderBox>
+            <Typography
+              variant="subtitle1"
+              component="span"
+              sx={{ flexGrow: 1 }}
+            >
+              {`Help \u203A ${title}`}
+            </Typography>
+
             <CopyButton
               getText={getRawText}
-              icon={MdOutlineRawOn}
-              tooltip="Copy raw text"
-            />
-            <CopyButton
-              getText={getFormattedText}
-              tooltip="Copy visible text"
+              tooltip="Copy content to clipboard"
             />
           </HeaderBox>
           <MarkdownContent {...{ content }} innerRef={contentRef} />
