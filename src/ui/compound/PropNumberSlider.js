@@ -12,23 +12,25 @@ import { forceArray, getSliderMarks, NumberFormat } from '../../utils'
 
 const styles = {
   root: { alignItems: 'center' },
-  slider: {
+  getSlider: (color) => ({
     mx: '27px',
     mb: 1,
     py: 1.5,
     '& .MuiSlider-rail': {
       height: '4px',
-      borderRadius: 'shape.borderRadius',
+      borderRadius: 1,
+      bgcolor: color,
     },
     '& .MuiSlider-thumb': {
       height: '24px',
       width: '24px',
+      bgcolor: color,
     },
     '& .MuiSlider-track': {
       height: '4px',
-      borderRadius: 'shape.borderRadius',
+      borderRadius: 1,
     },
-  },
+  }),
 }
 
 const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
@@ -39,7 +41,7 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
   // eslint-disable-next-line no-unused-vars
   const { unit, unitPlacement, ...numberFormat } = selectNumberFormatProps(prop)
 
-  const { enabled, slotProps = {}, fullWidth = true, propStyle } = prop
+  const { enabled, slotProps = {}, fullWidth = true, color, propStyle } = prop
 
   const minValue = prop.minValue ?? -Infinity
   const maxValue = useMemo(() => {
@@ -98,7 +100,7 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
         valueLabelDisplay="auto"
         valueLabelFormat={getLabelFormat}
         {...{ marks, step, value, ...slotProps.slider }}
-        sx={[styles.slider, ...forceArray(slotProps.slider?.sx)]}
+        sx={[styles.getSlider(color), ...forceArray(slotProps.slider?.sx)]}
         onChange={(event, newValue) => {
           setValue(newValue)
         }}
