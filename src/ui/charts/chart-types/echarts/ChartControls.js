@@ -4,8 +4,8 @@ import {
   Switch,
   Slider,
   Typography,
+  styled,
 } from '@mui/material'
-import { styled } from '@mui/system'
 
 import { useMutateStateWithSync } from '../../../../utils/hooks'
 

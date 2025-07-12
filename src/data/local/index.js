@@ -65,7 +65,7 @@ const localSlice = createSlice({
           )
         })(paths)
       })(action.payload.desyncedPaths)
-      return { settings: initialState }
+      return { settings: initialState, ...state }
     })
   },
 })

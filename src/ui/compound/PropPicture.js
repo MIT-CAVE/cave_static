@@ -1,66 +1,53 @@
-import { Box, Button, Dialog } from '@mui/material'
+import { Dialog } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
-import React from 'react'
-import { AiOutlineExpandAlt } from 'react-icons/ai'
+import { useState } from 'react'
+
+import RippleBox from './RippleBox'
 
 import { forceArray } from '../../utils'
 
 const styles = {
-  box: {
+  root: {
     position: 'relative',
+    height: '100%',
+    maxHeight: '300px',
     width: '100%',
-    p: 1,
-  },
-  button: {
-    width: '36px',
-    minWidth: 0,
-    position: 'absolute',
-    top: '15px',
-    left: '15px',
-    '.MuiButton-startIcon': {
-      m: 0,
-    },
+    minWidth: '200px',
+    maxWidth: '300px',
   },
   img: {
-    width: '100%',
-    minWith: '100px',
-    maxWidth: '300px',
     height: '100%',
-  },
-  imgExpanded: {
-    width: 'auto',
-    height: 'auto',
+    width: '100%',
+    objectFit: 'contain',
+    border: '1px solid rgb(128 128 128)',
+    boxSizing: 'border-box',
   },
 }
 
-const PropPicture = ({ prop, sx = [], ...props }) => {
-  const [expanded, setExpanded] = React.useState(false)
+// TODO: Add `scaleMode` for flexible sizing (like in the `video` variant)
+const PropPicture = ({ prop: { value: url, propStyle }, sx = [] }) => {
+  const [expanded, setExpanded] = useState(false)
   return (
-    <Box
-      sx={[styles.box, ...forceArray(sx)]}
-      {...R.dissoc('currentVal', props)}
-    >
-      <img src={prop.value} alt="" style={styles.img} />
-      <Button
-        variant="contained"
-        startIcon={<AiOutlineExpandAlt />}
+    <>
+      <RippleBox
+        sx={[styles.root, ...forceArray(sx), propStyle]}
         onClick={() => {
           setExpanded(true)
         }}
-        sx={styles.button}
-      />
+      >
+        <img src={url} alt="" style={styles.img} />
+      </RippleBox>
       <Dialog
+        fullWidth
+        maxWidth="lg"
         open={expanded}
         onClose={() => {
           setExpanded(false)
         }}
-        maxWidth="lg"
-        fullWidth
       >
-        <img src={prop.value} alt="" style={styles.imgExpanded} />
+        <img src={url} alt="" />
       </Dialog>
-    </Box>
+    </>
   )
 }
 PropPicture.propTypes = {

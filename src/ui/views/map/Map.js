@@ -1,55 +1,55 @@
-import { Container, Box } from '@mui/material'
+import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
-import ReactMapboxGL from 'react-map-gl'
-import ReactMapLibreGL from 'react-map-gl/maplibre'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { getDefaultFog, getDefaultStyleId } from '.'
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
-import { MapContainerContext } from './MapPortal'
+import useMapApi, { MapContext } from './useMapApi'
 
-import { mutateLocal } from '../../../data/local'
 import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
-  selectCurrentMapStyleFunc,
-  selectMapStyleOptions,
   selectGroupedEnabledArcsFunc,
   selectMergedGeos,
   selectCurrentMapProjectionFunc,
   selectDemoMode,
   selectDemoSettings,
-  selectLeftAppBarDisplay,
-  selectRightAppBarDisplay,
   selectViewportsByMap,
   selectMapData,
   selectAllNodeIcons,
-  selectSync,
-  selectIsMapboxTokenProvided,
   selectMapboxToken,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH, ICON_RESOLUTION } from '../../../utils/constants'
+import {
+  DARK_GLOBE_FOG,
+  DARK_SKY_SPEC,
+  ICON_RESOLUTION,
+  LIGHT_GLOBE_FOG,
+  LIGHT_SKY_SPEC,
+} from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
-import { fetchIcon, includesPath } from '../../../utils'
+import { fetchIcon } from '../../../utils'
+
+import 'mapbox-gl/dist/mapbox-gl.css'
+import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
-  const dispatch = useDispatch()
+  const [iconData, setIconData] = useState({})
+  const mapRef = useRef(null)
+  const highlight = useRef(null)
+  const containerRef = useRef(null)
+  const demoInterval = useRef(-1)
+
   const viewport = useSelector(selectViewportsByMap)[mapId]
-  const mapStyle = useSelector(selectCurrentMapStyleFunc)(mapId)
-  const mapProjection = useSelector(selectCurrentMapProjectionFunc)(mapId)
-  const mapStyleOptions = useSelector(selectMapStyleOptions)
-  const arcData = R.propOr(
-    {},
-    'geoJson'
-  )(useSelector(selectGroupedEnabledArcsFunc)(mapId))
+  const currentMapProjectionFunc = useSelector(selectCurrentMapProjectionFunc)
+  const groupedEnabledArcsFunc = useSelector(selectGroupedEnabledArcsFunc)
   const geosData = useSelector(selectMergedGeos)
   const iconUrl = useSelector(selectSettingsIconUrl)
   const demoMode = useSelector(selectDemoMode)
@@ -57,20 +57,25 @@ const Map = ({ mapId }) => {
   const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
-  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const sync = useSelector(selectSync)
-  const [iconData, setIconData] = useState({})
-  const [mapStyleSpec, setMapStyleSpec] = useState(undefined)
+  const dispatch = useDispatch()
+
   const mapExists = R.has(mapId, mapData)
 
-  const ReactMapGL = isMapboxTokenProvided ? ReactMapboxGL : ReactMapLibreGL
+  const arcData = useMemo(
+    () => R.pipe(groupedEnabledArcsFunc, R.propOr({}, 'geoJson'))(mapId),
+    [groupedEnabledArcsFunc, mapId]
+  )
 
-  const mapRef = useRef(false)
-  const highlight = useRef(null)
-  const fogTimeout = useRef(null)
-  const containerRef = useRef(null)
+  const interactiveLayerIds = useMemo(() => R.values(layerId), [])
 
-  const demoInterval = useRef(-1)
+  const {
+    ReactMapGl,
+    isDarkStyle,
+    isMapboxSelected,
+    mapStyle,
+    mapStyleOption,
+  } = useMapApi(mapId)
+
   useEffect(() => {
     const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
     if (demoMode && demoInterval.current === -1) {
@@ -90,6 +95,7 @@ const Map = ({ mapId }) => {
       }
     }
   }, [mapId, demoMode, demoSettings, dispatch])
+
   useEffect(() => {
     const iconsToLoad = [
       ...new Set(R.without(R.keys(iconData))(nodeIcons(mapId))),
@@ -110,27 +116,30 @@ const Map = ({ mapId }) => {
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 
-  const loadFog = useCallback(() => {
-    if (!isMapboxTokenProvided) return
+  const loadSkyAndFog = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map || !map.isStyleLoaded()) return
 
-    if (mapRef.current && mapRef.current.isStyleLoaded()) {
-      const map = mapRef.current.getMap()
-      map.setFog(
-        R.pathOr(
-          getDefaultFog(),
-          [mapStyle || getDefaultStyleId(isMapboxTokenProvided), 'fog'],
-          mapStyleOptions
-        )
-      )
-      fogTimeout.current = null
+    if (isMapboxSelected) {
+      const defaultFog = isDarkStyle ? DARK_GLOBE_FOG : LIGHT_GLOBE_FOG
+      map.setFog(mapStyleOption?.fog ?? mapStyle?.fog ?? defaultFog)
     } else {
-      fogTimeout.current = setTimeout(loadFog, 100)
+      const defaultSky = isDarkStyle ? DARK_SKY_SPEC : LIGHT_SKY_SPEC
+      map.setSky(mapStyleOption?.sky ?? mapStyle?.sky ?? defaultSky)
     }
-  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions])
+  }, [
+    isDarkStyle,
+    isMapboxSelected,
+    mapStyle?.fog,
+    mapStyle?.sky,
+    mapStyleOption?.fog,
+    mapStyleOption?.sky,
+  ])
 
   const loadIconsToStyle = useCallback(() => {
+    if (!mapRef.current) return
     R.forEachObjIndexed((iconImage, iconName) => {
-      if (mapRef.current && !mapRef.current.hasImage(iconName)) {
+      if (!mapRef.current.hasImage(iconName)) {
         mapRef.current.addImage(iconName, iconImage, { sdf: true })
       }
     }, iconData)
@@ -138,11 +147,7 @@ const Map = ({ mapId }) => {
 
   useEffect(() => {
     loadIconsToStyle()
-    loadFog()
-    return () => {
-      if (fogTimeout.current) clearTimeout(fogTimeout.current)
-    }
-  }, [iconData, loadFog, loadIconsToStyle])
+  }, [loadIconsToStyle])
 
   const getFeatureFromEvent = useCallback(
     (e) => {
@@ -204,173 +209,139 @@ const Map = ({ mapId }) => {
     [arcData, geosData]
   )
 
-  const onMouseMove = useCallback(
+  const handleMove = useCallback(
     (e) => {
-      if (mapRef.current) {
-        const canvas = mapRef.current.getCanvas()
-        const featureObj = getFeatureFromEvent(e)
-        if (R.isNotNil(highlight.current)) {
-          mapRef.current.setFeatureState(highlight.current, { hover: false })
-          highlight.current = null
-        }
-        if (!featureObj) {
-          if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
-        } else {
-          const id = featureObj[3]
-          const source = featureObj[4]
-          mapRef.current.setFeatureState({ source, id }, { hover: true })
-          highlight.current = { source, id }
-          if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
-        }
+      // Prevents setting incorrect viewport on load
+      if (e.viewState.zoom !== 0)
+        dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
+    },
+    [dispatch, mapId]
+  )
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!mapRef.current) return
+
+      const canvas = mapRef.current.getCanvas()
+      const featureObj = getFeatureFromEvent(e)
+      if (R.isNotNil(highlight.current)) {
+        mapRef.current.setFeatureState(highlight.current, { hover: false })
+        highlight.current = null
+      }
+      if (!featureObj) {
+        if (canvas.style.cursor !== 'auto') canvas.style.cursor = 'auto'
+      } else {
+        const id = featureObj[3]
+        const source = featureObj[4]
+        mapRef.current.setFeatureState({ source, id }, { hover: true })
+        highlight.current = { source, id }
+        if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
       }
     },
     [getFeatureFromEvent]
   )
 
-  const onMouseOver = useCallback(() => {
-    if (R.isNotNil(highlight.current)) {
-      mapRef.current.setFeatureState(highlight.current, { hover: false })
-      highlight.current = null
-    }
-  }, [])
-
-  const onClick = useCallback(
+  const handleClick = useMutateStateWithSync(
     (e) => {
       const featureObj = getFeatureFromEvent(e)
       if (!featureObj) return
+
       const [id, feature, obj] = featureObj
       if (R.isNotNil(highlight.current)) {
         mapRef.current.setFeatureState(highlight.current, { hover: false })
         highlight.current = null
       }
 
-      dispatch(
-        mutateLocal({
-          path: ['panes', 'paneState', 'center'],
-          value: {
-            open: {
-              ...(obj || {}),
-              feature: feature,
-              type: R.propOr(obj.type, 'name')(obj),
-              key: id,
-              mapId,
-            },
-            type: 'feature',
+      return {
+        path: ['panes', 'paneState', 'center'],
+        value: {
+          open: {
+            ...(obj || {}),
+            key: id,
+            mapId,
+            feature,
+            type: obj?.name || obj?.type,
           },
-          sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
-        })
-      )
+          type: 'feature',
+        },
+      }
     },
-    [getFeatureFromEvent, dispatch, mapId, sync]
+    [getFeatureFromEvent, mapId]
   )
 
-  useEffect(() => {
-    // This needs to be done because calling setStyle with the same style
-    // breaks it for some reason
-    const newStyle = R.path([
-      mapStyle || getDefaultStyleId(isMapboxTokenProvided),
-      'spec',
-    ])(mapStyleOptions)
-    if (!R.equals(newStyle, mapStyleSpec)) {
-      setMapStyleSpec(
-        R.path([mapStyle || getDefaultStyleId(isMapboxTokenProvided), 'spec'])(
-          mapStyleOptions
-        )
-      )
+  const handleMouseOver = useCallback(() => {
+    if (R.isNotNil(highlight.current)) {
+      mapRef.current.setFeatureState(highlight.current, { hover: false })
+      highlight.current = null
     }
-  }, [isMapboxTokenProvided, mapStyle, mapStyleOptions, mapStyleSpec])
+  }, [])
+
+  const handleRender = useCallback(() => {
+    // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
+    // Checking if token is provided to prevents both issues
+    isMapboxSelected && mapRef.current?.resize()
+  }, [isMapboxSelected])
+
+  const handleStyleData = useCallback(() => {
+    loadIconsToStyle()
+    loadSkyAndFog()
+  }, [loadSkyAndFog, loadIconsToStyle])
 
   useEffect(() => {
-    document.addEventListener('clearHighlight', onMouseOver, false)
+    document.addEventListener('clearHighlight', handleMouseOver, false)
     return () =>
-      document.removeEventListener('clearHighlight', onMouseOver, false)
+      document.removeEventListener('clearHighlight', handleMouseOver, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return !mapExists ? (
-    []
-  ) : (
-    <Box
-      sx={{
-        display: 'flex',
-        position: 'relative',
-        flex: '1 1 auto',
-      }}
-    >
-      <MapContainerContext.Provider value={containerRef}>
-        <MapControls allowProjections={isMapboxTokenProvided} mapId={mapId} />
-        <ReactMapGL
-          {...viewport}
-          onMove={(e) => {
-            // Prevents setting incorrect viewport on load
-            if (e.viewState.zoom !== 0)
-              dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
-          }}
-          hash="map"
-          container="map"
-          mapStyle={mapStyleSpec}
-          mapboxAccessToken={isMapboxTokenProvided && mapboxToken}
-          projection={mapProjection}
-          onClick={onClick}
-          onMouseMove={onMouseMove}
-          onStyleData={() => {
-            loadIconsToStyle()
-            loadFog()
-          }}
-          ref={mapRef}
-          onMouseOver={onMouseOver}
-          interactiveLayerIds={R.values(layerId)}
-          // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
-          // Checking if token is provided to prevents both issues
-          onRender={() => {
-            isMapboxTokenProvided && mapRef.current && mapRef.current.resize()
-          }}
-        >
-          <Geos mapId={mapId} />
-          <IncludedGeos mapId={mapId} />
-          <Arcs mapId={mapId} />
-          <Nodes mapId={mapId} />
-          <Arcs3D mapId={mapId} />
-          {/* `MapPortal` is injected here */}
-          <div ref={containerRef} />
-        </ReactMapGL>
-        <MapModal mapId={mapId} />
-        <MapLegend mapId={mapId} />
-      </MapContainerContext.Provider>
-    </Box>
+  return (
+    mapExists && (
+      <Box
+        sx={{
+          display: 'flex',
+          position: 'relative',
+          flex: '1 1 auto',
+        }}
+      >
+        <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
+          <MapControls />
+          <ReactMapGl
+            ref={mapRef}
+            hash="map"
+            container="map"
+            style={
+              !isMapboxSelected && {
+                backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
+              }
+            }
+            mapboxAccessToken={isMapboxSelected && mapboxToken}
+            projection={currentMapProjectionFunc(mapId)}
+            {...{ mapStyle, interactiveLayerIds, ...viewport }}
+            onStyleData={handleStyleData}
+            onLoad={loadSkyAndFog}
+            onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
+            onRender={handleRender}
+            onClick={handleClick}
+            onMove={handleMove}
+            onMouseMove={handleMouseMove}
+            onMouseOver={handleMouseOver}
+          >
+            <Geos />
+            <IncludedGeos />
+            <Arcs />
+            <Nodes />
+            <Arcs3D />
+            {/* `MapPortal` is injected here */}
+            <div ref={containerRef} />
+          </ReactMapGl>
+
+          <MapModal />
+          <MapLegend />
+        </MapContext.Provider>
+      </Box>
+    )
   )
 }
 Map.propTypes = { mapId: PropTypes.string }
-
-const styles = {
-  root: {
-    display: 'flex',
-    height: '100%',
-    p: 1,
-    color: 'text.primary',
-    bgcolor: 'background.paper',
-  },
-}
-
-export const MapPage = (props) => {
-  const leftBar = useSelector(selectLeftAppBarDisplay)
-  const rightBar = useSelector(selectRightAppBarDisplay)
-
-  return (
-    <Container
-      maxWidth={false}
-      sx={[
-        styles.root,
-        leftBar && rightBar
-          ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
-          : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
-        rightBar && { mr: APP_BAR_WIDTH },
-      ]}
-      disableGutters
-    >
-      <Map {...props} />
-    </Container>
-  )
-}
 
 export default Map

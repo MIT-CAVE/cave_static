@@ -415,7 +415,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
           </ToggleButtonGroup>
         </Stack>
 
-        <Box overflow="auto">
+        <Box sx={{ overflow: 'auto' }}>
           {R.pipe(
             R.mapObjIndexed((groupingProps, grouping) => {
               const levels = R.dissoc('id')(groupingProps.data)
@@ -522,8 +522,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
           )(visibleGroupings)}
         </Box>
       </Paper>
-
-      <Stack mt={1} spacing={1} direction="row" justifyContent="end">
+      <Stack spacing={1} direction="row" sx={{ mt: 1, justifyContent: 'end' }}>
         <Button
           disabled={!canDiscardOrSave}
           color="error"

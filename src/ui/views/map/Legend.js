@@ -9,7 +9,7 @@ import {
   FormControl,
   FormControlLabel,
   FormGroup,
-  Grid2,
+  Grid,
   InputAdornment,
   InputLabel,
   Paper,
@@ -23,7 +23,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useContext, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
 import { MdOutlineEdit } from 'react-icons/md'
 import { PiColumns, PiLayout, PiRows } from 'react-icons/pi'
@@ -38,6 +38,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import MapPortal from './MapPortal'
+import useMapApi, { MapContext } from './useMapApi'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -141,7 +142,6 @@ const styles = {
 }
 
 export const useLegendDetails = ({
-  mapId,
   legendGroupId,
   id,
   group,
@@ -153,6 +153,7 @@ export const useLegendDetails = ({
   featureTypeValues,
   getRange,
 }) => {
+  const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -337,39 +338,42 @@ export const useGradient = ({
 
   const getLabel = useCallback(
     (index) => {
-      const label = labels[index]
-      return group || label == null || values[index] !== rawValues[index]
+      const isLabelEmpty = labels[index] == null || labels[index] === ''
+      return group || isLabelEmpty || values[index] !== rawValues[index]
         ? getFormattedValueAt(index)
-        : label
+        : labels[index]
     },
     [getFormattedValueAt, group, labels, rawValues, values]
   )
 
   const getAttrLabelAt = useCallback(
-    (index) =>
-      index > 0 && index < lastIndex // Within the bounds
+    (index) => {
+      const isLabelEmpty = labels[index] == null || labels[index] === ''
+      return index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
-          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${labels[index] != null ? ` "${getLabel(index)}"` : ''}`
+          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${isLabelEmpty ? '' : ` "${getLabel(index)}"`}`
           : `"${getLabel(index)}"`
         : isStepScale
           ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
-          : `${index < 1 ? 'Min' : 'Max'}`,
+          : `${index < 1 ? 'Min' : 'Max'}`
+    },
     [getFormattedValueAt, getLabel, isStepScale, labels, lastIndex]
   )
 
   const getValueLabelAt = useCallback(
     (index) => {
       const label = getLabel(index)
+      const isLabelEmpty = labels[index] == null || labels[index] === ''
       const isValueAdjusted = values[index] !== rawValues[index]
       return index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
-          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${labels[index] != null ? ` "${label}"` : ''}`
+          ? `Threshold \u279D [${getFormattedValueAt(index - 1)}, \u2B07)${isLabelEmpty ? '' : ` "${label}"`}`
           : `Value${
               isValueAdjusted
                 ? ` \u279D Adjusted to ${label}`
-                : labels[index] != null
-                  ? ` \u279D "${label}"`
-                  : ''
+                : isLabelEmpty
+                  ? ''
+                  : ` \u279D "${label}"`
             }`
         : isStepScale
           ? index < 1
@@ -412,6 +416,14 @@ export const useGradient = ({
     [onChangeValueAt]
   )
 
+  const handleSwapColorsAt = useCallback(
+    (index) => (event) => {
+      // TODO
+      console.log(index, { event })
+    },
+    []
+  )
+
   return {
     isStepScale,
     lastIndex,
@@ -423,17 +435,12 @@ export const useGradient = ({
     getValueLabelAt,
     getFormattedValueAt,
     handleSetAutoValueAt,
+    handleSwapColorsAt,
   }
 }
 
-const GradientColorMarker = ({
-  mapId,
-  id,
-  group,
-  colorBy,
-  colorByProp,
-  getRange,
-}) => {
+const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
+  const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
   const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
 
@@ -493,6 +500,7 @@ const GradientColorMarker = ({
         height: '100%',
         width: '100%',
         background: `linear-gradient(to right, ${gradientColors.join(', ')})`,
+        border: '1px outset rgb(128 128 128)',
         borderRadius: 1,
       }}
     />
@@ -503,9 +511,9 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
   const { options, fallback } = colorByProp
 
   const displayedColors = useMemo(() => {
-    const maxVisible = 9 // Max number of color dots
+    const maxVisible = 9 // Max number of color markers
     return R.pipe(
-      R.map((d) => R.propOr(getChartItemColor(d['name']), 'color', d)),
+      R.map((d) => R.propOr(getChartItemColor(d.name), 'color')(d)),
       R.values,
       R.when(
         R.always(anyNullValue && fallback?.color != null),
@@ -517,56 +525,54 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
 
   const width = 28
   const height = 20
+  const gap = 2
   const numColors = displayedColors.length
-  const circleCoords = useMemo(
-    () =>
-      numColors < 5
-        ? [
-            { cx: width * 0.2, cy: height * 0.2 },
-            { cx: width * 0.8, cy: height * 0.2 },
-            { cx: width * 0.2, cy: height * 0.8 },
-            { cx: width * 0.8, cy: height * 0.8 },
-          ]
-        : numColors < 7
-          ? [
-              { cx: width * 0.2, cy: height * 0.2 },
-              { cx: width * 0.8, cy: height * 0.2 },
-              { cx: width * 0.5, cy: height * 0.2 },
-              { cx: width * 0.5, cy: height * 0.8 },
-              { cx: width * 0.2, cy: height * 0.8 },
-              { cx: width * 0.8, cy: height * 0.8 },
-            ]
-          : [
-              { cx: width * 0.1, cy: height * 0.1 },
-              { cx: width * 0.5, cy: height * 0.1 },
-              { cx: width * 0.9, cy: height * 0.1 },
-              { cx: width * 0.1, cy: height * 0.5 },
-              { cx: width * 0.5, cy: height * 0.5 },
-              { cx: width * 0.9, cy: height * 0.5 },
-              { cx: width * 0.1, cy: height * 0.9 },
-              { cx: width * 0.5, cy: height * 0.9 },
-              { cx: width * 0.9, cy: height * 0.9 },
-            ],
-    [numColors]
-  )
-  const radius = useMemo(
-    () =>
-      Math.min(height, width) *
-      (numColors < 5 ? 0.2 : numColors < 7 ? 0.15 : 0.1),
-    [numColors]
-  )
+
+  // Compute grid (max 3 columns)
+  const cols = numColors <= 4 ? 2 : 3
+  const rows = Math.ceil(numColors / cols)
+  const markerWidth = (width - gap * (cols - 1)) / cols
+  const markerHeight = (height - gap * (rows - 1)) / rows
+  // const rx = Math.min(markerWidth, markerHeight) * 0.4 // rounded corners
 
   return (
     <svg {...{ height, width }}>
-      {displayedColors.map((color, index) => (
-        <circle key={index} {...circleCoords[index]} r={radius} fill={color} />
-      ))}
+      <defs>
+        <linearGradient id="outsetBorder" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fff" />
+          <stop offset="100%" stopColor="#888" />
+        </linearGradient>
+      </defs>
+      {displayedColors.map((color, idx) => {
+        const row = Math.floor(idx / cols)
+        const col = idx % cols
+        const x = col * (markerWidth + gap)
+        const y = row * (markerHeight + gap)
+        return (
+          <rect
+            key={idx}
+            {...{
+              x,
+              y,
+              // rx
+            }}
+            width={markerWidth}
+            height={markerHeight}
+            fill={color}
+            stroke="url(#outsetBorder)"
+            strokeWidth="0.5"
+            style={{
+              filter: 'drop-shadow(0 1px 1px rgba(0 0 0 / .18))',
+              transition: 'fill 0.2s',
+            }}
+          />
+        )
+      })}
     </svg>
   )
 }
 
 export const LegendColorMarker = ({
-  mapId,
   id,
   group,
   colorBy,
@@ -582,7 +588,6 @@ export const LegendColorMarker = ({
       ) : (
         <GradientColorMarker
           {...{
-            mapId,
             id,
             group,
             colorBy,
@@ -773,13 +778,13 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
 }
 
 export const GroupScaleControls = ({
-  mapId,
   groupScaleWithZoom,
   sizeSliderProps,
   handleChange,
   handleChangeComitted,
   onChangeLegendAttr,
 }) => {
+  const { mapId } = useContext(MapContext)
   const zoom = useSelector(selectZoomFunc)(mapId)
   const [sliderValue] = sizeSliderProps.value
   const [minZoom, maxZoom] = useMemo(
@@ -802,9 +807,11 @@ export const GroupScaleControls = ({
   )
   return (
     <Stack
+      spacing={2}
+      useFlexGap
       sx={{
         py: 2,
-        m: '8px !important',
+        m: 1,
         border: '2px solid #ffa726',
         borderRadius: 1,
         boxSizing: 'border-box',
@@ -826,7 +833,7 @@ export const GroupScaleControls = ({
       <Slider
         disabled={groupScaleWithZoom}
         sx={{
-          mt: 5,
+          mt: 3,
           width: '85%',
           alignSelf: 'center',
           boxSizing: 'border-box',
@@ -844,7 +851,6 @@ export const GroupScaleControls = ({
       <Typography
         color={groupScaleWithZoom ? 'text.secondary' : 'text.primary'}
         variant="body1"
-        sx={{ mt: 2 }}
       >
         {'Current zoom level: '}
         <span style={{ fontWeight: 'bold' }}>
@@ -856,7 +862,6 @@ export const GroupScaleControls = ({
 }
 
 export const LegendPopper = ({
-  mapId,
   IconComponent,
   children,
   slotProps = {},
@@ -864,6 +869,7 @@ export const LegendPopper = ({
   onClose,
   ...props
 }) => {
+  const { mapId } = useContext(MapContext)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
 
@@ -901,8 +907,8 @@ export const LegendPopper = ({
           }}
         >
           <Popper
-            placement="left"
             disablePortal
+            placement="left"
             {...{ open, anchorEl, onClose, ...muiSlotProps.popper }}
             onClick={(event) => {
               event.stopPropagation()
@@ -952,25 +958,42 @@ export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
+  const { mapId } = useContext(MapContext)
+  const { isMapboxSelected } = useMapApi(mapId)
   const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
-  const indexedOptions = {
-    solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
-    dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
-    dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
-    // '3d': { icon: 'vsc/VscLoading', label: 'Arc' },
-  }
+  const disabled = !isMapboxSelected
+  const indexedOptions = useMemo(
+    () => ({
+      solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
+      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted', disabled },
+      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed', disabled },
+      '3d': { icon: 'vsc/VscLoading', label: 'Arc', disabled: true }, // Always disabled for now
+    }),
+    [disabled]
+  )
+  const shapeOptions = useMemo(
+    () => Object.keys(indexedOptions),
+    [indexedOptions]
+  )
+  const currentLineStyle = isMapboxSelected
+    ? (props.lineStyle ?? 'solid')
+    : 'solid'
   return (
     <LegendRowComponent
       mapFeaturesBy={effectiveArcsBy}
-      shapeOptions={Object.keys(indexedOptions)}
       shapePathEnd="lineStyle"
-      shape={props.lineStyle ?? 'solid'}
-      icon={indexedOptions[props.lineStyle ?? 'solid']?.icon}
+      shape={currentLineStyle}
+      icon={indexedOptions[currentLineStyle]?.icon}
       shapeLabel="Select the line style"
+      {...{ shapeOptions, getRange, ...props }}
+      shapeWarning={
+        !isMapboxSelected &&
+        "Only the 'solid' line style is supported when using MapLibre. Other styles ('dotted', 'dashed', etc.) will be displayed as solid lines."
+      }
       getShapeIcon={(option) => indexedOptions[option]?.icon}
       getShapeLabel={(option) => indexedOptions[option]?.label}
-      {...{ getRange, ...props }}
+      getShapeDisabled={(option) => indexedOptions[option]?.disabled}
     />
   )
 }
@@ -996,7 +1019,8 @@ const SettingsToggle = ({ value, label, icon: Icon, selected }) => (
   </ToggleButton>
 )
 
-export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
+export const LegendSettings = ({ expandAll, onExpandAll }) => {
+  const { mapId } = useContext(MapContext)
   const legendView = useSelector(selectLegendView)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -1169,7 +1193,6 @@ export const LegendSettings = ({ mapId, expandAll, onExpandAll }) => {
 
 export const LegendHeader = ({
   label = 'Legend',
-  mapId,
   slotProps = {},
   sx = [],
   popperProps,
@@ -1197,7 +1220,7 @@ export const LegendHeader = ({
       // Toggle when clicking on the opened popper
       onClick={anchorEl == null ? handleOpen : handleClose}
     >
-      <Grid2
+      <Grid
         container
         spacing={1}
         sx={[
@@ -1205,29 +1228,32 @@ export const LegendHeader = ({
           ...forceArray(sx),
         ]}
       >
-        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+        <Grid size="grow" sx={{ textAlign: 'start' }}>
           <Typography variant="h6" {...slotProps.label}>
             {label}
           </Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <LegendPopper
             sx={styles.toggleButton}
             IconComponent={RiSettings5Line}
-            {...{ anchorEl, mapId, slotProps }}
+            {...{ anchorEl, slotProps }}
             onClose={handleClose}
           >
             {children}
           </LegendPopper>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
     </ToggleButton>
   )
 }
 
-export const LegendRoot = ({ mapId, ...props }) => {
+export const LegendRoot = (props) => {
+  const { mapId } = useContext(MapContext)
+  const { isMapboxSelected } = useMapApi(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+  const attributionOffset = isMapboxSelected ? 0 : 16
   return (
     <Box
       key="map-legend"
@@ -1236,8 +1262,8 @@ export const LegendRoot = ({ mapId, ...props }) => {
         {
           right: showPitchSlider ? 98 : 64,
           maxHeight: showBearingSlider
-            ? 'calc(100% - 165px)'
-            : 'calc(100% - 88px)',
+            ? `calc(100% - ${165 + attributionOffset}px)`
+            : `calc(100% - ${88 + attributionOffset}px)`,
           maxWidth: showPitchSlider
             ? 'calc(100% - 106px)'
             : 'calc(100% - 80px)',

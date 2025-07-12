@@ -1,6 +1,6 @@
 import { Alert, AlertTitle, Collapse, IconButton, Stack } from '@mui/material'
 import * as R from 'ramda'
-import React, { Fragment, useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
 import { useDispatch, useSelector } from 'react-redux'
 import { TransitionGroup } from 'react-transition-group'
@@ -69,12 +69,12 @@ const SnackBar = () => {
     []
   ) : (
     <Stack
-      justifyContent="center"
-      alignItems="center"
       sx={{
         position: 'fixed',
-        bottom: 20,
-        right: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        bottom: '20px',
+        right: '20px',
         bgcolor: 'background.paper',
         zIndex: 2001,
       }}

@@ -1,5 +1,4 @@
-import { Paper, TextField, Box } from '@mui/material'
-import { darken, lighten, styled } from '@mui/material/styles'
+import { Paper, TextField, Box, darken, lighten, styled } from '@mui/material'
 import {
   DataGrid,
   GridActionsCellItem,
@@ -20,7 +19,7 @@ import { selectNumberFormatPropsFn } from '../../../data/selectors'
 
 import { OverflowText, Select } from '../../compound'
 
-import { NumberFormat, renameKeys } from '../../../utils'
+import { NumberFormat } from '../../../utils'
 
 const StyledDataGrid = styled(DataGrid)(({ theme, maxDepth }) => {
   return R.pipe(
@@ -228,7 +227,7 @@ const GridFilter = ({
   const [editingId, setEditingId] = useState(-1)
 
   const renamedFilters = useMemo(
-    () => R.map(renameKeys({ option: 'relation', prop: 'source' }), filters),
+    () => R.map(R.renameKeys({ option: 'relation', prop: 'source' }), filters),
     [filters]
   )
   const maxId = renamedFilters.reduce((max, row) => {
@@ -269,7 +268,7 @@ const GridFilter = ({
         R.pipe(
           // R.dissoc('id'),
           // R.dissoc('depth'),
-          renameKeys({ relation: 'option', source: 'prop' })
+          R.renameKeys({ relation: 'option', source: 'prop' })
         )
       )(newRows)
       setFilters(newFilters)

@@ -1,41 +1,127 @@
-import { Box } from '@mui/material'
+import { Stack } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useCallback, useMemo } from 'react'
+import { GiEmptyChessboard } from 'react-icons/gi'
+import { IoSquareSharp } from 'react-icons/io5'
 
+import FetchedIcon from './FetchedIcon'
 import { SimpleDropdown } from './SimpleDropdown'
 
-import { withIndex, forceArray } from '../../utils'
+import { forceArray, withIndex } from '../../utils'
 
-const getStyles = (enabled) => ({
-  display: 'flex',
-  width: '100%',
-  p: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
+const styles = {
+  root: {
+    height: '100%',
+  },
+  paper: {
+    m: 0,
+    height: '56px',
+  },
+  marker: {
+    marginRight: '8px',
+    border: '1px outset #fff',
+  },
+}
+
+const DEFAULT_SIZE = '18px'
+
+/**
+ * Returns the value if defined, otherwise returns the fallback.
+ * This considers `undefined` as not set but treats `null` as intentionally set
+ */
+const getOrDefault = (value, fallback) =>
+  value === undefined ? fallback : value
+
+const getCurrentAttr = (value, attr, activeAttr) =>
+  value ? getOrDefault(activeAttr, attr) : attr
 
 // `Select` might replace `SimpleDropdown` in the future, once
 // a `ClickAwayListener` + `Select` bug is resolved in MUI.
 // See: https://github.com/mui/material-ui/issues/25578#issuecomment-846222712
-const PropDropdown = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled, options } = prop
-  const [value] = R.defaultTo(prop.value, currentVal)
-  const optionsListRaw = withIndex(options)
-  const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
+const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
+  const {
+    enabled,
+    options,
+    labelPlacement = 'end',
+    fullWidth,
+    propStyle,
+  } = prop
+  const [value] = currentVal ?? prop.value
+
+  const optionsListRaw = useMemo(() => withIndex(options), [options])
+
+  const getLabel = useCallback(
+    (option) => {
+      const {
+        icon,
+        name,
+        color,
+        size,
+        activeIcon,
+        activeName,
+        activeColor,
+        activeSize,
+      } = options[option] ?? {}
+
+      const direction =
+        labelPlacement === 'start'
+          ? 'row-reverse'
+          : labelPlacement === 'end'
+            ? 'row'
+            : ''
+
+      const selected = option === value
+      const currentLabel = getCurrentAttr(selected, name, activeName)
+      const currentIcon = getCurrentAttr(selected, icon, activeIcon)
+      const currentColor = getCurrentAttr(selected, color, activeColor)
+      const currentSize = getCurrentAttr(selected, size, activeSize)
+
+      return (
+        <Stack
+          useFlexGap
+          spacing={1}
+          {...{ direction }}
+          sx={{ alignItems: 'center' }}
+        >
+          {currentIcon ? (
+            <FetchedIcon
+              iconName={currentIcon}
+              color={currentColor}
+              size={currentSize ?? DEFAULT_SIZE}
+            />
+          ) : currentColor ? (
+            <IoSquareSharp
+              color={currentColor}
+              size={currentSize ?? DEFAULT_SIZE}
+              style={styles.marker}
+            />
+          ) : currentSize ? (
+            <GiEmptyChessboard
+              size={currentSize ?? DEFAULT_SIZE}
+              style={styles.marker}
+            />
+          ) : null}
+          {currentLabel ?? option}
+        </Stack>
+      )
+    },
+    [labelPlacement, options, value]
+  )
+
   return (
-    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <SimpleDropdown
-        {...{ value }}
-        disabled={!enabled}
-        sx={{ p: 1.5 }}
-        optionsList={R.pluck('id')(optionsListRaw)}
-        onSelect={(val) => {
-          if (enabled) onChange([val])
-        }}
-        getLabel={(value) => R.pathOr(value, [value, 'name'])(indexedOptions)}
-        paperProps={{ elevation: 3 }}
-      />
-    </Box>
+    <SimpleDropdown
+      disabled={!enabled}
+      optionsList={R.pluck('id')(optionsListRaw)}
+      {...{ value, fullWidth, getLabel }}
+      sx={[styles.root, ...forceArray(sx), propStyle]}
+      onSelect={(val) => {
+        if (enabled) onChange([val])
+      }}
+      slotProps={{
+        paper: { elevation: 0, sx: styles.paper },
+      }}
+    />
   )
 }
 PropDropdown.propTypes = {

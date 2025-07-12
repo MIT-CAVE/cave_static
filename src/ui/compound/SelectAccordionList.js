@@ -126,7 +126,7 @@ const SelectAccordionList = ({
                   onSelect={onSelectGroup(optionIndex)}
                 />
                 {values.length > 1 && (
-                  <Stack direction="column" ml={1} spacing={0.5}>
+                  <Stack direction="column" spacing={0.5} sx={{ ml: 1 }}>
                     <IconButton
                       size="small"
                       disabled={optionIndex < 1}
@@ -194,29 +194,31 @@ const SelectAccordionList = ({
             <TextField
               fullWidth
               {...{ label, ...other }}
-              InputProps={{
-                ...InputProps,
-                startAdornment: (
-                  <>
-                    <OverflowText>
-                      {InputProps.startAdornment ?? placeholder}
-                    </OverflowText>
-                    {values.length < maxGrouping && (
-                      <IconButton
-                        {...{ disabled }}
-                        size="small"
-                        sx={{ ml: 0.5 }}
-                        onClick={onAddGroup}
-                      >
-                        <MdAddCircle />
-                      </IconButton>
-                    )}
-                  </>
-                ),
-              }}
-              inputProps={{
-                ...inputProps,
-                readOnly: true,
+              slotProps={{
+                input: {
+                  ...InputProps,
+                  startAdornment: (
+                    <>
+                      <OverflowText>
+                        {InputProps.startAdornment ?? placeholder}
+                      </OverflowText>
+                      {values.length < maxGrouping && (
+                        <IconButton
+                          {...{ disabled }}
+                          size="small"
+                          sx={{ ml: 0.5 }}
+                          onClick={onAddGroup}
+                        >
+                          <MdAddCircle />
+                        </IconButton>
+                      )}
+                    </>
+                  ),
+                },
+                htmlInput: {
+                  ...inputProps,
+                  readOnly: true,
+                },
               }}
             />
           )

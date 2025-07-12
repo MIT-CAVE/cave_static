@@ -1,10 +1,6 @@
 import './App.css'
-import {
-  StyledEngineProvider,
-  ThemeProvider,
-  Box,
-  createTheme,
-} from '@mui/material'
+import { ThemeProvider, Box, createTheme } from '@mui/material'
+import { StyledEngineProvider } from '@mui/material/styles'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import * as R from 'ramda'
@@ -31,7 +27,6 @@ import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
 import { paneId } from './utils/enums'
-// import SnackbarsProvider from '@mui/lab/SnackbarsProvider';
 
 const styles = {
   root: {
@@ -133,22 +128,28 @@ const App = () => {
             background: {
               paper: '#4a4a4a',
             },
+            DataGrid: {
+              bg: '#4a4a4a',
+              // headerBg: '#353535',
+            },
           },
           components: {
             MuiDataGrid: {
               styleOverrides: {
                 root: {
-                  // Fixes MUI style bug in horizontal scroll bar
-                  '.MuiDataGrid-scrollbar--horizontal': {
-                    display: 'block',
+                  borderColor: 'rgb(128 128 128 / .4)',
+                  '.MuiDataGrid-withBorderColor': {
+                    borderColor: 'rgb(128 128 128 / .4)',
                   },
+                  // 'MuiDataGrid-filler': {
+                  //   backgroundColor: '#353535',
+                  // },
+                  // // Fixes MUI style bug in horizontal scroll bar
+                  // '.MuiDataGrid-scrollbar--horizontal': {
+                  //   display: 'block',
+                  // },
                 },
               },
-            },
-          },
-          mixins: {
-            MuiDataGrid: {
-              containerBackground: '#4a4a4a',
             },
           },
           typography: {

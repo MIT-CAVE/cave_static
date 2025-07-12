@@ -1,10 +1,4 @@
-import {
-  Box,
-  FormControl,
-  Grid2 as Grid,
-  InputLabel,
-  Typography,
-} from '@mui/material'
+import { Box, FormControl, Grid, InputLabel, Typography } from '@mui/material'
 import * as R from 'ramda'
 import { memo, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'

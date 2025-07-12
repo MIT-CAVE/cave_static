@@ -1,45 +1,82 @@
-import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useCallback, useMemo } from 'react'
 
-import Combobox from './ComboboxBase'
+import ComboboxBase from './ComboboxBase'
 
-import { withIndex, forceArray } from '../../utils'
+import { forceArray, withIndex } from '../../utils'
 
-const getStyles = (enabled) => ({
-  display: 'flex',
-  width: '100%',
-  pt: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-  '& .MuiAutocomplete-root': { p: 1 },
-})
+/**
+ * Returns the value if defined, otherwise returns the fallback.
+ * This considers `undefined` as not set but treats `null` as intentionally set
+ */
+const getOrDefault = (value, fallback) =>
+  value === undefined ? fallback : value
 
-const PropComboBoxMulti = ({
-  prop,
-  currentVal,
-  sx = [],
-  onChange,
-  ...props
-}) => {
-  const { enabled, options, placeholder, numVisibleTags, slotProps } = prop
+const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
+  const {
+    enabled,
+    options,
+    placeholder,
+    numVisibleTags,
+    labelPlacement = 'end',
+    fullWidth,
+    propStyle,
+    slotProps,
+    ...propAttrs
+  } = prop
+
   const optionsListRaw = withIndex(options)
+  const optionsList = useMemo(
+    () => R.pluck('id')(optionsListRaw),
+    [optionsListRaw]
+  )
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
+
+  const activeDefaults = useMemo(
+    () => ({
+      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
+      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
+      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
+    }),
+    [propAttrs]
+  )
+
+  const getActiveAttrs = useCallback(
+    (opt) => ({
+      activeName: getOrDefault(opt.activeName, opt.name),
+      activeIcon: getOrDefault(opt.activeIcon, opt.icon) ?? activeDefaults.icon,
+      activeColor:
+        getOrDefault(opt.activeColor, opt.color) ?? activeDefaults.color,
+      activeSize: getOrDefault(opt.activeSize, opt.size) ?? activeDefaults.size,
+    }),
+    [activeDefaults.color, activeDefaults.icon, activeDefaults.size]
+  )
+
+  const getOptionLabel = useCallback(
+    (option) => options[option]?.name,
+    [options]
+  )
+
   return (
-    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <Combobox
-        multiple
-        disabled={!enabled}
-        sx={{ maxWidth: '300px' }}
-        options={R.pluck('id')(optionsListRaw)}
-        value={R.defaultTo(prop.value)(currentVal)}
-        limitTags={numVisibleTags}
-        {...{ placeholder, slotProps, onChange }}
-        getOptionLabel={(option) =>
-          R.pathOr(option, [option, 'name'])(indexedOptions)
-        }
-      />
-    </Box>
+    <ComboboxBase
+      multiple
+      disabled={!enabled}
+      options={optionsList}
+      value={currentVal ?? prop.value ?? ''}
+      limitTags={numVisibleTags}
+      sx={[...forceArray(sx), propStyle]}
+      {...{
+        indexedOptions,
+        placeholder,
+        labelPlacement,
+        fullWidth,
+        slotProps,
+        getActiveAttrs,
+        getOptionLabel,
+        onChange,
+      }}
+    />
   )
 }
 PropComboBoxMulti.propTypes = {

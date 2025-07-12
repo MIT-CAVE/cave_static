@@ -1,57 +1,35 @@
-import { Checkbox, FormGroup, FormControlLabel, Box } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 
-import { withIndex, forceArray } from '../../utils'
+import CheckboxBase from './CheckboxBase'
 
-const getStyles = (enabled) => ({
-  display: 'flex',
-  width: '100%',
-  p: 1,
-  pointerEvents: enabled ? '' : 'none',
-  opacity: enabled ? '' : 0.7,
-})
+import { forceArray } from '../../utils'
 
-const PropCheckbox = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const { enabled, options } = prop
-  const value = R.defaultTo(prop.value, currentVal)
-  return (
-    <Box sx={[getStyles(enabled), ...forceArray(sx)]} {...props}>
-      <FormGroup>
-        {R.map(({ id: key, name: label }) => (
-          <FormControlLabel
-            key={key}
-            {...{ label }}
-            disabled={!enabled}
-            sx={{ pl: 1 }}
-            control={
-              <Checkbox
-                name="cave-checkbox"
-                checked={R.includes(key)(value)}
-                onClick={() => {
-                  if (!enabled) return
-                  onChange(
-                    R.ifElse(
-                      R.includes(key),
-                      R.without([key]),
-                      R.append(key)
-                    )(value)
-                  )
-                }}
-              />
-            }
-          />
-        ))(withIndex(options))}
-      </FormGroup>
-    </Box>
-  )
-}
+const PropCheckbox = ({
+  prop: {
+    value,
+    options,
+    enabled,
+    labelPlacement = 'end',
+    helperText,
+    fullWidth,
+    propStyle,
+    ...propAttrs
+  },
+  currentVal,
+  sx = [],
+  onChange,
+}) => (
+  <CheckboxBase
+    disabled={!enabled}
+    value={currentVal ?? value}
+    sx={[...forceArray(sx), fullWidth && { width: '100%' }, propStyle]}
+    {...{ options, labelPlacement, helperText, propAttrs, onChange }}
+  />
+)
+
 PropCheckbox.propTypes = {
   prop: PropTypes.object,
-  currentVal: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.arrayOf(PropTypes.string),
-  ]),
+  currentVal: PropTypes.array,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

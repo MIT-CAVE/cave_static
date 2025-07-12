@@ -1,44 +1,30 @@
-import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
-import { useDispatch } from 'react-redux'
 
 import TextInput from './TextInput'
 
-import { setIsTextArea } from '../../data/utilities/virtualKeyboardSlice'
-
 import { forceArray } from '../../utils'
 
-const styles = {
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-    p: 1,
-    minHeight: (theme) => theme.spacing(5),
-  },
-}
-
-const PropTextArea = ({ prop, currentVal, sx = [], onChange, ...props }) => {
-  const dispatch = useDispatch()
-  const { enabled, rows = 4, placeholder, label } = prop
+const PropTextArea = ({ prop, currentVal, sx = [], onChange }) => {
+  const {
+    enabled,
+    readOnly,
+    rows = 4,
+    placeholder,
+    label,
+    fullWidth,
+    propStyle,
+  } = prop
   return (
-    <Box
-      sx={[styles.root, ...forceArray(sx)]}
-      onFocus={() => dispatch(setIsTextArea(true))}
-      {...props}
-    >
-      <TextInput
-        multiline
-        disabled={!enabled}
-        {...{ rows, placeholder, label }}
-        value={R.defaultTo(prop.value, currentVal)}
-        onClickAway={(value) => {
-          if (!enabled) return
-          onChange(value)
-        }}
-      />
-    </Box>
+    <TextInput
+      multiline
+      disabled={!enabled}
+      sx={[...forceArray(sx), propStyle]}
+      {...{ readOnly, rows, placeholder, label, fullWidth }}
+      value={currentVal ?? prop.value}
+      onClickAway={(value) => {
+        if (enabled) onChange(value)
+      }}
+    />
   )
 }
 PropTextArea.propTypes = {
