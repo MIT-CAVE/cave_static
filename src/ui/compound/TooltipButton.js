@@ -1,4 +1,4 @@
-import { Box, IconButton, Tooltip } from '@mui/material'
+import { IconButton, Tooltip } from '@mui/material'
 import PropTypes from 'prop-types'
 
 import { forceArray } from '../../utils'
@@ -10,9 +10,11 @@ const styles = {
     ...theme.typography.caption,
   }),
   iconButton: {
-    p: 0.5,
+    p: 0.75,
     opacity: 1,
-    borderRadius: 'inherit',
+    border: '1px outset rgb(128 128 128)',
+    bgcolor: 'background.paper',
+    borderRadius: 0,
   },
 }
 
@@ -21,24 +23,32 @@ const TooltipButton = ({
   ariaLabel,
   placement = 'left',
   sx,
+  slotProps,
   onClick,
   children,
   ...props
 }) => (
   <Tooltip
-    {...{ title, placement }}
-    aria-label={ariaLabel || title}
-    slotProps={{ tooltip: { sx: styles.tooltip } }}
+    aria-label={ariaLabel}
+    {...{ title, placement, ...slotProps?.tooltip }}
+    slotProps={{
+      tooltip: { sx: [styles.tooltip, ...forceArray(slotProps?.tooltip?.sx)] },
+    }}
   >
-    <Box component="span">
+    <span>
       <IconButton
-        sx={[styles.iconButton, ...forceArray(sx)]}
-        {...{ onClick, ...props }}
         size="large"
+        {...slotProps?.button}
+        sx={[
+          styles.iconButton,
+          ...forceArray(sx),
+          ...forceArray(slotProps?.button?.sx),
+        ]}
+        {...{ onClick, ...props }}
       >
         {children}
       </IconButton>
-    </Box>
+    </span>
   </Tooltip>
 )
 TooltipButton.propTypes = {
@@ -58,6 +68,10 @@ TooltipButton.propTypes = {
     'top-start',
     'top',
   ]),
+  slotProps: PropTypes.shape({
+    tooltip: PropTypes.object,
+    button: PropTypes.object,
+  }),
   onClick: PropTypes.func,
   children: PropTypes.node,
 }

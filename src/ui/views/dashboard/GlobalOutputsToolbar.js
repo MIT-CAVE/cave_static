@@ -1,11 +1,11 @@
 import {
   Autocomplete,
   Box,
+  Grid,
   IconButton,
   Checkbox,
   TextField,
   Typography,
-  Grid2,
 } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useMemo } from 'react'
@@ -27,12 +27,7 @@ import { chartOption, chartVariant } from '../../../utils/enums'
 
 import { FetchedIcon } from '../../compound'
 
-import {
-  withIndex,
-  includesPath,
-  renameKeys,
-  addValuesToProps,
-} from '../../../utils'
+import { withIndex, includesPath, addValuesToProps } from '../../../utils'
 
 const styles = {
   content: {
@@ -96,7 +91,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     R.reject(R.pipe(R.prop('value'), R.isNil)),
     withIndex,
     R.project(['id', 'name', 'icon']),
-    R.map(renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
+    R.map(R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
   )(props)
 
   return (
@@ -106,7 +101,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
         onChange={handleSelectChart}
         chartOptions={CHART_OPTIONS}
         extraOptions={
-          <Grid2
+          <Grid
             size="grow"
             sx={{ height: '100%', display: 'flex', justifyContent: 'end' }}
           >
@@ -127,7 +122,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
             >
               <MdRefresh size={32} />
             </IconButton>
-          </Grid2>
+          </Grid>
         }
       />
 

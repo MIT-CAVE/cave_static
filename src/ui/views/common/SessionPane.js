@@ -96,9 +96,11 @@ const ActionItems = ({ items = [], disabled }) => {
           <Tooltip
             key={label.toLocaleLowerCase()}
             title={label}
-            PopperProps={{ sx: { zIndex: 2002 } }}
             enterDelay={300}
             leaveDelay={300}
+            slotProps={{
+              popper: { sx: { zIndex: 2002 } },
+            }}
           >
             {/* A `span` wrapper to acommodate disabled actions */}
             <span>
@@ -119,13 +121,15 @@ const ActionItems = ({ items = [], disabled }) => {
           </IconButton>
           <Menu
             id="long-menu"
-            MenuListProps={{
-              'aria-labelledby': 'long-button',
-            }}
             {...{ anchorEl }}
             open={Boolean(anchorEl)}
             onClose={handleCloseMenu}
             sx={{ zIndex: 2002 }}
+            slotProps={{
+              list: {
+                'aria-labelledby': 'long-button',
+              },
+            }}
           >
             {hiddenItems.map(({ label, iconName, onClick, disabled }) => (
               <MenuItem
@@ -201,8 +205,7 @@ const ListItemCard = ({
                 <Typography
                   {...subheaderTypographyProps}
                   component="span"
-                  fontWeight={600}
-                  color="primary"
+                  sx={{ color: 'primary.main', fontWeight: 600 }}
                 >
                   {subtitleExtra}
                 </Typography>
@@ -213,7 +216,7 @@ const ListItemCard = ({
         />
         {description && (
           <CardContent>
-            <Typography sx={{ pt: 0 }} variant="body1" color="text.secondary">
+            <Typography variant="body1" sx={{ color: 'text.secondary', pt: 0 }}>
               {description}
             </Typography>
           </CardContent>
@@ -306,7 +309,7 @@ const ListItemSessionCardInput = ({
         disableSpacing
         sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0 }}
       >
-        <Stack direction="row" spacing={1} paddingBottom={0.75}>
+        <Stack direction="row" spacing={1} sx={{ pb: 0.75 }}>
           <ConfirmCancelButtons
             onConfirm={() =>
               onClickConfirm(
@@ -411,13 +414,14 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
   return (
     <GridToolbarContainer>
       <GridToolbarFilterButton />
-
       <Tooltip
         key={'Create a new session'.toLocaleLowerCase()}
         title="Create a new session"
-        PopperProps={{ sx: { zIndex: 2002 } }}
         enterDelay={300}
         leaveDelay={300}
+        slotProps={{
+          popper: { sx: { zIndex: 2002 } },
+        }}
       >
         {/* A `span` wrapper to acommodate disabled actions */}
         <span>
@@ -551,10 +555,8 @@ const ActionModal = ({ open, label, confirmText, onConfirm, onCancel }) => {
     >
       <Stack
         direction="row"
-        justifyContent="center"
-        alignItems="center"
         spacing={1}
-        paddingY={2}
+        sx={{ justifyContent: 'center', alignItems: 'center', py: 2 }}
       >
         <ConfirmCancelButtons
           confirmText={confirmText}

@@ -1,10 +1,10 @@
 import { Portal } from '@mui/material'
-import { createContext, useContext } from 'react'
+import { useContext } from 'react'
 
-export const MapContainerContext = createContext(null)
+import { MapContext } from './useMapApi'
 
 const MapPortal = ({ children }) => {
-  const containerRef = useContext(MapContainerContext)
+  const { containerRef } = useContext(MapContext)
   return (
     <Portal container={() => (containerRef ? containerRef.current : null)}>
       {children}

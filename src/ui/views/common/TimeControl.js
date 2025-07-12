@@ -34,6 +34,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     bgcolor: 'background.paper',
+    borderRadius: 1,
   },
   slider: {
     mt: 4,
@@ -54,6 +55,10 @@ const styles = {
   },
 }
 
+const TimeButton = (props) => (
+  <TooltipButton sx={{ border: 0, borderRadius: '50%', p: 0.5 }} {...props} />
+)
+
 const TimeControl = () => {
   const playbackSpeed = useSelector(selectCurrentSpeed)
   const looping = useSelector(selectCurrentLooping)
@@ -67,7 +72,7 @@ const TimeControl = () => {
   const animation = R.is(Number, animationInterval)
   const sync = useSelector(selectSync)
 
-  const toggleLooping = useMutateState(
+  const handleChangeLooping = useMutateState(
     () => ({
       path: ['settings', 'time', 'looping'],
       value: !looping,
@@ -108,6 +113,23 @@ const TimeControl = () => {
     [advanceAnimation, animationInterval, dispatch]
   )
 
+  const handleChange = useCallback(
+    (event) => {
+      updatePlaybackSpeed(event.target.value)
+      if (animation) {
+        toggleAnimationSpeed(event.target.value)
+      }
+    },
+    [animation, toggleAnimationSpeed, updatePlaybackSpeed]
+  )
+
+  const handleClick = useCallback(() => {
+    const newTime = timeLength - 1
+    if (newTime >= 0) {
+      dispatch(timeSelection(newTime))
+    }
+  }, [dispatch, timeLength])
+
   return (
     <Stack sx={styles.root}>
       <Slider
@@ -127,7 +149,7 @@ const TimeControl = () => {
         }}
       />
       <Box sx={styles.animControls}>
-        <TooltipButton
+        <TimeButton
           title="Go back to start"
           placement="bottom"
           disabled={currentTime === 0}
@@ -136,8 +158,8 @@ const TimeControl = () => {
           }}
         >
           <MdSkipPrevious />
-        </TooltipButton>
-        <TooltipButton
+        </TimeButton>
+        <TimeButton
           title={`Reduce time by one ${timeUnits}`}
           placement="bottom"
           disabled={currentTime === 0}
@@ -149,10 +171,10 @@ const TimeControl = () => {
           }}
         >
           <MdNavigateBefore />
-        </TooltipButton>
+        </TimeButton>
 
         {animation ? (
-          <TooltipButton
+          <TimeButton
             title="Pause animation"
             placement="bottom"
             onClick={() => {
@@ -161,9 +183,9 @@ const TimeControl = () => {
             }}
           >
             <MdPauseCircle size={40} />
-          </TooltipButton>
+          </TimeButton>
         ) : (
-          <TooltipButton
+          <TimeButton
             title="Play animation"
             placement="bottom"
             onClick={() => {
@@ -171,46 +193,39 @@ const TimeControl = () => {
             }}
           >
             <MdPlayCircle size={40} />
-          </TooltipButton>
+          </TimeButton>
         )}
-        <TooltipButton
+        <TimeButton
           title={`Advance time by one ${timeUnits}`}
           placement="bottom"
           disabled={currentTime === timeLength - 1}
           onClick={advanceAnimation}
         >
           <MdNavigateNext />
-        </TooltipButton>
-        <TooltipButton
+        </TimeButton>
+        <TimeButton
           title="Go to end"
           placement="bottom"
           disabled={currentTime === timeLength - 1}
-          onClick={() => {
-            const newTime = timeLength - 1
-            if (newTime >= 0) {
-              dispatch(timeSelection(newTime))
-            }
-          }}
+          onClick={handleClick}
         >
           <MdSkipNext />
-        </TooltipButton>
+        </TimeButton>
         <Stack sx={{ ml: 3, mr: 1.5 }} direction="row" spacing={1}>
           <ToggleButton
             size="small"
             value="loop"
             selected={looping}
-            onChange={() => toggleLooping()}
+            onChange={handleChangeLooping}
           >
             <MdOutlineCached size={20} />
           </ToggleButton>
           <FormControl size="small" sx={{ width: '100px' }}>
             <Select
-              value={playbackSpeed}
-              onChange={(e) => {
-                updatePlaybackSpeed(e.target.value)
-                if (animation) {
-                  toggleAnimationSpeed(e.target.value)
-                }
+              sx={{
+                '&> :first-child': {
+                  justifyContent: 'center',
+                },
               }}
               optionsList={[
                 { value: 0.5, label: '0.5x' },
@@ -220,6 +235,8 @@ const TimeControl = () => {
                 { value: 1.5, label: '1.5x' },
                 { value: 2, label: '2x' },
               ]}
+              value={playbackSpeed}
+              onChange={handleChange}
             />
           </FormControl>
         </Stack>

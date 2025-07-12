@@ -1,6 +1,8 @@
 import * as R from 'ramda'
-import { useMemo } from 'react'
+import { useContext, useMemo } from 'react'
 import { useSelector } from 'react-redux'
+
+import { MapContext } from './useMapApi'
 
 import {
   selectCharts,
@@ -11,13 +13,9 @@ import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 
 import { getNumActiveFilters } from '../../../utils'
 
-const useMapFilter = ({
-  mapId,
-  group,
-  filtersPath,
-  featureTypeProps,
-  filters,
-}) => {
+const useMapFilter = ({ group, filtersPath, featureTypeProps, filters }) => {
+  const { mapId } = useContext(MapContext)
+
   const mapData = useSelector(selectMapData)
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)

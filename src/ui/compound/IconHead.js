@@ -51,13 +51,13 @@ const GlobalOutputHead = ({
   const other = R.omit(['currentVal', 'mapGlobalOutput'])(props)
   return (
     <Grid sx={[rootStyle, style, ...forceArray(sx)]} {...other}>
-      <Grid container item spacing={gridSpacing} flexWrap="nowrap">
+      <Grid container spacing={gridSpacing} sx={{ flexWrap: 'nowrap' }}>
         {icon && (
-          <Grid item alignSelf="center">
+          <Grid sx={{ alignSelf: 'center' }}>
             <FetchedIcon iconName={icon} size={iconSize} />
           </Grid>
         )}
-        <Grid item xs={11} sx={gridTitleStyle}>
+        <Grid sx={gridTitleStyle} size={11}>
           <OverflowText text={title} sx={styles.title} />
         </Grid>
       </Grid>

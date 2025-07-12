@@ -1,9 +1,9 @@
 import {
-  Grid2 as Grid,
-  Typography,
   Divider,
+  Grid,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from '@mui/material'
 import * as R from 'ramda'
 

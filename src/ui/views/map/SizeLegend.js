@@ -1,7 +1,6 @@
 import {
-  capitalize,
   FormControl,
-  Grid2,
+  Grid,
   IconButton,
   InputLabel,
   Paper,
@@ -27,7 +26,7 @@ import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 
 import { NumberInput, OverflowText, Select } from '../../compound'
 
-import { orderEntireDict, parseGradient } from '../../../utils'
+import { capitalize, orderEntireDict, parseGradient } from '../../../utils'
 
 const styles = {
   legendSection: {
@@ -216,7 +215,7 @@ const NumericalSizeLegend = ({
       </OverflowText>
 
       {showSizeSlider && (
-        <Stack>
+        <Stack useFlexGap>
           <SizeSlider
             value={sizeSliderProps.value}
             onClose={handleClose}
@@ -354,7 +353,7 @@ const CategoricalSizeLegend = ({
       </OverflowText>
       {showSizeSlider && (
         <SizeSlider
-          styleOverrides={{ marginBottom: '32px' }}
+          sx={{ mb: 4 }}
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
           value={sizeSliderProps.value}
           onClose={handleClose}
@@ -388,11 +387,12 @@ const SizeLegend = ({
     <Paper
       elevation={3}
       component={Stack}
+      useFlexGap // TODO: Handle sizeSlider's `sx` prop
       spacing={2}
       sx={styles.legendSection}
     >
-      <Grid2 container spacing={1}>
-        <Grid2 size="grow">
+      <Grid container spacing={1}>
+        <Grid size="grow">
           <FormControl fullWidth>
             <InputLabel id="size-by-label">Size by</InputLabel>
             <Select
@@ -409,15 +409,15 @@ const SizeLegend = ({
               )}
             />
           </FormControl>
-        </Grid2>
+        </Grid>
         {numberFormat.unit && (
-          <Grid2 size={4}>
+          <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
               <OverflowText text={numberFormat.unit} />
             </Typography>
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
       {isCategorical ? (
         <CategoricalSizeLegend
           type={sizeByProp.type}

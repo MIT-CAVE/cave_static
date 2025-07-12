@@ -12,9 +12,10 @@ import {
   InputLabel,
 } from '@mui/material'
 import { memo } from 'react'
-import { FaChartBar, FaFilter } from 'react-icons/fa'
+import { FaRegChartBar } from 'react-icons/fa'
 import {
   MdClose,
+  MdFilterAlt,
   MdFullscreen,
   MdFullscreenExit,
   MdMoreVert,
@@ -31,23 +32,28 @@ const styles = {
   root: {
     width: 'auto',
     position: 'absolute',
-    p: 0.5,
-    top: '12px',
+    top: '8px',
     right: 0,
     zIndex: 1,
   },
-  actionBtn: {
-    button: {
-      width: '42px',
-      borderRadius: 1,
-      opacity: 0.8,
-      ':hover': {
-        bgcolor: 'background.paper',
-        opacity: 1,
-      },
-    },
-    bgcolor: 'background.paper',
+  btnGroupVert: {
     mx: 0.5,
+    bgcolor: 'background.paper',
+    borderRadius: 1,
+    button: {
+      p: 0.75,
+      width: '42px',
+      opacity: 0.8,
+      ':hover': { opacity: 1 },
+    },
+    '&> :first-child button': {
+      borderTopLeftRadius: '4px',
+      borderTopRightRadius: '4px',
+    },
+    '&> :last-child button': {
+      borderBottomLeftRadius: '4px',
+      borderBottomRightRadius: '4px',
+    },
   },
 }
 
@@ -63,19 +69,19 @@ const MainButtons = ({
   numFilters,
   onOpenFilter,
   onOpenChartTools,
-  handleOpenMenu,
+  onOpenMenu,
 }) => (
   <ButtonGroup
     variant="contained"
     orientation="vertical"
-    sx={[styles.actionBtn]}
+    sx={styles.btnGroupVert}
   >
     <TooltipButton
       title="Chart Tools"
       placement="bottom-start"
       onClick={onOpenChartTools}
     >
-      <FaChartBar />
+      <FaRegChartBar size={24} />
     </TooltipButton>
 
     {isGroupedOutput && (
@@ -91,7 +97,7 @@ const MainButtons = ({
             invisible: numFilters < 1,
           }}
         >
-          <FaFilter />
+          <MdFilterAlt size={24} />
         </Badge>
       </TooltipButton>
     )}
@@ -99,9 +105,9 @@ const MainButtons = ({
     <TooltipButton
       title="View more Actions"
       placement="bottom-start"
-      onClick={handleOpenMenu}
+      onClick={onOpenMenu}
     >
-      <MdMoreVert />
+      <MdMoreVert size={24} />
     </TooltipButton>
   </ButtonGroup>
 )
@@ -168,6 +174,7 @@ const ChartMenu = ({
     <Stack
       sx={[
         styles.root,
+        !isMaximized && { p: 0.5 },
         !isMaximized && editLayoutMode && { top: '20px', right: '8px' },
       ]}
     >
@@ -177,8 +184,8 @@ const ChartMenu = ({
           numFilters,
           onOpenFilter,
           onOpenChartTools,
-          handleOpenMenu,
         }}
+        onOpenMenu={handleOpenMenu}
       />
 
       <Menu

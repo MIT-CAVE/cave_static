@@ -1,7 +1,7 @@
 import { Box, Grid, Paper, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 
-import InfoButton from './InfoButton'
+import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
 
 import { PROP_MIN_WIDTH } from '../../utils/constants'
@@ -17,13 +17,13 @@ const styles = {
     justifyContent: 'center',
     minWidth: PROP_MIN_WIDTH,
     boxSizing: 'border-box',
-    p: 1,
+    // p: 1,
   },
-  info: (theme) => ({
-    top: theme.spacing(1),
-    right: theme.spacing(1),
+  info: {
     position: 'absolute',
-  }),
+    top: '8px',
+    right: '8px',
+  },
   unit: {
     display: 'flex',
     alignSelf: 'end',
@@ -34,14 +34,19 @@ const styles = {
     borderColor: 'text.secondary',
     fontWeight: 700,
     justifyContent: 'center',
+    minWidth: '1ch',
+  },
+  subtitle: {
+    color: 'text.secondary',
   },
 }
 
 const BaseContainer = ({
-  tooltipTitle,
+  title,
+  tooltipContent,
   elevation,
   style,
-  sx,
+  sx = [],
   children,
   ...props
 }) => (
@@ -49,79 +54,102 @@ const BaseContainer = ({
     sx={[styles.base, style, ...forceArray(sx)]}
     {...{ elevation, ...props }}
   >
-    {tooltipTitle && (
-      <Box sx={styles.info}>
-        <InfoButton text={tooltipTitle} />
-      </Box>
+    {tooltipContent && (
+      <HelpTooltip {...{ title }} content={tooltipContent} sx={styles.info} />
     )}
     {children}
   </Paper>
 )
 
-const PropTitle = ({
+const PropHeader = ({
   title,
+  subtitle,
   unit,
   marquee = true,
   titleVariant = 'subtitle1',
   ...props
 }) => (
-  <Grid container alignSelf="center" {...props}>
-    <Grid item zeroMinWidth xs>
-      <Typography noWrap={marquee} variant={titleVariant}>
-        {marquee ? <OverflowText text={title} /> : title}
-      </Typography>
-    </Grid>
-    {unit && (
-      <Grid item zeroMinWidth maxWidth="33.33%">
-        <Typography variant="subtitle1" minWidth="1ch" sx={styles.unit}>
-          <OverflowText text={unit} />
+  <>
+    <Grid container sx={{ alignSelf: 'center' }} {...props}>
+      <Grid size="grow">
+        <Typography noWrap={marquee} variant={titleVariant}>
+          {marquee ? <OverflowText text={title} /> : title}
         </Typography>
       </Grid>
+      {unit && (
+        <Grid sx={{ maxWidth: '33.33%' }}>
+          <Typography variant="subtitle2" sx={styles.unit}>
+            <OverflowText text={unit} />
+          </Typography>
+        </Grid>
+      )}
+    </Grid>
+    {subtitle && (
+      <Typography variant="subtitle2" sx={styles.subtitle}>
+        <OverflowText text={subtitle} />
+      </Typography>
     )}
-  </Grid>
+  </>
 )
 
 const HorizontalContainer = ({
   title,
+  subtitle,
   marquee,
-  tooltipTitle,
+  tooltipContent,
   unit,
   children,
   ...props
 }) => (
-  <BaseContainer {...{ tooltipTitle, ...props }}>
+  <BaseContainer {...{ title, tooltipContent, ...props }}>
     <Grid
       container
-      alignItems="center"
-      alignContent="start"
-      mt={tooltipTitle ? 3.5 : 0}
-      overflow="auto"
-      height="100%"
+      sx={{
+        alignItems: 'center',
+        alignContent: 'start',
+        mt: tooltipContent ? 3.5 : 0,
+        overflow: 'auto',
+        height: '100%',
+      }}
     >
-      <Grid item zeroMinWidth xs minWidth="5ch" pl={1}>
-        <PropTitle {...{ title, marquee, unit }} />
+      <Grid size="grow" sx={{ minWidth: '5ch', pl: 1 }}>
+        <PropHeader {...{ title, subtitle, marquee, unit }} />
       </Grid>
-      <Grid item xs={7.5}>
-        {children}
-      </Grid>
+      <Grid size={7.5}>{children}</Grid>
     </Grid>
   </BaseContainer>
 )
 
 const VerticalContainer = ({
   title,
+  subtitle,
   marquee,
-  tooltipTitle,
+  tooltipContent,
   unit,
+  sx = [],
   children,
   ...props
 }) => (
-  <BaseContainer {...{ tooltipTitle, ...props }}>
-    <Grid container direction="column" flexGrow={1}>
-      <Grid item pl={1} pt={0.5} pr={tooltipTitle ? 4.5 : 1} width="100%">
-        <PropTitle {...{ title, marquee, unit }} />
+  <BaseContainer
+    {...{ title, tooltipContent, ...props }}
+    sx={[{ p: 1 }, ...forceArray(sx)]}
+  >
+    <Grid container spacing={1} direction="column" sx={{ flexGrow: 1 }}>
+      <Grid
+        sx={{
+          pl: 1,
+          pt: 0.5,
+          pr: tooltipContent ? 4.5 : 1,
+          width: '100%',
+        }}
+      >
+        <PropHeader {...{ title, subtitle, marquee, unit }} />
       </Grid>
-      <Grid item container alignItems="start" overflow="visible">
+      <Grid
+        container
+        size="grow"
+        sx={{ alignItems: 'start', overflow: 'visible', p: 1 }}
+      >
         {children}
       </Grid>
     </Grid>
@@ -137,17 +165,35 @@ const TitledContainer = ({ elevation = 0, sx, ...props }) => (
 
 const UntitledContainer = ({ children, ...props }) => (
   <BaseContainer {...props}>
-    <Grid container item xs alignContent="start" mt={3.5}>
+    <Grid container size="grow" sx={{ alignContent: 'start', mt: 3.5 }}>
       {children}
     </Grid>
   </BaseContainer>
 )
 
+const MinimalContainer = ({ style, children }) => (
+  <Box
+    sx={[
+      styles.base,
+      {
+        justifyContent: 'start',
+        p: 0,
+        // border: '1px solid rgb(255 255 255 / .1)', // NOTE: Only for debugging
+        // bgcolor: 'rgb(255 255 0 / .02)', // NOTE: Only for debugging
+      },
+      style,
+    ]}
+  >
+    {children}
+  </Box>
+)
+
 const PropContainer = ({
   type = propContainer.VERTICAL,
   title,
+  subtitle,
   marquee,
-  tooltipTitle,
+  tooltipContent,
   unit,
   elevation,
   style,
@@ -164,19 +210,22 @@ const PropContainer = ({
           ? TitledContainer
           : type === propContainer.UNTITLED
             ? UntitledContainer
-            : type === propContainer.NONE
-              ? null
-              : () => {
-                  throw Error(`Invalid type '${type}' for prop container`)
-                }
+            : type === propContainer.MINIMAL
+              ? MinimalContainer
+              : type === propContainer.NONE
+                ? null
+                : () => {
+                    throw Error(`Invalid type '${type}' for prop container`)
+                  }
   if (LayoutContainer == null) return children
 
   return (
     <LayoutContainer
       {...{
         title,
+        subtitle,
         marquee,
-        tooltipTitle,
+        tooltipContent,
         unit,
         elevation,
         style,
@@ -190,8 +239,9 @@ const PropContainer = ({
 }
 PropContainer.propTypes = {
   title: PropTypes.string,
+  subtitle: PropTypes.string,
   marquee: PropTypes.bool,
-  tooltipTitle: PropTypes.string,
+  tooltipContent: PropTypes.string,
   unit: PropTypes.string,
   type: PropTypes.oneOf(Object.values(propContainer)),
   elevation: PropTypes.oneOf([...Array(25).keys()]),

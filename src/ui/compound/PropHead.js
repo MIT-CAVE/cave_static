@@ -1,9 +1,8 @@
 import { Divider, Grid, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React from 'react'
 
-import InfoButton from './InfoButton'
+import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
 
 import { PROP_MIN_WIDTH } from '../../utils/constants'
@@ -19,8 +18,9 @@ const styles = {
     alignContent: 'end',
   },
   row: {
-    border: 1,
-    borderColor: 'grey.500',
+    border: '1px solid rgb(128 128 128)',
+    borderRadius: 1,
+    height: '100%',
   },
   divider: {
     height: '2px',
@@ -34,35 +34,37 @@ const styles = {
 }
 
 const BaseContainer = ({
-  prop: { id, name, help, style },
+  prop: {
+    id,
+    name,
+    help,
+    style, // `style` will become the default escape hatch for prop styling in `4.0.0`.
+    propStyle, // Adding the `propStyle` key here for consistency.
+  },
   variantStyle,
   sx,
   children,
   ...props
-}) => (
-  <Grid
-    container
-    sx={[variantStyle, styles.root, style, ...forceArray(sx)]}
-    {...R.dissoc('currentVal')(props)}
-  >
+}) => {
+  const title = name ?? id
+  return (
     <Grid
-      item
-      zeroMinWidth
-      xs
-      component={Typography}
-      variant="h5"
-      sx={styles.title}
+      container
+      sx={[styles.root, variantStyle, ...forceArray(sx), style, propStyle]}
+      {...R.dissoc('currentVal')(props)}
     >
-      <OverflowText text={name || id} />
-    </Grid>
-    {help && (
-      <Grid item p={0.5}>
-        <InfoButton text={help} sx={{ fontSize: 24 }} />
+      <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
+        <OverflowText text={title} />
       </Grid>
-    )}
-    {children}
-  </Grid>
-)
+      {help && (
+        <Grid sx={{ p: 0.5, pr: 1 }}>
+          <HelpTooltip {...{ title }} content={help} size={26} />
+        </Grid>
+      )}
+      {children}
+    </Grid>
+  )
+}
 BaseContainer.propTypes = {
   prop: PropTypes.object,
   style: PropTypes.object,
@@ -78,7 +80,7 @@ BaseContainer.propTypes = {
 
 const PropHeadColumn = (props) => (
   <BaseContainer variantStyle={styles.column} {...props}>
-    <Grid item xs={12} component={Divider} sx={styles.divider} />
+    <Grid component={Divider} sx={styles.divider} size={12} />
   </BaseContainer>
 )
 

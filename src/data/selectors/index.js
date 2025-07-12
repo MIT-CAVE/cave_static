@@ -4,12 +4,13 @@ import * as R from 'ramda'
 import {
   DEFAULT_ICON_URL,
   DEFAULT_VIEWPORT,
-  DEFAULT_MAP_STYLES,
+  DEFAULT_MAP_STYLE_OBJECTS,
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_MEMOIZED_CHARTS,
   NUMBER_FORMAT_KEY_PATHS,
   ICON_RESOLUTION,
+  DEFAULT_MAP_PROJECTION_OBJECTS,
 } from '../../utils/constants'
 import {
   propId,
@@ -22,6 +23,9 @@ import {
   legendViews,
   legendLayouts,
   legendWidths,
+  MAPBOX_PROJECTIONS,
+  MAPLIBRE_PROJECTIONS,
+  MAP_PROJECTIONS,
 } from '../../utils/enums'
 import { getScaledValueAlt } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
@@ -31,7 +35,6 @@ import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
 import {
   checkValidRange,
   getTimeValue,
-  renameKeys,
   sortByOrderNameId,
   forcePath,
   customSortByX,
@@ -49,6 +52,7 @@ import {
   getColorString,
   parseGradient,
   getChartItemColor,
+  isMapboxStyle,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -89,7 +93,7 @@ export const selectTeams = createSelector(
 export const selectSortedTeams = createSelector(
   selectTeams,
   R.pipe(
-    R.map(renameKeys({ teamId: 'id', teamName: 'name' })),
+    R.map(R.renameKeys({ teamId: 'id', teamName: 'name' })),
     R.values,
     sortByOrderNameId
   )
@@ -172,7 +176,7 @@ export const selectAppBar = createSelector(selectData, (data) => {
   appBar = R.assocPath(['order', 'data'], updatedOrder, appBar)
   appBar = R.assocPath(
     ['data'],
-    R.mergeDeepRight(R.propOr({}, 'data', appBar), systemAppBar),
+    R.mergeDeepLeft(R.propOr({}, 'data', appBar), systemAppBar),
     appBar
   )
   return appBar
@@ -914,12 +918,23 @@ export const selectZoomFunc = createSelector(
     },
   }
 )
-export const selectCurrentMapStyleFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
+
+export const selectIsMapboxTokenProvided = createSelector(
+  selectMapboxToken,
+  R.both(R.isNotNil, R.isNotEmpty)
+)
+
+export const selectCurrentMapStyleIdFunc = createSelector(
+  [selectIsMapboxTokenProvided, selectCurrentMapDataByMap],
+  (isMapboxTokenProvided, dataObj) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) => R.path(['currentStyle', mapId])(dataObj),
+      (mapId) => {
+        const defaultMapStyleId = isMapboxTokenProvided
+          ? 'mapboxDark'
+          : 'cartoDarkMatter'
+        return R.pathOr(defaultMapStyleId, ['currentStyle', mapId])(dataObj)
+      },
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -935,14 +950,26 @@ export const selectCurrentMapStyleFunc = createSelector(
 )
 
 export const selectCurrentMapProjectionFunc = createSelector(
-  [selectCurrentMapDataByMap, selectMapboxToken],
-  (dataObj, token) =>
+  [selectCurrentMapDataByMap, selectIsMapboxTokenProvided],
+  (dataObj, isMapboxTokenProvided) =>
     maxSizedMemoization(
       R.identity,
       (mapId) =>
-        token !== ''
-          ? R.pathOr('mercator', ['currentProjection', mapId])(dataObj)
-          : 'mercator',
+        isMapboxTokenProvided
+          ? R.pipe(
+              R.path(['currentProjection', mapId]),
+              R.when(
+                (proj) => !MAPBOX_PROJECTIONS.has(proj),
+                R.always(MAP_PROJECTIONS.MERCATOR)
+              )
+            )(dataObj)
+          : R.pipe(
+              R.path(['currentProjection', mapId]),
+              R.when(
+                (proj) => !MAPLIBRE_PROJECTIONS.has(proj),
+                R.always(MAP_PROJECTIONS.MERCATOR)
+              )
+            )(dataObj),
       MAX_MEMOIZED_CHARTS
     ),
   {
@@ -957,17 +984,14 @@ export const selectCurrentMapProjectionFunc = createSelector(
   }
 )
 export const selectIsGlobeNotMemoized = createSelector(
-  [selectViewportsByMap, selectCurrentMapDataByMap, selectMapboxToken],
-  (viewportsByMap, dataObj, token) =>
+  [selectViewportsByMap, selectCurrentMapProjectionFunc],
+  (viewportsByMap, currentMapProjectionFunc) =>
     R.pipe(
       R.toPairs,
       R.map(([mapId]) => {
-        const mapProjection =
-          token !== ''
-            ? R.pathOr('mercator', ['currentProjection', mapId], dataObj)
-            : 'mercator'
+        const mapProjection = currentMapProjectionFunc(mapId)
         const zoom = R.path([mapId, 'zoom'], viewportsByMap)
-        return [mapId, mapProjection === 'globe' && zoom < 6]
+        return [mapId, mapProjection === MAP_PROJECTIONS.GLOBE && zoom < 6]
       }),
       R.fromPairs
     )(viewportsByMap),
@@ -998,22 +1022,57 @@ export const selectIsGlobe = createSelector(
     },
   }
 )
-export const selectIsMapboxTokenProvided = createSelector(
-  selectMapboxToken,
-  R.both(R.isNotNil, R.isNotEmpty)
-)
 export const selectMapStyleOptions = createSelector(
   [selectOrderedMaps, selectIsMapboxTokenProvided],
   (data, isMapboxTokenProvided) =>
     R.pipe(
       orderEntireDict,
-      R.propOr([], 'additionalMapStyles'),
-      R.mergeRight(DEFAULT_MAP_STYLES),
+      R.propOr({}, 'additionalMapStyles'),
+      R.mergeRight(DEFAULT_MAP_STYLE_OBJECTS),
       R.filter(
-        (style) =>
+        (styleObj) =>
           isMapboxTokenProvided ||
-          R.pipe(R.prop('spec'), R.startsWith('mapbox://'), R.not)(style)
+          !(styleObj.mapbox || isMapboxStyle(styleObj.spec))
       )
+    )(data)
+)
+
+export const selectIsCurrentMapboxStyleFunc = createSelector(
+  [selectMapStyleOptions, selectCurrentMapStyleIdFunc],
+  (mapStyleOptions, currentMapStyleIdFunc) => (mapId) => {
+    const currentMapStyleId = currentMapStyleIdFunc(mapId)
+    const mapStyleOption = mapStyleOptions[currentMapStyleId]
+    const mapStyle = mapStyleOption?.spec
+    return mapStyleOption?.mapbox || isMapboxStyle(mapStyle)
+  }
+)
+
+export const selectMapProjectionOptionsFunc = createSelector(
+  [selectOrderedMaps, selectIsCurrentMapboxStyleFunc],
+  (data, isCurrentMapboxStyleFunc) => (mapId) =>
+    R.pipe(
+      orderEntireDict,
+      R.converge(R.mergeRight, [
+        R.propOr({}, 'additionalProjections'),
+        R.always(
+          R.pipe(
+            R.ifElse(
+              isCurrentMapboxStyleFunc,
+              R.always(MAPBOX_PROJECTIONS),
+              R.always(MAPLIBRE_PROJECTIONS)
+            ),
+            Array.from, // Convert from `Set`
+            R.reject(
+              // Exclude map projection shortcuts
+              R.includes(R.__, [
+                MAP_PROJECTIONS.MERCATOR,
+                MAP_PROJECTIONS.GLOBE,
+              ])
+            ),
+            R.flip(R.pick)(DEFAULT_MAP_PROJECTION_OBJECTS)
+          )(mapId)
+        ),
+      ])
     )(data)
 )
 
@@ -1745,7 +1804,21 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
             }))
           )
         )(associatedData)
-        return formattedGlobalOutputs
+        const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
+        const getValue = (item) =>
+          R.has('children', item)
+            ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
+            : R.path(['value', 0], item)
+        const sortFn = {
+          value_ascending: (a, b) => getValue(a) - getValue(b),
+          value_descending: (a, b) => getValue(b) - getValue(a),
+          alpha_ascending: (a, b) => a.name.localeCompare(b.name),
+          alpha_descending: (a, b) => b.name.localeCompare(a.name),
+        }[xAxisOrder]
+        const sortedFormattedGlobalOutputs = sortFn
+          ? R.sort(sortFn, formattedGlobalOutputs)
+          : formattedGlobalOutputs
+        return sortedFormattedGlobalOutputs
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1768,7 +1841,9 @@ export const selectGroupedEnabledArcsFunc = createSelector(
                 [
                   R.converge(R.and, [
                     R.propEq('3d', 'displayType'),
-                    R.always(R.equals('mercator', projectionFunc(mapId))),
+                    R.always(
+                      R.equals(MAP_PROJECTIONS.MERCATOR, projectionFunc(mapId))
+                    ),
                   ]),
                   R.always('3d'),
                 ],
@@ -2402,20 +2477,9 @@ export const selectArcLayerGeoJsonFunc = createSelector(
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
     const geometryFunc = (item) => {
-      const finalEndLong =
-        item.endLongitude - item.startLongitude >= 180
-          ? (item.endLongitude -= 360)
-          : item.endLongitude - item.startLongitude <= -180
-            ? (item.endLongitude += 360)
-            : item.endLongitude
       return {
         type: 'LineString',
-        coordinates: item.path
-          ? adjustArcPath(item.path)
-          : [
-              [item.startLongitude, item.startLatitude],
-              [finalEndLong, item.endLatitude],
-            ],
+        coordinates: adjustArcPath(item.path),
       }
     }
     const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
@@ -2439,20 +2503,9 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
     const geometryFunc = (item) => {
-      const finalEndLong =
-        item.endLongitude - item.startLongitude >= 180
-          ? (item.endLongitude -= 360)
-          : item.endLongitude - item.startLongitude <= -180
-            ? (item.endLongitude += 360)
-            : item.endLongitude
       return {
         type: 'LineString',
-        coordinates: item.path
-          ? adjustArcPath(item.path)
-          : [
-              [item.startLongitude, item.startLatitude],
-              [finalEndLong, item.endLatitude],
-            ],
+        coordinates: adjustArcPath(item.path),
       }
     }
     const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)

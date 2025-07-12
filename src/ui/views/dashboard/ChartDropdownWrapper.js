@@ -10,6 +10,7 @@ import { addExtraProps, forceArray } from '../../../utils'
 
 const styles = {
   root: {
+    display: 'flex',
     mx: 0.5,
     minWidth: '56px',
   },
@@ -36,8 +37,6 @@ const ChartDropdownWrapper = ({
   return (
     <Paper
       component={Grid}
-      display="flex"
-      item
       sx={[
         styles.root,
         clearable && { position: 'relative' },

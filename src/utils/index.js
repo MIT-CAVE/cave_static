@@ -1,5 +1,4 @@
 import { colord } from 'colord'
-import { quantileSorted } from 'd3-array'
 import * as R from 'ramda'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
@@ -11,6 +10,7 @@ import {
   MAX_MEMOIZED_CHARTS,
 } from './constants'
 import { propId, scaleId } from './enums'
+import { quantileSorted } from './quantile'
 import { getScaledValueAlt } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
@@ -72,21 +72,6 @@ export const combineReducers = (reducers) => {
 
 export const renameProp = R.curry((oldProp, newProp, obj) =>
   R.pipe(R.assoc(newProp, R.prop(oldProp)(obj)), R.dissoc(oldProp))(obj)
-)
-
-/**
- * Taken from: https://github.com/ramda/ramda/wiki/Cookbook#rename-keys-of-an-object
- *
- * Creates a new object with the own properties of the provided object, but the
- * keys renamed according to the keysMap object as `{oldKey: newKey}`.
- * When some key is not found in the keysMap, then it's passed as-is.
- */
-export const renameKeys = R.curry((keysMap, obj) =>
-  R.reduce(
-    (acc, key) => R.assoc(keysMap[key] || key, obj[key], acc),
-    {},
-    R.keys(obj)
-  )
 )
 
 export const forcePath = (pathOrProp) =>
@@ -252,26 +237,35 @@ const checkIfStatSatisfiesFilter = (statistics, groupingIndices, i, filter) => {
 export const filterGroupedOutputs = (statistics, filters, groupingIndices) => {
   const valueLists = R.prop('valueLists', statistics)
   const indicies = R.pipe(R.values, R.head, R.length)(valueLists)
-  const indiciesBuffer = window.crossOriginIsolated
-    ? new SharedArrayBuffer(0, { maxByteLength: indicies * 4 })
-    : new ArrayBuffer(0, { maxByteLength: indicies * 4 })
-  const indiciesView = new Uint32Array(indiciesBuffer)
-  const filterFunc = R.curry(checkIfStatSatisfiesFilter)(
-    statistics,
-    groupingIndices
-  )
-
-  // fill and grow indicies buffer with filtered values
-  for (let i = 0; i < indicies; i++) {
-    if (R.all(R.curry(filterFunc)(i), filters)) {
-      window.crossOriginIsolated
-        ? indiciesBuffer.grow(indiciesView.byteLength + 4)
-        : indiciesBuffer.resize(indiciesView.byteLength + 4)
-      indiciesView[indiciesView.length - 1] = i
+  // if no filters are present, return all indicies
+  if (R.isEmpty(filters)) {
+    const indiciesBuffer = window.crossOriginIsolated
+      ? new SharedArrayBuffer(indicies * 4)
+      : new ArrayBuffer(indicies * 4)
+    const indiciesView = new Uint32Array(indiciesBuffer)
+    for (let i = 0; i < indicies; i++) {
+      indiciesView[i] = i
     }
+    return indiciesBuffer
+  } else {
+    const filterFunc = R.curry(checkIfStatSatisfiesFilter)(
+      statistics,
+      groupingIndices
+    )
+    const filteredItems = []
+    // fill array with filtered values
+    for (let i = 0; i < indicies; i++) {
+      if (R.all(R.curry(filterFunc)(i), filters)) {
+        filteredItems.push(i)
+      }
+    }
+    const indiciesBuffer = window.crossOriginIsolated
+      ? new SharedArrayBuffer(filteredItems.length * 4)
+      : new ArrayBuffer(filteredItems.length * 4)
+    const indiciesView = new Uint32Array(indiciesBuffer)
+    indiciesView.set(filteredItems)
+    return indiciesBuffer
   }
-
-  return indiciesBuffer
 }
 
 export const recursiveMap = R.curry(
@@ -410,7 +404,7 @@ export const getContrastText = (bgColor) => {
     0.7152 * Math.pow(background.g / 255, 2.2) +
     0.0722 * Math.pow(background.b / 255, 2.2)
   // Using 0.179 threshold from the WCAG guidelines instead of 0.5 for better contrast
-  return luminance > 0.179 ? 'black' : 'white'
+  return luminance > 0.179 ? '#000' : '#fff'
 }
 
 export const addExtraProps = (Component, extraProps) => {
@@ -422,20 +416,35 @@ export const removeExtraProps = (Component, extraProps) => {
   return <ComponentType {...R.omit(extraProps, Component.props)} />
 }
 
-export const fetchIcon = async (iconName, iconUrl = DEFAULT_ICON_URL) => {
-  const cache = await caches.open('icons')
-  const url = `${iconUrl}/${iconName}.js`
-  const response = await cache.match(url)
-  // If not in cache, fetch from cdn
-  if (R.isNil(response)) {
-    await cache.add(url)
-    const nowCached = await cache.match(url)
-    const item = await nowCached.json()
-    return GenIcon(item)
-  } else {
-    const item = await response.json()
-    return GenIcon(item)
+export const fetchResource = async ({
+  url,
+  cacheName,
+  cache = null,
+  rawBody = false,
+}) => {
+  try {
+    // Open cache only if it's not provided
+    const activeCache = cache || (await caches.open(cacheName))
+    let response = await activeCache.match(url)
+    // Add to cache if not found
+    if (response == null) {
+      await activeCache.add(url)
+      response = await activeCache.match(url)
+    }
+    return rawBody ? response : await response.json()
+  } catch (error) {
+    console.error('Error fetching resource:', error)
   }
+}
+
+export const fetchIcon = async (
+  iconName,
+  iconUrl = DEFAULT_ICON_URL,
+  rawIcon = false
+) => {
+  const url = `${iconUrl}/${iconName}.js`
+  const iconTree = (await fetchResource({ url, cacheName: 'icons' })) ?? {}
+  return rawIcon ? iconTree : GenIcon(iconTree)
 }
 
 export const getStatusIcon = (color) => {
@@ -789,51 +798,42 @@ export const constructFetchedGeoJson = (
     R.identity,
     async (mapId) => {
       const enabledItems = enabledItemsFunc(mapId)
-      const itemNames = R.keys(R.filter(R.identity, enabledItems))
 
-      const fetchCache = async () => {
+      const itemKeys = R.keys(R.filter(R.identity, enabledItems))
+      const fetchItems = async () => {
         const cache = await caches.open(cacheName)
-        const items = {}
-        for (let itemName of itemNames) {
-          const url = R.pathOr('', [itemName, 'geoJson', 'geoJsonLayer'], types)
-          // Special catch for empty urls on initial call
-          if (url === '') {
-            continue
-          }
-          let response = await cache.match(url)
-          // add to cache if not found
-          if (R.isNil(response)) {
-            await cache.add(url)
-            response = await cache.match(url)
-          }
-          items[itemName] = await response.json()
-        }
-        return items
+        // Create an array of promises for concurrent fetching
+        const fetchPromises = itemKeys.map(async (key) => {
+          const url = R.pathOr('', [key, 'geoJson', 'geoJsonLayer'])(types)
+          if (url === '') return // Special catch for empty URLs on initial call
+          return { [key]: await fetchResource({ url, cache }) }
+        })
+        // Here, `Promise.all` will return all fulfilled promises because
+        // `fetchResource` is handling its own exceptions via a `try`/`catch`
+        return await Promise.all(fetchPromises)
       }
-      return fetchCache().then((selecteditems) =>
-        R.pipe(
+
+      return fetchItems().then((selectedItems) => {
+        const items = R.pipe(R.reject(R.isNil), R.mergeAll)(selectedItems)
+        return R.pipe(
           R.map(
             R.pipe(
               R.mapObjIndexed((geoObj, geoJsonValue) => {
                 const geoJsonProp = R.path(['geoJson', 'geoJsonProp'])(geoObj)
                 const geoType = geoObj.type
                 const geoId = geoObj.data_key
+                const geoFeatures = R.pathOr({}, [geoType, 'features'])(items)
+
                 const filteredFeature = R.find(
-                  (feature) =>
-                    R.path(['properties', geoJsonProp])(feature) ===
-                    geoJsonValue
-                )(R.pathOr({}, [geoType, 'features'])(selecteditems))
+                  R.pathEq(geoJsonValue, ['properties', geoJsonProp])
+                )(geoFeatures)
 
                 const filters = R.pipe(
                   R.pathOr([], [geoObj.type, 'filters']),
                   R.reject(R.propEq(false, 'active'))
                 )(enabledItems)
-                if (
-                  R.isNil(filteredFeature) &&
-                  R.isNotEmpty(
-                    R.pathOr({}, [geoType, 'features'])(selecteditems)
-                  )
-                ) {
+
+                if (R.isNil(filteredFeature) && R.isNotEmpty(geoFeatures)) {
                   console.warn(
                     `No feature with ${geoJsonValue} for property ${geoJsonProp}`
                   )
@@ -989,7 +989,7 @@ export const constructFetchedGeoJson = (
           R.values,
           R.unnest
         )(matchingKeysByTypeFunc(mapId))
-      )
+      })
     },
     MAX_MEMOIZED_CHARTS
   )
@@ -1150,3 +1150,35 @@ export const constructGeoJson = (
       )(itemDataFunc(mapId)),
     MAX_MEMOIZED_CHARTS
   )
+
+const isMapboxUrl = (url) =>
+  typeof url === 'string' &&
+  (url.startsWith('mapbox://') ||
+    url.includes('api.mapbox.com') ||
+    url.includes('tiles.mapbox.com') ||
+    url.includes('fonts.mapbox.com') ||
+    url.includes('mapbox.com'))
+
+export const isMapboxStyle = (mapStyle) => {
+  // Check if it's a known Mapbox style endpoint
+  if (typeof mapStyle === 'string') {
+    return isMapboxUrl(mapStyle)
+  }
+
+  if (!mapStyle || typeof mapStyle !== 'object') return false
+
+  const { glyphs, sprite, sources, metadata } = mapStyle
+  if (isMapboxUrl(glyphs) || isMapboxUrl(sprite)) return true
+  if (sources) {
+    for (const source of Object.values(sources)) {
+      if (isMapboxUrl(source.url)) return true
+    }
+  }
+  if (metadata) {
+    for (const key in metadata) {
+      if (key.startsWith('mapbox:')) return true
+    }
+  }
+
+  return false
+}

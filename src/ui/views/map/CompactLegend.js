@@ -1,7 +1,7 @@
 import {
   Badge,
   Divider,
-  Grid2,
+  Grid,
   IconButton,
   Paper,
   Stack,
@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useContext, useMemo } from 'react'
 import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -32,6 +32,7 @@ import {
   GroupScaleControls,
 } from './Legend'
 import SizeLegend from './SizeLegend'
+import { MapContext } from './useMapApi'
 import useMapFilter from './useMapFilter'
 
 import {
@@ -84,15 +85,20 @@ const styles = {
     p: 1,
     border: '1px outset rgb(128 128 128)',
     boxSizing: 'border-box',
+    borderRadius: 1,
   },
   toggleButton: {
     p: 1,
     borderRadius: '50%',
   },
+  warning: {
+    textAlign: 'start',
+    px: 1,
+    py: 0,
+  },
 }
 
 const LegendRowDetails = ({
-  mapId,
   legendGroupId,
   id,
   icon,
@@ -110,10 +116,12 @@ const LegendRowDetails = ({
   shapeLabel,
   shapePathEnd,
   shapeOptions,
+  shapeWarning,
   ListboxComponent,
   groupBy,
   getShapeIcon,
   getShapeLabel,
+  getShapeDisabled,
   group,
   groupScale = 50,
   groupScaleWithZoom,
@@ -125,6 +133,7 @@ const LegendRowDetails = ({
   getRange,
   onChangeVisibility,
 }) => {
+  const { mapId } = useContext(MapContext)
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -145,7 +154,6 @@ const LegendRowDetails = ({
     handleChangeShape,
     handleChangePropAttr,
   } = useLegendDetails({
-    mapId,
     legendGroupId,
     id,
     group,
@@ -168,7 +176,6 @@ const LegendRowDetails = ({
     handleCloseFilter,
     handleSaveFilters,
   } = useMapFilter({
-    mapId,
     group,
     featureTypeProps,
     filtersPath: [...basePath, 'filters'],
@@ -193,16 +200,16 @@ const LegendRowDetails = ({
   )
   return (
     <Stack component={Paper} elevation={1} spacing={1} sx={styles.details}>
-      <Grid2 container sx={{ alignItems: 'center' }} spacing={1}>
-        <Grid2 size="auto">
+      <Grid container sx={{ alignItems: 'center' }} spacing={1}>
+        <Grid size="auto">
           <Switch
             name="map-feature-switch"
             size="small"
             checked={value}
             onClick={onChangeVisibility}
           />
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <WithEditBadge editing={showShapePicker}>
             <OptionalWrapper
               component={ToggleButton}
@@ -218,13 +225,13 @@ const LegendRowDetails = ({
               <FetchedIcon iconName={icon} size={24} />
             </OptionalWrapper>
           </WithEditBadge>
-        </Grid2>
-        <Grid2 size="grow">
+        </Grid>
+        <Grid size="grow">
           <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
             <OverflowText text={name} />
           </Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           {allowGrouping && (
             <>
               <ToggleButton
@@ -274,31 +281,39 @@ const LegendRowDetails = ({
               <MdFilterAlt />
             </Badge>
           </IconButton>
-        </Grid2>
-      </Grid2>
-      <Stack spacing={1} sx={{ mb: 1 }}>
+        </Grid>
+      </Grid>
+      <Stack useFlexGap spacing={1} sx={{ mb: 1 }}>
         {showShapePicker && (
-          <ShapePicker
-            label={shapeLabel}
-            value={shape}
-            options={shapeOptions}
-            color="warning"
-            {...{ ListboxComponent, groupBy }}
-            getIcon={getShapeIcon}
-            getLabel={getShapeLabel}
-            onChange={handleChangeShape}
-          />
+          <>
+            {shapeWarning && (
+              <Typography variant="caption" sx={styles.warning}>
+                {shapeWarning}
+              </Typography>
+            )}
+            <ShapePicker
+              label={shapeLabel}
+              value={shape}
+              options={shapeOptions}
+              color="warning"
+              {...{ ListboxComponent, groupBy }}
+              getIcon={getShapeIcon}
+              getLabel={getShapeLabel}
+              getDisabled={getShapeDisabled}
+              onChange={handleChangeShape}
+            />
+          </>
         )}
         {showLegendAdvancedControls && showGroupControls && (
           <GroupScaleControls
-            {...{ mapId, groupScaleWithZoom, ...groupScaleSlider }}
+            {...{ groupScaleWithZoom, ...groupScaleSlider }}
             onChangeLegendAttr={handleChangeLegendAttr}
           />
         )}
       </Stack>
 
       <Divider sx={{ mx: -1.5 }} />
-      <Grid2
+      <Grid
         container
         direction={layoutDirection}
         spacing={1}
@@ -306,7 +321,7 @@ const LegendRowDetails = ({
         wrap={layoutDirection === 'row' ? 'wrap' : 'nowrap'}
       >
         {colorBy != null && (
-          <Grid2 size="grow">
+          <Grid size="grow">
             <ColorLegend
               valueRange={
                 group && clusterRange.color
@@ -314,7 +329,6 @@ const LegendRowDetails = ({
                   : colorRange
               }
               {...{
-                mapId,
                 group,
                 colorBy,
                 colorByOptions,
@@ -327,10 +341,10 @@ const LegendRowDetails = ({
               onChangePropAttr={handleChangePropAttr}
               onChangeColor={handleChangeColor}
             />
-          </Grid2>
+          </Grid>
         )}
         {sizeBy != null && (
-          <Grid2 size="grow">
+          <Grid size="grow">
             <SizeLegend
               valueRange={
                 group && clusterRange.size
@@ -351,16 +365,15 @@ const LegendRowDetails = ({
               onChangePropAttr={handleChangePropAttr}
               onChangeSize={handleChangeSize}
             />
-          </Grid2>
+          </Grid>
         )}
         {/* FIXME: `heightBy` is temporarily hidden */}
         {heightBy != null && false && (
-          <Grid2 size="grow">
+          <Grid size="grow">
             <HeightLegend
               valueRange={heightRange}
               {...{
                 legendGroupId,
-                mapId,
                 heightBy,
                 heightByOptions,
                 featureTypeProps,
@@ -370,24 +383,18 @@ const LegendRowDetails = ({
               onChangePropAttr={handleChangePropAttr}
               onSelectProp={handleSelectProp('heightBy')}
             />
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
     </Stack>
   )
 }
 
 const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
-  const {
-    mapId,
-    id,
-    group,
-    icon,
-    colorBy,
-    filters,
-    getRange,
-    onChangeVisibility,
-  } = props
+  const { mapId } = useContext(MapContext)
+
+  const { id, group, icon, colorBy, filters, getRange, onChangeVisibility } =
+    props
   const legendWidth = useSelector(selectLegendWidth)[mapId]
 
   const mapFeatures = mapFeaturesBy(id, mapId)
@@ -434,34 +441,34 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
       // Toggle when clicking on the opened popper
       onClick={anchorEl == null ? onOpen : onClose}
     >
-      <Grid2
+      <Grid
         key={id}
         container
         spacing={1}
         sx={{ alignItems: 'center', width: '100%' }}
       >
-        <Grid2 size="auto">
+        <Grid size="auto">
           <Switch
             name={`cave-toggle-map-${id}`}
             size="small"
             checked={props.value}
             onClick={handleChangeVisibility}
           />
-        </Grid2>
-        <Grid2 size="auto" sx={{ display: 'flex' }}>
+        </Grid>
+        <Grid size="auto" sx={{ display: 'flex' }}>
           <FetchedIcon iconName={icon} size={20} />
-        </Grid2>
-        <Grid2 size="grow" sx={{ textAlign: 'start' }}>
+        </Grid>
+        <Grid size="grow" sx={{ textAlign: 'start' }}>
           <Typography variant="caption">{name}</Typography>
-        </Grid2>
-        <Grid2 size="auto">
+        </Grid>
+        <Grid size="auto">
           <LegendPopper
-            {...{ mapId, anchorEl, onClose }}
+            {...{ anchorEl, onClose }}
             IconComponent={() => (
               <LegendColorMarker
                 colorByProp={featureTypeProps[colorBy]}
                 anyNullValue={hasAnyNullValue(colorBy)}
-                {...{ mapId, id, group, colorBy, getRange }}
+                {...{ id, group, colorBy, getRange }}
               />
             )}
             slotProps={{
@@ -485,13 +492,14 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
               }}
             />
           </LegendPopper>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
     </ToggleButton>
   )
 }
 
-const MapFeature = ({ mapId, legendGroupId, id, value, ...props }) => {
+const MapFeature = ({ legendGroupId, id, value, ...props }) => {
+  const { mapId } = useContext(MapContext)
   const nodeTypes = useSelector(selectNodeTypeKeys)
   const arcTypes = useSelector(selectArcTypeKeys)
   const handleChangeVisibility = useMutateStateWithSync(
@@ -519,7 +527,7 @@ const MapFeature = ({ mapId, legendGroupId, id, value, ...props }) => {
   return (
     <LegendRowClass
       LegendRowComponent={LegendRow}
-      {...{ mapId, legendGroupId, id, value, ...props }}
+      {...{ legendGroupId, id, value, ...props }}
       onChangeVisibility={handleChangeVisibility}
     />
   )
@@ -538,10 +546,10 @@ const StyledWrapper = (props) => (
 )
 
 const LegendGroup = ({
-  mapId,
   legendGroup,
   popperProps: { anchorEl, openId, handleClose, handleOpenById },
 }) => {
+  const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
@@ -566,7 +574,7 @@ const LegendGroup = ({
             anchorEl={id === openId || openId == null ? anchorEl : null}
             onOpen={handleOpenById(id)}
             onClose={handleClose}
-            {...{ mapId, id, value, ...props }}
+            {...{ id, value, ...props }}
           />
         ))}
       </Stack>
@@ -574,7 +582,8 @@ const LegendGroup = ({
   )
 }
 
-const LegendGroups = ({ mapId, ...props }) => {
+const LegendGroups = (props) => {
+  const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
   const legendDataRaw = useSelector(selectLegendDataFunc)(mapId)
 
@@ -588,30 +597,27 @@ const LegendGroups = ({ mapId, ...props }) => {
   return (
     <StyledWrapper wrap={showWrapper}>
       {legendData.map((legendGroup) => (
-        <LegendGroup
-          key={legendGroup.id}
-          {...{ mapId, legendGroup, ...props }}
-        />
+        <LegendGroup key={legendGroup.id} {...{ legendGroup, ...props }} />
       ))}
     </StyledWrapper>
   )
 }
 
-const CompactLegend = ({ mapId }) => {
+const CompactLegend = () => {
   const popperProps = useLegendPopper()
   return (
-    <LegendRoot sx={styles.root} elevation={12} {...{ mapId }}>
+    <LegendRoot sx={styles.root} elevation={12}>
       <LegendHeader
-        {...{ mapId, popperProps }}
+        {...{ popperProps }}
         sx={{ my: 0 }}
         slotProps={{
           popper: { sx: { zIndex: 3 } },
           icon: { size: 20 },
         }}
       >
-        <LegendSettings {...{ mapId }} />
+        <LegendSettings />
       </LegendHeader>
-      <LegendGroups {...{ mapId, popperProps }} />
+      <LegendGroups {...{ popperProps }} />
     </LegendRoot>
   )
 }

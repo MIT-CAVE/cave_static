@@ -1,7 +1,5 @@
-import * as R from 'ramda'
-import { useEffect, useState, memo } from 'react'
-import { Layer, Source } from 'react-map-gl'
-import { useDispatch, useSelector } from 'react-redux'
+import { useEffect, useState, memo, useContext, useMemo } from 'react'
+import { useSelector } from 'react-redux'
 
 import {
   ArcLayer3D,
@@ -9,13 +7,12 @@ import {
   GeosWithHeight,
   ArcsWithHeight,
 } from './CustomLayers'
+import useMapApi, { MapContext } from './useMapApi'
 
-import { mutateLocal } from '../../../data/local'
 import {
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
-  selectSync,
   // selectIsGlobe,
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
@@ -23,8 +20,7 @@ import {
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
-
-import { includesPath } from '../../../utils'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
 const DARKEN_FILL_ON_HOVER = [
   'case',
@@ -45,60 +41,84 @@ const DARKEN_FILL_ON_HOVER = [
   ['get', 'color'], // No hover
 ]
 
-const handleFeatureClick = (
-  dispatch,
-  sync,
-  mapId,
-  cave_name,
-  cave_obj,
-  feature
-) => {
-  const [type] = JSON.parse(cave_name)
-  dispatch(
-    mutateLocal({
-      path: ['panes', 'paneState', 'center'],
-      value: {
-        open: {
-          ...(cave_obj || {}),
-          feature: feature,
-          type: R.propOr(type, 'name')(cave_obj),
-          key: cave_name,
-          mapId,
-        },
-        type: 'feature',
-      },
-      sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
-    })
-  )
-}
-
-export const Geos = memo(({ mapId }) => {
-  const dispatch = useDispatch()
-  const sync = useSelector(selectSync)
-
-  const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
-  const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
+const useMapFeature = () => {
+  const { mapId } = useContext(MapContext)
+  const { Layer, Source, isMapboxSelected } = useMapApi(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
+  const useHandleClickFactory = (feature) =>
+    useMutateStateWithSync(
+      ({ cave_name: caveName, cave_obj: caveObj }) => ({
+        path: ['panes', 'paneState', 'center'],
+        value: {
+          open: {
+            ...(caveObj || {}),
+            key: caveName,
+            mapId,
+            feature,
+            type: caveObj.name ?? JSON.parse(caveName),
+          },
+          type: 'feature',
+        },
+      }),
+      [mapId]
+    )
+
+  const arcProps = useMemo(
+    () => ({
+      type: 'line',
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+        visibility: isGlobe ? 'visible' : 'none',
+      },
+      paint: {
+        'line-color': DARKEN_FILL_ON_HOVER,
+        'line-opacity': 0.8,
+        'line-width': ['get', 'size'],
+        // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
+        // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
+        ...(isMapboxSelected && {
+          'line-dasharray': [
+            'case',
+            ['==', ['get', 'dash'], 'dashed'],
+            ['literal', LINE_TYPES.dashed],
+            ['==', ['get', 'dash'], 'dotted'],
+            ['literal', LINE_TYPES.dotted],
+            ['literal', LINE_TYPES.solid],
+          ],
+        }),
+      },
+    }),
+    [isGlobe, isMapboxSelected]
+  )
+
+  return {
+    Layer,
+    Source,
+    arcProps,
+    mapId,
+    createHandleClick: useHandleClickFactory,
+  }
+}
+
+export const Geos = memo(() => {
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
 
+  const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
+  const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
+
+  const { mapId, arcProps, Layer, Source, createHandleClick } = useMapFeature()
+
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+
   useEffect(() => {
-    const loadData = async () => {
-      geoJsonObjectFunc(mapId).then((loadedData) => {
-        setLoadedGeoJson(loadedData)
-      })
-    }
-    loadData()
+    geoJsonObjectFunc(mapId).then(setLoadedGeoJson)
   }, [geoJsonObjectFunc, mapId])
 
   useEffect(() => {
-    const loadData = async () => {
-      lineObjFunc(mapId).then((loadedData) => {
-        setLineGeoJsonObject(loadedData)
-      })
-    }
-    loadData()
+    lineObjFunc(mapId).then(setLineGeoJsonObject)
   }, [lineObjFunc, mapId])
 
   return [
@@ -106,17 +126,13 @@ export const Geos = memo(({ mapId }) => {
       id="geos-with-altitude"
       key="geos-with-altitude"
       geos={!isGlobe ? loadedGeoJson : []}
-      onClick={({ cave_name, cave_obj }) =>
-        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'geos')
-      }
+      onClick={createHandleClick('geos')}
     />,
     <ArcsWithHeight
       id="geos-arcs-with-altitude"
       key="geos-arcs-with-altitude"
       arcs={!isGlobe ? lineGeoJsonObject : []}
-      onClick={({ cave_name, cave_obj }) =>
-        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
-      }
+      onClick={createHandleClick('arcs')}
     />,
     <Source
       type="geojson"
@@ -155,35 +171,16 @@ export const Geos = memo(({ mapId }) => {
       <Layer
         id={layerId.MULTI_ARC_LAYER_SOLID}
         key={layerId.MULTI_ARC_LAYER_SOLID}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': DARKEN_FILL_ON_HOVER,
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
-          // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'dash'], 'dashed'],
-            ['literal', LINE_TYPES.dashed],
-            ['==', ['get', 'dash'], 'dotted'],
-            ['literal', LINE_TYPES.dotted],
-            ['literal', LINE_TYPES.solid],
-          ],
-        }}
+        {...arcProps}
       />
     </Source>,
   ]
 })
 
-export const IncludedGeos = memo(({ mapId }) => {
+export const IncludedGeos = memo(() => {
+  const { mapId } = useContext(MapContext)
   const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
-
+  const { Layer, Source } = useMapApi(mapId)
   return (
     <Source
       type="geojson"
@@ -208,20 +205,16 @@ export const IncludedGeos = memo(({ mapId }) => {
   )
 })
 
-export const Nodes = memo(({ mapId }) => {
-  const dispatch = useDispatch()
-  const sync = useSelector(selectSync)
+export const Nodes = memo(() => {
+  const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
-
   return [
     <NodesWithHeight
       id="nodes-with-altitude"
       key="nodes-with-altitude"
       nodes={!isGlobe ? nodeGeoJson : []}
-      onClick={({ cave_name, cave_obj }) =>
-        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'nodes')
-      }
+      onClick={createHandleClick('nodes')}
     />,
     <Source
       id={layerId.NODE_ICON_LAYER}
@@ -251,9 +244,8 @@ export const Nodes = memo(({ mapId }) => {
   ]
 })
 
-export const Arcs = memo(({ mapId }) => {
-  const dispatch = useDispatch()
-  const sync = useSelector(selectSync)
+export const Arcs = memo(() => {
+  const { Layer, Source, mapId, arcProps, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
@@ -262,9 +254,7 @@ export const Arcs = memo(({ mapId }) => {
       id="arcs-with-altitude"
       key="arcs-with-altitude"
       arcs={!isGlobe ? arcLayerGeoJson : []}
-      onClick={({ cave_name, cave_obj }) =>
-        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
-      }
+      onClick={createHandleClick('arcs')}
     />,
     <Source
       id={layerId.ARC_LAYER_SOLID}
@@ -279,42 +269,19 @@ export const Arcs = memo(({ mapId }) => {
       <Layer
         id={layerId.ARC_LAYER_SOLID}
         key={layerId.ARC_LAYER_SOLID}
-        type="line"
-        layout={{
-          'line-cap': 'round',
-          'line-join': 'round',
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'line-color': DARKEN_FILL_ON_HOVER,
-          'line-opacity': 0.8,
-          'line-width': ['get', 'size'],
-          // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
-          // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'dash'], 'dashed'],
-            ['literal', LINE_TYPES.dashed],
-            ['==', ['get', 'dash'], 'dotted'],
-            ['literal', LINE_TYPES.dotted],
-            ['literal', LINE_TYPES.solid],
-          ],
-        }}
+        {...arcProps}
       />
     </Source>,
   ]
 })
 
-export const Arcs3D = memo(({ mapId }) => {
-  const dispatch = useDispatch()
-  const sync = useSelector(selectSync)
+export const Arcs3D = memo(() => {
+  const { mapId, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
   return (
     <ArcLayer3D
       features={arcLayerGeoJson}
-      onClick={({ cave_name, cave_obj }) =>
-        handleFeatureClick(dispatch, sync, mapId, cave_name, cave_obj, 'arcs')
-      }
+      onClick={createHandleClick('arcs')}
     />
   )
 })

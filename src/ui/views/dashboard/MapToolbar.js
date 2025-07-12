@@ -1,8 +1,8 @@
 import {
   Box,
   Divider,
+  Grid,
   Typography,
-  Grid2 as Grid,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material'
