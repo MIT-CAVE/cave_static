@@ -1150,11 +1150,7 @@ export const constructGeoJson = (
 
 const isMapboxUrl = (url) =>
   typeof url === 'string' &&
-  (url.startsWith('mapbox://') ||
-    url.includes('api.mapbox.com') ||
-    url.includes('tiles.mapbox.com') ||
-    url.includes('fonts.mapbox.com') ||
-    url.includes('mapbox.com'))
+  (url.startsWith('mapbox://') || url.includes('mapbox.com'))
 
 export const isMapboxStyle = (mapStyle) => {
   // Check if it's a known Mapbox style endpoint
