@@ -135,6 +135,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     unusedItems,
     component: (
       <Box
+        key={layout.id}
         sx={{
           display: 'grid',
           gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(max-content,${maxColWidth}))`,
