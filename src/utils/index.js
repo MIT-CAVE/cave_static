@@ -533,7 +533,7 @@ export const toListWithKey = (key) =>
   )
 
 const naturalCompare = (a, b) =>
-  a.localeCompare(b, undefined, { numeric: true })
+  String(a).localeCompare(String(b), undefined, { numeric: true })
 
 export const naturalSort = R.sort(naturalCompare)
 
