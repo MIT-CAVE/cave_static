@@ -3,12 +3,15 @@ import * as R from 'ramda'
 
 import TextInput from './TextInput'
 
+import { forceArray } from '../../utils'
+
 const PropText = ({ prop, currentVal, sx = [], onChange }) => {
-  const { enabled, readOnly, placeholder, label, fullWidth } = prop
+  const { enabled, readOnly, placeholder, label, fullWidth, propStyle } = prop
   return (
     <TextInput
       disabled={!enabled}
-      {...{ readOnly, placeholder, label, sx, fullWidth }}
+      sx={[...forceArray(sx), propStyle]}
+      {...{ readOnly, placeholder, label, fullWidth }}
       value={R.defaultTo(prop.value)(currentVal)}
       onClickAway={(value) => {
         if (enabled) onChange(value)
