@@ -144,6 +144,24 @@ export const getRendererFn = R.cond([
   ],
 ])
 
+const getContainerFn = R.cond([
+  [
+    R.both(
+      R.pipe(R.prop('type'), R.equals(propId.BUTTON), R.not),
+      R.pipe(
+        R.prop('variant'),
+        R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
+      )
+    ),
+    R.always(propContainer.NONE),
+  ],
+  [R.has('container'), R.prop('container')],
+  [
+    R.pipe(R.prop('type'), R.equals(propId.HEAD)),
+    R.always(propContainer.MINIMAL),
+  ],
+])
+
 export const PropWrapper = ({ prop, children }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const containerProps = R.applySpec({
@@ -151,33 +169,18 @@ export const PropWrapper = ({ prop, children }) => {
     subtitle: R.prop('subtitle'),
     tooltipContent: R.prop('help'),
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
-    type: R.cond([
-      [
-        R.both(
-          R.pipe(R.prop('type'), R.equals(propId.BUTTON), R.not),
-          R.pipe(
-            R.prop('variant'),
-            R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
-          )
-        ),
-        R.always(propContainer.NONE),
-      ],
-      [R.has('container'), R.prop('container')],
-      [
-        R.pipe(R.prop('type'), R.equals(propId.HEAD)),
-        R.always(propContainer.MINIMAL),
-      ],
-    ]),
+    type: getContainerFn,
     marquee: R.prop('marquee'),
     elevation: R.prop('elevation'),
-    // NOTE: `style` is deprecated and will be
-    // removed in v4.0.0 in favor of `containerStyle`
-    style: R.propOr(prop.style, 'containerStyle'),
+    style: R.converge(R.mergeLeft, [
+      R.prop('layoutStyle'),
+      R.prop('containerStyle'),
+    ]),
   })(prop)
   return <PropContainer {...containerProps}>{children}</PropContainer>
 }
 
-const placementStyles = {
+export const placementStyles = {
   // Top alignments
   [propPlacements.TOP_LEFT]: { mr: 'auto', mb: 'auto' },
   [propPlacements.TOP_CENTER]: { mx: 'auto', mb: 'auto' },
@@ -194,9 +197,18 @@ const placementStyles = {
 
 const Prop = (props) => {
   const prop = R.propOr({}, 'prop')(props)
-  const { type, variant, enabled = true, placement, propStyle } = prop
+  const {
+    type,
+    variant,
+    enabled = true,
+    placement,
+    propStyle,
+    layoutStyle,
+  } = prop
   const propRendererFn = getRendererFn(type)
   const PropComponent = propRendererFn(variant)
+  const container = getContainerFn(prop)
+  const hasContainer = container !== propContainer.NONE
   return (
     <PropWrapper {...{ prop }}>
       <PropComponent
@@ -205,6 +217,7 @@ const Prop = (props) => {
             boxSizing: 'border-box',
             // bgcolor: 'rgb(255 0 0 / .08)', // FIXME: Remove after debugging
           },
+          !hasContainer && layoutStyle, // Apply the grid styles directly to the prop
           placement && placementStyles[placement],
         ]}
         {...R.pipe(
