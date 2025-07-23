@@ -11,12 +11,7 @@ import {
   sortedListById,
 } from '../../../utils'
 
-const renderPropItem = ({
-  layoutItem,
-  item: prop,
-  getCurrentVal,
-  onChangeProp,
-}) => {
+const renderPropItem = ({ layoutItem, prop, getCurrentVal, onChangeProp }) => {
   const { container, elevation, marquee } = layoutItem
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
   return (
@@ -30,24 +25,37 @@ const renderPropItem = ({
 }
 
 const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
-  const { itemId, column, row, width, height, style } = layoutItem
+  const {
+    itemId,
+    column,
+    row,
+    width,
+    height,
+    propStyle,
+    containerStyle,
+    style,
+  } = layoutItem
   if (R.isNil(itemId)) throw Error("Missing 'itemId' property in layout item")
 
-  const item = R.pipe(
-    R.prop(itemId),
-    R.assoc('id', itemId),
-    R.assoc('key', layoutItem.id),
-    R.assoc('style')({
+  const item = items[itemId]
+  const prop = R.mergeLeft({
+    id: itemId,
+    key: layoutItem.id,
+    layoutStyle: {
       gridColumnStart: column,
       gridRowStart: row,
       width,
       height,
-      ...style,
-    })
-  )(items)
+    },
+    // NOTE: `propStyle` will be renamed to `style` in v4.0.0
+    propStyle: propStyle ?? item.propStyle,
+    // NOTE: `style` is deprecated and will be
+    // removed in v4.0.0 in favor of `containerStyle`
+    containerStyle: containerStyle ?? style ?? item.containerStyle,
+  })(item)
   return {
     unusedItems,
-    component: renderPropItem({ layoutItem, item, ...other }),
+    component: renderPropItem({ layoutItem, prop, ...other }),
   }
 }
 
@@ -135,6 +143,7 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
     unusedItems,
     component: (
       <Box
+        key={layout.id}
         sx={{
           display: 'grid',
           gridTemplateColumns: `repeat(${numColumnsOptimal},minmax(max-content,${maxColWidth}))`,
