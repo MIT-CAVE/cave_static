@@ -1,35 +1,48 @@
-import PropTypes from 'prop-types'
-import * as R from 'ramda'
-
 import TextInput from './TextInput'
 
 import { forceArray } from '../../utils'
 
-const PropText = ({ prop, currentVal, sx = [], onChange }) => {
-  const { enabled, readOnly, placeholder, label, fullWidth, propStyle } = prop
-  return (
-    <TextInput
-      disabled={!enabled}
-      sx={[...forceArray(sx), propStyle]}
-      {...{ readOnly, placeholder, label, fullWidth }}
-      value={R.defaultTo(prop.value)(currentVal)}
-      onClickAway={(value) => {
-        if (enabled) onChange(value)
-      }}
-    />
-  )
-}
-PropText.propTypes = {
-  prop: PropTypes.object,
-  currentVal: PropTypes.string,
-  sx: PropTypes.oneOfType([
-    PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
-    ),
-    PropTypes.func,
-    PropTypes.object,
-  ]),
-  onChange: PropTypes.func,
-}
+const TextBase = ({
+  enabled,
+  value,
+  readOnly,
+  rows,
+  placeholder,
+  label,
+  fullWidth,
+  propStyle,
+  currentVal,
+  multiline,
+  sx = [],
+  onChange,
+}) => (
+  <TextInput
+    disabled={!enabled}
+    sx={[...forceArray(sx), propStyle]}
+    {...{ multiline, readOnly, rows, placeholder, label, fullWidth }}
+    value={currentVal ?? value}
+    onClickAway={(newValue) => {
+      if (enabled) onChange(newValue)
+    }}
+  />
+)
 
-export default PropText
+const PropTextArea = ({
+  // eslint-disable-next-line no-unused-vars
+  prop: { key, rows = 4, ...propAttrs },
+  currentVal,
+  sx = [],
+  onChange,
+}) => (
+  <TextBase multiline {...{ ...propAttrs, currentVal, sx, rows, onChange }} />
+)
+
+const PropText = ({
+  // eslint-disable-next-line no-unused-vars
+  prop: { key, ...propAttrs },
+  currentVal,
+  sx = [],
+  onChange,
+}) => <TextBase {...{ ...propAttrs, currentVal, sx, onChange }} />
+
+export { PropText, PropTextArea }
