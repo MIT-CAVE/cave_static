@@ -303,24 +303,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     const statUsesChanged =
       chartStatUses[chartObj.chartType] !== chartStatUses[value]
 
-    const toSingleStatFromTable =
-      chartObj.chartType === chartVariant.TABLE &&
-      chartStatUses[value] == null &&
-      chartObj.stats != null &&
-      chartObj.stats.length === 1
-
     updateChartObj(
       R.pipe(
         R.assoc('chartType', value),
-        R.cond([
-          [
-            R.always(toSingleStatFromTable),
-            // Unwrap them
-            R.over(R.lensProp('stats'), R.head),
-          ],
-          [R.always(statUsesChanged), R.dissoc('stats')],
-          [R.T, R.identity],
-        ]),
+        R.when(R.always(statUsesChanged), R.dissoc('stats')),
         removeExtraLevels
       )(chartObj)
     )
