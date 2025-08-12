@@ -220,8 +220,12 @@ const VirtualKeyboard = () => {
   }, [isNumPad])
 
   useEffect(() => {
-    setLastKeyPress(null)
-  }, [virtualKeyboard.isOpen, isNumPad, virtualKeyboard.lastKeyPress])
+    // Reset the last key press after a short delay (10ms) to
+    // allow proper click away handling in affected components
+    setTimeout(() => {
+      dispatch(setLastKeyPress(null))
+    }, 10)
+  }, [virtualKeyboard.isOpen, isNumPad, dispatch])
 
   // Clip keyboard into window when changing from numPad to default
   // would otherwise make some part of keyboard appear offscreen
