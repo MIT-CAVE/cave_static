@@ -11,6 +11,7 @@ import {
   setInputValue,
   setCaretPosition,
   setEnter,
+  setLastKeyPress,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
 const Resizable = ({
@@ -150,7 +151,6 @@ const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
-  const [prevButton, setPrevButton] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
     x: window.innerWidth / 2,
@@ -220,8 +220,8 @@ const VirtualKeyboard = () => {
   }, [isNumPad])
 
   useEffect(() => {
-    setPrevButton(null)
-  }, [virtualKeyboard.isOpen, isNumPad])
+    setLastKeyPress(null)
+  }, [virtualKeyboard.isOpen, isNumPad, virtualKeyboard.lastKeyPress])
 
   // Clip keyboard into window when changing from numPad to default
   // would otherwise make some part of keyboard appear offscreen
@@ -442,7 +442,8 @@ const VirtualKeyboard = () => {
             dispatch(setEnter(true))
           } else if (
             // QUESTION: Do we really need to check `prevButton` here?
-            (prevButton === '{shift}' || prevButton === '{lock}') &&
+            (virtualKeyboard.lastKeyPress === '{shift}' ||
+              virtualKeyboard.lastKeyPress === '{lock}') &&
             virtualKeyboard.layout === 'shift' &&
             button !== '{drag}'
           ) {
@@ -456,7 +457,7 @@ const VirtualKeyboard = () => {
 
           setTimeout(() => {
             dispatch(setLayout(nextLayout))
-            setPrevButton(button)
+            setLastKeyPress(button)
           }, 0)
         }}
         theme={`hg-theme-default ${virtualKeyboard.layout === 'numPad' && 'hg-layout-numpad'}`}
