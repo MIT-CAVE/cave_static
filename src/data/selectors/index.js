@@ -949,6 +949,23 @@ export const selectCurrentMapStyleIdFunc = createSelector(
   }
 )
 
+export const selectLockMapStyleFunc = createSelector(
+  selectCurrentMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) => R.pathOr(false, ['lockStyle', mapId])(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      equalityCheck: (a, b) =>
+        R.equals(R.propOr({}, 'lockStyle', a), R.propOr({}, 'lockStyle', b)),
+    },
+  }
+)
+
 export const selectCurrentMapProjectionFunc = createSelector(
   [selectCurrentMapDataByMap, selectIsMapboxTokenProvided],
   (dataObj, isMapboxTokenProvided) =>

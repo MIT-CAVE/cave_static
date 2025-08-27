@@ -41,6 +41,7 @@ import {
   selectLegendDataFunc,
   selectMapProjectionOptionsFunc,
   selectLockMapProjectionFunc,
+  selectLockMapStyleFunc,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -238,6 +239,7 @@ const MapControls = () => {
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
   const lockMapProjection = useSelector(selectLockMapProjectionFunc)(mapId)
+  const lockMapStyle = useSelector(selectLockMapStyleFunc)(mapId)
   const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
@@ -395,20 +397,22 @@ const MapControls = () => {
           )}
 
           {/* Map styles */}
-          <ButtonGroup
-            sx={styles.btnGroup}
-            aria-label="contained button group"
-            variant="contained"
-          >
-            <MapButton
-              icon={TbMap}
-              title={tooltipTitles.mapStyles}
-              placement="top"
-              onClick={() =>
-                dispatch(openMapModal({ feature: 'mapStyles', mapId }))
-              }
-            />
-          </ButtonGroup>
+          {!lockMapStyle && (
+            <ButtonGroup
+              sx={styles.btnGroup}
+              aria-label="contained button group"
+              variant="contained"
+            >
+              <MapButton
+                icon={TbMap}
+                title={tooltipTitles.mapStyles}
+                placement="top"
+                onClick={() =>
+                  dispatch(openMapModal({ feature: 'mapStyles', mapId }))
+                }
+              />
+            </ButtonGroup>
+          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
