@@ -8,6 +8,7 @@ import {
   setLayout,
   setCaretPosition,
   setEnter,
+  setLastKeyPress,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
 const DELAY = 10
@@ -81,6 +82,7 @@ export function useVirtualKeyboard({
     }
     focused.current = false
     onBlurProp?.()
+    dispatch(setLastKeyPress('{blur}'))
   }, [dispatch, disabled, onBlurProp, virtualKeyboard.isOpen])
 
   // Touch handlers
@@ -111,6 +113,7 @@ export function useVirtualKeyboard({
     if (focused.current && virtualKeyboard.enter) {
       inputRef.current?.blur()
       dispatch(setIsOpen(false))
+      dispatch(setLastKeyPress('{blur}'))
       dispatch(setEnter(false))
     }
   }, [dispatch, virtualKeyboard.enter])
