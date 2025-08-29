@@ -359,7 +359,7 @@ const MapControls = () => {
                   : MdApps
               }
               title={tooltipTitles.mapLegend}
-              placement="top"
+              placement="auto"
               onClick={() => dispatch(toggleMapLegend(mapId))}
             />
           </ButtonGroup>
@@ -429,7 +429,7 @@ const MapControls = () => {
             <MapButton
               icon={MdHome}
               title={tooltipTitles.defaultViewport}
-              placement="bottom-start"
+              placement="auto"
               onClick={() => {
                 dispatch(viewportUpdate({ viewport: defaultViewport, mapId }))
               }}
