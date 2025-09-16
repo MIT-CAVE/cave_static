@@ -5,28 +5,27 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import * as R from 'ramda'
 import { useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
-import { mutateLocal } from './data/local'
 import {
   selectCurrentPage,
   selectAppBarData,
   selectDemoMode,
   selectDemoViews,
-  selectSync,
   selectDemoSettings,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
+import AppBar from './ui/views/common/AppBar'
 import Draggables from './ui/views/common/Draggables'
 import Loader from './ui/views/common/Loader'
 import { AppModal } from './ui/views/common/Modal'
-import renderAppPane from './ui/views/common/Pane'
-import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
+import Panes from './ui/views/common/Panes'
+import renderAppPane from './ui/views/common/renderAppPane'
 import SnackBar from './ui/views/common/SnackBar'
 import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
-import { includesPath } from './utils'
 import { paneId } from './utils/enums'
+import { useMutateStateWithSync } from './utils/hooks'
 
 const styles = {
   root: {
@@ -50,15 +49,24 @@ const styles = {
 }
 
 const App = () => {
-  const dispatch = useDispatch()
   const currentPage = useSelector(selectCurrentPage)
   const appBarData = useSelector(selectAppBarData)
   const appBarViews = useSelector(selectDemoViews)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
-  const sync = useSelector(selectSync)
 
   const demoTimeout = useRef(-1)
+
+  const updateCurrentPage = useMutateStateWithSync(
+    (nextViewIndex) => {
+      demoTimeout.current = -1
+      return {
+        path: ['pages', 'currentPage'],
+        value: appBarViews[isNaN(nextViewIndex) ? 0 : nextViewIndex],
+      }
+    },
+    [appBarViews]
+  )
 
   useEffect(() => {
     if (demoMode && demoTimeout.current === -1) {
@@ -66,16 +74,7 @@ const App = () => {
         (R.findIndex(R.equals(currentPage), appBarViews) + 1) %
         R.length(appBarViews)
       demoTimeout.current = setTimeout(
-        () => {
-          demoTimeout.current = -1
-          dispatch(
-            mutateLocal({
-              path: ['pages', 'currentPage'],
-              value: appBarViews[isNaN(nextViewIndex) ? 0 : nextViewIndex],
-              sync: !includesPath(R.values(sync), ['pages', 'currentPage']),
-            })
-          )
-        },
+        updateCurrentPage(nextViewIndex),
         R.pathOr(15, [currentPage, 'displayTime'], demoSettings) * 1000
       )
     } else if (demoTimeout.current !== -1 && !demoMode) {
@@ -94,8 +93,7 @@ const App = () => {
     appBarViews,
     demoMode,
     demoSettings,
-    dispatch,
-    sync,
+    updateCurrentPage,
   ])
 
   // TODO: Handle when Session pane is not defined
@@ -159,7 +157,7 @@ const App = () => {
       >
         <Box sx={styles.root}>
           <SnackBar />
-          <LeftAppBar />
+          <AppBar side="left" />
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={styles.page}>
               <Loader />
@@ -172,7 +170,7 @@ const App = () => {
             </Box>
             <Draggables />
           </LocalizationProvider>
-          <RightAppBar />
+          <AppBar side="right" />
         </Box>
         <VirtualKeyboard />
       </ThemeProvider>

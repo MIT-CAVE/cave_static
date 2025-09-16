@@ -28,7 +28,7 @@ import {
   selectLocalDraggables,
   selectMirrorMode,
   selectPaneState,
-  selectSync,
+  selectIsSynced,
   selectSyncToggles,
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
@@ -36,7 +36,7 @@ import { useMutateState } from '../../../utils/hooks'
 
 import { HelpTooltip, List, OverflowText } from '../../compound'
 
-import { includesPath, withIndex } from '../../../utils'
+import { withIndex } from '../../../utils'
 
 const styles = {
   paperRoot: {
@@ -110,7 +110,7 @@ const LayoutGroup = () => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const mirrorMode = useSelector(selectMirrorMode)
   const paneState = useSelector(selectPaneState)
-  const sync = useSelector(selectSync)
+  const isSynced = useSelector(selectIsSynced)
   const dispatch = useDispatch()
 
   const handleToggleEditMode = useCallback(() => {
@@ -120,16 +120,8 @@ const LayoutGroup = () => {
   const handleToggleMirrorMode = useCallback(() => {
     const previousLeft = R.propOr({}, 'left', paneState)
     const previousRight = R.propOr({}, 'right', paneState)
-    const syncLeft = !includesPath(R.values(sync), [
-      'panes',
-      'paneState',
-      'left',
-    ])
-    const syncRight = !includesPath(R.values(sync), [
-      'panes',
-      'paneState',
-      'right',
-    ])
+    const syncLeft = isSynced(['panes', 'paneState', 'left'])
+    const syncRight = isSynced(['panes', 'paneState', 'right'])
     const syncedObject = R.pipe(
       syncLeft ? R.assoc('left', previousRight) : R.dissoc('left'),
       syncRight ? R.assoc('right', previousLeft) : R.dissoc('right')
@@ -157,7 +149,7 @@ const LayoutGroup = () => {
           sync: false,
         })
       )
-  }, [dispatch, paneState, sync])
+  }, [dispatch, isSynced, paneState])
 
   return (
     <FormControl component="fieldset">
@@ -272,7 +264,33 @@ const AppSettingsPane = () => {
   const apiData = useSelector(selectData)
   const timeLength = useSelector(selectCurrentTimeLength)
   const syncToggles = useSelector(selectSyncToggles)
-  const sync = useSelector(selectSync)
+  const isSynced = useSelector(selectIsSynced)
+
+  const handleSyncToggle = useCallback(
+    (event, paths, groupKey) => {
+      R.forEachObjIndexed((path, name) =>
+        !event.target.checked
+          ? dispatch(
+              mutateLocal({
+                path: ['settings', 'sync', `${groupKey}${name}`],
+                value: path,
+              })
+            ) &&
+            dispatch(
+              mutateLocal({
+                path,
+                value: R.path(path)(apiData),
+              })
+            )
+          : dispatch(
+              deleteLocal({
+                path: ['settings', 'sync', `${groupKey}${name}`],
+              })
+            ) && dispatch(deleteLocal({ path }))
+      )(paths)
+    },
+    [apiData, dispatch]
+  )
 
   return (
     <>
@@ -296,51 +314,29 @@ const AppSettingsPane = () => {
           </FormGroup>
         </FormControl>
       </FieldContainer>
-      {R.isEmpty(syncToggles) ? (
-        []
-      ) : (
+      {R.isNotEmpty(syncToggles) && (
         <FieldContainer title="Sync">
-          {R.values(
-            R.mapObjIndexed((object, key) => {
-              const paths = R.prop('data')(object)
-              return R.propOr(false, 'showToggle', object) ? (
-                <div key={key}>
-                  <ColumnSwitch
-                    name={R.propOr(key, 'name', object)}
-                    checked={
-                      !R.all((path) => R.includes(path, R.values(sync)))(
-                        R.values(paths)
-                      )
-                    }
-                    onChange={(event) => {
-                      R.forEachObjIndexed((path, name) =>
-                        !event.target.checked
-                          ? dispatch(
-                              mutateLocal({
-                                path: ['settings', 'sync', R.concat(key, name)],
-                                value: path,
-                              })
-                            ) &&
-                            dispatch(
-                              mutateLocal({
-                                path: path,
-                                value: R.path(path, apiData),
-                              })
-                            )
-                          : dispatch(
-                              deleteLocal({
-                                path: ['settings', 'sync', R.concat(key, name)],
-                              })
-                            ) && dispatch(deleteLocal({ path }))
-                      )(paths)
-                    }}
-                  />
-                </div>
-              ) : (
-                []
-              )
-            })(syncToggles)
-          )}
+          <FormControl component="fieldset">
+            <FormGroup>
+              {Object.entries(syncToggles).map(
+                ([syncGroupKey, syncGroupObj]) => {
+                  const paths = R.values(syncGroupObj.data)
+                  return (
+                    syncGroupObj?.showToggle && (
+                      <ColumnSwitch
+                        key={syncGroupKey}
+                        name={syncGroupObj.name ?? syncGroupKey}
+                        checked={R.all(isSynced)(paths)}
+                        onChange={(event) =>
+                          handleSyncToggle(event, paths, syncGroupKey)
+                        }
+                      />
+                    )
+                  )
+                }
+              )}
+            </FormGroup>
+          </FormControl>
         </FieldContainer>
       )}
     </>

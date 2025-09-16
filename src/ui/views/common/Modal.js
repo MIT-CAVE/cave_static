@@ -5,12 +5,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { renderPropsLayout } from './renderLayout'
 
 import { sendCommand } from '../../../data/data'
-import { mutateLocal } from '../../../data/local'
 import {
   selectModal,
   selectOpenModal,
   selectOpenModalData,
-  selectSync,
   selectCurrentTime,
   selectMergedArcs,
   selectMergedNodes,
@@ -18,9 +16,10 @@ import {
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 import ClusterModal from '../../compound/ClusterModal'
 
-import { addValuesToProps, includesPath } from '../../../utils'
+import { addValuesToProps } from '../../../utils'
 
 const styles = {
   modal: {
@@ -59,8 +58,13 @@ const styles = {
 }
 
 const GeneralModal = ({ title, children }) => {
-  const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
+  const handleClose = useMutateStateWithSync(
+    () => ({
+      path: ['panes', 'paneState', 'center'],
+      value: {},
+    }),
+    []
+  )
 
   return (
     <Modal
@@ -69,19 +73,7 @@ const GeneralModal = ({ title, children }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => {
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: {},
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
-          })
-        )
-      }}
+      onClose={handleClose}
     >
       <Box sx={styles.paper}>
         <Box sx={styles.header}>{title}</Box>

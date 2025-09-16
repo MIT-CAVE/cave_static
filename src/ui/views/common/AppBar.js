@@ -1,24 +1,24 @@
-import { Box, Divider, IconButton, Tab, Tabs } from '@mui/material'
+import { Box, Divider, IconButton, Tab, Tabs, capitalize } from '@mui/material'
 import * as R from 'ramda'
-import React, { useCallback, useRef, useState, useEffect } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import useAppBar from './useAppBar'
+
 import { sendCommand } from '../../../data/data'
-import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
-  selectSync,
   selectSessionLoading,
   selectIgnoreLoading,
   selectDataLoading,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
-import { useMutateState } from '../../../utils/hooks'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { FetchedIcon } from '../../compound'
 
-import { forceArray, includesPath } from '../../../utils'
+import { forceArray } from '../../../utils'
 
 const styles = {
   root: {
@@ -76,12 +76,6 @@ const styles = {
   },
 }
 
-const nonSx = {
-  navIcon: {
-    color: (theme) => theme.palette.text.primary,
-  },
-}
-
 //Wrappers stop Tabs from passing props that cannot be read and cause errors
 const ButtonInTabs = ({ icon, color, disabled, onClick, sx = [] }) => (
   <IconButton
@@ -93,130 +87,70 @@ const ButtonInTabs = ({ icon, color, disabled, onClick, sx = [] }) => (
   </IconButton>
 )
 
-const getAppBarItem = ({
-  obj,
-  key,
-  pin,
-  currentPage,
-  changePane,
-  sync,
+const renderAppBarItem = ({
+  itemKey,
+  itemData,
   loading,
-  dispatch,
+  currentPage,
+  handleChangePage,
+  handleChangePane,
+  handleClickButton,
+  handleOpenModal,
 }) => {
-  const color = R.prop('color', obj)
-  const type = R.prop('type', obj)
-  const icon = R.prop('icon', obj)
-  const variant = R.prop('variant', obj)
-  const path = ['pages', 'currentPage']
-
-  return key === paneId.SESSION || key === paneId.APP_SETTINGS ? (
+  const { type, variant, icon, color } = itemData
+  return itemKey === paneId.SESSION || itemKey === paneId.APP_SETTINGS ? (
     <Tab
       sx={styles.tab}
-      key={key}
-      value={key}
-      disabled={key === paneId.SESSION ? false : loading}
-      icon={
-        <FetchedIcon
-          className={nonSx.navIcon}
-          size={25}
-          color={color}
-          iconName={icon}
-        />
-      }
-      onClick={() => changePane(key)}
+      key={itemKey}
+      value={itemKey}
+      disabled={itemKey === paneId.SESSION ? false : loading}
+      icon={<FetchedIcon size={25} color={color} iconName={icon} />}
+      onClick={() => handleChangePane(itemKey)}
     />
   ) : type === 'pane' ? (
     variant === 'modal' ? (
       <ButtonInTabs
-        key={key}
+        key={itemKey}
         {...{ icon, color }}
         disabled={loading}
-        onClick={() => {
-          dispatch(
-            mutateLocal({
-              path: ['panes', 'paneState', 'center'],
-              value: { open: key, type: 'pane' },
-              sync: !includesPath(R.values(sync), [
-                'panes',
-                'paneState',
-                'center',
-              ]),
-            })
-          )
-        }}
+        onClick={() => handleOpenModal(itemKey)}
       />
     ) : (
       // default panes to wall
       <Tab
         sx={styles.tab}
-        key={key}
-        value={key}
+        key={itemKey}
+        value={itemKey}
         disabled={loading}
-        icon={
-          <FetchedIcon
-            className={nonSx.navIcon}
-            size={25}
-            color={color}
-            iconName={icon}
-          />
-        }
-        onClick={() => changePane(key)}
+        icon={<FetchedIcon size={25} color={color} iconName={icon} />}
+        onClick={() => handleChangePane(itemKey)}
       />
     )
   ) : type === 'button' ? (
     <ButtonInTabs
-      key={key}
+      key={itemKey}
       {...{ icon, color }}
       disabled={loading}
-      onClick={() => {
-        dispatch(
-          sendCommand({
-            command: 'mutate_session',
-            data: {
-              api_command: R.prop('apiCommand')(obj),
-              api_command_keys: R.prop('apiCommandKeys')(obj),
-              data_name: R.prop('dataName')(obj),
-              data_path: R.prop('dataPath')(obj),
-              data_value: R.prop('dataValue')(obj),
-            },
-          })
-        )
-      }}
+      onClick={() => handleClickButton(itemData)}
     />
   ) : type === 'page' ? (
     <ButtonInTabs
-      key={key}
+      key={itemKey}
       {...{ icon, color }}
       disabled={loading}
-      sx={[
-        styles.navBtn,
-        R.equals(currentPage, key) ? styles.navBtnActive : {},
-      ]}
-      onClick={() => {
-        dispatch(
-          mutateLocal({
-            path,
-            value: key,
-            sync: !includesPath(R.values(sync), path),
-          })
-        )
-        // Automatically close an unpinned pane when switching
-        // to a different page
-        if (!pin && key !== currentPage) changePane()
-      }}
+      sx={[styles.navBtn, itemKey === currentPage && styles.navBtnActive]}
+      onClick={() => handleChangePage(itemKey)}
     />
-  ) : (
-    []
-  )
+  ) : null
 }
 
-const AppBar = ({ appBar, open, pin, side, source }) => {
-  const dispatch = useDispatch()
-  const currentPage = useSelector(selectCurrentPage)
+const AppBar = ({ side }) => {
   const sessionLoading = useSelector(selectSessionLoading)
   const dataLoading = useSelector(selectDataLoading)
   const ignoreLoading = useSelector(selectIgnoreLoading)
-  const sync = useSelector(selectSync)
+  const { appBar, open, source, pin } = useAppBar(side)
+  const dispatch = useDispatch()
+  const currentPage = useSelector(selectCurrentPage)
 
   const waitTimeout = useRef(0)
   const [loading, setLoading] = useState(false)
@@ -256,57 +190,101 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
     [appBar, open]
   )
 
-  const changePane = useMutateState(
-    (pane) => ({
+  const handleOpenModal = useMutateStateWithSync(
+    (value) => ({
+      path: ['panes', 'paneState', 'center'],
+      value: { open: value, type: 'pane' },
+    }),
+    []
+  )
+
+  const handleChangePane = useMutateStateWithSync(
+    (value) => ({
       path: ['panes', 'paneState', side],
       value: {
         pin, // Preserves state of a pinned pane
-        ...(open === pane ? {} : { open: pane }),
+        ...(open === value ? {} : { open: value }),
       },
-      sync: !includesPath(R.values(sync), ['panes', 'paneState', side]),
     }),
-    [sync, open, pin, side]
+    [open, pin, side]
   )
 
-  const mapAppBarItems = R.pipe(
-    R.mapObjIndexed((obj, key) =>
-      getAppBarItem({
-        key,
-        pin,
-        obj,
-        currentPage,
-        changePane,
-        sync,
-        loading,
-        dispatch,
-      })
-    ),
-    R.values
+  const handleClickButton = useCallback(
+    (itemData) => {
+      dispatch(
+        sendCommand({
+          command: 'mutate_session',
+          data: {
+            api_command: itemData.apiCommand,
+            api_command_keys: itemData.apiCommandKeys,
+            data_name: itemData.dataName,
+            data_path: itemData.dataPath,
+            data_value: itemData.dataValue,
+          },
+        })
+      )
+    },
+    [dispatch]
   )
-  const capitalizedSide = R.replace(source[0], R.toUpper(source[0]), source)
+
+  const handleChangePage = useMutateStateWithSync(
+    (value) => {
+      // Close an unpinned pane when switching to a different page
+      if (!pin && value !== currentPage) handleChangePane()
+      return { path: ['pages', 'currentPage'], value }
+    },
+    [currentPage, pin]
+  )
+
+  const renderAppBarSection = useCallback(
+    (sectionKey) =>
+      R.pipe(
+        R.propOr({}, sectionKey),
+        R.mapObjIndexed((itemData, itemKey) =>
+          renderAppBarItem({
+            itemKey,
+            itemData,
+            loading,
+            currentPage,
+            handleChangePage,
+            handleChangePane,
+            handleClickButton,
+            handleOpenModal,
+          })
+        ),
+        R.values
+      )(appBar),
+    [
+      appBar,
+      currentPage,
+      handleChangePage,
+      handleChangePane,
+      handleClickButton,
+      handleOpenModal,
+      loading,
+    ]
+  )
+
+  const capitalizedSide = capitalize(source)
   const lowerKey = `lower${capitalizedSide}`
   const upperKey = `upper${capitalizedSide}`
   return (
     <Box
-      sx={[side === 'right' ? styles.rightRoot : styles.leftRoot, styles.root]}
+      sx={[side === 'left' ? styles.leftRoot : styles.rightRoot, styles.root]}
     >
       <Tabs
         sx={[
           styles.navSection,
           { flexGrow: 1 },
           side === 'right' && {
-            '.MuiTabs-indicator': {
-              left: 0,
-            },
+            '.MuiTabs-indicator': { left: 0 },
           },
         ]}
         value={getValue(upperKey)}
         orientation="vertical"
         variant="fullWidth"
-        aria-label="Upper App Bar"
       >
-        {/* Upper Bar */}
-        {mapAppBarItems(R.propOr({}, upperKey, appBar))}
+        {renderAppBarSection(upperKey)}
       </Tabs>
 
       {/* Lower Bar */}
@@ -318,9 +296,8 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         value={getValue(lowerKey)}
         orientation="vertical"
         variant="fullWidth"
-        aria-label="Lower App Bar"
       >
-        {mapAppBarItems(R.propOr({}, lowerKey, appBar))}
+        {renderAppBarSection(lowerKey)}
       </Tabs>
     </Box>
   )

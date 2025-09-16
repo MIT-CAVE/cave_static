@@ -58,9 +58,9 @@ import {
   selectSettingsIconUrl,
   selectShowLegendGroupNames,
   selectShowLegendAdvancedControls,
-  selectSync,
   selectZoomFunc,
   selectVirtualKeyboard,
+  selectIsSynced,
 } from '../../../data/selectors'
 import { MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import {
@@ -88,7 +88,6 @@ import {
   forceArray,
   getChartItemColor,
   getColorString,
-  includesPath,
   NumberFormat,
   parseGradient,
 } from '../../../utils'
@@ -156,7 +155,7 @@ export const useLegendDetails = ({
 }) => {
   const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
-  const sync = useSelector(selectSync)
+  const isSynced = useSelector(selectIsSynced)
   const dispatch = useDispatch()
 
   // Valid ranges for all features
@@ -196,12 +195,12 @@ export const useLegendDetails = ({
         mutateLocal({
           path,
           value,
-          sync: !includesPath(Object.values(sync), path),
+          sync: isSynced(path),
         })
       )
       if (event != null) event.stopPropagation()
     },
-    [basePath, dispatch, sync]
+    [basePath, dispatch, isSynced]
   )
   const handleToggleGroup = useMutateStateWithSync(
     (event, value) => {
@@ -224,32 +223,20 @@ export const useLegendDetails = ({
         const [defaultGroupCalc] = getStatFuncsByType(newPropType)
         handleChangeLegendAttr(groupCalcPathTail)(defaultGroupCalc)
       }
-      dispatch(
-        mutateLocal({
-          path,
-          value,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
+      dispatch(mutateLocal({ path, value, sync: isSynced(path) }))
       event.stopPropagation()
     },
-    [basePath, dispatch, featureTypeProps, handleChangeLegendAttr, sync]
+    [basePath, dispatch, featureTypeProps, handleChangeLegendAttr, isSynced]
   )
 
   const basePathProp = useMemo(() => ['mapFeatures', 'data', id, 'props'], [id])
   const handleChangePropAttr = useCallback(
     (pathTail) => (value) => {
       const path = [...basePathProp, ...forceArray(pathTail)]
-      dispatch(
-        mutateLocal({
-          path,
-          value,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
+      dispatch(mutateLocal({ path, value, sync: isSynced(path) }))
       // TODO: if (event != null) event.stopPropagation()
     },
-    [basePathProp, dispatch, sync]
+    [basePathProp, dispatch, isSynced]
   )
 
   const handleChangeColor = useCallback(

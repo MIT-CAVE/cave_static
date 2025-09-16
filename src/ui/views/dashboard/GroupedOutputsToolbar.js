@@ -1,14 +1,12 @@
 import { Box, FormControl, Grid, InputLabel, Typography } from '@mui/material'
 import * as R from 'ramda'
 import { memo, Fragment } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import ChartDropdownWrapper from './ChartDropdownWrapper'
 import ChartTypeSelector from './ChartTypeSelector'
 
-import { mutateLocal } from '../../../data/local'
 import {
-  selectSync,
   selectCurrentPage,
   selectAllowedStats,
   selectChartStats,
@@ -25,6 +23,7 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { Select, SelectAccordion, SelectAccordionList } from '../../compound'
 
@@ -34,7 +33,6 @@ import {
   getLabelFn,
   getGroupLabelFn,
   getSubLabelFn,
-  includesPath,
   mapIndexed,
   forceArray,
   capitalize,
@@ -150,15 +148,12 @@ const LabelledInput = ({ children, label, labelId }) => (
 )
 
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
-  const dispatch = useDispatch()
-
   const categories = useSelector(selectStatGroupings)
   const allowedStats = useSelector(selectAllowedStats)
   const chartStats = useSelector(selectChartStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
   const statNamesByDataset = useSelector(selectChartStatsNames)
   const currentPage = useSelector(selectCurrentPage)
-  const sync = useSelector(selectSync)
 
   const path = ['pages', 'data', currentPage, 'charts', index]
   const distributionType = R.propOr(
@@ -217,15 +212,10 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
     R.groupBy(R.prop('grouping'))
   )(categories)
 
-  const updateChartObj = (newObj) => {
-    dispatch(
-      mutateLocal({
-        path,
-        sync: !includesPath(R.values(sync), path),
-        value: newObj,
-      })
-    )
-  }
+  const updateChartObj = useMutateStateWithSync(
+    (newObj) => ({ path, value: newObj }),
+    [path]
+  )
 
   const getStatName = (stat) =>
     getGroupLabelFn(allowedStats, [chartObj.dataset, stat])

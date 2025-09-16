@@ -16,18 +16,17 @@ import ChartDropdownWrapper from './ChartDropdownWrapper'
 import ChartTypeSelector from './ChartTypeSelector'
 
 import { sendCommand } from '../../../data/data'
-import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
-  selectSync,
   selectCurrentPage,
   selectMergedGlobalOutputs,
 } from '../../../data/selectors'
 import { chartOption, chartVariant } from '../../../utils/enums'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { FetchedIcon } from '../../compound'
 
-import { withIndex, includesPath, addValuesToProps } from '../../../utils'
+import { withIndex, addValuesToProps } from '../../../utils'
 
 const styles = {
   content: {
@@ -69,7 +68,6 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
     R.propOr({}, 'values', items)
   )
-  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const path = useMemo(
@@ -77,15 +75,13 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     [currentPage, index]
   )
 
-  const handleSelectChart = (value) => {
-    dispatch(
-      mutateLocal({
-        path,
-        sync: !includesPath(R.values(sync), path),
-        value: R.assoc('chartType', value)(chartObj),
-      })
-    )
-  }
+  const handleSelectFunc = useMutateStateWithSync(
+    (chartKey, value) => ({
+      path,
+      value: R.assoc(chartKey, value)(chartObj),
+    }),
+    [chartObj, path]
+  )
 
   const globalOutputsOptions = R.pipe(
     R.reject(R.pipe(R.prop('value'), R.isNil)),
@@ -98,7 +94,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     <Box sx={styles.content}>
       <ChartTypeSelector
         value={chartObj.chartType}
-        onChange={handleSelectChart}
+        onChange={(event, value) => handleSelectFunc('chartType', value)}
         chartOptions={CHART_OPTIONS}
         extraOptions={
           <Grid
@@ -157,17 +153,10 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                   </li>
                 )
               }}
-              onChange={(_, value) => {
-                dispatch(
-                  mutateLocal({
-                    path,
-                    sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('sessions', value, chartObj),
-                  })
-                )
-              }}
+              onChange={(event, value) => handleSelectFunc('sessions', value)}
             />
           </ChartDropdownWrapper>
+
           <ChartDropdownWrapper sx={styles.sessions}>
             <Autocomplete
               disabled={R.isEmpty(R.propOr([], 'sessions', chartObj))}
@@ -210,15 +199,9 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
                   </li>
                 )
               }}
-              onChange={(_, value) => {
-                dispatch(
-                  mutateLocal({
-                    path,
-                    sync: !includesPath(R.values(sync), path),
-                    value: R.assoc('globalOutput', value, chartObj),
-                  })
-                )
-              }}
+              onChange={(event, value) =>
+                handleSelectFunc('globalOutput', value)
+              }
             />
           </ChartDropdownWrapper>
         </>

@@ -20,14 +20,11 @@ import {
   selectAnimationInterval,
   selectCurrentLooping,
   selectCurrentSpeed,
-  selectSync,
 } from '../../../data/selectors'
 import { updateAnimation } from '../../../data/utilities/timeSlice'
-import { useMutateState } from '../../../utils/hooks'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 import Select from '../../compound/Select'
 import TooltipButton from '../../compound/TooltipButton'
-
-import { includesPath } from '../../../utils'
 
 const styles = {
   root: {
@@ -70,24 +67,21 @@ const TimeControl = () => {
   const dispatch = useDispatch()
 
   const animation = R.is(Number, animationInterval)
-  const sync = useSelector(selectSync)
 
-  const handleChangeLooping = useMutateState(
+  const handleChangeLooping = useMutateStateWithSync(
     () => ({
       path: ['settings', 'time', 'looping'],
       value: !looping,
-      sync: !includesPath(R.values(sync), ['settings', 'time', 'looping']),
     }),
-    [looping, sync]
+    [looping]
   )
 
-  const updatePlaybackSpeed = useMutateState(
+  const updatePlaybackSpeed = useMutateStateWithSync(
     (newPlaybackSpeed) => ({
       path: ['settings', 'time', 'speed'],
       value: newPlaybackSpeed,
-      sync: !includesPath(R.values(sync), ['settings', 'time', 'speed']),
     }),
-    [sync]
+    []
   )
 
   const advanceAnimation = useCallback(() => {
