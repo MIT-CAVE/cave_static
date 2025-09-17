@@ -40,6 +40,8 @@ import {
   selectStaticMap,
   selectLegendDataFunc,
   selectMapProjectionOptionsFunc,
+  selectLockMapProjectionFunc,
+  selectLockMapStyleFunc,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
@@ -236,6 +238,8 @@ const MapControls = () => {
 
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
+  const lockMapProjection = useSelector(selectLockMapProjectionFunc)(mapId)
+  const lockMapStyle = useSelector(selectLockMapStyleFunc)(mapId)
   const defaultViewport = useSelector(selectDefaultViewportFunc)(mapId)
   const optionalViewports = useSelector(selectOptionalViewportsFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
@@ -355,56 +359,60 @@ const MapControls = () => {
                   : MdApps
               }
               title={tooltipTitles.mapLegend}
-              placement="top"
+              placement="auto"
               onClick={() => dispatch(toggleMapLegend(mapId))}
             />
           </ButtonGroup>
 
           {/* Projection */}
-          <ButtonGroup sx={styles.btnGroup} variant="contained">
-            <MapButton
-              icon={BsGlobe2}
-              title={tooltipTitles.globeProjection}
-              placement="top"
-              onClick={() =>
-                createHandleChangeProjection(MAP_PROJECTIONS.GLOBE)
-              }
-            />
-            <MapButton
-              icon={FaMapMarkedAlt}
-              title={tooltipTitles.mercatorProjection}
-              placement="top"
-              onClick={() =>
-                createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
-              }
-            />
-            {R.isNotEmpty(mapProjectionOptions) && (
+          {!lockMapProjection && (
+            <ButtonGroup sx={styles.btnGroup} variant="contained">
               <MapButton
-                icon={PiPerspectiveBold}
-                title={tooltipTitles.otherProjections}
+                icon={BsGlobe2}
+                title={tooltipTitles.globeProjection}
                 placement="top"
                 onClick={() =>
-                  dispatch(openMapModal({ feature: 'mapProjections', mapId }))
+                  createHandleChangeProjection(MAP_PROJECTIONS.GLOBE)
                 }
               />
-            )}
-          </ButtonGroup>
+              <MapButton
+                icon={FaMapMarkedAlt}
+                title={tooltipTitles.mercatorProjection}
+                placement="top"
+                onClick={() =>
+                  createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
+                }
+              />
+              {R.isNotEmpty(mapProjectionOptions) && (
+                <MapButton
+                  icon={PiPerspectiveBold}
+                  title={tooltipTitles.otherProjections}
+                  placement="top"
+                  onClick={() =>
+                    dispatch(openMapModal({ feature: 'mapProjections', mapId }))
+                  }
+                />
+              )}
+            </ButtonGroup>
+          )}
 
           {/* Map styles */}
-          <ButtonGroup
-            sx={styles.btnGroup}
-            aria-label="contained button group"
-            variant="contained"
-          >
-            <MapButton
-              icon={TbMap}
-              title={tooltipTitles.mapStyles}
-              placement="top"
-              onClick={() =>
-                dispatch(openMapModal({ feature: 'mapStyles', mapId }))
-              }
-            />
-          </ButtonGroup>
+          {!lockMapStyle && (
+            <ButtonGroup
+              sx={styles.btnGroup}
+              aria-label="contained button group"
+              variant="contained"
+            >
+              <MapButton
+                icon={TbMap}
+                title={tooltipTitles.mapStyles}
+                placement="top"
+                onClick={() =>
+                  dispatch(openMapModal({ feature: 'mapStyles', mapId }))
+                }
+              />
+            </ButtonGroup>
+          )}
 
           {/* Map viewports */}
           <ButtonGroup sx={styles.btnGroup} variant="contained">
@@ -421,7 +429,7 @@ const MapControls = () => {
             <MapButton
               icon={MdHome}
               title={tooltipTitles.defaultViewport}
-              placement="bottom-start"
+              placement="auto"
               onClick={() => {
                 dispatch(viewportUpdate({ viewport: defaultViewport, mapId }))
               }}

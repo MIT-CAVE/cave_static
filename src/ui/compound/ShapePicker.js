@@ -1,6 +1,10 @@
-import { InputAdornment, Stack, Typography } from '@mui/material'
-import Autocomplete from '@mui/material/Autocomplete'
-import TextField from '@mui/material/TextField'
+import {
+  Autocomplete,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import * as R from 'ramda'
 import {
   cloneElement,
@@ -11,7 +15,7 @@ import {
   useContext,
   useEffect,
 } from 'react'
-import { FixedSizeList } from 'react-window'
+import { List } from 'react-window'
 
 import FetchedIcon from './FetchedIcon'
 
@@ -23,34 +27,34 @@ export const ListboxPropsContext = createContext({
   getDisabled: R.F,
 })
 
+const ListRowComponent = ({ index, style, children }) => {
+  const { getLabel, getIcon } = useContext(ListboxPropsContext)
+  const child = children[index]
+  const option = child.key
+  return cloneElement(
+    child,
+    { style },
+    <Stack key={option} direction="row" spacing={1}>
+      <FetchedIcon size={40} iconName={getIcon(option)} />
+      <Typography variant="subtitle2">{getLabel(option)}</Typography>
+    </Stack>
+  )
+}
+
 export const EnhancedListbox = forwardRef((props, ref) => {
   const { children, role, ...other } = props
-  const itemCount = Array.isArray(children) ? children.length : 0
-  const { getLabel, getIcon } = useContext(ListboxPropsContext)
+  const rowCount = Array.isArray(children) ? children.length : 0
   return (
     <div ref={ref}>
       <div {...other}>
-        <FixedSizeList
-          role={role}
-          height={256}
-          width="100%"
-          itemSize={48}
-          itemCount={itemCount}
+        <List
+          rowHeight={48}
           overscanCount={5}
-        >
-          {({ index, style }) => {
-            const child = children[index]
-            const option = child.key
-            return cloneElement(
-              child,
-              { style },
-              <Stack key={option} direction="row" spacing={1}>
-                <FetchedIcon size={40} iconName={getIcon(option)} />
-                <Typography variant="subtitle2">{getLabel(option)}</Typography>
-              </Stack>
-            )
-          }}
-        </FixedSizeList>
+          rowProps={{ children }}
+          {...{ role, rowCount }}
+          style={{ height: '256px', width: '100%' }}
+          rowComponent={ListRowComponent}
+        />
       </div>
     </div>
   )

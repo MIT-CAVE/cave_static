@@ -302,7 +302,7 @@ const ComboboxBase = ({
 
   const handleInputChange = useCallback(
     (event, newInputValue, reason) => {
-      if (reason === 'input') {
+      if (reason === 'input' || reason === 'clear') {
         // avoid infinite loop when loading component
         setKeyboardValue(newInputValue)
       }
@@ -323,7 +323,10 @@ const ComboboxBase = ({
   return (
     <Autocomplete
       disablePortal
-      inputValue={valueText}
+      // Prevents issues when the clear button is clicked and
+      // `valueText` is temporarily `null` (since `setValueText`
+      // is async and hasn't updated yet)
+      inputValue={valueText ?? ''}
       {...{
         disabled,
         multiple,

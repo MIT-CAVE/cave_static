@@ -354,22 +354,12 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
     () => R.indexBy(R.prop('prop'))(defaultFilters),
     [defaultFilters]
   )
-
   const canDiscardOrSave = useMemo(() => {
     if (filters.length !== defaultFilters.length) return true
     return R.any((filter) => {
-      const defaultFilter = defaultFiltersByLevel[filter.prop]
+      const defaultFilter = defaultFiltersByLevel[filter.prop] ?? {}
       // Verify level and option matches and value discrepancies
-      return (
-        defaultFilter != null &&
-        filter.option === 'exc' &&
-        defaultFilter.option === 'exc' &&
-        defaultFilter.format === filter.format &&
-        R.pipe(
-          R.symmetricDifference(defaultFilter.value),
-          R.isNotEmpty
-        )(filter.value)
-      )
+      return !R.equals(filter, defaultFilter)
     })(filters)
   }, [defaultFilters.length, defaultFiltersByLevel, filters])
 

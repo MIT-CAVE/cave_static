@@ -60,6 +60,7 @@ import {
   selectShowLegendAdvancedControls,
   selectSync,
   selectZoomFunc,
+  selectVirtualKeyboard,
 } from '../../../data/selectors'
 import { MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import {
@@ -872,12 +873,28 @@ export const LegendPopper = ({
   const { mapId } = useContext(MapContext)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
   const open = Boolean(anchorEl)
   const {
     badge: { showBadge, reactIcon, ...muiBadgeProps } = {},
     ...muiSlotProps
   } = slotProps
+
+  const handleClickAway = useCallback(
+    (event) => {
+      if (
+        virtualKeyboard.isOpen ||
+        virtualKeyboard.lastKeyPress === '{blur}' ||
+        // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+        sessionStorage.getItem('mui-select-open-flag') === '1'
+      )
+        return
+
+      onClose(event)
+    },
+    [onClose, virtualKeyboard.isOpen, virtualKeyboard.lastKeyPress]
+  )
 
   return (
     <Box sx={{ p: 0.25, ml: 1, borderRadius: 1 }} {...props}>
@@ -899,13 +916,7 @@ export const LegendPopper = ({
       </WithBadge>
       {/* Use `MapPortal` wrapper to prevent `Popper` to overflow the map chart */}
       <MapPortal>
-        <ClickAwayListener
-          onClickAway={(event) => {
-            // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
-            if (sessionStorage.getItem('mui-select-open-flag') === '1') return
-            onClose(event)
-          }}
-        >
+        <ClickAwayListener onClickAway={handleClickAway}>
           <Popper
             disablePortal
             placement="left"

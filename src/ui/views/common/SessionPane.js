@@ -17,8 +17,9 @@ import {
 } from '@mui/material'
 import {
   DataGrid,
-  GridToolbarContainer,
-  GridToolbarFilterButton,
+  Toolbar,
+  FilterPanelTrigger,
+  ToolbarButton,
 } from '@mui/x-data-grid'
 import * as R from 'ramda'
 import { useEffect, useState, Fragment } from 'react'
@@ -412,8 +413,10 @@ const UnstyledHeader = ({
 const CustomToolbar = ({ onClickCreateHandler }) => {
   const onClick = () => onClickCreateHandler()
   return (
-    <GridToolbarContainer>
-      <GridToolbarFilterButton />
+    <Toolbar>
+      <FilterPanelTrigger render={<ToolbarButton />}>
+        <FetchedIcon iconName="md/MdFilterList" />
+      </FilterPanelTrigger>
       <Tooltip
         key={'Create a new session'.toLocaleLowerCase()}
         title="Create a new session"
@@ -430,7 +433,7 @@ const CustomToolbar = ({ onClickCreateHandler }) => {
           </IconButton>
         </span>
       </Tooltip>
-    </GridToolbarContainer>
+    </Toolbar>
   )
 }
 
@@ -930,6 +933,7 @@ const SessionPane = ({ width }) => {
           sx={{ py: 3 }}
         />
         <DataGrid
+          showToolbar
           disableVirtualization
           sx={{
             '.MuiDataGrid-virtualScrollerRenderZone': {
