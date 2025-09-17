@@ -76,7 +76,7 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
   )
 
   const step = useMemo(
-    () => 1 / Math.pow(10, numberFormat.precision),
+    () => 1 / Math.pow(10, numberFormat.precision ?? 2),
     [numberFormat.precision]
   )
 
