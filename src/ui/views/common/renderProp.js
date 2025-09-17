@@ -145,6 +145,7 @@ export const getRendererFn = R.cond([
 ])
 
 const getContainerFn = R.cond([
+  [R.has('container'), R.prop('container')],
   [
     R.both(
       R.pipe(R.prop('type'), R.equals(propId.BUTTON), R.not),
@@ -155,7 +156,6 @@ const getContainerFn = R.cond([
     ),
     R.always(propContainer.NONE),
   ],
-  [R.has('container'), R.prop('container')],
   [
     R.pipe(R.prop('type'), R.equals(propId.HEAD)),
     R.always(propContainer.MINIMAL),
