@@ -9,6 +9,7 @@ export {
 } from './PropButton'
 export { PropDate, PropDateTime, PropTime } from './PropDate'
 export { PropHeadColumn, PropHeadRow } from './PropHead'
+export { PropText, PropTextArea } from './PropText'
 export {
   PropToggleButton,
   PropToggleCheckbox,
@@ -40,8 +41,6 @@ export { default as PropNumberField } from './PropNumberField'
 export { default as PropNumberSlider } from './PropNumberSlider'
 export { default as PropPicture } from './PropPicture'
 export { default as PropRadio } from './PropRadio'
-export { default as PropText } from './PropText'
-export { default as PropTextArea } from './PropTextArea'
 export { default as PropVideo } from './PropVideo'
 export { default as PropVStepper } from './PropVStepper'
 export { default as Select } from './Select'

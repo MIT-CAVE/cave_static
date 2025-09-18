@@ -7,10 +7,13 @@ import {
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
 import WrappedText from './WrappedText'
+
+import { selectVirtualKeyboard } from '../../data/selectors'
 
 import { forceArray } from '../../utils'
 
@@ -72,6 +75,7 @@ const Select = ({
 } = {}) => {
   const [open, setOpen] = useState(false)
   const allowClose = useRef(true)
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
   return (
     <MuiSelect
       {...{ disabled, open, ...props }}
@@ -91,6 +95,7 @@ const Select = ({
         } else {
           allowClose.current = true
         }
+        if (virtualKeyboard.isOpen) return
         // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
         sessionStorage.removeItem('mui-select-open-flag')
       }}

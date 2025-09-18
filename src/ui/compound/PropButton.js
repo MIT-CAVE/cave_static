@@ -1,5 +1,4 @@
 import { Button, IconButton as MuiIconButton } from '@mui/material'
-import PropTypes from 'prop-types'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 
@@ -30,52 +29,14 @@ const styles = {
   }),
 }
 
-const StandardButton = ({
-  prop: { name, value, startIcon, endIcon, color, fullWidth, propStyle },
-  sx = [],
-  ...props
-}) => (
-  <Button
-    {...(startIcon && {
-      startIcon: <FetchedIcon iconName={startIcon} />,
-    })}
-    {...(endIcon && {
-      endIcon: <FetchedIcon iconName={endIcon} />,
-    })}
-    sx={[{ color }, ...forceArray(sx), propStyle]}
-    {...{ fullWidth, ...props }}
-  >
-    {value ?? name}
-  </Button>
-)
-
-const IconButton = ({
-  prop: { icon, color, size, propStyle },
-  sx = [],
-  ...props
-}) => (
-  <MuiIconButton
-    sx={[{ color, p: 0 }, ...forceArray(sx), propStyle]}
-    {...props}
-  >
-    <FetchedIcon
-      iconName={icon}
-      {...{ color }}
-      style={{ width: size, height: size }}
-    />
-  </MuiIconButton>
-)
-
-const ButtonBase = ({ component: Component, prop, variant, sx }) => {
-  const {
-    enabled,
-    url,
-    apiCommand,
-    apiCommandKeys,
-    dataName,
-    dataPath,
-    dataValue,
-  } = prop
+const useButton = ({
+  enabled,
+  apiCommand,
+  apiCommandKeys,
+  dataName,
+  dataPath,
+  dataValue,
+}) => {
   const dispatch = useDispatch()
   const handleClick = useCallback(() => {
     if (!enabled) return
@@ -100,70 +61,77 @@ const ButtonBase = ({ component: Component, prop, variant, sx }) => {
     dataPath,
     dataValue,
   ])
+
+  return {
+    disabled: !enabled,
+    handleClick,
+  }
+}
+
+const StandardButton = ({ prop, variant, sx = [] }) => {
+  const { disabled, handleClick } = useButton(prop)
+  const { name, value, startIcon, endIcon, color, fullWidth, propStyle, url } =
+    prop
   return (
-    <Component
-      disabled={!enabled}
+    <Button
       href={url}
       target="_blank"
-      {...{ variant, prop, sx }}
+      sx={[{ color }, ...forceArray(sx), propStyle]}
+      {...{ disabled, variant, fullWidth }}
+      {...(startIcon && {
+        startIcon: <FetchedIcon iconName={startIcon} />,
+      })}
+      {...(endIcon && {
+        endIcon: <FetchedIcon iconName={endIcon} />,
+      })}
       onClick={handleClick}
-    />
+    >
+      {value ?? name}
+    </Button>
   )
 }
-ButtonBase.propTypes = {
-  prop: PropTypes.object,
-}
 
-const PropButtonFilled = (props) => (
-  <ButtonBase
+const PropButtonFilled = ({ sx = [], ...props }) => (
+  <StandardButton
     variant="contained"
-    component={({ sx = [], ...btnProps }) => (
-      <StandardButton
-        sx={[
-          btnProps.prop.color && styles.getFilled(btnProps.prop.color),
-          ...forceArray(sx),
-        ]}
-        {...btnProps}
-      />
-    )}
+    sx={[...forceArray(sx), styles.getFilled(props.prop.color)]}
     {...props}
   />
 )
 
-const PropButtonOutlined = (props) => (
-  <ButtonBase
+const PropButtonOutlined = ({ sx = [], ...props }) => (
+  <StandardButton
     variant="outlined"
-    component={({ sx = [], ...btnProps }) => (
-      <StandardButton
-        sx={[
-          btnProps.prop.color && styles.getOutlined(btnProps.prop.color),
-          ...forceArray(sx),
-        ]}
-        {...btnProps}
-      />
-    )}
+    sx={[...forceArray(sx), styles.getOutlined(props.prop.color)]}
     {...props}
   />
 )
 
-const PropButtonText = (props) => (
-  <ButtonBase
+const PropButtonText = ({ sx = [], ...props }) => (
+  <StandardButton
     variant="text"
-    component={({ sx = [], ...btnProps }) => (
-      <StandardButton
-        sx={[
-          btnProps.prop.color && styles.getText(btnProps.prop.color),
-          ...forceArray(sx),
-        ]}
-        {...btnProps}
-      />
-    )}
+    sx={[...forceArray(sx), styles.getText(props.prop.color)]}
     {...props}
   />
 )
 
-const PropButtonIcon = (props) => (
-  <ButtonBase component={IconButton} {...props} />
-)
+const PropButtonIcon = ({ prop, sx = [] }) => {
+  const { disabled, handleClick } = useButton(prop)
+  const { icon, color, size, url, propStyle } = prop
+  return (
+    <MuiIconButton
+      {...{ disabled, handleClick }}
+      href={url}
+      target="_blank"
+      sx={[{ color, p: 0 }, ...forceArray(sx), propStyle]}
+    >
+      <FetchedIcon
+        iconName={icon}
+        {...{ color }}
+        style={{ width: size, height: size }}
+      />
+    </MuiIconButton>
+  )
+}
 
 export { PropButtonFilled, PropButtonOutlined, PropButtonText, PropButtonIcon }

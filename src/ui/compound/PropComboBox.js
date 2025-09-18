@@ -88,7 +88,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
   }, [activeColor, activeIcon, activeSize, labelPlacement])
 
   const getOptionLabel = useCallback(
-    (option) => options[option]?.name,
+    (option) => options[option]?.name ?? option,
     [options]
   )
 

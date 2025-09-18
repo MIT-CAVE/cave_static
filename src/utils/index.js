@@ -532,15 +532,12 @@ export const toListWithKey = (key) =>
     R.values
   )
 
-export const sortedListById = R.pipe(
-  toListWithKey('id'),
-  R.sortWith([
-    // BUG: Doesn't work for something like row3Col1 and row2Col1
-    // (a, b) => R.length(a.id) - R.length(b.id),
-    // If the length is the same, compare by alphabetical order
-    R.ascend(R.prop('id')),
-  ])
-)
+const naturalCompare = (a, b) =>
+  String(a).localeCompare(String(b), undefined, { numeric: true })
+
+export const naturalSort = R.sort(naturalCompare)
+
+export const sortedListById = R.pipe(toListWithKey('id'), naturalSort)
 
 export const sortByOrderNameId = R.sortWith([
   // Infinity due to the fact that non-existent
@@ -1153,11 +1150,7 @@ export const constructGeoJson = (
 
 const isMapboxUrl = (url) =>
   typeof url === 'string' &&
-  (url.startsWith('mapbox://') ||
-    url.includes('api.mapbox.com') ||
-    url.includes('tiles.mapbox.com') ||
-    url.includes('fonts.mapbox.com') ||
-    url.includes('mapbox.com'))
+  (url.startsWith('mapbox://') || url.includes('mapbox.com'))
 
 export const isMapboxStyle = (mapStyle) => {
   // Check if it's a known Mapbox style endpoint
