@@ -13,7 +13,7 @@ export const LEGEND_SLIM_WIDTH = 400
 export const GLOBALOUTPUT_WIDTH = 400
 export const PROP_MIN_WIDTH = 200
 
-export const MIN_ZOOM = 2.46
+export const MIN_ZOOM = 0
 export const MAX_ZOOM = 22
 
 export const MIN_PITCH = 0
