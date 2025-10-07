@@ -1352,11 +1352,7 @@ const getMergedAllProps = (data, dataType) =>
         const values = R.pipe(
           R.pathOr({}, ['data', 'valueLists']),
           R.dissoc('timeValues'),
-          R.pluck(idx),
-          R.assoc(
-            'timeValues',
-            R.pathOr([], ['data', 'valueLists', 'timeValues'])(type)
-          )
+          R.pluck(idx)
         )(type)
         const location = R.pipe(
           R.pathOr({}, ['data', 'location']),

@@ -12,9 +12,9 @@ import {
   selectOpenModalData,
   selectSync,
   selectCurrentTime,
-  selectMergedArcs,
-  selectMergedNodes,
-  selectMergedGeos,
+  selectLocalizedArcTypes,
+  selectLocalizedNodeTypes,
+  selectLocalizedGeoTypes,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
@@ -94,19 +94,35 @@ const GeneralModal = ({ title, children }) => {
 const MapFeatureModal = () => {
   const open = useSelector(selectOpenModal)
   const currentTime = useSelector(selectCurrentTime)
-  const arcData = useSelector(selectMergedArcs)
-  const nodeData = useSelector(selectMergedNodes)
-  const geoData = useSelector(selectMergedGeos)
+  const arcData = useSelector(selectLocalizedArcTypes)
+  const nodeData = useSelector(selectLocalizedNodeTypes)
+  const geoData = useSelector(selectLocalizedGeoTypes)
   const dispatch = useDispatch()
   const { cluster_id, feature, type, layout, props, mapId } = open
+  console.log('MapFeatureModal', { open })
+  console.log(arcData)
   const key = JSON.parse(R.prop('key', open))
   const featureData =
     feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
+
   const getCurrentVal = (propId) =>
-    R.path([...key, 'values', propId])(featureData)
+    R.path([key[0], 'data', 'valueLists', propId, parseInt(key[1])])(
+      featureData
+    )
+
   const onChangeProp = (prop, propId) => (value) => {
     const usesTime = R.hasPath(
-      [...key, 'values', 'timeValues', currentTime, propId, parseInt(key[1])],
+      [
+        [
+          key[0],
+          'data',
+          'valueLists',
+          'timeValues',
+          currentTime,
+          propId,
+          parseInt(key[1]),
+        ],
+      ],
       featureData
     )
     const dataPath = usesTime
