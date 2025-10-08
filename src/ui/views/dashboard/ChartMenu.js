@@ -19,6 +19,7 @@ import {
   MdFullscreen,
   MdFullscreenExit,
   MdMoreVert,
+  MdOutlineColorLens,
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
@@ -69,6 +70,7 @@ const MainButtons = ({
   numFilters,
   onOpenFilter,
   onOpenChartTools,
+  onOpenColorChange,
   onOpenMenu,
 }) => (
   <ButtonGroup
@@ -101,6 +103,14 @@ const MainButtons = ({
         </Badge>
       </TooltipButton>
     )}
+
+    <TooltipButton
+      title="Change color"
+      placement="bottom-start"
+      onClick={onOpenColorChange}
+    >
+      <MdOutlineColorLens size={24} />
+    </TooltipButton>
 
     <TooltipButton
       title="View more Actions"
@@ -152,6 +162,7 @@ const ChartMenu = ({
   numFilters,
   onOpenFilter,
   onOpenChartTools,
+  onOpenColorChange,
   vizType,
   chartType,
 }) => {
@@ -184,6 +195,7 @@ const ChartMenu = ({
           numFilters,
           onOpenFilter,
           onOpenChartTools,
+          onOpenColorChange,
         }}
         onOpenMenu={handleOpenMenu}
       />

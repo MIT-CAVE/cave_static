@@ -27,8 +27,14 @@ import {
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { useChartTools, useModal, useMutateState } from '../../../utils/hooks'
+import {
+  useChartTools,
+  useModal,
+  useColorChange,
+  useMutateState,
+} from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
+import ColorChangeModal from '../common/ColorChangeModal'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
@@ -81,6 +87,8 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
   const { chartToolsOpen, handleOpenChartTools, handleCloseChartTools } =
     useChartTools()
+  const { colorChangeOpen, handleOpenColorChange, handleCloseColorChange } =
+    useColorChange()
 
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const defaultFilters = R.propOr([], 'filters')(chartObj)
@@ -191,7 +199,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
         styles.paper,
         isMaximized && { p: 0 },
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
-        (chartToolsOpen || modalOpen) && {
+        (chartToolsOpen || modalOpen || colorChangeOpen) && {
           outline: 'none',
           borderColor: '#9ecaed',
           boxShadow: '0 0 10px #9ecaed',
@@ -223,6 +231,16 @@ const DashboardItem = ({ chartObj, index, path }) => {
         open={chartToolsOpen}
         onClose={handleCloseChartTools}
       />
+      <ColorChangeModal
+        {...{
+          chartObj,
+          index,
+          path,
+        }}
+        label="Color Change"
+        open={colorChangeOpen}
+        onClose={handleCloseColorChange}
+      />
       {!lockedLayout && !chartObj.lockedLayout && (
         <ChartMenu
           {...{ isMaximized, chartHoverOrder, vizType, chartType }}
@@ -236,6 +254,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
           numFilters={numActiveStatFilters + numGroupingFilters}
           onOpenFilter={handleOpenModal}
           onOpenChartTools={handleOpenChartTools}
+          onOpenColorChange={handleOpenColorChange}
         />
       )}
       {vizType === 'groupedOutput' ? (
