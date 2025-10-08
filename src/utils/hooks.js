@@ -64,6 +64,20 @@ export const useChartTools = () => {
   return { chartToolsOpen, handleOpenChartTools, handleCloseChartTools }
 }
 
+export const useColorChange = () => {
+  const [colorChangeOpen, setColorChangeOpen] = useState(false)
+
+  const handleOpenColorChange = () => {
+    setColorChangeOpen(true)
+  }
+
+  const handleCloseColorChange = () => {
+    setColorChangeOpen(false)
+  }
+
+  return { colorChangeOpen, handleOpenColorChange, handleCloseColorChange }
+}
+
 /**
  * A hook to dispatch the mutateLocal action as a callback
  * @param {function} getArgs - A function that accepts the arguement to the callback and returns the argument to the mutateLocal action
