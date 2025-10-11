@@ -3,9 +3,11 @@ import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSelector } from 'react-redux'
 
 import { DataGridModal } from './BaseModal'
 
+import { selectStatGroupings } from '../../../data/selectors'
 import { useColorPicker } from '../../compound/ColorPicker'
 
 import { forceArray, getContrastText } from '../../../utils'
@@ -15,11 +17,21 @@ const ColorChangeModal = ({
   label,
   labelExtra,
   onClose,
-  chartObj,
-  index,
-  path,
+  // chartObj,
+  // index,
+  // path,
 }) => {
   const [searchText, setSearchText] = useState('')
+
+  const statGroupings = useSelector(selectStatGroupings)
+
+  const categories = new Set(
+    R.pipe(
+      R.values,
+      R.map(R.pipe(R.prop('data'), R.omit(['id']), R.values)),
+      R.flatten
+    )(statGroupings)
+  )
 
   const testCategories = useMemo(
     () => [
