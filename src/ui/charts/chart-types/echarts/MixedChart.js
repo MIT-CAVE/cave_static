@@ -195,6 +195,14 @@ const MixedChart = ({
     axisLine: {
       show: true,
     },
+    splitLine: {
+      lineStyle: {
+        type: [2, 5],
+        dashOffset: 2,
+        color: '#aaa',
+        opacity: 0.7,
+      },
+    },
   })
 
   const options = {
