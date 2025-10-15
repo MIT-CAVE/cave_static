@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux'
 import { DataGridModal } from './BaseModal'
 
 import { selectStatGroupings } from '../../../data/selectors'
+import { colorGen } from '../../../utils/ColorGen'
 import { useColorPicker } from '../../compound/ColorPicker'
 
 import { forceArray, getContrastText } from '../../../utils'
@@ -17,21 +18,78 @@ const ColorChangeModal = ({
   label,
   labelExtra,
   onClose,
-  // chartObj,
-  // index,
-  // path,
+  chartObj,
+  index,
+  path,
 }) => {
   const [searchText, setSearchText] = useState('')
 
   const statGroupings = useSelector(selectStatGroupings)
 
-  const categories = new Set(
-    R.pipe(
-      R.values,
-      R.map(R.pipe(R.prop('data'), R.omit(['id']), R.values)),
-      R.flatten
-    )(statGroupings)
-  )
+  const getCategoryLabel = (
+    categoryParents,
+    levelCategories,
+    category,
+    index,
+    level
+  ) => {
+    if (level in categoryParents) {
+      const parent = categoryParents[level]
+      return `${category} \u279D ${getCategoryLabel(
+        categoryParents,
+        levelCategories,
+        levelCategories[parent][index],
+        index,
+        parent
+      )}`
+    } else {
+      return `${category}`
+    }
+  }
+
+  // Constructs map from label to last cat and color (e.g. {"USA -> North America": {label: "USA", color: colorGen(key)}, ...})
+  const constructSingleCategoryProperties = (parents, levelCategories) => {
+    const result = {}
+    for (const [level, categories] of Object.entries(levelCategories)) {
+      // If level does not have parents, it does not depend on other levels; same categories can be treated as same
+      const cleanedCategories = !(level in parents)
+        ? new Set(categories)
+        : categories
+      cleanedCategories.forEach((category, index) => {
+        const label = getCategoryLabel(
+          parents,
+          levelCategories,
+          category,
+          index,
+          level
+        )
+        result[label] = {
+          label: category,
+          color: colorGen(label),
+        }
+      })
+    }
+    return result
+  }
+
+  const constructAllCategoryProperties = () => {
+    const groupingMaps = []
+    for (const grouping of R.values(statGroupings)) {
+      const levelCategories = R.pipe(R.prop('data'), R.omit(['id']))(grouping)
+      const parent = R.pipe(
+        R.prop('levels'),
+        R.pluck('parent'),
+        R.reject(R.isNil)
+      )(grouping)
+      groupingMaps.push(
+        constructSingleCategoryProperties(parent, levelCategories)
+      )
+      // Note: if multiple categories share same name -> one color change changes all
+    }
+    return groupingMaps
+  }
+
+  const allCategoryProperties = R.mergeAll(constructAllCategoryProperties())
 
   const testCategories = useMemo(
     () => [
