@@ -26,53 +26,52 @@ const ColorChangeModal = ({
 
   const statGroupings = useSelector(selectStatGroupings)
 
-  const getCategoryLabel = (
-    categoryParents,
-    levelCategories,
-    category,
-    index,
-    level
-  ) => {
-    if (level in categoryParents) {
-      const parent = categoryParents[level]
-      return `${category} \u279D ${getCategoryLabel(
-        categoryParents,
-        levelCategories,
-        levelCategories[parent][index],
-        index,
-        parent
-      )}`
-    } else {
-      return `${category}`
-    }
-  }
-
-  // Constructs map from label to last cat and color (e.g. {"USA -> North America": {label: "USA", color: colorGen(key)}, ...})
-  const constructSingleCategoryProperties = (parents, levelCategories) => {
-    const result = {}
-    for (const [level, categories] of Object.entries(levelCategories)) {
-      // If level does not have parents, it does not depend on other levels; same categories can be treated as same
-      const cleanedCategories = !(level in parents)
-        ? new Set(categories)
-        : categories
-      cleanedCategories.forEach((category, index) => {
-        const label = getCategoryLabel(
-          parents,
+  const getCategoryLabel = useCallback(
+    (categoryParents, levelCategories, category, index, level) => {
+      if (level in categoryParents) {
+        const parent = categoryParents[level]
+        return `${category} \u279D ${getCategoryLabel(
+          categoryParents,
           levelCategories,
-          category,
+          levelCategories[parent][index],
           index,
-          level
-        )
-        result[label] = {
-          label: category,
-          color: colorGen(label),
-        }
-      })
-    }
-    return result
-  }
+          parent
+        )}`
+      } else {
+        return `${category}`
+      }
+    },
+    []
+  )
 
-  const constructAllCategoryProperties = () => {
+  const constructSingleCategoryProperties = useCallback(
+    (parents, levelCategories) => {
+      const result = {}
+      for (const [level, categories] of Object.entries(levelCategories)) {
+        // If level does not have parents, it does not depend on other levels; same categories can be treated as same labels
+        const cleanedCategories = !(level in parents)
+          ? new Set(categories)
+          : categories
+        cleanedCategories.forEach((category, index) => {
+          const label = getCategoryLabel(
+            parents,
+            levelCategories,
+            category,
+            index,
+            level
+          )
+          result[label] = {
+            lastCategory: category,
+            color: colorGen(label),
+          }
+        })
+      }
+      return result
+    },
+    [getCategoryLabel]
+  )
+
+  const constructAllCategoryProperties = useCallback(() => {
     const groupingMaps = []
     for (const grouping of R.values(statGroupings)) {
       const levelCategories = R.pipe(R.prop('data'), R.omit(['id']))(grouping)
@@ -84,83 +83,28 @@ const ColorChangeModal = ({
       groupingMaps.push(
         constructSingleCategoryProperties(parent, levelCategories)
       )
-      // Note: if multiple categories share same name -> one color change changes all
     }
     return groupingMaps
-  }
+  }, [constructSingleCategoryProperties, statGroupings])
 
-  const allCategoryProperties = R.mergeAll(constructAllCategoryProperties())
-
-  const testCategories = useMemo(
-    () => [
-      'Ontario',
-      'Texas',
-      // 'California',
-      // 'New York',
-      // 'Florida',
-      // 'Illinois',
-      // 'Washington',
-      // 'Arizona',
-      // 'Colorado',
-      // 'Nevada',
-      // 'Utah',
-      // 'New Mexico',
-      // 'Alaska',
-      // 'Hawaii',
-      // 'Maine',
-      // 'Vermont',
-      // 'New Hampshire',
-      // 'Massachusetts',
-      // 'Rhode Island',
-      // 'Connecticut',
-      // 'New Jersey',
-      // 'Pennsylvania',
-      // 'Delaware',
-      // 'Maryland',
-      // 'Virginia',
-      // 'North Carolina',
-      // 'South Carolina',
-      // 'Georgia',
-      // 'Alabama',
-      // 'Tennessee',
-      // 'Kentucky',
-      // 'Ohio',
-      // 'Michigan',
-      // 'Indiana',
-      // 'Wisconsin',
-      // 'Minnesota',
-      // 'Iowa',
-      // 'Missouri',
-      // 'Arkansas',
-      // 'Louisiana',
-      // 'Mississippi',
-      // 'North Dakota',
-      // 'South Dakota',
-      // 'Nebraska',
-      // 'Kansas',
-      // 'Oklahoma',
-      // 'Texas',
-    ],
-    []
+  const allCategoryProperties = useMemo(
+    () => R.mergeAll(constructAllCategoryProperties()),
+    [constructAllCategoryProperties]
   )
 
-  const testColors = ['hsl(0, 100%, 75%)', 'hsl(236, 100%, 75%)']
-
-  const categoryToColor = R.zipObj(testCategories, testColors)
-
-  const [chartColors, setChartColors] = useState(categoryToColor)
+  const [chartColors, setChartColors] = useState(allCategoryProperties)
 
   useEffect(() => {
-    if (R.isEmpty(chartColors) && !R.isEmpty(categoryToColor)) {
-      setChartColors(categoryToColor)
+    if (R.isEmpty(chartColors) && !R.isEmpty(allCategoryProperties)) {
+      setChartColors(allCategoryProperties)
     }
-  }, [categoryToColor, chartColors])
+  }, [allCategoryProperties, chartColors])
 
   const onChangeColor = useCallback(
     (pathTail) => (value) => {
       setChartColors((prev) => ({
         ...prev,
-        [forceArray(pathTail)[1]]: value,
+        [forceArray(pathTail)[1]]: { color: value },
       }))
     },
     []
@@ -176,15 +120,18 @@ const ColorChangeModal = ({
       R.includes(searchText.toLowerCase())
     )
     const matchedCategories = []
-    const findMatchedCategories = (cat) => {
-      if (containsSearchText(cat)) {
-        matchedCategories.push(cat)
+    const findMatchedCategories = (property, label) => {
+      const finalCategory = property.lastCategory
+      if (containsSearchText(finalCategory)) {
+        matchedCategories.push(label)
       }
     }
-
-    R.forEach(findMatchedCategories, testCategories)
+    R.mapObjIndexed(
+      (property, label) => findMatchedCategories(property, label),
+      allCategoryProperties
+    )
     return matchedCategories
-  }, [searchText, testCategories])
+  }, [searchText, allCategoryProperties])
 
   const {
     colorPickerProps,
@@ -245,14 +192,19 @@ const ColorChangeModal = ({
               <Button
                 fullWidth
                 sx={{
-                  backgroundColor: formattedColor(chartColors[category]),
-                  color: getContrastText(chartColors[category]),
+                  backgroundColor: formattedColor(
+                    chartColors[category]['color']
+                  ),
+                  color: getContrastText(chartColors[category]['color']),
                 }}
                 color="greyscale"
                 variant="outlined"
-                onClick={handleOpen(category, chartColors[category])}
+                onClick={handleOpen(
+                  category,
+                  allCategoryProperties[category]['color']
+                )}
               >
-                {category}
+                {allCategoryProperties[category]['lastCategory']}
               </Button>
               {showColorPicker && colorPickerProps.key === category && (
                 <MuiColorInput
