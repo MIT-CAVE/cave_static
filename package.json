@@ -1,12 +1,15 @@
 {
   "name": "cave_static",
   "version": "3.5.0",
+  "type": "module",
   "scripts": {
-    "build": "export $(cat .env | xargs) && craco build",
+    "build": "vite build",
+    "build-dev": "vite build --mode development",
     "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
+    "preview": "vite preview",
     "reset": "npx rimraf ./package-lock.json && npm run setup",
     "setup": "npx rimraf ./node_modules && npm install && npx simple-git-hooks",
-    "start": "BROWSER=none ESLINT_NO_DEV_ERRORS=true craco start"
+    "start": "vite"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -38,7 +41,6 @@
     "react-map-gl": "8.0.4",
     "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
-    "react-scripts": "^5.0.1",
     "react-simple-keyboard": "^3.8.130",
     "react-syntax-highlighter": "^15.6.6",
     "react-transition-group": "^4.4.5",
@@ -53,18 +55,23 @@
   "devDependencies": {
     "@babel/core": "^7.28.4",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@craco/craco": "^7.1.0",
     "@emotion/eslint-plugin": "^11.12.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-compat": "^6.0.2",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-ramda": "^2.5.1",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-refresh": "^0.4.24",
     "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
-    "simple-git-hooks": "^2.13.1"
+    "simple-git-hooks": "^2.13.1",
+    "vite": "^7.1.10"
   },
   "engines": {
-    "node": "^20.18.0 || ^ 22.0.0",
+    "node": "^22.12.0 || ^24.3.0",
     "npm": "^10.0.0 || ^11.0.0"
   }
 }
