@@ -16,9 +16,9 @@
     "@emotion/styled": "^11.14.1",
     "@msgpack/msgpack": "^3.1.2",
     "@mui/material": "^7.3.4",
-    "@mui/x-data-grid": "^8.14.0",
-    "@mui/x-date-pickers": "^8.14.0",
-    "@reduxjs/toolkit": "^2.9.0",
+    "@mui/x-data-grid": "^8.14.1",
+    "@mui/x-date-pickers": "^8.14.1",
+    "@reduxjs/toolkit": "^2.9.1",
     "colord": "^2.9.3",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.18",
@@ -32,8 +32,8 @@
     "mui-color-input": "^7.0.0",
     "prop-types": "^15.8.1",
     "ramda": "^0.32.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-draggable": "^4.5.0",
     "react-fast-marquee": "^1.6.5",
     "react-grid-layout": "^1.5.2",
@@ -68,7 +68,7 @@
     "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
     "simple-git-hooks": "^2.13.1",
-    "vite": "^7.1.10"
+    "vite": "^7.1.11"
   },
   "engines": {
     "node": "^22.12.0 || ^24.3.0",
