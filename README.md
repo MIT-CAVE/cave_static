@@ -49,10 +49,11 @@ npm start
 
    **Production Build**
    - Create a production build:
+
+     > This creates a production-ready static build at the `BUILD_PATH` specified in your `.env` file.
      ```sh
      npm run build
      ```
-     > This creates a production-ready static build at the `BUILD_PATH` specified in your `.env` file.
 
    Notes:
    - The build process uses the `BASE_URL` specified in your `.env` file
@@ -64,12 +65,10 @@ npm start
    **Development Build**
    - Create a development build:
 
+     > Note: This will **override** any existing local build—development or production—at the specified `BUILD_PATH` on your system.
      ```sh
      npm run build-dev
      ```
-
-     > Note: This will **override** any existing local build—development or production—at the specified `BUILD_PATH` on your system.
-
    - Test your local build:
      ```sh
      npm run preview
