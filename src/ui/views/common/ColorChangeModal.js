@@ -8,7 +8,7 @@ import { useSelector } from 'react-redux'
 import { DataGridModal } from './BaseModal'
 
 import { selectStatGroupings } from '../../../data/selectors'
-import { colorGen } from '../../../utils/ColorGen'
+import { colorGen, rgbStringToHSLString } from '../../../utils/ColorGen'
 import { useColorPicker } from '../../compound/ColorPicker'
 
 import { forceArray, getContrastText } from '../../../utils'
@@ -45,7 +45,7 @@ const ColorChangeModal = ({
   )
 
   const constructSingleCategoryProperties = useCallback(
-    (parents, levelCategories) => {
+    (parents, levelCategories, coloring) => {
       const result = {}
       for (const [level, categories] of Object.entries(levelCategories)) {
         // If level does not have parents, it does not depend on other levels; same categories can be treated as same labels
@@ -62,7 +62,10 @@ const ColorChangeModal = ({
           )
           result[label] = {
             lastCategory: category,
-            color: colorGen(label),
+            color:
+              category in coloring
+                ? rgbStringToHSLString(coloring[category])
+                : colorGen(label),
           }
         })
       }
@@ -80,8 +83,15 @@ const ColorChangeModal = ({
         R.pluck('parent'),
         R.reject(R.isNil)
       )(grouping)
+      const coloring = R.pipe(
+        R.prop('levels'),
+        R.pluck('coloring'),
+        R.reject(R.isNil),
+        R.values,
+        R.mergeAll
+      )(grouping)
       groupingMaps.push(
-        constructSingleCategoryProperties(parent, levelCategories)
+        constructSingleCategoryProperties(parent, levelCategories, coloring)
       )
     }
     return groupingMaps
