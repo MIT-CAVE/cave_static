@@ -8,7 +8,8 @@ import { useSelector } from 'react-redux'
 import { DataGridModal } from './BaseModal'
 
 import { selectStatGroupings } from '../../../data/selectors'
-import { colorGen, rgbStringToHSLString } from '../../../utils/ColorGen'
+import { colorGen } from '../../../utils/ColorGen'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 import { useColorPicker } from '../../compound/ColorPicker'
 
 import { forceArray, getContrastText } from '../../../utils'
@@ -25,6 +26,27 @@ const ColorChangeModal = ({
   const [searchText, setSearchText] = useState('')
 
   const statGroupings = useSelector(selectStatGroupings)
+
+  const createHandleChangeColor = useMutateStateWithSync(
+    (coloringPath, category, color) => ({
+      path: [
+        'groupedOutputs',
+        'groupings',
+        ...coloringPath,
+        chartColors[category]['lastCategory'],
+      ],
+      value: color,
+    }),
+    []
+  )
+
+  const changeColor = useCallback(
+    (grouping, level, category, color) => {
+      const coloringPath = [grouping, 'levels', level, 'coloring']
+      createHandleChangeColor(coloringPath, category, color)
+    },
+    [createHandleChangeColor]
+  )
 
   const getCategoryLabel = useCallback(
     (categoryParents, levelCategories, category, index, level) => {
@@ -45,7 +67,7 @@ const ColorChangeModal = ({
   )
 
   const constructSingleCategoryProperties = useCallback(
-    (parents, levelCategories, coloring) => {
+    (grouping, parents, levelCategories, coloring) => {
       const result = {}
       for (const [level, categories] of Object.entries(levelCategories)) {
         // If level does not have parents, it does not depend on other levels; same categories can be treated as same labels
@@ -61,10 +83,12 @@ const ColorChangeModal = ({
             level
           )
           result[label] = {
+            grouping: grouping,
+            level: level,
             lastCategory: category,
             color:
               category in coloring
-                ? rgbStringToHSLString(coloring[category])
+                ? colord(coloring[category]).toHslString()
                 : colorGen(label),
           }
         })
@@ -76,7 +100,7 @@ const ColorChangeModal = ({
 
   const constructAllCategoryProperties = useCallback(() => {
     const groupingMaps = []
-    for (const grouping of R.values(statGroupings)) {
+    R.forEach(([groupingLabel, grouping]) => {
       const levelCategories = R.pipe(R.prop('data'), R.omit(['id']))(grouping)
       const parent = R.pipe(
         R.prop('levels'),
@@ -91,9 +115,14 @@ const ColorChangeModal = ({
         R.mergeAll
       )(grouping)
       groupingMaps.push(
-        constructSingleCategoryProperties(parent, levelCategories, coloring)
+        constructSingleCategoryProperties(
+          groupingLabel,
+          parent,
+          levelCategories,
+          coloring
+        )
       )
-    }
+    }, R.toPairs(statGroupings))
     return groupingMaps
   }, [constructSingleCategoryProperties, statGroupings])
 
@@ -112,12 +141,26 @@ const ColorChangeModal = ({
 
   const onChangeColor = useCallback(
     (pathTail) => (value) => {
-      setChartColors((prev) => ({
-        ...prev,
-        [forceArray(pathTail)[1]]: { color: value },
-      }))
+      const category = forceArray(pathTail)[1]
+      const rgbValue = colord(value).toRgbString()
+      const lastCategory = chartColors[category].lastCategory
+
+      // Update categories with same lastCategory as the current category being changed
+      Object.keys(chartColors).forEach((key) => {
+        if (chartColors[key].lastCategory === lastCategory) {
+          setChartColors((prev) => ({
+            ...prev,
+            [key]: {
+              ...prev[key],
+              color: rgbValue,
+            },
+          }))
+          const { grouping, level } = chartColors[key]
+          changeColor(grouping, level, category, rgbValue)
+        }
+      })
     },
-    []
+    [changeColor, chartColors]
   )
 
   const handleChangeSearchText = (event) => {

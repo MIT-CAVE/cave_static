@@ -176,19 +176,3 @@ export const colorGen = (uniqueId) => {
     colorGenerator.brightHSL()
   return colorGenerator.getHSLString()
 }
-
-export const rgbStringToHSLString = (rgbString) => {
-  const r = parseInt(
-    rgbString.slice(rgbString.indexOf('(') + 1, rgbString.indexOf(',')),
-    10
-  )
-  const g = parseInt(
-    rgbString.slice(rgbString.indexOf(',') + 1, rgbString.lastIndexOf(',')),
-    10
-  )
-  const b = parseInt(rgbString.slice(rgbString.lastIndexOf(',') + 1, -1), 10)
-
-  const colorGenerator = new ColorGenerator('foo')
-  const { h, s, l } = colorGenerator.rgbToHSL({ r: r, g: g, b: b })
-  return `hsl(${h}, ${s}%, ${l}%)`
-}
