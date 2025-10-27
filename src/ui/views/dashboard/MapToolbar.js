@@ -7,21 +7,17 @@ import {
   ToggleButtonGroup,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { MdDelete, MdCopyAll } from 'react-icons/md'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
-import { mutateLocal } from '../../../data/local'
-import {
-  selectSync,
-  selectCurrentPage,
-  selectMapData,
-} from '../../../data/selectors'
+import { selectCurrentPage, selectMapData } from '../../../data/selectors'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 import { RippleBox } from '../map/Legend'
 
 import { OverflowText } from '../../compound'
 
-import { getFreeName, includesPath } from '../../../utils'
+import { getFreeName } from '../../../utils'
 
 const styles = {
   wrapper: {
@@ -60,9 +56,6 @@ const styles = {
 }
 
 const MapToolbar = memo(({ chartObj, index }) => {
-  const dispatch = useDispatch()
-
-  const sync = useSelector(selectSync)
   const maps = useSelector(selectMapData)
   const currentPage = useSelector(selectCurrentPage)
 
@@ -80,47 +73,44 @@ const MapToolbar = memo(({ chartObj, index }) => {
     [chartObj, maps]
   )
 
-  const handleChange = useCallback(
+  const handleChange = useMutateStateWithSync(
     (event, mapId) => {
       if (mapId == null) return
-      dispatch(
-        mutateLocal({
-          path: [...path, 'mapId'],
-          value: mapId,
-          sync: !includesPath(R.values(sync), path),
-        })
-      )
+      return {
+        path: [...path, 'mapId'],
+        value: mapId,
+      }
     },
-    [dispatch, path, sync]
+    [path]
   )
 
-  const handleDuplicate = (value) => {
-    const key = getFreeName(value, R.keys(maps))
-    const name = getFreeName(
-      R.pathOr(value, [value, 'name'], maps),
-      R.values(R.mapObjIndexed((val, key) => R.propOr(key, 'name', val), maps))
-    )
-    dispatch(
-      mutateLocal({
+  const handleDuplicate = useMutateStateWithSync(
+    (value) => {
+      const key = getFreeName(value, R.keys(maps))
+      const name = getFreeName(
+        R.pathOr(value, [value, 'name'], maps),
+        R.values(
+          R.mapObjIndexed((val, key) => R.propOr(key, 'name', val), maps)
+        )
+      )
+      return {
         path: ['maps', 'data', key],
-        sync: !includesPath(R.values(sync), ['maps', 'data', key]),
         value: R.pipe(
           R.assoc('duplicate', true),
           R.assoc('name', name)
         )(maps[value]),
-      })
-    )
-  }
+      }
+    },
+    [maps]
+  )
 
-  const handleDelete = (key) => {
-    dispatch(
-      mutateLocal({
-        path: ['maps', 'data'],
-        sync: !includesPath(R.values(sync), ['maps', 'data']),
-        value: R.dissoc(key, maps),
-      })
-    )
-  }
+  const handleDelete = useMutateStateWithSync(
+    (key) => ({
+      path: ['maps', 'data'],
+      value: R.dissoc(key, maps),
+    }),
+    [maps]
+  )
 
   return (
     <Box sx={styles.wrapper}>

@@ -9,17 +9,14 @@ import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import * as React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useCallback, useState } from 'react'
+import { useSelector } from 'react-redux'
 
-import { mutateLocal } from '../../data/local'
 import {
   selectMergedNodes,
   selectNodeClustersAtZoomFunc,
-  selectSync,
 } from '../../data/selectors'
-
-import { includesPath } from '../../utils'
+import { useMutateStateWithSync } from '../../utils/hooks'
 
 const styles = {
   modal: {
@@ -48,10 +45,10 @@ const styles = {
 }
 
 const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
-  const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
-
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoomFunc)
+
   const targetCluster = R.find(
     R.allPass([
       R.path(['properties', 'cluster']),
@@ -59,6 +56,7 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       R.pathEq(title, ['properties', 'type']),
     ])
   )(groupedNodesAtZoom(mapId).data)
+
   // get all nodes in cluster
   const nodeData = R.toPairs(
     R.pick(
@@ -70,6 +68,7 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       )
     )
   ) //.map(node => node[1])
+
   // generate table columns for given cluster's props
   const tableColumns = [{ id: 'name', label: 'Name', minWidth: 170 }]
   for (const prop of Object.keys(nodeData[0][1].props)) {
@@ -78,112 +77,54 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   }
 
   // generate table rows for given cluster's node data
-  const createData = (node) => {
+  const tableRows = nodeData.map((node) => createData(node))
+
+  const createData = useCallback((node) => {
     const data = { name: R.propOr(node[0], 'name', node[1]), id: node[0] }
     for (const prop of Object.keys(node[1].props)) {
       data[prop] = node[1].values[prop].toString()
     }
     return data
+  }, [])
+
+  const handleClose = useMutateStateWithSync(
+    () => ({
+      path: ['panes', 'paneState', 'center'],
+      value: {},
+    }),
+    []
+  )
+
+  const handleChangePage = (_, newPage) => {
+    setPage(newPage)
   }
-  const tableRows = nodeData.map((node) => createData(node))
 
-  const StickyHeadTable = (rows, columns) => {
-    const [page, setPage] = React.useState(0)
-    const [rowsPerPage, setRowsPerPage] = React.useState(10)
-
-    const handleChangePage = (_, newPage) => {
-      setPage(newPage)
-    }
-
-    const handleChangeRowsPerPage = (event) => {
-      setRowsPerPage(+event.target.value)
-      setPage(0)
-    }
-
-    return (
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="sticky table">
-            <TableHead>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.id}
-                    align={column.align}
-                    style={{ minWidth: column.minWidth }}
-                  >
-                    {column.label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => {
-                  return (
-                    <TableRow
-                      hover
-                      onClick={() => {
-                        // get node data for clicked row
-                        const node = nodeData.find((node) => node[0] === row.id)
-                        // open map modal with node data
-                        dispatch(
-                          mutateLocal({
-                            path: ['panes', 'paneState', 'center'],
-                            value: {
-                              open: {
-                                ...node[1],
-                                feature: 'nodes',
-                                type: R.propOr(node[1].type, 'name')(node[1]),
-                                key: JSON.stringify([
-                                  targetCluster.properties.type,
-                                  node[0],
-                                ]),
-                                mapId,
-                              },
-                              type: 'feature',
-                            },
-                            sync: !includesPath(R.values(sync), [
-                              'panes',
-                              'paneState',
-                              'center',
-                            ]),
-                          })
-                        )
-                      }}
-                      role="checkbox"
-                      tabIndex={-1}
-                      key={row.id}
-                    >
-                      {columns.map((column) => {
-                        const value = row[column.id]
-                        return (
-                          <TableCell key={column.id} align={column.align}>
-                            {column.format && typeof value === 'number'
-                              ? column.format(value)
-                              : value}
-                          </TableCell>
-                        )
-                      })}
-                    </TableRow>
-                  )
-                })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
-          component="div"
-          count={rows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
-    )
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(+event.target.value)
+    setPage(0)
   }
+
+  const handleClickRow = useMutateStateWithSync(
+    (row) => {
+      // get node data for clicked row
+      const node = nodeData.find((node) => node[0] === row.id)
+      // open map modal with node data
+      return {
+        path: ['panes', 'paneState', 'center'],
+        value: {
+          open: {
+            ...node[1],
+            feature: 'nodes',
+            type: R.propOr(node[1].type, 'name')(node[1]),
+            key: JSON.stringify([targetCluster.properties.type, node[0]]),
+            mapId,
+          },
+          type: 'feature',
+        },
+      }
+    },
+    [mapId, nodeData, targetCluster.properties.type]
+  )
 
   return (
     <Modal
@@ -191,19 +132,7 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => {
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: {},
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
-          })
-        )
-      }}
+      onClose={handleClose}
       {...props}
     >
       <Box sx={styles.modal}>
@@ -213,7 +142,60 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
           </Typography>
         </Box>
         <Box sx={{ overflow: 'auto', maxHeight: '80vh', maxWidth: '90vw' }}>
-          {StickyHeadTable(tableRows, tableColumns)}
+          <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <TableContainer sx={{ maxHeight: 440 }}>
+              <Table stickyHeader aria-label="sticky table">
+                <TableHead>
+                  <TableRow>
+                    {tableColumns.map((column) => (
+                      <TableCell
+                        key={column.id}
+                        align={column.align}
+                        style={{ minWidth: column.minWidth }}
+                      >
+                        {column.label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tableRows
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((row) => {
+                      return (
+                        <TableRow
+                          hover
+                          onClick={() => handleClickRow(row)}
+                          role="checkbox"
+                          tabIndex={-1}
+                          key={row.id}
+                        >
+                          {tableColumns.map((column) => {
+                            const value = row[column.id]
+                            return (
+                              <TableCell key={column.id} align={column.align}>
+                                {column.format && typeof value === 'number'
+                                  ? column.format(value)
+                                  : value}
+                              </TableCell>
+                            )
+                          })}
+                        </TableRow>
+                      )
+                    })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 100]}
+              component="div"
+              count={tableRows.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+            />
+          </Paper>
         </Box>
       </Box>
     </Modal>

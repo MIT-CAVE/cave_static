@@ -20,19 +20,22 @@ import {
   selectCurrentPage,
   selectPageLayout,
   selectDashboardLockedLayout,
-  selectSync,
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
   selectEditLayoutMode,
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { useChartTools, useModal, useMutateState } from '../../../utils/hooks'
+import {
+  useChartTools,
+  useModal,
+  useMutateStateWithSync,
+} from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
-import { getFreeName, getNumActiveFilters, includesPath } from '../../../utils'
+import { getFreeName, getNumActiveFilters } from '../../../utils'
 
 import 'react-grid-layout/css/styles.css'
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -76,7 +79,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
   const editLayoutMode = useSelector(selectEditLayoutMode)
-  const sync = useSelector(selectSync)
 
   const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
   const { chartToolsOpen, handleOpenChartTools, handleCloseChartTools } =
@@ -91,25 +93,23 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const chartType = R.propOr('bar', 'chartType')(chartObj)
 
   // Allow session_mutate to perform non-object value update
-  const handleChartHover = useMutateState(
+  const handleChartHover = useMutateStateWithSync(
     (value) => ({
       path,
       value: R.assoc('chartHoverOrder', value)(chartObj),
-      sync: !includesPath(R.values(sync), path),
     }),
-    [chartHoverOrder, sync, chartObj, path]
+    [chartObj, path]
   )
 
-  const handleToggleMaximize = useMutateState(
+  const handleToggleMaximize = useMutateStateWithSync(
     () => ({
       path,
       value: R.assoc('maximized', !isMaximized)(chartObj),
-      sync: !includesPath(R.values(sync), path),
     }),
-    [chartObj, isMaximized, path, sync]
+    [chartObj, isMaximized, path]
   )
 
-  const handleRemoveChart = useMutateState(() => {
+  const handleRemoveChart = useMutateStateWithSync(() => {
     const nameIndex = R.pipe(R.findIndex(R.equals(index)))(pageLayout)
     const findIndicies = (idx) => {
       const lineLength = pageLayout.length === 9 ? 3 : 2
@@ -131,35 +131,31 @@ const DashboardItem = ({ chartObj, index, path }) => {
         ),
         lockedLayout,
       },
-      sync: !includesPath(R.values(sync), pagePath),
     }
-  }, [charts, sync, index, path])
+  }, [index, pageLayout, path, charts, lockedLayout])
 
-  const handleSaveFilters = useMutateState(
+  const handleSaveFilters = useMutateStateWithSync(
     (filters) => ({
       path,
       value: R.assoc('filters', filters)(chartObj),
-      sync: !includesPath(R.values(sync), path),
     }),
-    [chartObj, path, sync]
+    [chartObj, path]
   )
 
-  const handleDefaultToZero = useMutateState(
+  const handleDefaultToZero = useMutateStateWithSync(
     () => ({
       path,
       value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
-      sync: !includesPath(R.values(sync), path),
     }),
-    [chartObj, defaultToZero, path, sync]
+    [chartObj, defaultToZero, path]
   )
 
-  const handleToggleShowNA = useMutateState(
+  const handleToggleShowNA = useMutateStateWithSync(
     () => ({
       path,
       value: R.assoc('showNA', !showNA)(chartObj),
-      sync: !includesPath(R.values(sync), path),
     }),
-    [chartObj, path, showNA, sync]
+    [chartObj, path, showNA]
   )
 
   const [statFilters, groupingFilters] = useMemo(
@@ -263,7 +259,6 @@ const Dashboard = () => {
   const currentPage = useSelector(selectCurrentPage)
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const rightBar = useSelector(selectRightAppBarDisplay)
-  const sync = useSelector(selectSync)
 
   useEffect(() => {
     setCursor(editLayoutMode ? 'grab' : 'auto')
@@ -285,7 +280,7 @@ const Dashboard = () => {
     [charts]
   )
 
-  const handleAddChart = useMutateState(() => {
+  const handleAddChart = useMutateStateWithSync(() => {
     const name = getFreeName('chart', R.keys(charts))
     const index = R.findIndex(R.isNil)(pageLayout)
 
@@ -299,19 +294,12 @@ const Dashboard = () => {
         pageLayout,
         lockedLayout,
       }),
-      sync: !includesPath(R.values(sync), pagePath),
     }
-  }, [pageLayout, pagePath, sync, charts, lockedLayout, CHART_DEFAULTS])
+  }, [pageLayout, pagePath, charts, lockedLayout])
 
-  const handleUpdateLayout = useMutateState(
-    (layout) => {
-      return {
-        path: layoutPath,
-        value: layout,
-        sync: !includesPath(R.values(sync), layoutPath),
-      }
-    },
-    [layoutPath, sync]
+  const handleUpdateLayout = useMutateStateWithSync(
+    (layout) => ({ path: layoutPath, value: layout }),
+    [layoutPath]
   )
 
   const translateLayoutToGrid = useCallback(

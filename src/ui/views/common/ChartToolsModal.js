@@ -1,20 +1,16 @@
 import { Card } from '@mui/material'
 import * as R from 'ramda'
-import { useSelector } from 'react-redux'
 
 import { DataGridModal } from './BaseModal'
 
-import { selectSync } from '../../../data/selectors'
 import { CHART_DEFAULTS } from '../../../utils/constants'
 import { chartVariant } from '../../../utils/enums'
-import { useMutateState } from '../../../utils/hooks'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 import GlobalOutputsToolbar from '../dashboard/GlobalOutputsToolbar'
 import GroupedOutputsToolbar from '../dashboard/GroupedOutputsToolbar'
 import MapToolbar from '../dashboard/MapToolbar'
 
 import { Select } from '../../compound'
-
-import { includesPath } from '../../../utils'
 
 const styles = {
   content: {
@@ -32,9 +28,7 @@ const ChartToolsModal = ({
   index,
   path,
 }) => {
-  const sync = useSelector(selectSync)
-
-  const handleSelectVizType = useMutateState(
+  const handleSelectVizType = useMutateStateWithSync(
     (value) => {
       return {
         path,
@@ -42,10 +36,9 @@ const ChartToolsModal = ({
           value === chartVariant.map ? R.dissoc('chartType') : R.identity,
           R.assoc('type', value)
         )(CHART_DEFAULTS),
-        sync: !includesPath(R.values(sync), path),
       }
     },
-    [sync, chartObj, path, CHART_DEFAULTS]
+    [chartObj, path, CHART_DEFAULTS]
   )
 
   return (

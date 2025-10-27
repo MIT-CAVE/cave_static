@@ -53,6 +53,7 @@ import {
   parseGradient,
   getChartItemColor,
   isMapboxStyle,
+  excludesPath,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -134,8 +135,14 @@ export const selectLocalSettings = createSelector(selectLocal, (data) =>
 export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
   R.prop('currentTime')(data)
 )
-export const selectSync = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'sync')(data)
+export const selectSync = createSelector(
+  selectLocalSettings,
+  // TODO: Rename to `desyncedPaths`
+  R.propOr({}, 'sync')
+)
+export const selectIsSynced = createSelector(
+  selectSync,
+  R.pipe(R.values, excludesPath)
 )
 export const selectEditLayoutMode = createSelector(
   selectLocalSettings,

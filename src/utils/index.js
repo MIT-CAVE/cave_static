@@ -30,10 +30,11 @@ export const findSubgroupLabels = R.pipe(
   R.uniq
 )
 
-// checks if paths contains the given path, or a path to one of its parents
-export const includesPath = (paths, path) => {
-  return R.any((sub) => path.join(',').indexOf(sub.join(',')) === 0)(paths)
-}
+// Checks that `path` is not nested under any of the provided sub-paths in `paths`
+// Useful for identifying paths that should be (de)synced between client and server
+export const excludesPath = R.curry((paths, path) =>
+  R.none((sub) => R.equals(sub)(R.slice(0, sub.length, path)))(paths)
+)
 
 // given a path of arc points adjust them to ensure proper wrapping around the anti-meridian
 export const adjustArcPath = (path) => {

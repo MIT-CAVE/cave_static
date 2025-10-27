@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { includesPath } from '.'
-
 import { mutateLocal } from '../data/local'
-import { selectSync } from '../data/selectors'
+import { selectIsSynced } from '../data/selectors'
 
 export const useToggle = (defaultValue, stopPropagation = false) => {
   const [value, setValue] = useState(defaultValue)
@@ -89,45 +87,18 @@ export const useMutateState = (getArgs, deps) => {
  * @return {function} A callback that dispatches the `mutateLocal` action with sync handling based on the provided argument.
  */
 export const useMutateStateWithSync = (getArgs, deps) => {
-  const sync = useSelector(selectSync)
+  const isSynced = useSelector(selectIsSynced)
   const dispatch = useDispatch()
   return useCallback(
     (...params) => {
       const args = getArgs(...params)
       if (!args) return
-      dispatch(
-        mutateLocal({
-          sync: !includesPath(Object.values(sync), args.path),
-          ...args,
-        })
-      )
+      const sync = args.sync ?? isSynced(args.path)
+      dispatch(mutateLocal({ sync, ...args }))
     },
     // NOTE: `dispatch` is not included in the deps because it
     // is stable in Redux and will not change between renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sync, ...deps]
-  )
-}
-
-export const useMutateWithSyncFactory = (getArgs, deps) => {
-  const sync = useSelector(selectSync)
-  const dispatch = useDispatch()
-  return useCallback(
-    (...params) => {
-      const argsOrFn = getArgs(...params)
-      // Resolve high-order functions
-      if (typeof argsOrFn === 'function') return argsOrFn
-      if (!argsOrFn) return
-      dispatch(
-        mutateLocal({
-          sync: !includesPath(Object.values(sync), argsOrFn.path),
-          ...argsOrFn,
-        })
-      )
-    },
-    // NOTE: `dispatch` is not included in the deps because it
-    // is stable in Redux and will not change between renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sync, ...deps]
+    [getArgs, isSynced, ...deps]
   )
 }

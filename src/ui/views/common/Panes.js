@@ -1,33 +1,29 @@
 import '../../../App.css'
+
 import { ClickAwayListener, Box } from '@mui/material'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import AppBar from './AppBar'
-import renderAppPane from './Pane'
+import renderAppPane from './renderAppPane'
 
 import { mutateLocal } from '../../../data/local'
 import {
+  selectIsSynced,
   selectLeftAppBarData,
   selectLeftAppBarDisplay,
-  selectLeftGroupedAppBar,
   selectLeftOpenPane,
   selectLeftOpenPanesData,
   selectLeftPinPane,
   selectMirrorMode,
   selectRightAppBarData,
   selectRightAppBarDisplay,
-  selectRightGroupedAppBar,
   selectRightOpenPane,
   selectRightOpenPanesData,
   selectRightPinPane,
-  selectSync,
   selectVirtualKeyboard,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
-
-import { includesPath } from '../../../utils'
 
 const styles = {
   pane: {
@@ -36,50 +32,6 @@ const styles = {
     height: '100vh',
     top: 0,
   },
-}
-
-const LeftAppBar = () => {
-  const leftBar = useSelector(selectLeftAppBarDisplay)
-  const leftGroupedAppBar = useSelector(selectLeftGroupedAppBar)
-  const leftOpen = useSelector(selectLeftOpenPane)
-  const leftPin = useSelector(selectLeftPinPane)
-  const rightGroupedAppBar = useSelector(selectRightGroupedAppBar)
-  const mirrorMode = useSelector(selectMirrorMode)
-  return (
-    <>
-      {leftBar && (
-        <AppBar
-          appBar={mirrorMode ? rightGroupedAppBar : leftGroupedAppBar}
-          open={leftOpen}
-          pin={leftPin}
-          side="left"
-          source={mirrorMode ? 'right' : 'left'}
-        />
-      )}
-    </>
-  )
-}
-
-const RightAppBar = () => {
-  const rightBar = useSelector(selectRightAppBarDisplay)
-  const rightGroupedAppBar = useSelector(selectRightGroupedAppBar)
-  const rightOpen = useSelector(selectRightOpenPane)
-  const rightPin = useSelector(selectRightPinPane)
-  const leftGroupedAppBar = useSelector(selectLeftGroupedAppBar)
-  const mirrorMode = useSelector(selectMirrorMode)
-  return (
-    <>
-      {rightBar && (
-        <AppBar
-          appBar={mirrorMode ? leftGroupedAppBar : rightGroupedAppBar}
-          open={rightOpen}
-          pin={rightPin}
-          side="right"
-          source={mirrorMode ? 'left' : 'right'}
-        />
-      )}
-    </>
-  )
 }
 
 const Panes = () => {
@@ -94,7 +46,7 @@ const Panes = () => {
   const rightOpenPanesData = useSelector(selectRightOpenPanesData)
   const rightPin = useSelector(selectRightPinPane)
   const mirrorMode = useSelector(selectMirrorMode)
-  const sync = useSelector(selectSync)
+  const isSynced = useSelector(selectIsSynced)
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
   const dispatch = useDispatch()
 
@@ -119,15 +71,12 @@ const Panes = () => {
       R.forEach(
         ([side, open, pin, pageClick]) => {
           if (!pin && R.isNotNil(open) && open !== '' && pageClick) {
+            // FIXME: Replace with useMutateStateWithSync
             dispatch(
               mutateLocal({
                 path: ['panes', 'paneState', side],
                 value: {},
-                sync: !includesPath(R.values(sync), [
-                  'panes',
-                  'paneState',
-                  side,
-                ]),
+                sync: isSynced(['panes', 'paneState', side]),
               })
             )
           }
@@ -150,7 +99,7 @@ const Panes = () => {
     },
     [
       dispatch,
-      sync,
+      isSynced,
       leftBar,
       leftOpen,
       leftPin,
@@ -165,16 +114,12 @@ const Panes = () => {
     return {
       pin: side === 'right' ? rightPin : leftPin,
       onPin: () => {
+        // FIXME: Replace with useMutateStateWithSync
         dispatch(
           mutateLocal({
             path: ['panes', 'paneState', side, 'pin'],
             value: side === 'right' ? !rightPin : !leftPin,
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              side,
-              'pin',
-            ]),
+            sync: isSynced(['panes', 'paneState', side, 'pin']),
           })
         )
       },
@@ -186,7 +131,7 @@ const Panes = () => {
       <Box>
         {R.map(
           ([side, open, pane, openPanesData]) =>
-            R.isNotEmpty(open) ? (
+            R.isNotEmpty(open) && (
               <Box key={side} sx={styles.pane}>
                 {renderAppPane({
                   open,
@@ -196,8 +141,6 @@ const Panes = () => {
                   ...getPinObj(side),
                 })}
               </Box>
-            ) : (
-              []
             ),
           [
             ['left', leftOpen, leftPane, leftOpenPanesData],
@@ -209,4 +152,4 @@ const Panes = () => {
   )
 }
 
-export { LeftAppBar, RightAppBar, Panes }
+export default Panes
