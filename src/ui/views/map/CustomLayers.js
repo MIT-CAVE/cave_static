@@ -10,7 +10,6 @@ import {
   useCallback,
   useContext,
 } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 import * as THREE from 'three'
@@ -19,6 +18,7 @@ import useMapApi, { MapContext } from './useMapApi'
 
 import { selectSettingsIconUrl } from '../../../data/selectors'
 import { ICON_RESOLUTION } from '../../../utils/constants'
+import { getSvgMarkup } from '../../../utils/svgBuilder'
 
 import { fetchIcon } from '../../../utils'
 
@@ -380,15 +380,12 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
     ]
     R.forEach(async (iconName) => {
       const iconComponent =
-        iconName === 'MdDownloading' ? (
-          <MdDownloading />
-        ) : (
-          (await fetchIcon(iconName, iconUrl))()
-        )
-      const svgString = renderToStaticMarkup(iconComponent)
-      const iconSrc = `data:image/svg+xml;base64,${window.btoa(svgString)}`
-      if (!iconData[iconName])
-        setIconData((iconStrings) => R.assoc(iconName, iconSrc)(iconStrings))
+        iconName === 'MdDownloading'
+          ? MdDownloading
+          : await fetchIcon(iconName, iconUrl)
+      const svgMarkup = getSvgMarkup(iconComponent)
+      const iconSrc = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
+      if (!iconData[iconName]) setIconData(R.assoc(iconName, iconSrc))
     })(iconsToLoad)
   }, [nodesMemo, iconUrl, iconData])
 

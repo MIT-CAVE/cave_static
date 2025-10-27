@@ -1,6 +1,6 @@
-// REVIEW: We should consider using `createRoot` from `react-dom/client` and read HTML from the DOM, for better performance.
-// Similarly, we should do the same with `renderToStaticMarkup` imports to avoid unnecessarily increasing the bundle size.
-// See: https://react.dev/reference/react-dom/server/renderToString#removing-rendertostring-from-the-client-code
+import { flushSync } from 'react-dom'
+import { createRoot } from 'react-dom/client'
+
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 
 const SVG_TAGS = new Set([
@@ -77,8 +77,10 @@ const isExplicitColor = (value) =>
  * @param {string} fillColor - Fallback fill color
  * @param {number|string} size - Width and height to apply to the root <svg>
  * @returns {SVGElement} - A fully constructed <svg> DOM element
+ * @deprecated Use `getSvgMarkup` instead for better performance
+ * @see https://react.dev/reference/react-dom/server/renderToString#removing-rendertostring-from-the-client-code
  */
-const buildSvgElementFromIconTree = (rootNode, fillColor, size) => {
+export const buildSvgElementFromIconTree = (rootNode, fillColor, size) => {
   // const applyFallbackFill = !hasExplicitFill(rootNode)
   const createElement = ({ tag, attr = {}, child = [] }) => {
     const shouldUseSvgNamespace = SVG_TAGS.has(tag)
@@ -124,4 +126,12 @@ const buildSvgElementFromIconTree = (rootNode, fillColor, size) => {
   return createElement(rootNode)
 }
 
-export default buildSvgElementFromIconTree
+const div = document.createElement('div')
+const root = createRoot(div)
+
+export const getSvgMarkup = (RootNode, fillColor, size) => {
+  flushSync(() => {
+    root.render(<RootNode style={{ color: fillColor }} {...{ size }} />)
+  })
+  return div.innerHTML
+}
