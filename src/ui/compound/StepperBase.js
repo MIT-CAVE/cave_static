@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { getSvgMarkup } from '../../utils/svgBuilder'
+import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
 import { fetchIcon, forceArray, getContrastText } from '../../utils'
 
@@ -53,8 +53,7 @@ const useIconFetcher = (options, propAttrs, activeDefaults) => {
       // console.log('fetching...', iconName)
       const iconRootNode = await fetchIcon(iconName, undefined)
       const fillColor = getContrastText(currentColor)
-      const svgMarkup = getSvgMarkup(iconRootNode, fillColor, currentSize)
-      return `data:image/svg+xml,${svgMarkup}`
+      return getIconSvgDataUri(iconRootNode, fillColor, currentSize)
     },
     []
   )

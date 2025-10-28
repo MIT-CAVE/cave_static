@@ -135,3 +135,8 @@ export const getSvgMarkup = (RootNode, fillColor, size) => {
   })
   return div.innerHTML
 }
+
+export const getIconSvgDataUri = (rootNode, fillColor, size) => {
+  const svgMarkup = getSvgMarkup(rootNode, fillColor, size)
+  return `data:image/svg+xml,${encodeURIComponent(svgMarkup)}`
+}

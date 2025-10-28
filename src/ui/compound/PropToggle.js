@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import FetchedIcon from './FetchedIcon'
 
-import { getSvgMarkup } from '../../utils/svgBuilder'
+import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
 import { fetchIcon, forceArray, getContrastText } from '../../utils'
 
@@ -259,8 +259,7 @@ const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
         getCurrentAttr(value, color, activeColor) ??
         (value ? '#90caf9' : '#e0e0e0') // These match MUI's defaults (`primary.main` & `grey[300]`)
       const fillColor = getContrastText(currentColor)
-      const svgMarkup = getSvgMarkup(iconRootNode, fillColor, size)
-      return `data:image/svg+xml,${svgMarkup}`
+      return getIconSvgDataUri(iconRootNode, fillColor, size)
     },
     [activeColor, color, size, value]
   )
