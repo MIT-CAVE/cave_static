@@ -1,4 +1,12 @@
-import { TextField, Box, Button, Paper } from '@mui/material'
+import {
+  TextField,
+  Box,
+  Button,
+  Paper,
+  FormControl,
+  InputLabel,
+  Stack,
+} from '@mui/material'
 import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
@@ -11,6 +19,8 @@ import { selectStatGroupings } from '../../../data/selectors'
 import { colorGen } from '../../../utils/ColorGen'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { useColorPicker } from '../../compound/ColorPicker'
+
+import { Select } from '../../compound'
 
 import { forceArray, getContrastText } from '../../../utils'
 
@@ -26,6 +36,16 @@ const ColorChangeModal = ({
   const [searchText, setSearchText] = useState('')
 
   const statGroupings = useSelector(selectStatGroupings)
+
+  const allCategories = useMemo(
+    () =>
+      R.flatten(
+        R.values(R.map(R.pipe(R.prop('levels'), R.keys), statGroupings))
+      ),
+    [statGroupings]
+  )
+
+  const currentCategory = R.prop('groupingLevel')(chartObj)[1]
 
   const createHandleChangeColor = useMutateStateWithSync(
     (coloringPath, category, color) => ({
@@ -175,16 +195,19 @@ const ColorChangeModal = ({
     const matchedCategories = []
     const findMatchedCategories = (property, label) => {
       const finalCategory = property.lastCategory
-      if (containsSearchText(finalCategory)) {
+      if (
+        containsSearchText(finalCategory) &&
+        property.level === currentCategory
+      ) {
         matchedCategories.push(label)
       }
     }
     R.mapObjIndexed(
       (property, label) => findMatchedCategories(property, label),
-      allCategoryProperties
+      chartColors
     )
     return matchedCategories
-  }, [searchText, allCategoryProperties])
+  }, [searchText, chartColors, currentCategory])
 
   const {
     colorPickerProps,
@@ -227,12 +250,26 @@ const ColorChangeModal = ({
       }}
       {...{ label, labelExtra, open, onClose }}
     >
-      <TextField
-        placeholder="Search final category level"
-        label="Search"
-        value={searchText}
-        onChange={handleChangeSearchText}
-      />
+      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        <TextField
+          placeholder="Search final category level"
+          label="Search"
+          value={searchText}
+          onChange={handleChangeSearchText}
+          sx={{ width: '70%' }}
+        />
+        <FormControl fullWidth sx={{ flex: 1 }}>
+          <InputLabel id="category-label">{'Category'}</InputLabel>
+          <Select
+            id="category"
+            labelId="category-label"
+            label="Category"
+            value={currentCategory}
+            optionsList={allCategories}
+            //TODO onSelect={handleChangeCategory}
+          />
+        </FormControl>
+      </Stack>
       <Box
         display="flex"
         flexDirection="column-reverse"
