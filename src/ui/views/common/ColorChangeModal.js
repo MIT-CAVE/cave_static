@@ -6,6 +6,7 @@ import {
   FormControl,
   InputLabel,
   Stack,
+  Tooltip,
 } from '@mui/material'
 import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
@@ -284,23 +285,25 @@ const ColorChangeModal = ({
         {R.map((category) => {
           return (
             <Paper key={category}>
-              <Button
-                fullWidth
-                sx={{
-                  backgroundColor: formattedColor(
-                    chartColors[category]['color']
-                  ),
-                  color: getContrastText(chartColors[category]['color']),
-                }}
-                color="greyscale"
-                variant="outlined"
-                onClick={handleOpen(
-                  category,
-                  allCategoryProperties[category]['color']
-                )}
-              >
-                {allCategoryProperties[category]['lastCategory']}
-              </Button>
+              <Tooltip title={category} placement="top">
+                <Button
+                  fullWidth
+                  sx={{
+                    backgroundColor: formattedColor(
+                      chartColors[category]['color']
+                    ),
+                    color: getContrastText(chartColors[category]['color']),
+                  }}
+                  color="greyscale"
+                  variant="outlined"
+                  onClick={handleOpen(
+                    category,
+                    allCategoryProperties[category]['color']
+                  )}
+                >
+                  {allCategoryProperties[category]['lastCategory']}
+                </Button>
+              </Tooltip>
               {showColorPicker && colorPickerProps.key === category && (
                 <MuiColorInput
                   fullWidth
