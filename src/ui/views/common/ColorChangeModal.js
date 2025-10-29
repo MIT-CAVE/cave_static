@@ -25,13 +25,7 @@ import { Select } from '../../compound'
 
 import { forceArray, getContrastText } from '../../../utils'
 
-const ColorChangeModal = ({
-  open,
-  label,
-  labelExtra,
-  onClose,
-  chartObj,
-}) => {
+const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [searchText, setSearchText] = useState('')
   const [currentCategory, setCurrentCategory] = useState(
     R.prop('groupingLevel')(chartObj)[1]
