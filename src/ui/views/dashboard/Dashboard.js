@@ -234,8 +234,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
       <ColorChangeModal
         {...{
           chartObj,
-          index,
-          path,
         }}
         label="Color Change"
         labelExtra="Note: Any color changes are applied to ALL relevant charts"

@@ -31,8 +31,6 @@ const ColorChangeModal = ({
   labelExtra,
   onClose,
   chartObj,
-  index,
-  path,
 }) => {
   const [searchText, setSearchText] = useState('')
   const [currentCategory, setCurrentCategory] = useState(
