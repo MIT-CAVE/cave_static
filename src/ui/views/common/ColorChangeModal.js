@@ -34,6 +34,9 @@ const ColorChangeModal = ({
   path,
 }) => {
   const [searchText, setSearchText] = useState('')
+  const [currentCategory, setCurrentCategory] = useState(
+    R.prop('groupingLevel')(chartObj)[1]
+  )
 
   const statGroupings = useSelector(selectStatGroupings)
 
@@ -45,7 +48,9 @@ const ColorChangeModal = ({
     [statGroupings]
   )
 
-  const currentCategory = R.prop('groupingLevel')(chartObj)[1]
+  const handleChangeCategory = (value) => {
+    setCurrentCategory(value)
+  }
 
   const createHandleChangeColor = useMutateStateWithSync(
     (coloringPath, category, color) => ({
@@ -266,7 +271,7 @@ const ColorChangeModal = ({
             label="Category"
             value={currentCategory}
             optionsList={allCategories}
-            //TODO onSelect={handleChangeCategory}
+            onSelect={handleChangeCategory}
           />
         </FormControl>
       </Stack>
