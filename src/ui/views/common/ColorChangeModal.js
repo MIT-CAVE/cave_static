@@ -246,7 +246,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
           label="Search"
           value={searchText}
           onChange={handleChangeSearchText}
-          sx={{ width: '70%' }}
+          sx={{ width: '65%' }}
         />
         <FormControl fullWidth sx={{ flex: 1 }}>
           <InputLabel id="category-label">{'Category'}</InputLabel>
@@ -273,10 +273,10 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
                 display: 'flex',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 3,
+                gap: 2,
               }}
             >
-              <Paper key={category} sx={{ width: '70%' }}>
+              <Paper key={category} sx={{ width: '65%' }}>
                 <Tooltip title={category} placement="top">
                   <Box
                     sx={{
@@ -299,7 +299,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
                 color="warning"
                 format="hex8"
                 value={formattedColor(chartColors[category]['color'])}
-                style={{ width: '30%' }}
+                style={{ width: '33%' }}
                 slotProps={{ input: { style: { borderRadius: 0 } } }}
                 onChange={(value, colors) =>
                   handleChange(value, colors, category)
