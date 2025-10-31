@@ -104,13 +104,15 @@ const MainButtons = ({
       </TooltipButton>
     )}
 
-    <TooltipButton
-      title="Change color"
-      placement="bottom-start"
-      onClick={onOpenColorChange}
-    >
-      <MdOutlineColorLens size={24} />
-    </TooltipButton>
+    {isGroupedOutput && (
+      <TooltipButton
+        title="Change color"
+        placement="bottom-start"
+        onClick={onOpenColorChange}
+      >
+        <MdOutlineColorLens size={24} />
+      </TooltipButton>
+    )}
 
     <TooltipButton
       title="View more Actions"
