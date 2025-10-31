@@ -1,7 +1,6 @@
 import {
   TextField,
   Box,
-  Button,
   Paper,
   FormControl,
   InputLabel,
@@ -23,7 +22,7 @@ import { useColorPicker } from '../../compound/ColorPicker'
 
 import { Select } from '../../compound'
 
-import { forceArray, getContrastText } from '../../../utils'
+import { forceArray } from '../../../utils'
 
 const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [searchText, setSearchText] = useState('')
@@ -207,24 +206,18 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
     return matchedCategories
   }, [searchText, chartColors, currentCategory])
 
-  const {
-    colorPickerProps,
-    showColorPicker,
-    handleOpen,
-    handleClose,
-    handleChange: handleChangeRaw,
-  } = useColorPicker(onChangeColor)
+  const { handleClose, handleChange: handleChangeRaw } =
+    useColorPicker(onChangeColor)
 
   const handleChange = useCallback(
-    (value, colorOutputs) => {
-      const option = colorPickerProps.key
+    (value, colorOutputs, category) => {
       const pathTail =
-        option === 'null' // Updating fallback color?
+        category === 'null' // Updating fallback color?
           ? ['fallback', 'color']
-          : ['options', option, 'color']
+          : ['options', category, 'color']
       handleChangeRaw(value, colorOutputs, pathTail)
     },
-    [handleChangeRaw, colorPickerProps.key]
+    [handleChangeRaw]
   )
 
   const formattedColor = (value) => {
@@ -238,8 +231,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       slotProps={{
         paper: {
           sx: {
-            width: '400px',
-            height: '900px',
+            width: '750px',
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
@@ -276,40 +268,45 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       >
         {R.map((category) => {
           return (
-            <Paper key={category}>
-              <Tooltip title={category} placement="top">
-                <Button
-                  fullWidth
-                  sx={{
-                    backgroundColor: formattedColor(
-                      chartColors[category]['color']
-                    ),
-                    color: getContrastText(chartColors[category]['color']),
-                  }}
-                  color="greyscale"
-                  variant="outlined"
-                  onClick={handleOpen(
-                    category,
-                    allCategoryProperties[category]['color']
-                  )}
-                >
-                  {allCategoryProperties[category]['lastCategory']}
-                </Button>
-              </Tooltip>
-              {showColorPicker && colorPickerProps.key === category && (
-                <MuiColorInput
-                  fullWidth
-                  focused
-                  color="warning"
-                  format="hex8"
-                  value={formattedColor(colorPickerProps.value)}
-                  style={{ marginTop: '20px', flex: '1 1 auto' }}
-                  slotProps={{ input: { style: { borderRadius: 0 } } }}
-                  onChange={handleChange}
-                  onClose={handleClose}
-                />
-              )}
-            </Paper>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 3,
+              }}
+            >
+              <Paper key={category} sx={{ width: '70%' }}>
+                <Tooltip title={category} placement="top">
+                  <Box
+                    sx={{
+                      color: 'white',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      display: 'flex',
+                      height: '70px',
+                      fontSize: '20px',
+                      '&:hover': {
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                      },
+                    }}
+                  >
+                    {allCategoryProperties[category]['lastCategory']}
+                  </Box>
+                </Tooltip>
+              </Paper>
+              <MuiColorInput
+                color="warning"
+                format="hex8"
+                value={formattedColor(chartColors[category]['color'])}
+                style={{ width: '30%' }}
+                slotProps={{ input: { style: { borderRadius: 0 } } }}
+                onChange={(value, colors) =>
+                  handleChange(value, colors, category)
+                }
+                onClose={handleClose}
+              />
+            </Box>
           )
         })(visibleGroupings)}
       </Box>
