@@ -181,6 +181,10 @@ export const selectAppBar = createSelector(selectData, (data) => {
   )
   return appBar
 })
+export const selectDraggables = createSelector(
+  selectData,
+  R.propOr({}, 'draggables')
+)
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'groupedOutputs')(data)
 )
@@ -203,9 +207,6 @@ export const selectSettings = createSelector(
 )
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
-)
-export const selectModals = createSelector(selectData, (data) =>
-  R.propOr({}, 'modals')(data)
 )
 export const selectMap = createSelector(selectData, (data) =>
   R.propOr({}, 'maps', data)
@@ -264,10 +265,6 @@ export const selectPanesData = createSelector(
     return R.mergeRight(panesData, systemPanesData)
   }
 )
-export const selectModalsData = createSelector(
-  selectModals,
-  R.propOr({}, 'data')
-)
 export const selectMapData = createSelector(
   [selectOrderedMaps, selectCurrentTime],
   (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
@@ -292,6 +289,10 @@ export const selectRightAppBarData = createSelector(
       R.includes(R.prop('bar', appBarItem), ['upperRight', 'lowerRight'])
     )
   )
+)
+export const selectDraggablesData = createSelector(
+  selectDraggables,
+  R.propOr({}, 'data')
 )
 export const selectGroupedOutputsData = createSelector(
   selectOrderedGroupedOutputs,
@@ -402,26 +403,29 @@ export const selectLocalPanesData = createSelector(
   [selectLocalPanes, selectCurrentTime],
   (data, time) => getTimeValue(time, R.prop('data', data))
 )
-// Local -> modals
-export const selectLocalModals = createSelector(selectLocal, (data) =>
-  R.prop('modals')(data)
-)
-export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
-  R.prop('data', data)
-)
 // Local -> draggables
-export const selectLocalDraggables = createSelector(
+const selectLocalDraggables = createSelector(
   selectLocal,
   R.propOr({}, 'draggables')
 )
-export const selectSessionDraggable = createSelector(
+export const selectLocalDraggablesData = createSelector(
   selectLocalDraggables,
+  R.propOr({}, 'data')
+)
+
+export const selectMergedDraggables = createSelector(
+  [selectLocalDraggablesData, selectDraggablesData],
+  (localData, data) => R.mergeDeepLeft(localData)(data)
+)
+export const selectSessionDraggable = createSelector(
+  selectMergedDraggables,
   R.propOr({}, draggableId.SESSION)
 )
 export const selectGlobalOutputsDraggable = createSelector(
-  selectLocalDraggables,
+  selectMergedDraggables,
   R.propOr({}, draggableId.GLOBAL_OUTPUTS)
 )
+
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>
   R.propOr({}, 'pages')(data)

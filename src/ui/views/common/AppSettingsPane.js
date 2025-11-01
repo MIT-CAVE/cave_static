@@ -25,14 +25,14 @@ import {
   selectEditLayoutMode,
   selectGlobalOutputProps,
   selectGlobalOutputsDraggable,
-  selectLocalDraggables,
+  selectMergedDraggables,
   selectMirrorMode,
   selectPaneState,
   selectSync,
   selectSyncToggles,
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
-import { useMutateState } from '../../../utils/hooks'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { HelpTooltip, List, OverflowText } from '../../compound'
 
@@ -209,10 +209,12 @@ const DemoSwitch = () => {
 }
 
 const DraggableSwitch = ({ id, name }) => {
-  const draggables = useSelector(selectLocalDraggables)
+  const draggables = useSelector(selectMergedDraggables)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const open = R.pathOr(false, [id, 'open'])(draggables)
+  const path = ['draggables', 'data', id, 'open']
   return (
     <ColumnSwitch
       {...{ name }}
@@ -220,9 +222,9 @@ const DraggableSwitch = ({ id, name }) => {
       onChange={() => {
         dispatch(
           mutateLocal({
-            path: ['draggables', id, 'open'],
+            path,
             value: !open,
-            sync: false,
+            sync: !includesPath(R.values(sync), path),
           })
         )
       }}
@@ -232,17 +234,16 @@ const DraggableSwitch = ({ id, name }) => {
 
 const GlobalOutputsSwitch = () => {
   const draggable = useSelector(selectGlobalOutputsDraggable)
-  const props = useSelector(selectGlobalOutputProps)
+  const globalOutputProps = useSelector(selectGlobalOutputProps)
 
-  const onSelect = useMutateState(
+  const onSelect = useMutateStateWithSync(
     (value) => ({
       path: ['globalOutputs', 'props'],
       value: R.mapObjIndexed((prop, key) =>
         R.assoc('draggable', R.includes(key)(value))(prop)
-      )(props),
-      sync: false,
+      )(globalOutputProps),
     }),
-    [props]
+    [globalOutputProps]
   )
   return (
     <>
@@ -251,14 +252,14 @@ const GlobalOutputsSwitch = () => {
         <List
           sx={{ ml: 2, my: 1 }}
           header="Select Global Outputs"
-          value={R.keys(R.filter(R.prop('draggable'))(props))}
+          value={R.keys(R.filter(R.prop('draggable'))(globalOutputProps))}
           optionsList={R.pipe(
             withIndex,
             R.project(['id', 'name', 'icon']),
             R.map(
               R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
             )
-          )(props)}
+          )(globalOutputProps)}
           size="small"
           {...{ onSelect }}
         />

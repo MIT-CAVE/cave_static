@@ -9,12 +9,15 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectGlobalOutputProps,
-  selectLocalDraggables,
+  selectMergedDraggables,
   selectSessions,
+  selectSync,
 } from '../../../data/selectors'
 import { draggableId } from '../../../utils/enums'
 import Draggable from '../../compound/Draggable'
 import GlobalOutputsPad from '../../compound/GlobalOutputsPad'
+
+import { includesPath } from '../../../utils'
 
 const styles = {
   session: {
@@ -43,8 +46,9 @@ const styles = {
 
 const Draggables = () => {
   const sessions = useSelector(selectSessions)
-  const draggables = useSelector(selectLocalDraggables)
+  const draggables = useSelector(selectMergedDraggables)
   const props = useSelector(selectGlobalOutputProps)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
   const anyDraggableGlobalOutput = useMemo(
@@ -66,7 +70,7 @@ const Draggables = () => {
 
   // Request session info if we have none
   useEffect(() => {
-    if (!R.path([draggableId.SESSION, 'open'])(draggables)) return
+    if (!draggables[draggableId.SESSION]?.open) return
     dispatch(
       sendCommand({
         command: 'session_management',
@@ -79,15 +83,16 @@ const Draggables = () => {
 
   const handleToggleDraggable = useCallback(
     (id) => () => {
+      const path = ['draggables', 'data', id, 'open']
       dispatch(
         mutateLocal({
-          path: ['draggables', id, 'open'],
+          path,
           value: !R.pathOr(false, [id, 'open'])(draggables),
-          sync: false,
+          sync: !includesPath(R.values(sync), path),
         })
       )
     },
-    [dispatch, draggables]
+    [dispatch, draggables, sync]
   )
 
   return (
@@ -95,28 +100,31 @@ const Draggables = () => {
     // we sort them from lowest to highest priority
     <>
       {anyDraggableGlobalOutput &&
-        R.path([draggableId.GLOBAL_OUTPUTS, 'open'])(draggables) && (
+        draggables[draggableId.GLOBAL_OUTPUTS]?.open && (
           <Draggable
-            sx={styles.globalOutputs}
+            // sx={styles.globalOutputs}
+            position={draggables[draggableId.GLOBAL_OUTPUTS].position}
             onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
             cancel={'.MuiButtonBase-root'}
           >
             <GlobalOutputsPad />
           </Draggable>
         )}
-      {R.path([draggableId.TIME, 'open'])(draggables) && (
+      {draggables[draggableId.TIME]?.open && (
         <Draggable
           sx={styles.time}
           onClose={handleToggleDraggable(draggableId.TIME)}
+          position={draggables[draggableId.TIME].position}
           cancel={'.MuiButtonBase-root, .MuiFormControl-root, .MuiSlider-thumb'}
         >
           <TimeControl />
         </Draggable>
       )}
-      {R.path([draggableId.SESSION, 'open'])(draggables) && (
+      {draggables[draggableId.SESSION]?.open && (
         <Draggable
           component={ButtonGroup}
           sx={styles.session}
+          position={draggables[draggableId.SESSION].position}
           onClose={handleToggleDraggable(draggableId.SESSION)}
           cancel={'.MuiButtonBase-root'}
         >
