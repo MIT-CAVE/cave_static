@@ -11,24 +11,28 @@ import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 
 import { DataGridModal } from './BaseModal'
 
+import { mutateLocal } from '../../../data/local'
 import { selectStatGroupings } from '../../../data/selectors'
 import { colorGen } from '../../../utils/ColorGen'
-import { useMutateStateWithSync } from '../../../utils/hooks'
 import { useColorPicker } from '../../compound/ColorPicker'
 
 import { Select } from '../../compound'
 
-import { forceArray } from '../../../utils'
+import { getColorString, forceArray } from '../../../utils'
 
 const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [searchText, setSearchText] = useState('')
-  const [currentCategory, setCurrentCategory] = useState(
-    R.prop('groupingLevel')(chartObj)[1]
-  )
+  const [currentCategory, setCurrentCategory] = useState('')
+  const [localCategoryColors, setLocalCategoryColors] = useState({})
+  const dispatch = useDispatch()
+
+  useMemo(() => {
+    setCurrentCategory(R.prop('groupingLevel')(chartObj)[1])
+  }, [chartObj])
 
   const statGroupings = useSelector(selectStatGroupings)
 
@@ -43,27 +47,6 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const handleChangeCategory = (value) => {
     setCurrentCategory(value)
   }
-
-  const createHandleChangeColor = useMutateStateWithSync(
-    (coloringPath, category, color) => ({
-      path: [
-        'groupedOutputs',
-        'groupings',
-        ...coloringPath,
-        chartColors[category]['lastCategory'],
-      ],
-      value: color,
-    }),
-    []
-  )
-
-  const changeColor = useCallback(
-    (grouping, level, category, color) => {
-      const coloringPath = [grouping, 'levels', level, 'coloring']
-      createHandleChangeColor(coloringPath, category, color)
-    },
-    [createHandleChangeColor]
-  )
 
   const getCategoryLabel = useCallback(
     (categoryParents, levelCategories, category, index, level) => {
@@ -99,15 +82,17 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
             index,
             level
           )
+          const categoryColor =
+            category in coloring
+              ? colord(coloring[category]).toHslString()
+              : colorGen(label)
           result[label] = {
             grouping: grouping,
             level: level,
             lastCategory: category,
-            color:
-              category in coloring
-                ? colord(coloring[category]).toHslString()
-                : colorGen(label),
+            // color: categoryColor, TODO: not needed for now
           }
+          setLocalCategoryColors(R.assoc(label, categoryColor))
         })
       }
       return result
@@ -156,28 +141,19 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
     }
   }, [allCategoryProperties, chartColors])
 
+  const basePath = useMemo(() => ['groupedOutputs', 'groupings'], [])
   const onChangeColor = useCallback(
     (pathTail) => (value) => {
-      const category = forceArray(pathTail)[1]
-      const rgbValue = colord(value).toRgbString()
-      const lastCategory = chartColors[category].lastCategory
-
-      // Update categories with same lastCategory as the current category being changed
-      Object.keys(chartColors).forEach((key) => {
-        if (chartColors[key].lastCategory === lastCategory) {
-          setChartColors((prev) => ({
-            ...prev,
-            [key]: {
-              ...prev[key],
-              color: rgbValue,
-            },
-          }))
-          const { grouping, level } = chartColors[key]
-          changeColor(grouping, level, category, rgbValue)
-        }
-      })
+      const path = [...basePath, ...forceArray(pathTail)]
+      dispatch(
+        mutateLocal({
+          path,
+          value,
+          sync: true,
+        })
+      )
     },
-    [changeColor, chartColors]
+    [dispatch, basePath]
   )
 
   const handleChangeSearchText = (event) => {
@@ -211,13 +187,18 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
 
   const handleChange = useCallback(
     (value, colorOutputs, category) => {
-      const pathTail =
-        category === 'null' // Updating fallback color?
-          ? ['fallback', 'color']
-          : ['options', category, 'color']
-      handleChangeRaw(value, colorOutputs, pathTail)
+      setLocalCategoryColors(R.assoc(category, value))
+      const { grouping, level } = chartColors[category]
+      const pathTail = [
+        grouping,
+        'levels',
+        level,
+        'coloring',
+        chartColors[category]['lastCategory'],
+      ]
+      handleChangeRaw(getColorString(value), colorOutputs, pathTail)
     },
-    [handleChangeRaw]
+    [handleChangeRaw, chartColors]
   )
 
   const formattedColor = (value) => {
@@ -298,7 +279,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
               <MuiColorInput
                 color="warning"
                 format="hex8"
-                value={formattedColor(chartColors[category]['color'])}
+                value={formattedColor(localCategoryColors[category])}
                 style={{ width: '33%' }}
                 slotProps={{ input: { style: { borderRadius: 0 } } }}
                 onChange={(value, colors) =>
