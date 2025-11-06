@@ -221,7 +221,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       }}
       {...{ label, labelExtra, open, onClose }}
     >
-      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={2} sx={{ mb: 2, mr: 1.45 }}>
         <TextField
           placeholder="Search final category level"
           label="Search"
@@ -245,7 +245,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
         display="flex"
         flexDirection="column-reverse"
         gap={2}
-        sx={{ overflow: 'auto' }}
+        sx={{ overflow: 'auto', scrollbarGutter: 'stable' }}
       >
         {R.map((category) => {
           return (
@@ -257,7 +257,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
                 gap: 2,
               }}
             >
-              <Paper key={category} sx={{ width: '65%' }}>
+              <Paper key={category} sx={{ width: '69%' }}>
                 <Tooltip title={category} placement="top">
                   <Box
                     sx={{
@@ -280,7 +280,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
                 color="warning"
                 format="hex8"
                 value={formattedColor(localCategoryColors[category])}
-                style={{ width: '33%' }}
+                style={{ width: '35%' }}
                 slotProps={{ input: { style: { borderRadius: 0 } } }}
                 onChange={(value, colors) =>
                   handleChange(value, colors, category)
