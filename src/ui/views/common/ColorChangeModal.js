@@ -20,7 +20,7 @@ import { selectStatGroupings } from '../../../data/selectors'
 import { colorGen } from '../../../utils/ColorGen'
 import { useColorPicker } from '../../compound/ColorPicker'
 
-import { Select } from '../../compound'
+import { Select, HelpTooltip } from '../../compound'
 
 import { getColorString, forceArray } from '../../../utils'
 
@@ -221,6 +221,13 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       }}
       {...{ label, labelExtra, open, onClose }}
     >
+      <Box sx={{ position: 'absolute', top: 30, right: 20 }}>
+        <HelpTooltip
+          title="Notes on color changes"
+          content="Any color changes are applied to ALL relevant charts. Color changes to same-name categories applies to all categories with shared name."
+          size={28}
+        />
+      </Box>
       <Stack direction="row" spacing={2} sx={{ mb: 2, mr: 1.45 }}>
         <TextField
           placeholder="Search final category level"

@@ -237,7 +237,6 @@ const DashboardItem = ({ chartObj, index, path }) => {
             chartObj,
           }}
           label="Color Change"
-          labelExtra="Notes: Any color changes are applied to ALL relevant charts. Color changes to same-name categories applies to all categories with shared name."
           open={colorChangeOpen}
           onClose={handleCloseColorChange}
         />
