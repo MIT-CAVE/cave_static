@@ -136,9 +136,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [chartColors, setChartColors] = useState(allCategoryProperties)
 
   useEffect(() => {
-    if (R.isEmpty(chartColors) && !R.isEmpty(allCategoryProperties)) {
-      setChartColors(allCategoryProperties)
-    }
+    setChartColors(allCategoryProperties)
   }, [allCategoryProperties, chartColors])
 
   const basePath = useMemo(() => ['groupedOutputs', 'groupings'], [])
@@ -279,7 +277,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
                       },
                     }}
                   >
-                    {allCategoryProperties[category]['lastCategory']}
+                    {chartColors[category]['lastCategory']}
                   </Box>
                 </Tooltip>
               </Paper>
