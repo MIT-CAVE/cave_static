@@ -6,6 +6,7 @@ import {
   InputLabel,
   Stack,
   Tooltip,
+  Typography,
 } from '@mui/material'
 import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
@@ -240,7 +241,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
             id="category"
             labelId="category-label"
             label="Category"
-            value={currentCategory}
+            value={currentCategory ?? 'None chosen'}
             optionsList={allCategories}
             onSelect={handleChangeCategory}
           />
@@ -252,49 +253,59 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
         gap={2}
         sx={{ overflow: 'auto', scrollbarGutter: 'stable' }}
       >
-        {R.map((category) => {
-          return (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 2,
-              }}
-            >
-              <Paper key={category} sx={{ width: '69%' }}>
-                <Tooltip title={category} placement="top">
-                  <Box
-                    sx={{
-                      color: 'white',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      display: 'flex',
-                      height: '70px',
-                      fontSize: '20px',
-                      '&:hover': {
-                        bgcolor: 'rgba(255, 255, 255, 0.1)',
-                      },
-                    }}
-                  >
-                    {chartColors[category]['lastCategory']}
-                  </Box>
-                </Tooltip>
-              </Paper>
-              <MuiColorInput
-                color="warning"
-                format="hex8"
-                value={formattedColor(localCategoryColors[category])}
-                style={{ width: '35%' }}
-                slotProps={{ input: { style: { borderRadius: 0 } } }}
-                onChange={(value, colors) =>
-                  handleChange(value, colors, category)
-                }
-                onClose={handleClose}
-              />
-            </Box>
-          )
-        })(visibleGroupings)}
+        {R.isEmpty(visibleGroupings) ? (
+          <Typography variant="subtitle1" fontWeight={500}>
+            In order to change colors in this modal, there must be two chosen
+            groupings of categories. To fix this issue, head to Chart Tools and
+            select two groupings under 'Group By'.
+          </Typography>
+        ) : (
+          <>
+            {R.map((category) => {
+              return (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 2,
+                  }}
+                >
+                  <Paper key={category} sx={{ width: '69%' }}>
+                    <Tooltip title={category} placement="top">
+                      <Box
+                        sx={{
+                          color: 'white',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          display: 'flex',
+                          height: '70px',
+                          fontSize: '20px',
+                          '&:hover': {
+                            bgcolor: 'rgba(255, 255, 255, 0.1)',
+                          },
+                        }}
+                      >
+                        {chartColors[category]['lastCategory']}
+                      </Box>
+                    </Tooltip>
+                  </Paper>
+                  <MuiColorInput
+                    color="warning"
+                    format="hex8"
+                    value={formattedColor(localCategoryColors[category])}
+                    style={{ width: '35%' }}
+                    slotProps={{ input: { style: { borderRadius: 0 } } }}
+                    onChange={(value, colors) =>
+                      handleChange(value, colors, category)
+                    }
+                    onClose={handleClose}
+                  />
+                </Box>
+              )
+            })(visibleGroupings)}
+          </>
+        )}
       </Box>
     </DataGridModal>
   )
