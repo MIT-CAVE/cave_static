@@ -27,12 +27,7 @@ import {
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import {
-  useChartTools,
-  useModal,
-  useColorChange,
-  useMutateState,
-} from '../../../utils/hooks'
+import { useModal, useMutateState } from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
 import ColorChangeModal from '../common/ColorChangeModal'
 import FilterModal from '../common/FilterModal'
@@ -84,11 +79,21 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const sync = useSelector(selectSync)
 
-  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
-  const { chartToolsOpen, handleOpenChartTools, handleCloseChartTools } =
-    useChartTools()
-  const { colorChangeOpen, handleOpenColorChange, handleCloseColorChange } =
-    useColorChange()
+  const {
+    modalOpen: filterOpen,
+    handleOpenModal: handleOpenFilter,
+    handleCloseModal: handleCloseFilter,
+  } = useModal()
+  const {
+    modalOpen: chartToolsOpen,
+    handleOpenModal: handleOpenChartTools,
+    handleCloseModal: handleCloseChartTools,
+  } = useModal()
+  const {
+    modalOpen: colorChangeOpen,
+    handleOpenModal: handleOpenColorChange,
+    handleCloseModal: handleCloseColorChange,
+  } = useModal()
 
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const defaultFilters = R.propOr([], 'filters')(chartObj)
@@ -199,7 +204,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
         styles.paper,
         isMaximized && { p: 0 },
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
-        (chartToolsOpen || modalOpen || colorChangeOpen) && {
+        (chartToolsOpen || filterOpen || colorChangeOpen) && {
           outline: 'none',
           borderColor: '#9ecaed',
           boxShadow: '0 0 10px #9ecaed',
@@ -217,9 +222,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
           numGroupingFilters,
         }}
         label="Chart Data Filter"
-        open={modalOpen}
+        open={filterOpen}
         onSave={handleSaveFilters}
-        onClose={handleCloseModal}
+        onClose={handleCloseFilter}
       />
       <ChartToolsModal
         {...{
@@ -252,7 +257,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
           onToggleShowNA={handleToggleShowNA}
           onChartHover={handleChartHover}
           numFilters={numActiveStatFilters + numGroupingFilters}
-          onOpenFilter={handleOpenModal}
+          onOpenFilter={handleOpenFilter}
           onOpenChartTools={handleOpenChartTools}
           onOpenColorChange={handleOpenColorChange}
         />
