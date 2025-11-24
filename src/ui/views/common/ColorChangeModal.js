@@ -27,12 +27,14 @@ import { getColorString, forceArray } from '../../../utils'
 
 const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [searchText, setSearchText] = useState('')
-  const [currentCategory, setCurrentCategory] = useState('')
+  const [currentCategory, setCurrentCategory] = useState(null)
   const [localCategoryColors, setLocalCategoryColors] = useState({})
   const dispatch = useDispatch()
 
   useMemo(() => {
-    setCurrentCategory(R.prop('groupingLevel')(chartObj)[1])
+    if (R.pathOr(false, ['groupingLevel'])(chartObj)) {
+      setCurrentCategory(R.prop('groupingLevel')(chartObj)[1])
+    }
   }, [chartObj])
 
   const statGroupings = useSelector(selectStatGroupings)
