@@ -23,32 +23,50 @@ import { useColorPicker } from '../../compound/ColorPicker'
 
 import { Select, HelpTooltip } from '../../compound'
 
-import { getColorString, forceArray } from '../../../utils'
+import { getColorString, forceArray, getLabelFn } from '../../../utils'
 
 const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [searchText, setSearchText] = useState('')
-  const [currentCategory, setCurrentCategory] = useState(null)
+  const [currentCategoryId, setCurrentCategoryId] = useState(null)
+  const [currentCategoryName, setCurrentCategoryName] = useState(null)
   const [localCategoryColors, setLocalCategoryColors] = useState({})
   const dispatch = useDispatch()
-
-  useMemo(() => {
-    if (R.pathOr(false, ['groupingLevel'])(chartObj)) {
-      setCurrentCategory(R.prop('groupingLevel')(chartObj)[1])
-    }
-  }, [chartObj])
-
   const statGroupings = useSelector(selectStatGroupings)
 
   const allCategories = useMemo(
     () =>
-      R.flatten(
-        R.values(R.map(R.pipe(R.prop('levels'), R.keys), statGroupings))
+      R.mergeAll(
+        Object.values(
+          R.map(
+            R.pipe(
+              R.prop('levels'),
+              (levels) =>
+                R.map(
+                  (item) => [item, getLabelFn(levels, item)],
+                  R.keys(levels)
+                ),
+              R.fromPairs
+            ),
+            statGroupings
+          )
+        )
       ),
     [statGroupings]
   )
 
-  const handleChangeCategory = (value) => {
-    setCurrentCategory(value)
+  useMemo(() => {
+    if (R.pathOr(false, ['groupingLevel'])(chartObj)) {
+      const categoryId = R.prop('groupingLevel')(chartObj)[1]
+      setCurrentCategoryId(categoryId)
+      setCurrentCategoryName(allCategories[categoryId])
+    }
+  }, [chartObj, allCategories])
+
+  const handleChangeCategory = (categoryName) => {
+    setCurrentCategoryId(
+      R.head(R.keys(R.filter((v) => v === categoryName, allCategories)))
+    )
+    setCurrentCategoryName(categoryName)
   }
 
   const getCategoryLabel = useCallback(
@@ -171,7 +189,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       const finalCategory = property.lastCategory
       if (
         containsSearchText(finalCategory) &&
-        property.level === currentCategory
+        property.level === currentCategoryId
       ) {
         matchedCategories.push(label)
       }
@@ -181,7 +199,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       chartColors
     )
     return matchedCategories
-  }, [searchText, chartColors, currentCategory])
+  }, [searchText, chartColors, currentCategoryId])
 
   const { handleClose, handleChange: handleChangeRaw } =
     useColorPicker(onChangeColor)
@@ -243,8 +261,8 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
             id="category"
             labelId="category-label"
             label="Category"
-            value={currentCategory ?? 'None chosen'}
-            optionsList={allCategories}
+            value={currentCategoryName ?? ' '}
+            optionsList={R.values(allCategories)}
             onSelect={handleChangeCategory}
           />
         </FormControl>
