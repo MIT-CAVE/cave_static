@@ -43,7 +43,7 @@ const DARKEN_FILL_ON_HOVER = [
 
 const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
-  const { Layer, Source, isMapboxSelected } = useMapApi(mapId)
+  const { Layer, Source } = useMapApi(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const useHandleClickFactory = (feature) =>
@@ -76,21 +76,18 @@ const useMapFeature = () => {
         'line-color': DARKEN_FILL_ON_HOVER,
         'line-opacity': 0.8,
         'line-width': ['get', 'size'],
-        // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
-        // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
-        ...(isMapboxSelected && {
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'dash'], 'dashed'],
-            ['literal', LINE_TYPES.dashed],
-            ['==', ['get', 'dash'], 'dotted'],
-            ['literal', LINE_TYPES.dotted],
-            ['literal', LINE_TYPES.solid],
-          ],
-        }),
+        // NOTE: Data-driven `line-dasharray` is now supported in MapLibre
+        'line-dasharray': [
+          'case',
+          ['==', ['get', 'dash'], 'dashed'],
+          ['literal', LINE_TYPES.dashed],
+          ['==', ['get', 'dash'], 'dotted'],
+          ['literal', LINE_TYPES.dotted],
+          ['literal', LINE_TYPES.solid],
+        ],
       },
     }),
-    [isGlobe, isMapboxSelected]
+    [isGlobe]
   )
 
   return {
