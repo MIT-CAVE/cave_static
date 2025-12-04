@@ -268,7 +268,7 @@ const StepperBase = ({
   )
 
   const handleChangeComitted = useCallback(
-    async (event, newIndex) => {
+    (event, newIndex) => {
       if (disabled) return
       const newValue = optionsList[newIndex]
       // REVIEW: Icon re-fetching issue
