@@ -1,6 +1,6 @@
 import { FormControl, Box, ToggleButton, Slider, Stack } from '@mui/material'
 import * as R from 'ramda'
-import { useEffect, useCallback, useMemo } from 'react'
+import { useEffect, useCallback } from 'react'
 import {
   MdNavigateNext,
   MdNavigateBefore,
@@ -12,7 +12,6 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { mutateLocal } from '../../../data/local'
 import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
 import {
   selectCurrentTime,
@@ -22,8 +21,6 @@ import {
   selectCurrentLooping,
   selectCurrentSpeed,
   selectSync,
-  selectMapData,
-  selectMapFeatures,
 } from '../../../data/selectors'
 import { updateAnimation } from '../../../data/utilities/timeSlice'
 import { useMutateState } from '../../../utils/hooks'
@@ -62,27 +59,23 @@ const TimeButton = (props) => (
   <TooltipButton sx={{ border: 0, borderRadius: '50%', p: 0.5 }} {...props} />
 )
 
-const TimeControl = ({ mapId }) => {
+const TimeControl = ({ setAnimating }) => {
   // const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   // const nodeTypes = useSelector(selectNodeTypeKeys)
 
-  const mapData = useSelector(selectMapData) // get current displayed nodes/objects in legend
-  // console.log(mapData)
+  // const mapData = useSelector(selectMapData) // get current displayed nodes/objects in legend
 
-  const mapFeaturesData = useSelector(selectMapFeatures) // get long lat coordinates and animation levels
+  // const mapFeaturesData = useSelector(selectMapFeatures) // get long lat coordinates and animation levels
 
-  const currentMapFeaturesData = useMemo(
-    () =>
-      R.pipe(
-        R.path([mapId, 'legendGroups']),
-        R.values,
-        R.chain((legendGroup) => R.keys(legendGroup.data))
-      )(mapData),
-    [mapData, mapId]
-  )
-
-  // TODO add current selected map: {mapId} or name of map from mapId
-  // TODO reset?
+  // const currentMapFeaturesData = useMemo(
+  //   () =>
+  //     R.pipe(
+  //       R.path([mapId, 'legendGroups']),
+  //       R.values,
+  //       R.chain((legendGroup) => R.keys(legendGroup.data))
+  //     )(mapData),
+  //   [mapData, mapId]
+  // )
 
   const playbackSpeed = useSelector(selectCurrentSpeed)
   const looping = useSelector(selectCurrentLooping)
@@ -95,51 +88,6 @@ const TimeControl = ({ mapId }) => {
 
   const animation = R.is(Number, animationInterval)
   const sync = useSelector(selectSync)
-
-  // TODO loop if goes out of range
-  // TODO add reverse animation
-  const updateCoordinate = useCallback(
-    (feature) => {
-      const featureLocation = R.path(['data', feature, 'data', 'location'])(
-        mapFeaturesData
-      )
-      const newFeatureLocation = R.evolve({
-        latitude: (latitudes) =>
-          R.includes('animationLatitude')
-            ? R.zipWith(
-                R.zipWith(R.add),
-                latitudes,
-                featureLocation['animationLatitude']
-              )
-            : latitudes,
-        longitude: (longitudes) =>
-          R.includes('animationLongitude')
-            ? R.zipWith(
-                R.zipWith(R.add),
-                longitudes,
-                featureLocation['animationLongitude']
-              )
-            : longitudes,
-      })(featureLocation)
-      return newFeatureLocation
-    },
-    [mapFeaturesData]
-  )
-
-  const animateForward = useCallback(
-    (feature) => {
-      const path = ['mapFeatures', 'data', feature, 'data', 'location']
-      const value = updateCoordinate(feature)
-      dispatch(
-        mutateLocal({
-          path,
-          value,
-          sync: true,
-        })
-      )
-    },
-    [dispatch, updateCoordinate]
-  )
 
   const handleChangeLooping = useMutateState(
     () => ({
@@ -161,15 +109,22 @@ const TimeControl = ({ mapId }) => {
 
   const advanceAnimation = useCallback(() => {
     dispatch(timeAdvance(timeLength))
-    R.forEach(animateForward, currentMapFeaturesData)
-  }, [dispatch, timeLength, animateForward, currentMapFeaturesData])
+  }, [dispatch, timeLength])
 
   useEffect(() => {
     if (!looping && currentTime + 1 === timeLength) {
       clearInterval(animationInterval)
       dispatch(updateAnimation(false))
+      setAnimating(false)
     }
-  }, [currentTime, looping, timeLength, animationInterval, dispatch])
+  }, [
+    currentTime,
+    looping,
+    timeLength,
+    animationInterval,
+    dispatch,
+    setAnimating,
+  ])
 
   const toggleAnimationSpeed = useCallback(
     (newPlaybackSpeed) => {
@@ -248,6 +203,7 @@ const TimeControl = ({ mapId }) => {
             title="Pause animation"
             placement="bottom"
             onClick={() => {
+              setAnimating(false)
               clearInterval(animationInterval)
               dispatch(updateAnimation(false))
             }}
@@ -259,6 +215,7 @@ const TimeControl = ({ mapId }) => {
             title="Play animation"
             placement="bottom"
             onClick={() => {
+              setAnimating(true)
               toggleAnimationSpeed(playbackSpeed)
             }}
           >

@@ -44,6 +44,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
+  const [animating, setAnimating] = useState(false)
   const mapRef = useRef(null)
   const highlight = useRef(null)
   const containerRef = useRef(null)
@@ -304,7 +305,7 @@ const Map = ({ mapId }) => {
         }}
       >
         <Draggable>
-          <TimeControl mapId={mapId} />
+          <TimeControl setAnimating={setAnimating} />
         </Draggable>
         <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
           <MapControls />
@@ -332,7 +333,7 @@ const Map = ({ mapId }) => {
             <Geos />
             <IncludedGeos />
             <Arcs />
-            <Nodes />
+            <Nodes animating={animating} />
             <Arcs3D />
             {/* `MapPortal` is injected here */}
             <div ref={containerRef} />

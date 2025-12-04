@@ -1,4 +1,13 @@
-import { useEffect, useState, memo, useContext, useMemo } from 'react'
+import * as R from 'ramda'
+import {
+  useEffect,
+  useState,
+  memo,
+  useContext,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -205,10 +214,59 @@ export const IncludedGeos = memo(() => {
   )
 })
 
-export const Nodes = memo(() => {
+export const Nodes = memo(({ animating }) => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const [animatedCoordinates, setAnimatedCoordinates] = useState(
+    R.pipe(
+      R.map((feature) => [
+        feature.properties.cave_name,
+        feature.geometry.coordinates,
+      ]),
+      R.fromPairs
+    )(nodeGeoJson)
+  )
+
+  const rafIdRef = useRef(null)
+
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+
+  const moveCoordinates = (originalCoords) => {
+    return [originalCoords[0] + 0.01, originalCoords[1] + 0.01]
+  }
+
+  const animate = useCallback(() => {
+    setAnimatedCoordinates(
+      R.pipe(
+        R.map((feature) => [
+          feature.properties.cave_name,
+          moveCoordinates(animatedCoordinates[feature.properties.cave_name]),
+        ]),
+        R.fromPairs
+      )(nodeGeoJson)
+    )
+    rafIdRef.current = requestAnimationFrame(animate)
+  }, [animatedCoordinates, nodeGeoJson])
+
+  useEffect(() => {
+    if (animating) {
+      rafIdRef.current = requestAnimationFrame(animate)
+    }
+    return () => cancelAnimationFrame(rafIdRef.current)
+  }, [animating, animate])
+
+  const animatedNodeGeoJson = useMemo(() => {
+    return R.map(
+      (feature) =>
+        R.assocPath(
+          ['geometry', 'coordinates'],
+          animatedCoordinates[feature],
+          R.find(R.pathEq(feature, ['properties', 'cave_name']), nodeGeoJson)
+        ),
+      R.keys(animatedCoordinates)
+    )
+  }, [nodeGeoJson, animatedCoordinates])
+
   return [
     <NodesWithHeight
       id="nodes-with-altitude"
@@ -223,7 +281,7 @@ export const Nodes = memo(() => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: nodeGeoJson,
+        features: animatedNodeGeoJson,
       }}
     >
       <Layer
