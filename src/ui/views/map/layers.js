@@ -76,7 +76,6 @@ const useMapFeature = () => {
         'line-color': DARKEN_FILL_ON_HOVER,
         'line-opacity': 0.8,
         'line-width': ['get', 'size'],
-        // NOTE: Data-driven `line-dasharray` is now supported in MapLibre
         'line-dasharray': [
           'case',
           ['==', ['get', 'dash'], 'dashed'],
