@@ -275,9 +275,9 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
       >
         {R.isEmpty(visibleGroupings) ? (
           <Typography variant="subtitle1" fontWeight={500}>
-            In order to change colors in this modal, there must be two chosen
+            In order to change the current graph's colors in this modal, there must be two chosen
             groupings of categories. To fix this issue, head to Chart Tools and
-            select two groupings under 'Group By'.
+            select the two groupings under 'Group By' relevant to the current graph.
           </Typography>
         ) : (
           <>
