@@ -214,6 +214,13 @@ export const IncludedGeos = memo(() => {
   )
 })
 
+// TODO Add note: must contain 0
+const examplePath = {
+  0: [-79.63, 43],
+  2: [-75, 43],
+  5: [-73, 40],
+}
+
 export const Nodes = memo(({ animating }) => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
@@ -226,27 +233,52 @@ export const Nodes = memo(({ animating }) => {
       R.fromPairs
     )(nodeGeoJson)
   )
-
   const rafIdRef = useRef(null)
+  const startTime = useRef(null)
+  const currentLowerControlPoint = useRef(0)
 
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
-  const moveCoordinates = (originalCoords) => {
-    return [originalCoords[0] + 0.01, originalCoords[1] + 0.01]
+  const definedTimes = R.sort(
+    (m, n) => m - n,
+    Object.keys(examplePath).map((k) => parseFloat(k))
+  )
+
+  const lerp = (start, end, t) => {
+    return start + t * (end - start)
   }
 
+  // TODO use particular coordinates for each node
+  const moveCoordinates = useCallback(() => {
+    const currentTime = performance.now() - startTime.current
+    const currentTimeInSeconds = currentTime / 1000
+    if (
+      currentTimeInSeconds > definedTimes[currentLowerControlPoint.current + 1]
+    ) {
+      currentLowerControlPoint.current += 1
+    }
+    const lowerControlTime = definedTimes[currentLowerControlPoint.current]
+    const upperControlTime = definedTimes[currentLowerControlPoint.current + 1]
+    const t =
+      (currentTimeInSeconds - lowerControlTime) /
+      (upperControlTime - lowerControlTime)
+    const start = examplePath[lowerControlTime]
+    const end = examplePath[upperControlTime]
+    return [lerp(start[0], end[0], t), lerp(start[1], end[1], t)]
+  }, [definedTimes])
+
   const animate = useCallback(() => {
+    if (startTime.current == null) {
+      startTime.current = performance.now()
+    }
     setAnimatedCoordinates(
       R.pipe(
-        R.map((feature) => [
-          feature.properties.cave_name,
-          moveCoordinates(animatedCoordinates[feature.properties.cave_name]),
-        ]),
+        R.map((feature) => [feature.properties.cave_name, moveCoordinates()]),
         R.fromPairs
       )(nodeGeoJson)
     )
     rafIdRef.current = requestAnimationFrame(animate)
-  }, [animatedCoordinates, nodeGeoJson])
+  }, [nodeGeoJson, moveCoordinates])
 
   useEffect(() => {
     if (animating) {
