@@ -34,8 +34,8 @@ import {
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { getSvgMarkup } from '../../../utils/svgBuilder'
-import Draggable from '../../compound/Draggable'
-import TimeControl from '../common/TimeControl'
+// import Draggable from '../../compound/Draggable'
+// import TimeControl from '../common/TimeControl'
 
 import { fetchIcon } from '../../../utils'
 
@@ -304,9 +304,9 @@ const Map = ({ mapId }) => {
           flex: '1 1 auto',
         }}
       >
-        <Draggable>
+        {/* <Draggable>
           <TimeControl setAnimating={setAnimating} />
-        </Draggable>
+        </Draggable> */}
         <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
           <MapControls />
           <ReactMapGl
