@@ -250,7 +250,12 @@ export const Nodes = memo(({ animating }) => {
 
   // TODO use particular coordinates for each node
   const moveCoordinates = useCallback(() => {
-    const currentTime = performance.now() - startTime.current
+    let currentTime = performance.now() - startTime.current
+    if (currentTime > Math.max(...definedTimes) * 1000) {
+      startTime.current = performance.now()
+      currentLowerControlPoint.current = 0
+      currentTime %= Math.max(...definedTimes) * 1000
+    }
     const currentTimeInSeconds = currentTime / 1000
     if (
       currentTimeInSeconds > definedTimes[currentLowerControlPoint.current + 1]
@@ -281,9 +286,9 @@ export const Nodes = memo(({ animating }) => {
   }, [nodeGeoJson, moveCoordinates])
 
   useEffect(() => {
-    if (animating) {
-      rafIdRef.current = requestAnimationFrame(animate)
-    }
+    // if (animating) {
+    rafIdRef.current = requestAnimationFrame(animate)
+    // }
     return () => cancelAnimationFrame(rafIdRef.current)
   }, [animating, animate])
 
