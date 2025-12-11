@@ -214,12 +214,19 @@ export const IncludedGeos = memo(() => {
   )
 })
 
-// TODO Add note: must contain 0
-const examplePath = {
-  0: [-79.63, 43],
-  2: [-75, 43],
-  5: [-73, 40],
-}
+// TODO Add note: must start with 0 and increase
+const latitudes = [
+  [43.78, 43.78, 40],
+  [39.82, 40, 41],
+]
+const longitudes = [
+  [-79.63, -75, -73],
+  [-86.18, -84, -87],
+]
+const times = [
+  [0, 2, 5],
+  [0, 1, 5],
+]
 
 export const Nodes = memo(({ animating }) => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
@@ -235,13 +242,16 @@ export const Nodes = memo(({ animating }) => {
   )
   const rafIdRef = useRef(null)
   const startTime = useRef(null)
-  const currentLowerControlPoint = useRef(0)
+  const currentLowerControlPoint = useRef(
+    R.zipObj(
+      [...Array(nodeGeoJson?.length || 0).keys()],
+      R.repeat(0, nodeGeoJson?.length || 0)
+    )
+  )
 
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
-
-  const definedTimes = R.sort(
-    (m, n) => m - n,
-    Object.keys(examplePath).map((k) => parseFloat(k))
+  const definedTimes = R.fromPairs(
+    R.addIndex(R.map)((val, idx) => [idx, val])(times)
   )
 
   const lerp = (start, end, t) => {
@@ -249,28 +259,45 @@ export const Nodes = memo(({ animating }) => {
   }
 
   // TODO use particular coordinates for each node
-  const moveCoordinates = useCallback(() => {
-    let currentTime = performance.now() - startTime.current
-    if (currentTime > Math.max(...definedTimes) * 1000) {
-      startTime.current = performance.now()
-      currentLowerControlPoint.current = 0
-      currentTime %= Math.max(...definedTimes) * 1000
-    }
-    const currentTimeInSeconds = currentTime / 1000
-    if (
-      currentTimeInSeconds > definedTimes[currentLowerControlPoint.current + 1]
-    ) {
-      currentLowerControlPoint.current += 1
-    }
-    const lowerControlTime = definedTimes[currentLowerControlPoint.current]
-    const upperControlTime = definedTimes[currentLowerControlPoint.current + 1]
-    const t =
-      (currentTimeInSeconds - lowerControlTime) /
-      (upperControlTime - lowerControlTime)
-    const start = examplePath[lowerControlTime]
-    const end = examplePath[upperControlTime]
-    return [lerp(start[0], end[0], t), lerp(start[1], end[1], t)]
-  }, [definedTimes])
+  const moveCoordinates = useCallback(
+    (idx) => {
+      const definedTime = definedTimes[idx]
+      let currentTime = performance.now() - startTime.current
+      // TODO change if nodes have different end times; freeze
+      if (currentTime > Math.max(...definedTime) * 1000) {
+        startTime.current = performance.now()
+        currentLowerControlPoint.current[idx] = 0
+        currentTime %= Math.max(...definedTime) * 1000
+      }
+      const currentTimeInSeconds = currentTime / 1000
+      if (
+        currentTimeInSeconds >
+        definedTime[currentLowerControlPoint.current[idx] + 1]
+      ) {
+        currentLowerControlPoint.current[idx] += 1
+      }
+      const lowerControlTime =
+        definedTime[currentLowerControlPoint.current[idx]]
+      const upperControlTime =
+        definedTime[currentLowerControlPoint.current[idx] + 1]
+      const t =
+        (currentTimeInSeconds - lowerControlTime) /
+        (upperControlTime - lowerControlTime)
+      return [
+        lerp(
+          longitudes[idx][R.indexOf(lowerControlTime, definedTime)],
+          longitudes[idx][R.indexOf(upperControlTime, definedTime)],
+          t
+        ),
+        lerp(
+          latitudes[idx][R.indexOf(lowerControlTime, definedTime)],
+          latitudes[idx][R.indexOf(upperControlTime, definedTime)],
+          t
+        ),
+      ]
+    },
+    [definedTimes]
+  )
 
   const animate = useCallback(() => {
     if (startTime.current == null) {
@@ -278,7 +305,10 @@ export const Nodes = memo(({ animating }) => {
     }
     setAnimatedCoordinates(
       R.pipe(
-        R.map((feature) => [feature.properties.cave_name, moveCoordinates()]),
+        R.addIndex(R.map)((feature, idx) => [
+          feature.properties.cave_name,
+          moveCoordinates(idx),
+        ]),
         R.fromPairs
       )(nodeGeoJson)
     )
