@@ -1581,7 +1581,6 @@ export const selectMemoizedChartFunc = createSelector(
           R.propOr([], 'filters', obj),
           groupingIndicies
         )
-
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) => {
           // Add the aggregationGroupingLevel to the groupBys
@@ -1625,7 +1624,6 @@ export const selectMemoizedChartFunc = createSelector(
               ])
             : statGroup
         })(statObjs)
-
         return Promise.all(calculatedStats).then((resolvedStats) => {
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
@@ -1650,7 +1648,9 @@ export const selectMemoizedChartFunc = createSelector(
                         .split(' \u279D ')
                         .map((item) => intToGroup[item])
                         .join(' \u279D ')
-                      delete Object.assign(d, { [newKey]: d[key] })[key]
+                      if (newKey !== key) {
+                        delete Object.assign(d, { [newKey]: d[key] })[key]
+                      }
                     }
                   }
                   return d
@@ -1660,7 +1660,7 @@ export const selectMemoizedChartFunc = createSelector(
               ),
             resolvedStats
           )
-
+          console.log('mergedValues', mergedValues)
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])
@@ -1777,6 +1777,7 @@ export const selectMemoizedChartFunc = createSelector(
             alpha_descending: (a, b) => b.name.localeCompare(a.name),
           }[xAxisOrder]
           const sortedResult = sortFn ? R.sort(sortFn, result) : result
+          console.log('sortedResult', sortedResult)
           return sortedResult
         })
       },
