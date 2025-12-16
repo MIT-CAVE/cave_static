@@ -1777,7 +1777,6 @@ export const selectMemoizedChartFunc = createSelector(
             alpha_descending: (a, b) => b.name.localeCompare(a.name),
           }[xAxisOrder]
           const sortedResult = sortFn ? R.sort(sortFn, result) : result
-          console.log('sortedResult', sortedResult)
           return sortedResult
         })
       },
