@@ -99,8 +99,6 @@ const MapFeatureModal = () => {
   const geoData = useSelector(selectLocalizedGeoTypes)
   const dispatch = useDispatch()
   const { cluster_id, feature, type, layout, props, mapId } = open
-  console.log('MapFeatureModal', { open })
-  console.log(arcData)
   const key = JSON.parse(R.prop('key', open))
   const featureData =
     feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData
