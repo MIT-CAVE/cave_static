@@ -217,16 +217,20 @@ export const IncludedGeos = memo(() => {
 // TODO Add note: must start with 0 and increase
 const latitudes = [
   [43.78, 43.78, 40],
+  // [39.82, 39.82, 39.82],
   [39.82, 40, 41],
 ]
 const longitudes = [
   [-79.63, -75, -73],
+  // [-86.18, -86.18, -86.18],
   [-86.18, -84, -87],
 ]
 const times = [
   [0, 2, 5],
-  [0, 1, 5],
+  [0, 1, 6],
 ]
+
+const duration = 8
 
 export const Nodes = memo(({ animating }) => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
@@ -263,11 +267,16 @@ export const Nodes = memo(({ animating }) => {
     (idx) => {
       const definedTime = definedTimes[idx]
       let currentTime = performance.now() - startTime.current
-      // TODO change if nodes have different end times; freeze
       if (currentTime > Math.max(...definedTime) * 1000) {
+        if (currentTime < duration * 1000) {
+          return [
+            longitudes[idx][longitudes[idx].length - 1],
+            latitudes[idx][latitudes[idx].length - 1],
+          ]
+        }
         startTime.current = performance.now()
         currentLowerControlPoint.current[idx] = 0
-        currentTime %= Math.max(...definedTime) * 1000
+        currentTime %= duration * 1000
       }
       const currentTimeInSeconds = currentTime / 1000
       if (
