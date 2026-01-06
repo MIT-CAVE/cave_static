@@ -59,24 +59,7 @@ const TimeButton = (props) => (
   <TooltipButton sx={{ border: 0, borderRadius: '50%', p: 0.5 }} {...props} />
 )
 
-const TimeControl = ({ setAnimating }) => {
-  // const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-  // const nodeTypes = useSelector(selectNodeTypeKeys)
-
-  // const mapData = useSelector(selectMapData) // get current displayed nodes/objects in legend
-
-  // const mapFeaturesData = useSelector(selectMapFeatures) // get long lat coordinates and animation levels
-
-  // const currentMapFeaturesData = useMemo(
-  //   () =>
-  //     R.pipe(
-  //       R.path([mapId, 'legendGroups']),
-  //       R.values,
-  //       R.chain((legendGroup) => R.keys(legendGroup.data))
-  //     )(mapData),
-  //   [mapData, mapId]
-  // )
-
+const TimeControl = () => {
   const playbackSpeed = useSelector(selectCurrentSpeed)
   const looping = useSelector(selectCurrentLooping)
 
@@ -115,16 +98,8 @@ const TimeControl = ({ setAnimating }) => {
     if (!looping && currentTime + 1 === timeLength) {
       clearInterval(animationInterval)
       dispatch(updateAnimation(false))
-      setAnimating(false)
     }
-  }, [
-    currentTime,
-    looping,
-    timeLength,
-    animationInterval,
-    dispatch,
-    setAnimating,
-  ])
+  }, [currentTime, looping, timeLength, animationInterval, dispatch])
 
   const toggleAnimationSpeed = useCallback(
     (newPlaybackSpeed) => {
@@ -203,7 +178,6 @@ const TimeControl = ({ setAnimating }) => {
             title="Pause animation"
             placement="bottom"
             onClick={() => {
-              setAnimating(false)
               clearInterval(animationInterval)
               dispatch(updateAnimation(false))
             }}
@@ -215,7 +189,6 @@ const TimeControl = ({ setAnimating }) => {
             title="Play animation"
             placement="bottom"
             onClick={() => {
-              setAnimating(true)
               toggleAnimationSpeed(playbackSpeed)
             }}
           >
