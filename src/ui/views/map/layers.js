@@ -26,6 +26,8 @@ import {
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
+  selectFeatureData,
+  selectCurrentTimeLength,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -214,27 +216,12 @@ export const IncludedGeos = memo(() => {
   )
 })
 
-// TODO Add note: must start with 0 and increase
-const latitudes = [
-  [43.78, 43.78, 40],
-  // [39.82, 39.82, 39.82],
-  [39.82, 40, 41],
-]
-const longitudes = [
-  [-79.63, -75, -73],
-  // [-86.18, -86.18, -86.18],
-  [-86.18, -84, -87],
-]
-const times = [
-  [0, 2, 5],
-  [0, 1, 6],
-]
-
-const duration = 8
-
 export const Nodes = memo(({ animating }) => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const featureData = useSelector(selectFeatureData)
+  const duration = useSelector(selectCurrentTimeLength)
+
   const [animatedCoordinates, setAnimatedCoordinates] = useState(
     R.pipe(
       R.map((feature) => [
@@ -252,11 +239,38 @@ export const Nodes = memo(({ animating }) => {
       R.repeat(0, nodeGeoJson?.length || 0)
     )
   )
-
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
-  const definedTimes = R.fromPairs(
+
+  const latitudes = R.pipe(
+    R.values,
+    R.map(R.pathOr({}, ['data', 'location', 'latitude'])),
+    R.unnest
+  )(featureData)
+  const longitudes = R.pipe(
+    R.values,
+    R.map(R.pathOr({}, ['data', 'location', 'longitude'])),
+    R.unnest
+  )(featureData)
+  const times = R.pipe(
+    R.values,
+    R.map(R.pathOr({}, ['data', 'location', 'animationTime'])),
+    R.unnest
+  )(featureData)
+  const definedNodeTimes = R.fromPairs(
     R.addIndex(R.map)((val, idx) => [idx, val])(times)
   )
+
+  const animatedNodeGeoJson = useMemo(() => {
+    return R.map(
+      (feature) =>
+        R.assocPath(
+          ['geometry', 'coordinates'],
+          animatedCoordinates[feature],
+          R.find(R.pathEq(feature, ['properties', 'cave_name']), nodeGeoJson)
+        ),
+      R.keys(animatedCoordinates)
+    )
+  }, [nodeGeoJson, animatedCoordinates])
 
   const lerp = (start, end, t) => {
     return start + t * (end - start)
@@ -265,9 +279,9 @@ export const Nodes = memo(({ animating }) => {
   // TODO use particular coordinates for each node
   const moveCoordinates = useCallback(
     (idx) => {
-      const definedTime = definedTimes[idx]
+      const definedNodeTime = definedNodeTimes[idx]
       let currentTime = performance.now() - startTime.current
-      if (currentTime > Math.max(...definedTime) * 1000) {
+      if (currentTime > Math.max(...definedNodeTime) * 1000) {
         if (currentTime < duration * 1000) {
           return [
             longitudes[idx][longitudes[idx].length - 1],
@@ -281,31 +295,31 @@ export const Nodes = memo(({ animating }) => {
       const currentTimeInSeconds = currentTime / 1000
       if (
         currentTimeInSeconds >
-        definedTime[currentLowerControlPoint.current[idx] + 1]
+        definedNodeTime[currentLowerControlPoint.current[idx] + 1]
       ) {
         currentLowerControlPoint.current[idx] += 1
       }
       const lowerControlTime =
-        definedTime[currentLowerControlPoint.current[idx]]
+        definedNodeTime[currentLowerControlPoint.current[idx]]
       const upperControlTime =
-        definedTime[currentLowerControlPoint.current[idx] + 1]
+        definedNodeTime[currentLowerControlPoint.current[idx] + 1]
       const t =
         (currentTimeInSeconds - lowerControlTime) /
         (upperControlTime - lowerControlTime)
       return [
         lerp(
-          longitudes[idx][R.indexOf(lowerControlTime, definedTime)],
-          longitudes[idx][R.indexOf(upperControlTime, definedTime)],
+          longitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
+          longitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
           t
         ),
         lerp(
-          latitudes[idx][R.indexOf(lowerControlTime, definedTime)],
-          latitudes[idx][R.indexOf(upperControlTime, definedTime)],
+          latitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
+          latitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
           t
         ),
       ]
     },
-    [definedTimes]
+    [definedNodeTimes, duration, latitudes, longitudes]
   )
 
   const animate = useCallback(() => {
@@ -330,18 +344,6 @@ export const Nodes = memo(({ animating }) => {
     // }
     return () => cancelAnimationFrame(rafIdRef.current)
   }, [animating, animate])
-
-  const animatedNodeGeoJson = useMemo(() => {
-    return R.map(
-      (feature) =>
-        R.assocPath(
-          ['geometry', 'coordinates'],
-          animatedCoordinates[feature],
-          R.find(R.pathEq(feature, ['properties', 'cave_name']), nodeGeoJson)
-        ),
-      R.keys(animatedCoordinates)
-    )
-  }, [nodeGeoJson, animatedCoordinates])
 
   return [
     <NodesWithHeight
