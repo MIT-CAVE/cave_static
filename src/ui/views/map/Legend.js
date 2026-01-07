@@ -132,8 +132,7 @@ const styles = {
     borderRadius: '50%',
   },
   popper: {
-    height: '100%',
-    overflow: 'hidden',
+    overflow: 'auto',
     zIndex: 2,
   },
   getRippleBox: (selected) => ({
