@@ -1,3 +1,4 @@
+import { colord } from 'colord'
 import { scaleLinear, scaleLog, scalePow, scaleThreshold } from 'd3-scale'
 import * as R from 'ramda'
 
@@ -59,7 +60,18 @@ export const getScaledValueAlt = R.curry(
               : () => {
                   throw new Error(`Invalid scale "${scale}"`)
                 }
-    const scaleFunc = scaleBuilder.domain(domain).range(range).unknown(fallback)
+
+    // Parse range (when using colors) for CSS Color Module Level 4 compatibility
+    const parsedRange = range.map((rngValue) => {
+      if (typeof rngValue !== 'string') return rngValue
+      const color = colord(rngValue)
+      return color.isValid() ? color.toRgbString() : rngValue
+    })
+
+    const scaleFunc = scaleBuilder
+      .domain(domain)
+      .range(parsedRange)
+      .unknown(fallback)
     // Return the scaled value or the fallback
     return scale === scaleId.STEP
       ? scaleFunc(value)
