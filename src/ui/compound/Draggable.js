@@ -26,13 +26,18 @@ const styles = {
 const Draggable = ({
   component = Paper,
   sx = [],
+  position,
   onClose,
   children,
   ...props
 }) => {
   const nodeRef = useRef(null)
   return (
-    <ReactDraggable bounds="parent" {...{ nodeRef, ...props }}>
+    <ReactDraggable
+      bounds="parent"
+      defaultPosition={position}
+      {...{ nodeRef, ...props }}
+    >
       <Box
         ref={nodeRef}
         {...{ component }}
@@ -49,6 +54,10 @@ const Draggable = ({
 }
 Draggable.propTypes = {
   component: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  position: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+  }),
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
