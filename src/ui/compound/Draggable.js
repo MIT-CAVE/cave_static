@@ -28,6 +28,7 @@ const Draggable = ({
   sx = [],
   position,
   onClose,
+  hideCloseButton,
   children,
   ...props
 }) => {
@@ -45,9 +46,11 @@ const Draggable = ({
         sx={[styles.root, ...forceArray(sx)]}
       >
         {children}
-        <IconButton size="small" sx={styles.closeBtn} onClick={onClose}>
-          <MdCancel />
-        </IconButton>
+        {!hideCloseButton && (
+          <IconButton size="small" sx={styles.closeBtn} onClick={onClose}>
+            <MdCancel />
+          </IconButton>
+        )}
       </Box>
     </ReactDraggable>
   )

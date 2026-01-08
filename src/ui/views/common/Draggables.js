@@ -104,8 +104,11 @@ const Draggables = () => {
           <Draggable
             // sx={styles.globalOutputs}
             position={draggables[draggableId.GLOBAL_OUTPUTS].position}
-            onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
+            hideCloseButton={
+              draggables[draggableId.GLOBAL_OUTPUTS].hideCloseButton
+            }
             cancel={'.MuiButtonBase-root'}
+            onClose={handleToggleDraggable(draggableId.GLOBAL_OUTPUTS)}
           >
             <GlobalOutputsPad />
           </Draggable>
@@ -113,9 +116,10 @@ const Draggables = () => {
       {draggables[draggableId.TIME]?.open && (
         <Draggable
           sx={styles.time}
-          onClose={handleToggleDraggable(draggableId.TIME)}
           position={draggables[draggableId.TIME].position}
+          hideCloseButton={draggables[draggableId.TIME].hideCloseButton}
           cancel={'.MuiButtonBase-root, .MuiFormControl-root, .MuiSlider-thumb'}
+          onClose={handleToggleDraggable(draggableId.TIME)}
         >
           <TimeControl />
         </Draggable>
@@ -123,10 +127,14 @@ const Draggables = () => {
       {draggables[draggableId.SESSION]?.open && (
         <Draggable
           component={ButtonGroup}
-          sx={styles.session}
+          sx={[
+            styles.session,
+            draggables[draggableId.SESSION].hideCloseButton && { pr: 0 },
+          ]}
           position={draggables[draggableId.SESSION].position}
-          onClose={handleToggleDraggable(draggableId.SESSION)}
+          hideCloseButton={draggables[draggableId.SESSION].hideCloseButton}
           cancel={'.MuiButtonBase-root'}
+          onClose={handleToggleDraggable(draggableId.SESSION)}
         >
           <CardContent style={styles.content}>
             {`Current Session: ${sessionName}`}
