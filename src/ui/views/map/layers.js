@@ -279,6 +279,9 @@ export const Nodes = memo(({ animating }) => {
   // TODO use particular coordinates for each node
   const moveCoordinates = useCallback(
     (idx) => {
+      if (R.equals([null], definedNodeTimes[idx])) {
+        return [longitudes[idx][0], latitudes[idx][0]]
+      }
       const definedNodeTime = definedNodeTimes[idx]
       let currentTime = performance.now() - startTime.current
       if (currentTime > Math.max(...definedNodeTime) * 1000) {
@@ -289,7 +292,9 @@ export const Nodes = memo(({ animating }) => {
           ]
         }
         startTime.current = performance.now()
-        currentLowerControlPoint.current[idx] = 0
+        for (const idx in currentLowerControlPoint.current) {
+          currentLowerControlPoint.current[idx] = 0
+        }
         currentTime %= duration * 1000
       }
       const currentTimeInSeconds = currentTime / 1000
