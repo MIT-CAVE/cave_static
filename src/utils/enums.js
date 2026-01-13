@@ -24,6 +24,7 @@ export const paneId = {
 
 export const draggableId = {
   TIME: 'time',
+  ANIMATION: 'animation',
   SESSION: 'session',
   GLOBAL_OUTPUTS: 'globalOutputs',
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import TimeControl from './TimeControl'
+import AnimationControl from './AnimationControl'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
@@ -111,6 +112,15 @@ const Draggables = () => {
           cancel={'.MuiButtonBase-root, .MuiFormControl-root, .MuiSlider-thumb'}
         >
           <TimeControl />
+        </Draggable>
+      )}
+      {R.path([draggableId.ANIMATION, 'open'])(draggables) && (
+        <Draggable
+          sx={styles.time}
+          onClose={handleToggleDraggable(draggableId.ANIMATION)}
+          cancel={'.MuiButtonBase-root'}
+        >
+          <AnimationControl />
         </Draggable>
       )}
       {R.path([draggableId.SESSION, 'open'])(draggables) && (

@@ -28,6 +28,7 @@ import {
   selectFetchedArcGeoJsonFunc,
   selectFeatureData,
   selectAnimationDuration,
+  selectAnimationInterval,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -221,6 +222,9 @@ export const Nodes = memo(({ animating }) => {
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const featureData = useSelector(selectFeatureData)
   const duration = useSelector(selectAnimationDuration)
+  const animationInterval = useSelector(selectAnimationInterval)
+
+  const animation = R.is(Number, animationInterval)
 
   const [animatedCoordinates, setAnimatedCoordinates] = useState(
     R.pipe(
@@ -233,6 +237,8 @@ export const Nodes = memo(({ animating }) => {
   )
   const rafIdRef = useRef(null)
   const startTime = useRef(null)
+  const pausedTime = useRef(null)
+  const animationStarted = useRef(false)
   const currentLowerControlPoint = useRef(
     R.zipObj(
       [...Array(nodeGeoJson?.length || 0).keys()],
@@ -283,6 +289,10 @@ export const Nodes = memo(({ animating }) => {
         return [longitudes[idx][0], latitudes[idx][0]]
       }
       const definedNodeTime = definedNodeTimes[idx]
+      if (pausedTime.current !== null) {
+        startTime.current += performance.now() - pausedTime.current
+        pausedTime.current = null
+      }
       let currentTime = performance.now() - startTime.current
       if (currentTime > Math.max(...definedNodeTime) * 1000) {
         if (currentTime < duration * 1000) {
@@ -328,7 +338,7 @@ export const Nodes = memo(({ animating }) => {
   )
 
   const animate = useCallback(() => {
-    if (startTime.current == null) {
+    if (startTime.current === null) {
       startTime.current = performance.now()
     }
     setAnimatedCoordinates(
@@ -344,11 +354,20 @@ export const Nodes = memo(({ animating }) => {
   }, [nodeGeoJson, moveCoordinates])
 
   useEffect(() => {
-    // if (animating) {
-    rafIdRef.current = requestAnimationFrame(animate)
-    // }
+    if (animation) {
+      if (!animationStarted.current) {
+        animationStarted.current = true
+      }
+      rafIdRef.current = requestAnimationFrame(animate)
+    } else if (
+      !animation &&
+      pausedTime.current === null &&
+      animationStarted.current
+    ) {
+      pausedTime.current = performance.now()
+    }
     return () => cancelAnimationFrame(rafIdRef.current)
-  }, [animating, animate])
+  }, [animating, animate, animation])
 
   return [
     <NodesWithHeight

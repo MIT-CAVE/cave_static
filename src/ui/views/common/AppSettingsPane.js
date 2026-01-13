@@ -19,6 +19,7 @@ import {
   toggleEditLayout,
 } from '../../../data/local/settingsSlice'
 import {
+  selectAnimationDuration,
   selectCurrentTimeLength,
   selectData,
   selectDemoMode,
@@ -271,6 +272,7 @@ const AppSettingsPane = () => {
   const dispatch = useDispatch()
   const apiData = useSelector(selectData)
   const timeLength = useSelector(selectCurrentTimeLength)
+  const duration = useSelector(selectAnimationDuration)
   const syncToggles = useSelector(selectSyncToggles)
   const sync = useSelector(selectSync)
 
@@ -292,6 +294,12 @@ const AppSettingsPane = () => {
             />
             {timeLength > 0 && (
               <DraggableSwitch id={draggableId.TIME} name="Time Control" />
+            )}
+            {duration > 0 && (
+              <DraggableSwitch
+                id={draggableId.ANIMATION}
+                name="Animation Control"
+              />
             )}
           </FormGroup>
         </FormControl>
