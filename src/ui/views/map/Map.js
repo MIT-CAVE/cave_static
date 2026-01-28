@@ -333,7 +333,7 @@ const Map = ({ mapId }) => {
             <Geos />
             <IncludedGeos />
             <Arcs />
-            <Nodes animating={animating} />
+            <Nodes />
             <Arcs3D />
             {/* `MapPortal` is injected here */}
             <div ref={containerRef} />

@@ -3,8 +3,8 @@ import * as R from 'ramda'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import TimeControl from './TimeControl'
 import AnimationControl from './AnimationControl'
+import TimeControl from './TimeControl'
 
 import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'

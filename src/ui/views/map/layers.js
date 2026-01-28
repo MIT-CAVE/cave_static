@@ -217,28 +217,17 @@ export const IncludedGeos = memo(() => {
   )
 })
 
-export const Nodes = memo(({ animating }) => {
+export const Nodes = memo(() => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const featureData = useSelector(selectFeatureData)
   const duration = useSelector(selectAnimationDuration)
   const animationInterval = useSelector(selectAnimationInterval)
-
   const animation = R.is(Number, animationInterval)
 
-  const [animatedCoordinates, setAnimatedCoordinates] = useState(
-    R.pipe(
-      R.map((feature) => [
-        feature.properties.cave_name,
-        feature.geometry.coordinates,
-      ]),
-      R.fromPairs
-    )(nodeGeoJson)
-  )
-  const rafIdRef = useRef(null)
+  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
   const startTime = useRef(null)
   const pausedTime = useRef(null)
-  const animationStarted = useRef(false)
   const currentLowerControlPoint = useRef(
     R.zipObj(
       [...Array(nodeGeoJson?.length || 0).keys()],
@@ -247,42 +236,42 @@ export const Nodes = memo(({ animating }) => {
   )
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
-  const latitudes = R.pipe(
-    R.values,
-    R.map(R.pathOr({}, ['data', 'location', 'latitude'])),
-    R.unnest
-  )(featureData)
-  const longitudes = R.pipe(
-    R.values,
-    R.map(R.pathOr({}, ['data', 'location', 'longitude'])),
-    R.unnest
-  )(featureData)
-  const times = R.pipe(
-    R.values,
-    R.map(R.pathOr({}, ['data', 'location', 'animationTime'])),
-    R.unnest
-  )(featureData)
-  const definedNodeTimes = R.fromPairs(
-    R.addIndex(R.map)((val, idx) => [idx, val])(times)
+  const latitudes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr({}, ['data', 'location', 'latitude'])),
+        R.unnest
+      )(featureData),
+    [featureData]
   )
-
-  const animatedNodeGeoJson = useMemo(() => {
-    return R.map(
-      (feature) =>
-        R.assocPath(
-          ['geometry', 'coordinates'],
-          animatedCoordinates[feature],
-          R.find(R.pathEq(feature, ['properties', 'cave_name']), nodeGeoJson)
-        ),
-      R.keys(animatedCoordinates)
-    )
-  }, [nodeGeoJson, animatedCoordinates])
+  const longitudes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr({}, ['data', 'location', 'longitude'])),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const times = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr({}, ['data', 'location', 'animationTime'])),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const definedNodeTimes = useMemo(
+    () => R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(times)),
+    [times]
+  )
 
   const lerp = (start, end, t) => {
     return start + t * (end - start)
   }
 
-  // TODO use particular coordinates for each node
   const moveCoordinates = useCallback(
     (idx) => {
       if (R.equals([null], definedNodeTimes[idx])) {
@@ -293,7 +282,9 @@ export const Nodes = memo(({ animating }) => {
         startTime.current += performance.now() - pausedTime.current
         pausedTime.current = null
       }
-      let currentTime = performance.now() - startTime.current
+      const currentTime =
+        (performance.now() - startTime.current) % (duration * 1000)
+
       if (currentTime > Math.max(...definedNodeTime) * 1000) {
         if (currentTime < duration * 1000) {
           return [
@@ -305,7 +296,6 @@ export const Nodes = memo(({ animating }) => {
         for (const idx in currentLowerControlPoint.current) {
           currentLowerControlPoint.current[idx] = 0
         }
-        currentTime %= duration * 1000
       }
       const currentTimeInSeconds = currentTime / 1000
       if (
@@ -337,37 +327,27 @@ export const Nodes = memo(({ animating }) => {
     [definedNodeTimes, duration, latitudes, longitudes]
   )
 
-  const animate = useCallback(() => {
-    if (startTime.current === null) {
-      startTime.current = performance.now()
-    }
-    setAnimatedCoordinates(
-      R.pipe(
-        R.addIndex(R.map)((feature, idx) => [
-          feature.properties.cave_name,
-          moveCoordinates(idx),
-        ]),
-        R.fromPairs
-      )(nodeGeoJson)
-    )
-    rafIdRef.current = requestAnimationFrame(animate)
-  }, [nodeGeoJson, moveCoordinates])
-
   useEffect(() => {
     if (animation) {
-      if (!animationStarted.current) {
-        animationStarted.current = true
+      if (startTime.current === null) {
+        startTime.current = performance.now()
       }
-      rafIdRef.current = requestAnimationFrame(animate)
+      const requestId = window.requestAnimationFrame(() => {
+        setAnimatedNodeGeoJson(
+          nodeGeoJson.map((f, i) =>
+            R.assocPath(['geometry', 'coordinates'], moveCoordinates(i), f)
+          )
+        )
+      })
+      return () => window.cancelAnimationFrame(requestId)
     } else if (
       !animation &&
       pausedTime.current === null &&
-      animationStarted.current
+      startTime.current !== null
     ) {
       pausedTime.current = performance.now()
     }
-    return () => cancelAnimationFrame(rafIdRef.current)
-  }, [animating, animate, animation])
+  })
 
   return [
     <NodesWithHeight
