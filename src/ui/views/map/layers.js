@@ -240,7 +240,7 @@ export const Nodes = memo(() => {
     () =>
       R.pipe(
         R.values,
-        R.map(R.pathOr({}, ['data', 'location', 'latitude'])),
+        R.map(R.pathOr([], ['data', 'location', 'latitude'])),
         R.unnest
       )(featureData),
     [featureData]
@@ -249,23 +249,24 @@ export const Nodes = memo(() => {
     () =>
       R.pipe(
         R.values,
-        R.map(R.pathOr({}, ['data', 'location', 'longitude'])),
+        R.map(R.pathOr([], ['data', 'location', 'longitude'])),
         R.unnest
       )(featureData),
     [featureData]
   )
-  const times = useMemo(
+  const animationTimes = useMemo(
     () =>
       R.pipe(
         R.values,
-        R.map(R.pathOr({}, ['data', 'location', 'animationTime'])),
+        R.map(R.pathOr([], ['data', 'location', 'animationTime'])),
         R.unnest
       )(featureData),
     [featureData]
   )
   const definedNodeTimes = useMemo(
-    () => R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(times)),
-    [times]
+    () =>
+      R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(animationTimes)),
+    [animationTimes]
   )
 
   const lerp = (start, end, t) => {
