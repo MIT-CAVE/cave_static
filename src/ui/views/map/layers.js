@@ -258,7 +258,15 @@ export const Nodes = memo(() => {
     () =>
       R.pipe(
         R.values,
-        R.map(R.pathOr([], ['data', 'location', 'animationTime'])),
+        R.map((item) => {
+          const latitude = R.path(['data', 'location', 'latitude'], item)
+          const animationTime = R.path(
+            ['data', 'location', 'animationTime'],
+            item
+          )
+
+          return animationTime ?? R.repeat([null], latitude.length)
+        }),
         R.unnest
       )(featureData),
     [featureData]
@@ -286,8 +294,11 @@ export const Nodes = memo(() => {
       const currentTime =
         (performance.now() - startTime.current) % (duration * 1000)
 
+      //   const visible = ...
+
       if (currentTime > Math.max(...definedNodeTime) * 1000) {
         if (currentTime < duration * 1000) {
+          // && visible
           return [
             longitudes[idx][longitudes[idx].length - 1],
             latitudes[idx][latitudes[idx].length - 1],
