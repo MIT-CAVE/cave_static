@@ -6,7 +6,7 @@ A react based static web app to be used as a data consumer for the `cave_app`.
 
 Before you begin we suggest you use the version of node that this application version was developed on. We recommend using [NVM](https://github.com/nvm-sh/nvm#install--update-script) to manage node environments.
 
-- Current CAVE supported Node Version: node 18
+- Current CAVE supported Node Version: node v22.12.0+
 
 You can install all dependencies and run the app by running `npm run setup` from the root of the project.
 
@@ -45,16 +45,34 @@ npm start
 ## Create a static build
 
 1. Edit your `.env` file accordingly
-2. Build the app
+2. Build the app:
 
-```sh
-npm run build
-```
+   **Production Build**
+   - Create a production build:
 
-- This will create a static build located at the `BUILD_PATH` found in your `.env`.
-- Notes:
-  - The build process uses the `PUBLIC_URL` specified in your `.env` file
-  - To test the build locally, you should build with the `PUBLIC_URL` matching that of your `localhost`
+     > This creates a production-ready static build at the `BUILD_PATH` specified in your `.env` file.
+     ```sh
+     npm run build
+     ```
+
+   Notes:
+   - The build process uses the `BASE_URL` specified in your `.env` file
+   - After [deploying your static build](#deploy-your-static-build), you can test it locally:
+     ```sh
+     npm run preview
+     ```
+
+   **Development Build**
+   - Create a development build:
+
+     > Note: This will **override** any existing local build—development or production—at the specified `BUILD_PATH` on your system.
+     ```sh
+     npm run build-dev
+     ```
+   - Test your local build:
+     ```sh
+     npm run preview
+     ```
 
 ## Analyze Bundle Size and Dependency Cost
 

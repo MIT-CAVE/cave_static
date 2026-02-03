@@ -132,8 +132,7 @@ const styles = {
     borderRadius: '50%',
   },
   popper: {
-    height: '100%',
-    overflow: 'hidden',
+    overflow: 'auto',
     zIndex: 2,
   },
   getRippleBox: (selected) => ({
@@ -969,27 +968,22 @@ export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
-  const { mapId } = useContext(MapContext)
-  const { isMapboxSelected } = useMapApi(mapId)
   const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
-  const disabled = !isMapboxSelected
   const indexedOptions = useMemo(
     () => ({
       solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
-      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted', disabled },
-      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed', disabled },
+      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
+      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
       '3d': { icon: 'vsc/VscLoading', label: 'Arc', disabled: true }, // Always disabled for now
     }),
-    [disabled]
+    []
   )
   const shapeOptions = useMemo(
     () => Object.keys(indexedOptions),
     [indexedOptions]
   )
-  const currentLineStyle = isMapboxSelected
-    ? (props.lineStyle ?? 'solid')
-    : 'solid'
+  const currentLineStyle = props.lineStyle ?? 'solid'
   return (
     <LegendRowComponent
       mapFeaturesBy={effectiveArcsBy}
@@ -998,10 +992,6 @@ export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
       icon={indexedOptions[currentLineStyle]?.icon}
       shapeLabel="Select the line style"
       {...{ shapeOptions, getRange, ...props }}
-      shapeWarning={
-        !isMapboxSelected &&
-        "Only the 'solid' line style is supported when using MapLibre. Other styles ('dotted', 'dashed', etc.) will be displayed as solid lines."
-      }
       getShapeIcon={(option) => indexedOptions[option]?.icon}
       getShapeLabel={(option) => indexedOptions[option]?.label}
       getShapeDisabled={(option) => indexedOptions[option]?.disabled}

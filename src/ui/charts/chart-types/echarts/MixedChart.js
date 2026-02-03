@@ -10,14 +10,20 @@ const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const leftDataMax = Math.max(...R.filter(R.is(Number), leftData))
   const rightDataMin = Math.min(...R.filter(R.is(Number), rightData))
   const rightDataMax = Math.max(...R.filter(R.is(Number), rightData))
+  const zeroBased = leftDataMin >= 0 && rightDataMin >= 0
   const leftMin = syncAxes
-    ? Math.min(leftDataMin, rightDataMin)
-    : -Math.max(Math.abs(leftDataMin), Math.abs(leftDataMax))
-  const leftMax = syncAxes ? Math.max(leftDataMax, rightDataMax) : -leftMin
+    ? Math.min(leftDataMin, rightDataMin, 0)
+    : zeroBased
+      ? 0
+      : -Math.max(Math.abs(leftDataMin), Math.abs(leftDataMax))
+
+  const leftMax = syncAxes ? Math.max(leftDataMax, rightDataMax) : leftDataMax
   const rightMin = syncAxes
     ? leftMin
-    : -Math.max(Math.abs(rightDataMin), Math.abs(rightDataMax))
-  const rightMax = syncAxes ? leftMax : -rightMin
+    : zeroBased
+      ? 0
+      : -Math.max(Math.abs(rightDataMin), Math.abs(rightDataMax))
+  const rightMax = syncAxes ? leftMax : rightDataMax
   return { leftMin, leftMax, rightMin, rightMax }
 }
 const isCumulative = (variant, data) => {
@@ -194,6 +200,14 @@ const MixedChart = ({
     },
     axisLine: {
       show: true,
+    },
+    splitLine: {
+      lineStyle: {
+        type: [2, 5],
+        dashOffset: 2,
+        color: '#aaa',
+        opacity: 0.7,
+      },
     },
   })
 

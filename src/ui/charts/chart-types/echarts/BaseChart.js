@@ -122,6 +122,8 @@ const baseOptions = {
     // - https://github.com/apache/echarts/issues/15654
     type: 'scroll',
     top: 24,
+    // This stops the legend scrolling from being covered by the chart options
+    padding: [5, 125, 5, 5],
   },
   tooltip: {
     trigger: 'axis',

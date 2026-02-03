@@ -26,13 +26,19 @@ const styles = {
 const Draggable = ({
   component = Paper,
   sx = [],
+  position,
   onClose,
+  hideCloseButton,
   children,
   ...props
 }) => {
   const nodeRef = useRef(null)
   return (
-    <ReactDraggable bounds="parent" {...{ nodeRef, ...props }}>
+    <ReactDraggable
+      bounds="parent"
+      defaultPosition={position}
+      {...{ nodeRef, ...props }}
+    >
       <Box
         ref={nodeRef}
         {...{ component }}
@@ -40,15 +46,21 @@ const Draggable = ({
         sx={[styles.root, ...forceArray(sx)]}
       >
         {children}
-        <IconButton size="small" sx={styles.closeBtn} onClick={onClose}>
-          <MdCancel />
-        </IconButton>
+        {!hideCloseButton && (
+          <IconButton size="small" sx={styles.closeBtn} onClick={onClose}>
+            <MdCancel />
+          </IconButton>
+        )}
       </Box>
     </ReactDraggable>
   )
 }
 Draggable.propTypes = {
   component: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  position: PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+  }),
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

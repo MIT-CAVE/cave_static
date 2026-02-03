@@ -2,7 +2,6 @@ import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -34,6 +33,7 @@ import {
 } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
+import { getSvgMarkup } from '../../../utils/svgBuilder'
 
 import { fetchIcon } from '../../../utils'
 
@@ -102,17 +102,15 @@ const Map = ({ mapId }) => {
     ]
     R.forEach(async (iconName) => {
       const iconComponent =
-        iconName === 'MdDownloading' ? (
-          <MdDownloading />
-        ) : (
-          (await fetchIcon(iconName, iconUrl))()
-        )
-      const svgString = renderToStaticMarkup(iconComponent)
+        iconName === 'MdDownloading'
+          ? MdDownloading
+          : await fetchIcon(iconName, iconUrl)
+      const svgMarkup = getSvgMarkup(iconComponent)
       const iconImage = new Image(ICON_RESOLUTION, ICON_RESOLUTION)
       iconImage.onload = () => {
-        setIconData((iconStrings) => R.assoc(iconName, iconImage)(iconStrings))
+        setIconData(R.assoc(iconName, iconImage))
       }
-      iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgString)}`
+      iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 

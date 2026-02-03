@@ -218,68 +218,70 @@ const ChartMenu = ({
         />
         <Divider />
 
-        {!isMap && !UNSORTABLE_HOVERED_CHARTS.includes(chartType) && (
-          <>
-            <FormControl
-              // size="small"
-              fullWidth
-              sx={{ m: 1, maxWidth: 'calc(100% - 16px)' }}
-            >
-              <InputLabel id="chart-hover-label">
-                {'Chart Hover \u279D Sort By'}
-              </InputLabel>
-              <Select
-                labelId="chart-hover-label"
-                label={'Chart Hover \u279D Sort By'}
-                id="chart-hover"
-                value={chartHoverOrder}
-                iconSize="28px"
-                optionsList={[
-                  {
-                    iconName: 'bs/BsSortAlphaDown',
-                    label: 'Name (Asc)',
-                    value: 'seriesAsc',
-                  },
-                  {
-                    iconName: 'bs/BsSortAlphaUp',
-                    label: 'Name (Desc)',
-                    value: 'seriesDesc',
-                  },
-                  {
-                    iconName: 'bs/BsSortNumericDown',
-                    label: 'Value (Asc)',
-                    value: 'valueAsc',
-                  },
-                  {
-                    iconName: 'bs/BsSortNumericUp',
-                    label: 'Value (Desc)',
-                    value: 'valueDesc',
-                  },
-                ]}
-                onSelect={onChartHover}
-              />
-            </FormControl>
-            <Divider />
-          </>
-        )}
+        {!isMap &&
+          !UNSORTABLE_HOVERED_CHARTS.includes(chartType) &&
+            // An array is preferred since `Menu` throws a warning for fragment children
+            [
+              <FormControl
+                key="chart-hover-control"
+                // size="small"
+                fullWidth
+                sx={{ m: 1, maxWidth: 'calc(100% - 16px)' }}
+              >
+                <InputLabel id="chart-hover-label">
+                  {'Chart Hover \u279D Sort By'}
+                </InputLabel>
+                <Select
+                  labelId="chart-hover-label"
+                  label={'Chart Hover \u279D Sort By'}
+                  id="chart-hover"
+                  value={chartHoverOrder}
+                  iconSize="28px"
+                  optionsList={[
+                    {
+                      iconName: 'bs/BsSortAlphaDown',
+                      label: 'Name (Asc)',
+                      value: 'seriesAsc',
+                    },
+                    {
+                      iconName: 'bs/BsSortAlphaUp',
+                      label: 'Name (Desc)',
+                      value: 'seriesDesc',
+                    },
+                    {
+                      iconName: 'bs/BsSortNumericDown',
+                      label: 'Value (Asc)',
+                      value: 'valueAsc',
+                    },
+                    {
+                      iconName: 'bs/BsSortNumericUp',
+                      label: 'Value (Desc)',
+                      value: 'valueDesc',
+                    },
+                  ]}
+                  onSelect={onChartHover}
+                />
+              </FormControl>,
+              <Divider key="chart-hover-divider" />,
+            ]}
 
-        {isGroupedOutput && (
-          <>
+        {isGroupedOutput &&
+          // An array is preferred since `Menu` throws a warning for fragment children
+          [
             <ToggleMenuItem
-              key="defaultToZero"
+              key="default-to-zero"
               label="0 NA Values"
               value={defaultToZero}
               onClick={onToggleDefaultToZero}
-            />
+            />,
             <ToggleMenuItem
-              key="showNA"
+              key="show-na-values"
               label="NA Groupings"
               value={showNA}
               onClick={onToggleShowNA}
-            />
-            <Divider />
-          </>
-        )}
+            />,
+            <Divider key="grouped-output-divider" />,
+          ]}
 
         <BaseMenuItem
           label="Remove Chart"

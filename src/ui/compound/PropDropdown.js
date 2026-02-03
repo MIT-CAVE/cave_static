@@ -47,7 +47,7 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
     fullWidth,
     propStyle,
   } = prop
-  const [value] = currentVal ?? prop.value
+  const [value] = currentVal ?? prop.value ?? []
 
   const optionsListRaw = useMemo(() => withIndex(options), [options])
 
