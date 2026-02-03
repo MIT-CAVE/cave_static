@@ -50,8 +50,8 @@ const BaseModal = ({
   children,
 }) => {
   const {
-    root: { sx: sxRoot, ...rootProps },
-    paper: { sx: sxPaper, ...paperProps },
+    root: { sx: sxRoot, ...rootProps } = {},
+    paper: { sx: sxPaper, ...paperProps } = {},
   } = slotProps
   return (
     <Modal sx={[styles.root, sxRoot]} {...{ open, onClose, ...rootProps }}>
