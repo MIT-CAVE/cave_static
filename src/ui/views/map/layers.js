@@ -271,6 +271,23 @@ export const Nodes = memo(() => {
       )(featureData),
     [featureData]
   )
+  const disappearingTimes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map((item) => {
+          const latitude = R.path(['data', 'location', 'latitude'], item)
+          const disappearingTime = R.path(
+            ['data', 'location', 'disappearingTime'],
+            item
+          )
+
+          return disappearingTime ?? R.repeat([], latitude.length)
+        }),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
   const definedNodeTimes = useMemo(
     () =>
       R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(animationTimes)),
@@ -279,6 +296,18 @@ export const Nodes = memo(() => {
 
   const lerp = (start, end, t) => {
     return start + t * (end - start)
+  }
+
+  // TODO optimize
+  const isVisible = (l, n) => {
+    for (const s of l) {
+      const min = s[0]
+      const max = s[1]
+      if (min <= n && n <= max) {
+        return false
+      }
+    }
+    return true
   }
 
   const moveCoordinates = useCallback(
@@ -293,28 +322,40 @@ export const Nodes = memo(() => {
       }
       const currentTime =
         (performance.now() - startTime.current) % (duration * 1000)
+      const currentTimeInSeconds = currentTime / 1000
 
-      //   const visible = ...
+      const disappearingTime = disappearingTimes[idx]
+      const visible =
+        Array.isArray(disappearingTime) && disappearingTime.length === 0
+          ? true
+          : isVisible(disappearingTime, currentTimeInSeconds)
 
       if (currentTime > Math.max(...definedNodeTime) * 1000) {
         if (currentTime < duration * 1000) {
-          // && visible
-          return [
-            longitudes[idx][longitudes[idx].length - 1],
-            latitudes[idx][latitudes[idx].length - 1],
-          ]
+          if (visible) {
+            return [
+              longitudes[idx][longitudes[idx].length - 1],
+              latitudes[idx][latitudes[idx].length - 1],
+            ]
+          } else {
+            return []
+          }
         }
         startTime.current = performance.now()
         for (const idx in currentLowerControlPoint.current) {
           currentLowerControlPoint.current[idx] = 0
         }
       }
-      const currentTimeInSeconds = currentTime / 1000
+
       if (
         currentTimeInSeconds >
         definedNodeTime[currentLowerControlPoint.current[idx] + 1]
       ) {
         currentLowerControlPoint.current[idx] += 1
+      }
+
+      if (!visible) {
+        return []
       }
       const lowerControlTime =
         definedNodeTime[currentLowerControlPoint.current[idx]]
@@ -336,7 +377,7 @@ export const Nodes = memo(() => {
         ),
       ]
     },
-    [definedNodeTimes, duration, latitudes, longitudes]
+    [definedNodeTimes, disappearingTimes, duration, latitudes, longitudes]
   )
 
   useEffect(() => {
