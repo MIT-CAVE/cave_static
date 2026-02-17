@@ -27,6 +27,7 @@ import {
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
+import { chartVariant } from '../../../utils/enums'
 import { useModal, useMutateState } from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
 import ColorChangeModal from '../common/ColorChangeModal'
@@ -72,11 +73,12 @@ const styles = {
   },
 }
 
-const DashboardItem = ({ chartObj, index, path }) => {
+const DashboardItem = ({ chartObj, index }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
   const editLayoutMode = useSelector(selectEditLayoutMode)
+  const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
 
   const {
@@ -101,7 +103,12 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
-  const chartType = R.propOr('bar', 'chartType')(chartObj)
+  const chartType = R.propOr(chartVariant.BAR, 'chartType')(chartObj)
+
+  const path = useMemo(
+    () => ['pages', 'data', currentPage, 'charts', index],
+    [currentPage, index]
+  )
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
@@ -295,7 +302,6 @@ const Dashboard = () => {
 
   const pagePath = ['pages', 'data', currentPage]
   const layoutPath = [...pagePath, 'pageLayout']
-  const chartsPath = [...pagePath, 'charts']
 
   const lineLength = pageLayout.length === 9 ? 3 : 2
 
@@ -587,10 +593,7 @@ const Dashboard = () => {
                       }}
                     >
                       {chartObj != null && (
-                        <DashboardItem
-                          {...{ chartObj, index }}
-                          path={[...chartsPath, index]}
-                        />
+                        <DashboardItem {...{ chartObj, index }} />
                       )}
                     </Box>
                   )

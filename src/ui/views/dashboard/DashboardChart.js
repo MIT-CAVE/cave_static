@@ -7,7 +7,8 @@ import {
   selectGroupedOutputTypes,
   selectNumberFormat,
   selectMemoizedChartFunc,
-  selectStatGroupings,
+  selectChartColors,
+  selectSlimStatGroupings,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import {
@@ -37,7 +38,6 @@ import {
 import {
   getLabelFn,
   getSubLabelFn,
-  getColoringFn,
   getGroupLabelFn,
   cleanUndefinedStats,
 } from '../../../utils'
@@ -49,11 +49,12 @@ const DashboardChart = ({ chartObj, path }) => {
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
-  const categories = useSelector(selectStatGroupings)
+  const categories = useSelector(selectSlimStatGroupings)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
+
   const cleanedChartObj = cleanUndefinedStats(chartObj)
 
-  const chartType = R.propOr('bar', 'chartType', cleanedChartObj)
+  const chartType = R.propOr(chartVariant.BAR, 'chartType', cleanedChartObj)
   const distributionType = R.propOr(
     distributionTypes.PDF,
     'distributionType',
@@ -72,6 +73,34 @@ const DashboardChart = ({ chartObj, path }) => {
   const leftVariant = R.propOr('line', 'leftVariant', cleanedChartObj)
   const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
+
+  const getColors = useSelector(selectChartColors)
+
+  const colors = useMemo(
+    () =>
+      getColors(
+        chartType,
+        cleanedChartObj.groupingId,
+        cleanedChartObj.groupingLevel
+      ),
+    [
+      chartType,
+      cleanedChartObj.groupingId,
+      cleanedChartObj.groupingLevel,
+      getColors,
+    ]
+  )
+
+  // NOTE: Use with selectChartColorsAlt
+  // const colors = useSelector((state) =>
+  //   selectChartColors(
+  //     state,
+  //     chartType,
+  //     chartObj.groupingId,
+  //     chartObj.groupingLevel
+  //   )
+  // )
+
   const chartHoverOrder = R.propOr(
     'seriesDesc',
     'chartHoverOrder',
@@ -105,23 +134,6 @@ const DashboardChart = ({ chartObj, path }) => {
     R.reverse
   )(cleanedChartObj)
 
-  const colors =
-    chartType === chartVariant.SUNBURST || chartType === chartVariant.TREEMAP
-      ? R.mergeAll(
-          R.map((idx) =>
-            getColoringFn(
-              categories,
-              R.path(['groupingId', idx], cleanedChartObj),
-              R.path(['groupingLevel', idx], cleanedChartObj)
-            )
-          )(groupingRange)
-        )
-      : getColoringFn(
-          categories,
-          R.path(['groupingId', R.head(groupingRange)], cleanedChartObj),
-          R.path(['groupingLevel', R.head(groupingRange)], cleanedChartObj)
-        )
-
   const xAxisTitle = cleanedChartObj.groupingId
     ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
         cleanedChartObj.groupingLevel &&
@@ -136,7 +148,7 @@ const DashboardChart = ({ chartObj, path }) => {
       }`
     : ''
 
-  const getYAxisTitle = (cleanedChartObj, statIdx) => {
+  const getYAxisTitle = (statIdx) => {
     // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
     const statDataset = cleanedChartObj.dataset
     const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
@@ -152,7 +164,7 @@ const DashboardChart = ({ chartObj, path }) => {
       statDivisorId,
     ])
     const statDivisorUnit =
-      R.pathOr({}, [statDataset, statDivisorId], statisticTypes).unit ||
+      statisticTypes[statDataset]?.[statDivisorId]?.unit ||
       numberFormatDefault.unit
 
     const statAggregation = R.propOr('', 'aggregationType', statObject)
@@ -206,7 +218,7 @@ const DashboardChart = ({ chartObj, path }) => {
     return yAxisTitle
   }
 
-  const yAxisTitle = getYAxisTitle(cleanedChartObj, 0)
+  const yAxisTitle = getYAxisTitle(0)
 
   const labels = { xAxisTitle, yAxisTitle }
 
@@ -219,7 +231,7 @@ const DashboardChart = ({ chartObj, path }) => {
     return {
       type: 'number',
       key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
-      label: getYAxisTitle(cleanedChartObj, idx),
+      label: getYAxisTitle(idx),
     }
   })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
 
@@ -254,18 +266,11 @@ const DashboardChart = ({ chartObj, path }) => {
     R.omit(['unit', 'unitPlacement'])
   )
 
-  const loadingComponent = (
-    <CircularProgress
-      sx={{
-        mx: 'auto',
-        mt: '25%',
-      }}
-    />
-  )
+  if (R.isEmpty(statisticTypes) || loading) {
+    return <CircularProgress sx={{ mx: 'auto', mt: '25%' }} />
+  }
 
-  if (R.isEmpty(statisticTypes) || loading) return loadingComponent
-
-  if (R.isEmpty(formattedData))
+  if (R.isEmpty(formattedData)) {
     return (
       <Stack
         sx={{
@@ -285,6 +290,7 @@ const DashboardChart = ({ chartObj, path }) => {
         <Box>Please check your data or your filters.</Box>
       </Stack>
     )
+  }
 
   const numberFormats = R.reduce(
     (acc, [dataset, statId]) =>
@@ -301,9 +307,7 @@ const DashboardChart = ({ chartObj, path }) => {
   const numberFormat =
     R.keys(numberFormats).length > 1
       ? numberFormats
-      : numberFormats[
-          R.propOr('', 'statId', R.pathOr({}, ['stats', 0], cleanedChartObj))
-        ]
+      : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? '')
 
   return (
     <Box

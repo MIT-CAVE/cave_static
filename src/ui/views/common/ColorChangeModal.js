@@ -1,73 +1,70 @@
 import {
   TextField,
   Box,
-  Paper,
   FormControl,
   InputLabel,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import { colord } from 'colord'
-import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, memo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { DataGridModal } from './BaseModal'
+import BaseModal from './BaseModal'
 
 import { mutateLocal } from '../../../data/local'
-import { selectStatGroupings } from '../../../data/selectors'
+import { selectMergedStatGroupings, selectSync } from '../../../data/selectors'
 import { colorGen } from '../../../utils/ColorGen'
-import { useColorPicker } from '../../compound/ColorPicker'
+import { ColorPickerAlt, useColorPicker } from '../../compound/ColorPicker'
 
 import { Select, HelpTooltip } from '../../compound'
 
-import { getColorString, forceArray, getLabelFn } from '../../../utils'
+import {
+  getColorString,
+  forceArray,
+  getLabelFn,
+  includesPath,
+} from '../../../utils'
 
 const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   const [searchText, setSearchText] = useState('')
   const [currentCategoryId, setCurrentCategoryId] = useState(null)
-  const [currentCategoryName, setCurrentCategoryName] = useState(null)
   const [localCategoryColors, setLocalCategoryColors] = useState({})
+  const statGroupings = useSelector(selectMergedStatGroupings)
+  const sync = useSelector(selectSync)
   const dispatch = useDispatch()
-  const statGroupings = useSelector(selectStatGroupings)
 
-  const allCategories = useMemo(
+  const categoryOptions = useMemo(
     () =>
-      R.mergeAll(
-        Object.values(
-          R.map(
-            R.pipe(
-              R.prop('levels'),
-              (levels) =>
-                R.map(
-                  (item) => [item, getLabelFn(levels, item)],
-                  R.keys(levels)
-                ),
-              R.fromPairs
-            ),
-            statGroupings
+      R.pipe(
+        R.map(
+          R.pipe(
+            R.prop('levels'),
+            R.mapObjIndexed((level, key) => ({
+              label: level.name,
+              value: key,
+              // iconName: level.icon,
+            })),
+            R.values
           )
-        )
-      ),
+        ),
+        R.values,
+        R.unnest
+      )(statGroupings),
     [statGroupings]
   )
 
-  useMemo(() => {
-    if (R.pathOr(false, ['groupingLevel'])(chartObj)) {
-      const categoryId = R.prop('groupingLevel')(chartObj)[1]
+  useEffect(() => {
+    if (chartObj.groupingLevel) {
+      const categoryId = chartObj.groupingLevel[1]
       setCurrentCategoryId(categoryId)
-      setCurrentCategoryName(allCategories[categoryId])
     }
-  }, [chartObj, allCategories])
+  }, [chartObj])
 
-  const handleChangeCategory = (categoryName) => {
-    setCurrentCategoryId(
-      R.head(R.keys(R.filter((v) => v === categoryName, allCategories)))
-    )
-    setCurrentCategoryName(categoryName)
-  }
+  const handleChangeCategory = useCallback((value) => {
+    setCurrentCategoryId(value)
+  }, [])
 
   const getCategoryLabel = useCallback(
     (categoryParents, levelCategories, category, index, level) => {
@@ -154,30 +151,23 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
     [constructAllCategoryProperties]
   )
 
-  const [chartColors, setChartColors] = useState(allCategoryProperties)
-
-  useEffect(() => {
-    setChartColors(allCategoryProperties)
-  }, [allCategoryProperties, chartColors])
-
-  const basePath = useMemo(() => ['groupedOutputs', 'groupings'], [])
   const onChangeColor = useCallback(
     (pathTail) => (value) => {
-      const path = [...basePath, ...forceArray(pathTail)]
+      const path = ['groupedOutputs', 'groupings', ...forceArray(pathTail)]
       dispatch(
         mutateLocal({
           path,
           value,
-          sync: true,
+          sync: !includesPath(R.values(sync), path),
         })
       )
     },
-    [dispatch, basePath]
+    [dispatch, sync]
   )
 
-  const handleChangeSearchText = (event) => {
+  const handleChangeSearchText = useCallback((event) => {
     setSearchText(event.target.value)
-  }
+  }, [])
 
   const visibleGroupings = useMemo(() => {
     const containsSearchText = R.pipe(
@@ -196,38 +186,46 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
     }
     R.mapObjIndexed(
       (property, label) => findMatchedCategories(property, label),
-      chartColors
+      allCategoryProperties
     )
     return matchedCategories
-  }, [searchText, chartColors, currentCategoryId])
+  }, [searchText, allCategoryProperties, currentCategoryId])
 
-  const { handleClose, handleChange: handleChangeRaw } =
-    useColorPicker(onChangeColor)
+  const { handleChange: handleChangeRaw } = useColorPicker(onChangeColor)
 
-  const handleChange = useCallback(
-    (value, colorOutputs, category) => {
+  const handleChangeFn = useCallback(
+    (category) => (value, colorOutputs) => {
       setLocalCategoryColors(R.assoc(category, value))
-      const { grouping, level } = chartColors[category]
+      const { grouping, level } = allCategoryProperties[category]
       const pathTail = [
         grouping,
         'levels',
         level,
         'coloring',
-        chartColors[category]['lastCategory'],
+        allCategoryProperties[category]['lastCategory'],
       ]
+      // console.log({value, colorOutputs, category, pathTail, allCategoryProperties, chartObj})
       handleChangeRaw(getColorString(value), colorOutputs, pathTail)
     },
-    [handleChangeRaw, chartColors]
+    [handleChangeRaw, allCategoryProperties]
   )
 
-  const formattedColor = (value) => {
-    if (!matchIsValidColor(value)) return value
-    const rawHex = colord(value).toHex()
-    return rawHex.length > 7 ? rawHex : `${rawHex}ff`
-  }
+  const getLabel = useCallback(
+    (option) => getLabelFn(categoryOptions, option),
+    [categoryOptions]
+  )
+
+  // console.log({
+  //   statGroupings,
+  //   categoryOptions,
+  //   localCategoryColors,
+  //   allCategoryProperties,
+  //   visibleGroupings,
+  //   chartObj,
+  // })
 
   return (
-    <DataGridModal
+    <BaseModal
       slotProps={{
         paper: {
           sx: {
@@ -247,7 +245,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
           size={28}
         />
       </Box>
-      <Stack direction="row" spacing={2} sx={{ mb: 2, mr: 1.45 }}>
+      <Stack direction="row" spacing={2} sx={{ mr: 1.45 }}>
         <TextField
           placeholder="Search final category level"
           label="Search"
@@ -261,8 +259,9 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
             id="category"
             labelId="category-label"
             label="Category"
-            value={currentCategoryName ?? ' '}
-            optionsList={R.values(allCategories)}
+            value={currentCategoryId}
+            optionsList={categoryOptions}
+            getLabel={getLabel}
             onSelect={handleChangeCategory}
           />
         </FormControl>
@@ -273,62 +272,28 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
         gap={2}
         sx={{ overflow: 'auto', scrollbarGutter: 'stable' }}
       >
-        {R.isEmpty(visibleGroupings) ? (
+        {R.isEmpty(visibleGroupings) && (
           <Typography variant="subtitle1" fontWeight={500}>
-            In order to change the current graph's colors in this modal, there must be two chosen
-            groupings of categories. To fix this issue, head to Chart Tools and
-            select the two groupings under 'Group By' relevant to the current graph.
+            In order to change the current graph's colors in this modal, there
+            must be two chosen groupings of categories. To do so, head to Chart
+            Tools and select two groupings under 'Group By'. You can still
+            change the colors of other charts using this modal by selecting a
+            category.
           </Typography>
-        ) : (
-          <>
-            {R.map((category) => {
-              return (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 2,
-                  }}
-                >
-                  <Paper key={category} sx={{ width: '69%' }}>
-                    <Tooltip title={category} placement="top">
-                      <Box
-                        sx={{
-                          color: 'white',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          display: 'flex',
-                          height: '70px',
-                          fontSize: '20px',
-                          '&:hover': {
-                            bgcolor: 'rgba(255, 255, 255, 0.1)',
-                          },
-                        }}
-                      >
-                        {chartColors[category]['lastCategory']}
-                      </Box>
-                    </Tooltip>
-                  </Paper>
-                  <MuiColorInput
-                    color="warning"
-                    format="hex8"
-                    value={formattedColor(localCategoryColors[category])}
-                    style={{ width: '35%' }}
-                    slotProps={{ input: { style: { borderRadius: 0 } } }}
-                    onChange={(value, colors) =>
-                      handleChange(value, colors, category)
-                    }
-                    onClose={handleClose}
-                  />
-                </Box>
-              )
-            })(visibleGroupings)}
-          </>
         )}
+        {currentCategoryId &&
+          R.map((category) => (
+            <ColorPickerAlt
+              key={category}
+              value={localCategoryColors[category]}
+              colorLabel={allCategoryProperties[category].lastCategory}
+              changeArg={category}
+              onChangeFn={handleChangeFn}
+            />
+          ))(visibleGroupings)}
       </Box>
-    </DataGridModal>
+    </BaseModal>
   )
 }
 
-export default ColorChangeModal
+export default memo(ColorChangeModal)

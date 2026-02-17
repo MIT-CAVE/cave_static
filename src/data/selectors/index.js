@@ -1,4 +1,8 @@
-import { createSelector, lruMemoize } from '@reduxjs/toolkit'
+import {
+  createSelector,
+  createSelectorCreator,
+  lruMemoize,
+} from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import {
@@ -53,6 +57,7 @@ import {
   parseGradient,
   getChartItemColor,
   isMapboxStyle,
+  getColoringFn,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -325,10 +330,10 @@ export const selectNumberFormat = createSelector(
 )
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
-  R.curry((numberFormat, props) =>
-    R.mergeRight(numberFormat, pickPaths(NUMBER_FORMAT_KEY_PATHS)(props))
-  )
+  (numberFormat) =>
+    R.pipe(pickPaths(NUMBER_FORMAT_KEY_PATHS), R.mergeRight(numberFormat))
 )
+
 export const selectLegendNumberFormatFunc = createSelector(
   selectNumberFormatPropsFn,
   (numberFormatPropsFn) => (prop) => {
@@ -1439,35 +1444,103 @@ export const selectNodeDataFunc = createSelector(
     )
 )
 
-// outputs derived
-export const selectStatGroupings = createSelector(
-  selectOrderedGroupedOutputs,
-  (data) => R.propOr({}, 'groupings', data)
+// Local -> groupedOutputs
+const selectLocalStatGroupings = createSelector(
+  selectLocal,
+  R.pathOr({}, ['groupedOutputs', 'groupings'])
 )
 
-export const selectStatGroupingIndicies = createSelector(
-  selectStatGroupings,
+const selectStatGroupings = createSelector(
+  selectOrderedGroupedOutputs,
+  R.propOr({}, 'groupings')
+)
+
+// outputs derived
+export const selectMergedStatGroupings = createSelector(
+  [selectLocalStatGroupings, selectStatGroupings],
+  (localData, data) => R.mergeDeepLeft(localData)(data)
+)
+
+export const selectSlimStatGroupings = createSelector(
+  selectMergedStatGroupings,
+  R.pipe(
+    structuredClone,
+    R.mapObjIndexed((grouping) => {
+      // Check if the stat grouping has `levels` and remove `coloring` from it
+      if (grouping.levels) {
+        grouping.levels = R.mapObjIndexed(R.dissoc('coloring'))(grouping.levels)
+      }
+      return grouping
+    })
+  ),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { equalityCheck: R.equals },
+  }
+)
+
+const selectStatGroupingIndicies = createSelector(
+  selectSlimStatGroupings,
   R.pipe(R.map(R.over(R.lensPath(['data', 'id']), R.invertObj)))
 )
 
-export const selectGroupedOutputValueBuffers = createSelector(
+const selectGroupedOutputValueLists = createSelector(
   selectGroupedOutputsData,
-  (groupedOutputs) =>
+  R.pluck('valueLists')
+)
+
+const SKIP_EQUALITY_CHECK = '__skipEqualityCheck__'
+
+// Performs deep equality checks on arguments while allowing
+// specific ones to opt out via the `SKIP_EQUALITY_CHECK` flag
+const skipEqualityCheck = R.propOr(false, SKIP_EQUALITY_CHECK)
+
+const createSafeDeepEqualSelector = createSelectorCreator({
+  memoize: lruMemoize,
+  memoizeOptions: {
+    equalityCheck: (a, b) =>
+      skipEqualityCheck(a) || skipEqualityCheck(b) || R.equals(a)(b),
+  },
+})
+
+const selectGroupedOutputValueBuffers = createSelector(
+  selectGroupedOutputValueLists,
+  R.pipe(
     R.map(
-      R.pipe(
-        R.prop('valueLists'),
-        R.map((arr) => {
-          const buffer = window.crossOriginIsolated
-            ? new SharedArrayBuffer(arr.length * 8)
-            : new ArrayBuffer(arr.length * 8)
-          const view = new Float64Array(buffer)
-          for (let i = 0; i < arr.length; i++) {
-            view[i] = arr[i]
-          }
-          return view.buffer
-        })
-      )
-    )(groupedOutputs)
+      R.map((arr) => {
+        const buffer = window.crossOriginIsolated
+          ? new SharedArrayBuffer(arr.length * 8)
+          : new ArrayBuffer(arr.length * 8)
+        const view = new Float64Array(buffer)
+        for (let i = 0; i < arr.length; i++) {
+          view[i] = arr[i]
+        }
+        return view.buffer
+      })
+    ),
+    // Skip deep equality to avoid false negatives caused by binary data
+    R.assoc(SKIP_EQUALITY_CHECK, true)
+  )
+)
+
+export const selectChartColors = createSelector(
+  selectMergedStatGroupings,
+  (statGroupings) => (chartType, groupingId, groupingLevel) => {
+    const groupingRange = R.pipe(R.length, R.range(0), R.reverse)(groupingId)
+    const isHierarchicalChart =
+      chartType === chartVariant.SUNBURST || chartType === chartVariant.TREEMAP
+    return isHierarchicalChart
+      ? R.mergeAll(
+          R.map((idx) =>
+            getColoringFn(statGroupings, groupingId[idx], groupingLevel[idx])
+          )(groupingRange)
+        )
+      : getColoringFn(
+          statGroupings,
+          groupingId[R.head(groupingRange)],
+          groupingLevel[R.head(groupingRange)]
+        )
+  }
 )
 
 const mergeFuncs = {
@@ -1479,14 +1552,15 @@ const mergeFuncs = {
   [chartAggrFunc.DIVISOR]: R.sum,
 }
 
-export const selectMemoizedChartFunc = createSelector(
+export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
   [
     selectGroupedOutputsData,
-    selectStatGroupings,
+    selectSlimStatGroupings,
     selectStatGroupingIndicies,
-    selectGroupedOutputValueBuffers,
+    selectGroupedOutputValueLists, // Only used to determine if `valueBuffers` changed in `equalityCheck` of memoization
+    selectGroupedOutputValueBuffers, // This is the one actually used in the worker (ignored in `equalityCheck` since if `valueLists` change, `valueBuffers` will too)
   ],
-  (groupedOutputs, groupings, groupingIndicies, valueBuffers) =>
+  (groupedOutputs, groupings, groupingIndicies, _, valueBuffers) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       async (obj) => {
@@ -1787,6 +1861,7 @@ export const selectMemoizedChartFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
+
 export const selectMemoizedGlobalOutputFunc = createSelector(
   selectAssociatedData,
   (associatedData) =>
