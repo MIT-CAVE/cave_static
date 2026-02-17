@@ -13,7 +13,7 @@ import {
   selectAllowedStats,
   selectChartStats,
   selectChartStatsNames,
-  selectStatGroupings,
+  selectMergedStatGroupings,
   selectGroupedOutputsData,
 } from '../../../data/selectors'
 import {
@@ -152,7 +152,7 @@ const LabelledInput = ({ children, label, labelId }) => (
 const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const dispatch = useDispatch()
 
-  const categories = useSelector(selectStatGroupings)
+  const categories = useSelector(selectMergedStatGroupings)
   const allowedStats = useSelector(selectAllowedStats)
   const chartStats = useSelector(selectChartStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)

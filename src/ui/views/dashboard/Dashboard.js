@@ -27,8 +27,10 @@ import {
   selectCharts,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { useChartTools, useModal, useMutateState } from '../../../utils/hooks'
+import { chartVariant } from '../../../utils/enums'
+import { useModal, useMutateState } from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
+import ColorChangeModal from '../common/ColorChangeModal'
 import FilterModal from '../common/FilterModal'
 import Map from '../map/Map'
 
@@ -71,16 +73,29 @@ const styles = {
   },
 }
 
-const DashboardItem = ({ chartObj, index, path }) => {
+const DashboardItem = ({ chartObj, index }) => {
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const charts = useSelector(selectCharts)
   const pageLayout = useSelector(selectPageLayout)
   const editLayoutMode = useSelector(selectEditLayoutMode)
+  const currentPage = useSelector(selectCurrentPage)
   const sync = useSelector(selectSync)
 
-  const { modalOpen, handleOpenModal, handleCloseModal } = useModal()
-  const { chartToolsOpen, handleOpenChartTools, handleCloseChartTools } =
-    useChartTools()
+  const {
+    modalOpen: filterOpen,
+    handleOpenModal: handleOpenFilter,
+    handleCloseModal: handleCloseFilter,
+  } = useModal()
+  const {
+    modalOpen: chartToolsOpen,
+    handleOpenModal: handleOpenChartTools,
+    handleCloseModal: handleCloseChartTools,
+  } = useModal()
+  const {
+    modalOpen: colorChangeOpen,
+    handleOpenModal: handleOpenColorChange,
+    handleCloseModal: handleCloseColorChange,
+  } = useModal()
 
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const defaultFilters = R.propOr([], 'filters')(chartObj)
@@ -88,7 +103,12 @@ const DashboardItem = ({ chartObj, index, path }) => {
   const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
   const showNA = R.propOr(false, 'showNA')(chartObj)
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
-  const chartType = R.propOr('bar', 'chartType')(chartObj)
+  const chartType = R.propOr(chartVariant.BAR, 'chartType')(chartObj)
+
+  const path = useMemo(
+    () => ['pages', 'data', currentPage, 'charts', index],
+    [currentPage, index]
+  )
 
   // Allow session_mutate to perform non-object value update
   const handleChartHover = useMutateState(
@@ -191,7 +211,7 @@ const DashboardItem = ({ chartObj, index, path }) => {
         styles.paper,
         isMaximized && { p: 0 },
         editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
-        (chartToolsOpen || modalOpen) && {
+        (chartToolsOpen || filterOpen || colorChangeOpen) && {
           outline: 'none',
           borderColor: '#9ecaed',
           boxShadow: '0 0 10px #9ecaed',
@@ -209,9 +229,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
           numGroupingFilters,
         }}
         label="Chart Data Filter"
-        open={modalOpen}
+        open={filterOpen}
         onSave={handleSaveFilters}
-        onClose={handleCloseModal}
+        onClose={handleCloseFilter}
       />
       <ChartToolsModal
         {...{
@@ -223,6 +243,16 @@ const DashboardItem = ({ chartObj, index, path }) => {
         open={chartToolsOpen}
         onClose={handleCloseChartTools}
       />
+      {vizType === 'groupedOutput' && (
+        <ColorChangeModal
+          {...{
+            chartObj,
+          }}
+          label="Color Change"
+          open={colorChangeOpen}
+          onClose={handleCloseColorChange}
+        />
+      )}
       {!lockedLayout && !chartObj.lockedLayout && (
         <ChartMenu
           {...{ isMaximized, chartHoverOrder, vizType, chartType }}
@@ -234,8 +264,9 @@ const DashboardItem = ({ chartObj, index, path }) => {
           onToggleShowNA={handleToggleShowNA}
           onChartHover={handleChartHover}
           numFilters={numActiveStatFilters + numGroupingFilters}
-          onOpenFilter={handleOpenModal}
+          onOpenFilter={handleOpenFilter}
           onOpenChartTools={handleOpenChartTools}
+          onOpenColorChange={handleOpenColorChange}
         />
       )}
       {vizType === 'groupedOutput' ? (
@@ -271,7 +302,6 @@ const Dashboard = () => {
 
   const pagePath = ['pages', 'data', currentPage]
   const layoutPath = [...pagePath, 'pageLayout']
-  const chartsPath = [...pagePath, 'charts']
 
   const lineLength = pageLayout.length === 9 ? 3 : 2
 
@@ -563,10 +593,7 @@ const Dashboard = () => {
                       }}
                     >
                       {chartObj != null && (
-                        <DashboardItem
-                          {...{ chartObj, index }}
-                          path={[...chartsPath, index]}
-                        />
+                        <DashboardItem {...{ chartObj, index }} />
                       )}
                     </Box>
                   )

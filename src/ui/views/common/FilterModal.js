@@ -25,7 +25,7 @@ import GridFilter from './GridFilter'
 
 import {
   selectGroupedOutputTypes,
-  selectStatGroupings,
+  selectSlimStatGroupings,
 } from '../../../data/selectors'
 
 import { getLabelFn, getSubLabelFn } from '../../../utils'
@@ -90,7 +90,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
   const [checkLogic, setCheckLogic] = useState('inc')
   const [searchText, setSearchText] = useState('')
 
-  const statGroupings = useSelector(selectStatGroupings)
+  const statGroupings = useSelector(selectSlimStatGroupings)
 
   const isCheckLogicExc = checkLogic === 'exc'
 
