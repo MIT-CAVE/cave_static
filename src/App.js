@@ -49,6 +49,62 @@ const styles = {
   },
 }
 
+const caveTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    greyscale: {
+      main: '#f2f4f9',
+      light: '#99a0b4',
+      dark: '#373b47',
+      contrastText: '#000000',
+    },
+    background: {
+      paper: '#4a4a4a',
+    },
+    DataGrid: {
+      bg: '#4a4a4a',
+      // headerBg: '#353535',
+    },
+  },
+  components: {
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          borderColor: 'rgb(128 128 128 / .4)',
+          '.MuiDataGrid-withBorderColor': {
+            borderColor: 'rgb(128 128 128 / .4)',
+          },
+          // 'MuiDataGrid-filler': {
+          //   backgroundColor: '#353535',
+          // },
+          // // Fixes MUI style bug in horizontal scroll bar
+          // '.MuiDataGrid-scrollbar--horizontal': {
+          //   display: 'block',
+          // },
+        },
+      },
+    },
+  },
+  typography: {
+    fontFamily: 'inherit',
+  },
+})
+
+// TODO: Handle when Session pane is not defined
+const SessionPane = () => (
+  <Box sx={styles.pane}>
+    {renderAppPane({
+      side: 'left',
+      open: paneId.SESSION,
+      pane: {
+        icon: 'md/MdApi',
+        name: 'Sessions Pane',
+        variant: paneId.SESSION,
+      },
+    })}
+  </Box>
+)
+
 const App = () => {
   const dispatch = useDispatch()
   const currentPage = useSelector(selectCurrentPage)
@@ -98,65 +154,9 @@ const App = () => {
     sync,
   ])
 
-  // TODO: Handle when Session pane is not defined
-  const SessionPane = (
-    <Box sx={styles.pane}>
-      {renderAppPane({
-        side: 'left',
-        open: paneId.SESSION,
-        pane: {
-          icon: 'md/MdApi',
-          name: 'Sessions Pane',
-          variant: paneId.SESSION,
-        },
-      })}
-    </Box>
-  )
-
   return (
     <StyledEngineProvider injectFirst>
-      <ThemeProvider
-        theme={createTheme({
-          palette: {
-            mode: 'dark',
-            greyscale: {
-              main: '#f2f4f9',
-              light: '#99a0b4',
-              dark: '#373b47',
-              contrastText: '#000000',
-            },
-            background: {
-              paper: '#4a4a4a',
-            },
-            DataGrid: {
-              bg: '#4a4a4a',
-              // headerBg: '#353535',
-            },
-          },
-          components: {
-            MuiDataGrid: {
-              styleOverrides: {
-                root: {
-                  borderColor: 'rgb(128 128 128 / .4)',
-                  '.MuiDataGrid-withBorderColor': {
-                    borderColor: 'rgb(128 128 128 / .4)',
-                  },
-                  // 'MuiDataGrid-filler': {
-                  //   backgroundColor: '#353535',
-                  // },
-                  // // Fixes MUI style bug in horizontal scroll bar
-                  // '.MuiDataGrid-scrollbar--horizontal': {
-                  //   display: 'block',
-                  // },
-                },
-              },
-            },
-          },
-          typography: {
-            fontFamily: 'inherit',
-          },
-        })}
-      >
+      <ThemeProvider theme={caveTheme}>
         <Box sx={styles.root}>
           <SnackBar />
           <LeftAppBar />
@@ -164,7 +164,7 @@ const App = () => {
             <Box sx={styles.page}>
               <Loader />
 
-              <ErrorBoundary fallback={SessionPane}>
+              <ErrorBoundary fallback={<SessionPane />}>
                 <Dashboard />
                 <Panes />
                 <AppModal />

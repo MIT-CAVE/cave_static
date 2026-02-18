@@ -11,6 +11,7 @@ import {
   selectSync,
   selectCurrentPage,
   selectAllowedStats,
+  selectChartByKey,
   selectChartStats,
   selectChartStatsNames,
   selectMergedStatGroupings,
@@ -149,7 +150,7 @@ const LabelledInput = ({ children, label, labelId }) => (
   </FormControl>
 )
 
-const GroupedOutputsToolbar = ({ chartObj, index }) => {
+const GroupedOutputsToolbar = ({ index }) => {
   const dispatch = useDispatch()
 
   const categories = useSelector(selectMergedStatGroupings)
@@ -158,6 +159,7 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   const groupedOutputs = useSelector(selectGroupedOutputsData)
   const statNamesByDataset = useSelector(selectChartStatsNames)
   const currentPage = useSelector(selectCurrentPage)
+  const chartObj = useSelector((state) => selectChartByKey(state, index))
   const sync = useSelector(selectSync)
 
   const path = ['pages', 'data', currentPage, 'charts', index]

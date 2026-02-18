@@ -50,6 +50,20 @@ export const useModal = () => {
   return { modalOpen, handleOpenModal, handleCloseModal }
 }
 
+export const useIndexedModal = () => {
+  const [openIndex, setOpenIndex] = useState(null)
+
+  const handleOpenModal = (index) => {
+    setOpenIndex(index)
+  }
+
+  const handleCloseModal = () => {
+    setOpenIndex(null)
+  }
+
+  return { openIndex, handleOpenModal, handleCloseModal }
+}
+
 /**
  * A hook to dispatch the mutateLocal action as a callback
  * @param {function} getArgs - A function that accepts the arguement to the callback and returns the argument to the mutateLocal action

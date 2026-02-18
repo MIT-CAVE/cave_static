@@ -14,7 +14,11 @@ import { useSelector, useDispatch } from 'react-redux'
 import BaseModal from './BaseModal'
 
 import { mutateLocal } from '../../../data/local'
-import { selectMergedStatGroupings, selectSync } from '../../../data/selectors'
+import {
+  selectChartByKey,
+  selectMergedStatGroupings,
+  selectSync,
+} from '../../../data/selectors'
 import { colorGen } from '../../../utils/ColorGen'
 import { ColorPickerAlt, useColorPicker } from '../../compound/ColorPicker'
 
@@ -27,11 +31,25 @@ import {
   includesPath,
 } from '../../../utils'
 
-const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
+const styles = {
+  modalSlots: {
+    paper: {
+      sx: {
+        width: '750px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      },
+    },
+  },
+}
+
+const ColorChangeModal = ({ open, index, label, labelExtra, onClose }) => {
   const [searchText, setSearchText] = useState('')
   const [currentCategoryId, setCurrentCategoryId] = useState(null)
   const [localCategoryColors, setLocalCategoryColors] = useState({})
   const statGroupings = useSelector(selectMergedStatGroupings)
+  const chartObj = useSelector((state) => selectChartByKey(state, index))
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
@@ -56,11 +74,11 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   )
 
   useEffect(() => {
-    if (chartObj.groupingLevel) {
+    if (chartObj?.groupingLevel) {
       const categoryId = chartObj.groupingLevel[1]
       setCurrentCategoryId(categoryId)
     }
-  }, [chartObj])
+  }, [chartObj?.groupingLevel])
 
   const handleChangeCategory = useCallback((value) => {
     setCurrentCategoryId(value)
@@ -204,7 +222,6 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
         'coloring',
         allCategoryProperties[category]['lastCategory'],
       ]
-      // console.log({value, colorOutputs, category, pathTail, allCategoryProperties, chartObj})
       handleChangeRaw(getColorString(value), colorOutputs, pathTail)
     },
     [handleChangeRaw, allCategoryProperties]
@@ -215,27 +232,9 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
     [categoryOptions]
   )
 
-  // console.log({
-  //   statGroupings,
-  //   categoryOptions,
-  //   localCategoryColors,
-  //   allCategoryProperties,
-  //   visibleGroupings,
-  //   chartObj,
-  // })
-
   return (
     <BaseModal
-      slotProps={{
-        paper: {
-          sx: {
-            width: '750px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          },
-        },
-      }}
+      slotProps={styles.modalSlots}
       {...{ label, labelExtra, open, onClose }}
     >
       <Box sx={{ position: 'absolute', top: 30, right: 20 }}>
