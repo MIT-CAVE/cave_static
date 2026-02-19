@@ -1,12 +1,4 @@
-import {
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Grid, IconButton, Paper, Stack, Typography } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useMemo } from 'react'
 import { TbFocusAuto } from 'react-icons/tb'
@@ -393,22 +385,15 @@ const SizeLegend = ({
     >
       <Grid container spacing={1}>
         <Grid size="grow">
-          <FormControl fullWidth>
-            <InputLabel id="size-by-label">Size by</InputLabel>
-            <Select
-              id="size-by"
-              labelId="size-by-label"
-              label="Size by"
-              value={sizeBy}
-              optionsList={sizeByOptions}
-              getLabel={(option) => featureTypeProps[option].name || option}
-              onSelect={onSelectProp(
-                'sizeBy',
-                'groupCalcBySize',
-                groupCalcValue
-              )}
-            />
-          </FormControl>
+          <Select
+            id="size-by"
+            labelId="size-by-label"
+            label="Size by"
+            value={sizeBy}
+            optionsList={sizeByOptions}
+            getLabel={(option) => featureTypeProps[option].name || option}
+            onSelect={onSelectProp('sizeBy', 'groupCalcBySize', groupCalcValue)}
+          />
         </Grid>
         {numberFormat.unit && (
           <Grid size={4}>

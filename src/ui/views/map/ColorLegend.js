@@ -1,10 +1,8 @@
 import {
   Divider,
-  FormControl,
   FormControlLabel,
   Grid,
   IconButton,
-  InputLabel,
   ListItemIcon,
   ListItemText,
   Menu,
@@ -634,22 +632,19 @@ const ColorLegend = ({
     >
       <Grid container spacing={1}>
         <Grid size="grow">
-          <FormControl fullWidth>
-            <InputLabel id="color-by-label">Color by</InputLabel>
-            <Select
-              id="color-by"
-              labelId="color-by-label"
-              label="Color by"
-              value={colorBy}
-              optionsList={colorByOptions}
-              getLabel={(prop) => featureTypeProps[prop].name || prop}
-              onSelect={onSelectProp(
-                'colorBy',
-                'groupCalcByColor',
-                groupCalcValue
-              )}
-            />
-          </FormControl>
+          <Select
+            id="color-by"
+            labelId="color-by-label"
+            label="Color by"
+            value={colorBy}
+            optionsList={colorByOptions}
+            getLabel={(prop) => featureTypeProps[prop].name || prop}
+            onSelect={onSelectProp(
+              'colorBy',
+              'groupCalcByColor',
+              groupCalcValue
+            )}
+          />
         </Grid>
         {numberFormat.unit && (
           <Grid size={4}>

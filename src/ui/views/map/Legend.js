@@ -6,12 +6,10 @@ import {
   ButtonBase,
   ClickAwayListener,
   Divider,
-  FormControl,
   FormControlLabel,
   FormGroup,
   Grid,
   InputAdornment,
-  InputLabel,
   Paper,
   Popper,
   Slider,
@@ -713,26 +711,24 @@ export const ScaleSelector = ({
   const scaleParamId = scaleParamsById[scale]
   return (
     <Stack direction="row" spacing={1}>
-      <FormControl fullWidth>
-        <InputLabel id="scale-fn-label">Gradient Scale Func.</InputLabel>
-        <Select
-          id="scale-fn"
-          labelId="scale-fn-label"
-          label="Gradient Scale Func."
-          optionsList={validScales}
-          startAdornment={
-            <InputAdornment position="start">
-              <FetchedIcon
-                iconName={scaleIndexedOptions[scale]?.iconName}
-                size={24}
-              />
-            </InputAdornment>
-          }
-          value={scale}
-          getLabel={(option) => scaleIndexedOptions[option]?.label}
-          {...{ onSelect }}
-        />
-      </FormControl>
+      <Select
+        id="scale-fn"
+        labelId="scale-fn-label"
+        label="Gradient Scale Func."
+        optionsList={validScales}
+        startAdornment={
+          <InputAdornment position="start">
+            <FetchedIcon
+              iconName={scaleIndexedOptions[scale]?.iconName}
+              size={24}
+            />
+          </InputAdornment>
+        }
+        value={scale}
+        getLabel={(option) => scaleIndexedOptions[option]?.label}
+        {...{ onSelect }}
+      />
+      {/* </FormControl> */}
       {scale === scaleId.POW && (
         <NumberInput
           sx={{ width: '100%' }}
@@ -758,22 +754,19 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
         ? TbMathFunction
         : LuShapes
   return (
-    <FormControl fullWidth>
-      <InputLabel id="group-calc-fn-label">Group Aggreg. Func.</InputLabel>
-      <Select
-        id="group-calc-fn"
-        labelId="group-calc-fn-label"
-        label="Group Aggreg. Func."
-        getLabel={getStatLabel}
-        optionsList={getStatFuncsByType(type)}
-        startAdornment={
-          <InputAdornment position="start">
-            <IconClass size={24} />
-          </InputAdornment>
-        }
-        {...{ value, onSelect }}
-      />
-    </FormControl>
+    <Select
+      id="group-calc-fn"
+      labelId="group-calc-fn-label"
+      label="Group Aggreg. Func."
+      getLabel={getStatLabel}
+      optionsList={getStatFuncsByType(type)}
+      startAdornment={
+        <InputAdornment position="start">
+          <IconClass size={24} />
+        </InputAdornment>
+      }
+      {...{ value, onSelect }}
+    />
   )
 }
 

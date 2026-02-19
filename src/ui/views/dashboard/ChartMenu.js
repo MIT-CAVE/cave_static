@@ -8,8 +8,6 @@ import {
   Menu,
   MenuItem,
   Switch,
-  FormControl,
-  InputLabel,
 } from '@mui/material'
 import { memo } from 'react'
 import { FaRegChartBar } from 'react-icons/fa'
@@ -222,46 +220,46 @@ const ChartMenu = ({
           !UNSORTABLE_HOVERED_CHARTS.includes(chartType) &&
             // An array is preferred since `Menu` throws a warning for fragment children
             [
-              <FormControl
+              <Select
                 key="chart-hover-control"
-                // size="small"
-                fullWidth
-                sx={{ m: 1, maxWidth: 'calc(100% - 16px)' }}
-              >
-                <InputLabel id="chart-hover-label">
-                  {'Chart Hover \u279D Sort By'}
-                </InputLabel>
-                <Select
-                  labelId="chart-hover-label"
-                  label={'Chart Hover \u279D Sort By'}
-                  id="chart-hover"
-                  value={chartHoverOrder}
-                  iconSize="28px"
-                  optionsList={[
-                    {
-                      iconName: 'bs/BsSortAlphaDown',
-                      label: 'Name (Asc)',
-                      value: 'seriesAsc',
+                size="small"
+                id="chart-hover"
+                labelId="chart-hover-label"
+                label={'Chart Hover \u279D Sort By'}
+                slotProps={{
+                  formControl: {
+                    sx: {
+                      m: 1,
+                      maxWidth: 'calc(100% - 16px)',
                     },
-                    {
-                      iconName: 'bs/BsSortAlphaUp',
-                      label: 'Name (Desc)',
-                      value: 'seriesDesc',
-                    },
-                    {
-                      iconName: 'bs/BsSortNumericDown',
-                      label: 'Value (Asc)',
-                      value: 'valueAsc',
-                    },
-                    {
-                      iconName: 'bs/BsSortNumericUp',
-                      label: 'Value (Desc)',
-                      value: 'valueDesc',
-                    },
-                  ]}
-                  onSelect={onChartHover}
-                />
-              </FormControl>,
+                  },
+                }}
+                value={chartHoverOrder}
+                iconSize="28px"
+                optionsList={[
+                  {
+                    iconName: 'bs/BsSortAlphaDown',
+                    label: 'Name (Asc)',
+                    value: 'seriesAsc',
+                  },
+                  {
+                    iconName: 'bs/BsSortAlphaUp',
+                    label: 'Name (Desc)',
+                    value: 'seriesDesc',
+                  },
+                  {
+                    iconName: 'bs/BsSortNumericDown',
+                    label: 'Value (Asc)',
+                    value: 'valueAsc',
+                  },
+                  {
+                    iconName: 'bs/BsSortNumericUp',
+                    label: 'Value (Desc)',
+                    value: 'valueDesc',
+                  },
+                ]}
+                onSelect={onChartHover}
+              />,
               <Divider key="chart-hover-divider" />,
             ]}
 

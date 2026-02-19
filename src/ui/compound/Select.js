@@ -1,4 +1,6 @@
 import {
+  FormControl,
+  InputLabel,
   ListItemIcon,
   MenuItem,
   Select as MuiSelect,
@@ -62,46 +64,53 @@ const styles = {
  */
 const Select = ({
   optionsList: items,
-  value: selectedValue,
-  placeholder,
+  value: rawValue = '',
+  label,
+  labelId: rawLabelId,
   iconOnlyOnSelect,
   iconSize = '32px', // TODO: Replace this with `slotProps`
   disabled,
   sx = [],
+  size,
+  slotProps = {},
   getLabel = (label) => label,
   onClickAway = () => {},
   onSelect = () => {},
   ...props
 } = {}) => {
+  const selectedValue = rawValue ?? ''
   const [open, setOpen] = useState(false)
   const allowClose = useRef(true)
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
+
+  const labelId = rawLabelId ?? `cave-select-label-${label}`
   return (
-    <MuiSelect
-      {...{ disabled, open, ...props }}
-      sx={[styles.select, ...forceArray(sx)]}
-      name="cave-select"
-      displayEmpty
-      value={selectedValue}
-      onOpen={() => {
-        setOpen(true)
-        // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
-        sessionStorage.setItem('mui-select-open-flag', 1)
-      }}
-      onClose={(event) => {
-        if (allowClose.current) {
-          onClickAway(event)
-          setOpen(false)
-        } else {
-          allowClose.current = true
-        }
-        if (virtualKeyboard.isOpen) return
-        // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
-        sessionStorage.removeItem('mui-select-open-flag')
-      }}
-      // Display only the icon when an item is selected
-      {...((selectedValue !== '' || iconOnlyOnSelect) && {
-        renderValue: (value) => {
+    <FormControl {...{ size }} fullWidth {...slotProps.formControl}>
+      {label && <InputLabel id={labelId}>{label}</InputLabel>}
+      <MuiSelect
+        name="cave-select"
+        displayEmpty
+        value={selectedValue}
+        sx={[styles.select, ...forceArray(sx)]}
+        {...{ disabled, open, label, labelId, ...props }}
+        onOpen={() => {
+          setOpen(true)
+          // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+          sessionStorage.setItem('mui-select-open-flag', 1)
+        }}
+        onClose={(event) => {
+          if (allowClose.current) {
+            onClickAway(event)
+            setOpen(false)
+          } else {
+            allowClose.current = true
+          }
+          if (virtualKeyboard.isOpen) return
+          // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
+          sessionStorage.removeItem('mui-select-open-flag')
+        }}
+        // Display only the icon when an item is selected
+        renderValue={(value) => {
           const item = items.find((prop) => prop.value === value)
           return (
             <Stack
@@ -118,85 +127,67 @@ const Select = ({
               )}
             </Stack>
           )
-        },
-      })}
-    >
-      {placeholder && (
-        <MenuItem
-          value=""
-          onClick={(event) => {
-            onSelect && onSelect(null, event)
-            setOpen(false)
-          }}
-          disabled
-        >
-          <OverflowText text={placeholder} />
-        </MenuItem>
-      )}
-
-      {/* HACK: Drop warning for non-existing value */}
-      {selectedValue !== '' && (
-        <MenuItem value={selectedValue} sx={{ display: 'none' }} />
-      )}
-
-      {items.map((item, index) => {
-        const { label, value, iconName, subOptions } = item
-        return (
-          <MenuItem
-            key={index}
-            value={value || label || item}
-            onClick={
-              subOptions
-                ? () => {
-                    allowClose.current = false
-                  }
-                : (event) => {
-                    onSelect && onSelect(value || label || item, event)
-                    setOpen(false)
-                  }
-            }
-          >
-            {iconName && (
-              <ListItemIcon sx={styles.icon}>
-                <FetchedIcon {...{ iconName }} size={iconSize} />
-              </ListItemIcon>
-            )}
-            <span
-              {...(subOptions
-                ? {
-                    onClick: (event) => {
+        }}
+      >
+        {items.map((item, index) => {
+          const { label, value, iconName, subOptions } = item
+          return (
+            <MenuItem
+              key={index}
+              value={value || label || item}
+              onClick={
+                subOptions
+                  ? () => {
+                      allowClose.current = false
+                    }
+                  : (event) => {
                       onSelect && onSelect(value || label || item, event)
                       setOpen(false)
-                    },
-                  }
-                : {})}
-            >
-              <WrappedText text={getLabel(label || value || item)} />
-            </span>
-            {subOptions ? (
-              <div style={{ marginLeft: 'auto' }}>
-                {(subOptions || []).map((subObj, idx) => (
-                  <ListItemIcon
-                    key={idx}
-                    sx={styles.subIcon}
-                    onClick={() =>
-                      R.prop('onClick', subObj)(value || label || item)
                     }
-                  >
-                    <FetchedIcon
-                      {...{ iconName: R.prop('iconName', subObj) }}
-                      size={iconSize}
-                    />
-                  </ListItemIcon>
-                ))}
-              </div>
-            ) : (
-              []
-            )}
-          </MenuItem>
-        )
-      })}
-    </MuiSelect>
+              }
+            >
+              {iconName && (
+                <ListItemIcon sx={styles.icon}>
+                  <FetchedIcon {...{ iconName }} size={iconSize} />
+                </ListItemIcon>
+              )}
+              <span
+                {...(subOptions
+                  ? {
+                      onClick: (event) => {
+                        onSelect && onSelect(value || label || item, event)
+                        setOpen(false)
+                      },
+                    }
+                  : {})}
+              >
+                <WrappedText text={getLabel(label || value || item)} />
+              </span>
+              {subOptions ? (
+                <div style={{ marginLeft: 'auto' }}>
+                  {(subOptions || []).map((subObj, idx) => (
+                    <ListItemIcon
+                      key={idx}
+                      sx={styles.subIcon}
+                      onClick={() =>
+                        R.prop('onClick', subObj)(value || label || item)
+                      }
+                    >
+                      <FetchedIcon
+                        {...{ iconName: R.prop('iconName', subObj) }}
+                        size={iconSize}
+                      />
+                    </ListItemIcon>
+                  ))}
+                </div>
+              ) : (
+                []
+              )}
+            </MenuItem>
+          )
+        })}
+      </MuiSelect>
+    </FormControl>
   )
 }
 Select.propTypes = {

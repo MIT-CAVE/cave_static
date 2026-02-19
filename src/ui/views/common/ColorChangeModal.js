@@ -1,11 +1,4 @@
-import {
-  TextField,
-  Box,
-  FormControl,
-  InputLabel,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { TextField, Box, Stack, Typography } from '@mui/material'
 import { colord } from 'colord'
 import * as R from 'ramda'
 import { useState, useMemo, useEffect, useCallback, memo } from 'react'
@@ -252,18 +245,16 @@ const ColorChangeModal = ({ open, index, label, labelExtra, onClose }) => {
           onChange={handleChangeSearchText}
           sx={{ width: '65%' }}
         />
-        <FormControl fullWidth sx={{ flex: 1 }}>
-          <InputLabel id="category-label">{'Category'}</InputLabel>
-          <Select
-            id="category"
-            labelId="category-label"
-            label="Category"
-            value={currentCategoryId}
-            optionsList={categoryOptions}
-            getLabel={getLabel}
-            onSelect={handleChangeCategory}
-          />
-        </FormControl>
+        <Select
+          id="category"
+          labelId="category-label"
+          label="Category"
+          placeholder="Category"
+          value={currentCategoryId ?? ''}
+          optionsList={categoryOptions}
+          getLabel={getLabel}
+          onSelect={handleChangeCategory}
+        />
       </Stack>
       <Box
         display="flex"
