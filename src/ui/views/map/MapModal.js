@@ -14,16 +14,12 @@ import { MdGpsFixed, MdMap } from 'react-icons/md'
 import { PiPerspective } from 'react-icons/pi'
 import { useSelector, useDispatch } from 'react-redux'
 
-import SimpleModalOptions from './SimpleModalOptions'
 import { MapContext } from './useMapApi'
 
 import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
-import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewportsFunc,
   selectMapModal,
-  selectCurrentTimeUnits,
-  selectCurrentTimeLength,
   selectMapStyleOptions,
   selectMapProjectionOptionsFunc,
 } from '../../../data/selectors'
@@ -117,22 +113,9 @@ const MapModal = () => {
 
   const mapModal = useSelector(selectMapModal)
   const getOptionalViewports = useSelector(selectOptionalViewportsFunc)
-  const timeUnits = useSelector(selectCurrentTimeUnits)
-  const timeLength = useSelector(selectCurrentTimeLength)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const getMapProjectionOptions = useSelector(selectMapProjectionOptionsFunc)
   const dispatch = useDispatch()
-
-  const timeOptions = useMemo(
-    () =>
-      R.pipe(
-        R.add(1),
-        R.range(1),
-        R.reduce((acc, value) => R.assoc(value, value)(acc), {}),
-        R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
-      )(timeLength),
-    [timeLength]
-  )
 
   const optionalViewports = useMemo(
     () => getOptionalViewports(mapId),
@@ -185,14 +168,6 @@ const MapModal = () => {
     [dispatch, handleCloseModal, mapId]
   )
 
-  const handleSelectTime = useCallback(
-    (value) => {
-      dispatch(timeSelection(value - 1))
-      handleCloseModal()
-    },
-    [dispatch, handleCloseModal]
-  )
-
   if (!mapModal.isOpen || mapId !== R.pathOr('', ['data', 'mapId'])(mapModal))
     return null
 
@@ -209,7 +184,6 @@ const MapModal = () => {
   ) : feature === 'mapStyles' ? (
     <ListModal
       title="Map Styles"
-      placeholder="Choose a map style..."
       defaultIcon={MdMap}
       options={mapStyleOptions}
       onSelect={handleSelectMapStyleId}
@@ -218,19 +192,11 @@ const MapModal = () => {
   ) : feature === 'mapProjections' ? (
     <ListModal
       title="Map Projections"
-      placeholder="Choose a map projection..."
       defaultIcon={PiPerspective}
       options={projectionOptions}
       onSelect={handleSelectProjection}
       onClose={handleCloseModal}
     />
-  ) : feature === 'setTime' ? (
-    (<SimpleModalOptions
-      title={`Set ${timeUnits}`}
-      placeholder={`Choose a ${timeUnits}`}
-      options={timeOptions}
-      onSelect={handleSelectTime}
-    />)(feature)
   ) : null
 }
 
