@@ -442,7 +442,7 @@ const Dashboard = () => {
     return resizeHandles
   }
 
-  const anyGroupedOutputChart = useMemo(
+  const hasGroupedOutputChart = useMemo(
     () =>
       R.pipe(
         R.values,
@@ -501,32 +501,36 @@ const Dashboard = () => {
   return (
     <>
       {/* Shared Modals */}
-      <ChartToolsModal
-        open={chartToolsIndex !== null}
-        index={chartToolsIndex}
-        label="Chart Tools"
-        onClose={handleCloseChartTools}
-      />
-      {anyGroupedOutputChart && (
-        <ColorChangeModal
-          open={colorChangeIndex !== null}
-          index={colorChangeIndex}
-          label="Color Change"
-          onClose={handleCloseColorChange}
-        />
+      {!lockedLayout && (
+        <>
+          <ChartToolsModal
+            open={chartToolsIndex !== null}
+            index={chartToolsIndex}
+            label="Chart Tools"
+            onClose={handleCloseChartTools}
+          />
+          {hasGroupedOutputChart && (
+            <ColorChangeModal
+              open={colorChangeIndex !== null}
+              index={colorChangeIndex}
+              label="Color Change"
+              onClose={handleCloseColorChange}
+            />
+          )}
+          <FilterModal
+            {...{
+              statFilters,
+              groupingFilters,
+              numActiveStatFilters,
+              numGroupingFilters,
+            }}
+            label="Chart Data Filter"
+            open={filterIndex !== null}
+            onSave={handleSaveFilters}
+            onClose={handleCloseFilter}
+          />
+        </>
       )}
-      <FilterModal
-        {...{
-          statFilters,
-          groupingFilters,
-          numActiveStatFilters,
-          numGroupingFilters,
-        }}
-        label="Chart Data Filter"
-        open={filterIndex !== null}
-        onSave={handleSaveFilters}
-        onClose={handleCloseFilter}
-      />
 
       <Container
         maxWidth={false}
