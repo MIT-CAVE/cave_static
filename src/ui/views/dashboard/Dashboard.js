@@ -181,7 +181,7 @@ const DashboardItem = ({
             <DashboardChart {...{ chartObj, path }} />
           </Suspense>
         )
-      ) : vizType === 'map' && chartObj.mapId && mapExists ? (
+      ) : vizType === 'map' && mapExists ? (
         <Map mapId={chartObj.mapId} />
       ) : vizType === 'globalOutput' ? (
         <DashboardGlobalOutput {...{ chartObj, path }} />
