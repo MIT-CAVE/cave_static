@@ -102,6 +102,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
 
   const visibleGroupings = useMemo(() => {
     const containsSearchText = R.pipe(
+      R.toString, // Parsing bools safely
       R.toLower,
       R.includes(searchText.toLowerCase())
     )
@@ -480,7 +481,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                               {values.map((value) => (
                                 <FormControlLabel
                                   key={`${grouping}-${level}-${value}`}
-                                  label={value}
+                                  label={`${value}`} // Stringifying values for readability, e.g. bools
                                   control={
                                     <Checkbox
                                       name="grid-filter-groups-value"

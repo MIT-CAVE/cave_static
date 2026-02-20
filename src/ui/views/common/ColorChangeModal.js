@@ -171,6 +171,7 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
 
   const visibleGroupings = useMemo(() => {
     const containsSearchText = R.pipe(
+      R.toString, // Parsing bools safely
       R.toLower,
       R.includes(searchText.toLowerCase())
     )
