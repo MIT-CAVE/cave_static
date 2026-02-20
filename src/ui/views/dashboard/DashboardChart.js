@@ -491,7 +491,7 @@ const DashboardChart = ({ chartObj, path }) => {
       ) : chartType === chartVariant.MIXED ? (
         <MixedChart
           data={formattedData}
-          {...{ labelProps, chartHoverOrder, path, xAxisOrder }}
+          {...{ labelProps, colors, chartHoverOrder, path, xAxisOrder }}
           leftVariant={leftVariant}
           rightVariant={rightVariant}
         />
