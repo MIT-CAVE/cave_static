@@ -25,6 +25,7 @@ import {
   selectEditLayoutMode,
   selectChartByKey,
   selectCharts,
+  selectMapExists,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import { chartVariant } from '../../../utils/enums'
@@ -88,6 +89,9 @@ const DashboardItem = ({
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const currentPage = useSelector(selectCurrentPage)
   const chartObj = useSelector((state) => selectChartByKey(state, index))
+  const mapExists = useSelector((state) =>
+    selectMapExists(state, chartObj.mapId)
+  )
 
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
   const vizType = R.propOr('groupedOutput', 'type')(chartObj)
@@ -177,7 +181,7 @@ const DashboardItem = ({
             <DashboardChart {...{ chartObj, path }} />
           </Suspense>
         )
-      ) : vizType === 'map' && chartObj.mapId ? (
+      ) : vizType === 'map' && chartObj.mapId && mapExists ? (
         <Map mapId={chartObj.mapId} />
       ) : vizType === 'globalOutput' ? (
         <DashboardGlobalOutput {...{ chartObj, path }} />

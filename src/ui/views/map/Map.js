@@ -20,7 +20,6 @@ import {
   selectDemoMode,
   selectDemoSettings,
   selectViewportsByMap,
-  selectMapData,
   selectAllNodeIcons,
   selectMapboxToken,
 } from '../../../data/selectors'
@@ -54,12 +53,9 @@ const Map = ({ mapId }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
-  const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
   const dispatch = useDispatch()
-
-  const mapExists = R.has(mapId, mapData)
 
   const arcData = useMemo(
     () => R.pipe(groupedEnabledArcsFunc, R.propOr({}, 'geoJson'))(mapId),
@@ -293,51 +289,49 @@ const Map = ({ mapId }) => {
   }, [])
 
   return (
-    mapExists && (
-      <Box
-        sx={{
-          display: 'flex',
-          position: 'relative',
-          flex: '1 1 auto',
-        }}
-      >
-        <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
-          <MapControls />
-          <ReactMapGl
-            ref={mapRef}
-            hash="map"
-            container="map"
-            style={
-              !isMapboxSelected && {
-                backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
-              }
+    <Box
+      sx={{
+        display: 'flex',
+        position: 'relative',
+        flex: '1 1 auto',
+      }}
+    >
+      <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
+        <MapControls {...{ mapId }} />
+        <ReactMapGl
+          ref={mapRef}
+          hash="map"
+          container="map"
+          style={
+            !isMapboxSelected && {
+              backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
             }
-            mapboxAccessToken={isMapboxSelected && mapboxToken}
-            projection={currentMapProjectionFunc(mapId)}
-            {...{ mapStyle, interactiveLayerIds, ...viewport }}
-            onStyleData={handleStyleData}
-            onLoad={loadSkyAndFog}
-            onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
-            onRender={handleRender}
-            onClick={handleClick}
-            onMove={handleMove}
-            onMouseMove={handleMouseMove}
-            onMouseOver={handleMouseOver}
-          >
-            <Geos />
-            <IncludedGeos />
-            <Arcs />
-            <Nodes />
-            <Arcs3D />
-            {/* `MapPortal` is injected here */}
-            <div ref={containerRef} />
-          </ReactMapGl>
+          }
+          mapboxAccessToken={isMapboxSelected && mapboxToken}
+          projection={currentMapProjectionFunc(mapId)}
+          {...{ mapStyle, interactiveLayerIds, ...viewport }}
+          onStyleData={handleStyleData}
+          onLoad={loadSkyAndFog}
+          onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
+          onRender={handleRender}
+          onClick={handleClick}
+          onMove={handleMove}
+          onMouseMove={handleMouseMove}
+          onMouseOver={handleMouseOver}
+        >
+          <Geos />
+          <IncludedGeos />
+          <Arcs />
+          <Nodes />
+          <Arcs3D />
+          {/* `MapPortal` is injected here */}
+          <div ref={containerRef} />
+        </ReactMapGl>
 
-          <MapModal />
-          <MapLegend />
-        </MapContext.Provider>
-      </Box>
-    )
+        <MapModal />
+        <MapLegend />
+      </MapContext.Provider>
+    </Box>
   )
 }
 Map.propTypes = { mapId: PropTypes.string }
