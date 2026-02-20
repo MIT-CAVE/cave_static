@@ -65,7 +65,13 @@ const UNSORTABLE_HOVERED_CHARTS = [
   chartVariant.GAUGE,
 ]
 
+const CHARTS_WITHOUT_COLOR_SUPPORT = [
+  chartVariant.TABLE,
+  chartVariant.HEATMAP, // TODO: Add color support once proper UI/UX is defined
+]
+
 const MainButtons = ({
+  chartType,
   isGroupedOutput,
   numFilters,
   onOpenFilter,
@@ -104,7 +110,7 @@ const MainButtons = ({
       </TooltipButton>
     )}
 
-    {isGroupedOutput && (
+    {isGroupedOutput && !CHARTS_WITHOUT_COLOR_SUPPORT.includes(chartType) && (
       <TooltipButton
         title="Change color"
         placement="bottom-start"
@@ -194,6 +200,7 @@ const ChartMenu = ({
       <MainButtons
         {...{
           isGroupedOutput,
+          chartType,
           numFilters,
           onOpenFilter,
           onOpenChartTools,
