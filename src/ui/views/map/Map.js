@@ -44,7 +44,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
-  const [animating, setAnimating] = useState(false)
   const mapRef = useRef(null)
   const highlight = useRef(null)
   const containerRef = useRef(null)
@@ -304,9 +303,6 @@ const Map = ({ mapId }) => {
           flex: '1 1 auto',
         }}
       >
-        {/* <Draggable>
-          <TimeControl setAnimating={setAnimating} />
-        </Draggable> */}
         <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
           <MapControls />
           <ReactMapGl
