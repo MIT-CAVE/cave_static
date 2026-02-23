@@ -276,25 +276,24 @@ export const Nodes = memo(() => {
     const nextToggleTimes = {}
     let totalNodes = 0
     for (const val of Object.values(featureData)) {
-      const disappearingIndices = R.pipe(
-        R.pathOr([], ['data', 'location', 'disappearingIndex']),
+      const visibilityIndices = R.pipe(
+        R.pathOr([], ['data', 'location', 'visibilityIndex']),
         R.flatten
       )(val)
       const numMapFeatureNodes = R.pathOr(
         [],
         ['data', 'location', 'latitude']
       )(val).length
-      const disappearingTime = R.pathOr(
+      const visibilityTime = R.pathOr(
         [],
-        ['data', 'location', 'disappearingTime']
+        ['data', 'location', 'visibilityTime']
       )(val)
       for (let i = 0; i < numMapFeatureNodes; i++) {
-        if (i in disappearingIndices) {
-          visibilities[totalNodes + disappearingIndices[i]] = true
-          visibilityTimes[totalNodes + disappearingIndices[i]] =
-            disappearingTime[i]
-          nextToggleTimes[totalNodes + disappearingIndices[i]] =
-            disappearingTime[i][0]
+        if (i in visibilityIndices) {
+          visibilities[totalNodes + visibilityIndices[i]] = true
+          visibilityTimes[totalNodes + visibilityIndices[i]] = visibilityTime[i]
+          nextToggleTimes[totalNodes + visibilityIndices[i]] =
+            visibilityTime[i][0]
         }
       }
       totalNodes += numMapFeatureNodes
