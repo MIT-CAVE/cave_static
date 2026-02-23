@@ -259,35 +259,49 @@ export const Nodes = memo(() => {
       R.pipe(
         R.values,
         R.map((item) => {
-          const latitude = R.path(['data', 'location', 'latitude'], item)
+          const latitude = R.pathOr([], ['data', 'location', 'latitude'])(item)
           const animationTime = R.path(
             ['data', 'location', 'animationTime'],
             item
           )
-
           return animationTime ?? R.repeat([null], latitude.length)
         }),
         R.unnest
       )(featureData),
     [featureData]
   )
-  const disappearingTimes = useMemo(
-    () =>
-      R.pipe(
-        R.values,
-        R.map((item) => {
-          const latitude = R.path(['data', 'location', 'latitude'], item)
-          const disappearingTime = R.path(
-            ['data', 'location', 'disappearingTime'],
-            item
-          )
+  const [visibilityInfo, setVisibilityInfo] = useState(() => {
+    const visibilities = {}
+    const visibilityTimes = {}
+    const nextToggleTimes = {}
+    let totalNodes = 0
+    for (const val of Object.values(featureData)) {
+      const disappearingIndices = R.pipe(
+        R.pathOr([], ['data', 'location', 'disappearingIndex']),
+        R.flatten
+      )(val)
+      const numMapFeatureNodes = R.pathOr(
+        [],
+        ['data', 'location', 'latitude']
+      )(val).length
+      const disappearingTime = R.pathOr(
+        [],
+        ['data', 'location', 'disappearingTime']
+      )(val)
+      for (let i = 0; i < numMapFeatureNodes; i++) {
+        if (i in disappearingIndices) {
+          visibilities[totalNodes + disappearingIndices[i]] = true
+          visibilityTimes[totalNodes + disappearingIndices[i]] =
+            disappearingTime[i]
+          nextToggleTimes[totalNodes + disappearingIndices[i]] =
+            disappearingTime[i][0]
+        }
+      }
+      totalNodes += numMapFeatureNodes
+    }
+    return { visibilities, visibilityTimes, nextToggleTimes }
+  })
 
-          return disappearingTime ?? R.repeat([], latitude.length)
-        }),
-        R.unnest
-      )(featureData),
-    [featureData]
-  )
   const definedNodeTimes = useMemo(
     () =>
       R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(animationTimes)),
@@ -296,18 +310,6 @@ export const Nodes = memo(() => {
 
   const lerp = (start, end, t) => {
     return start + t * (end - start)
-  }
-
-  // TODO optimize
-  const isVisible = (l, n) => {
-    for (const s of l) {
-      const min = s[0]
-      const max = s[1]
-      if (min <= n && n <= max) {
-        return false
-      }
-    }
-    return true
   }
 
   const moveCoordinates = useCallback(
@@ -324,11 +326,49 @@ export const Nodes = memo(() => {
         (performance.now() - startTime.current) % (duration * 1000)
       const currentTimeInSeconds = currentTime / 1000
 
-      const disappearingTime = disappearingTimes[idx]
+      if (idx in visibilityInfo.visibilities) {
+        if (currentTimeInSeconds > visibilityInfo.nextToggleTimes[idx]) {
+          setVisibilityInfo((prev) => {
+            const newVisibilities = {
+              ...prev.visibilities,
+              [idx]: !prev.visibilities[idx],
+            }
+            return { ...prev, visibilities: newVisibilities }
+          })
+          if (
+            visibilityInfo.visibilityTimes[idx].indexOf(
+              visibilityInfo.nextToggleTimes[idx]
+            ) !==
+            R.length(visibilityInfo.visibilityTimes[idx]) - 1
+          ) {
+            setVisibilityInfo((prev) => {
+              const newToggleTimes = {
+                ...prev.nextToggleTimes,
+                [idx]:
+                  visibilityInfo.visibilityTimes[idx][
+                    visibilityInfo.visibilityTimes[idx].indexOf(
+                      visibilityInfo.nextToggleTimes[idx]
+                    ) + 1
+                  ],
+              }
+              return { ...prev, nextToggleTimes: newToggleTimes }
+            })
+          } else {
+            setVisibilityInfo((prev) => {
+              const newToggleTimes = {
+                ...prev.nextToggleTimes,
+                [idx]: duration,
+              }
+              return { ...prev, nextToggleTimes: newToggleTimes }
+            })
+          }
+        }
+      }
+
       const visible =
-        Array.isArray(disappearingTime) && disappearingTime.length === 0
-          ? true
-          : isVisible(disappearingTime, currentTimeInSeconds)
+        idx in visibilityInfo.visibilities
+          ? visibilityInfo.visibilities[idx]
+          : true
 
       if (currentTime > Math.max(...definedNodeTime) * 1000) {
         if (currentTime < duration * 1000) {
@@ -377,7 +417,15 @@ export const Nodes = memo(() => {
         ),
       ]
     },
-    [definedNodeTimes, disappearingTimes, duration, latitudes, longitudes]
+    [
+      definedNodeTimes,
+      duration,
+      latitudes,
+      longitudes,
+      visibilityInfo.nextToggleTimes,
+      visibilityInfo.visibilities,
+      visibilityInfo.visibilityTimes,
+    ]
   )
 
   useEffect(() => {
