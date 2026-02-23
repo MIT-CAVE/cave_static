@@ -76,7 +76,6 @@ const styles = {
 
 const DashboardItem = ({
   index,
-  numFilters,
   chartToolsOpen,
   colorChangeOpen,
   filterOpen,
@@ -138,6 +137,27 @@ const DashboardItem = ({
     [chartObj, path, showNA]
   )
 
+  const [statFilters, groupingFilters] = useMemo(
+    () =>
+      R.partition(
+        R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
+      )(chartObj?.filters ?? []),
+    [chartObj?.filters]
+  )
+  const numActiveStatFilters = useMemo(
+    () => getNumActiveFilters(statFilters),
+    [statFilters]
+  )
+  const numGroupingFilters = useMemo(
+    () =>
+      R.pipe(
+        R.filter(R.propEq('exc', 'option')),
+        R.chain(R.pipe(R.prop('value'), R.length)),
+        R.sum
+      )(groupingFilters),
+    [groupingFilters]
+  )
+
   return (
     <Paper
       sx={[
@@ -163,12 +183,12 @@ const DashboardItem = ({
             chartType,
             defaultToZero,
             showNA,
-            numFilters,
             onOpenFilter,
             onOpenColorChange,
             onOpenChartTools,
             onRemoveChart,
           }}
+          numFilters={numActiveStatFilters + numGroupingFilters}
           onToggleMaximize={handleToggleMaximize}
           onToggleDefaultToZero={handleDefaultToZero}
           onToggleShowNA={handleToggleShowNA}
@@ -609,9 +629,6 @@ const Dashboard = () => {
                         {chartObj != null && (
                           <DashboardItem
                             {...{ index }}
-                            numFilters={
-                              numActiveStatFilters + numGroupingFilters
-                            }
                             filterOpen={filterIndex === index}
                             colorChangeOpen={colorChangeIndex === index}
                             chartToolsOpen={chartToolsIndex === index}
