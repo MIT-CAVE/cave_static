@@ -1,7 +1,9 @@
 import { colord } from 'colord'
 import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
-import { useCallback, useMemo, useState, useRef, memo } from 'react'
+import { useCallback, useMemo, useState, useRef } from 'react'
+
+import { forceArray } from '../../utils'
 
 export const useColorPicker = (onChangeColor) => {
   const [colorPickerProps, setColorPickerProps] = useState({})
@@ -41,7 +43,7 @@ export const useColorPicker = (onChangeColor) => {
   }
 }
 
-const ColorPicker = ({ colorLabel, value, onChange }) => {
+const ColorPicker = ({ colorLabel, value, sx = [], onChange }) => {
   const formattedColor = useMemo(() => {
     if (!matchIsValidColor(value)) return value
     const rawHex = colord(value).toHex()
@@ -58,21 +60,11 @@ const ColorPicker = ({ colorLabel, value, onChange }) => {
       // PopoverProps={{ onClose }}
       value={formattedColor}
       label={`Color \u279D ${colorLabel}`}
-      sx={{ mt: 2.5, flex: '1 1 auto' }}
+      sx={[{ mt: 2.5, flex: '1 1 auto' }, ...forceArray(sx)]}
       slotProps={{ input: { style: { borderRadius: 0 } } }}
       {...{ onChange }}
     />
   )
 }
-
-export const ColorPickerAlt = memo(
-  ({ colorLabel, value, changeArg, onChangeFn }) => {
-    const handleChange = useCallback(
-      (value, colors) => onChangeFn(changeArg)(value, colors),
-      [changeArg, onChangeFn]
-    )
-    return <ColorPicker {...{ colorLabel, value }} onChange={handleChange} />
-  }
-)
 
 export default ColorPicker
