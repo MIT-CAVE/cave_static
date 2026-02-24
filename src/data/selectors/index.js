@@ -522,6 +522,17 @@ export const selectCharts = createSelector(
       localDashboardData
     )
 )
+// NOTE: Use with Redux hook below:
+// const chartObj = useSelector((state) => selectChartByKey(state, <key/index>))
+export const selectChartByKey = createSelector(
+  [selectCharts, (state, key) => key],
+  (charts, key) => charts[key]
+)
+export const selectMapExists = createSelector(
+  [selectMapData, (state, key) => key],
+  (mapData, key) => R.has(key)(mapData)
+)
+
 export const selectIsMaximized = createSelector(
   selectCharts,
   R.pipe(R.values, R.any(R.propOr(false, 'maximized')))

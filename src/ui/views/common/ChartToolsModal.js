@@ -1,97 +1,92 @@
 import { Card } from '@mui/material'
 import * as R from 'ramda'
+import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import { DataGridModal } from './BaseModal'
 
-import { selectSync } from '../../../data/selectors'
+import { selectChartByKey, selectCurrentPage } from '../../../data/selectors'
 import { CHART_DEFAULTS } from '../../../utils/constants'
-import { chartVariant } from '../../../utils/enums'
-import { useMutateState } from '../../../utils/hooks'
+import { useMutateStateWithSync } from '../../../utils/hooks'
 import GlobalOutputsToolbar from '../dashboard/GlobalOutputsToolbar'
 import GroupedOutputsToolbar from '../dashboard/GroupedOutputsToolbar'
 import MapToolbar from '../dashboard/MapToolbar'
 
 import { Select } from '../../compound'
 
-import { includesPath } from '../../../utils'
-
 const styles = {
   content: {
     padding: 1,
     height: '100%',
   },
+  modalSlots: {
+    paper: {
+      sx: {
+        width: '1200px',
+        height: '900px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      },
+    },
+  },
 }
 
-const ChartToolsModal = ({
-  open,
-  label,
-  labelExtra,
-  onClose,
-  chartObj,
-  index,
-  path,
-}) => {
-  const sync = useSelector(selectSync)
+const ChartToolsModal = ({ open, index, label, labelExtra, onClose }) => {
+  const currentPage = useSelector(selectCurrentPage)
+  const chartObj = useSelector((state) => selectChartByKey(state, index))
 
-  const handleSelectVizType = useMutateState(
-    (value) => {
-      return {
-        path,
-        value: R.pipe(
-          value === chartVariant.map ? R.dissoc('chartType') : R.identity,
-          R.assoc('type', value)
-        )(CHART_DEFAULTS),
-        sync: !includesPath(R.values(sync), path),
-      }
-    },
-    [sync, chartObj, path, CHART_DEFAULTS]
+  const vizType = chartObj?.type ?? 'groupedOutput'
+  const vizTypeOptions = useMemo(
+    () => [
+      {
+        label: 'Grouped Outputs',
+        value: 'groupedOutput',
+        iconName: 'md/MdMultilineChart',
+      },
+      {
+        label: 'Global Outputs',
+        value: 'globalOutput',
+        iconName: 'md/MdSpeed',
+      },
+      {
+        label: 'Maps',
+        value: 'map',
+        iconName: 'fa/FaMapMarked',
+      },
+    ],
+    []
+  )
+  const handleSelectVizType = useMutateStateWithSync(
+    (value) => ({
+      path: ['pages', 'data', currentPage, 'charts', index],
+      value: R.pipe(
+        R.when(R.always(value === 'map'), R.dissoc('chartType')),
+        R.assoc('type', value)
+      )(CHART_DEFAULTS),
+    }),
+    [currentPage, index]
   )
 
   return (
     <DataGridModal
-      slotProps={{
-        paper: {
-          sx: {
-            width: '1200px',
-            height: '900px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          },
-        },
-      }}
-      {...{ label, labelExtra, open, onClose }}
+      slotProps={styles.modalSlots}
+      {...{ open, label, labelExtra, onClose }}
     >
       <Select
-        value={R.propOr('groupedOutput', 'type')(chartObj)}
-        optionsList={[
-          {
-            label: 'Grouped Outputs',
-            value: 'groupedOutput',
-            iconName: 'md/MdMultilineChart',
-          },
-          {
-            label: 'Global Outputs',
-            value: 'globalOutput',
-            iconName: 'md/MdSpeed',
-          },
-          {
-            label: 'Maps',
-            value: 'map',
-            iconName: 'fa/FaMapMarked',
-          },
-        ]}
+        value={vizType}
+        optionsList={vizTypeOptions}
         onSelect={handleSelectVizType}
       />
       <Card sx={styles.content}>
-        {R.propOr('groupedOutput', 'type', chartObj) === 'groupedOutput' ? (
-          <GroupedOutputsToolbar {...{ chartObj, index }} />
-        ) : chartObj.type === 'globalOutput' ? (
-          <GlobalOutputsToolbar {...{ chartObj, index }} />
-        ) : (
-          <MapToolbar {...{ chartObj, index }} />
-        )}
+        {index != null &&
+          (vizType === 'groupedOutput' ? (
+            <GroupedOutputsToolbar {...{ index }} />
+          ) : vizType === 'globalOutput' ? (
+            <GlobalOutputsToolbar {...{ index }} />
+          ) : (
+            <MapToolbar {...{ index }} />
+          ))}
       </Card>
     </DataGridModal>
   )

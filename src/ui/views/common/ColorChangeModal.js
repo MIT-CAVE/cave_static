@@ -1,22 +1,20 @@
-import {
-  TextField,
-  Box,
-  FormControl,
-  InputLabel,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { TextField, Box, Stack, Typography } from '@mui/material'
 import { colord } from 'colord'
 import * as R from 'ramda'
 import { useState, useMemo, useEffect, useCallback, memo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { List } from 'react-window'
 
 import BaseModal from './BaseModal'
 
 import { mutateLocal } from '../../../data/local'
-import { selectMergedStatGroupings, selectSync } from '../../../data/selectors'
+import {
+  selectChartByKey,
+  selectMergedStatGroupings,
+  selectSync,
+} from '../../../data/selectors'
 import { colorGen } from '../../../utils/ColorGen'
-import { ColorPickerAlt, useColorPicker } from '../../compound/ColorPicker'
+import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 
 import { Select, HelpTooltip } from '../../compound'
 
@@ -27,11 +25,74 @@ import {
   includesPath,
 } from '../../../utils'
 
-const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
+const styles = {
+  modalSlots: {
+    paper: {
+      sx: {
+        width: '750px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      },
+    },
+  },
+  help: {
+    position: 'absolute',
+    top: 30,
+    right: 20,
+  },
+  search: {
+    mr: 1.45,
+  },
+  searchField: {
+    flex: 13,
+  },
+  categorySelect: {
+    flex: 7,
+  },
+  content: {
+    display: 'flex',
+    gap: 2,
+    overflow: 'auto',
+    height: '100%',
+    scrollbarGutter: 'stable',
+  },
+}
+
+const categorySelectSlotProps = {
+  formControl: { sx: styles.categorySelect },
+}
+
+const ListRowComponent = ({
+  index,
+  style,
+  visibleGroupings,
+  localCategoryColors,
+  allCategoryProperties,
+  onChangeFn,
+}) => {
+  const category = visibleGroupings[index]
+  const handleChange = useCallback(
+    (value, colors) => onChangeFn(category)(value, colors),
+    [category, onChangeFn]
+  )
+  return (
+    <ColorPicker
+      sx={style}
+      key={category}
+      value={localCategoryColors[category]}
+      colorLabel={allCategoryProperties[category].lastCategory}
+      onChange={handleChange}
+    />
+  )
+}
+
+const ColorChangeModal = ({ open, index, label, labelExtra, onClose }) => {
   const [searchText, setSearchText] = useState('')
   const [currentCategoryId, setCurrentCategoryId] = useState(null)
   const [localCategoryColors, setLocalCategoryColors] = useState({})
   const statGroupings = useSelector(selectMergedStatGroupings)
+  const chartObj = useSelector((state) => selectChartByKey(state, index))
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
@@ -50,17 +111,18 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
           )
         ),
         R.values,
-        R.unnest
+        R.unnest,
+        R.uniq // Remove duplicate levels across categories
       )(statGroupings),
     [statGroupings]
   )
 
   useEffect(() => {
-    if (chartObj.groupingLevel) {
+    if (chartObj?.groupingLevel) {
       const categoryId = chartObj.groupingLevel[1]
       setCurrentCategoryId(categoryId)
     }
-  }, [chartObj])
+  }, [chartObj?.groupingLevel])
 
   const handleChangeCategory = useCallback((value) => {
     setCurrentCategoryId(value)
@@ -68,18 +130,16 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
 
   const getCategoryLabel = useCallback(
     (categoryParents, levelCategories, category, index, level) => {
-      if (level in categoryParents) {
-        const parent = categoryParents[level]
-        return `${category} \u279D ${getCategoryLabel(
-          categoryParents,
-          levelCategories,
-          levelCategories[parent][index],
-          index,
-          parent
-        )}`
-      } else {
-        return `${category}`
-      }
+      if (!(level in categoryParents)) return `${category}`
+
+      const parent = categoryParents[level]
+      return `${category} \u279D ${getCategoryLabel(
+        categoryParents,
+        levelCategories,
+        levelCategories[parent][index],
+        index,
+        parent
+      )}`
     },
     []
   )
@@ -119,28 +179,21 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
   )
 
   const constructAllCategoryProperties = useCallback(() => {
-    const groupingMaps = []
-    R.forEach(([groupingLabel, grouping]) => {
-      const levelCategories = R.pipe(R.prop('data'), R.omit(['id']))(grouping)
-      const parent = R.pipe(
-        R.prop('levels'),
-        R.pluck('parent'),
-        R.reject(R.isNil)
-      )(grouping)
+    const groupingMaps = R.map(([groupingLabel, grouping]) => {
+      const levels = grouping.levels
+      const parents = R.pipe(R.pluck('parent'), R.reject(R.isNil))(levels)
+      const levelCategories = R.pipe(R.prop('data'), R.dissoc('id'))(grouping)
       const coloring = R.pipe(
-        R.prop('levels'),
         R.pluck('coloring'),
         R.reject(R.isNil),
         R.values,
         R.mergeAll
-      )(grouping)
-      groupingMaps.push(
-        constructSingleCategoryProperties(
-          groupingLabel,
-          parent,
-          levelCategories,
-          coloring
-        )
+      )(levels)
+      return constructSingleCategoryProperties(
+        groupingLabel,
+        parents,
+        levelCategories,
+        coloring
       )
     }, R.toPairs(statGroupings))
     return groupingMaps
@@ -203,9 +256,8 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
         'levels',
         level,
         'coloring',
-        allCategoryProperties[category]['lastCategory'],
+        allCategoryProperties[category].lastCategory,
       ]
-      // console.log({value, colorOutputs, category, pathTail, allCategoryProperties, chartObj})
       handleChangeRaw(getColorString(value), colorOutputs, pathTail)
     },
     [handleChangeRaw, allCategoryProperties]
@@ -216,63 +268,54 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
     [categoryOptions]
   )
 
-  // console.log({
-  //   statGroupings,
-  //   categoryOptions,
-  //   localCategoryColors,
-  //   allCategoryProperties,
-  //   visibleGroupings,
-  //   chartObj,
-  // })
+  const rowProps = useMemo(
+    () => ({
+      visibleGroupings,
+      localCategoryColors,
+      allCategoryProperties,
+      onChangeFn: handleChangeFn,
+    }),
+    [
+      allCategoryProperties,
+      handleChangeFn,
+      localCategoryColors,
+      visibleGroupings,
+    ]
+  )
 
   return (
     <BaseModal
-      slotProps={{
-        paper: {
-          sx: {
-            width: '750px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          },
-        },
-      }}
+      slotProps={styles.modalSlots}
       {...{ label, labelExtra, open, onClose }}
     >
-      <Box sx={{ position: 'absolute', top: 30, right: 20 }}>
+      <Box sx={styles.help}>
         <HelpTooltip
           title="Notes on color changes"
           content="Any color changes are applied to ALL relevant charts. Color changes to same-name categories applies to all categories with shared name."
           size={28}
         />
       </Box>
-      <Stack direction="row" spacing={2} sx={{ mr: 1.45 }}>
+      <Stack useFlexGap direction="row" spacing={2} sx={styles.search}>
         <TextField
           placeholder="Search final category level"
           label="Search"
           value={searchText}
+          sx={styles.searchField}
           onChange={handleChangeSearchText}
-          sx={{ width: '65%' }}
         />
-        <FormControl fullWidth sx={{ flex: 1 }}>
-          <InputLabel id="category-label">{'Category'}</InputLabel>
-          <Select
-            id="category"
-            labelId="category-label"
-            label="Category"
-            value={currentCategoryId}
-            optionsList={categoryOptions}
-            getLabel={getLabel}
-            onSelect={handleChangeCategory}
-          />
-        </FormControl>
+        <Select
+          id="category"
+          labelId="category-label"
+          label="Category"
+          placeholder="Category"
+          slotProps={categorySelectSlotProps}
+          value={currentCategoryId ?? ''}
+          optionsList={categoryOptions}
+          getLabel={getLabel}
+          onSelect={handleChangeCategory}
+        />
       </Stack>
-      <Box
-        display="flex"
-        flexDirection="column-reverse"
-        gap={2}
-        sx={{ overflow: 'auto', scrollbarGutter: 'stable' }}
-      >
+      <Box sx={styles.content}>
         {R.isEmpty(visibleGroupings) && (
           <Typography variant="subtitle1" fontWeight={500}>
             In order to change the current graph's colors in this modal, there
@@ -282,16 +325,15 @@ const ColorChangeModal = ({ open, label, labelExtra, onClose, chartObj }) => {
             category.
           </Typography>
         )}
-        {currentCategoryId &&
-          R.map((category) => (
-            <ColorPickerAlt
-              key={category}
-              value={localCategoryColors[category]}
-              colorLabel={allCategoryProperties[category].lastCategory}
-              changeArg={category}
-              onChangeFn={handleChangeFn}
-            />
-          ))(visibleGroupings)}
+        {currentCategoryId && (
+          <List
+            rowHeight={88}
+            overscanCount={5}
+            {...{ rowProps }}
+            rowCount={visibleGroupings.length}
+            rowComponent={ListRowComponent}
+          />
+        )}
       </Box>
     </BaseModal>
   )

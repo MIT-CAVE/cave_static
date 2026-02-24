@@ -1,6 +1,6 @@
 import { Box, ButtonGroup, Slider } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useState, useMemo, useContext } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { BsGlobe2 } from 'react-icons/bs'
 import { FaMapMarkedAlt } from 'react-icons/fa'
 import {
@@ -18,7 +18,7 @@ import { TbMap } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { WithBadge } from './Legend'
-import useMapApi, { MapContext } from './useMapApi'
+import useMapApi from './useMapApi'
 
 import {
   bearingSliderToggle,
@@ -231,9 +231,8 @@ const MapNavButtons = memo(({ mapId }) => {
   )
 })
 
-const MapControls = () => {
+const MapControls = ({ mapId }) => {
   const [hover, setHover] = useState(false)
-  const { mapId } = useContext(MapContext)
   const { isMapboxSelected, isDarkStyle } = useMapApi(mapId)
 
   const bearing = useSelector(selectBearingFunc)(mapId)
