@@ -307,7 +307,6 @@ const ColorChangeModal = ({ open, index, label, labelExtra, onClose }) => {
           id="category"
           labelId="category-label"
           label="Category"
-          placeholder="Category"
           slotProps={categorySelectSlotProps}
           value={currentCategoryId ?? ''}
           optionsList={categoryOptions}
