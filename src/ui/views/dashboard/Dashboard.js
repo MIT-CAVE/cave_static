@@ -8,10 +8,11 @@ import {
   useMemo,
   useState,
 } from 'react'
-import ReactGridLayout from 'react-grid-layout'
+// eslint-disable-next-line import/no-unresolved
+import ReactGridLayout from 'react-grid-layout/legacy'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
-import AutoSizer from 'react-virtualized-auto-sizer'
+import { AutoSizer } from 'react-virtualized-auto-sizer'
 
 import ChartMenu from './ChartMenu'
 import DashboardGlobalOutput from './DashboardGlobalOutputs'
@@ -73,6 +74,11 @@ const styles = {
     bottom: '4px',
   },
 }
+
+// TODO: Currently using the legacy build of
+// `react-grid-layout`. Migrate to v2, or evaluate `gridstack.js`
+// (https://github.com/gridstack/gridstack.js) if it better suits
+// our long-term needs.
 
 const DashboardItem = ({
   index,
@@ -565,8 +571,8 @@ const Dashboard = () => {
         disableGutters
       >
         <div style={{ flex: '1 1 auto' }}>
-          <AutoSizer>
-            {({ height, width }) =>
+          <AutoSizer
+            renderProp={({ height, width }) =>
               R.isNotEmpty(pageLayout) && (
                 <ReactGridLayout
                   className="layout"
@@ -646,7 +652,7 @@ const Dashboard = () => {
                 </ReactGridLayout>
               )
             }
-          </AutoSizer>
+          />
         </div>
         {!lockedLayout &&
           R.isNil(maximizedChart) &&
