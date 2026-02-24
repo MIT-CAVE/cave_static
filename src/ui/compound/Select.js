@@ -89,7 +89,7 @@ const Select = ({
       {label && <InputLabel id={labelId}>{label}</InputLabel>}
       <MuiSelect
         name="cave-select"
-        displayEmpty
+        // displayEmpty
         value={selectedValue}
         sx={[styles.select, ...forceArray(sx)]}
         {...{ disabled, open, label, labelId, ...props }}
