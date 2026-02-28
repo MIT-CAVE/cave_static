@@ -1301,15 +1301,15 @@ export const selectLocalFeatures = createSelector(selectLocal, (data) =>
   R.pathOr({}, ['mapFeatures', 'data'], data)
 )
 export const selectLocalNodes = createSelector(
-  [selectLocal, selectCurrentTime],
+  [selectLocalFeatures, selectCurrentTime],
   (data, time) => getTimeValue(time, R.filter(R.propEq('node', 'type'), data))
 )
 export const selectLocalArcs = createSelector(
-  [selectLocal, selectCurrentTime],
+  [selectLocalFeatures, selectCurrentTime],
   (data, time) => getTimeValue(time, R.filter(R.propEq('arc', 'type'), data))
 )
 export const selectLocalGeos = createSelector(
-  [selectLocal, selectCurrentTime],
+  [selectLocalFeatures, selectCurrentTime],
   (data, time) => getTimeValue(time, R.filter(R.propEq('geo', 'type'), data))
 )
 export const selectLocalizedNodeTypes = createSelector(
