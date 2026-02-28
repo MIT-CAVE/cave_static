@@ -27,8 +27,8 @@ import {
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
   selectFeatureData,
-  selectAnimationDuration,
   selectAnimationInterval,
+  selectCurrentTimeLength,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -221,7 +221,7 @@ export const Nodes = memo(() => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const featureData = useSelector(selectFeatureData)
-  const duration = useSelector(selectAnimationDuration)
+  const duration = useSelector(selectCurrentTimeLength)
   const animationInterval = useSelector(selectAnimationInterval)
   const animation = R.is(Number, animationInterval)
 

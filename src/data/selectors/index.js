@@ -371,14 +371,6 @@ export const selectCurrentLooping = createSelector(selectTimeSettings, (data) =>
 export const selectCurrentSpeed = createSelector(selectTimeSettings, (data) =>
   R.propOr(1, 'speed')(data)
 )
-export const selectAnimationSettings = createSelector(
-  selectSettings,
-  R.propOr({}, 'animation')
-)
-export const selectAnimationDuration = createSelector(
-  selectAnimationSettings,
-  (data) => R.propOr(0, 'timeLength')(data)
-)
 export const selectSyncToggles = createSelector(selectSettings, (data) =>
   R.propOr({}, 'sync', data)
 )
