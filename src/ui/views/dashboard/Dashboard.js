@@ -8,8 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react'
-// eslint-disable-next-line import/no-unresolved
-import ReactGridLayout from 'react-grid-layout/legacy'
+import ReactGridLayout from 'react-grid-layout'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 import { AutoSizer } from 'react-virtualized-auto-sizer'
@@ -75,10 +74,9 @@ const styles = {
   },
 }
 
-// TODO: Currently using the legacy build of
-// `react-grid-layout`. Migrate to v2, or evaluate `gridstack.js`
-// (https://github.com/gridstack/gridstack.js) if it better suits
-// our long-term needs.
+// TODO: Currently using `react-grid-layout` v1. Migrate to v2, or
+// evaluate `gridstack.js` (https://github.com/gridstack/gridstack.js)
+// if it better suits our long-term needs.
 
 const DashboardItem = ({
   index,
