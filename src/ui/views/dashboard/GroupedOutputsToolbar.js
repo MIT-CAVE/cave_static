@@ -11,7 +11,7 @@ import {
   selectSync,
   selectCurrentPage,
   selectAllowedStats,
-  selectChartByKey,
+  selectChartById,
   selectChartStats,
   selectChartStatsNames,
   selectMergedStatGroupings,
@@ -152,7 +152,7 @@ const GroupedOutputsToolbar = ({ index }) => {
   const groupedOutputs = useSelector(selectGroupedOutputsData)
   const statNamesByDataset = useSelector(selectChartStatsNames)
   const currentPage = useSelector(selectCurrentPage)
-  const chartObj = useSelector((state) => selectChartByKey(state, index))
+  const chartObj = useSelector((state) => selectChartById(state, index))
   const sync = useSelector(selectSync)
 
   const path = ['pages', 'data', currentPage, 'charts', index]

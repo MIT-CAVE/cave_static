@@ -217,30 +217,28 @@ const EditableTextField = ({
 }
 
 const GridFilter = ({
-  defaultFilters = [],
+  defaultFilters,
   sourceHeaderName = 'Source',
   filterables,
   filterableExtraProps,
   onSave,
 }) => {
-  const [filters, setFilters] = useState(defaultFilters)
+  const [rows, setRows] = useState([])
   const [editingId, setEditingId] = useState(-1)
 
-  const renamedFilters = useMemo(
-    () => R.map(R.renameKeys({ option: 'relation', prop: 'source' }), filters),
-    [filters]
-  )
-  const maxId = renamedFilters.reduce((max, row) => {
-    return row.id > max ? row.id : max
-  }, 0)
-  const maxGroupId = renamedFilters.reduce((max, row) => {
-    return row.groupId > max ? row.groupId : max
-  }, 0)
-  const [idCount, setIdCount] = useState(maxId + 1)
-  const [groupIdCount, setGroupIdCount] = useState(maxGroupId + 1)
-  const [rows, setRows] = useState(renamedFilters)
-
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
+
+  const counts = useMemo(
+    () =>
+      R.reduce(
+        (acc, row) => ({
+          id: Math.max(acc.id, row.id ?? acc.id),
+          groupId: Math.max(acc.groupId, row.groupId ?? acc.groupId),
+        }),
+        { id: 0, groupId: 0 }
+      )(rows),
+    [rows]
+  )
 
   const sourceValueOpts = useMemo(
     () =>
@@ -262,7 +260,7 @@ const GridFilter = ({
     [filterables, getNumberFormat]
   )
 
-  const handleSave = useCallback(
+  const saveFilters = useCallback(
     (newRows) => {
       const newFilters = R.map(
         R.pipe(
@@ -271,7 +269,6 @@ const GridFilter = ({
           R.renameKeys({ relation: 'option', source: 'prop' })
         )
       )(newRows)
-      setFilters(newFilters)
 
       // console.log('before-saving', { newRows, newFilters })
       onSave(newFilters)
@@ -279,51 +276,65 @@ const GridFilter = ({
     [onSave]
   )
 
-  useEffect(() => {
-    setFilters(
-      R.when(
-        R.isEmpty,
-        R.always([
-          {
-            id: 0,
-            type: 'group',
-            groupId: 0,
-            logic: 'and',
-            depth: 0,
-            edit: true,
-          },
-        ])
-      )
-    )
-  }, [])
+  const defaultRows = useMemo(
+    () =>
+      R.pipe(
+        R.defaultTo([]),
+        R.ifElse(
+          R.isEmpty,
+          R.always([
+            {
+              id: 0,
+              type: 'group',
+              groupId: 0,
+              logic: 'and',
+              depth: 0,
+              edit: true,
+            },
+          ]),
+          R.map(R.renameKeys({ option: 'relation', prop: 'source' }))
+        )
+      )(defaultFilters),
+    [defaultFilters]
+  )
 
   useEffect(() => {
-    setRows(renamedFilters)
-  }, [renamedFilters])
+    setRows(defaultRows)
+  }, [defaultRows])
 
   useEffect(() => {
     // Check if all rule rows have required fields filled out
-    const filledRows = rows.filter((row) => {
-      if (row.type === 'rule') {
-        return row.source !== '' && row.relation !== '' && row.value !== ''
-      }
-      return true // Non-rule rows (like groups) are always valid
-    })
+    const filledRows = rows.filter(
+      (row) =>
+        row.type !== 'rule' || // Non-rule rows (like groups) are always valid
+        (row.source !== '' && row.relation !== '' && row.value !== '')
+    )
 
-    if (R.equals(renamedFilters, filledRows)) return
+    if (R.equals(defaultRows)(filledRows)) return
 
+    // console.log('Saving filters', { filledRows })
     const timer = setTimeout(() => {
-      handleSave(filledRows)
+      saveFilters(filledRows)
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [handleSave, renamedFilters, rows])
+  }, [defaultRows, rows, saveFilters])
+
+  const addRowOrGroup = useCallback((groupId, row) => {
+    setRows(
+      R.converge(R.insert(R.__, row), [
+        R.pipe(R.findIndex(R.propEq(groupId, 'groupId')), R.inc),
+        R.identity,
+      ])
+    )
+  }, [])
+
+  // console.log({ counts, rows, defaultFilters })
 
   const handleAddRow = useCallback(
     (groupId, depth) => {
-      const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
-        id: idCount,
+        id: counts.id + 1,
         type: 'rule',
         ...(groupId !== undefined && { parentGroupId: groupId }),
         source: '',
@@ -331,38 +342,25 @@ const GridFilter = ({
         value: '',
         depth: depth + 1,
       }
-      const newRows = [
-        ...rows.slice(0, index + 1),
-        newRow,
-        ...rows.slice(index + 1),
-      ]
-      setRows(newRows)
-      setIdCount(idCount + 1)
+      addRowOrGroup(groupId, newRow)
     },
-    [idCount, rows]
+    [addRowOrGroup, counts.id]
   )
 
   const handleAddGroup = useCallback(
     (groupId, depth) => {
-      const index = rows.findIndex((row) => row.groupId === groupId)
       const newRow = {
-        id: idCount,
+        id: counts.id + 1,
         type: 'group',
-        groupId: groupIdCount,
+        groupId: counts.groupId + 1,
         ...(groupId !== undefined && { parentGroupId: groupId }),
         logic: 'and',
         depth: depth + 1,
       }
-      const newRows = [
-        ...rows.slice(0, index + 1),
-        newRow,
-        ...rows.slice(index + 1),
-      ]
-      setRows(newRows)
-      setIdCount(idCount + 1)
-      setGroupIdCount(groupIdCount + 1)
+      // console.log('Adding', { group: newRow })
+      addRowOrGroup(groupId, newRow)
     },
-    [groupIdCount, idCount, rows]
+    [addRowOrGroup, counts]
   )
 
   const deleteRow = useCallback((id) => {
@@ -376,34 +374,42 @@ const GridFilter = ({
     [deleteRow]
   )
 
-  const handleDeleteGroup = useCallback(
-    (id, groupId) => {
-      const rowsToDelete = [id]
-
-      const deleteChildren = (groupId) => {
-        const children = rows.filter((row) => row.parentGroupId === groupId)
-        for (const child of children) {
-          rowsToDelete.push(child.id)
-          if (child.type === 'group') {
-            deleteChildren(child.groupId)
-          }
-        }
+  const isDescendant = useCallback(
+    (parentGroupId, targetGroupId, rowsByGroupId) => {
+      while (parentGroupId && targetGroupId !== parentGroupId) {
+        parentGroupId = rowsByGroupId[parentGroupId].parentGroupId
       }
-
-      deleteChildren(groupId)
-      R.forEach(deleteRow, rowsToDelete)
+      return targetGroupId === parentGroupId
     },
-    [deleteRow, rows]
+    []
   )
 
-  const resetEditing = () => setEditingId(-1)
+  const getGroupDescendants = useCallback(
+    (groupId) => {
+      const rowsByGroupId = R.indexBy(R.prop('groupId'))(rows)
+      const descendants = new Set()
+      for (const row of rows)
+        if (isDescendant(row.parentGroupId, groupId, rowsByGroupId)) {
+          descendants.add(row.id)
+        }
+      return descendants
+    },
+    [isDescendant, rows]
+  )
+
+  const handleDeleteGroup = useCallback(
+    (id, groupId) => {
+      const rowsToDelete = getGroupDescendants(groupId).add(id)
+      setRows(R.reject((row) => rowsToDelete.has(row.id)))
+    },
+    [getGroupDescendants]
+  )
+
+  const resetEditing = useCallback(() => setEditingId(-1), [])
 
   const columns = useMemo(() => {
     const handleRowChange = (id, field, value) => {
-      const newRows = rows.map((row) =>
-        row.id === id ? { ...row, [field]: value } : row
-      )
-      setRows(newRows)
+      setRows(R.map(R.when(R.propEq(id, 'id'), R.assoc(field, value))))
     }
 
     return [
@@ -664,19 +670,18 @@ const GridFilter = ({
       },
     ]
   }, [
+    editingId,
     filterableExtraProps,
     filterables,
-    handleAddRow,
     handleAddGroup,
-    handleDeleteRow,
+    handleAddRow,
     handleDeleteGroup,
+    handleDeleteRow,
     numberFormatProps,
+    resetEditing,
     sourceHeaderName,
     sourceValueOpts,
     sourceValueTypes,
-    editingId,
-    setEditingId,
-    rows,
   ])
 
   const maxDepth = useMemo(

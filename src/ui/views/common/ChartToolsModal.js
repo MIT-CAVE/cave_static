@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux'
 
 import { DataGridModal } from './BaseModal'
 
-import { selectChartByKey, selectCurrentPage } from '../../../data/selectors'
+import { selectChartById, selectCurrentPage } from '../../../data/selectors'
 import { CHART_DEFAULTS } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import GlobalOutputsToolbar from '../dashboard/GlobalOutputsToolbar'
@@ -32,9 +32,9 @@ const styles = {
   },
 }
 
-const ChartToolsModal = ({ open, index, label, labelExtra, onClose }) => {
+const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
   const currentPage = useSelector(selectCurrentPage)
-  const chartObj = useSelector((state) => selectChartByKey(state, index))
+  const chartObj = useSelector((state) => selectChartById(state, index))
 
   const vizType = chartObj?.type ?? 'groupedOutput'
   const vizTypeOptions = useMemo(
@@ -70,8 +70,9 @@ const ChartToolsModal = ({ open, index, label, labelExtra, onClose }) => {
 
   return (
     <DataGridModal
+      open={index != null}
       slotProps={styles.modalSlots}
-      {...{ open, label, labelExtra, onClose }}
+      {...{ label, labelExtra, onClose }}
     >
       <Select
         value={vizType}

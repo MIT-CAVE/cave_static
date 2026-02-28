@@ -24,9 +24,9 @@ import {
   selectLeftAppBarDisplay,
   selectRightAppBarDisplay,
   selectEditLayoutMode,
-  selectChartByKey,
+  selectChartById,
   selectCharts,
-  selectMapExists,
+  selectMapExistsById,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import { chartVariant } from '../../../utils/enums'
@@ -93,9 +93,9 @@ const DashboardItem = ({
   const lockedLayout = useSelector(selectDashboardLockedLayout)
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const currentPage = useSelector(selectCurrentPage)
-  const chartObj = useSelector((state) => selectChartByKey(state, index))
+  const chartObj = useSelector((state) => selectChartById(state, index))
   const mapExists = useSelector((state) =>
-    selectMapExists(state, chartObj.mapId)
+    selectMapExistsById(state, chartObj.mapId)
   )
 
   const isMaximized = R.propOr(false, 'maximized')(chartObj)
@@ -495,64 +495,26 @@ const Dashboard = () => {
     handleCloseModal: handleCloseChartTools,
   } = useIndexedModal()
 
-  const openFilterChart = charts?.[filterIndex]
-  const [statFilters, groupingFilters] = useMemo(
-    () =>
-      R.partition(
-        R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
-      )(openFilterChart?.filters ?? []),
-    [openFilterChart?.filters]
-  )
-  const numActiveStatFilters = useMemo(
-    () => getNumActiveFilters(statFilters),
-    [statFilters]
-  )
-  const numGroupingFilters = useMemo(
-    () =>
-      R.pipe(
-        R.filter(R.propEq('exc', 'option')),
-        R.chain(R.pipe(R.prop('value'), R.length)),
-        R.sum
-      )(groupingFilters),
-    [groupingFilters]
-  )
-  const handleSaveFilters = useMutateStateWithSync(
-    (filters) => ({
-      path: ['pages', 'data', currentPage, 'charts', filterIndex],
-      value: R.assoc('filters', filters)(openFilterChart),
-    }),
-    [currentPage, filterIndex, openFilterChart]
-  )
-
   return (
     <>
       {/* Shared Modals */}
       {!lockedLayout && (
         <>
           <ChartToolsModal
-            open={chartToolsIndex !== null}
             index={chartToolsIndex}
             label="Chart Tools"
             onClose={handleCloseChartTools}
           />
           {hasGroupedOutputChart && (
             <ColorChangeModal
-              open={colorChangeIndex !== null}
               index={colorChangeIndex}
               label="Color Change"
               onClose={handleCloseColorChange}
             />
           )}
           <FilterModal
-            {...{
-              statFilters,
-              groupingFilters,
-              numActiveStatFilters,
-              numGroupingFilters,
-            }}
+            index={filterIndex}
             label="Chart Data Filter"
-            open={filterIndex !== null}
-            onSave={handleSaveFilters}
             onClose={handleCloseFilter}
           />
         </>

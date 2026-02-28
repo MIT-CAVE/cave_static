@@ -523,14 +523,18 @@ export const selectCharts = createSelector(
     )
 )
 // NOTE: Use with Redux hook below:
-// const chartObj = useSelector((state) => selectChartByKey(state, <key/index>))
-export const selectChartByKey = createSelector(
-  [selectCharts, (state, key) => key],
-  (charts, key) => charts[key]
+// const chartObj = useSelector((state) => selectChartById(state, <chartId>))
+export const selectChartById = createSelector(
+  [selectCharts, (state, chartId) => chartId],
+  (charts, chartId) => charts[chartId]
 )
-export const selectMapExists = createSelector(
-  [selectMapData, (state, key) => key],
-  (mapData, key) => R.has(key)(mapData)
+export const selectMapExistsById = createSelector(
+  [selectMapData, (state, mapId) => mapId],
+  (mapData, mapId) => R.has(mapId)(mapData)
+)
+export const selectChartFiltersById = createSelector(
+  [selectCharts, (state, chartId) => chartId],
+  (charts, chartId) => R.pathOr([], [chartId, 'filters'])(charts)
 )
 
 export const selectIsMaximized = createSelector(
@@ -1552,6 +1556,17 @@ export const selectChartColors = createSelector(
           groupingLevel[R.head(groupingRange)]
         )
   }
+)
+
+export const selectFilterableStats = createSelector(
+  selectGroupedOutputTypes,
+  R.pipe(
+    R.values,
+    R.unnest,
+    R.mergeAll,
+    R.map(R.assoc('type', 'num')),
+    R.filter(R.propOr(true, 'allowFiltering'))
+  )
 )
 
 const mergeFuncs = {

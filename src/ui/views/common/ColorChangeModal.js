@@ -9,7 +9,7 @@ import BaseModal from './BaseModal'
 
 import { mutateLocal } from '../../../data/local'
 import {
-  selectChartByKey,
+  selectChartById,
   selectMergedStatGroupings,
   selectSync,
 } from '../../../data/selectors'
@@ -87,12 +87,12 @@ const ListRowComponent = ({
   )
 }
 
-const ColorChangeModal = ({ open, index, label, labelExtra, onClose }) => {
+const ColorChangeModal = ({ index, label, labelExtra, onClose }) => {
   const [searchText, setSearchText] = useState('')
   const [currentCategoryId, setCurrentCategoryId] = useState(null)
   const [localCategoryColors, setLocalCategoryColors] = useState({})
   const statGroupings = useSelector(selectMergedStatGroupings)
-  const chartObj = useSelector((state) => selectChartByKey(state, index))
+  const chartObj = useSelector((state) => selectChartById(state, index))
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
 
@@ -285,8 +285,9 @@ const ColorChangeModal = ({ open, index, label, labelExtra, onClose }) => {
 
   return (
     <BaseModal
+      open={index != null}
       slotProps={styles.modalSlots}
-      {...{ label, labelExtra, open, onClose }}
+      {...{ label, labelExtra, onClose }}
     >
       <Box sx={styles.help}>
         <HelpTooltip
