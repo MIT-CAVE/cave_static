@@ -4,7 +4,10 @@ import * as R from 'ramda'
 import { overrideState } from './actions'
 
 export const initialState = {
-  currentTime: 0,
+  currentTime: 0, // discrete
+  startTime: null, // continuous
+  currentTimeContinuous: 0, // continuous
+  pausedTime: null, // continuous
   mirror: false,
 }
 
@@ -20,6 +23,23 @@ export const settingsSlice = createSlice({
       state.currentTime =
         state.currentTime + 1 === action.payload ? 0 : state.currentTime + 1
     },
+    timeSetStart: (state) => {
+      if (state.startTime === null) {
+        state.startTime = performance.now() / 1000
+      }
+      if (state.pausedTime !== null) {
+        state.startTime += performance.now() / 1000 - state.pausedTime
+        state.pausedTime = null
+      }
+    },
+    timeAdvanceContinuous: (state) => {
+      state.currentTimeContinuous = performance.now() / 1000 - state.startTime
+    },
+    timePause: (state) => {
+      if (state.startTime !== null && state.pausedTime === null) {
+        state.pausedTime = performance.now() / 1000
+      }
+    },
     toggleMirror: (state) => {
       state.mirror = !state.mirror
     },
@@ -34,7 +54,14 @@ export const settingsSlice = createSlice({
   },
 })
 
-export const { timeSelection, timeAdvance, toggleMirror, toggleEditLayout } =
-  settingsSlice.actions
+export const {
+  timeSelection,
+  timeAdvance,
+  timeSetStart,
+  timeAdvanceContinuous,
+  timePause,
+  toggleMirror,
+  toggleEditLayout,
+} = settingsSlice.actions
 
 export default settingsSlice.reducer

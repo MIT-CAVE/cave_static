@@ -1,6 +1,6 @@
 import { FormControl, Box, ToggleButton, Slider, Stack } from '@mui/material'
 import * as R from 'ramda'
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import {
   MdNavigateNext,
   MdNavigateBefore,
@@ -12,7 +12,13 @@ import {
 } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { timeSelection, timeAdvance } from '../../../data/local/settingsSlice'
+import {
+  timeSelection,
+  timeAdvance,
+  timeSetStart,
+  timeAdvanceContinuous,
+  timePause,
+} from '../../../data/local/settingsSlice'
 import {
   selectCurrentTime,
   selectCurrentTimeLength,
@@ -22,7 +28,10 @@ import {
   selectCurrentSpeed,
   selectSync,
 } from '../../../data/selectors'
-import { updateAnimation } from '../../../data/utilities/timeSlice'
+import {
+  updateAnimation,
+  updateAnimationContinuous,
+} from '../../../data/utilities/timeSlice'
 import { useMutateState } from '../../../utils/hooks'
 import Select from '../../compound/Select'
 import TooltipButton from '../../compound/TooltipButton'
@@ -69,6 +78,8 @@ const TimeControl = () => {
   const animationInterval = useSelector(selectAnimationInterval)
   const dispatch = useDispatch()
 
+  const continuousInterval = useRef(null)
+
   const animation = R.is(Number, animationInterval)
   const sync = useSelector(selectSync)
 
@@ -94,23 +105,39 @@ const TimeControl = () => {
     dispatch(timeAdvance(timeLength))
   }, [dispatch, timeLength])
 
+  const advanceContinuous = useCallback(() => {
+    dispatch(timeAdvanceContinuous())
+  }, [dispatch])
+
   useEffect(() => {
     if (!looping && currentTime + 1 === timeLength) {
       clearInterval(animationInterval)
+      if (continuousInterval.current) {
+        clearInterval(continuousInterval.current)
+        continuousInterval.current = null
+      }
       dispatch(updateAnimation(false))
+      dispatch(updateAnimationContinuous(false))
     }
   }, [currentTime, looping, timeLength, animationInterval, dispatch])
 
   const toggleAnimationSpeed = useCallback(
     (newPlaybackSpeed) => {
       clearInterval(animationInterval)
+      if (continuousInterval.current) {
+        clearInterval(continuousInterval.current)
+        continuousInterval.current = null
+      }
       const newAnimationInterval = setInterval(
         advanceAnimation,
         1000 / newPlaybackSpeed
       )
+      const newContinuousInterval = setInterval(advanceContinuous, 1)
+      continuousInterval.current = newContinuousInterval
       dispatch(updateAnimation(newAnimationInterval))
+      dispatch(updateAnimationContinuous(newContinuousInterval))
     },
-    [advanceAnimation, animationInterval, dispatch]
+    [advanceAnimation, advanceContinuous, animationInterval, dispatch]
   )
 
   const handleChange = useCallback(
@@ -178,8 +205,14 @@ const TimeControl = () => {
             title="Pause animation"
             placement="bottom"
             onClick={() => {
+              dispatch(timePause())
+              if (continuousInterval.current) {
+                clearInterval(continuousInterval.current)
+                continuousInterval.current = null
+              }
               clearInterval(animationInterval)
               dispatch(updateAnimation(false))
+              dispatch(updateAnimationContinuous(false))
             }}
           >
             <MdPauseCircle size={40} />
@@ -189,6 +222,7 @@ const TimeControl = () => {
             title="Play animation"
             placement="bottom"
             onClick={() => {
+              dispatch(timeSetStart())
               toggleAnimationSpeed(playbackSpeed)
             }}
           >
