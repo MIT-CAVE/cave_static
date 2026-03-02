@@ -1,8 +1,8 @@
-import { Box } from '@mui/material'
+import { Box, Typography, TextField, IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MdDownloading } from 'react-icons/md'
+import { MdDownloading, MdEdit, MdCheck, MdClose } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
@@ -22,6 +22,7 @@ import {
   selectViewportsByMap,
   selectAllNodeIcons,
   selectMapboxToken,
+  selectMapData,
 } from '../../../data/selectors'
 import {
   DARK_GLOBE_FOG,
@@ -41,6 +42,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
+  const [isEditing, setIsEditing] = useState(false)
   const mapRef = useRef(null)
   const highlight = useRef(null)
   const containerRef = useRef(null)
@@ -55,7 +57,22 @@ const Map = ({ mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
+  const mapData = useSelector(selectMapData)[mapId]
+  const mapName = mapData?.name || mapId
+  const [tempName, setTempName] = useState(mapName)
   const dispatch = useDispatch()
+
+  const handleSaveName = useMutateStateWithSync(
+    (newName) => ({
+      path: ['maps', 'data', mapId, 'name'],
+      value: newName,
+    }),
+    [mapId]
+  )
+
+  useEffect(() => {
+    setTempName(mapName)
+  }, [mapName])
 
   const arcData = useMemo(
     () => R.pipe(groupedEnabledArcsFunc, R.propOr({}, 'geoJson'))(mapId),
@@ -297,6 +314,78 @@ const Map = ({ mapId }) => {
       }}
     >
       <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            zIndex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            borderRadius: '4px',
+            padding: '4px 8px',
+            color: 'white',
+          }}
+        >
+          {isEditing ? (
+            <>
+              <TextField
+                size="small"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveName(tempName)
+                    setIsEditing(false)
+                  }
+                  if (e.key === 'Escape') {
+                    setTempName(mapName)
+                    setIsEditing(false)
+                  }
+                }}
+                variant="standard"
+                sx={{
+                  input: { color: 'white' },
+                }}
+                autoFocus
+              />
+              <IconButton
+                size="small"
+                onClick={() => {
+                  handleSaveName(tempName)
+                  setIsEditing(false)
+                }}
+                sx={{ color: 'white' }}
+              >
+                <MdCheck />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setTempName(mapName)
+                  setIsEditing(false)
+                }}
+                sx={{ color: 'white' }}
+              >
+                <MdClose />
+              </IconButton>
+            </>
+          ) : (
+            <>
+              <Typography variant="subtitle1" sx={{ mr: 1 }}>
+                {mapName}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => setIsEditing(true)}
+                sx={{ color: 'white' }}
+              >
+                <MdEdit />
+              </IconButton>
+            </>
+          )}
+        </Box>
         <MapControls {...{ mapId }} />
         <ReactMapGl
           ref={mapRef}
