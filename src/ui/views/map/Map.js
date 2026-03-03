@@ -1,4 +1,4 @@
-import { Box, Typography, TextField, IconButton } from '@mui/material'
+import { Box, Typography, IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -34,6 +34,8 @@ import {
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { getSvgMarkup } from '../../../utils/svgBuilder'
+import Draggable from '../../compound/Draggable'
+import TextInput from '../../compound/TextInput'
 
 import { fetchIcon } from '../../../utils'
 
@@ -314,26 +316,28 @@ const Map = ({ mapId }) => {
       }}
     >
       <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
-        <Box
+        <Draggable
+          component={Box}
+          hideCloseButton
+          position={{ x: 10, y: 10 }}
+          cancel=".MuiButtonBase-root, .MuiInputBase-root"
           sx={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            zIndex: 1,
             display: 'flex',
             alignItems: 'center',
             backgroundColor: 'rgba(0,0,0,0.5)',
             borderRadius: '4px',
             padding: '4px 8px',
             color: 'white',
+            border: 'none',
           }}
         >
           {isEditing ? (
             <>
-              <TextField
+              <TextInput
+                controlled
                 size="small"
                 value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
+                onChange={setTempName}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleSaveName(tempName)
@@ -345,8 +349,10 @@ const Map = ({ mapId }) => {
                   }
                 }}
                 variant="standard"
+                fullWidth={false}
                 sx={{
                   input: { color: 'white' },
+                  width: '200px',
                 }}
                 autoFocus
               />
@@ -385,7 +391,7 @@ const Map = ({ mapId }) => {
               </IconButton>
             </>
           )}
-        </Box>
+        </Draggable>
         <MapControls {...{ mapId }} />
         <ReactMapGl
           ref={mapRef}
