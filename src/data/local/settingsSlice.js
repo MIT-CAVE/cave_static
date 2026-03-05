@@ -17,6 +17,9 @@ export const settingsSlice = createSlice({
   reducers: {
     timeSelection: (state, action) => {
       state.currentTime = action.payload
+      const diff = state.currentTimeContinuous - action.payload
+      state.startTime += diff
+      state.currentTimeContinuous = action.payload
     },
     // action.payload should be the timeLength
     timeAdvance: (state, action) => {
