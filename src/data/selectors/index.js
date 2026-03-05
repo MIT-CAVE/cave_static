@@ -528,10 +528,6 @@ export const selectChartById = createSelector(
   [selectCharts, (state, chartId) => chartId],
   (charts, chartId) => charts[chartId]
 )
-export const selectMapExistsById = createSelector(
-  [selectMapData, (state, mapId) => mapId],
-  (mapData, mapId) => R.has(mapId)(mapData)
-)
 export const selectChartFiltersById = createSelector(
   [selectCharts, (state, chartId) => chartId],
   (charts, chartId) => R.pathOr([], [chartId, 'filters'])(charts)
@@ -564,46 +560,16 @@ export const selectChartStatsNames = createSelector(
   R.map(R.keys)
 )
 
-export const selectCurrentMapDataByMap = createSelector(
-  selectMapData,
-  (data) => {
-    const itemKeys = R.reduce((acc, obj) => {
-      R.forEach((key) => acc.add(key), R.keys(obj))
-      return acc
-    }, new Set())(R.values(data))
-    return R.reduce(
-      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-      {}
-    )(itemKeys.values())
-  }
-)
-
-export const selectDefaultViewportFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pathOr({}, ['defaultViewport', mapId]),
-          R.when(
-            R.has('zoom'),
-            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
-          )
-        )(dataObj),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'defaultViewport', a),
-          R.propOr({}, 'defaultViewport', b)
-        ),
-    },
-  }
-)
+const selectCurrentMapDataByMap = createSelector(selectMapData, (data) => {
+  const itemKeys = R.reduce((acc, obj) => {
+    R.forEach((key) => acc.add(key), R.keys(obj))
+    return acc
+  }, new Set())(R.values(data))
+  return R.reduce(
+    (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+    {}
+  )(itemKeys.values())
+})
 
 // Merged appBar
 
@@ -750,28 +716,62 @@ export const selectCurrentLocalMapDataByMap = createSelector(
     )(itemKeys.values())
   }
 )
-export const selectAllLegendGroups = createSelector(
-  selectCurrentMapDataByMap,
-  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+
+// Merged Map Data
+const selectMergedMapData = createSelector(
+  [selectMapData, selectLocalMapData],
+  (data, localData) => R.mergeDeepLeft(localData)(data)
 )
-export const selectAllLocalLegendGroups = createSelector(
-  selectCurrentLocalMapDataByMap,
-  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+const selectCurrentMergedMapDataByMap = createSelector(
+  selectMergedMapData,
+  (data) => {
+    const itemKeys = R.reduce((acc, obj) => {
+      R.forEach((key) => acc.add(key), R.keys(obj))
+      return acc
+    }, new Set())(R.values(data))
+    return R.reduce(
+      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+      {}
+    )(itemKeys.values())
+  }
+)
+
+export const selectDefaultViewportFunc = createSelector(
+  selectCurrentMergedMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.pathOr({}, ['defaultViewport', mapId]),
+          R.when(
+            R.has('zoom'),
+            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+          )
+        )(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      equalityCheck: (a, b) => R.equals(a.defaultViewport)(b.defaultViewport),
     },
   }
 )
 
+// NOTE: Use with Redux hook below:
+// const chartObj = useSelector((state) => selectMapExistsById(state, <mapId>))
+export const selectMapExistsById = createSelector(
+  [selectMergedMapData, (state, mapId) => mapId],
+  (mapData, mapId) => R.has(mapId)(mapData)
+)
+
 export const selectLegendDataFunc = createSelector(
-  [selectAllLegendGroups, selectAllLocalLegendGroups],
-  (mapDataObj, localMapDataObj) =>
+  selectCurrentMergedMapDataByMap,
+  (mapDataObj) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) =>
-        R.propOr(R.propOr({}, mapId, mapDataObj), mapId, localMapDataObj),
+      (mapId) => R.pathOr({}, ['legendGroups', mapId])(mapDataObj),
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -810,9 +810,9 @@ export const selectShowLegendAdvancedControls = createSelector(
   (legendPropFunc) => legendPropFunc('showLegendAdvancedControls', false)
 )
 
-export const selectMapControlsByMap = createSelector(
-  selectCurrentLocalMapDataByMap,
-  (dataObj) => R.propOr({}, 'mapControls')(dataObj)
+const selectMapControlsByMap = createSelector(
+  selectCurrentMergedMapDataByMap,
+  R.propOr({}, 'mapControls')
 )
 export const selectMapModal = createSelector(
   selectLocalMap,
@@ -881,18 +881,21 @@ export const selectGlobalOutputProps = createSelector(
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
-  [selectMapControlsByMap, selectDefaultViewportFunc, selectMapData],
+  [selectMapControlsByMap, selectDefaultViewportFunc, selectMergedMapData],
   (mapControls, defaultViewportFunc, maps) =>
-    R.zipObj(
-      R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq)(maps),
-      R.map((mapId) =>
-        R.mergeAll([
-          DEFAULT_VIEWPORT,
-          defaultViewportFunc(mapId),
-          R.propOr({}, 'viewport')(mapControls[mapId]),
-        ])
-      )(R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq)(maps))
-    )
+    R.pipe(
+      R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq), // Obtain all Map IDs
+      R.converge(R.zipObj, [
+        R.identity,
+        R.map((mapId) =>
+          R.mergeAll([
+            DEFAULT_VIEWPORT,
+            defaultViewportFunc(mapId),
+            R.pathOr({}, [mapId, 'viewport'])(mapControls),
+          ])
+        ),
+      ])
+    )(maps)
 )
 export const selectBearingFunc = createSelector(
   selectViewportsByMap,

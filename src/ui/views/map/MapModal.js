@@ -16,13 +16,13 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import { MapContext } from './useMapApi'
 
-import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
 import {
   selectOptionalViewportsFunc,
   selectMapModal,
   selectMapStyleOptions,
   selectMapProjectionOptionsFunc,
 } from '../../../data/selectors'
+import { DEFAULT_VIEWPORT, MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { FetchedIcon } from '../../compound'
@@ -127,9 +127,33 @@ const MapModal = () => {
     [getMapProjectionOptions, mapId]
   )
 
-  const handleCloseModal = useCallback(
-    () => dispatch(closeMapModal(mapId)),
-    [dispatch, mapId]
+  const handleCloseModal = useMutateStateWithSync(
+    () => ({
+      path: ['maps', 'mapModal'],
+      value: R.mergeLeft({ data: { feature: '' }, isOpen: false })(mapModal),
+      sync: false, // Keep sync local for now
+    }),
+    [mapModal]
+  )
+
+  const updateViewport = useMutateStateWithSync(
+    (newViewport) => {
+      const minZoom = R.clamp(
+        MIN_ZOOM,
+        MAX_ZOOM
+      )(newViewport.minZoom ?? MIN_ZOOM)
+      const maxZoom = R.clamp(
+        minZoom,
+        MAX_ZOOM
+      )(newViewport.maxZoom ?? MAX_ZOOM)
+      const zoom = R.clamp(minZoom, maxZoom)(newViewport.zoom ?? 0)
+      const clampedViewport = R.assoc('zoom', zoom)(newViewport)
+      return {
+        path: ['maps', 'data', mapId, 'mapControls', 'viewport'],
+        value: R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport),
+      }
+    },
+    [mapId]
   )
 
   const handleSelectMapViewports = useCallback(
@@ -140,10 +164,10 @@ const MapModal = () => {
         // added by `withIndex` as a helper property
         R.omit(['name', 'icon'])
       )(optionalViewports)
-      dispatch(viewportUpdate({ viewport, mapId }))
+      updateViewport(viewport)
       handleCloseModal()
     },
-    [dispatch, handleCloseModal, mapId, optionalViewports]
+    [handleCloseModal, optionalViewports, updateViewport]
   )
 
   const handleSelectMapStyleId = useMutateStateWithSync(

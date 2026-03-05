@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MdDownloading } from 'react-icons/md'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
 import MapControls from './MapControls'
@@ -11,7 +11,6 @@ import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 import useMapApi, { MapContext } from './useMapApi'
 
-import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
   selectGroupedEnabledArcsFunc,
@@ -26,9 +25,12 @@ import {
 import {
   DARK_GLOBE_FOG,
   DARK_SKY_SPEC,
+  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
+  MAX_ZOOM,
+  MIN_ZOOM,
 } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
@@ -55,7 +57,8 @@ const Map = ({ mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
-  const dispatch = useDispatch()
+
+  const [currentViewport, setCurrentViewport] = useState(viewport)
 
   const arcData = useMemo(
     () => R.pipe(groupedEnabledArcsFunc, R.propOr({}, 'geoJson'))(mapId),
@@ -72,25 +75,33 @@ const Map = ({ mapId }) => {
     mapStyleOption,
   } = useMapApi(mapId)
 
-  useEffect(() => {
-    const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
-    if (demoMode && demoInterval.current === -1) {
-      dispatch(viewportRotate({ mapId, rate }))
-      demoInterval.current = setInterval(
-        () => dispatch(viewportRotate({ mapId, rate })),
-        13
-      )
-    } else if (demoInterval.current !== -1 && !demoMode) {
+  const rotateViewport = useMutateStateWithSync(
+    (rate) => ({
+      path: ['maps', 'data', mapId, 'mapControls', 'viewport', 'longitude'],
+      value: (currentViewport.longitude + rate) % 360,
+      sync: false, // Disabled to prevent conflicts when multiple clients enable demo mode
+    }),
+    [mapId, currentViewport.longitude]
+  )
+
+  const clearDemoInterval = useCallback(() => {
+    if (demoInterval.current !== -1) {
       clearInterval(demoInterval.current)
       demoInterval.current = -1
     }
-    return () => {
-      if (demoInterval.current !== -1) {
-        clearInterval(demoInterval.current)
-        demoInterval.current = -1
+  }, [])
+
+  useEffect(() => {
+    if (demoMode) {
+      if (demoInterval.current === -1) {
+        const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
+        demoInterval.current = setInterval(() => rotateViewport(rate), 13)
       }
+    } else {
+      clearDemoInterval()
     }
-  }, [mapId, demoMode, demoSettings, dispatch])
+    return clearDemoInterval
+  }, [clearDemoInterval, demoMode, demoSettings, mapId, rotateViewport])
 
   useEffect(() => {
     const iconsToLoad = [
@@ -203,13 +214,96 @@ const Map = ({ mapId }) => {
     [arcData, geosData]
   )
 
-  const handleMove = useCallback(
-    (e) => {
-      // Prevents setting incorrect viewport on load
-      if (e.viewState.zoom !== 0)
-        dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
+  const updateViewport = useMutateStateWithSync(
+    (newViewport) => {
+      const minZoom = R.clamp(
+        MIN_ZOOM,
+        MAX_ZOOM
+      )(newViewport.minZoom ?? MIN_ZOOM)
+      const maxZoom = R.clamp(
+        minZoom,
+        MAX_ZOOM
+      )(newViewport.maxZoom ?? MAX_ZOOM)
+      const zoom = R.clamp(minZoom, maxZoom)(newViewport.zoom ?? 0)
+      const clampedViewport = R.assoc('zoom', zoom)(newViewport)
+      return {
+        path: ['maps', 'data', mapId, 'mapControls', 'viewport'],
+        value: R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport),
+      }
     },
-    [dispatch, mapId]
+    [mapId]
+  )
+
+  const {
+    latitude,
+    longitude,
+    zoom,
+    pitch,
+    bearing,
+    minZoom,
+    maxZoom,
+    minPitch,
+    maxPitch,
+    minBearing,
+    maxBearing,
+    padding,
+  } = viewport
+
+  useEffect(() => {
+    // Avoid using the `viewport` object directly to prevent
+    // redundant updates and a brief viewport flicker caused
+    // by the same values wrapped in a new object reference.
+    setCurrentViewport(
+      R.mergeLeft({
+        latitude,
+        longitude,
+        zoom,
+        pitch,
+        bearing,
+        minZoom,
+        maxZoom,
+        minPitch,
+        maxPitch,
+        minBearing,
+        maxBearing,
+        padding,
+      })
+    )
+  }, [
+    bearing,
+    latitude,
+    longitude,
+    maxBearing,
+    maxPitch,
+    maxZoom,
+    minBearing,
+    minPitch,
+    minZoom,
+    padding,
+    pitch,
+    zoom,
+  ])
+
+  // useEffect(() => {
+  //   setCurrentViewport(viewport)
+  //   // Workaround (via JSON.stringify) to prevent redundant
+  //   // updates and a brief viewport flicker caused by the
+  //   // same values wrapped in a new object reference.
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [JSON.stringify(viewport)])
+
+  const handleMove = useCallback((e) => {
+    if (e.viewState.zoom === 0) return // Prevents setting incorrect viewport on load
+    setCurrentViewport(e.viewState)
+  }, [])
+
+  const handleMoveEnd = useCallback(
+    (e) => {
+      if (e.viewState.zoom === 0) return // Prevents setting incorrect viewport on load
+
+      updateViewport(e.viewState)
+    },
+    [updateViewport]
   )
 
   const handleMouseMove = useCallback(
@@ -309,15 +403,16 @@ const Map = ({ mapId }) => {
           }
           mapboxAccessToken={isMapboxSelected && mapboxToken}
           projection={currentMapProjectionFunc(mapId)}
-          {...{ mapStyle, interactiveLayerIds, ...viewport }}
-          onStyleData={handleStyleData}
-          onLoad={loadSkyAndFog}
-          onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
-          onRender={handleRender}
+          {...{ mapStyle, interactiveLayerIds, ...currentViewport }}
           onClick={handleClick}
-          onMove={handleMove}
+          onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
+          onLoad={loadSkyAndFog}
           onMouseMove={handleMouseMove}
           onMouseOver={handleMouseOver}
+          onMove={handleMove}
+          onMoveEnd={handleMoveEnd}
+          onRender={handleRender}
+          onStyleData={handleStyleData}
         >
           <Geos />
           <IncludedGeos />
