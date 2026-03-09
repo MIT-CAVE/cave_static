@@ -1,4 +1,4 @@
-import { FormControl, Box, ToggleButton, Slider, Stack } from '@mui/material'
+import { Box, ToggleButton, Slider, Stack } from '@mui/material'
 import * as R from 'ramda'
 import { useEffect, useCallback } from 'react'
 import {
@@ -220,25 +220,29 @@ const TimeControl = () => {
           >
             <MdOutlineCached size={20} />
           </ToggleButton>
-          <FormControl size="small" sx={{ width: '100px' }}>
-            <Select
-              sx={{
-                '&> :first-child': {
-                  justifyContent: 'center',
-                },
-              }}
-              optionsList={[
-                { value: 0.5, label: '0.5x' },
-                { value: 0.75, label: '0.75x' },
-                { value: 1, label: 'Normal' },
-                { value: 1.25, label: '1.25x' },
-                { value: 1.5, label: '1.5x' },
-                { value: 2, label: '2x' },
-              ]}
-              value={playbackSpeed}
-              onChange={handleChange}
-            />
-          </FormControl>
+          <Select
+            size="small"
+            sx={{
+              '&> :first-child': {
+                justifyContent: 'center',
+              },
+            }}
+            slotProps={{
+              formControl: {
+                sx: { width: '100px' },
+              },
+            }}
+            optionsList={[
+              { value: 0.5, label: '0.5x' },
+              { value: 0.75, label: '0.75x' },
+              { value: 1, label: 'Normal' },
+              { value: 1.25, label: '1.25x' },
+              { value: 1.5, label: '1.5x' },
+              { value: 2, label: '2x' },
+            ]}
+            value={playbackSpeed}
+            onChange={handleChange}
+          />
         </Stack>
       </Box>
     </Stack>
