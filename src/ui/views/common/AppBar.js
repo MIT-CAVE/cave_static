@@ -26,12 +26,10 @@ const styles = {
     flexDirection: 'column',
     height: '100vh',
     width: `${APP_BAR_WIDTH}px`,
-    borderColor: 'text.secondary',
+    borderColor: 'rgb(128 128 128)',
     bgcolor: 'background.paper',
   },
   rightRoot: {
-    position: 'absolute',
-    right: 0,
     borderLeft: 1,
   },
   leftRoot: {

@@ -168,9 +168,9 @@ const App = () => {
                 <Dashboard />
                 <Panes />
                 <AppModal />
+                <Draggables />
               </ErrorBoundary>
             </Box>
-            <Draggables />
           </LocalizationProvider>
           <RightAppBar />
         </Box>
