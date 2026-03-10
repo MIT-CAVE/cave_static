@@ -89,26 +89,15 @@ const TextInput = ({
 
   // Update this field's value or trigger onChange when user types on virtual keyboard
   useEffect(() => {
-    if (
-      disabled ||
-      !focused.current ||
-      virtualKeyboard.inputValue === value ||
-      (autoFocus && virtualKeyboard.lastKeyPress == null)
-    )
+    if (disabled || !focused.current || virtualKeyboard.inputValue === value)
       return
 
-    const newValue =
-      autoFocus && virtualKeyboard.lastKeyPress == null
-        ? defaultValue
-        : virtualKeyboard.inputValue
-
     if (controlled) {
-      onChange(newValue)
+      onChange(virtualKeyboard.inputValue)
     } else {
-      setValue(newValue)
+      setValue(virtualKeyboard.inputValue)
     }
   }, [
-    autoFocus,
     controlled,
     defaultValue,
     disabled,
