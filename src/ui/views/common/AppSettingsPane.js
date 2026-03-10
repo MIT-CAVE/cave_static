@@ -294,6 +294,7 @@ const AppSettingsPane = () => {
             {timeLength > 0 && (
               <DraggableSwitch id={draggableId.TIME} name="Time Control" />
             )}
+            <DraggableSwitch id={draggableId.MAP_NAMES} name="Map Names" />
           </FormGroup>
         </FormControl>
       </FieldContainer>

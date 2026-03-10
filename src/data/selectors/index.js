@@ -69,6 +69,11 @@ export const selectVirtualKeyboard = createSelector(selectUtilities, (data) =>
   R.prop('virtualKeyboard')(data)
 )
 
+export const selectVirtualKeyboardValue = createSelector(
+  selectVirtualKeyboard,
+  R.prop('inputValue')
+)
+
 // Loading
 export const selectLoading = createSelector(selectUtilities, (data) =>
   R.prop('loading')(data)
@@ -430,6 +435,10 @@ export const selectGlobalOutputsDraggable = createSelector(
   selectMergedDraggables,
   R.propOr({}, draggableId.GLOBAL_OUTPUTS)
 )
+export const selectMapNamesDraggable = createSelector(
+  selectMergedDraggables,
+  R.propOr({}, draggableId.MAP_NAMES)
+)
 
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>
@@ -734,6 +743,13 @@ const selectCurrentMergedMapDataByMap = createSelector(
       {}
     )(itemKeys.values())
   }
+)
+
+// NOTE: Use with Redux hook below:
+// const mapName = useSelector((state) => selectMapName(state, <mapId>))
+export const selectMapName = createSelector(
+  [selectMergedMapData, (state, mapId) => mapId],
+  (mapData, mapId) => mapData[mapId].name
 )
 
 export const selectDefaultViewportFunc = createSelector(

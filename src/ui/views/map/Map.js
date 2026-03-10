@@ -1,8 +1,8 @@
 import { Box, Typography, IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MdDownloading, MdEdit, MdCheck, MdClose } from 'react-icons/md'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { MdOutlineCancel, MdDownloading, MdDragIndicator } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
@@ -21,7 +21,9 @@ import {
   selectViewportsByMap,
   selectAllNodeIcons,
   selectMapboxToken,
-  selectMapData,
+  selectMapName,
+  selectMapNamesDraggable,
+  selectVirtualKeyboardValue,
 } from '../../../data/selectors'
 import {
   DARK_GLOBE_FOG,
@@ -44,9 +46,133 @@ import { fetchIcon } from '../../../utils'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
+const styles = {
+  dragRoot: {
+    display: 'flex',
+    alignItems: 'center',
+    px: 1,
+    py: 0.5,
+    bgcolor: 'rgb(0 0 0 / .7)',
+    // border: '1px outset rgb(128 128 128)',
+    borderRadius: 1,
+    cursor: 'auto',
+  },
+  dragDefaultPosition: {
+    x: 8,
+    y: 8,
+  },
+  dragHandle: {
+    color: '#90caf9',
+    cursor: 'move',
+  },
+  mapNameInput: {
+    width: 'fit-content',
+    mr: 0.5,
+  },
+  mapName: {
+    mr: 1,
+    color: 'text.primary',
+    cursor: 'text',
+  },
+}
+
+const MapNameDraggable = memo(({ mapId }) => {
+  const [isEditing, setIsEditing] = useState(false)
+
+  const draggable = useSelector(selectMapNamesDraggable)
+  const keyboardValue = useSelector(selectVirtualKeyboardValue)
+  const mapName = useSelector((state) => selectMapName(state, mapId))
+
+  const handleSaveName = useMutateStateWithSync(
+    (newName) => ({
+      path: ['maps', 'data', mapId, 'name'],
+      value: newName,
+    }),
+    [mapId]
+  )
+
+  const handleClickName = useCallback(() => {
+    setIsEditing(true)
+  }, [])
+
+  const handleClickCancel = useCallback(() => {
+    setIsEditing(false)
+  }, [])
+
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Enter') {
+        handleSaveName(keyboardValue)
+        setIsEditing(false)
+      }
+      if (e.key === 'Escape') {
+        handleClickCancel()
+      }
+    },
+    [handleClickCancel, handleSaveName, keyboardValue]
+  )
+
+  const handleClickAway = useCallback(
+    (newValue) => {
+      handleSaveName(newValue)
+      setIsEditing(false)
+    },
+    [handleSaveName]
+  )
+
+  const rootStyle = useMemo(
+    () => [styles.dragRoot, isEditing && { border: 'none', p: 0.5 }],
+    [isEditing]
+  )
+
+  const dragPosition = useMemo(
+    () => draggable.position ?? styles.dragDefaultPosition,
+    [draggable.position]
+  )
+
+  return (
+    <Draggable
+      component={Box}
+      hideCloseButton={draggable.hideCloseButton ?? true}
+      position={dragPosition}
+      handle="svg"
+      sx={rootStyle}
+    >
+      {isEditing ? (
+        <>
+          <TextInput
+            autoFocus
+            fullWidth={false}
+            forceClickAwayOnBlur
+            size="small"
+            sx={styles.mapNameInput}
+            value={mapName}
+            onKeyDown={handleKeyDown}
+            onClickAway={handleClickAway}
+          />
+
+          <IconButton size="small" onClick={handleClickCancel}>
+            <MdOutlineCancel />
+          </IconButton>
+        </>
+      ) : (
+        <>
+          <Typography
+            variant="subtitle1"
+            sx={styles.mapName}
+            onClick={handleClickName}
+          >
+            {mapName || mapId}
+          </Typography>
+          <MdDragIndicator size={20} style={styles.dragHandle} />
+        </>
+      )}
+    </Draggable>
+  )
+})
+
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
-  const [isEditing, setIsEditing] = useState(false)
   const mapRef = useRef(null)
   const highlight = useRef(null)
   const containerRef = useRef(null)
@@ -61,23 +187,9 @@ const Map = ({ mapId }) => {
   const demoSettings = useSelector(selectDemoSettings)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
-  const mapData = useSelector(selectMapData)[mapId]
-  const mapName = mapData?.name || mapId
-  const [tempName, setTempName] = useState(mapName)
+  const draggable = useSelector(selectMapNamesDraggable)
 
   const [currentViewport, setCurrentViewport] = useState(viewport)
-
-  const handleSaveName = useMutateStateWithSync(
-    (newName) => ({
-      path: ['maps', 'data', mapId, 'name'],
-      value: newName,
-    }),
-    [mapId]
-  )
-
-  useEffect(() => {
-    setTempName(mapName)
-  }, [mapName])
 
   const arcData = useMemo(
     () => R.pipe(groupedEnabledArcsFunc, R.propOr({}, 'geoJson'))(mapId),
@@ -410,82 +522,7 @@ const Map = ({ mapId }) => {
       }}
     >
       <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
-        <Draggable
-          component={Box}
-          hideCloseButton
-          position={{ x: 10, y: 10 }}
-          cancel=".MuiButtonBase-root, .MuiInputBase-root"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            borderRadius: '4px',
-            padding: '4px 8px',
-            color: 'white',
-            border: 'none',
-          }}
-        >
-          {isEditing ? (
-            <>
-              <TextInput
-                controlled
-                size="small"
-                value={tempName}
-                onChange={setTempName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveName(tempName)
-                    setIsEditing(false)
-                  }
-                  if (e.key === 'Escape') {
-                    setTempName(mapName)
-                    setIsEditing(false)
-                  }
-                }}
-                variant="standard"
-                fullWidth={false}
-                sx={{
-                  input: { color: 'white' },
-                  width: '200px',
-                }}
-                autoFocus
-              />
-              <IconButton
-                size="small"
-                onClick={() => {
-                  handleSaveName(tempName)
-                  setIsEditing(false)
-                }}
-                sx={{ color: 'white' }}
-              >
-                <MdCheck />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={() => {
-                  setTempName(mapName)
-                  setIsEditing(false)
-                }}
-                sx={{ color: 'white' }}
-              >
-                <MdClose />
-              </IconButton>
-            </>
-          ) : (
-            <>
-              <Typography variant="subtitle1" sx={{ mr: 1 }}>
-                {mapName}
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={() => setIsEditing(true)}
-                sx={{ color: 'white' }}
-              >
-                <MdEdit />
-              </IconButton>
-            </>
-          )}
-        </Draggable>
+        {draggable.open && <MapNameDraggable {...{ mapId }} />}
         <MapControls {...{ mapId }} />
         <ReactMapGl
           ref={mapRef}
