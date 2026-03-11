@@ -25,7 +25,6 @@ import { useSelector } from 'react-redux'
 
 import {
   GroupCalcSelector,
-  RippleBox,
   ScaleSelector,
   useGradient,
   WithEditBadge,
@@ -36,6 +35,7 @@ import { propId, scaleId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 import { getScaledValueAlt } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
+import RippleBox from '../../compound/RippleBox'
 
 import { NumberInput, OverflowText, Select, TextInput } from '../../compound'
 

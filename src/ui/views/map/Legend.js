@@ -3,7 +3,6 @@ import {
   Badge,
   Box,
   Button,
-  ButtonBase,
   ClickAwayListener,
   Divider,
   FormControlLabel,
@@ -78,6 +77,7 @@ import {
   scaleIndexedOptions,
 } from '../../../utils/scales'
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
+import RippleBox from '../../compound/RippleBox'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 
 import { FetchedIcon, NumberInput, Select } from '../../compound'
@@ -133,10 +133,6 @@ const styles = {
     overflow: 'auto',
     zIndex: 2,
   },
-  getRippleBox: (selected) => ({
-    border: `1px ${selected ? 'inset' : 'outset'} rgb(128 128 128)`,
-    borderRadius: 1,
-  }),
 }
 
 export const useLegendDetails = ({
@@ -632,15 +628,6 @@ const FormSwitch = ({
       />
     }
     labelPlacement="end"
-  />
-)
-
-// TODO: Move this to some `legendUtils.js` module
-export const RippleBox = ({ selected, sx = [], ...props }) => (
-  <ButtonBase
-    component="div"
-    sx={[styles.getRippleBox(selected), ...forceArray(sx)]}
-    {...props}
   />
 )
 
