@@ -17,7 +17,7 @@ import {
   selectDemoSettings,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
-import Draggables from './ui/views/common/Draggables'
+import Draggables from './ui/draggables/Draggables'
 import Loader from './ui/views/common/Loader'
 import { AppModal } from './ui/views/common/Modal'
 import renderAppPane from './ui/views/common/Pane'

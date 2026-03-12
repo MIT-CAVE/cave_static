@@ -38,8 +38,8 @@ const styles = {
   },
   slider: {
     mt: 4,
-    ml: 2,
-    width: 'calc(100% - 16px - 40px)',
+    ml: 3,
+    width: 'calc(100% - 48px)',
   },
   animControls: {
     display: 'flex',
