@@ -1,6 +1,20 @@
 // eslint-disable-next-line import/no-unresolved
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv, transformWithEsbuild } from 'vite'
+// eslint-disable-next-line import/no-unresolved
+import { defineConfig, loadEnv, transformWithOxc } from 'vite'
+
+const jsxInJs = () => ({
+  name: 'transform-jsx-in-js',
+  enforce: 'pre',
+  async transform(code, id) {
+    if (!id.match(/src\/.*\.js$/)) return null
+
+    return await transformWithOxc(code, id, {
+      lang: 'jsx',
+      target: 'es2022',
+    })
+  },
+})
 
 // https://vite.dev/config/
 export default defineConfig(({ mode, isPreview }) => {
@@ -20,26 +34,15 @@ export default defineConfig(({ mode, isPreview }) => {
   }
 
   return {
-    plugins: [
-      {
-        name: 'treat-js-files-as-jsx',
-        async transform(code, id) {
-          if (!id.match(/src\/.*\.js$/)) return null
-
-          // Use the exposed transform from vite, instead of directly
-          // transforming with esbuild
-          return transformWithEsbuild(code, id, {
-            loader: 'jsx',
-            jsx: 'automatic',
-          })
-        },
-      },
-      react(),
-    ],
+    plugins: [jsxInJs(), react()],
+    legacy: {
+      // See: https://vite.dev/guide/migration#consistent-commonjs-interop
+      inconsistentCjsInterop: true,
+    },
     optimizeDeps: {
       force: true,
-      esbuildOptions: {
-        loader: {
+      rolldownOptions: {
+        moduleTypes: {
           '.js': 'jsx',
         },
       },
