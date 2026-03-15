@@ -233,7 +233,12 @@ const TimeControl = () => {
           title={`Advance time by one ${timeUnits}`}
           placement="bottom"
           disabled={currentTime === timeLength - 1}
-          onClick={advanceAnimation}
+          onClick={() => {
+            const newTime = currentTime + 1
+            if (newTime < timeLength) {
+              dispatch(timeSelection(newTime))
+            }
+          }}
         >
           <MdNavigateNext />
         </TimeButton>
