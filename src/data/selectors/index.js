@@ -134,6 +134,10 @@ export const selectLocalSettings = createSelector(selectLocal, (data) =>
 export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
   R.prop('currentTime')(data)
 )
+export const selectCurrentTimeContinuous = createSelector(
+  selectLocalSettings,
+  (data) => R.prop('currentTimeContinuous')(data)
+)
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
 )

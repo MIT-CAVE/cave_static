@@ -29,6 +29,7 @@ import {
   selectFeatureData,
   selectAnimationInterval,
   selectCurrentTimeLength,
+  selectCurrentTimeContinuous,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -222,12 +223,11 @@ export const Nodes = memo(() => {
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const featureData = useSelector(selectFeatureData)
   const duration = useSelector(selectCurrentTimeLength)
+  const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
   const animationInterval = useSelector(selectAnimationInterval)
   const animation = R.is(Number, animationInterval)
 
   const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
-  const startTime = useRef(null)
-  const pausedTime = useRef(null)
   const currentLowerControlPoint = useRef(
     R.zipObj(
       [...Array(nodeGeoJson?.length || 0).keys()],
@@ -314,16 +314,10 @@ export const Nodes = memo(() => {
   const moveCoordinates = useCallback(
     (idx) => {
       if (R.equals([null], definedNodeTimes[idx])) {
-        return [longitudes[idx][0], latitudes[idx][0]]
+        return nodeGeoJson[idx].geometry.coordinates
+        //return [longitudes[idx][0], latitudes[idx][0]]
       }
       const definedNodeTime = definedNodeTimes[idx]
-      if (pausedTime.current !== null) {
-        startTime.current += performance.now() - pausedTime.current
-        pausedTime.current = null
-      }
-      const currentTime =
-        (performance.now() - startTime.current) % (duration * 1000)
-      const currentTimeInSeconds = currentTime / 1000
 
       if (idx in visibilityInfo.visibilities) {
         if (currentTimeInSeconds > visibilityInfo.nextToggleTimes[idx]) {
@@ -369,8 +363,8 @@ export const Nodes = memo(() => {
           ? visibilityInfo.visibilities[idx]
           : true
 
-      if (currentTime > Math.max(...definedNodeTime) * 1000) {
-        if (currentTime < duration * 1000) {
+      if (currentTimeInSeconds > Math.max(...definedNodeTime)) {
+        if (currentTimeInSeconds < duration) {
           if (visible) {
             return [
               longitudes[idx][longitudes[idx].length - 1],
@@ -380,7 +374,7 @@ export const Nodes = memo(() => {
             return []
           }
         }
-        startTime.current = performance.now()
+        //startTime.current = performance.now()
         for (const idx in currentLowerControlPoint.current) {
           currentLowerControlPoint.current[idx] = 0
         }
@@ -418,20 +412,19 @@ export const Nodes = memo(() => {
     },
     [
       definedNodeTimes,
-      duration,
-      latitudes,
-      longitudes,
-      visibilityInfo.nextToggleTimes,
+      currentTimeInSeconds,
       visibilityInfo.visibilities,
+      visibilityInfo.nextToggleTimes,
       visibilityInfo.visibilityTimes,
+      longitudes,
+      latitudes,
+      nodeGeoJson,
+      duration,
     ]
   )
 
   useEffect(() => {
     if (animation) {
-      if (startTime.current === null) {
-        startTime.current = performance.now()
-      }
       const requestId = window.requestAnimationFrame(() => {
         setAnimatedNodeGeoJson(
           nodeGeoJson.map((f, i) =>
@@ -440,12 +433,6 @@ export const Nodes = memo(() => {
         )
       })
       return () => window.cancelAnimationFrame(requestId)
-    } else if (
-      !animation &&
-      pausedTime.current === null &&
-      startTime.current !== null
-    ) {
-      pausedTime.current = performance.now()
     }
   })
 
