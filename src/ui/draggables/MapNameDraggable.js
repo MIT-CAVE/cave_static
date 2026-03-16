@@ -14,7 +14,6 @@ const styles = {
   dragRoot: {
     display: 'flex',
     alignItems: 'center',
-    pl: 1,
     py: 0.5,
     bgcolor: 'rgb(0 0 0 / .7)',
     // border: '1px outset rgb(128 128 128)',
@@ -81,8 +80,12 @@ const MapNameDraggable = ({ mapId }) => {
   )
 
   const rootStyle = useMemo(
-    () => [styles.dragRoot, isEditing && { border: 'none', p: 0.5 }],
-    [isEditing]
+    () => [
+      styles.dragRoot,
+      isEditing && { border: 'none', p: 0.5 },
+      draggable.showDragHandle && !isEditing && { pl: 1 },
+    ],
+    [draggable.showDragHandle, isEditing]
   )
 
   const dragPosition = useMemo(
