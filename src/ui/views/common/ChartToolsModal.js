@@ -5,7 +5,13 @@ import { useSelector } from 'react-redux'
 
 import { DataGridModal } from './BaseModal'
 
-import { selectChartById, selectCurrentPage } from '../../../data/selectors'
+import {
+  selectAnyGlobalOutputData,
+  selectAnyGroupedOutputData,
+  selectAnyMapData,
+  selectChartById,
+  selectCurrentPage,
+} from '../../../data/selectors'
 import { CHART_DEFAULTS } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import GlobalOutputsToolbar from '../dashboard/GlobalOutputsToolbar'
@@ -35,27 +41,40 @@ const styles = {
 const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
   const currentPage = useSelector(selectCurrentPage)
   const chartObj = useSelector((state) => selectChartById(state, index))
+  const anyGlobalOutputData = useSelector(selectAnyGlobalOutputData)
+  const anyMapData = useSelector(selectAnyMapData)
+  const anyGroupedOutputData = useSelector(selectAnyGroupedOutputData)
 
   const vizType = chartObj?.type ?? 'groupedOutput'
   const vizTypeOptions = useMemo(
-    () => [
-      {
-        label: 'Grouped Outputs',
-        value: 'groupedOutput',
-        iconName: 'md/MdMultilineChart',
-      },
-      {
-        label: 'Global Outputs',
-        value: 'globalOutput',
-        iconName: 'md/MdSpeed',
-      },
-      {
-        label: 'Maps',
-        value: 'map',
-        iconName: 'fa/FaMapMarked',
-      },
-    ],
-    []
+    () =>
+      R.pipe(
+        R.when(
+          R.always(anyGroupedOutputData),
+          R.append({
+            label: 'Grouped Outputs',
+            value: 'groupedOutput',
+            iconName: 'md/MdMultilineChart',
+          })
+        ),
+        R.when(
+          R.always(anyGlobalOutputData),
+          R.append({
+            label: 'Global Outputs',
+            value: 'globalOutput',
+            iconName: 'md/MdSpeed',
+          })
+        ),
+        R.when(
+          R.always(anyMapData),
+          R.append({
+            label: 'Maps',
+            value: 'map',
+            iconName: 'fa/FaMapMarked',
+          })
+        )
+      )([]),
+    [anyGlobalOutputData, anyGroupedOutputData, anyMapData]
   )
   const handleSelectVizType = useMutateStateWithSync(
     (value) => ({

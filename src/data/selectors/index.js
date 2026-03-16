@@ -308,6 +308,10 @@ export const selectGroupedOutputsData = createSelector(
   selectOrderedGroupedOutputs,
   (data) => R.propOr({}, 'data')(data)
 )
+export const selectAnyGroupedOutputData = createSelector(
+  selectGroupedOutputsData,
+  R.isNotEmpty
+)
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
   R.prop('layout')
@@ -731,6 +735,10 @@ const selectMergedMapData = createSelector(
   [selectMapData, selectLocalMapData],
   (data, localData) => R.mergeDeepLeft(localData)(data)
 )
+export const selectAnyMapData = createSelector(
+  selectMergedMapData,
+  R.isNotEmpty
+)
 const selectCurrentMergedMapDataByMap = createSelector(
   selectMergedMapData,
   (data) => {
@@ -883,6 +891,10 @@ export const selectMergedGlobalOutputs = createSelector(
   [selectGlobalOutputs, selectLocalGlobalOutputs],
   (globalOutputsData, localGlobalOutputs) =>
     R.mergeDeepLeft(localGlobalOutputs)(globalOutputsData)
+)
+export const selectAnyGlobalOutputData = createSelector(
+  selectMergedGlobalOutputs,
+  R.isNotEmpty
 )
 export const selectGlobalOutputProps = createSelector(
   selectMergedGlobalOutputs,
