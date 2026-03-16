@@ -1,6 +1,6 @@
 import { ButtonGroup, CardContent } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import { Draggable, DragHandle, useDraggable } from '.'
@@ -63,4 +63,4 @@ const SessionDraggable = () => {
   )
 }
 
-export default memo(SessionDraggable)
+export default SessionDraggable

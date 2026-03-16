@@ -1,4 +1,4 @@
-import { useEffect, useState, memo, useContext, useMemo } from 'react'
+import { useEffect, useState, useContext, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -98,7 +98,7 @@ const useMapFeature = () => {
   }
 }
 
-export const Geos = memo(() => {
+export const Geos = () => {
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
 
@@ -171,9 +171,9 @@ export const Geos = memo(() => {
       />
     </Source>,
   ]
-})
+}
 
-export const IncludedGeos = memo(() => {
+export const IncludedGeos = () => {
   const { mapId } = useContext(MapContext)
   const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
   const { Layer, Source } = useMapApi(mapId)
@@ -199,9 +199,9 @@ export const IncludedGeos = memo(() => {
       />
     </Source>
   )
-})
+}
 
-export const Nodes = memo(() => {
+export const Nodes = () => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
@@ -238,9 +238,9 @@ export const Nodes = memo(() => {
       />
     </Source>,
   ]
-})
+}
 
-export const Arcs = memo(() => {
+export const Arcs = () => {
   const { Layer, Source, mapId, arcProps, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
@@ -269,9 +269,9 @@ export const Arcs = memo(() => {
       />
     </Source>,
   ]
-})
+}
 
-export const Arcs3D = memo(() => {
+export const Arcs3D = () => {
   const { mapId, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
   return (
@@ -280,4 +280,4 @@ export const Arcs3D = memo(() => {
       onClick={createHandleClick('arcs')}
     />
   )
-})
+}

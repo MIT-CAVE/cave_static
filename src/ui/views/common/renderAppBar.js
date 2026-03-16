@@ -1,7 +1,7 @@
 import '../../../App.css'
 import { ClickAwayListener, Box } from '@mui/material'
 import * as R from 'ramda'
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import AppBar from './AppBar'

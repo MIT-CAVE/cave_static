@@ -9,7 +9,7 @@ import {
   Box,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useContext, useMemo } from 'react'
+import { useCallback, useContext, useMemo } from 'react'
 import { MdGpsFixed, MdMap } from 'react-icons/md'
 import { PiPerspective } from 'react-icons/pi'
 import { useSelector, useDispatch } from 'react-redux'
@@ -224,4 +224,4 @@ const MapModal = () => {
   ) : null
 }
 
-export default memo(MapModal)
+export default MapModal

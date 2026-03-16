@@ -13,8 +13,8 @@ import { store } from './utils/store'
 import websocket from './utils/websockets'
 
 // The following should only run once when the app starts; Otherwise,
-// mount/unmount issues in React 18 arise when wrapped in a useEffect.
-// https://beta.reactjs.org/learn/synchronizing-with-effects#not-an-effect-initializing-the-application
+// mount/unmount issues arise when wrapped in a useEffect.
+// https://react.dev/learn/synchronizing-with-effects#not-an-effect-initializing-the-application
 if (typeof window !== 'undefined') {
   const { dispatch } = store
   if (!window.crossOriginIsolated) {

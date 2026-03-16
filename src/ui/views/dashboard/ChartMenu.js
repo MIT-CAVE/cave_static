@@ -146,11 +146,9 @@ const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
   </MenuItem>
 )
 
-const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
+const BaseMenuItem = ({ ReactIcon, label, onClick }) => (
   <MenuItem {...{ onClick }}>
-    <Badge {...badgeProps} sx={{ mr: 2 }}>
-      <ReactIcon size={20} />
-    </Badge>
+    <ReactIcon size={20} style={{ marginRight: '16px' }} />
     {label}
   </MenuItem>
 )

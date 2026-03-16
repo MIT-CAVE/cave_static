@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
-import React, {
+import {
   useCallback,
   useState,
   useRef,

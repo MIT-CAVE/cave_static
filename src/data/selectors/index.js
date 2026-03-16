@@ -1064,7 +1064,7 @@ export const selectLockMapProjectionFunc = createSelector(
   }
 )
 
-export const selectIsGlobeNotMemoized = createSelector(
+const selectIsGlobeNotMemoized = createSelector(
   [selectViewportsByMap, selectCurrentMapProjectionFunc],
   (viewportsByMap, currentMapProjectionFunc) =>
     R.pipe(
@@ -1080,12 +1080,9 @@ export const selectIsGlobeNotMemoized = createSelector(
     memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) => {
-        // token
-        if (typeof a === 'string') return R.equals(a, b)
         // dataObj
-        const getProjection = R.prop('currentProjection')
-        if (getProjection(a) !== undefined)
-          return R.equals(getProjection(a), getProjection(b))
+        if (R.has('currentProjection')(a))
+          return a.currentProjection === b.currentProjection
         // viewportsByMap
         const getZoomLevels = R.map((data) => R.prop('zoom', data) < 6)
         return R.equals(getZoomLevels(a), getZoomLevels(b))
@@ -1783,7 +1780,7 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
               ),
             resolvedStats
           )
-          console.log('mergedValues', mergedValues)
+          // console.log('mergedValues', mergedValues)
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])

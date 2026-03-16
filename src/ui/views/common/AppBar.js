@@ -1,6 +1,6 @@
 import { Box, Divider, IconButton, Tab, Tabs } from '@mui/material'
 import * as R from 'ramda'
-import React, { useCallback, useRef, useState, useEffect } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'

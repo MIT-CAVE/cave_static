@@ -75,6 +75,7 @@ const baseOptions = {
     type: 'category',
     nameLocation: 'middle',
     nameGap: 40,
+    // nameMoveOverlap: false,
     nameTextStyle: {
       fontSize: 20,
     },
@@ -95,7 +96,6 @@ const baseOptions = {
   yAxis: {
     type: 'value',
     nameLocation: 'middle',
-    nameGap: 45,
     nameTextStyle: {
       fontSize: 20,
     },

@@ -14,6 +14,65 @@ import {
   setLastKeyPress,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
+const styles = {
+  '& .react-simple-keyboard': {
+    '--gray-1': (theme) => theme.palette.grey[600],
+    '--gray-2': (theme) => theme.palette.grey[700], // theme.palette.background.paper,
+    '--gray-3': (theme) => theme.palette.grey[800],
+    backgroundColor: 'var(--gray-2)',
+    height: '100%',
+  },
+  '& .react-simple-keyboard .hg-rows': {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: '100%',
+  },
+  '& .react-simple-keyboard .hg-row': {
+    flex: 1,
+  },
+  '& .react-simple-keyboard .hg-button': {
+    color: 'text.primary',
+    backgroundColor: 'var(--gray-1)',
+    height: '100%',
+    fontSize: '1.25rem',
+    padding: 0,
+    boxShadow: (theme) => theme.shadows[12],
+  },
+  '& .react-simple-keyboard .hg-button.bigger-keys': {
+    flex: 3,
+  },
+  '& .react-simple-keyboard .hg-button.medium-keys, & .react-simple-keyboard .hg-button-container':
+    {
+      flex: 2,
+    },
+  '& .react-simple-keyboard .hg-button.smaller-keys, & .react-simple-keyboard.hg-layout-numpad .hg-button':
+    {
+      flex: 1,
+    },
+  '& .react-simple-keyboard .hg-button.highlight': {
+    backgroundColor: 'var(--gray-2)',
+    color: '#0f0',
+    // fontWeight: 800,
+  },
+  '& .react-simple-keyboard .hg-button.highlight:hover': {
+    backgroundColor: 'var(--gray-1)',
+  },
+  '& .react-simple-keyboard .hg-button:hover': {
+    cursor: 'pointer',
+    backgroundColor: 'var(--gray-2)',
+  },
+  '& .react-simple-keyboard .hg-button.drag:hover': {
+    cursor: 'grab',
+  },
+  '& .react-simple-keyboard .hg-button.drag:active': {
+    cursor: 'grabbing',
+  },
+  '& .react-simple-keyboard .hg-button:active': {
+    backgroundColor: 'var(--gray-3)',
+  },
+}
+
 const Resizable = ({
   position,
   setPosition,
@@ -547,62 +606,3 @@ const VirtualKeyboard = () => {
 }
 
 export default VirtualKeyboard
-
-const styles = {
-  '& .react-simple-keyboard': {
-    '--gray-1': (theme) => theme.palette.grey[600],
-    '--gray-2': (theme) => theme.palette.grey[700], // theme.palette.background.paper,
-    '--gray-3': (theme) => theme.palette.grey[800],
-    backgroundColor: 'var(--gray-2)',
-    height: '100%',
-  },
-  '& .react-simple-keyboard .hg-rows': {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    height: '100%',
-  },
-  '& .react-simple-keyboard .hg-row': {
-    flex: 1,
-  },
-  '& .react-simple-keyboard .hg-button': {
-    color: 'text.primary',
-    backgroundColor: 'var(--gray-1)',
-    height: '100%',
-    fontSize: '1.25rem',
-    padding: 0,
-    boxShadow: (theme) => theme.shadows[12],
-  },
-  '& .react-simple-keyboard .hg-button.bigger-keys': {
-    flex: 3,
-  },
-  '& .react-simple-keyboard .hg-button.medium-keys, & .react-simple-keyboard .hg-button-container':
-    {
-      flex: 2,
-    },
-  '& .react-simple-keyboard .hg-button.smaller-keys, & .react-simple-keyboard.hg-layout-numpad .hg-button':
-    {
-      flex: 1,
-    },
-  '& .react-simple-keyboard .hg-button.highlight': {
-    backgroundColor: 'var(--gray-2)',
-    color: '#0f0',
-    // fontWeight: 800,
-  },
-  '& .react-simple-keyboard .hg-button.highlight:hover': {
-    backgroundColor: 'var(--gray-1)',
-  },
-  '& .react-simple-keyboard .hg-button:hover': {
-    cursor: 'pointer',
-    backgroundColor: 'var(--gray-2)',
-  },
-  '& .react-simple-keyboard .hg-button.drag:hover': {
-    cursor: 'grab',
-  },
-  '& .react-simple-keyboard .hg-button.drag:active': {
-    cursor: 'grabbing',
-  },
-  '& .react-simple-keyboard .hg-button:active': {
-    backgroundColor: 'var(--gray-3)',
-  },
-}

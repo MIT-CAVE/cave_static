@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useContext, useMemo } from 'react'
+import { useCallback, useContext, useMemo } from 'react'
 import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -622,4 +622,4 @@ const CompactLegend = () => {
   )
 }
 
-export default memo(CompactLegend)
+export default CompactLegend
