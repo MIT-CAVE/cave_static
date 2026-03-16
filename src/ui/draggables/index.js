@@ -118,7 +118,15 @@ export const Draggable = ({
   const nodeRef = useRef(null)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
-  const contentStyles = useMemo(() => [styles.root, ...forceArray(sx)], [sx])
+  const contentStyles = useMemo(
+    () => [
+      styles.root,
+      component.type === Paper && { elevation: 7 },
+      ...forceArray(slotProps.component?.sx),
+      ...forceArray(sx),
+    ],
+    [component.type, slotProps.component?.sx, sx]
+  )
   const showMenu = !hideMenu && !(hideDrag && hideClose)
 
   return (
@@ -130,8 +138,7 @@ export const Draggable = ({
     >
       <Box
         ref={nodeRef}
-        {...{ component }}
-        elevation={7} // Only if `component` is `Paper`
+        {...{ component, ...slotProps.component }}
         sx={contentStyles}
       >
         {children}
