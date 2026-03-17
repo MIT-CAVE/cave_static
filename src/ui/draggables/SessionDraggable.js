@@ -64,7 +64,6 @@ const SessionDraggable = () => {
 
   // Select session
   const onSessionChange = (event, newSession) => {
-    console.log({ newSession })
     dispatch(
       mutateLocal({
         path: [],
@@ -87,8 +86,6 @@ const SessionDraggable = () => {
     )
     setIsEditing(false)
   }
-
-  console.log({ sessionIdCurrent, sessions })
 
   return (
     <Draggable
