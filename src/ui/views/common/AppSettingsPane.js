@@ -19,6 +19,8 @@ import {
   toggleEditLayout,
 } from '../../../data/local/settingsSlice'
 import {
+  selectAnyGlobalOutputData,
+  selectAnyMapData,
   selectCurrentTimeLength,
   selectData,
   selectDemoMode,
@@ -273,6 +275,8 @@ const AppSettingsPane = () => {
   const apiData = useSelector(selectData)
   const timeLength = useSelector(selectCurrentTimeLength)
   const syncToggles = useSelector(selectSyncToggles)
+  const anyGlobalOutputData = useSelector(selectAnyGlobalOutputData)
+  const anyMapData = useSelector(selectAnyMapData)
   const sync = useSelector(selectSync)
 
   return (
@@ -287,14 +291,18 @@ const AppSettingsPane = () => {
         <FormControl component="fieldset">
           <FormGroup>
             <DraggableSwitch id={draggableId.SESSION} name="Current Session" />
-            <GlobalOutputsSwitch
-              id={draggableId.GLOBAL_OUTPUTS}
-              name="Global Outputs"
-            />
+            {anyGlobalOutputData && (
+              <GlobalOutputsSwitch
+                id={draggableId.GLOBAL_OUTPUTS}
+                name="Global Outputs"
+              />
+            )}
+            {anyMapData && (
+              <DraggableSwitch id={draggableId.MAP_NAMES} name="Map Names" />
+            )}
             {timeLength > 0 && (
               <DraggableSwitch id={draggableId.TIME} name="Time Control" />
             )}
-            <DraggableSwitch id={draggableId.MAP_NAMES} name="Map Names" />
           </FormGroup>
         </FormControl>
       </FieldContainer>
