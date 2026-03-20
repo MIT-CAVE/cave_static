@@ -20,7 +20,8 @@ import {
   timePause,
 } from '../../../data/local/settingsSlice'
 import {
-  selectCurrentTime,
+  //selectCurrentTime,
+  selectCurrentTimeContinuous,
   selectCurrentTimeLength,
   selectCurrentTimeUnits,
   selectAnimationInterval,
@@ -72,7 +73,9 @@ const TimeControl = () => {
   const playbackSpeed = useSelector(selectCurrentSpeed)
   const looping = useSelector(selectCurrentLooping)
 
-  const currentTime = useSelector(selectCurrentTime)
+  const currentTimeContinuous = useSelector(selectCurrentTimeContinuous)
+  //const currentTime = useSelector(selectCurrentTime)
+  const currentTime = Math.floor(currentTimeContinuous) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
   const animationInterval = useSelector(selectAnimationInterval)
@@ -110,7 +113,7 @@ const TimeControl = () => {
   }, [dispatch])
 
   useEffect(() => {
-    if (!looping && currentTime + 1 === timeLength) {
+    if (!looping && currentTime === timeLength) {
       clearInterval(animationInterval)
       if (continuousInterval.current) {
         clearInterval(continuousInterval.current)
@@ -151,7 +154,7 @@ const TimeControl = () => {
   )
 
   const handleClick = useCallback(() => {
-    const newTime = timeLength - 1
+    const newTime = timeLength
     if (newTime >= 0) {
       dispatch(timeSelection(newTime))
     }
@@ -168,11 +171,11 @@ const TimeControl = () => {
         valueLabelDisplay="on"
         marks
         max={timeLength}
-        min={1}
+        min={0}
         step={1}
-        value={currentTime + 1}
+        value={currentTime}
         onChange={(e, newValue) => {
-          dispatch(timeSelection(newValue - 1))
+          dispatch(timeSelection(newValue))
         }}
       />
       <Box sx={styles.animControls}>
@@ -232,7 +235,7 @@ const TimeControl = () => {
         <TimeButton
           title={`Advance time by one ${timeUnits}`}
           placement="bottom"
-          disabled={currentTime === timeLength - 1}
+          disabled={currentTime === timeLength}
           onClick={() => {
             const newTime = currentTime + 1
             if (newTime < timeLength) {
@@ -245,7 +248,7 @@ const TimeControl = () => {
         <TimeButton
           title="Go to end"
           placement="bottom"
-          disabled={currentTime === timeLength - 1}
+          disabled={currentTime === timeLength}
           onClick={handleClick}
         >
           <MdSkipNext />
