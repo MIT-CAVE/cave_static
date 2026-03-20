@@ -236,6 +236,10 @@ export const Nodes = memo(() => {
   )
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
+  useEffect(() => {
+    setAnimatedNodeGeoJson(nodeGeoJson)
+  }, [nodeGeoJson])
+
   const latitudes = useMemo(
     () =>
       R.pipe(
@@ -315,7 +319,6 @@ export const Nodes = memo(() => {
     (idx) => {
       if (R.equals([null], definedNodeTimes[idx])) {
         return nodeGeoJson[idx].geometry.coordinates
-        //return [longitudes[idx][0], latitudes[idx][0]]
       }
       const definedNodeTime = definedNodeTimes[idx]
 
@@ -374,7 +377,6 @@ export const Nodes = memo(() => {
             return []
           }
         }
-        //startTime.current = performance.now()
         for (const idx in currentLowerControlPoint.current) {
           currentLowerControlPoint.current[idx] = 0
         }
@@ -390,10 +392,12 @@ export const Nodes = memo(() => {
       if (!visible) {
         return []
       }
-      const lowerControlTime =
-        definedNodeTime[currentLowerControlPoint.current[idx]]
-      const upperControlTime =
-        definedNodeTime[currentLowerControlPoint.current[idx] + 1]
+      const lowerControlTime = R.last(
+        R.filter((t) => t <= currentTimeInSeconds, definedNodeTime)
+      )
+      const upperControlTime = R.head(
+        R.filter((t) => t > currentTimeInSeconds, definedNodeTime)
+      )
       const t =
         (currentTimeInSeconds - lowerControlTime) /
         (upperControlTime - lowerControlTime)

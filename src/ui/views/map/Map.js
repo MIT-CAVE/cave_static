@@ -34,8 +34,6 @@ import {
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { getSvgMarkup } from '../../../utils/svgBuilder'
-// import Draggable from '../../compound/Draggable'
-// import TimeControl from '../common/TimeControl'
 
 import { fetchIcon } from '../../../utils'
 
