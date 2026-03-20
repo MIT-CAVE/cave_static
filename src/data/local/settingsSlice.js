@@ -17,14 +17,16 @@ export const settingsSlice = createSlice({
   reducers: {
     timeSelection: (state, action) => {
       state.currentTime = action.payload
-      const diff = state.currentTimeContinuous - action.payload
-      state.startTime += diff
       state.currentTimeContinuous = action.payload
+      state.startTime = performance.now() / 1000 - action.payload
+      if (state.pausedTime !== null) {
+        state.pausedTime = performance.now() / 1000
+      }
     },
     // action.payload should be the timeLength
     timeAdvance: (state, action) => {
       state.currentTime =
-        state.currentTime + 1 === action.payload ? 0 : state.currentTime + 1
+        state.currentTime + 1 > action.payload ? 0 : state.currentTime + 1
     },
     timeSetStart: (state) => {
       if (state.startTime === null) {
