@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
 
-import NumberInput from './NumberInput'
-
 import { selectNumberFormatPropsFn } from '../../data/selectors'
+import NumberField from '../prototypes/NumberField'
 
 import { forceArray } from '../../utils'
 
 const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
+  const [value, setValue] = useState(currentVal ?? prop.value)
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const {
     enabled,
@@ -18,24 +18,37 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
     placeholder,
     label,
     fullWidth,
+    spinner,
     propStyle,
     slotProps,
   } = prop
+
+  const handleChange = (event, newValue) => {
+    setValue(newValue)
+  }
+
+  const handleChangeCommitted = (event, newValue) => {
+    onChange(newValue)
+  }
+
   return (
-    <NumberInput
+    <NumberField
       disabled={!enabled}
-      {...{ readOnly, placeholder, label, slotProps, fullWidth }}
+      {...{
+        readOnly,
+        placeholder,
+        label,
+        slotProps,
+        fullWidth,
+        value,
+        spinner,
+      }}
       sx={[...forceArray(sx), ...forceArray(propStyle)]}
       min={minValue}
       max={maxValue}
-      value={R.pipe(
-        R.defaultTo(prop.value),
-        R.clamp(minValue, maxValue)
-      )(currentVal)}
       numberFormat={numberFormatProps}
-      onClickAway={(value) => {
-        if (enabled) onChange(value)
-      }}
+      onChange={handleChange}
+      onChangeCommitted={handleChangeCommitted}
     />
   )
 }
