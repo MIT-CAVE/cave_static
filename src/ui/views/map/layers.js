@@ -5,7 +5,6 @@ import {
   memo,
   useContext,
   useMemo,
-  useRef,
   useCallback,
 } from 'react'
 import { useSelector } from 'react-redux'
@@ -27,7 +26,6 @@ import {
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
   selectFeatureData,
-  selectAnimationInterval,
   selectCurrentTimeLength,
   selectCurrentTimeContinuous,
 } from '../../../data/selectors'
@@ -224,21 +222,15 @@ export const Nodes = memo(() => {
   const featureData = useSelector(selectFeatureData)
   const duration = useSelector(selectCurrentTimeLength)
   const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
-  const animationInterval = useSelector(selectAnimationInterval)
-  const animation = R.is(Number, animationInterval)
 
-  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
-  const currentLowerControlPoint = useRef(
-    R.zipObj(
-      [...Array(nodeGeoJson?.length || 0).keys()],
-      R.repeat(0, nodeGeoJson?.length || 0)
-    )
-  )
+  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState([])
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   useEffect(() => {
-    setAnimatedNodeGeoJson(nodeGeoJson)
-  }, [nodeGeoJson])
+    if (animatedNodeGeoJson.length === 0) {
+      setAnimatedNodeGeoJson(nodeGeoJson)
+    }
+  }, [nodeGeoJson, animatedNodeGeoJson.length])
 
   const latitudes = useMemo(
     () =>
@@ -366,8 +358,10 @@ export const Nodes = memo(() => {
           ? visibilityInfo.visibilities[idx]
           : true
 
-      if (currentTimeInSeconds > Math.max(...definedNodeTime)) {
-        if (currentTimeInSeconds < duration) {
+      // console.log(currentTimeInSeconds)
+
+      if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
+        if (currentTimeInSeconds <= duration) {
           if (visible) {
             return [
               longitudes[idx][longitudes[idx].length - 1],
@@ -377,16 +371,6 @@ export const Nodes = memo(() => {
             return []
           }
         }
-        for (const idx in currentLowerControlPoint.current) {
-          currentLowerControlPoint.current[idx] = 0
-        }
-      }
-
-      if (
-        currentTimeInSeconds >
-        definedNodeTime[currentLowerControlPoint.current[idx] + 1]
-      ) {
-        currentLowerControlPoint.current[idx] += 1
       }
 
       if (!visible) {
@@ -428,17 +412,15 @@ export const Nodes = memo(() => {
   )
 
   useEffect(() => {
-    if (animation) {
-      const requestId = window.requestAnimationFrame(() => {
-        setAnimatedNodeGeoJson(
-          nodeGeoJson.map((f, i) =>
-            R.assocPath(['geometry', 'coordinates'], moveCoordinates(i), f)
-          )
+    const requestId = window.requestAnimationFrame(() => {
+      setAnimatedNodeGeoJson(
+        nodeGeoJson.map((f, i) =>
+          R.assocPath(['geometry', 'coordinates'], moveCoordinates(i), f)
         )
-      })
-      return () => window.cancelAnimationFrame(requestId)
-    }
-  })
+      )
+    })
+    return () => window.cancelAnimationFrame(requestId)
+  }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])
 
   return [
     <NodesWithHeight
