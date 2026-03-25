@@ -358,18 +358,14 @@ export const Nodes = memo(() => {
           ? visibilityInfo.visibilities[idx]
           : true
 
-      // console.log(currentTimeInSeconds)
-
       if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
-        if (currentTimeInSeconds <= duration) {
-          if (visible) {
-            return [
-              longitudes[idx][longitudes[idx].length - 1],
-              latitudes[idx][latitudes[idx].length - 1],
-            ]
-          } else {
-            return []
-          }
+        if (visible) {
+          return [
+            longitudes[idx][longitudes[idx].length - 1],
+            latitudes[idx][latitudes[idx].length - 1],
+          ]
+        } else {
+          return []
         }
       }
 
