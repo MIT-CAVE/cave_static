@@ -29,13 +29,8 @@ export const settingsSlice = createSlice({
         state.currentTime + 1 > action.payload ? 0 : state.currentTime + 1
     },
     timeSetStart: (state) => {
-      if (state.startTime === null) {
-        state.startTime = performance.now() / 1000
-      }
-      if (state.pausedTime !== null) {
-        state.startTime += performance.now() / 1000 - state.pausedTime
-        state.pausedTime = null
-      }
+      state.startTime = performance.now() / 1000 - state.currentTimeContinuous
+      state.pausedTime = null
     },
     timeAdvanceContinuous: (state) => {
       state.currentTimeContinuous = performance.now() / 1000 - state.startTime
