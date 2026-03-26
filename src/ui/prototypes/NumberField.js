@@ -39,8 +39,8 @@ const NumberField = ({
   label,
   placeholder,
   value,
-  min,
-  max,
+  min = -Infinity,
+  max = Infinity,
   numberFormat: numberFormatRaw,
   color = 'default',
   helperText,
@@ -102,16 +102,11 @@ const NumberField = ({
             // they are rendered in the prop container
             // eslint-disable-next-line no-unused-vars
             const { unit, unitPlacement, ...numberFormat } = numberFormatRaw
-            const formattedValue = NumberFormat.format(
-              state.value,
-              numberFormat
-            )
-            const inputRef = props.ref
             return (
               <OutlinedInput
+                inputRef={props.ref}
                 {...{
                   id,
-                  inputRef,
                   label,
                   color,
                   placeholder,
@@ -128,8 +123,10 @@ const NumberField = ({
                   ...slotProps,
                   input: {
                     ...props,
-                    // Display the formatted value using our `NumberFormat.format` function
-                    value: state.focused ? state.value : formattedValue,
+                    value: state.focused
+                      ? state.value
+                      : // Show formatted value when input is blurred
+                        NumberFormat.format(state.value, numberFormat),
                     ...slotProps?.input,
                     sx: [
                       spinner === 'leftAndRight' && { textAlign: 'center' },
