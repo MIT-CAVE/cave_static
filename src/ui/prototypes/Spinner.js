@@ -1,6 +1,5 @@
 import { NumberField as BaseNumberField } from '@base-ui/react/number-field'
 import { IconButton, Stack } from '@mui/material'
-// import { useCallback, useEffect, useRef } from 'react'
 import {
   MdAdd,
   MdKeyboardArrowDown,
@@ -22,62 +21,6 @@ const styles = {
     borderRadius: 0.5,
   },
 }
-
-// const START_DELAY = 400
-// const TICK_DELAY = 75
-
-// const SpinnerButtonAlt = ({ onChange, onChangeCommitted, children }) => {
-//   const timeoutRef = useRef(null)
-//   const intervalRef = useRef(null)
-
-//   const handleStart = useCallback(
-//     (event) => {
-//       event.preventDefault()
-//       onChange(event)
-
-//       // let interval = 150 // Call this first when acceleration is implemented
-
-//       // Set a delay before continuous firing
-//       timeoutRef.current = setTimeout(() => {
-//         intervalRef.current = setInterval(() => {
-//           onChange(event)
-//         }, TICK_DELAY)
-
-//         // // TODO: Implement acceleration
-//         // intervalRef.current = setInterval(() => {
-//         //   onStep()
-//         //   interval = Math.max(MIN_ACCELERATION ?? 40, interval * 0.85)
-//         //   clearInterval(intervalRef.current)
-//         //   intervalRef.current = setInterval(onStep, interval)
-//         // }, interval)
-//       }, START_DELAY)
-//     },
-//     [onChange]
-//   )
-
-//   const handleStop = useCallback(() => {
-//     clearTimeout(timeoutRef.current)
-//     clearInterval(intervalRef.current)
-//     timeoutRef.current = null
-//     intervalRef.current = null
-//     onChangeCommitted()
-//   }, [onChangeCommitted])
-
-//   useEffect(() => {
-//     window.addEventListener('pointerup', handleStop)
-//     return () => window.removeEventListener('pointerup', handleStop)
-//   }, [handleStop])
-
-//   return (
-//     <IconButton
-//       onPointerDown={handleStart}
-//       onPointerUp={handleStop}
-//       onPointerLeave={handleStop}
-//     >
-//       {children}
-//     </IconButton>
-//   )
-// }
 
 export const SpinnerIncreaseButton = ({
   icon: SpinnerIcon = MdAdd,
