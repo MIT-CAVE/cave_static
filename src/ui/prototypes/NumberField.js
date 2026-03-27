@@ -39,6 +39,7 @@ const NumberField = ({
   label,
   placeholder,
   value,
+  defaultValue,
   min = -Infinity,
   max = Infinity,
   numberFormat: numberFormatRaw,
@@ -76,6 +77,7 @@ const NumberField = ({
     onChangeCommitted(event, clampedValue)
   }
 
+  const controlled = defaultValue === undefined
   return (
     <Field.Root
       {...{ name }}
@@ -83,6 +85,9 @@ const NumberField = ({
         <FormControl
           ref={props.ref}
           {...{ disabled, error, size, fullWidth, sx }}
+          // `focused` is required to apply color to the input.
+          // Otherwise, it remains uncolored when blurred
+          focused={color !== 'default'}
           variant="outlined"
         >
           {props.children}
@@ -90,12 +95,14 @@ const NumberField = ({
       )}
     >
       <BaseNumberField.Root
-        onValueChange={handleValueChange}
+        onValueChange={controlled ? handleValueChange : undefined}
         onValueCommitted={onChangeCommitted ? handleValueCommitted : undefined}
-        {...{ value, min, max, readOnly, ...rest }}
+        {...{ value, defaultValue, min, max, readOnly, ...rest }}
         style={{ width: fullWidth ? '100%' : 'auto' }}
       >
-        <InputLabel htmlFor={id}>{label}</InputLabel>
+        <InputLabel htmlFor={id} {...{ color }}>
+          {label}
+        </InputLabel>
         <BaseNumberField.Input
           render={(props, state) => {
             // Here, units are excluded from `format` as
