@@ -241,13 +241,14 @@ const NumericalColorLegend = ({
   valueRange,
   numberFormat,
   // anyNullValue, // TODO: Implement `fallback` UI
+  colorPicker,
   onAddColorAt,
-  onChangeColor,
   onChangeLabelAt,
   onRemoveColorAt,
   onChangeValueAt,
 }) => {
   const [editLabelAt, setEditLabelAt] = useState({})
+
   const { colors, values, rawValues, labels, dataIndices } = useMemo(
     () => parseGradient('color', numberFormat.precision)(valueRange),
     [numberFormat.precision, valueRange]
@@ -258,7 +259,7 @@ const NumericalColorLegend = ({
     handleOpen,
     handleChange,
     handleClose,
-  } = useColorPicker(onChangeColor)
+  } = colorPicker
 
   const {
     isStepScale,
@@ -475,19 +476,15 @@ const NumericalColorLegend = ({
   )
 }
 
-const CategoricalColorLegend = ({
-  type,
-  colorByProp,
-  anyNullValue,
-  onChangeColor,
-}) => {
+const CategoricalColorLegend = ({ colorByProp, colorPicker, anyNullValue }) => {
   const {
     colorPickerProps,
     showColorPicker,
     handleOpen,
     handleClose,
     handleChange: handleChangeRaw,
-  } = useColorPicker(onChangeColor)
+  } = colorPicker
+  const type = colorByProp.type
 
   const colorOptions = useMemo(() => {
     const { options, fallback } = colorByProp
@@ -623,6 +620,8 @@ const ColorLegend = ({
     [colorBy, onChangePropAttr, valueRange.gradient?.data]
   )
 
+  const colorPicker = useColorPicker(onChangeColor)
+
   return (
     <Paper
       elevation={3}
@@ -642,7 +641,8 @@ const ColorLegend = ({
             onSelect={onSelectProp(
               'colorBy',
               'groupCalcByColor',
-              groupCalcValue
+              groupCalcValue,
+              colorPicker.handleClose
             )}
           />
         </Grid>
@@ -656,8 +656,7 @@ const ColorLegend = ({
       </Grid>
       {isCategorical ? (
         <CategoricalColorLegend
-          type={colorByProp.type}
-          {...{ colorByProp, anyNullValue, onChangeColor }}
+          {...{ colorByProp, colorPicker, anyNullValue }}
         />
       ) : (
         <>
@@ -667,7 +666,7 @@ const ColorLegend = ({
               valueRange,
               numberFormat,
               anyNullValue,
-              onChangeColor,
+              colorPicker,
             }}
             onChangeValueAt={(dataIndex) =>
               onChangePropAttr([

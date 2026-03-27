@@ -67,8 +67,8 @@ const NumericalSizeLegend = ({
   group,
   valueRange,
   numberFormat,
+  sizeSlider,
   // anyNullValue, // TODO: Implement `fallback` UI
-  onChangeSize,
   onChangeValueAt,
 }) => {
   const {
@@ -78,7 +78,7 @@ const NumericalSizeLegend = ({
     handleClose,
     handleChange,
     handleChangeComitted: handleChangeComittedRaw,
-  } = useSizeSlider(onChangeSize)
+  } = sizeSlider
 
   const { sizes, values, rawValues, labels, dataIndices } = useMemo(
     () => parseGradient('size', numberFormat.precision)(valueRange),
@@ -257,11 +257,10 @@ const NumericalSizeLegend = ({
 }
 
 const CategoricalSizeLegend = ({
-  type,
   sizeByProp,
   icon,
+  sizeSlider,
   anyNullValue,
-  onChangeSize,
 }) => {
   const {
     showSizeSlider,
@@ -270,7 +269,8 @@ const CategoricalSizeLegend = ({
     handleClose,
     handleChange,
     handleChangeComitted: handleChangeComittedRaw,
-  } = useSizeSlider(onChangeSize)
+  } = sizeSlider
+  const type = sizeByProp.type
 
   const sizeOptions = useMemo(() => {
     const { options, fallback } = sizeByProp
@@ -313,6 +313,7 @@ const CategoricalSizeLegend = ({
     },
     [handleChangeComittedRaw, sizeSliderProps.key]
   )
+
   return (
     <>
       <OverflowText
@@ -375,6 +376,9 @@ const SizeLegend = ({
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = legendNumberFormatFunc(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
+
+  const sizeSlider = useSizeSlider(onChangeSize)
+
   return (
     <Paper
       elevation={3}
@@ -392,7 +396,12 @@ const SizeLegend = ({
             value={sizeBy}
             optionsList={sizeByOptions}
             getLabel={(option) => featureTypeProps[option].name || option}
-            onSelect={onSelectProp('sizeBy', 'groupCalcBySize', groupCalcValue)}
+            onSelect={onSelectProp(
+              'sizeBy',
+              'groupCalcBySize',
+              groupCalcValue,
+              sizeSlider.handleClose
+            )}
           />
         </Grid>
         {numberFormat.unit && (
@@ -405,8 +414,7 @@ const SizeLegend = ({
       </Grid>
       {isCategorical ? (
         <CategoricalSizeLegend
-          type={sizeByProp.type}
-          {...{ icon, sizeByProp, anyNullValue, onChangeSize }}
+          {...{ icon, sizeByProp, sizeSlider, anyNullValue }}
         />
       ) : (
         <>
@@ -416,8 +424,8 @@ const SizeLegend = ({
               numberFormat,
               icon,
               group,
+              sizeSlider,
               anyNullValue,
-              onChangeSize,
             }}
             onChangeValueAt={(dataIndex) =>
               onChangePropAttr([sizeBy, 'gradient', 'data', dataIndex, 'value'])
