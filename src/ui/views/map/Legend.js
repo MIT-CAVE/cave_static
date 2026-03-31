@@ -209,24 +209,31 @@ export const useLegendDetails = ({
     [basePath, shapePathEnd]
   )
   const handleSelectProp = useCallback(
-    (pathTail, groupCalcPathTail, groupCalcValue) => (value, event) => {
-      const path = [...basePath, pathTail]
-      const newPropType = featureTypeProps[value].type
-      if (!statFuncs[newPropType].has(groupCalcValue)) {
-        // If the selected aggregation function is not
-        // valid for the new prop type, set a default
-        const [defaultGroupCalc] = getStatFuncsByType(newPropType)
-        handleChangeLegendAttr(groupCalcPathTail)(defaultGroupCalc)
-      }
-      dispatch(
-        mutateLocal({
-          path,
-          value,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-      event.stopPropagation()
-    },
+    (pathTail, groupCalcPathTail, groupCalcValue, handleCloseEdit) =>
+      (value, event) => {
+        const path = [...basePath, pathTail]
+        const newPropType = featureTypeProps[value].type
+        if (!statFuncs[newPropType].has(groupCalcValue)) {
+          // If the selected aggregation function is not
+          // valid for the new prop type, set a default
+          const [defaultGroupCalc] = getStatFuncsByType(newPropType)
+          handleChangeLegendAttr(groupCalcPathTail)(defaultGroupCalc)
+        }
+
+        // Close any ongoing edit work when the prop changes
+        // to avoid potential bugs where the current editing
+        // element's option may not be valid for the new prop
+        handleCloseEdit(event)
+
+        dispatch(
+          mutateLocal({
+            path,
+            value,
+            sync: !includesPath(Object.values(sync), path),
+          })
+        )
+        event.stopPropagation()
+      },
     [basePath, dispatch, featureTypeProps, handleChangeLegendAttr, sync]
   )
 
