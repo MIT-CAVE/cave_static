@@ -1,5 +1,7 @@
 // eslint-disable-next-line import/no-unresolved
-import react from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
+// eslint-disable-next-line import/no-unresolved
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 // eslint-disable-next-line import/no-unresolved
 import { defineConfig, loadEnv, transformWithOxc } from 'vite'
 
@@ -34,7 +36,20 @@ export default defineConfig(({ mode, isPreview }) => {
   }
 
   return {
-    plugins: [jsxInJs(), react()],
+    plugins: [
+      jsxInJs(),
+      react(),
+      // TODO: Replace Babel-based React Compiler with the OXC (Rust) port once
+      // a stable release is available. Then, remove the following dependencies:
+      // - @rolldown/plugin-babel
+      // - @babel/core
+      // - babel-plugin-react-compiler
+      //
+      // Track progress here:
+      // - https://github.com/facebook/react/pull/36173
+      // - https://github.com/oxc-project/oxc/issues/10048
+      babel({ presets: [reactCompilerPreset()] }),
+    ],
     legacy: {
       // See: https://vite.dev/guide/migration#consistent-commonjs-interop
       inconsistentCjsInterop: true,
