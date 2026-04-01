@@ -26,7 +26,6 @@ import {
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
   selectFeatureData,
-  selectCurrentTimeLength,
   selectCurrentTimeContinuous,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
@@ -220,7 +219,6 @@ export const Nodes = memo(() => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
   const featureData = useSelector(selectFeatureData)
-  const duration = useSelector(selectCurrentTimeLength)
   const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
 
   const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState([])
@@ -266,10 +264,9 @@ export const Nodes = memo(() => {
       )(featureData),
     [featureData]
   )
-  const [visibilityInfo, setVisibilityInfo] = useState(() => {
+  const visibilityInfo = useMemo(() => {
     const visibilities = {}
     const visibilityTimes = {}
-    const nextToggleTimes = {}
     let totalNodes = 0
     for (const val of Object.values(featureData)) {
       const visibilityIndices = R.pipe(
@@ -288,14 +285,12 @@ export const Nodes = memo(() => {
         if (i in visibilityIndices) {
           visibilities[totalNodes + visibilityIndices[i]] = true
           visibilityTimes[totalNodes + visibilityIndices[i]] = visibilityTime[i]
-          nextToggleTimes[totalNodes + visibilityIndices[i]] =
-            visibilityTime[i][0]
         }
       }
       totalNodes += numMapFeatureNodes
     }
-    return { visibilities, visibilityTimes, nextToggleTimes }
-  })
+    return { visibilities, visibilityTimes }
+  }, [featureData])
 
   const definedNodeTimes = useMemo(
     () =>
@@ -313,50 +308,17 @@ export const Nodes = memo(() => {
         return nodeGeoJson[idx].geometry.coordinates
       }
       const definedNodeTime = definedNodeTimes[idx]
+      let visible = true
 
       if (idx in visibilityInfo.visibilities) {
-        if (currentTimeInSeconds > visibilityInfo.nextToggleTimes[idx]) {
-          setVisibilityInfo((prev) => {
-            const newVisibilities = {
-              ...prev.visibilities,
-              [idx]: !prev.visibilities[idx],
-            }
-            return { ...prev, visibilities: newVisibilities }
-          })
-          if (
-            visibilityInfo.visibilityTimes[idx].indexOf(
-              visibilityInfo.nextToggleTimes[idx]
-            ) !==
-            R.length(visibilityInfo.visibilityTimes[idx]) - 1
-          ) {
-            setVisibilityInfo((prev) => {
-              const newToggleTimes = {
-                ...prev.nextToggleTimes,
-                [idx]:
-                  visibilityInfo.visibilityTimes[idx][
-                    visibilityInfo.visibilityTimes[idx].indexOf(
-                      visibilityInfo.nextToggleTimes[idx]
-                    ) + 1
-                  ],
-              }
-              return { ...prev, nextToggleTimes: newToggleTimes }
-            })
+        for (const time of visibilityInfo.visibilityTimes[idx]) {
+          if (currentTimeInSeconds > time) {
+            visible = !visible
           } else {
-            setVisibilityInfo((prev) => {
-              const newToggleTimes = {
-                ...prev.nextToggleTimes,
-                [idx]: duration,
-              }
-              return { ...prev, nextToggleTimes: newToggleTimes }
-            })
+            break
           }
         }
       }
-
-      const visible =
-        idx in visibilityInfo.visibilities
-          ? visibilityInfo.visibilities[idx]
-          : true
 
       if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
         if (visible) {
@@ -398,12 +360,10 @@ export const Nodes = memo(() => {
       definedNodeTimes,
       currentTimeInSeconds,
       visibilityInfo.visibilities,
-      visibilityInfo.nextToggleTimes,
       visibilityInfo.visibilityTimes,
       longitudes,
       latitudes,
       nodeGeoJson,
-      duration,
     ]
   )
 
