@@ -221,14 +221,8 @@ export const Nodes = memo(() => {
   const featureData = useSelector(selectFeatureData)
   const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
 
-  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState([])
+  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
-
-  useEffect(() => {
-    if (animatedNodeGeoJson.length === 0) {
-      setAnimatedNodeGeoJson(nodeGeoJson)
-    }
-  }, [nodeGeoJson, animatedNodeGeoJson.length])
 
   const latitudes = useMemo(
     () =>
@@ -392,7 +386,7 @@ export const Nodes = memo(() => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: animatedNodeGeoJson,
+        features: nodeGeoJson.length === 0 ? [] : animatedNodeGeoJson,
       }}
     >
       <Layer
