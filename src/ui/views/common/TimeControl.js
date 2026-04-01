@@ -240,7 +240,7 @@ const TimeControl = () => {
           disabled={currentTime === timeLength}
           onClick={() => {
             const newTime = currentTime + 1
-            if (newTime < timeLength) {
+            if (newTime <= timeLength) {
               dispatch(timeSelection(newTime))
             }
           }}
