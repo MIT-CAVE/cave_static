@@ -121,7 +121,7 @@ const TimeControl = () => {
       }
       dispatch(updateAnimation(false))
       dispatch(updateAnimationContinuous(false))
-    } else if (looping && currentTime === timeLength) {
+    } else if (looping && currentTime === timeLength + 1) {
       dispatch(timeSelection(0))
     }
   }, [currentTime, looping, timeLength, animationInterval, dispatch])
