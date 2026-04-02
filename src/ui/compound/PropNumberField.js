@@ -19,6 +19,9 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
     label,
     fullWidth,
     spinner,
+    step,
+    smallStep,
+    largeStep,
     propStyle,
     slotProps,
   } = prop
@@ -38,10 +41,13 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
         readOnly,
         placeholder,
         label,
-        slotProps,
         fullWidth,
         value,
         spinner,
+        step,
+        smallStep,
+        largeStep,
+        slotProps,
       }}
       sx={[...forceArray(sx), ...forceArray(propStyle)]}
       min={minValue}
