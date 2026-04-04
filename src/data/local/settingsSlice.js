@@ -8,6 +8,7 @@ export const initialState = {
   startTime: null, // continuous
   currentTimeContinuous: 0, // continuous
   pausedTime: null, // continuous
+  lastTickTime: null, // continuous
   mirror: false,
 }
 
@@ -19,6 +20,7 @@ export const settingsSlice = createSlice({
       state.currentTime = action.payload
       state.currentTimeContinuous = action.payload
       state.startTime = performance.now() / 1000 - action.payload
+      state.lastTickTime = performance.now() / 1000
       if (state.pausedTime !== null) {
         state.pausedTime = performance.now() / 1000
       }
@@ -31,9 +33,15 @@ export const settingsSlice = createSlice({
     timeSetStart: (state) => {
       state.startTime = performance.now() / 1000 - state.currentTimeContinuous
       state.pausedTime = null
+      state.lastTickTime = performance.now() / 1000
     },
-    timeAdvanceContinuous: (state) => {
-      state.currentTimeContinuous = performance.now() / 1000 - state.startTime
+    // action.payload should be the playbackSpeed
+    timeAdvanceContinuous: (state, action) => {
+      const currentTickTime = performance.now() / 1000
+      const diff =
+        state.lastTickTime !== null ? currentTickTime - state.lastTickTime : 0
+      state.currentTimeContinuous += diff * action.payload
+      state.lastTickTime = currentTickTime
     },
     timePause: (state) => {
       if (state.startTime !== null && state.pausedTime === null) {

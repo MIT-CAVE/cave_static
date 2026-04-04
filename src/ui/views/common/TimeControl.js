@@ -82,9 +82,14 @@ const TimeControl = () => {
   const dispatch = useDispatch()
 
   const continuousInterval = useRef(null)
+  const playbackSpeedRef = useRef(playbackSpeed)
 
   const animation = R.is(Number, animationInterval)
   const sync = useSelector(selectSync)
+
+  useEffect(() => {
+    playbackSpeedRef.current = playbackSpeed
+  }, [playbackSpeed])
 
   const handleChangeLooping = useMutateState(
     () => ({
@@ -109,8 +114,8 @@ const TimeControl = () => {
   }, [dispatch, timeLength])
 
   const advanceContinuous = useCallback(() => {
-    dispatch(timeAdvanceContinuous())
-  }, [dispatch])
+    dispatch(timeAdvanceContinuous(playbackSpeedRef.current))
+  }, [dispatch, playbackSpeedRef])
 
   useEffect(() => {
     if (!looping && currentTime === timeLength) {
