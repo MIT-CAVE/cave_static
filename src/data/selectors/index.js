@@ -131,8 +131,10 @@ export const selectLocal = (state) => R.propOr({}, 'local')(state)
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
   R.propOr({}, 'settings')(data)
 )
-export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
-  R.prop('currentTime')(data)
+export const selectCurrentTime = createSelector(
+  selectLocalSettings,
+  (data) => Math.floor(R.prop('currentTimeContinuous')(data)) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
+  //R.prop('currentTime')(data)
 )
 export const selectCurrentTimeContinuous = createSelector(
   selectLocalSettings,

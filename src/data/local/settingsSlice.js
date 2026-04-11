@@ -4,11 +4,11 @@ import * as R from 'ramda'
 import { overrideState } from './actions'
 
 export const initialState = {
-  currentTime: 0, // discrete
-  startTime: null, // continuous
-  currentTimeContinuous: 0, // continuous
-  pausedTime: null, // continuous
-  lastTickTime: null, // continuous
+  // currentTime: 0,
+  startTime: null,
+  currentTimeContinuous: 0,
+  pausedTime: null,
+  lastTickTime: null,
   mirror: false,
 }
 
@@ -17,7 +17,6 @@ export const settingsSlice = createSlice({
   initialState,
   reducers: {
     timeSelection: (state, action) => {
-      state.currentTime = action.payload
       state.currentTimeContinuous = action.payload
       state.startTime = performance.now() / 1000 - action.payload
       state.lastTickTime = performance.now() / 1000
@@ -26,10 +25,10 @@ export const settingsSlice = createSlice({
       }
     },
     // action.payload should be the timeLength
-    timeAdvance: (state, action) => {
-      state.currentTime =
-        state.currentTime + 1 > action.payload ? 0 : state.currentTime + 1
-    },
+    // timeAdvance: (state, action) => {
+    //   // state.currentTime =
+    //   //   state.currentTime + 1 > action.payload ? 0 : state.currentTime + 1
+    // },
     timeSetStart: (state) => {
       state.startTime = performance.now() / 1000 - state.currentTimeContinuous
       state.pausedTime = null
@@ -64,7 +63,7 @@ export const settingsSlice = createSlice({
 
 export const {
   timeSelection,
-  timeAdvance,
+  // timeAdvance,
   timeSetStart,
   timeAdvanceContinuous,
   timePause,

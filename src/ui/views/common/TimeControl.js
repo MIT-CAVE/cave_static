@@ -14,14 +14,12 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import {
   timeSelection,
-  timeAdvance,
   timeSetStart,
   timeAdvanceContinuous,
   timePause,
 } from '../../../data/local/settingsSlice'
 import {
-  //selectCurrentTime,
-  selectCurrentTimeContinuous,
+  selectCurrentTime,
   selectCurrentTimeLength,
   selectCurrentTimeUnits,
   selectAnimationInterval,
@@ -31,7 +29,6 @@ import {
 } from '../../../data/selectors'
 import {
   updateAnimation,
-  updateAnimationContinuous,
 } from '../../../data/utilities/timeSlice'
 import { useMutateState } from '../../../utils/hooks'
 import Select from '../../compound/Select'
@@ -73,15 +70,12 @@ const TimeControl = () => {
   const playbackSpeed = useSelector(selectCurrentSpeed)
   const looping = useSelector(selectCurrentLooping)
 
-  const currentTimeContinuous = useSelector(selectCurrentTimeContinuous)
-  //const currentTime = useSelector(selectCurrentTime)
-  const currentTime = Math.floor(currentTimeContinuous) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
+  const currentTime = useSelector(selectCurrentTime)
   const timeUnits = useSelector(selectCurrentTimeUnits)
   const timeLength = useSelector(selectCurrentTimeLength)
   const animationInterval = useSelector(selectAnimationInterval)
   const dispatch = useDispatch()
 
-  const continuousInterval = useRef(null)
   const playbackSpeedRef = useRef(playbackSpeed)
 
   const animation = R.is(Number, animationInterval)
@@ -109,9 +103,9 @@ const TimeControl = () => {
     [sync]
   )
 
-  const advanceAnimation = useCallback(() => {
-    dispatch(timeAdvance(timeLength))
-  }, [dispatch, timeLength])
+  // const advanceAnimation = useCallback(() => {
+  //   dispatch(timeAdvance(timeLength))
+  // }, [dispatch, timeLength])
 
   const advanceContinuous = useCallback(() => {
     dispatch(timeAdvanceContinuous(playbackSpeedRef.current))
@@ -120,41 +114,27 @@ const TimeControl = () => {
   useEffect(() => {
     if (!looping && currentTime === timeLength) {
       clearInterval(animationInterval)
-      if (continuousInterval.current) {
-        clearInterval(continuousInterval.current)
-        continuousInterval.current = null
-      }
       dispatch(updateAnimation(false))
-      dispatch(updateAnimationContinuous(false))
     } else if (looping && currentTime === timeLength + 1) {
       dispatch(timeSelection(0))
     }
   }, [currentTime, looping, timeLength, animationInterval, dispatch])
 
-  const toggleAnimationSpeed = useCallback(
-    (newPlaybackSpeed) => {
-      clearInterval(animationInterval)
-      if (continuousInterval.current) {
-        clearInterval(continuousInterval.current)
-        continuousInterval.current = null
-      }
-      const newAnimationInterval = setInterval(
-        advanceAnimation,
-        1000 / newPlaybackSpeed
-      )
-      const newContinuousInterval = setInterval(advanceContinuous, 1)
-      continuousInterval.current = newContinuousInterval
-      dispatch(updateAnimation(newAnimationInterval))
-      dispatch(updateAnimationContinuous(newContinuousInterval))
-    },
-    [advanceAnimation, advanceContinuous, animationInterval, dispatch]
-  )
+  const toggleAnimationSpeed = useCallback(() => {
+    clearInterval(animationInterval)
+    // const newAnimationInterval = setInterval(
+    //   advanceAnimation,
+    //   1000 / newPlaybackSpeed
+    // )
+    const newAnimationInterval = setInterval(advanceContinuous, 1)
+    dispatch(updateAnimation(newAnimationInterval))
+  }, [advanceContinuous, animationInterval, dispatch])
 
   const handleChange = useCallback(
     (event) => {
       updatePlaybackSpeed(event.target.value)
       if (animation) {
-        toggleAnimationSpeed(event.target.value)
+        toggleAnimationSpeed()
       }
     },
     [animation, toggleAnimationSpeed, updatePlaybackSpeed]
@@ -216,13 +196,8 @@ const TimeControl = () => {
             placement="bottom"
             onClick={() => {
               dispatch(timePause())
-              if (continuousInterval.current) {
-                clearInterval(continuousInterval.current)
-                continuousInterval.current = null
-              }
               clearInterval(animationInterval)
               dispatch(updateAnimation(false))
-              dispatch(updateAnimationContinuous(false))
             }}
           >
             <MdPauseCircle size={40} />
@@ -233,7 +208,7 @@ const TimeControl = () => {
             placement="bottom"
             onClick={() => {
               dispatch(timeSetStart())
-              toggleAnimationSpeed(playbackSpeed)
+              toggleAnimationSpeed()
             }}
           >
             <MdPlayCircle size={40} />
