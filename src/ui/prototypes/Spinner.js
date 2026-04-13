@@ -69,14 +69,14 @@ const Spinner = ({
     sx={[
       styles.spinner,
       side === 'right' && {
-        borderLeft: '1px solid',
-        borderColor: 'divider',
-        // boxShadow: 'inset 1px 0 0 rgb(255 255 255 / .12)',
+        // borderLeft: '1px solid',
+        // borderColor: 'divider',
+        boxShadow: 'inset 1px 0 0 rgb(255 255 255 / .12)',
       },
       side === 'left' && {
-        borderRight: '1px solid',
-        borderColor: 'divider',
-        // boxShadow: 'inset -1px 0 0 rgb(255 255 255 / .12)',
+        // borderRight: '1px solid',
+        // borderColor: 'divider',
+        boxShadow: 'inset -1px 0 0 rgb(255 255 255 / .12)',
       },
     ]}
   >

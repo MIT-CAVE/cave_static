@@ -41,7 +41,7 @@ const styles = {
     alignSelf: 'stretch',
   },
   spinnerButton: {
-    borderColor: 'divider',
+    // borderColor: 'divider',
     bgcolor: 'grey.700',
   },
 }
@@ -256,8 +256,9 @@ const NumberField = ({
                             icon={decreaseIcon}
                             sx={[
                               {
-                                borderRight: '1px solid',
-                                // boxShadow: 'inset -1px 0 0 rgb(255 255 255 / .12)',
+                                // borderRight: '1px solid',
+                                boxShadow:
+                                  'inset -1px 0 0 rgb(255 255 255 / .12)',
                               },
                               size === 'medium' && { px: 1.5 },
                               styles.spinnerButton,
@@ -287,8 +288,8 @@ const NumberField = ({
                           // {...{ size }}
                           sx={[
                             {
-                              borderLeft: '1px solid',
-                              // boxShadow: 'inset 1px 0 0 rgb(255 255 255 / .12)',
+                              // borderLeft: '1px solid',
+                              boxShadow: 'inset 1px 0 0 rgb(255 255 255 / .12)',
                             },
                             size === 'medium' && { px: 1.5 },
                             styles.spinnerButton,
