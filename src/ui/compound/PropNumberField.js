@@ -17,11 +17,13 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
     minValue = -Infinity,
     placeholder,
     label,
+    marqueeLabel,
     fullWidth,
     spinner,
     step,
     smallStep,
     largeStep,
+    hideKeyboardToggle,
     propStyle,
     slotProps,
   } = prop
@@ -44,9 +46,11 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
         fullWidth,
         value,
         spinner,
+        marqueeLabel,
         step,
         smallStep,
         largeStep,
+        hideKeyboardToggle,
         slotProps,
       }}
       sx={[...forceArray(sx), ...forceArray(propStyle)]}

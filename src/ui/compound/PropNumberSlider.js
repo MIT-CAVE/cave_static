@@ -41,7 +41,14 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
     selectNumberFormatPropsFn
   )(prop)
 
-  const { enabled, slotProps = {}, fullWidth = true, color, propStyle } = prop
+  const {
+    enabled,
+    slotProps,
+    fullWidth = true,
+    hideKeyboardToggle,
+    color,
+    propStyle,
+  } = prop
 
   const minValue = prop.minValue ?? -Infinity
   const maxValue = useMemo(() => {
@@ -105,8 +112,8 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
         track={false}
         valueLabelDisplay="auto"
         valueLabelFormat={getLabelFormat}
-        {...{ marks, step, value, ...slotProps.slider }}
-        sx={[styles.getSlider(color), ...forceArray(slotProps.slider?.sx)]}
+        {...{ marks, step, value, ...slotProps?.slider }}
+        sx={[styles.getSlider(color), ...forceArray(slotProps?.slider?.sx)]}
         onChange={handleChange}
         onChangeCommitted={handleChangeCommitted}
       />
@@ -116,14 +123,14 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
         slotProps={{
           ...slotProps,
           input: {
-            ...slotProps.input,
+            ...slotProps?.input,
             sx: [{ textAlign: 'center' }, ...forceArray(slotProps?.input?.sx)],
           },
         }}
         sx={{ maxWidth: '50%' }}
         min={minValue}
         max={maxValue}
-        {...{ value }}
+        {...{ value, hideKeyboardToggle }}
         spinner="leftAndRight"
         size="small"
         numberFormat={numberFormatProps}
@@ -136,6 +143,13 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
 PropNumberSlider.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.number,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
   onChange: PropTypes.func,
 }
 
