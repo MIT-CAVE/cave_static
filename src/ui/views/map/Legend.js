@@ -79,8 +79,9 @@ import {
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
 import RippleBox from '../../compound/RippleBox'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
+import NumberField from '../../prototypes/NumberField'
 
-import { FetchedIcon, NumberInput, Select } from '../../compound'
+import { FetchedIcon, Select } from '../../compound'
 
 import {
   forceArray,
@@ -722,18 +723,19 @@ export const ScaleSelector = ({
         getLabel={(option) => scaleIndexedOptions[option]?.label}
         {...{ onSelect }}
       />
-      {/* </FormControl> */}
       {scale === scaleId.POW && (
-        <NumberInput
-          sx={{ width: '100%' }}
+        <NumberField
+          fullWidth
           label={getScaleParamLabel(scaleParamId)}
-          numberFormat={{}}
-          value={R.propOr(
+          defaultValue={R.propOr(
             getScaleParamDefaults(scaleParamId),
             scaleParamId
           )(scaleParams)}
-          slotProps={{ input: { sx: { borderRadius: 0 } } }}
-          onClickAway={onChangeScaleParamById(scaleParamId)}
+          numberFormat={{}}
+          sx={{ fieldset: { borderRadius: 0 } }}
+          onChangeCommitted={(event, newValue) =>
+            onChangeScaleParamById(scaleParamId)(newValue)
+          }
         />
       )}
     </Stack>

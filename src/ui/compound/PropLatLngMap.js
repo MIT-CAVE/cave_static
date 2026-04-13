@@ -5,13 +5,12 @@ import { useCallback, useState } from 'react'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
-import NumberInput from './NumberInput'
-
 import {
   selectIsMapboxTokenProvided,
   selectMapboxToken,
 } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
+import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
 import { forceArray } from '../../utils'
@@ -40,7 +39,8 @@ const numberFormatProps = {
 }
 
 const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
-  const [value, setValue] = useState(R.defaultTo(prop.value)(currentVal)[0])
+  const defaultValue = currentVal ?? prop.value
+  const [value, setValue] = useState(defaultValue[0])
   const [viewState, setViewState] = useState({
     latitude: value[1],
     longitude: value[0],
@@ -60,25 +60,16 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
 
   const { ReactMapGl, Marker, NavigationControl } = useMapApi()
 
-  const handleChangeLatitude = useCallback(
-    (latitude) => {
-      if (!enabled) return
-      onChange([[value[0], latitude]])
-      setValue([value[0], latitude])
-      setViewState({ latitude, longitude: value[0] })
-    },
-    [enabled, onChange, value]
-  )
+  const handleChangeAt = (index) => (event, newLatOrLng) => {
+    setValue(R.update(index, newLatOrLng))
+  }
 
-  const handleChangeLongitude = useCallback(
-    (longitude) => {
-      if (!enabled) return
-      onChange([[longitude, value[1]]])
-      setValue([longitude, value[1]])
-      setViewState({ latitude: value[1], longitude })
-    },
-    [enabled, onChange, value]
-  )
+  const handleChangeCommittedAt = (index) => (event, newLatOrLng) => {
+    if (!enabled) return
+    const newValue = R.update(index, newLatOrLng)(value)
+    setViewState({ latitude: newValue[1], longitude: newValue[0] })
+    onChange([newValue])
+  }
 
   const handleDragEnd = useCallback(
     (event) => {
@@ -128,21 +119,23 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
       </ClickAwayListener>
 
       <Stack useFlexGap direction="row" spacing={1}>
-        <NumberInput
+        <NumberField
           disabled={!enabled}
           label="Latitude"
           {...{ placeholder, max: 90, min: -90 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-90, 90)(value[1])}
-          onClickAway={handleChangeLatitude}
+          onChange={handleChangeAt(1)}
+          onChangeCommitted={handleChangeCommittedAt(1)}
         />
-        <NumberInput
+        <NumberField
           disabled={!enabled}
           label="Longitude"
           {...{ placeholder, max: 180, min: -180 }}
           numberFormat={numberFormatProps}
           value={R.clamp(-180, 180, value[0])}
-          onClickAway={handleChangeLongitude}
+          onChange={handleChangeAt(0)}
+          onChangeCommitted={handleChangeCommittedAt(0)}
         />
         <ToggleButton
           selected={showMap}

@@ -16,15 +16,23 @@ const DELAY = 10
 export function useVirtualKeyboard({
   keyboardLayout = 'default',
   disabled = false,
+  inputRef: inputRefProp,
   onBlur: onBlurProp,
   onFocus: onFocusProp,
+  onTouchStart: onTouchStartProp,
+  onTouchMove: onTouchMoveProp,
+  onTouchEnd: onTouchEndProp,
 }) {
-  const dispatch = useDispatch()
-  const virtualKeyboard = useSelector(selectVirtualKeyboard)
-  const inputRef = useRef(null)
-  const focused = useRef(false)
+  let inputRef = useRef(null)
+  if (inputRefProp) {
+    inputRef = inputRefProp
+  }
+  let focused = useRef(false)
   const isTouchDragging = useRef(false)
   const isInternalChange = useRef(false)
+
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
+  const dispatch = useDispatch()
 
   // Sync caret position between input and virtual keyboard
   useEffect(() => {
@@ -57,56 +65,74 @@ export function useVirtualKeyboard({
     }
   }, [dispatch, focused, inputRef, virtualKeyboard.enter])
 
-  const handleFocus = useCallback(() => {
-    if (disabled) return
-    // Display the keyboard in case the
-    // focus shifted to another input field
-    if (virtualKeyboard.isOpen) {
-      setTimeout(() => {
-        dispatch(setIsOpen(true))
-        dispatch(setLayout(keyboardLayout))
-      }, DELAY)
-    }
-    focused.current = true
-    onFocusProp?.()
-  }, [disabled, virtualKeyboard.isOpen, onFocusProp, dispatch, keyboardLayout])
+  const handleFocus = useCallback(
+    (event) => {
+      if (disabled) return
+      // Display the keyboard in case the
+      // focus shifted to another input field
+      if (virtualKeyboard.isOpen) {
+        setTimeout(() => {
+          dispatch(setIsOpen(true))
+          dispatch(setLayout(keyboardLayout))
+        }, DELAY)
+      }
+      focused.current = true
+      onFocusProp?.(event)
+    },
+    [disabled, virtualKeyboard.isOpen, onFocusProp, dispatch, keyboardLayout]
+  )
 
-  const handleBlur = useCallback(() => {
-    if (disabled) return
-    // delay so that focusing to another input field keeps
-    // the keyboard open
-    if (virtualKeyboard.isOpen) {
-      setTimeout(() => {
-        dispatch(setIsOpen(false))
-      }, DELAY)
-    }
-    focused.current = false
-    onBlurProp?.()
-    dispatch(setLastKeyPress('{blur}'))
-  }, [dispatch, disabled, onBlurProp, virtualKeyboard.isOpen])
+  const handleBlur = useCallback(
+    (event) => {
+      if (disabled) return
+      // delay so that focusing to another input field keeps
+      // the keyboard open
+      if (virtualKeyboard.isOpen) {
+        setTimeout(() => {
+          dispatch(setIsOpen(false))
+        }, DELAY)
+      }
+      focused.current = false
+      onBlurProp?.(event)
+      dispatch(setLastKeyPress('{blur}'))
+    },
+    [dispatch, disabled, onBlurProp, virtualKeyboard.isOpen]
+  )
 
   // Touch handlers
-  const handleTouchStart = useCallback(() => {
-    if (disabled) return
-    isTouchDragging.current = false
-  }, [disabled])
+  const handleTouchStart = useCallback(
+    (event) => {
+      if (disabled) return
+      isTouchDragging.current = false
+      onTouchStartProp?.(event)
+    },
+    [disabled, onTouchStartProp]
+  )
 
-  const handleTouchMove = useCallback(() => {
-    if (disabled) return
-    isTouchDragging.current = true
-  }, [disabled])
+  const handleTouchMove = useCallback(
+    (event) => {
+      if (disabled) return
+      isTouchDragging.current = true
+      onTouchMoveProp?.(event)
+    },
+    [disabled, onTouchMoveProp]
+  )
 
-  const handleTouchEnd = useCallback(() => {
-    if (disabled) return
-    // delay so that clicking on the keyboard button doesn't immediately
-    // close the keyboard due to onClick event
-    if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
-      setTimeout(() => {
-        dispatch(setIsOpen(true))
-        dispatch(setLayout(keyboardLayout))
-      }, DELAY)
-    }
-  }, [dispatch, disabled, keyboardLayout, virtualKeyboard.isOpen])
+  const handleTouchEnd = useCallback(
+    (event) => {
+      if (disabled) return
+      // delay so that clicking on the keyboard button doesn't immediately
+      // close the keyboard due to onClick event
+      if (!isTouchDragging.current && !virtualKeyboard.isOpen) {
+        setTimeout(() => {
+          dispatch(setIsOpen(true))
+          dispatch(setLayout(keyboardLayout))
+        }, DELAY)
+      }
+      onTouchEndProp?.(event)
+    },
+    [disabled, virtualKeyboard.isOpen, onTouchEndProp, dispatch, keyboardLayout]
+  )
 
   // Handle virtual keyboard enter (blur on enter)
   useEffect(() => {
@@ -152,6 +178,10 @@ export function useVirtualKeyboard({
 
   return {
     inputRef,
+    focused,
+    isInternalChange,
+    isOpen: virtualKeyboard.isOpen,
+    virtualKeyboard, // REVIEW: Consider deprecating this and accessing it from `selectVirtualKeyboard` directly in the component
     handleFocus,
     handleBlur,
     handleTouchStart,
@@ -160,8 +190,5 @@ export function useVirtualKeyboard({
     handleKeyboardToggle,
     handleKeyboardMouseDown,
     handleSelectionChange,
-    virtualKeyboard,
-    focused,
-    isInternalChange,
   }
 }
