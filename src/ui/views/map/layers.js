@@ -1,4 +1,5 @@
-import { useEffect, useState, useContext, useMemo } from 'react'
+import * as R from 'ramda'
+import { useEffect, useCallback, useContext, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -17,6 +18,8 @@ import {
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
+  selectFeatureData,
+  selectCurrentTimeContinuous,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -204,7 +207,160 @@ export const IncludedGeos = () => {
 export const Nodes = () => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const featureData = useSelector(selectFeatureData)
+  const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
+
+  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+
+  const latitudes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr([], ['data', 'location', 'latitude'])),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const longitudes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr([], ['data', 'location', 'longitude'])),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const animationTimes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map((item) => {
+          const latitude = R.pathOr([], ['data', 'location', 'latitude'])(item)
+          const animationTime = R.path(
+            ['data', 'location', 'animationTime'],
+            item
+          )
+          return animationTime ?? R.repeat([null], latitude.length)
+        }),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const visibilityInfo = useMemo(() => {
+    const visibilities = {}
+    const visibilityTimes = {}
+    let totalNodes = 0
+    for (const val of Object.values(featureData)) {
+      const visibilityIndices = R.pipe(
+        R.pathOr([], ['data', 'location', 'visibilityIndex']),
+        R.flatten
+      )(val)
+      const numMapFeatureNodes = R.pathOr(
+        [],
+        ['data', 'location', 'latitude']
+      )(val).length
+      const visibilityTime = R.pathOr(
+        [],
+        ['data', 'location', 'visibilityTime']
+      )(val)
+      for (let i = 0; i < numMapFeatureNodes; i++) {
+        if (i in visibilityIndices) {
+          visibilities[totalNodes + visibilityIndices[i]] = true
+          visibilityTimes[totalNodes + visibilityIndices[i]] = visibilityTime[i]
+        }
+      }
+      totalNodes += numMapFeatureNodes
+    }
+    return { visibilities, visibilityTimes }
+  }, [featureData])
+
+  const definedNodeTimes = useMemo(
+    () =>
+      R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(animationTimes)),
+    [animationTimes]
+  )
+
+  const lerp = (start, end, t) => {
+    return start + t * (end - start)
+  }
+
+  const moveCoordinates = useCallback(
+    (idx) => {
+      if (R.equals([null], definedNodeTimes[idx])) {
+        return nodeGeoJson[idx].geometry.coordinates
+      }
+      const definedNodeTime = definedNodeTimes[idx]
+      let visible = true
+
+      if (idx in visibilityInfo.visibilities) {
+        for (const time of visibilityInfo.visibilityTimes[idx]) {
+          if (currentTimeInSeconds > time) {
+            visible = !visible
+          } else {
+            break
+          }
+        }
+      }
+
+      if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
+        if (visible) {
+          return [
+            longitudes[idx][longitudes[idx].length - 1],
+            latitudes[idx][latitudes[idx].length - 1],
+          ]
+        } else {
+          return []
+        }
+      }
+
+      if (!visible) {
+        return []
+      }
+      const lowerControlTime = R.last(
+        R.filter((t) => t <= currentTimeInSeconds, definedNodeTime)
+      )
+      const upperControlTime = R.head(
+        R.filter((t) => t > currentTimeInSeconds, definedNodeTime)
+      )
+      const t =
+        (currentTimeInSeconds - lowerControlTime) /
+        (upperControlTime - lowerControlTime)
+      return [
+        lerp(
+          longitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
+          longitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
+          t
+        ),
+        lerp(
+          latitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
+          latitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
+          t
+        ),
+      ]
+    },
+    [
+      definedNodeTimes,
+      currentTimeInSeconds,
+      visibilityInfo.visibilities,
+      visibilityInfo.visibilityTimes,
+      longitudes,
+      latitudes,
+      nodeGeoJson,
+    ]
+  )
+
+  useEffect(() => {
+    const requestId = window.requestAnimationFrame(() => {
+      setAnimatedNodeGeoJson(
+        nodeGeoJson.map((f, i) =>
+          R.assocPath(['geometry', 'coordinates'], moveCoordinates(i), f)
+        )
+      )
+    })
+    return () => window.cancelAnimationFrame(requestId)
+  }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])
+
   return [
     <NodesWithHeight
       id="nodes-with-altitude"
@@ -219,7 +375,7 @@ export const Nodes = () => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: nodeGeoJson,
+        features: nodeGeoJson.length === 0 ? [] : animatedNodeGeoJson,
       }}
     >
       <Layer
