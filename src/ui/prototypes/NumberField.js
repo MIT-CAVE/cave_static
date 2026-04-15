@@ -225,6 +225,7 @@ const NumberField = ({
                     ...slotProps,
                     input: {
                       ...props,
+                      disabled,
                       value: state.focused
                         ? state.value
                         : // Show formatted value when input is blurred
@@ -248,12 +249,13 @@ const NumberField = ({
                         {spinner === 'left' ? (
                           <Spinner
                             side="left"
-                            {...{ decreaseIcon, increaseIcon }}
+                            {...{ disabled, decreaseIcon, increaseIcon }}
                           />
                         ) : spinner === 'leftAndRight' ? (
                           <SpinnerDecreaseButton
-                            // {...{ size }}
+                            {...{ disabled }}
                             icon={decreaseIcon}
+                            // {...{ size }}
                             sx={[
                               {
                                 // borderRight: '1px solid',
@@ -280,10 +282,11 @@ const NumberField = ({
                       {spinner === 'right' || spinner === true ? (
                         <Spinner
                           side="right"
-                          {...{ decreaseIcon, increaseIcon }}
+                          {...{ disabled, decreaseIcon, increaseIcon }}
                         />
                       ) : spinner === 'leftAndRight' ? (
                         <SpinnerIncreaseButton
+                          {...{ disabled }}
                           icon={increaseIcon}
                           // {...{ size }}
                           sx={[

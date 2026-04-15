@@ -23,12 +23,14 @@ const styles = {
 }
 
 export const SpinnerIncreaseButton = ({
+  disabled,
   icon: SpinnerIcon = MdAdd,
   color = 'default',
   size = 'small',
   sx = [],
 }) => (
   <BaseNumberField.Increment
+    {...{ disabled }}
     render={
       <IconButton
         aria-label="Increase"
@@ -42,12 +44,14 @@ export const SpinnerIncreaseButton = ({
 )
 
 export const SpinnerDecreaseButton = ({
+  disabled,
   icon: SpinnerIcon = MdRemove,
   color = 'default',
   size = 'small',
   sx = [],
 }) => (
   <BaseNumberField.Decrement
+    {...{ disabled }}
     render={
       <IconButton
         aria-label="Decrease"
@@ -61,6 +65,7 @@ export const SpinnerDecreaseButton = ({
 )
 
 const Spinner = ({
+  disabled,
   side,
   decreaseIcon = MdKeyboardArrowDown,
   increaseIcon = MdKeyboardArrowUp,
@@ -80,8 +85,8 @@ const Spinner = ({
       },
     ]}
   >
-    <SpinnerIncreaseButton icon={increaseIcon} />
-    <SpinnerDecreaseButton icon={decreaseIcon} />
+    <SpinnerIncreaseButton {...{ disabled }} icon={increaseIcon} />
+    <SpinnerDecreaseButton {...{ disabled }} icon={decreaseIcon} />
   </Stack>
 )
 
