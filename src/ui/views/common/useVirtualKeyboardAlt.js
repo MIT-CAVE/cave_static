@@ -10,7 +10,7 @@ import {
   setEnter,
   setLastKeyPress,
   toggleOpen,
-  setInputValue,
+  setInputValue as SetKeyboardInputValue,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
 const DELAY = 10
@@ -67,7 +67,7 @@ const useVirtualKeyboardAlt = ({
   // Update virtual keyboard's value when this field changes from non-keyboard input
   const updateVirtualKeyboardValue = useCallback(
     (value) => {
-      dispatch(setInputValue(value))
+      dispatch(SetKeyboardInputValue(value))
       isInternalChange.current = true
     },
     [dispatch]
@@ -150,20 +150,6 @@ const useVirtualKeyboardAlt = ({
     [disabled, virtualKeyboard.isOpen, onTouchEndProp, dispatch, keyboardLayout]
   )
 
-  const handleVirtualKeyDown = useCallback(
-    (event) => {
-      if (disabled) return
-
-      // eslint-disable-next-line no-unused-vars
-      const syntheticEvent = {
-        target: { value: event.detail.value },
-      }
-      // onChangeProp?.(syntheticEvent)
-      // console.log('handleVirtualKeyDown', { event })
-    },
-    [disabled]
-  )
-
   // Update the field when user types on virtual keyboard
   useEffect(() => {
     if (
@@ -174,38 +160,30 @@ const useVirtualKeyboardAlt = ({
     )
       return
 
-    //   console.log('Updating field value from virtual keyboard', {
-    //   virtualKeyboardValue: virtualKeyboard.inputValue,
-    //   unformattedValue,
-    // })
-
     // inputRef.current.value = virtualKeyboard.inputValue
     // Dispatch an onVirtualKeyDown event so that parent components can listen to changes from the virtual keyboard just like normal typing
-    // const testEvent =
-    // const event = new CustomEvent('onvirtualkeydown', {
-    //   bubbles: true,
-    //   detail: { value: virtualKeyboard.inputValue },
-    // })
+    const event = new CustomEvent('onvirtualkeydown', {
+      bubbles: true,
+      detail: { value: virtualKeyboard.inputValue },
+    })
     // console.log('Updating field value from virtual keyboard', { event })
-    // document.dispatchEvent(event)
-    // const event = new Event('input', { bubbles: true })
+    document.dispatchEvent(event)
 
-    // const event = {
-    //   reason: 'programmatic',
-    //   event: new Event('custom'),
-    //   cancel: () => {},
-    //   allowPropagation: () => {},
-    //   isCanceled: false,
-    //   isPropagationAllowed: true,
-    // }
+    // const event = new Event('input', { bubbles: true })
 
     // inputRef.current.value = virtualKeyboard.inputValue
     // inputRef.current.dispatchEvent(event)
+
+    // const eventDetails = createChangeEventDetails(
+    //   'input-change',
+    //   new Event('change'),
+    //   undefined,
+    //   { value: virtualKeyboard.inputValue }
+    // )
+    // onChangeProp?.(eventDetails)
   }, [
     disabled,
     focused,
-    // inputRef,
-    // onChangeProp,
     unformattedValue,
     virtualKeyboard.inputValue,
     virtualKeyboard.isOpen,
@@ -262,7 +240,6 @@ const useVirtualKeyboardAlt = ({
     handleTouchMove,
     handleTouchEnd,
     handleKeyboardToggle,
-    handleVirtualKeyDown,
     handleSelectionChange,
   }
 }

@@ -1,5 +1,5 @@
 import { IconButton, styled } from '@mui/material'
-import { forwardRef, useImperativeHandle } from 'react'
+import { forwardRef, useEffect, useImperativeHandle } from 'react'
 import { TbKeyboardShow, TbKeyboardOff } from 'react-icons/tb'
 
 import useVirtualKeyboard from '../views/common/useVirtualKeyboardAlt'
@@ -32,6 +32,7 @@ const KeyboardToggle = forwardRef(
       focused,
       keyboardLayout,
       unformattedValue,
+      setInputValue,
       onChange,
       onFocus,
       onBlur,
@@ -66,6 +67,22 @@ const KeyboardToggle = forwardRef(
       onTouchMove,
       onTouchEnd,
     })
+
+    useEffect(() => {
+      if (!focused) return
+      const onVirtualKeyDown = (event) => {
+        // console.log('Received onvirtualkeydown event', { event })
+        if (event.detail?.value !== undefined) {
+          setInputValue(event.detail.value, event)
+          // onChange?.(event)
+        }
+      }
+
+      window.addEventListener('onvirtualkeydown', onVirtualKeyDown)
+      return () => {
+        window.removeEventListener('onvirtualkeydown', onVirtualKeyDown)
+      }
+    }, [focused, setInputValue])
 
     // Get rid of this and just use the handlers from `useVirtualKeyboard` directly in the parent component. This will allow the parent component to have full control over the focus and touch handling logic, which is necessary for proper integration with the virtual keyboard.
     useImperativeHandle(

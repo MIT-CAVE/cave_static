@@ -10,13 +10,18 @@ import {
   OutlinedInput,
 } from '@mui/material'
 import PropTypes from 'prop-types'
-import { useCallback, useEffect, useId, useRef } from 'react'
+import { useCallback, useId, useRef } from 'react'
+import { useDispatch } from 'react-redux'
 
 import Spinner, {
   SpinnerDecreaseButton,
   SpinnerIncreaseButton,
 } from './Spinner'
 
+import {
+  setCaretPosition,
+  setInputValue as SetKeyboardInputValue,
+} from '../../data/utilities/virtualKeyboardSlice'
 import KeyboardToggle from '../compound/KeyboardToggle'
 import OverflowText from '../compound/OverflowText'
 
@@ -98,6 +103,7 @@ const NumberField = ({
   }
   const kbRef = useRef(null)
   const localInputRef = useRef(null)
+  const dispatch = useDispatch()
 
   const getCombinedRef = useCallback(
     (baseInputRef) => (node) => {
@@ -109,6 +115,23 @@ const NumberField = ({
 
   const handleValueChange = (newValue, event) => {
     // if (disabled || readOnly) return // REVIEW: Is this check necessary?
+
+    // Workaround to update virtual keyboard's value when this field changes from virtual keyboard input
+    if (event?.type === 'onvirtualkeydown') {
+      // Clamp value from virtual keyboard within min/max bounds
+      newValue = Math.min(max, Math.max(min, Number(newValue)))
+
+      // console.log('Virtual keyboard change', { value, newValue, event })
+      dispatch(SetKeyboardInputValue(`${newValue}`))
+      dispatch(
+        setCaretPosition([
+          localInputRef.current.selectionStart,
+          localInputRef.current.selectionStart,
+        ])
+      )
+    }
+    if (value === newValue) return
+
     onChange(event, newValue)
   }
 
@@ -116,27 +139,6 @@ const NumberField = ({
     // if (disabled || readOnly) return // REVIEW: Is this check necessary?
     onChangeCommitted(event, newValue)
   }
-
-  useEffect(() => {
-    // onChangeProp?.(syntheticEvent)
-    const keyboardRef = kbRef.current
-    // const onVirtualKeyDown = (event) => {
-    //   console.log('Received onvirtualkeydown event', { event })
-    //   if (event.detail?.value !== undefined) {
-    //     onChange?.(event)
-    //   }
-    // }
-    window.addEventListener(
-      'onvirtualkeydown',
-      keyboardRef?.handleVirtualKeyDown
-    )
-    return () => {
-      window.removeEventListener(
-        'onvirtualkeydown',
-        keyboardRef?.handleVirtualKeyDown
-      )
-    }
-  }, [onChange])
 
   const showKeyboardToggle = !(hideKeyboardToggle || readOnly || disabled)
   const shouldShiftKeyboardToggle =
@@ -324,6 +326,7 @@ const NumberField = ({
                     focused={state.focused}
                     unformattedValue={state.inputValue}
                     sx={shouldShiftKeyboardToggle && { right: '8px' }}
+                    setInputValue={handleValueChange}
                     onChange={props.onChange}
                     onFocus={props.onFocus}
                     onBlur={props.onBlur}
