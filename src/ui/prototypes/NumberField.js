@@ -240,7 +240,8 @@ const NumberField = ({
                     },
                   }}
                   startAdornment={
-                    spinner && (
+                    spinner &&
+                    !disabled && (
                       <InputAdornment
                         position="start"
                         sx={[
@@ -276,31 +277,32 @@ const NumberField = ({
                     <InputAdornment
                       position="end"
                       sx={[
-                        spinner && styles.adornment,
-                        spinner === 'right' && { ml: '14px' },
+                        spinner && !disabled && styles.adornment,
+                        spinner === 'right' && !disabled && { ml: '14px' },
                       ]}
                     >
                       {endAdornments}
-                      {spinner === 'right' || spinner === true ? (
-                        <Spinner
-                          side="right"
-                          {...{ disabled, decreaseIcon, increaseIcon }}
-                        />
-                      ) : spinner === 'leftAndRight' ? (
-                        <SpinnerIncreaseButton
-                          {...{ disabled }}
-                          icon={increaseIcon}
-                          // {...{ size }}
-                          sx={[
-                            {
-                              // borderLeft: '1px solid',
-                              boxShadow: 'inset 1px 0 0 rgb(255 255 255 / .12)',
-                            },
-                            size === 'medium' && { px: 1.5 },
-                            styles.spinnerButton,
-                          ]}
-                        />
-                      ) : null}
+                      {!disabled &&
+                        (spinner === 'right' || spinner === true ? (
+                          <Spinner
+                            side="right"
+                            {...{ decreaseIcon, increaseIcon }}
+                          />
+                        ) : spinner === 'leftAndRight' ? (
+                          <SpinnerIncreaseButton
+                            icon={increaseIcon}
+                            // {...{ size }}
+                            sx={[
+                              {
+                                // borderLeft: '1px solid',
+                                boxShadow:
+                                  'inset 1px 0 0 rgb(255 255 255 / .12)',
+                              },
+                              size === 'medium' && { px: 1.5 },
+                              styles.spinnerButton,
+                            ]}
+                          />
+                        ) : null)}
                       {color !== 'default' &&
                         statusIcon &&
                         getStatusIcon(color)}
