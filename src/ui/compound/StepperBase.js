@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import buildSvgElementFromIconTree from '../../utils/svgBuilder'
+import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
 import { fetchIcon, forceArray, getContrastText } from '../../utils'
 
@@ -51,15 +51,9 @@ const useIconFetcher = (options, propAttrs, activeDefaults) => {
     async (iconName, currentColor, currentSize) => {
       if (iconName == null) return
       // console.log('fetching...', iconName)
-      const iconRootNode = await fetchIcon(iconName, undefined, true)
+      const iconRootNode = await fetchIcon(iconName, undefined)
       const fillColor = getContrastText(currentColor)
-      const svgEl = buildSvgElementFromIconTree(
-        iconRootNode,
-        fillColor,
-        currentSize
-      )
-      const svgMarkup = svgEl.outerHTML.replace(/\s+/g, ' ').trim()
-      return `data:image/svg+xml,${svgMarkup}`
+      return getIconSvgDataUri(iconRootNode, fillColor, currentSize)
     },
     []
   )
@@ -274,7 +268,7 @@ const StepperBase = ({
   )
 
   const handleChangeComitted = useCallback(
-    async (event, newIndex) => {
+    (event, newIndex) => {
       if (disabled) return
       const newValue = optionsList[newIndex]
       // REVIEW: Icon re-fetching issue

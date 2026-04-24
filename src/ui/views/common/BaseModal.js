@@ -1,4 +1,5 @@
 import { Box, Modal, Typography } from '@mui/material'
+import { useEffect, useRef } from 'react'
 
 const styles = {
   root: {
@@ -50,12 +51,45 @@ const BaseModal = ({
   children,
 }) => {
   const {
-    root: { sx: sxRoot, ...rootProps },
-    paper: { sx: sxPaper, ...paperProps },
+    root: { sx: sxRoot, ...rootProps } = {},
+    paper: { sx: sxPaper, ...paperProps } = {},
   } = slotProps
+  const paperRef = useRef(null)
+  // By the time `onClose` fires for a backdrop click, native blur has already
+  // moved focus off any input, so sample the focus state at mousedown instead.
+  const hadFocusedInputRef = useRef(false)
+  useEffect(() => {
+    const onMouseDown = () => {
+      const active = document.activeElement
+      hadFocusedInputRef.current = Boolean(
+        paperRef.current &&
+        active &&
+        active.tagName === 'INPUT' &&
+        paperRef.current.contains(active)
+      )
+    }
+    document.addEventListener('mousedown', onMouseDown, true)
+    return () => document.removeEventListener('mousedown', onMouseDown, true)
+  }, [])
+
+  const handleClose = (event, reason) => {
+    // Swallow a backdrop click that also blurred an input inside the modal —
+    // one click should only exit the input context, not the modal.
+    if (reason === 'backdropClick' && hadFocusedInputRef.current) {
+      hadFocusedInputRef.current = false
+      return
+    }
+    onClose?.(event, reason)
+  }
+
   return (
-    <Modal sx={[styles.root, sxRoot]} {...{ open, onClose, ...rootProps }}>
+    <Modal
+      sx={[styles.root, sxRoot]}
+      {...{ open, ...rootProps }}
+      onClose={handleClose}
+    >
       <Box
+        ref={paperRef}
         sx={[styles.paper, sxPaper]}
         {...paperProps}
         onClick={(event) => {

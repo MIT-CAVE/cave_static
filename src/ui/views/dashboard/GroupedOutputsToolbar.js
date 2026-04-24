@@ -1,4 +1,4 @@
-import { Box, FormControl, Grid, InputLabel, Typography } from '@mui/material'
+import { Box, Grid, Typography } from '@mui/material'
 import * as R from 'ramda'
 import { memo, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -11,9 +11,10 @@ import {
   selectSync,
   selectCurrentPage,
   selectAllowedStats,
+  selectChartById,
   selectChartStats,
   selectChartStatsNames,
-  selectStatGroupings,
+  selectMergedStatGroupings,
   selectGroupedOutputsData,
 } from '../../../data/selectors'
 import {
@@ -142,22 +143,16 @@ const HeaderGrid = ({ text }) => (
   </Grid>
 )
 
-const LabelledInput = ({ children, label, labelId }) => (
-  <FormControl fullWidth sx={styles.item}>
-    <InputLabel id={labelId}>{label}</InputLabel>
-    {children}
-  </FormControl>
-)
-
-const GroupedOutputsToolbar = ({ chartObj, index }) => {
+const GroupedOutputsToolbar = ({ index }) => {
   const dispatch = useDispatch()
 
-  const categories = useSelector(selectStatGroupings)
+  const categories = useSelector(selectMergedStatGroupings)
   const allowedStats = useSelector(selectAllowedStats)
   const chartStats = useSelector(selectChartStats)
   const groupedOutputs = useSelector(selectGroupedOutputsData)
   const statNamesByDataset = useSelector(selectChartStatsNames)
   const currentPage = useSelector(selectCurrentPage)
+  const chartObj = useSelector((state) => selectChartById(state, index))
   const sync = useSelector(selectSync)
 
   const path = ['pages', 'data', currentPage, 'charts', index]
@@ -362,17 +357,15 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
   )
 
   const DatasetSelector = (
-    <LabelledInput label="Dataset" labelId="dataset-label">
-      <Select
-        id="dataset"
-        labelId="dataset-label"
-        label="Dataset"
-        value={R.propOr(' ', 'dataset', chartObj)}
-        optionsList={R.keys(chartStats)}
-        getLabel={getLabelFn(chartStats)}
-        onSelect={handleChangeDataset}
-      />
-    </LabelledInput>
+    <Select
+      id="dataset"
+      labelId="dataset-label"
+      label="Dataset"
+      value={R.propOr(' ', 'dataset', chartObj)}
+      optionsList={R.keys(chartStats)}
+      getLabel={getLabelFn(chartStats)}
+      onSelect={handleChangeDataset}
+    />
   )
 
   const isDatasetNotSelected = !R.has('dataset', chartObj)
@@ -403,33 +396,32 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
       const labelId = `multi-stat-${index}-label`
 
       return (
-        <LabelledInput key={index} label={label} labelId={labelId}>
-          <Select
-            fullWidth
-            label={label}
-            labelId={labelId}
-            disabled={isDatasetNotSelected}
-            value={value}
-            optionsList={statNames}
-            getLabel={getStatName}
-            onSelect={(newVal) => {
-              if (R.equals(value, newVal)) {
-                handleDeleteStatistic(index)
-              } else {
-                updateChartObj(
-                  R.assocPath(
-                    ['stats', index],
-                    {
-                      statId: newVal,
-                      aggregationType: 'sum',
-                    },
-                    chartObj
-                  )
+        <Select
+          key={labelId}
+          fullWidth
+          label={label}
+          labelId={labelId}
+          disabled={isDatasetNotSelected}
+          value={value}
+          optionsList={statNames}
+          getLabel={getStatName}
+          onSelect={(newVal) => {
+            if (R.equals(value, newVal)) {
+              handleDeleteStatistic(index)
+            } else {
+              updateChartObj(
+                R.assocPath(
+                  ['stats', index],
+                  {
+                    statId: newVal,
+                    aggregationType: 'sum',
+                  },
+                  chartObj
                 )
-              }
-            }}
-          />
-        </LabelledInput>
+              )
+            }
+          }}
+        />
       )
     },
     R.propOr([], chartObj.chartType, chartStatUses)
@@ -654,11 +646,9 @@ const GroupedOutputsToolbar = ({ chartObj, index }) => {
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
             <>
-              {mapIndexed(
-                ({ selector, label, labelId }, index) => (
-                  <LabelledInput key={index} labelId={labelId} label={label}>
-                    {selector}
-                  </LabelledInput>
+              {R.map(
+                ({ selector: Selector, labelId }) => (
+                  <Selector key={labelId} />
                 ),
                 [
                   {

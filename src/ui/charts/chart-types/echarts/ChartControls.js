@@ -6,6 +6,7 @@ import {
   Typography,
   styled,
 } from '@mui/material'
+import { memo, useMemo } from 'react'
 
 import { useMutateStateWithSync } from '../../../../utils/hooks'
 
@@ -37,7 +38,7 @@ const styles = {
   },
 }
 
-const SortControl = ({ xAxisOrder, path }) => {
+const SortControl = memo(({ xAxisOrder, path }) => {
   const validOrders = [
     'default',
     'value_ascending',
@@ -50,6 +51,37 @@ const SortControl = ({ xAxisOrder, path }) => {
   const handleSelectOrder = useMutateStateWithSync(
     (value) => ({ path: [...path, 'xAxisOrder'], value }),
     [path]
+  )
+
+  const optionsList = useMemo(
+    () => [
+      {
+        iconName: 'fa/FaSort',
+        label: 'Default',
+        value: 'default',
+      },
+      {
+        iconName: 'bs/BsSortAlphaDown',
+        label: 'Name (Asc)',
+        value: 'alpha_ascending',
+      },
+      {
+        iconName: 'bs/BsSortAlphaUp',
+        label: 'Name (Desc)',
+        value: 'alpha_descending',
+      },
+      {
+        iconName: 'bs/BsSortNumericDown',
+        label: 'Value (Asc)',
+        value: 'value_ascending',
+      },
+      {
+        iconName: 'bs/BsSortNumericUp',
+        label: 'Value (Desc)',
+        value: 'value_descending',
+      },
+    ],
+    []
   )
 
   return (
@@ -67,37 +99,11 @@ const SortControl = ({ xAxisOrder, path }) => {
         size="small"
         iconSize="22px"
         sx={styles.select}
-        optionsList={[
-          {
-            iconName: 'fa/FaSort',
-            label: 'Default',
-            value: 'default',
-          },
-          {
-            iconName: 'bs/BsSortAlphaDown',
-            label: 'Name (Asc)',
-            value: 'alpha_ascending',
-          },
-          {
-            iconName: 'bs/BsSortAlphaUp',
-            label: 'Name (Desc)',
-            value: 'alpha_descending',
-          },
-          {
-            iconName: 'bs/BsSortNumericDown',
-            label: 'Value (Asc)',
-            value: 'value_ascending',
-          },
-          {
-            iconName: 'bs/BsSortNumericUp',
-            label: 'Value (Desc)',
-            value: 'value_descending',
-          },
-        ]}
+        {...{ optionsList }}
       />
     </Box>
   )
-}
+})
 
 const SyncAxesControl = ({ syncAxes, onSyncAxesChange }) => (
   <FormControlLabel

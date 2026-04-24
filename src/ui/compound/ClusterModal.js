@@ -9,7 +9,7 @@ import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import * as React from 'react'
+import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { mutateLocal } from '../../data/local'
@@ -88,8 +88,8 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const tableRows = nodeData.map((node) => createData(node))
 
   const StickyHeadTable = (rows, columns) => {
-    const [page, setPage] = React.useState(0)
-    const [rowsPerPage, setRowsPerPage] = React.useState(10)
+    const [page, setPage] = useState(0)
+    const [rowsPerPage, setRowsPerPage] = useState(10)
 
     const handleChangePage = (_, newPage) => {
       setPage(newPage)

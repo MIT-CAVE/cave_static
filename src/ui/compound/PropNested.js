@@ -1,7 +1,7 @@
 import { Box, Checkbox, FormGroup, FormControlLabel } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import React, { useEffect } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 
 import { forceArray } from '../../utils'
 
@@ -97,7 +97,7 @@ const PropNested = ({ prop, currentVal, sx = [], onChange }) => {
   const { enabled, options } = prop
   const value = R.defaultTo(prop.value, currentVal)
   const { nodes, initialChecked } = getNodes(options, value)
-  const [checked, setChecked] = React.useState(initialChecked)
+  const [checked, setChecked] = useState(initialChecked)
 
   useEffect(() => {
     const { initialChecked } = getNodes(options, value)
@@ -165,7 +165,7 @@ const PropNestedHelper = ({
           />
         )
         return (
-          <React.Fragment key={key}>
+          <Fragment key={key}>
             <FormControlLabel
               {...{ disabled, label }}
               sx={{ pl: 1, ml: depth * 5 }}
@@ -179,7 +179,7 @@ const PropNestedHelper = ({
               }
             />
             {childrenNodes}
-          </React.Fragment>
+          </Fragment>
         )
       }, nodes.get(rootKey).childrenKeys)}
     </FormGroup>

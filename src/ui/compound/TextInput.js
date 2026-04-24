@@ -27,10 +27,14 @@ const TextInput = ({
   value: defaultValue,
   color = 'default',
   statusIcon,
+  size,
+  autoFocus,
   fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
+  forceClickAwayOnBlur,
   sx = [],
   slotProps,
   endAdornments,
+  onKeyDown,
   onChange,
   onClickAway = () => {},
 }) => {
@@ -55,7 +59,7 @@ const TextInput = ({
     disabled,
     onBlur: () => {
       // component-specific blur logic
-      if (value === defaultValue) return
+      if (value === defaultValue && !forceClickAwayOnBlur) return
       dispatch(setIsTextArea(false))
       // setKeyboardValue(value)
       onClickAway(value)
@@ -94,13 +98,24 @@ const TextInput = ({
       setValue(virtualKeyboard.inputValue)
     }
   }, [
-    onChange,
-    disabled,
     controlled,
-    virtualKeyboard.inputValue,
-    value,
+    defaultValue,
+    disabled,
     focused,
+    onChange,
+    value,
+    virtualKeyboard.inputValue,
+    virtualKeyboard.lastKeyPress,
   ])
+
+  const handleChange = useCallback(
+    (event) => {
+      controlled
+        ? onChange(event.target.value)
+        : setKeyboardValue(event.target.value)
+    },
+    [controlled, onChange, setKeyboardValue]
+  )
 
   // Keep cursor position synced with virtual keyboard's
   return (
@@ -113,17 +128,16 @@ const TextInput = ({
         multiline,
         rows,
         sx,
+        size,
+        autoFocus,
         fullWidth,
+        onKeyDown,
       }}
       name={multiline ? 'cave-textarea-input' : 'cave-text-input'}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
       value={controlled ? defaultValue : value}
-      onChange={(event) => {
-        controlled
-          ? onChange(event.target.value)
-          : setKeyboardValue(event.target.value)
-      }}
+      onChange={handleChange}
       onSelect={handleSelectionChange}
       onFocus={handleFocus}
       onBlur={handleBlur}

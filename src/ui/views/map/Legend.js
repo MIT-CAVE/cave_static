@@ -3,15 +3,12 @@ import {
   Badge,
   Box,
   Button,
-  ButtonBase,
   ClickAwayListener,
   Divider,
-  FormControl,
   FormControlLabel,
   FormGroup,
   Grid,
   InputAdornment,
-  InputLabel,
   Paper,
   Popper,
   Slider,
@@ -80,9 +77,11 @@ import {
   scaleIndexedOptions,
 } from '../../../utils/scales'
 import { getStatFuncsByType, getStatLabel } from '../../../utils/stats'
+import RippleBox from '../../compound/RippleBox'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
+import NumberField from '../../prototypes/NumberField'
 
-import { FetchedIcon, NumberInput, Select } from '../../compound'
+import { FetchedIcon, Select } from '../../compound'
 
 import {
   forceArray,
@@ -132,14 +131,9 @@ const styles = {
     borderRadius: '50%',
   },
   popper: {
-    height: '100%',
-    overflow: 'hidden',
+    overflow: 'auto',
     zIndex: 2,
   },
-  getRippleBox: (selected) => ({
-    border: `1px ${selected ? 'inset' : 'outset'} rgb(128 128 128)`,
-    borderRadius: 1,
-  }),
 }
 
 export const useLegendDetails = ({
@@ -215,24 +209,31 @@ export const useLegendDetails = ({
     [basePath, shapePathEnd]
   )
   const handleSelectProp = useCallback(
-    (pathTail, groupCalcPathTail, groupCalcValue) => (value, event) => {
-      const path = [...basePath, pathTail]
-      const newPropType = featureTypeProps[value].type
-      if (!statFuncs[newPropType].has(groupCalcValue)) {
-        // If the selected aggregation function is not
-        // valid for the new prop type, set a default
-        const [defaultGroupCalc] = getStatFuncsByType(newPropType)
-        handleChangeLegendAttr(groupCalcPathTail)(defaultGroupCalc)
-      }
-      dispatch(
-        mutateLocal({
-          path,
-          value,
-          sync: !includesPath(Object.values(sync), path),
-        })
-      )
-      event.stopPropagation()
-    },
+    (pathTail, groupCalcPathTail, groupCalcValue, handleCloseEdit) =>
+      (value, event) => {
+        const path = [...basePath, pathTail]
+        const newPropType = featureTypeProps[value].type
+        if (!statFuncs[newPropType].has(groupCalcValue)) {
+          // If the selected aggregation function is not
+          // valid for the new prop type, set a default
+          const [defaultGroupCalc] = getStatFuncsByType(newPropType)
+          handleChangeLegendAttr(groupCalcPathTail)(defaultGroupCalc)
+        }
+
+        // Close any ongoing edit work when the prop changes
+        // to avoid potential bugs where the current editing
+        // element's option may not be valid for the new prop
+        handleCloseEdit(event)
+
+        dispatch(
+          mutateLocal({
+            path,
+            value,
+            sync: !includesPath(Object.values(sync), path),
+          })
+        )
+        event.stopPropagation()
+      },
     [basePath, dispatch, featureTypeProps, handleChangeLegendAttr, sync]
   )
 
@@ -639,15 +640,6 @@ const FormSwitch = ({
 )
 
 // TODO: Move this to some `legendUtils.js` module
-export const RippleBox = ({ selected, sx = [], ...props }) => (
-  <ButtonBase
-    component="div"
-    sx={[styles.getRippleBox(selected), ...forceArray(sx)]}
-    {...props}
-  />
-)
-
-// TODO: Move this to some `legendUtils.js` module
 export const WithBadge = ({
   reactIcon: ReactIcon,
   color,
@@ -714,37 +706,36 @@ export const ScaleSelector = ({
   const scaleParamId = scaleParamsById[scale]
   return (
     <Stack direction="row" spacing={1}>
-      <FormControl fullWidth>
-        <InputLabel id="scale-fn-label">Gradient Scale Func.</InputLabel>
-        <Select
-          id="scale-fn"
-          labelId="scale-fn-label"
-          label="Gradient Scale Func."
-          optionsList={validScales}
-          startAdornment={
-            <InputAdornment position="start">
-              <FetchedIcon
-                iconName={scaleIndexedOptions[scale]?.iconName}
-                size={24}
-              />
-            </InputAdornment>
-          }
-          value={scale}
-          getLabel={(option) => scaleIndexedOptions[option]?.label}
-          {...{ onSelect }}
-        />
-      </FormControl>
+      <Select
+        id="scale-fn"
+        labelId="scale-fn-label"
+        label="Gradient Scale Func."
+        optionsList={validScales}
+        startAdornment={
+          <InputAdornment position="start">
+            <FetchedIcon
+              iconName={scaleIndexedOptions[scale]?.iconName}
+              size={24}
+            />
+          </InputAdornment>
+        }
+        value={scale}
+        getLabel={(option) => scaleIndexedOptions[option]?.label}
+        {...{ onSelect }}
+      />
       {scale === scaleId.POW && (
-        <NumberInput
-          sx={{ width: '100%' }}
+        <NumberField
+          fullWidth
           label={getScaleParamLabel(scaleParamId)}
-          numberFormat={{}}
-          value={R.propOr(
+          defaultValue={R.propOr(
             getScaleParamDefaults(scaleParamId),
             scaleParamId
           )(scaleParams)}
-          slotProps={{ input: { sx: { borderRadius: 0 } } }}
-          onClickAway={onChangeScaleParamById(scaleParamId)}
+          numberFormat={{}}
+          sx={{ fieldset: { borderRadius: 0 } }}
+          onChangeCommitted={(event, newValue) =>
+            onChangeScaleParamById(scaleParamId)(newValue)
+          }
         />
       )}
     </Stack>
@@ -759,22 +750,19 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
         ? TbMathFunction
         : LuShapes
   return (
-    <FormControl fullWidth>
-      <InputLabel id="group-calc-fn-label">Group Aggreg. Func.</InputLabel>
-      <Select
-        id="group-calc-fn"
-        labelId="group-calc-fn-label"
-        label="Group Aggreg. Func."
-        getLabel={getStatLabel}
-        optionsList={getStatFuncsByType(type)}
-        startAdornment={
-          <InputAdornment position="start">
-            <IconClass size={24} />
-          </InputAdornment>
-        }
-        {...{ value, onSelect }}
-      />
-    </FormControl>
+    <Select
+      id="group-calc-fn"
+      labelId="group-calc-fn-label"
+      label="Group Aggreg. Func."
+      getLabel={getStatLabel}
+      optionsList={getStatFuncsByType(type)}
+      startAdornment={
+        <InputAdornment position="start">
+          <IconClass size={24} />
+        </InputAdornment>
+      }
+      {...{ value, onSelect }}
+    />
   )
 }
 
@@ -969,27 +957,22 @@ export const LegendRowNode = ({ LegendRowComponent, ...props }) => {
 }
 
 export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
-  const { mapId } = useContext(MapContext)
-  const { isMapboxSelected } = useMapApi(mapId)
   const effectiveArcsBy = useSelector(selectEffectiveArcsBy)
   const getRange = useSelector(selectArcRange)
-  const disabled = !isMapboxSelected
   const indexedOptions = useMemo(
     () => ({
       solid: { icon: 'ai/AiOutlineLine', label: 'Solid' },
-      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted', disabled },
-      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed', disabled },
+      dotted: { icon: 'ai/AiOutlineEllipsis', label: 'Dotted' },
+      dashed: { icon: 'ai/AiOutlineDash', label: 'Dashed' },
       '3d': { icon: 'vsc/VscLoading', label: 'Arc', disabled: true }, // Always disabled for now
     }),
-    [disabled]
+    []
   )
   const shapeOptions = useMemo(
     () => Object.keys(indexedOptions),
     [indexedOptions]
   )
-  const currentLineStyle = isMapboxSelected
-    ? (props.lineStyle ?? 'solid')
-    : 'solid'
+  const currentLineStyle = props.lineStyle ?? 'solid'
   return (
     <LegendRowComponent
       mapFeaturesBy={effectiveArcsBy}
@@ -998,10 +981,6 @@ export const LegendRowArc = ({ LegendRowComponent, ...props }) => {
       icon={indexedOptions[currentLineStyle]?.icon}
       shapeLabel="Select the line style"
       {...{ shapeOptions, getRange, ...props }}
-      shapeWarning={
-        !isMapboxSelected &&
-        "Only the 'solid' line style is supported when using MapLibre. Other styles ('dotted', 'dashed', etc.) will be displayed as solid lines."
-      }
       getShapeIcon={(option) => indexedOptions[option]?.icon}
       getShapeLabel={(option) => indexedOptions[option]?.label}
       getShapeDisabled={(option) => indexedOptions[option]?.disabled}

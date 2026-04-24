@@ -3,6 +3,8 @@ import { MuiColorInput, matchIsValidColor } from 'mui-color-input'
 import * as R from 'ramda'
 import { useCallback, useMemo, useState, useRef } from 'react'
 
+import { forceArray } from '../../utils'
+
 export const useColorPicker = (onChangeColor) => {
   const [colorPickerProps, setColorPickerProps] = useState({})
   const setColorTimeout = useRef(-1)
@@ -17,7 +19,7 @@ export const useColorPicker = (onChangeColor) => {
         setColorTimeout.current = -1
       }, 500)
     },
-    [colorPickerProps, onChangeColor]
+    [colorPickerProps.key, onChangeColor]
   )
 
   const handleOpen = useCallback(
@@ -41,7 +43,7 @@ export const useColorPicker = (onChangeColor) => {
   }
 }
 
-const ColorPicker = ({ colorLabel, value, onChange }) => {
+const ColorPicker = ({ colorLabel, value, sx = [], onChange }) => {
   const formattedColor = useMemo(() => {
     if (!matchIsValidColor(value)) return value
     const rawHex = colord(value).toHex()
@@ -58,7 +60,7 @@ const ColorPicker = ({ colorLabel, value, onChange }) => {
       // PopoverProps={{ onClose }}
       value={formattedColor}
       label={`Color \u279D ${colorLabel}`}
-      style={{ marginTop: '20px', flex: '1 1 auto' }}
+      sx={[{ mt: 2.5, flex: '1 1 auto' }, ...forceArray(sx)]}
       slotProps={{ input: { style: { borderRadius: 0 } } }}
       {...{ onChange }}
     />

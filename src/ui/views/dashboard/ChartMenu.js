@@ -8,8 +8,6 @@ import {
   Menu,
   MenuItem,
   Switch,
-  FormControl,
-  InputLabel,
 } from '@mui/material'
 import { memo } from 'react'
 import { FaRegChartBar } from 'react-icons/fa'
@@ -19,6 +17,7 @@ import {
   MdFullscreen,
   MdFullscreenExit,
   MdMoreVert,
+  MdOutlineColorLens,
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
@@ -64,11 +63,18 @@ const UNSORTABLE_HOVERED_CHARTS = [
   chartVariant.GAUGE,
 ]
 
+const CHARTS_WITHOUT_COLOR_SUPPORT = [
+  chartVariant.TABLE,
+  chartVariant.HEATMAP, // TODO: Add color support once proper UI/UX is defined
+]
+
 const MainButtons = ({
+  chartType,
   isGroupedOutput,
   numFilters,
   onOpenFilter,
   onOpenChartTools,
+  onOpenColorChange,
   onOpenMenu,
 }) => (
   <ButtonGroup
@@ -102,6 +108,16 @@ const MainButtons = ({
       </TooltipButton>
     )}
 
+    {isGroupedOutput && !CHARTS_WITHOUT_COLOR_SUPPORT.includes(chartType) && (
+      <TooltipButton
+        title="Change color"
+        placement="bottom-start"
+        onClick={onOpenColorChange}
+      >
+        <MdOutlineColorLens size={24} />
+      </TooltipButton>
+    )}
+
     <TooltipButton
       title="View more Actions"
       placement="bottom-start"
@@ -130,11 +146,9 @@ const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
   </MenuItem>
 )
 
-const BaseMenuItem = ({ badgeProps, ReactIcon, label, onClick }) => (
+const BaseMenuItem = ({ ReactIcon, label, onClick }) => (
   <MenuItem {...{ onClick }}>
-    <Badge {...badgeProps} sx={{ mr: 2 }}>
-      <ReactIcon size={20} />
-    </Badge>
+    <ReactIcon size={20} style={{ marginRight: '16px' }} />
     {label}
   </MenuItem>
 )
@@ -152,6 +166,7 @@ const ChartMenu = ({
   numFilters,
   onOpenFilter,
   onOpenChartTools,
+  onOpenColorChange,
   vizType,
   chartType,
 }) => {
@@ -181,9 +196,11 @@ const ChartMenu = ({
       <MainButtons
         {...{
           isGroupedOutput,
+          chartType,
           numFilters,
           onOpenFilter,
           onOpenChartTools,
+          onOpenColorChange,
         }}
         onOpenMenu={handleOpenMenu}
       />
@@ -204,20 +221,24 @@ const ChartMenu = ({
         />
         <Divider />
 
-        {!isMap && !UNSORTABLE_HOVERED_CHARTS.includes(chartType) && (
-          <>
-            <FormControl
-              // size="small"
-              fullWidth
-              sx={{ m: 1, maxWidth: 'calc(100% - 16px)' }}
-            >
-              <InputLabel id="chart-hover-label">
-                {'Chart Hover \u279D Sort By'}
-              </InputLabel>
+        {!isMap &&
+          !UNSORTABLE_HOVERED_CHARTS.includes(chartType) &&
+            // An array is preferred since `Menu` throws a warning for fragment children
+            [
               <Select
+                key="chart-hover-control"
+                size="small"
+                id="chart-hover"
                 labelId="chart-hover-label"
                 label={'Chart Hover \u279D Sort By'}
-                id="chart-hover"
+                slotProps={{
+                  formControl: {
+                    sx: {
+                      m: 1,
+                      maxWidth: 'calc(100% - 16px)',
+                    },
+                  },
+                }}
                 value={chartHoverOrder}
                 iconSize="28px"
                 optionsList={[
@@ -243,29 +264,27 @@ const ChartMenu = ({
                   },
                 ]}
                 onSelect={onChartHover}
-              />
-            </FormControl>
-            <Divider />
-          </>
-        )}
+              />,
+              <Divider key="chart-hover-divider" />,
+            ]}
 
-        {isGroupedOutput && (
-          <>
+        {isGroupedOutput &&
+          // An array is preferred since `Menu` throws a warning for fragment children
+          [
             <ToggleMenuItem
-              key="defaultToZero"
+              key="default-to-zero"
               label="0 NA Values"
               value={defaultToZero}
               onClick={onToggleDefaultToZero}
-            />
+            />,
             <ToggleMenuItem
-              key="showNA"
+              key="show-na-values"
               label="NA Groupings"
               value={showNA}
               onClick={onToggleShowNA}
-            />
-            <Divider />
-          </>
-        )}
+            />,
+            <Divider key="grouped-output-divider" />,
+          ]}
 
         <BaseMenuItem
           label="Remove Chart"

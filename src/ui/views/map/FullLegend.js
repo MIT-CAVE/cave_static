@@ -13,14 +13,7 @@ import {
   Typography,
 } from '@mui/material'
 import * as R from 'ramda'
-import {
-  memo,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { LuGroup, LuRadius, LuUngroup } from 'react-icons/lu'
 import { MdExpandMore, MdFilterAlt } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -630,4 +623,4 @@ const FullLegend = () => {
   )
 }
 
-export default memo(FullLegend)
+export default FullLegend

@@ -17,7 +17,7 @@ import {
   selectCurrentPage,
   selectMapData,
 } from '../../../data/selectors'
-import { RippleBox } from '../map/Legend'
+import RippleBox from '../../compound/RippleBox'
 
 import { OverflowText } from '../../compound'
 

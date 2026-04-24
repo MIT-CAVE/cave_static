@@ -1,4 +1,5 @@
-import { useEffect, useState, memo, useContext, useMemo } from 'react'
+import * as R from 'ramda'
+import { useEffect, useCallback, useContext, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -17,6 +18,8 @@ import {
   selectIncludedGeoJsonFunc,
   selectFetchedGeoJsonFunc,
   selectFetchedArcGeoJsonFunc,
+  selectFeatureData,
+  selectCurrentTimeContinuous,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
@@ -43,7 +46,7 @@ const DARKEN_FILL_ON_HOVER = [
 
 const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
-  const { Layer, Source, isMapboxSelected } = useMapApi(mapId)
+  const { Layer, Source } = useMapApi(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const useHandleClickFactory = (feature) =>
@@ -76,21 +79,17 @@ const useMapFeature = () => {
         'line-color': DARKEN_FILL_ON_HOVER,
         'line-opacity': 0.8,
         'line-width': ['get', 'size'],
-        // NOTE: Data-driven `line-dasharray` isn't supported in MapLibre yet.
-        // Keep track of: https://github.com/maplibre/maplibre-gl-js/issues/1235
-        ...(isMapboxSelected && {
-          'line-dasharray': [
-            'case',
-            ['==', ['get', 'dash'], 'dashed'],
-            ['literal', LINE_TYPES.dashed],
-            ['==', ['get', 'dash'], 'dotted'],
-            ['literal', LINE_TYPES.dotted],
-            ['literal', LINE_TYPES.solid],
-          ],
-        }),
+        'line-dasharray': [
+          'case',
+          ['==', ['get', 'dash'], 'dashed'],
+          ['literal', LINE_TYPES.dashed],
+          ['==', ['get', 'dash'], 'dotted'],
+          ['literal', LINE_TYPES.dotted],
+          ['literal', LINE_TYPES.solid],
+        ],
       },
     }),
-    [isGlobe, isMapboxSelected]
+    [isGlobe]
   )
 
   return {
@@ -102,7 +101,7 @@ const useMapFeature = () => {
   }
 }
 
-export const Geos = memo(() => {
+export const Geos = () => {
   const [loadedGeoJson, setLoadedGeoJson] = useState({})
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
 
@@ -175,9 +174,9 @@ export const Geos = memo(() => {
       />
     </Source>,
   ]
-})
+}
 
-export const IncludedGeos = memo(() => {
+export const IncludedGeos = () => {
   const { mapId } = useContext(MapContext)
   const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
   const { Layer, Source } = useMapApi(mapId)
@@ -203,12 +202,165 @@ export const IncludedGeos = memo(() => {
       />
     </Source>
   )
-})
+}
 
-export const Nodes = memo(() => {
+export const Nodes = () => {
   const { Layer, Source, mapId, createHandleClick } = useMapFeature()
   const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const featureData = useSelector(selectFeatureData)
+  const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
+
+  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+
+  const latitudes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr([], ['data', 'location', 'latitude'])),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const longitudes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map(R.pathOr([], ['data', 'location', 'longitude'])),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const animationTimes = useMemo(
+    () =>
+      R.pipe(
+        R.values,
+        R.map((item) => {
+          const latitude = R.pathOr([], ['data', 'location', 'latitude'])(item)
+          const animationTime = R.path(
+            ['data', 'location', 'animationTime'],
+            item
+          )
+          return animationTime ?? R.repeat([null], latitude.length)
+        }),
+        R.unnest
+      )(featureData),
+    [featureData]
+  )
+  const visibilityInfo = useMemo(() => {
+    const visibilities = {}
+    const visibilityTimes = {}
+    let totalNodes = 0
+    for (const val of Object.values(featureData)) {
+      const visibilityIndices = R.pipe(
+        R.pathOr([], ['data', 'location', 'visibilityIndex']),
+        R.flatten
+      )(val)
+      const numMapFeatureNodes = R.pathOr(
+        [],
+        ['data', 'location', 'latitude']
+      )(val).length
+      const visibilityTime = R.pathOr(
+        [],
+        ['data', 'location', 'visibilityTime']
+      )(val)
+      for (let i = 0; i < numMapFeatureNodes; i++) {
+        if (i in visibilityIndices) {
+          visibilities[totalNodes + visibilityIndices[i]] = true
+          visibilityTimes[totalNodes + visibilityIndices[i]] = visibilityTime[i]
+        }
+      }
+      totalNodes += numMapFeatureNodes
+    }
+    return { visibilities, visibilityTimes }
+  }, [featureData])
+
+  const definedNodeTimes = useMemo(
+    () =>
+      R.fromPairs(R.addIndex(R.map)((val, idx) => [idx, val])(animationTimes)),
+    [animationTimes]
+  )
+
+  const lerp = (start, end, t) => {
+    return start + t * (end - start)
+  }
+
+  const moveCoordinates = useCallback(
+    (idx) => {
+      if (R.equals([null], definedNodeTimes[idx])) {
+        return nodeGeoJson[idx].geometry.coordinates
+      }
+      const definedNodeTime = definedNodeTimes[idx]
+      let visible = true
+
+      if (idx in visibilityInfo.visibilities) {
+        for (const time of visibilityInfo.visibilityTimes[idx]) {
+          if (currentTimeInSeconds > time) {
+            visible = !visible
+          } else {
+            break
+          }
+        }
+      }
+
+      if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
+        if (visible) {
+          return [
+            longitudes[idx][longitudes[idx].length - 1],
+            latitudes[idx][latitudes[idx].length - 1],
+          ]
+        } else {
+          return []
+        }
+      }
+
+      if (!visible) {
+        return []
+      }
+      const lowerControlTime = R.last(
+        R.filter((t) => t <= currentTimeInSeconds, definedNodeTime)
+      )
+      const upperControlTime = R.head(
+        R.filter((t) => t > currentTimeInSeconds, definedNodeTime)
+      )
+      const t =
+        (currentTimeInSeconds - lowerControlTime) /
+        (upperControlTime - lowerControlTime)
+      return [
+        lerp(
+          longitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
+          longitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
+          t
+        ),
+        lerp(
+          latitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
+          latitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
+          t
+        ),
+      ]
+    },
+    [
+      definedNodeTimes,
+      currentTimeInSeconds,
+      visibilityInfo.visibilities,
+      visibilityInfo.visibilityTimes,
+      longitudes,
+      latitudes,
+      nodeGeoJson,
+    ]
+  )
+
+  useEffect(() => {
+    const requestId = window.requestAnimationFrame(() => {
+      setAnimatedNodeGeoJson(
+        nodeGeoJson.map((f, i) =>
+          R.assocPath(['geometry', 'coordinates'], moveCoordinates(i), f)
+        )
+      )
+    })
+    return () => window.cancelAnimationFrame(requestId)
+  }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])
+
   return [
     <NodesWithHeight
       id="nodes-with-altitude"
@@ -223,7 +375,7 @@ export const Nodes = memo(() => {
       generateId={true}
       data={{
         type: 'FeatureCollection',
-        features: nodeGeoJson,
+        features: nodeGeoJson.length === 0 ? [] : animatedNodeGeoJson,
       }}
     >
       <Layer
@@ -242,9 +394,9 @@ export const Nodes = memo(() => {
       />
     </Source>,
   ]
-})
+}
 
-export const Arcs = memo(() => {
+export const Arcs = () => {
   const { Layer, Source, mapId, arcProps, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
@@ -273,9 +425,9 @@ export const Arcs = memo(() => {
       />
     </Source>,
   ]
-})
+}
 
-export const Arcs3D = memo(() => {
+export const Arcs3D = () => {
   const { mapId, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
   return (
@@ -284,4 +436,4 @@ export const Arcs3D = memo(() => {
       onClick={createHandleClick('arcs')}
     />
   )
-})
+}

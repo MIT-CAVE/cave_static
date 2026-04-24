@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
+import { useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 
-import NumberInput from './NumberInput'
-
 import { selectNumberFormatPropsFn } from '../../data/selectors'
+import NumberField from '../prototypes/NumberField'
 
 import { forceArray } from '../../utils'
 
 const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
+  const [value, setValue] = useState(currentVal ?? prop.value)
+  const lastSentRef = useRef(currentVal ?? prop.value)
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const {
     enabled,
@@ -17,25 +18,60 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
     minValue = -Infinity,
     placeholder,
     label,
+    marqueeLabel,
     fullWidth,
+    spinner,
+    step,
+    smallStep,
+    largeStep,
+    hideKeyboardToggle,
     propStyle,
     slotProps,
   } = prop
+
+  const handleChange = (event, newValue) => {
+    setValue(newValue)
+  }
+
+  // Keep our "last sent" marker aligned with the server-authoritative value so
+  // external updates don't get re-sent on the next blur.
+  useEffect(() => {
+    lastSentRef.current = currentVal ?? prop.value
+  }, [currentVal, prop.value])
+
+  const handleChangeCommitted = (event, newValue) => {
+    // Base UI can emit `onValueCommitted` more than once per user commit
+    // (e.g. format-on-blur after a synthetic input dispatch). Skipping repeats
+    // prevents back-to-back `sendCommand`s from racing with stale `versions`,
+    // which is how the server reports an out-of-sync error.
+    if (newValue === lastSentRef.current) return
+    lastSentRef.current = newValue
+    onChange(newValue)
+  }
+
   return (
-    <NumberInput
+    <NumberField
       disabled={!enabled}
-      {...{ readOnly, placeholder, label, slotProps, fullWidth }}
+      {...{
+        readOnly,
+        placeholder,
+        label,
+        fullWidth,
+        value,
+        spinner,
+        marqueeLabel,
+        step,
+        smallStep,
+        largeStep,
+        hideKeyboardToggle,
+        slotProps,
+      }}
       sx={[...forceArray(sx), ...forceArray(propStyle)]}
       min={minValue}
       max={maxValue}
-      value={R.pipe(
-        R.defaultTo(prop.value),
-        R.clamp(minValue, maxValue)
-      )(currentVal)}
       numberFormat={numberFormatProps}
-      onClickAway={(value) => {
-        if (enabled) onChange(value)
-      }}
+      onChange={handleChange}
+      onChangeCommitted={handleChangeCommitted}
     />
   )
 }

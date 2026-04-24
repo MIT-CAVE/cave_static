@@ -120,7 +120,8 @@ const PropButtonIcon = ({ prop, sx = [] }) => {
   const { icon, color, size, url, propStyle } = prop
   return (
     <MuiIconButton
-      {...{ disabled, handleClick }}
+      {...{ disabled }}
+      onClick={handleClick}
       href={url}
       target="_blank"
       sx={[{ color, p: 0 }, ...forceArray(sx), propStyle]}
