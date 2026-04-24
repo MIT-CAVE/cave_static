@@ -10,18 +10,17 @@ import {
   OutlinedInput,
 } from '@mui/material'
 import PropTypes from 'prop-types'
+import * as R from 'ramda'
 import { useCallback, useId, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import Spinner, {
   SpinnerDecreaseButton,
   SpinnerIncreaseButton,
 } from './Spinner'
 
-import {
-  setCaretPosition,
-  setInputValue as SetKeyboardInputValue,
-} from '../../data/utilities/virtualKeyboardSlice'
+import { selectVirtualKeyboard } from '../../data/selectors'
+import { setInputValue as SetKeyboardInputValue } from '../../data/utilities/virtualKeyboardSlice'
 import KeyboardToggle from '../compound/KeyboardToggle'
 import OverflowText from '../compound/OverflowText'
 
@@ -104,6 +103,7 @@ const NumberField = ({
   const kbRef = useRef(null)
   const localInputRef = useRef(null)
   const dispatch = useDispatch()
+  const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
   const getCombinedRef = useCallback(
     (baseInputRef) => (node) => {
@@ -118,26 +118,31 @@ const NumberField = ({
 
     // Workaround to update virtual keyboard's value when this field changes from virtual keyboard input
     if (event?.type === 'onvirtualkeydown') {
-      // Clamp value from virtual keyboard within min/max bounds
-      newValue = Math.min(max, Math.max(min, Number(newValue)))
-
       // console.log('Virtual keyboard change', { value, newValue, event })
       dispatch(SetKeyboardInputValue(`${newValue}`))
-      dispatch(
-        setCaretPosition([
-          localInputRef.current.selectionStart,
-          localInputRef.current.selectionStart,
-        ])
-      )
     }
     if (value === newValue) return
+    // Guard against null (VK close) and NaN (invalid input like 'fish') during typing
+    if (newValue == null || !Number.isFinite(newValue)) return
 
     onChange(event, newValue)
   }
 
   const handleValueCommitted = (newValue, event) => {
-    // if (disabled || readOnly) return // REVIEW: Is this check necessary?
-    onChangeCommitted(event, newValue)
+    // Base UI's committed `newValue` can trail the last character because its
+    // internal state hasn't settled by the time blur fires. Read the live
+    // buffer instead: the VK's Redux value when the VK is open, otherwise the
+    // input DOM node's current value — both are synchronously up-to-date.
+    const fallback = isFinite(min) ? min : isFinite(max) ? max : 0
+    const liveText = kbRef.current?.isOpen
+      ? virtualKeyboard.inputValue
+      : localInputRef.current?.value
+    const fromLive =
+      liveText != null && liveText !== '' ? NumberFormat.parse(liveText) : NaN
+    const safe = Number.isFinite(fromLive)
+      ? R.clamp(min, max, fromLive)
+      : (newValue ?? value)
+    onChangeCommitted(event, Number.isFinite(safe) ? safe : fallback)
   }
 
   const showKeyboardToggle = !(hideKeyboardToggle || readOnly || disabled)
@@ -229,7 +234,7 @@ const NumberField = ({
                       ...props,
                       disabled,
                       value: state.focused
-                        ? state.value
+                        ? state.inputValue
                         : // Show formatted value when input is blurred
                           NumberFormat.format(state.value, numberFormat),
                       ...slotProps?.input,
@@ -321,7 +326,7 @@ const NumberField = ({
                 {showKeyboardToggle && (
                   <KeyboardToggle
                     ref={kbRef}
-                    {...{ disabled }}
+                    {...{ disabled, min, max }}
                     inputRef={localInputRef}
                     inputId={id}
                     keyboardLayout="numPad"

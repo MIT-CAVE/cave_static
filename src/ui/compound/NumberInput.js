@@ -7,10 +7,7 @@ import { useDispatch } from 'react-redux'
 
 import useNumberInput from './useNumberInput'
 
-import {
-  setInputValue,
-  setCaretPosition,
-} from '../../data/utilities/virtualKeyboardSlice'
+import { setInputValue } from '../../data/utilities/virtualKeyboardSlice'
 import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
 
 import { NumberFormat, getStatusIcon } from '../../utils'
@@ -18,8 +15,8 @@ import { NumberFormat, getStatusIcon } from '../../utils'
 const NumberInput = ({
   disabled,
   readOnly,
-  min,
-  max,
+  min = -Infinity,
+  max = Infinity,
   label,
   placeholder,
   help,
@@ -51,8 +48,12 @@ const NumberInput = ({
     keyboardLayout: 'numPad',
     disabled,
     onBlur: () => {
-      // component-specific blur logic
-      const clampedVal = R.clamp(min, max)(value)
+      const parsedInput = NumberFormat.parse(valueText)
+      const fallback = isFinite(min) ? min : isFinite(max) ? max : 0
+      const valToClamp = NumberFormat.isValid(parsedInput)
+        ? parsedInput
+        : fallback
+      const clampedVal = R.clamp(min, max)(valToClamp)
       setValue(clampedVal)
       setKeyboardValue(NumberFormat.format(clampedVal, numberFormatMemo))
       if (clampedVal === defaultValue) return
@@ -82,6 +83,8 @@ const NumberInput = ({
     numberFormat,
     setFieldValue: setValue,
     setKeyboardValue,
+    min,
+    max,
   })
 
   const [valueText, setValueText] = useState(
@@ -96,31 +99,34 @@ const NumberInput = ({
       disabled ||
       !focused.current ||
       virtualKeyboard.inputValue === valueText
+      // virtualKeyboard.layout === 'numPad'
     )
       return
 
     const rawValueText = virtualKeyboard.inputValue
+    if (R.test(validNaNs)(rawValueText)) {
+      setValueText(rawValueText)
+      isInternalChange.current = true
+      return
+    }
+
     const rawValue = NumberFormat.parse(rawValueText)
-    if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText)) {
-      dispatch(setInputValue(valueText))
-      dispatch(
-        setCaretPosition([
-          virtualKeyboard.caretPosition[0] - 1,
-          virtualKeyboard.caretPosition[1] - 1,
-        ])
-      )
+    if (!NumberFormat.isValid(rawValue)) {
+      setValueText(rawValueText)
+      isInternalChange.current = true
+      return
     }
 
     handleChange({ target: { value: virtualKeyboard.inputValue } })
   }, [
-    dispatch,
     disabled,
     validNaNs,
     virtualKeyboard.inputValue,
-    virtualKeyboard.caretPosition,
+    virtualKeyboard.layout,
     valueText,
     handleChange,
     focused,
+    isInternalChange,
   ])
 
   useEffect(() => {

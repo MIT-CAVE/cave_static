@@ -58,33 +58,35 @@ const useNumberInput = ({
   const handleChange = useCallback(
     (event) => {
       const rawValueText = event.target.value
-      const rawValue = NumberFormat.parse(rawValueText)
-      if (!NumberFormat.isValid(rawValue) && !R.test(validNaNs)(rawValueText))
+      if (rawValueText === '') {
+        setFieldValue(defaultValue)
+        setKeyboardValue('')
         return
-
-      if (isNaN(rawValue)) {
-        setFieldValue(defaultValue) // Go back to default in case blur occurs prematurely
-        setKeyboardValue(rawValueText)
-      } else {
-        const forceInt = numberFormatMemo.precision === 0 // Decimals not allowed
-        const trailingZeros = R.pipe(
-          R.match(zerosMatch),
-          R.nth(1)
-        )(rawValueText)
-        const newValueText = rawValue.toString()
-
-        setFieldValue(rawValue)
-        setKeyboardValue(
-          `${newValueText}${
-            !forceInt &&
-            // was the decimal lost in formatting?
-            rawValueText.includes(NumberFormat.decimal) &&
-            !newValueText.includes(NumberFormat.decimal)
-              ? NumberFormat.decimal
-              : ''
-          }${trailingZeros != null ? trailingZeros : ''}`
-        )
       }
+      if (R.test(validNaNs)(rawValueText)) {
+        setFieldValue(defaultValue)
+        setKeyboardValue(rawValueText)
+        return
+      }
+
+      const rawValue = NumberFormat.parse(rawValueText)
+      if (!NumberFormat.isValid(rawValue)) return
+
+      const forceInt = numberFormatMemo.precision === 0 // Decimals not allowed
+      const trailingZeros = R.pipe(R.match(zerosMatch), R.nth(1))(rawValueText)
+      const newValueText = rawValue.toString()
+
+      setFieldValue(rawValue)
+      setKeyboardValue(
+        `${newValueText}${
+          !forceInt &&
+          // was the decimal lost in formatting?
+          rawValueText.includes(NumberFormat.decimal) &&
+          !newValueText.includes(NumberFormat.decimal)
+            ? NumberFormat.decimal
+            : ''
+        }${trailingZeros != null ? trailingZeros : ''}`
+      )
     },
     [
       defaultValue,

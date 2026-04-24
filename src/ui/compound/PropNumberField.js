@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
@@ -9,6 +9,7 @@ import { forceArray } from '../../utils'
 
 const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
   const [value, setValue] = useState(currentVal ?? prop.value)
+  const lastSentRef = useRef(currentVal ?? prop.value)
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   const {
     enabled,
@@ -32,7 +33,19 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
     setValue(newValue)
   }
 
+  // Keep our "last sent" marker aligned with the server-authoritative value so
+  // external updates don't get re-sent on the next blur.
+  useEffect(() => {
+    lastSentRef.current = currentVal ?? prop.value
+  }, [currentVal, prop.value])
+
   const handleChangeCommitted = (event, newValue) => {
+    // Base UI can emit `onValueCommitted` more than once per user commit
+    // (e.g. format-on-blur after a synthetic input dispatch). Skipping repeats
+    // prevents back-to-back `sendCommand`s from racing with stale `versions`,
+    // which is how the server reports an out-of-sync error.
+    if (newValue === lastSentRef.current) return
+    lastSentRef.current = newValue
     onChange(newValue)
   }
 
