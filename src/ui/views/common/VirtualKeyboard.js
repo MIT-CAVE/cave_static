@@ -427,6 +427,18 @@ const VirtualKeyboard = () => {
     }
   }, [virtualKeyboard.inputValue, virtualKeyboard.lastKeyPress])
 
+  // Force-reset internal keyboard buffer when VK ownership transfers between
+  // fields. Without this, a trailing `{blur}` on `lastKeyPress` blocks the
+  // sync effect above, so the next keystroke would append to the prior
+  // field's buffer and leak into the newly focused field.
+  useEffect(() => {
+    if (keyboardRef.current) {
+      keyboardRef.current.setInput(virtualKeyboard.inputValue)
+      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue.length)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [virtualKeyboard.activeFieldId])
+
   useEffect(() => {
     const handlePhysicalKeyDown = (event) => {
       if (!virtualKeyboard.isOpen) return

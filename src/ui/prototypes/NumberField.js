@@ -329,6 +329,7 @@ const NumberField = ({
                     {...{ disabled, min, max }}
                     inputRef={localInputRef}
                     inputId={id}
+                    fieldId={id}
                     keyboardLayout="numPad"
                     focused={state.focused}
                     unformattedValue={state.inputValue}

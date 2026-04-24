@@ -9,6 +9,7 @@ import {
   setCaretPosition,
   setEnter,
   setLastKeyPress,
+  setActiveFieldId,
   toggleOpen,
   setInputValue as SetKeyboardInputValue,
 } from '../../../data/utilities/virtualKeyboardSlice'
@@ -22,6 +23,7 @@ const useVirtualKeyboardAlt = ({
   disabled,
   inputRef,
   focused,
+  fieldId,
   unformattedValue,
   min = -Infinity,
   max = Infinity,
@@ -83,11 +85,21 @@ const useVirtualKeyboardAlt = ({
   const handleFocus = useCallback(
     (event) => {
       if (disabled) return
+      // Claim VK ownership for this field before syncing its value so the
+      // VK internal buffer resets cleanly when focus moves between fields.
+      dispatch(setActiveFieldId(fieldId))
       // Ensure virtual keyboard is up to date when focusing the input
       updateVirtualKeyboardValue(unformattedValue)
       onFocusProp?.(event)
     },
-    [disabled, onFocusProp, unformattedValue, updateVirtualKeyboardValue]
+    [
+      dispatch,
+      disabled,
+      fieldId,
+      onFocusProp,
+      unformattedValue,
+      updateVirtualKeyboardValue,
+    ]
   )
 
   const handleBlur = useCallback(
@@ -102,12 +114,14 @@ const useVirtualKeyboardAlt = ({
 
       // console.log(isClickingAnotherInput, { nextFocus })
 
-      // Only sync from the VK buffer when the VK was actually in use. Otherwise
-      // a stale redux `inputValue` (from a prior field or initial "") would
-      // clobber whatever the user just typed directly and fire an extra
-      // `input` event that races the blur-triggered commit.
+      // Only sync from the VK buffer when the VK was actually in use and this
+      // field owned it. Otherwise a stale redux `inputValue` (from a prior
+      // field or initial "") would clobber whatever the user just typed
+      // directly and fire an extra `input` event that races the blur-triggered
+      // commit.
       if (
         virtualKeyboard.isOpen &&
+        virtualKeyboard.activeFieldId === fieldId &&
         virtualKeyboard.inputValue !== unformattedValue
       ) {
         const rawValue = NumberFormat.parse(virtualKeyboard.inputValue)
@@ -133,6 +147,7 @@ const useVirtualKeyboardAlt = ({
 
       if (!isClickingAnotherInput) {
         dispatch(setIsOpen(false))
+        dispatch(setActiveFieldId(null))
       }
 
       onBlurProp?.(event)
@@ -141,7 +156,9 @@ const useVirtualKeyboardAlt = ({
     [
       dispatch,
       disabled,
+      fieldId,
       onBlurProp,
+      virtualKeyboard.activeFieldId,
       virtualKeyboard.isOpen,
       virtualKeyboard.inputValue,
       unformattedValue,
@@ -192,6 +209,7 @@ const useVirtualKeyboardAlt = ({
       disabled ||
       !focused ||
       !virtualKeyboard.isOpen ||
+      virtualKeyboard.activeFieldId !== fieldId ||
       virtualKeyboard.inputValue === unformattedValue
       // virtualKeyboard.layout === 'numPad'
     )
@@ -218,8 +236,10 @@ const useVirtualKeyboardAlt = ({
     }
   }, [
     disabled,
+    fieldId,
     focused,
     unformattedValue,
+    virtualKeyboard.activeFieldId,
     virtualKeyboard.inputValue,
     virtualKeyboard.isOpen,
     virtualKeyboard.layout,
@@ -228,7 +248,12 @@ const useVirtualKeyboardAlt = ({
 
   // Handle virtual keyboard enter (blur on enter)
   useEffect(() => {
-    if (!focused || !virtualKeyboard.enter) return
+    if (
+      !focused ||
+      !virtualKeyboard.enter ||
+      virtualKeyboard.activeFieldId !== fieldId
+    )
+      return
 
     if (virtualKeyboard.inputValue !== unformattedValue) {
       const rawValue = NumberFormat.parse(virtualKeyboard.inputValue)
@@ -254,12 +279,15 @@ const useVirtualKeyboardAlt = ({
 
     inputRef.current?.blur()
     dispatch(setIsOpen(false))
+    dispatch(setActiveFieldId(null))
     dispatch(setLastKeyPress('{blur}'))
     dispatch(setEnter(false))
   }, [
     dispatch,
+    fieldId,
     focused,
     inputRef,
+    virtualKeyboard.activeFieldId,
     virtualKeyboard.enter,
     virtualKeyboard.inputValue,
     unformattedValue,
