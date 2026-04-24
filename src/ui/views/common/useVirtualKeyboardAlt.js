@@ -9,9 +9,12 @@ import {
   setCaretPosition,
   setEnter,
   setLastKeyPress,
+  setActiveFieldId,
   toggleOpen,
   setInputValue as SetKeyboardInputValue,
 } from '../../../data/utilities/virtualKeyboardSlice'
+
+import { NumberFormat } from '../../../utils'
 
 const DELAY = 10
 
@@ -20,7 +23,10 @@ const useVirtualKeyboardAlt = ({
   disabled,
   inputRef,
   focused,
+  fieldId,
   unformattedValue,
+  min = -Infinity,
+  max = Infinity,
   onChange: onChangeProp,
   onBlur: onBlurProp,
   onFocus: onFocusProp,
@@ -57,13 +63,6 @@ const useVirtualKeyboardAlt = ({
     }
   }, [focused, inputRef, virtualKeyboard.caretPosition])
 
-  useEffect(() => {
-    if (!focused || !virtualKeyboard.enter) return
-    inputRef.current.blur()
-    dispatch(setIsOpen(false))
-    dispatch(setEnter(false))
-  }, [dispatch, focused, inputRef, virtualKeyboard.enter])
-
   // Update virtual keyboard's value when this field changes from non-keyboard input
   const updateVirtualKeyboardValue = useCallback(
     (value) => {
@@ -86,11 +85,21 @@ const useVirtualKeyboardAlt = ({
   const handleFocus = useCallback(
     (event) => {
       if (disabled) return
+      // Claim VK ownership for this field before syncing its value so the
+      // VK internal buffer resets cleanly when focus moves between fields.
+      dispatch(setActiveFieldId(fieldId))
       // Ensure virtual keyboard is up to date when focusing the input
       updateVirtualKeyboardValue(unformattedValue)
       onFocusProp?.(event)
     },
-    [disabled, onFocusProp, unformattedValue, updateVirtualKeyboardValue]
+    [
+      dispatch,
+      disabled,
+      fieldId,
+      onFocusProp,
+      unformattedValue,
+      updateVirtualKeyboardValue,
+    ]
   )
 
   const handleBlur = useCallback(
@@ -105,14 +114,58 @@ const useVirtualKeyboardAlt = ({
 
       // console.log(isClickingAnotherInput, { nextFocus })
 
+      // Only sync from the VK buffer when the VK was actually in use and this
+      // field owned it. Otherwise a stale redux `inputValue` (from a prior
+      // field or initial "") would clobber whatever the user just typed
+      // directly and fire an extra `input` event that races the blur-triggered
+      // commit.
+      if (
+        virtualKeyboard.isOpen &&
+        virtualKeyboard.activeFieldId === fieldId &&
+        virtualKeyboard.inputValue !== unformattedValue
+      ) {
+        const rawValue = NumberFormat.parse(virtualKeyboard.inputValue)
+        const fallback = isFinite(min) ? min : isFinite(max) ? max : 0
+        const validValue = NumberFormat.isValid(rawValue) ? rawValue : fallback
+        const finalValue = R.clamp(min, max)(validValue).toString()
+
+        const customEvent = new CustomEvent('onvirtualkeydown', {
+          bubbles: true,
+          detail: { value: finalValue },
+        })
+        document.dispatchEvent(customEvent)
+
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          'value'
+        ).set
+        if (nativeInputValueSetter && inputRef.current) {
+          nativeInputValueSetter.call(inputRef.current, finalValue)
+          inputRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+        }
+      }
+
       if (!isClickingAnotherInput) {
         dispatch(setIsOpen(false))
+        dispatch(setActiveFieldId(null))
       }
 
       onBlurProp?.(event)
       dispatch(setLastKeyPress('{blur}'))
     },
-    [dispatch, disabled, onBlurProp]
+    [
+      dispatch,
+      disabled,
+      fieldId,
+      onBlurProp,
+      virtualKeyboard.activeFieldId,
+      virtualKeyboard.isOpen,
+      virtualKeyboard.inputValue,
+      unformattedValue,
+      inputRef,
+      min,
+      max,
+    ]
   )
 
   // Touch handlers
@@ -156,48 +209,91 @@ const useVirtualKeyboardAlt = ({
       disabled ||
       !focused ||
       !virtualKeyboard.isOpen ||
+      virtualKeyboard.activeFieldId !== fieldId ||
       virtualKeyboard.inputValue === unformattedValue
+      // virtualKeyboard.layout === 'numPad'
     )
       return
 
-    // inputRef.current.value = virtualKeyboard.inputValue
+    // console.log('Dispatching onvirtualkeydown', { value: virtualKeyboard.inputValue })
+
+    const finalValue = virtualKeyboard.inputValue
+
     // Dispatch an onVirtualKeyDown event so that parent components can listen to changes from the virtual keyboard just like normal typing
     const event = new CustomEvent('onvirtualkeydown', {
       bubbles: true,
-      detail: { value: virtualKeyboard.inputValue },
+      detail: { value: finalValue },
     })
-    // console.log('Updating field value from virtual keyboard', { event })
     document.dispatchEvent(event)
 
-    // const event = new Event('input', { bubbles: true })
-
-    // inputRef.current.value = virtualKeyboard.inputValue
-    // inputRef.current.dispatchEvent(event)
-
-    // const eventDetails = createChangeEventDetails(
-    //   'input-change',
-    //   new Event('change'),
-    //   undefined,
-    //   { value: virtualKeyboard.inputValue }
-    // )
-    // onChangeProp?.(eventDetails)
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value'
+    ).set
+    if (nativeInputValueSetter && inputRef.current) {
+      nativeInputValueSetter.call(inputRef.current, finalValue)
+      inputRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+    }
   }, [
     disabled,
+    fieldId,
     focused,
     unformattedValue,
+    virtualKeyboard.activeFieldId,
     virtualKeyboard.inputValue,
     virtualKeyboard.isOpen,
+    virtualKeyboard.layout,
+    inputRef,
   ])
 
   // Handle virtual keyboard enter (blur on enter)
   useEffect(() => {
-    if (!focused || !virtualKeyboard.enter) return
+    if (
+      !focused ||
+      !virtualKeyboard.enter ||
+      virtualKeyboard.activeFieldId !== fieldId
+    )
+      return
+
+    if (virtualKeyboard.inputValue !== unformattedValue) {
+      const rawValue = NumberFormat.parse(virtualKeyboard.inputValue)
+      const fallback = isFinite(min) ? min : isFinite(max) ? max : 0
+      const validValue = NumberFormat.isValid(rawValue) ? rawValue : fallback
+      const finalValue = R.clamp(min, max)(validValue).toString()
+
+      const event = new CustomEvent('onvirtualkeydown', {
+        bubbles: true,
+        detail: { value: finalValue },
+      })
+      document.dispatchEvent(event)
+
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      ).set
+      if (nativeInputValueSetter && inputRef.current) {
+        nativeInputValueSetter.call(inputRef.current, finalValue)
+        inputRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    }
 
     inputRef.current?.blur()
     dispatch(setIsOpen(false))
+    dispatch(setActiveFieldId(null))
     dispatch(setLastKeyPress('{blur}'))
     dispatch(setEnter(false))
-  }, [dispatch, focused, inputRef, virtualKeyboard.enter])
+  }, [
+    dispatch,
+    fieldId,
+    focused,
+    inputRef,
+    virtualKeyboard.activeFieldId,
+    virtualKeyboard.enter,
+    virtualKeyboard.inputValue,
+    unformattedValue,
+    min,
+    max,
+  ])
 
   // Caret sync
   const handleSelectionChange = useCallback(() => {
@@ -214,18 +310,31 @@ const useVirtualKeyboardAlt = ({
   }, [dispatch, inputRef])
 
   const handleKeyboardToggle = useCallback(() => {
+    const nextOpen = !virtualKeyboard.isOpen
     if (!focused) {
       inputRef.current?.focus()
       inputRef.current?.setSelectionRange(
         inputRef.current.value.length,
         inputRef.current.value.length
       )
+    } else if (nextOpen) {
+      // Ensure virtual keyboard is up to date when opening it
+      updateVirtualKeyboardValue(unformattedValue)
     }
 
     dispatch(toggleOpen())
     dispatch(setLayout(keyboardLayout))
     handleSelectionChange()
-  }, [dispatch, focused, handleSelectionChange, inputRef, keyboardLayout])
+  }, [
+    dispatch,
+    focused,
+    handleSelectionChange,
+    inputRef,
+    keyboardLayout,
+    virtualKeyboard.isOpen,
+    unformattedValue,
+    updateVirtualKeyboardValue,
+  ])
 
   return {
     inputRef,

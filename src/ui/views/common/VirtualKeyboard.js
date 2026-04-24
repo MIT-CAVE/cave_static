@@ -14,6 +14,15 @@ import {
   setLastKeyPress,
 } from '../../../data/utilities/virtualKeyboardSlice'
 
+const DEFAULT_WIDTH_RATIO = 0.8
+const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
+const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
+const DEFAULT_MAX_WIDTH = 1600
+const DEFAULT_MIN_WIDTH = 1300
+const MIN_HEIGHT = 300
+
+const dragText = 'drag to move'
+
 const styles = {
   '& .react-simple-keyboard': {
     '--gray-1': (theme) => theme.palette.grey[600],
@@ -197,15 +206,6 @@ const Resizable = ({
   )
 }
 
-const DEFAULT_WIDTH_RATIO = 0.8
-const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
-const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
-const DEFAULT_MAX_WIDTH = 1600
-const DEFAULT_MIN_WIDTH = 1300
-const MIN_HEIGHT = 300
-
-const dragText = 'drag to move'
-
 const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
@@ -213,11 +213,11 @@ const VirtualKeyboard = () => {
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
     x: window.innerWidth / 2,
-    y: 0,
+    y: (window.innerHeight - MIN_HEIGHT) / 2,
   })
   const [boxDimensions, setBoxDimensions] = useState({
-    height: 0,
-    width: 0,
+    height: MIN_HEIGHT,
+    width: DEFAULT_MIN_WIDTH,
   })
 
   const boxRef = useRef(null)
@@ -257,18 +257,18 @@ const VirtualKeyboard = () => {
 
     // Reset position and default size when window is resized
     const onResize = () => {
-      setPosition({
-        x: window.innerWidth / 2,
-        y: 0,
-      })
-
       const defaultWidth = Math.min(
         DEFAULT_WIDTH_RATIO * window.innerWidth,
         DEFAULT_MAX_WIDTH
       )
+      const height = defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO
       setBoxDimensions({
-        height: defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO,
+        height,
         width: defaultWidth * (isNumPad ? DEFAULT_TO_NUMPAD_WIDTH_RATIO : 1),
+      })
+      setPosition({
+        x: window.innerWidth / 2,
+        y: (window.innerHeight - height) / 2,
       })
     }
     window.addEventListener('resize', onResize)
@@ -373,14 +373,15 @@ const VirtualKeyboard = () => {
     }
   }, [onDragMove, isDragging])
 
-  // Reset caret position when lost by changing from default to numPad layout
+  // Restore caret to end when it gets lost (e.g. switching layouts)
   useEffect(() => {
     const onMouseUpGlobal = () => {
       if (
         keyboardRef?.current !== null &&
         keyboardRef.current?.getCaretPosition() === null
       ) {
-        keyboardRef.current.setCaretPosition(virtualKeyboard.caretPosition[0])
+        const len = (keyboardRef.current.getInput() || '').length
+        keyboardRef.current.setCaretPosition(len)
       }
     }
 
@@ -389,7 +390,7 @@ const VirtualKeyboard = () => {
     return () => {
       window.removeEventListener('mouseup', onMouseUpGlobal)
     }
-  }, [virtualKeyboard.caretPosition])
+  }, [])
 
   useEffect(() => {
     const onTouchStartDrag = (event) => {
@@ -414,22 +415,75 @@ const VirtualKeyboard = () => {
     }
   }, [onDragStart, onDragMove])
 
-  // Sync keyboard with input field value
-  useEffect(() => {
-    if (virtualKeyboard.inputValue !== keyboardRef.current.getInput()) {
-      keyboardRef.current?.setInput(virtualKeyboard.inputValue)
-    }
-  }, [dispatch, virtualKeyboard.inputValue])
-
-  // Sync keyboard with input field caret position
+  // Sync keyboard value when changed externally (field focus, external state update)
   useEffect(() => {
     if (
-      virtualKeyboard.caretPosition[0] !==
-      keyboardRef.current.getCaretPosition()
+      keyboardRef.current &&
+      virtualKeyboard.inputValue !== keyboardRef.current.getInput() &&
+      virtualKeyboard.lastKeyPress === null // Only sync from external sources
     ) {
-      keyboardRef.current?.setCaretPosition(virtualKeyboard.caretPosition[0])
+      keyboardRef.current.setInput(virtualKeyboard.inputValue)
+      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue.length)
     }
-  }, [dispatch, virtualKeyboard.caretPosition])
+  }, [virtualKeyboard.inputValue, virtualKeyboard.lastKeyPress])
+
+  // Force-reset internal keyboard buffer when VK ownership transfers between
+  // fields. Without this, a trailing `{blur}` on `lastKeyPress` blocks the
+  // sync effect above, so the next keystroke would append to the prior
+  // field's buffer and leak into the newly focused field.
+  useEffect(() => {
+    if (keyboardRef.current) {
+      keyboardRef.current.setInput(virtualKeyboard.inputValue)
+      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue.length)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [virtualKeyboard.activeFieldId])
+
+  useEffect(() => {
+    const handlePhysicalKeyDown = (event) => {
+      if (!virtualKeyboard.isOpen) return
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+
+      if (event.key === 'Backspace') {
+        event.preventDefault()
+        const newValue = virtualKeyboard.inputValue.toString().slice(0, -1)
+        dispatch(setInputValue(newValue))
+        keyboardRef.current?.setInput(newValue)
+        keyboardRef.current?.setCaretPosition(newValue.length)
+        return
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        dispatch(setEnter(true))
+        return
+      }
+
+      // Single printable character — mirror a VK key press
+      if (event.key.length === 1) {
+        // In numPad mode restrict to the keys available on the numPad
+        if (virtualKeyboard.layout === 'numPad' && !/^[-0-9.]$/.test(event.key))
+          return
+
+        event.preventDefault()
+        const newValue = virtualKeyboard.inputValue + event.key
+        dispatch(setInputValue(newValue))
+        keyboardRef.current?.setInput(newValue)
+        keyboardRef.current?.setCaretPosition(newValue.length)
+      }
+    }
+
+    // Capture phase so we intercept before the focused input processes the key
+    window.addEventListener('keydown', handlePhysicalKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', handlePhysicalKeyDown, true)
+    }
+  }, [
+    virtualKeyboard.isOpen,
+    virtualKeyboard.inputValue,
+    virtualKeyboard.layout,
+    dispatch,
+  ])
 
   return (
     <Box
@@ -457,29 +511,47 @@ const VirtualKeyboard = () => {
         boxDimensions={boxDimensions}
         setBoxDimensions={setBoxDimensions}
       />
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          px: 2,
+          py: 1,
+          backgroundColor: 'var(--gray-3)',
+          color: 'text.primary',
+          fontSize: '1.5rem',
+          borderBottom: '2px solid var(--gray-1)',
+          border: '2px solid',
+          borderColor: 'primary.main',
+          m: 1,
+          borderRadius: 1,
+          minHeight: '50px',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {virtualKeyboard.inputValue}
+      </Box>
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
         onChange={(value) => {
+          if (value === virtualKeyboard.inputValue) return
           dispatch(setInputValue(value))
-
-          if (
-            keyboardRef.current.getCaretPosition() !== null &&
-            keyboardRef.current.getCaretPosition() !==
-              virtualKeyboard.caretPosition[0]
-          ) {
-            dispatch(
-              setCaretPosition([
-                keyboardRef.current.getCaretPosition(),
-                keyboardRef.current.getCaretPosition(),
-              ])
-            )
-          }
+          // Always keep caret at end so the next keypress appends correctly
+          keyboardRef.current.setCaretPosition(value.length)
+          dispatch(setCaretPosition([value.length, value.length]))
         }}
         newLineOnEnter={true}
         onKeyPress={(button) => {
           let nextLayout = virtualKeyboard.layout
 
-          if (button === '{shift}') {
+          if (button === '{bksp}') {
+            const newValue = virtualKeyboard.inputValue.toString().slice(0, -1)
+            dispatch(setInputValue(newValue))
+            keyboardRef.current.setInput(newValue)
+            keyboardRef.current.setCaretPosition(newValue.length)
+          } else if (button === '{shift}') {
             nextLayout =
               virtualKeyboard.layout === 'default'
                 ? 'shift'
@@ -520,55 +592,55 @@ const VirtualKeyboard = () => {
 
           setTimeout(() => {
             dispatch(setLayout(nextLayout))
-            setLastKeyPress(button)
+            dispatch(setLastKeyPress(button))
           }, 0)
         }}
         theme={`hg-theme-default ${virtualKeyboard.layout === 'numPad' && 'hg-layout-numpad'}`}
         layoutName={virtualKeyboard.layout}
         layout={{
           default: [
-            '{drag}',
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
             '{tab} q w e r t y u i o p [ ] \\',
             `{lock} a s d f g h j k l ; ' ${enterKeys}`,
             '{shift} z x c v b n m , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
+            '{drag}',
           ],
           shift: [
-            '{drag}',
             '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
             '{tab} Q W E R T Y U I O P { } |',
             `{lock} A S D F G H J K L : " ${enterKeys}`,
             '{shift} Z X C V B N M < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
+            '{drag}',
           ],
           lock: [
-            '{drag}',
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
             '{tab} Q W E R T Y U I O P [ ] \\',
             `{lock} A S D F G H J K L ; ' ${enterKeys}`,
             '{shift} Z X C V B N M , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
+            '{drag}',
           ],
           shiftAndLock: [
-            '{drag}',
             '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
             '{tab} q w e r t y u i o p { } |',
             `{lock} a s d f g h j k l : " ${enterKeys}`,
             '{shift} z x c v b n m < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
+            '{drag}',
           ],
           numPad: [
-            '{drag}',
             '7 8 9',
             '4 5 6',
             '1 2 3',
             '. 0 -',
             '{toggleDefault} {blur} {bksp}',
+            '{drag}',
           ],
         }}
         display={{
-          '{bksp}': 'delete',
+          '{bksp}': '⌫',
           '{tab}': 'tab',
           '{enter}': 'enter',
           '{blur}': 'submit',

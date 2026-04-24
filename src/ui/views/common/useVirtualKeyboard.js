@@ -159,18 +159,28 @@ export function useVirtualKeyboard({
   }, [dispatch])
 
   const handleKeyboardToggle = useCallback(() => {
+    const nextOpen = !virtualKeyboard.isOpen
     if (!focused.current) {
       inputRef.current?.focus()
       inputRef.current?.setSelectionRange(
         inputRef.current.value.length,
         inputRef.current.value.length
       )
+    } else if (nextOpen) {
+      // Sync value if already focused and opening keyboard
+      onFocusProp?.()
     }
 
-    dispatch(setIsOpen(!virtualKeyboard.isOpen))
+    dispatch(setIsOpen(nextOpen))
     dispatch(setLayout(keyboardLayout))
     handleSelectionChange()
-  }, [dispatch, handleSelectionChange, keyboardLayout, virtualKeyboard.isOpen])
+  }, [
+    dispatch,
+    handleSelectionChange,
+    keyboardLayout,
+    virtualKeyboard.isOpen,
+    onFocusProp,
+  ])
 
   const handleKeyboardMouseDown = useCallback((event) => {
     if (focused.current) event.preventDefault()
