@@ -1,6 +1,6 @@
 import { Box, Divider, IconButton, Tab, Tabs } from '@mui/material'
 import * as R from 'ramda'
-import React, { useCallback, useRef, useState, useEffect } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -26,12 +26,10 @@ const styles = {
     flexDirection: 'column',
     height: '100vh',
     width: `${APP_BAR_WIDTH}px`,
-    borderColor: 'text.secondary',
+    borderColor: 'rgb(128 128 128)',
     bgcolor: 'background.paper',
   },
   rightRoot: {
-    position: 'absolute',
-    right: 0,
     borderLeft: 1,
   },
   leftRoot: {

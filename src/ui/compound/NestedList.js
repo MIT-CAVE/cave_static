@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { Box, Checkbox } from '@mui/material'
 import * as R from 'ramda'
-import React from 'react'
 
 const nonSx = {
   summaryClass: {

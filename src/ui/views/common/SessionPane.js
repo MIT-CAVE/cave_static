@@ -38,7 +38,7 @@ import {
 } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { draggableId } from '../../../utils/enums'
-import { useMenu, useMutateState, useModal } from '../../../utils/hooks'
+import { useMenu, useModal, useMutateStateWithSync } from '../../../utils/hooks'
 
 import { FetchedIcon, TextInput } from '../../compound'
 
@@ -762,11 +762,10 @@ const SessionPane = ({ width }) => {
     setCurrentAction({})
   }
 
-  const handleToggleDraggable = useMutateState(
+  const handleToggleDraggable = useMutateStateWithSync(
     () => ({
-      path: ['draggables', draggableId.SESSION, 'open'],
+      path: ['draggables', 'data', draggableId.SESSION, 'open'],
       value: !sessionDraggable.open,
-      sync: false,
     }),
     [draggableId.SESSION, sessionDraggable.open]
   )

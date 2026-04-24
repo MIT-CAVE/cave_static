@@ -1,5 +1,6 @@
 import { Box, Modal } from '@mui/material'
 import * as R from 'ramda'
+import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { renderPropsLayout } from './renderLayout'
@@ -58,9 +59,32 @@ const styles = {
   },
 }
 
+// Track whether an input inside `paperRef` had focus at the latest mousedown.
+// By the time `onClose` fires with `backdropClick`, native blur has already
+// moved focus off the input, so we have to sample it before that transition.
+const useHadFocusedInputOnMouseDown = (paperRef) => {
+  const hadFocusedInputRef = useRef(false)
+  useEffect(() => {
+    const onMouseDown = () => {
+      const active = document.activeElement
+      hadFocusedInputRef.current = Boolean(
+        paperRef.current &&
+        active &&
+        active.tagName === 'INPUT' &&
+        paperRef.current.contains(active)
+      )
+    }
+    document.addEventListener('mousedown', onMouseDown, true)
+    return () => document.removeEventListener('mousedown', onMouseDown, true)
+  }, [paperRef])
+  return hadFocusedInputRef
+}
+
 const GeneralModal = ({ title, children }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+  const paperRef = useRef(null)
+  const hadFocusedInputRef = useHadFocusedInputOnMouseDown(paperRef)
 
   return (
     <Modal
@@ -69,7 +93,13 @@ const GeneralModal = ({ title, children }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => {
+      onClose={(event, reason) => {
+        // Swallow a backdrop click that also blurred an input inside the
+        // modal — one click should only exit the input context, not the modal.
+        if (reason === 'backdropClick' && hadFocusedInputRef.current) {
+          hadFocusedInputRef.current = false
+          return
+        }
         dispatch(
           mutateLocal({
             path: ['panes', 'paneState', 'center'],
@@ -83,7 +113,7 @@ const GeneralModal = ({ title, children }) => {
         )
       }}
     >
-      <Box sx={styles.paper}>
+      <Box ref={paperRef} sx={styles.paper}>
         <Box sx={styles.header}>{title}</Box>
         {children}
       </Box>
@@ -99,8 +129,6 @@ const MapFeatureModal = () => {
   const geoData = useSelector(selectLocalizedGeoTypes)
   const dispatch = useDispatch()
   const { cluster_id, feature, type, layout, props, mapId } = open
-  console.log('MapFeatureModal', { open })
-  console.log(arcData)
   const key = JSON.parse(R.prop('key', open))
   const featureData =
     feature === 'arcs' ? arcData : feature === 'nodes' ? nodeData : geoData

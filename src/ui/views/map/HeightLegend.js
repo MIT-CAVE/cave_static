@@ -1,12 +1,5 @@
 // TODO: Update this component to match the new prop/size API structure
-import {
-  FormControl,
-  Grid,
-  InputLabel,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Grid, Paper, Stack, Typography } from '@mui/material'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
@@ -125,18 +118,15 @@ const HeightLegend = ({
     <Stack spacing={2} sx={{ width: '100%' }}>
       <Grid container spacing={1}>
         <Grid size="grow">
-          <FormControl fullWidth>
-            <InputLabel id="height-by-label">Height by</InputLabel>
-            <Select
-              id="height-by"
-              labelId="height-by-label"
-              label="Height by"
-              value={heightBy}
-              optionsList={Object.keys(heightByOptions)}
-              getLabel={(option) => featureTypeProps[option].name || option}
-              onSelect={onSelectProp}
-            />
-          </FormControl>
+          <Select
+            id="height-by"
+            labelId="height-by-label"
+            label="Height by"
+            value={heightBy}
+            optionsList={Object.keys(heightByOptions)}
+            getLabel={(option) => featureTypeProps[option].name || option}
+            onSelect={onSelectProp}
+          />
         </Grid>
         {numberFormat.unit && (
           <Grid size={4}>

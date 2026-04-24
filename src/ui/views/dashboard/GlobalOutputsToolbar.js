@@ -20,6 +20,7 @@ import { mutateLocal } from '../../../data/local'
 import {
   selectAssociatedData,
   selectSync,
+  selectChartById,
   selectCurrentPage,
   selectMergedGlobalOutputs,
 } from '../../../data/selectors'
@@ -61,7 +62,7 @@ const CHART_OPTIONS = [
   chartOption.OVERVIEW,
 ]
 
-const GlobalOutputsToolbar = ({ chartObj, index }) => {
+const GlobalOutputsToolbar = ({ index }) => {
   const globalOutputs = useSelector(selectAssociatedData)
   const currentPage = useSelector(selectCurrentPage)
   const items = useSelector(selectMergedGlobalOutputs)
@@ -70,6 +71,7 @@ const GlobalOutputsToolbar = ({ chartObj, index }) => {
     R.propOr({}, 'values', items)
   )
   const sync = useSelector(selectSync)
+  const chartObj = useSelector((state) => selectChartById(state, index))
   const dispatch = useDispatch()
 
   const path = useMemo(

@@ -12,11 +12,15 @@ export const useSizeSlider = (onChangeSize, unit = 'px') => {
   const handleOpen = useCallback(
     (key, value) => (event) => {
       setSizeSliderProps(
-        key === sizeSliderProps.key ? {} : { key, value: [parseInt(value)] }
+        R.ifElse(
+          R.propEq(key, 'key'),
+          R.always({}),
+          R.always({ key, value: [parseInt(value)] })
+        )
       )
       event.stopPropagation()
     },
-    [sizeSliderProps.key]
+    []
   )
 
   const handleChange = useCallback((event, value) => {

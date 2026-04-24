@@ -2,9 +2,8 @@ import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import { MdDownloading } from 'react-icons/md'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
 import MapControls from './MapControls'
@@ -12,7 +11,6 @@ import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 import useMapApi, { MapContext } from './useMapApi'
 
-import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
   selectGroupedEnabledArcsFunc,
@@ -21,19 +19,24 @@ import {
   selectDemoMode,
   selectDemoSettings,
   selectViewportsByMap,
-  selectMapData,
   selectAllNodeIcons,
   selectMapboxToken,
+  selectMapNamesDraggable,
 } from '../../../data/selectors'
 import {
   DARK_GLOBE_FOG,
   DARK_SKY_SPEC,
+  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
+  MAX_ZOOM,
+  MIN_ZOOM,
 } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
+import { getSvgMarkup } from '../../../utils/svgBuilder'
+import MapNameDraggable from '../../draggables/MapNameDraggable'
 
 import { fetchIcon } from '../../../utils'
 
@@ -54,12 +57,11 @@ const Map = ({ mapId }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
-  const mapData = useSelector(selectMapData)
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
-  const dispatch = useDispatch()
+  const draggable = useSelector(selectMapNamesDraggable)
 
-  const mapExists = R.has(mapId, mapData)
+  const [currentViewport, setCurrentViewport] = useState(viewport)
 
   const arcData = useMemo(
     () => R.pipe(groupedEnabledArcsFunc, R.propOr({}, 'geoJson'))(mapId),
@@ -76,25 +78,33 @@ const Map = ({ mapId }) => {
     mapStyleOption,
   } = useMapApi(mapId)
 
-  useEffect(() => {
-    const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
-    if (demoMode && demoInterval.current === -1) {
-      dispatch(viewportRotate({ mapId, rate }))
-      demoInterval.current = setInterval(
-        () => dispatch(viewportRotate({ mapId, rate })),
-        13
-      )
-    } else if (demoInterval.current !== -1 && !demoMode) {
+  const rotateViewport = useMutateStateWithSync(
+    (rate) => ({
+      path: ['maps', 'data', mapId, 'mapControls', 'viewport', 'longitude'],
+      value: (currentViewport.longitude + rate) % 360,
+      sync: false, // Disabled to prevent conflicts when multiple clients enable demo mode
+    }),
+    [mapId, currentViewport.longitude]
+  )
+
+  const clearDemoInterval = useCallback(() => {
+    if (demoInterval.current !== -1) {
       clearInterval(demoInterval.current)
       demoInterval.current = -1
     }
-    return () => {
-      if (demoInterval.current !== -1) {
-        clearInterval(demoInterval.current)
-        demoInterval.current = -1
+  }, [])
+
+  useEffect(() => {
+    if (demoMode) {
+      if (demoInterval.current === -1) {
+        const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
+        demoInterval.current = setInterval(() => rotateViewport(rate), 13)
       }
+    } else {
+      clearDemoInterval()
     }
-  }, [mapId, demoMode, demoSettings, dispatch])
+    return clearDemoInterval
+  }, [clearDemoInterval, demoMode, demoSettings, mapId, rotateViewport])
 
   useEffect(() => {
     const iconsToLoad = [
@@ -102,17 +112,15 @@ const Map = ({ mapId }) => {
     ]
     R.forEach(async (iconName) => {
       const iconComponent =
-        iconName === 'MdDownloading' ? (
-          <MdDownloading />
-        ) : (
-          (await fetchIcon(iconName, iconUrl))()
-        )
-      const svgString = renderToStaticMarkup(iconComponent)
+        iconName === 'MdDownloading'
+          ? MdDownloading
+          : await fetchIcon(iconName, iconUrl)
+      const svgMarkup = getSvgMarkup(iconComponent)
       const iconImage = new Image(ICON_RESOLUTION, ICON_RESOLUTION)
       iconImage.onload = () => {
-        setIconData((iconStrings) => R.assoc(iconName, iconImage)(iconStrings))
+        setIconData(R.assoc(iconName, iconImage))
       }
-      iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgString)}`
+      iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
     })(iconsToLoad)
   }, [iconUrl, iconData, nodeIcons, mapId])
 
@@ -209,13 +217,96 @@ const Map = ({ mapId }) => {
     [arcData, geosData]
   )
 
-  const handleMove = useCallback(
-    (e) => {
-      // Prevents setting incorrect viewport on load
-      if (e.viewState.zoom !== 0)
-        dispatch(viewportUpdate({ viewport: e.viewState, mapId }))
+  const updateViewport = useMutateStateWithSync(
+    (newViewport) => {
+      const minZoom = R.clamp(
+        MIN_ZOOM,
+        MAX_ZOOM
+      )(newViewport.minZoom ?? MIN_ZOOM)
+      const maxZoom = R.clamp(
+        minZoom,
+        MAX_ZOOM
+      )(newViewport.maxZoom ?? MAX_ZOOM)
+      const zoom = R.clamp(minZoom, maxZoom)(newViewport.zoom ?? 0)
+      const clampedViewport = R.assoc('zoom', zoom)(newViewport)
+      return {
+        path: ['maps', 'data', mapId, 'mapControls', 'viewport'],
+        value: R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport),
+      }
     },
-    [dispatch, mapId]
+    [mapId]
+  )
+
+  const {
+    latitude,
+    longitude,
+    zoom,
+    pitch,
+    bearing,
+    minZoom,
+    maxZoom,
+    minPitch,
+    maxPitch,
+    minBearing,
+    maxBearing,
+    padding,
+  } = viewport
+
+  useEffect(() => {
+    // Avoid using the `viewport` object directly to prevent
+    // redundant updates and a brief viewport flicker caused
+    // by the same values wrapped in a new object reference.
+    setCurrentViewport(
+      R.mergeLeft({
+        latitude,
+        longitude,
+        zoom,
+        pitch,
+        bearing,
+        minZoom,
+        maxZoom,
+        minPitch,
+        maxPitch,
+        minBearing,
+        maxBearing,
+        padding,
+      })
+    )
+  }, [
+    bearing,
+    latitude,
+    longitude,
+    maxBearing,
+    maxPitch,
+    maxZoom,
+    minBearing,
+    minPitch,
+    minZoom,
+    padding,
+    pitch,
+    zoom,
+  ])
+
+  // useEffect(() => {
+  //   setCurrentViewport(viewport)
+  //   // Workaround (via JSON.stringify) to prevent redundant
+  //   // updates and a brief viewport flicker caused by the
+  //   // same values wrapped in a new object reference.
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [JSON.stringify(viewport)])
+
+  const handleMove = useCallback((e) => {
+    if (e.viewState.zoom === 0) return // Prevents setting incorrect viewport on load
+    setCurrentViewport(e.viewState)
+  }, [])
+
+  const handleMoveEnd = useCallback(
+    (e) => {
+      if (e.viewState.zoom === 0) return // Prevents setting incorrect viewport on load
+
+      updateViewport(e.viewState)
+    },
+    [updateViewport]
   )
 
   const handleMouseMove = useCallback(
@@ -295,51 +386,51 @@ const Map = ({ mapId }) => {
   }, [])
 
   return (
-    mapExists && (
-      <Box
-        sx={{
-          display: 'flex',
-          position: 'relative',
-          flex: '1 1 auto',
-        }}
-      >
-        <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
-          <MapControls />
-          <ReactMapGl
-            ref={mapRef}
-            hash="map"
-            container="map"
-            style={
-              !isMapboxSelected && {
-                backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
-              }
+    <Box
+      sx={{
+        display: 'flex',
+        position: 'relative',
+        flex: '1 1 auto',
+      }}
+    >
+      <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
+        {draggable.open && <MapNameDraggable {...{ mapId }} />}
+        <MapControls {...{ mapId }} />
+        <ReactMapGl
+          ref={mapRef}
+          hash="map"
+          container="map"
+          style={
+            !isMapboxSelected && {
+              backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
             }
-            mapboxAccessToken={isMapboxSelected && mapboxToken}
-            projection={currentMapProjectionFunc(mapId)}
-            {...{ mapStyle, interactiveLayerIds, ...viewport }}
-            onStyleData={handleStyleData}
-            onLoad={loadSkyAndFog}
-            onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
-            onRender={handleRender}
-            onClick={handleClick}
-            onMove={handleMove}
-            onMouseMove={handleMouseMove}
-            onMouseOver={handleMouseOver}
-          >
-            <Geos />
-            <IncludedGeos />
-            <Arcs />
-            <Nodes />
-            <Arcs3D />
-            {/* `MapPortal` is injected here */}
-            <div ref={containerRef} />
-          </ReactMapGl>
+          }
+          mapboxAccessToken={isMapboxSelected && mapboxToken}
+          projection={currentMapProjectionFunc(mapId)}
+          {...{ mapStyle, interactiveLayerIds, ...currentViewport }}
+          onClick={handleClick}
+          onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
+          onLoad={loadSkyAndFog}
+          onMouseMove={handleMouseMove}
+          onMouseOver={handleMouseOver}
+          onMove={handleMove}
+          onMoveEnd={handleMoveEnd}
+          onRender={handleRender}
+          onStyleData={handleStyleData}
+        >
+          <Geos />
+          <IncludedGeos />
+          <Arcs />
+          <Nodes />
+          <Arcs3D />
+          {/* `MapPortal` is injected here */}
+          <div ref={containerRef} />
+        </ReactMapGl>
 
-          <MapModal />
-          <MapLegend />
-        </MapContext.Provider>
-      </Box>
-    )
+        <MapModal />
+        <MapLegend />
+      </MapContext.Provider>
+    </Box>
   )
 }
 Map.propTypes = { mapId: PropTypes.string }

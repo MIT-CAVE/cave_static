@@ -1,4 +1,8 @@
-import { createSelector, lruMemoize } from '@reduxjs/toolkit'
+import {
+  createSelector,
+  createSelectorCreator,
+  lruMemoize,
+} from '@reduxjs/toolkit'
 import * as R from 'ramda'
 
 import {
@@ -53,6 +57,7 @@ import {
   parseGradient,
   getChartItemColor,
   isMapboxStyle,
+  getColoringFn,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -62,6 +67,11 @@ export const selectUtilities = (state) => R.prop('utilities')(state)
 // Virtual Keyboard
 export const selectVirtualKeyboard = createSelector(selectUtilities, (data) =>
   R.prop('virtualKeyboard')(data)
+)
+
+export const selectVirtualKeyboardValue = createSelector(
+  selectVirtualKeyboard,
+  R.prop('inputValue')
 )
 
 // Loading
@@ -131,8 +141,14 @@ export const selectLocal = (state) => R.propOr({}, 'local')(state)
 export const selectLocalSettings = createSelector(selectLocal, (data) =>
   R.propOr({}, 'settings')(data)
 )
-export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
-  R.prop('currentTime')(data)
+export const selectCurrentTime = createSelector(
+  selectLocalSettings,
+  (data) => Math.floor(R.prop('currentTimeContinuous')(data)) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
+  //R.prop('currentTime')(data)
+)
+export const selectCurrentTimeContinuous = createSelector(
+  selectLocalSettings,
+  (data) => R.prop('currentTimeContinuous')(data)
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
@@ -181,6 +197,10 @@ export const selectAppBar = createSelector(selectData, (data) => {
   )
   return appBar
 })
+export const selectDraggables = createSelector(
+  selectData,
+  R.propOr({}, 'draggables')
+)
 export const selectGroupedOutputs = createSelector(selectData, (data) =>
   R.propOr({}, 'groupedOutputs')(data)
 )
@@ -203,9 +223,6 @@ export const selectSettings = createSelector(
 )
 export const selectPanes = createSelector(selectData, (data) =>
   R.propOr({}, 'panes')(data)
-)
-export const selectModals = createSelector(selectData, (data) =>
-  R.propOr({}, 'modals')(data)
 )
 export const selectMap = createSelector(selectData, (data) =>
   R.propOr({}, 'maps', data)
@@ -264,10 +281,6 @@ export const selectPanesData = createSelector(
     return R.mergeRight(panesData, systemPanesData)
   }
 )
-export const selectModalsData = createSelector(
-  selectModals,
-  R.propOr({}, 'data')
-)
 export const selectMapData = createSelector(
   [selectOrderedMaps, selectCurrentTime],
   (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
@@ -293,9 +306,17 @@ export const selectRightAppBarData = createSelector(
     )
   )
 )
+export const selectDraggablesData = createSelector(
+  selectDraggables,
+  R.propOr({}, 'data')
+)
 export const selectGroupedOutputsData = createSelector(
   selectOrderedGroupedOutputs,
   (data) => R.propOr({}, 'data')(data)
+)
+export const selectAnyGroupedOutputData = createSelector(
+  selectGroupedOutputsData,
+  R.isNotEmpty
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
@@ -324,10 +345,10 @@ export const selectNumberFormat = createSelector(
 )
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
-  R.curry((numberFormat, props) =>
-    R.mergeRight(numberFormat, pickPaths(NUMBER_FORMAT_KEY_PATHS)(props))
-  )
+  (numberFormat) =>
+    R.pipe(pickPaths(NUMBER_FORMAT_KEY_PATHS), R.mergeRight(numberFormat))
 )
+
 export const selectLegendNumberFormatFunc = createSelector(
   selectNumberFormatPropsFn,
   (numberFormatPropsFn) => (prop) => {
@@ -402,26 +423,33 @@ export const selectLocalPanesData = createSelector(
   [selectLocalPanes, selectCurrentTime],
   (data, time) => getTimeValue(time, R.prop('data', data))
 )
-// Local -> modals
-export const selectLocalModals = createSelector(selectLocal, (data) =>
-  R.prop('modals')(data)
-)
-export const selectLocalModalsData = createSelector(selectLocalModals, (data) =>
-  R.prop('data', data)
-)
 // Local -> draggables
-export const selectLocalDraggables = createSelector(
+const selectLocalDraggables = createSelector(
   selectLocal,
   R.propOr({}, 'draggables')
 )
-export const selectSessionDraggable = createSelector(
+export const selectLocalDraggablesData = createSelector(
   selectLocalDraggables,
+  R.propOr({}, 'data')
+)
+
+export const selectMergedDraggables = createSelector(
+  [selectLocalDraggablesData, selectDraggablesData],
+  (localData, data) => R.mergeDeepLeft(localData)(data)
+)
+export const selectSessionDraggable = createSelector(
+  selectMergedDraggables,
   R.propOr({}, draggableId.SESSION)
 )
 export const selectGlobalOutputsDraggable = createSelector(
-  selectLocalDraggables,
+  selectMergedDraggables,
   R.propOr({}, draggableId.GLOBAL_OUTPUTS)
 )
+export const selectMapNamesDraggable = createSelector(
+  selectMergedDraggables,
+  R.propOr({}, draggableId.MAP_NAMES)
+)
+
 // Local -> Dashboard
 export const selectLocalPages = createSelector(selectLocal, (data) =>
   R.propOr({}, 'pages')(data)
@@ -513,6 +541,17 @@ export const selectCharts = createSelector(
       localDashboardData
     )
 )
+// NOTE: Use with Redux hook below:
+// const chartObj = useSelector((state) => selectChartById(state, <chartId>))
+export const selectChartById = createSelector(
+  [selectCharts, (state, chartId) => chartId],
+  (charts, chartId) => charts[chartId]
+)
+export const selectChartFiltersById = createSelector(
+  [selectCharts, (state, chartId) => chartId],
+  (charts, chartId) => R.pathOr([], [chartId, 'filters'])(charts)
+)
+
 export const selectIsMaximized = createSelector(
   selectCharts,
   R.pipe(R.values, R.any(R.propOr(false, 'maximized')))
@@ -540,46 +579,16 @@ export const selectChartStatsNames = createSelector(
   R.map(R.keys)
 )
 
-export const selectCurrentMapDataByMap = createSelector(
-  selectMapData,
-  (data) => {
-    const itemKeys = R.reduce((acc, obj) => {
-      R.forEach((key) => acc.add(key), R.keys(obj))
-      return acc
-    }, new Set())(R.values(data))
-    return R.reduce(
-      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-      {}
-    )(itemKeys.values())
-  }
-)
-
-export const selectDefaultViewportFunc = createSelector(
-  selectCurrentMapDataByMap,
-  (dataObj) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pathOr({}, ['defaultViewport', mapId]),
-          R.when(
-            R.has('zoom'),
-            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
-          )
-        )(dataObj),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'defaultViewport', a),
-          R.propOr({}, 'defaultViewport', b)
-        ),
-    },
-  }
-)
+const selectCurrentMapDataByMap = createSelector(selectMapData, (data) => {
+  const itemKeys = R.reduce((acc, obj) => {
+    R.forEach((key) => acc.add(key), R.keys(obj))
+    return acc
+  }, new Set())(R.values(data))
+  return R.reduce(
+    (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+    {}
+  )(itemKeys.values())
+})
 
 // Merged appBar
 
@@ -726,28 +735,73 @@ export const selectCurrentLocalMapDataByMap = createSelector(
     )(itemKeys.values())
   }
 )
-export const selectAllLegendGroups = createSelector(
-  selectCurrentMapDataByMap,
-  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+
+// Merged Map Data
+const selectMergedMapData = createSelector(
+  [selectMapData, selectLocalMapData],
+  (data, localData) => R.mergeDeepLeft(localData)(data)
 )
-export const selectAllLocalLegendGroups = createSelector(
-  selectCurrentLocalMapDataByMap,
-  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+export const selectAnyMapData = createSelector(
+  selectMergedMapData,
+  R.isNotEmpty
+)
+const selectCurrentMergedMapDataByMap = createSelector(
+  selectMergedMapData,
+  (data) => {
+    const itemKeys = R.reduce((acc, obj) => {
+      R.forEach((key) => acc.add(key), R.keys(obj))
+      return acc
+    }, new Set())(R.values(data))
+    return R.reduce(
+      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+      {}
+    )(itemKeys.values())
+  }
+)
+
+// NOTE: Use with Redux hook below:
+// const mapName = useSelector((state) => selectMapName(state, <mapId>))
+export const selectMapName = createSelector(
+  [selectMergedMapData, (state, mapId) => mapId],
+  (mapData, mapId) => mapData[mapId].name
+)
+
+export const selectDefaultViewportFunc = createSelector(
+  selectCurrentMergedMapDataByMap,
+  (dataObj) =>
+    maxSizedMemoization(
+      R.identity,
+      (mapId) =>
+        R.pipe(
+          R.pathOr({}, ['defaultViewport', mapId]),
+          R.when(
+            R.has('zoom'),
+            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
+          )
+        )(dataObj),
+      MAX_MEMOIZED_CHARTS
+    ),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      equalityCheck: (a, b) => R.equals(a.defaultViewport)(b.defaultViewport),
     },
   }
 )
 
+// NOTE: Use with Redux hook below:
+// const chartObj = useSelector((state) => selectMapExistsById(state, <mapId>))
+export const selectMapExistsById = createSelector(
+  [selectMergedMapData, (state, mapId) => mapId],
+  (mapData, mapId) => R.has(mapId)(mapData)
+)
+
 export const selectLegendDataFunc = createSelector(
-  [selectAllLegendGroups, selectAllLocalLegendGroups],
-  (mapDataObj, localMapDataObj) =>
+  selectCurrentMergedMapDataByMap,
+  (mapDataObj) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) =>
-        R.propOr(R.propOr({}, mapId, mapDataObj), mapId, localMapDataObj),
+      (mapId) => R.pathOr({}, ['legendGroups', mapId])(mapDataObj),
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -786,9 +840,9 @@ export const selectShowLegendAdvancedControls = createSelector(
   (legendPropFunc) => legendPropFunc('showLegendAdvancedControls', false)
 )
 
-export const selectMapControlsByMap = createSelector(
-  selectCurrentLocalMapDataByMap,
-  (dataObj) => R.propOr({}, 'mapControls')(dataObj)
+const selectMapControlsByMap = createSelector(
+  selectCurrentMergedMapDataByMap,
+  R.propOr({}, 'mapControls')
 )
 export const selectMapModal = createSelector(
   selectLocalMap,
@@ -844,6 +898,10 @@ export const selectMergedGlobalOutputs = createSelector(
   (globalOutputsData, localGlobalOutputs) =>
     R.mergeDeepLeft(localGlobalOutputs)(globalOutputsData)
 )
+export const selectAnyGlobalOutputData = createSelector(
+  selectMergedGlobalOutputs,
+  R.isNotEmpty
+)
 export const selectGlobalOutputProps = createSelector(
   selectMergedGlobalOutputs,
   R.pipe(
@@ -857,18 +915,21 @@ export const selectGlobalOutputProps = createSelector(
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
-  [selectMapControlsByMap, selectDefaultViewportFunc, selectMapData],
+  [selectMapControlsByMap, selectDefaultViewportFunc, selectMergedMapData],
   (mapControls, defaultViewportFunc, maps) =>
-    R.zipObj(
-      R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq)(maps),
-      R.map((mapId) =>
-        R.mergeAll([
-          DEFAULT_VIEWPORT,
-          defaultViewportFunc(mapId),
-          R.propOr({}, 'viewport')(mapControls[mapId]),
-        ])
-      )(R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq)(maps))
-    )
+    R.pipe(
+      R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq), // Obtain all Map IDs
+      R.converge(R.zipObj, [
+        R.identity,
+        R.map((mapId) =>
+          R.mergeAll([
+            DEFAULT_VIEWPORT,
+            defaultViewportFunc(mapId),
+            R.pathOr({}, [mapId, 'viewport'])(mapControls),
+          ])
+        ),
+      ])
+    )(maps)
 )
 export const selectBearingFunc = createSelector(
   selectViewportsByMap,
@@ -1021,7 +1082,7 @@ export const selectLockMapProjectionFunc = createSelector(
   }
 )
 
-export const selectIsGlobeNotMemoized = createSelector(
+const selectIsGlobeNotMemoized = createSelector(
   [selectViewportsByMap, selectCurrentMapProjectionFunc],
   (viewportsByMap, currentMapProjectionFunc) =>
     R.pipe(
@@ -1037,12 +1098,9 @@ export const selectIsGlobeNotMemoized = createSelector(
     memoize: lruMemoize,
     memoizeOptions: {
       equalityCheck: (a, b) => {
-        // token
-        if (typeof a === 'string') return R.equals(a, b)
         // dataObj
-        const getProjection = R.prop('currentProjection')
-        if (getProjection(a) !== undefined)
-          return R.equals(getProjection(a), getProjection(b))
+        if (R.has('currentProjection')(a))
+          return a.currentProjection === b.currentProjection
         // viewportsByMap
         const getZoomLevels = R.map((data) => R.prop('zoom', data) < 6)
         return R.equals(getZoomLevels(a), getZoomLevels(b))
@@ -1277,15 +1335,15 @@ export const selectLocalFeatures = createSelector(selectLocal, (data) =>
   R.pathOr({}, ['mapFeatures', 'data'], data)
 )
 export const selectLocalNodes = createSelector(
-  [selectLocal, selectCurrentTime],
+  [selectLocalFeatures, selectCurrentTime],
   (data, time) => getTimeValue(time, R.filter(R.propEq('node', 'type'), data))
 )
 export const selectLocalArcs = createSelector(
-  [selectLocal, selectCurrentTime],
+  [selectLocalFeatures, selectCurrentTime],
   (data, time) => getTimeValue(time, R.filter(R.propEq('arc', 'type'), data))
 )
 export const selectLocalGeos = createSelector(
-  [selectLocal, selectCurrentTime],
+  [selectLocalFeatures, selectCurrentTime],
   (data, time) => getTimeValue(time, R.filter(R.propEq('geo', 'type'), data))
 )
 export const selectLocalizedNodeTypes = createSelector(
@@ -1435,35 +1493,114 @@ export const selectNodeDataFunc = createSelector(
     )
 )
 
-// outputs derived
-export const selectStatGroupings = createSelector(
-  selectOrderedGroupedOutputs,
-  (data) => R.propOr({}, 'groupings', data)
+// Local -> groupedOutputs
+const selectLocalStatGroupings = createSelector(
+  selectLocal,
+  R.pathOr({}, ['groupedOutputs', 'groupings'])
 )
 
-export const selectStatGroupingIndicies = createSelector(
-  selectStatGroupings,
+const selectStatGroupings = createSelector(
+  selectOrderedGroupedOutputs,
+  R.propOr({}, 'groupings')
+)
+
+// outputs derived
+export const selectMergedStatGroupings = createSelector(
+  [selectLocalStatGroupings, selectStatGroupings],
+  (localData, data) => R.mergeDeepLeft(localData)(data)
+)
+
+export const selectSlimStatGroupings = createSelector(
+  selectMergedStatGroupings,
+  R.pipe(
+    structuredClone,
+    R.mapObjIndexed((grouping) => {
+      // Check if the stat grouping has `levels` and remove `coloring` from it
+      if (grouping.levels) {
+        grouping.levels = R.mapObjIndexed(R.dissoc('coloring'))(grouping.levels)
+      }
+      return grouping
+    })
+  ),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: { equalityCheck: R.equals },
+  }
+)
+
+const selectStatGroupingIndicies = createSelector(
+  selectSlimStatGroupings,
   R.pipe(R.map(R.over(R.lensPath(['data', 'id']), R.invertObj)))
 )
 
-export const selectGroupedOutputValueBuffers = createSelector(
+const selectGroupedOutputValueLists = createSelector(
   selectGroupedOutputsData,
-  (groupedOutputs) =>
+  R.pluck('valueLists')
+)
+
+const SKIP_EQUALITY_CHECK = '__skipEqualityCheck__'
+
+// Performs deep equality checks on arguments while allowing
+// specific ones to opt out via the `SKIP_EQUALITY_CHECK` flag
+const skipEqualityCheck = R.propOr(false, SKIP_EQUALITY_CHECK)
+
+const createSafeDeepEqualSelector = createSelectorCreator({
+  memoize: lruMemoize,
+  memoizeOptions: {
+    equalityCheck: (a, b) =>
+      skipEqualityCheck(a) || skipEqualityCheck(b) || R.equals(a)(b),
+  },
+})
+
+const selectGroupedOutputValueBuffers = createSelector(
+  selectGroupedOutputValueLists,
+  R.pipe(
     R.map(
-      R.pipe(
-        R.prop('valueLists'),
-        R.map((arr) => {
-          const buffer = window.crossOriginIsolated
-            ? new SharedArrayBuffer(arr.length * 8)
-            : new ArrayBuffer(arr.length * 8)
-          const view = new Float64Array(buffer)
-          for (let i = 0; i < arr.length; i++) {
-            view[i] = arr[i]
-          }
-          return view.buffer
-        })
-      )
-    )(groupedOutputs)
+      R.map((arr) => {
+        const buffer = window.crossOriginIsolated
+          ? new SharedArrayBuffer(arr.length * 8)
+          : new ArrayBuffer(arr.length * 8)
+        const view = new Float64Array(buffer)
+        for (let i = 0; i < arr.length; i++) {
+          view[i] = arr[i]
+        }
+        return view.buffer
+      })
+    ),
+    // Skip deep equality to avoid false negatives caused by binary data
+    R.assoc(SKIP_EQUALITY_CHECK, true)
+  )
+)
+
+export const selectChartColors = createSelector(
+  selectMergedStatGroupings,
+  (statGroupings) => (chartType, groupingId, groupingLevel) => {
+    const groupingRange = R.pipe(R.length, R.range(0), R.reverse)(groupingId)
+    const isHierarchicalChart =
+      chartType === chartVariant.SUNBURST || chartType === chartVariant.TREEMAP
+    return isHierarchicalChart
+      ? R.mergeAll(
+          R.map((idx) =>
+            getColoringFn(statGroupings, groupingId[idx], groupingLevel[idx])
+          )(groupingRange)
+        )
+      : getColoringFn(
+          statGroupings,
+          groupingId[R.head(groupingRange)],
+          groupingLevel[R.head(groupingRange)]
+        )
+  }
+)
+
+export const selectFilterableStats = createSelector(
+  selectGroupedOutputTypes,
+  R.pipe(
+    R.values,
+    R.unnest,
+    R.mergeAll,
+    R.map(R.assoc('type', 'num')),
+    R.filter(R.propOr(true, 'allowFiltering'))
+  )
 )
 
 const mergeFuncs = {
@@ -1475,14 +1612,15 @@ const mergeFuncs = {
   [chartAggrFunc.DIVISOR]: R.sum,
 }
 
-export const selectMemoizedChartFunc = createSelector(
+export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
   [
     selectGroupedOutputsData,
-    selectStatGroupings,
+    selectSlimStatGroupings,
     selectStatGroupingIndicies,
-    selectGroupedOutputValueBuffers,
+    selectGroupedOutputValueLists, // Only used to determine if `valueBuffers` changed in `equalityCheck` of memoization
+    selectGroupedOutputValueBuffers, // This is the one actually used in the worker (ignored in `equalityCheck` since if `valueLists` change, `valueBuffers` will too)
   ],
-  (groupedOutputs, groupings, groupingIndicies, valueBuffers) =>
+  (groupedOutputs, groupings, groupingIndicies, _, valueBuffers) =>
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       async (obj) => {
@@ -1581,7 +1719,6 @@ export const selectMemoizedChartFunc = createSelector(
           R.propOr([], 'filters', obj),
           groupingIndicies
         )
-
         // Calculates stat values without applying mergeFunc
         const calculatedStats = R.map((stat) => {
           // Add the aggregationGroupingLevel to the groupBys
@@ -1625,7 +1762,6 @@ export const selectMemoizedChartFunc = createSelector(
               ])
             : statGroup
         })(statObjs)
-
         return Promise.all(calculatedStats).then((resolvedStats) => {
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
@@ -1650,7 +1786,9 @@ export const selectMemoizedChartFunc = createSelector(
                         .split(' \u279D ')
                         .map((item) => intToGroup[item])
                         .join(' \u279D ')
-                      delete Object.assign(d, { [newKey]: d[key] })[key]
+                      if (newKey !== key) {
+                        delete Object.assign(d, { [newKey]: d[key] })[key]
+                      }
                     }
                   }
                   return d
@@ -1660,7 +1798,7 @@ export const selectMemoizedChartFunc = createSelector(
               ),
             resolvedStats
           )
-
+          // console.log('mergedValues', mergedValues)
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])
@@ -1783,6 +1921,7 @@ export const selectMemoizedChartFunc = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
+
 export const selectMemoizedGlobalOutputFunc = createSelector(
   selectAssociatedData,
   (associatedData) =>

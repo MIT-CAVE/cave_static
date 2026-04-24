@@ -11,6 +11,7 @@ export const virtualKeyboardSlice = createSlice({
     enter: false,
     lastKeyPress: null,
     isTextArea: false,
+    activeFieldId: null,
   },
   reducers: {
     setIsOpen(state, action) {
@@ -34,6 +35,12 @@ export const virtualKeyboardSlice = createSlice({
     setIsTextArea(state, action) {
       return R.assoc('isTextArea', action.payload, state)
     },
+    setActiveFieldId(state, action) {
+      return R.assoc('activeFieldId', action.payload, state)
+    },
+    toggleOpen(state) {
+      state.isOpen = !state.isOpen
+    },
   },
 })
 
@@ -45,6 +52,8 @@ export const {
   setEnter,
   setLastKeyPress,
   setIsTextArea,
+  setActiveFieldId,
+  toggleOpen,
 } = virtualKeyboardSlice.actions
 
 export default virtualKeyboardSlice.reducer

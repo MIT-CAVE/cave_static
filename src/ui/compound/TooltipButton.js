@@ -55,6 +55,9 @@ TooltipButton.propTypes = {
   title: PropTypes.string,
   ariaLabel: PropTypes.string,
   placement: PropTypes.oneOf([
+    'auto-end',
+    'auto-start',
+    'auto',
     'bottom-end',
     'bottom-start',
     'bottom',

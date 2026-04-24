@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography } from '@mui/material'
+import { Box, Grid, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 
@@ -11,9 +11,12 @@ import { NumberFormat, forceArray } from '../../utils'
 
 const styles = {
   root: {
-    p: 2,
+    p: 1.5,
     maxWidth: '10vw',
     overflow: 'hidden',
+    border: '2px outset rgb(128 128 128)',
+    borderRadius: 2,
+    bgcolor: 'grey.700',
   },
   name: {
     pb: 1,
@@ -28,13 +31,13 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
   const { name, value, icon, style } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
-    <Paper elevation={10} sx={[styles.root, style, ...forceArray(sx)]}>
+    <Box sx={[styles.root, style, ...forceArray(sx)]}>
       <Typography sx={styles.name} variant="subtitle1">
         <OverflowText text={name} />
       </Typography>
       <Grid
         container
-        spacing={1.5}
+        spacing={3}
         wrap="nowrap"
         sx={{ alignItems: 'flex-start' }}
       >
@@ -48,7 +51,7 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
           />
         </Grid>
       </Grid>
-    </Paper>
+    </Box>
   )
 }
 PropNumberIconCompact.propTypes = {

@@ -1,14 +1,15 @@
 module.exports = {
   env: {
-    es2021: true,
+    es2022: true,
   },
-  plugins: ['@emotion', 'ramda'],
+  plugins: ['@emotion', 'ramda', 'react-refresh'],
   extends: [
     'react-app',
     'plugin:import/errors',
     'plugin:import/warnings',
     'plugin:compat/recommended',
     'plugin:ramda/recommended',
+    // 'plugin:react-hooks/recommended',
     'plugin:prettier/recommended',
   ],
   rules: {
@@ -88,6 +89,9 @@ module.exports = {
     '@emotion/import-from-emotion': 'error',
     '@emotion/styled-import': 'error',
     '@emotion/syntax-preference': ['error', 'object'],
+
+    /* `eslint-plugin-react-refresh` rules */
+    'react-refresh/only-export-components': 'error',
   },
   root: true,
 }

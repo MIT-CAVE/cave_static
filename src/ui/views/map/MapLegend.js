@@ -1,4 +1,4 @@
-import { memo, useContext } from 'react'
+import { useContext } from 'react'
 import { useSelector } from 'react-redux'
 
 import CompactLegend from './CompactLegend'
@@ -25,4 +25,4 @@ const MapLegend = () => {
   return <LegendView />
 }
 
-export default memo(MapLegend)
+export default MapLegend

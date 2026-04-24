@@ -1,14 +1,6 @@
-import {
-  FormControl,
-  Grid,
-  IconButton,
-  InputLabel,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Grid, IconButton, Paper, Stack, Typography } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { TbFocusAuto } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
@@ -23,8 +15,9 @@ import {
 import { selectLegendNumberFormatFunc } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
 import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
+import NumberField from '../../prototypes/NumberField'
 
-import { NumberInput, OverflowText, Select } from '../../compound'
+import { OverflowText, Select } from '../../compound'
 
 import { capitalize, orderEntireDict, parseGradient } from '../../../utils'
 
@@ -61,11 +54,12 @@ const styles = {
     textAlign: 'center',
     maxWidth: '56px',
   },
-  valueInput: {
+  inputValue: {
     mt: '20px !important',
     flex: '1 1 auto',
     fieldset: {
       borderWidth: '2px !important',
+      borderRadius: 0,
     },
   },
 }
@@ -75,10 +69,12 @@ const NumericalSizeLegend = ({
   group,
   valueRange,
   numberFormat,
+  sizeSlider,
   // anyNullValue, // TODO: Implement `fallback` UI
-  onChangeSize,
   onChangeValueAt,
 }) => {
+  const [defaultEditValue, setDefaultEditValue] = useState(null)
+
   const {
     showSizeSlider,
     sizeSliderProps,
@@ -86,12 +82,21 @@ const NumericalSizeLegend = ({
     handleClose,
     handleChange,
     handleChangeComitted: handleChangeComittedRaw,
-  } = useSizeSlider(onChangeSize)
+  } = sizeSlider
 
   const { sizes, values, rawValues, labels, dataIndices } = useMemo(
     () => parseGradient('size', numberFormat.precision)(valueRange),
     [numberFormat.precision, valueRange]
   )
+
+  useEffect(() => {
+    // Initialize `defaultEditValue` here once `sizeSliderProps.key`
+    // is available. The default value for the uncontrolled
+    // `NumberField` must not change once initialized.
+    setDefaultEditValue(
+      R.when(R.isNil, R.always(rawValues[sizeSliderProps.key]))
+    )
+  }, [rawValues, sizeSliderProps.key])
 
   const {
     isStepScale,
@@ -227,16 +232,22 @@ const NumericalSizeLegend = ({
           {
             // Do not display the max value for a step function
             // scale, as it does not affect the function output
-            !(isStepScale && sizeSliderProps.key === lastIndex) && (
-              <NumberInput
+            !(
+              (isStepScale && sizeSliderProps.key === lastIndex) ||
+              // Prevent transition between controlled and uncontrolled states
+              defaultEditValue == null
+            ) && (
+              // Using an uncontrolled `NumberField` for better performance
+              <NumberField
                 color="warning"
-                sx={styles.valueInput}
-                slotProps={{
-                  input: {
-                    sx: { borderRadius: 0, pr: 1.75 },
-                  },
+                sx={styles.inputValue}
+                label={getValueLabelAt(sizeSliderProps.key)}
+                defaultValue={defaultEditValue}
+                {...{ numberFormat }}
+                onChangeCommitted={(event, newValue) => {
+                  onChangeValueAt(dataIndices[sizeSliderProps.key])(newValue)
                 }}
-                // Show the auto-min/max button when the min/max value is custom
+                // Show auto min/max button if custom min/max values are set
                 endAdornments={
                   (sizeSliderProps.key < 1 && !minAuto) ||
                   (sizeSliderProps.key === lastIndex && !maxAuto) ? (
@@ -251,10 +262,6 @@ const NumericalSizeLegend = ({
                     </IconButton>
                   ) : null
                 }
-                label={getValueLabelAt(sizeSliderProps.key)}
-                value={rawValues[sizeSliderProps.key]}
-                {...{ numberFormat }}
-                onClickAway={onChangeValueAt(dataIndices[sizeSliderProps.key])}
               />
             )
           }
@@ -265,11 +272,10 @@ const NumericalSizeLegend = ({
 }
 
 const CategoricalSizeLegend = ({
-  type,
   sizeByProp,
   icon,
+  sizeSlider,
   anyNullValue,
-  onChangeSize,
 }) => {
   const {
     showSizeSlider,
@@ -278,7 +284,8 @@ const CategoricalSizeLegend = ({
     handleClose,
     handleChange,
     handleChangeComitted: handleChangeComittedRaw,
-  } = useSizeSlider(onChangeSize)
+  } = sizeSlider
+  const type = sizeByProp.type
 
   const sizeOptions = useMemo(() => {
     const { options, fallback } = sizeByProp
@@ -321,6 +328,7 @@ const CategoricalSizeLegend = ({
     },
     [handleChangeComittedRaw, sizeSliderProps.key]
   )
+
   return (
     <>
       <OverflowText
@@ -383,6 +391,9 @@ const SizeLegend = ({
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = legendNumberFormatFunc(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
+
+  const sizeSlider = useSizeSlider(onChangeSize)
+
   return (
     <Paper
       elevation={3}
@@ -393,22 +404,20 @@ const SizeLegend = ({
     >
       <Grid container spacing={1}>
         <Grid size="grow">
-          <FormControl fullWidth>
-            <InputLabel id="size-by-label">Size by</InputLabel>
-            <Select
-              id="size-by"
-              labelId="size-by-label"
-              label="Size by"
-              value={sizeBy}
-              optionsList={sizeByOptions}
-              getLabel={(option) => featureTypeProps[option].name || option}
-              onSelect={onSelectProp(
-                'sizeBy',
-                'groupCalcBySize',
-                groupCalcValue
-              )}
-            />
-          </FormControl>
+          <Select
+            id="size-by"
+            labelId="size-by-label"
+            label="Size by"
+            value={sizeBy}
+            optionsList={sizeByOptions}
+            getLabel={(option) => featureTypeProps[option].name || option}
+            onSelect={onSelectProp(
+              'sizeBy',
+              'groupCalcBySize',
+              groupCalcValue,
+              sizeSlider.handleClose
+            )}
+          />
         </Grid>
         {numberFormat.unit && (
           <Grid size={4}>
@@ -420,8 +429,7 @@ const SizeLegend = ({
       </Grid>
       {isCategorical ? (
         <CategoricalSizeLegend
-          type={sizeByProp.type}
-          {...{ icon, sizeByProp, anyNullValue, onChangeSize }}
+          {...{ icon, sizeByProp, sizeSlider, anyNullValue }}
         />
       ) : (
         <>
@@ -431,8 +439,8 @@ const SizeLegend = ({
               numberFormat,
               icon,
               group,
+              sizeSlider,
               anyNullValue,
-              onChangeSize,
             }}
             onChangeValueAt={(dataIndex) =>
               onChangePropAttr([sizeBy, 'gradient', 'data', dataIndex, 'value'])

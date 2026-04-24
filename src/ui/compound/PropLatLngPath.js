@@ -22,13 +22,12 @@ import { PiEraser } from 'react-icons/pi'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
-import NumberInput from './NumberInput'
-
 import {
   selectIsMapboxTokenProvided,
   selectMapboxToken,
 } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
+import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
 import { adjustArcPath, forceArray } from '../../utils'
@@ -135,80 +134,71 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     [mapSettings.pathSource]
   )
 
-  const [value, setValue] = useState(R.defaultTo(prop.value)(currentVal))
+  const defaultInputValues = currentVal ?? prop.value
+  const [allInputValues, setAllInputValues] = useState(defaultInputValues)
   const [viewState, setViewState] = useState({
-    latitude: getLastLat(value),
-    longitude: getLastLng(value),
+    latitude: getLastLat(allInputValues),
+    longitude: getLastLng(allInputValues),
   })
-  const [manual, setManual] = useState(value[value.length - 1])
+  const [manualInput, setManualInput] = useState(
+    allInputValues[allInputValues.length - 1]
+  )
   const [editState, setEditState] = useState(edit.NONE)
-  const [pathData, setPathData] = useState(getPathData(value))
+  const [pathData, setPathData] = useState(getPathData(allInputValues))
 
-  const handleChangeLatitude = useCallback(
-    (latitude) => {
-      if (!enabled) return
-      setManual([manual[0], latitude])
-    },
-    [enabled, manual]
-  )
-
-  const handleChangeLongitude = useCallback(
-    (longitude) => {
-      if (!enabled) return
-      setManual([longitude, manual[1]])
-    },
-    [enabled, manual]
-  )
+  const handleChangeAt = (index) => (event, newLatOrLng) => {
+    setManualInput(R.update(index, newLatOrLng))
+  }
 
   const handleAddManualInput = useCallback(() => {
     if (!enabled) return
 
-    const updatedValue = (editState === edit.RESET ? [] : value).concat([
-      manual,
-    ])
+    const updatedValue = (
+      editState === edit.RESET ? [] : allInputValues
+    ).concat([manualInput])
     onChange(updatedValue)
-    setValue(updatedValue)
+    setAllInputValues(updatedValue)
     setPathData(getPathData(updatedValue))
-    setViewState({ latitude: manual[1], longitude: manual[0] })
+    setViewState({ latitude: manualInput[1], longitude: manualInput[0] })
 
     editState === edit.RESET && setEditState(edit.NONE)
-  }, [editState, enabled, getPathData, manual, onChange, value])
+  }, [allInputValues, editState, enabled, getPathData, manualInput, onChange])
 
   const handleDragEnd = useCallback(
     (event) => {
       if (!enabled) return
       const { lat: latitude, lng: longitude } = event.lngLat
-      const updatedValue = (editState === edit.RESET ? [] : value).concat([
-        [longitude, latitude],
-      ])
+      const updatedValue = (
+        editState === edit.RESET ? [] : allInputValues
+      ).concat([[longitude, latitude]])
       onChange(updatedValue)
-      setValue(updatedValue)
+      setAllInputValues(updatedValue)
       setPathData(getPathData(updatedValue))
       setViewState({ latitude, longitude })
-      setManual([longitude, latitude])
+      setManualInput([longitude, latitude])
     },
-    [editState, enabled, getPathData, onChange, value]
+    [allInputValues, editState, enabled, getPathData, onChange]
   )
 
   const handleUndoLast = useCallback(() => {
-    const lastIndex = value.length - 1
+    const lastIndex = allInputValues.length - 1
     if (!enabled || lastIndex <= 1) return
 
-    const slicedPath = value.slice(0, lastIndex)
+    const slicedPath = allInputValues.slice(0, lastIndex)
     onChange(slicedPath)
-    setValue(slicedPath)
+    setAllInputValues(slicedPath)
     setPathData(getPathData(slicedPath))
     setViewState({
       latitude: getLastLat(slicedPath),
       longitude: getLastLng(slicedPath),
     })
-  }, [enabled, getPathData, onChange, value])
+  }, [allInputValues, enabled, getPathData, onChange])
 
   const handleClearPath = useCallback(() => {
-    setPathData(getPathData([value[0]]))
-    setManual(value[0])
+    setPathData(getPathData([allInputValues[0]]))
+    setManualInput(allInputValues[0])
     setEditState(edit.RESET)
-  }, [getPathData, value])
+  }, [getPathData, allInputValues])
 
   const { ReactMapGl, Layer, Marker, NavigationControl, Source } = useMapApi()
 
@@ -242,8 +232,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             <Marker
               draggable
               anchor="center"
-              longitude={getLastLng(value)}
-              latitude={getLastLat(value)}
+              longitude={getLastLng(allInputValues)}
+              latitude={getLastLat(allInputValues)}
               onDragEnd={handleDragEnd}
             />
             <Source id="polylineLayer" type="geojson" data={pathData}>
@@ -262,21 +252,23 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       {editState !== edit.NONE ? (
         <>
           <Stack useFlexGap direction="row" spacing={1}>
-            <NumberInput
+            <NumberField
               disabled={!enabled}
               label="Latitude"
               {...{ placeholder, max: 90, min: -90 }}
               numberFormat={numberFormatProps}
-              value={manual[1]}
-              onClickAway={handleChangeLatitude}
+              value={manualInput[1]}
+              onChange={handleChangeAt(1)}
+              // onChangeCommitted={handleChangeCommittedAt(1)}
             />
-            <NumberInput
+            <NumberField
               disabled={!enabled}
               label="Longitude"
               {...{ placeholder, max: 180, min: -180 }}
               numberFormat={numberFormatProps}
-              value={manual[0]}
-              onClickAway={handleChangeLongitude}
+              value={manualInput[0]}
+              onChange={handleChangeAt(0)}
+              // onChangeCommitted={handleChangeCommittedAt(0)}
             />
             <ToggleButton
               selected={showMap}
@@ -319,7 +311,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             Enter Input Mode
           </Button>
           <Button
-            disabled={value.length - 1 <= 1}
+            disabled={allInputValues.length - 1 <= 1}
             sx={{ flexGrow: 3.5 }}
             color="warning"
             variant="contained"
@@ -339,7 +331,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
           </Button>
         </Stack>
       )}
-      {editState !== edit.RESET && displayPath(value)}
+      {editState !== edit.RESET && displayPath(allInputValues)}
     </Stack>
   )
 }

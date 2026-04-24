@@ -64,3 +64,8 @@ body {
 .react-grid-item.react-grid-placeholder {
   background-color: transparent !important;
 }
+
+.drag-handle {
+  color: #90caf9;
+  cursor: move;
+}

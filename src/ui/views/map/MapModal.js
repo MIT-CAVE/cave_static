@@ -9,24 +9,20 @@ import {
   Box,
 } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useContext, useMemo } from 'react'
+import { useCallback, useContext, useMemo } from 'react'
 import { MdGpsFixed, MdMap } from 'react-icons/md'
 import { PiPerspective } from 'react-icons/pi'
 import { useSelector, useDispatch } from 'react-redux'
 
-import SimpleModalOptions from './SimpleModalOptions'
 import { MapContext } from './useMapApi'
 
-import { closeMapModal, viewportUpdate } from '../../../data/local/mapSlice'
-import { timeSelection } from '../../../data/local/settingsSlice'
 import {
   selectOptionalViewportsFunc,
   selectMapModal,
-  selectCurrentTimeUnits,
-  selectCurrentTimeLength,
   selectMapStyleOptions,
   selectMapProjectionOptionsFunc,
 } from '../../../data/selectors'
+import { DEFAULT_VIEWPORT, MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { FetchedIcon } from '../../compound'
@@ -117,22 +113,9 @@ const MapModal = () => {
 
   const mapModal = useSelector(selectMapModal)
   const getOptionalViewports = useSelector(selectOptionalViewportsFunc)
-  const timeUnits = useSelector(selectCurrentTimeUnits)
-  const timeLength = useSelector(selectCurrentTimeLength)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const getMapProjectionOptions = useSelector(selectMapProjectionOptionsFunc)
   const dispatch = useDispatch()
-
-  const timeOptions = useMemo(
-    () =>
-      R.pipe(
-        R.add(1),
-        R.range(1),
-        R.reduce((acc, value) => R.assoc(value, value)(acc), {}),
-        R.map((value) => ({ name: value, icon: 'md/MdAvTimer', order: value }))
-      )(timeLength),
-    [timeLength]
-  )
 
   const optionalViewports = useMemo(
     () => getOptionalViewports(mapId),
@@ -144,9 +127,33 @@ const MapModal = () => {
     [getMapProjectionOptions, mapId]
   )
 
-  const handleCloseModal = useCallback(
-    () => dispatch(closeMapModal(mapId)),
-    [dispatch, mapId]
+  const handleCloseModal = useMutateStateWithSync(
+    () => ({
+      path: ['maps', 'mapModal'],
+      value: R.mergeLeft({ data: { feature: '' }, isOpen: false })(mapModal),
+      sync: false, // Keep sync local for now
+    }),
+    [mapModal]
+  )
+
+  const updateViewport = useMutateStateWithSync(
+    (newViewport) => {
+      const minZoom = R.clamp(
+        MIN_ZOOM,
+        MAX_ZOOM
+      )(newViewport.minZoom ?? MIN_ZOOM)
+      const maxZoom = R.clamp(
+        minZoom,
+        MAX_ZOOM
+      )(newViewport.maxZoom ?? MAX_ZOOM)
+      const zoom = R.clamp(minZoom, maxZoom)(newViewport.zoom ?? 0)
+      const clampedViewport = R.assoc('zoom', zoom)(newViewport)
+      return {
+        path: ['maps', 'data', mapId, 'mapControls', 'viewport'],
+        value: R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport),
+      }
+    },
+    [mapId]
   )
 
   const handleSelectMapViewports = useCallback(
@@ -157,10 +164,10 @@ const MapModal = () => {
         // added by `withIndex` as a helper property
         R.omit(['name', 'icon'])
       )(optionalViewports)
-      dispatch(viewportUpdate({ viewport, mapId }))
+      updateViewport(viewport)
       handleCloseModal()
     },
-    [dispatch, handleCloseModal, mapId, optionalViewports]
+    [handleCloseModal, optionalViewports, updateViewport]
   )
 
   const handleSelectMapStyleId = useMutateStateWithSync(
@@ -185,14 +192,6 @@ const MapModal = () => {
     [dispatch, handleCloseModal, mapId]
   )
 
-  const handleSelectTime = useCallback(
-    (value) => {
-      dispatch(timeSelection(value - 1))
-      handleCloseModal()
-    },
-    [dispatch, handleCloseModal]
-  )
-
   if (!mapModal.isOpen || mapId !== R.pathOr('', ['data', 'mapId'])(mapModal))
     return null
 
@@ -209,7 +208,6 @@ const MapModal = () => {
   ) : feature === 'mapStyles' ? (
     <ListModal
       title="Map Styles"
-      placeholder="Choose a map style..."
       defaultIcon={MdMap}
       options={mapStyleOptions}
       onSelect={handleSelectMapStyleId}
@@ -218,20 +216,12 @@ const MapModal = () => {
   ) : feature === 'mapProjections' ? (
     <ListModal
       title="Map Projections"
-      placeholder="Choose a map projection..."
       defaultIcon={PiPerspective}
       options={projectionOptions}
       onSelect={handleSelectProjection}
       onClose={handleCloseModal}
     />
-  ) : feature === 'setTime' ? (
-    (<SimpleModalOptions
-      title={`Set ${timeUnits}`}
-      placeholder={`Choose a ${timeUnits}`}
-      options={timeOptions}
-      onSelect={handleSelectTime}
-    />)(feature)
   ) : null
 }
 
-export default memo(MapModal)
+export default MapModal

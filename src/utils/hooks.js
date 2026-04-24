@@ -50,18 +50,18 @@ export const useModal = () => {
   return { modalOpen, handleOpenModal, handleCloseModal }
 }
 
-export const useChartTools = () => {
-  const [chartToolsOpen, setChartToolsOpen] = useState(false)
+export const useIndexedModal = () => {
+  const [openIndex, setOpenIndex] = useState(null)
 
-  const handleOpenChartTools = () => {
-    setChartToolsOpen(true)
+  const handleOpenModal = (index) => {
+    setOpenIndex(index)
   }
 
-  const handleCloseChartTools = () => {
-    setChartToolsOpen(false)
+  const handleCloseModal = () => {
+    setOpenIndex(null)
   }
 
-  return { chartToolsOpen, handleOpenChartTools, handleCloseChartTools }
+  return { openIndex, handleOpenModal, handleCloseModal }
 }
 
 /**
