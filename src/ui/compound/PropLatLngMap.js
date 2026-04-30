@@ -1,7 +1,7 @@
 import { ClickAwayListener, Popper, Stack, ToggleButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
@@ -45,6 +45,12 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     latitude: value[1],
     longitude: value[0],
   })
+
+  useEffect(() => {
+    const newValue = (currentVal ?? prop.value)[0]
+    setValue(newValue)
+    setViewState({ latitude: newValue[1], longitude: newValue[0] })
+  }, [currentVal, prop.value])
 
   const { enabled, placeholder } = prop
   const mapboxToken = useSelector(selectMapboxToken)

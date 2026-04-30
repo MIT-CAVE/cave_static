@@ -1,7 +1,7 @@
 import { Stack } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import NumberField from '../prototypes/NumberField'
 
@@ -10,6 +10,10 @@ import { forceArray } from '../../utils'
 const PropLatLngInput = ({ prop, currentVal, sx = [], onChange }) => {
   const defaultValue = currentVal ?? prop.value
   const [value, setValue] = useState(defaultValue[0])
+
+  useEffect(() => {
+    setValue((currentVal ?? prop.value)[0])
+  }, [currentVal, prop.value])
 
   const { enabled, placeholder, direction = 'row' } = prop
   const numberFormatProps = {
