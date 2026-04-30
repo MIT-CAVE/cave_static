@@ -1,6 +1,6 @@
 {
   "name": "cave_static",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -41,7 +41,7 @@
     "react-map-gl": "^8.1.1",
     "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
-    "react-simple-keyboard": "^3.8.195",
+    "react-simple-keyboard": "^3.8.198",
     "react-syntax-highlighter": "^16.1.1",
     "react-transition-group": "^4.4.5",
     "react-virtualized-auto-sizer": "^2.0.3",
