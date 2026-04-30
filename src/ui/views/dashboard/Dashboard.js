@@ -530,7 +530,7 @@ const Dashboard = () => {
         ]}
         disableGutters
       >
-        <div style={{ flex: '1 1 auto' }}>
+        <div style={{ flex: '1 1 auto', overflow: 'hidden' }}>
           <AutoSizer
             renderProp={({ height, width }) =>
               R.isNotEmpty(pageLayout) && (
@@ -542,7 +542,9 @@ const Dashboard = () => {
                   maxRows={lineLength}
                   layout={translateLayoutToGrid(pageLayout)}
                   rowHeight={
-                    height / lineLength - (R.isNil(maximizedChart) ? 12 : 0)
+                    (height -
+                      (R.isNil(maximizedChart) ? 8 * (lineLength + 1) : 0)) /
+                    lineLength
                   }
                   allowOverlap
                   draggableCancel=".MuiSelect-select, .MuiButtonBase-root, div:has(> div.mapboxgl-map)"
