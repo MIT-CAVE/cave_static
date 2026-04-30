@@ -24,7 +24,10 @@ const FlexibleContainer = ({ children }) => {
   }, [])
 
   return (
-    <div ref={containerRef} style={{ flex: '1 1 auto', overflow: 'hidden' }}>
+    <div
+      ref={containerRef}
+      style={{ flex: '1 1 auto', overflow: 'hidden', minHeight: 0 }}
+    >
       {cloneElement(Children.only(children), {
         style: { height: size.height, width: size.width },
       })}
