@@ -315,6 +315,7 @@ const DashboardChart = ({ chartObj, path }) => {
         display: 'flex',
         position: 'relative',
         flex: '1 1 auto',
+        minHeight: 0,
       }}
     >
       {chartType === chartVariant.TABLE &&
