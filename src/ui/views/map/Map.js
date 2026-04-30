@@ -26,12 +26,9 @@ import {
 import {
   DARK_GLOBE_FOG,
   DARK_SKY_SPEC,
-  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
-  MAX_ZOOM,
-  MIN_ZOOM,
 } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
@@ -217,26 +214,6 @@ const Map = ({ mapId }) => {
     [arcData, geosData]
   )
 
-  const updateViewport = useMutateStateWithSync(
-    (newViewport) => {
-      const minZoom = R.clamp(
-        MIN_ZOOM,
-        MAX_ZOOM
-      )(newViewport.minZoom ?? MIN_ZOOM)
-      const maxZoom = R.clamp(
-        minZoom,
-        MAX_ZOOM
-      )(newViewport.maxZoom ?? MAX_ZOOM)
-      const zoom = R.clamp(minZoom, maxZoom)(newViewport.zoom ?? 0)
-      const clampedViewport = R.assoc('zoom', zoom)(newViewport)
-      return {
-        path: ['maps', 'data', mapId, 'mapControls', 'viewport'],
-        value: R.mergeRight(DEFAULT_VIEWPORT)(clampedViewport),
-      }
-    },
-    [mapId]
-  )
-
   const {
     latitude,
     longitude,
@@ -304,9 +281,9 @@ const Map = ({ mapId }) => {
     (e) => {
       if (e.viewState.zoom === 0) return // Prevents setting incorrect viewport on load
 
-      updateViewport(e.viewState)
+      setCurrentViewport(e.viewState)
     },
-    [updateViewport]
+    [setCurrentViewport]
   )
 
   const handleMouseMove = useCallback(
