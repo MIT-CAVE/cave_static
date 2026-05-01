@@ -579,16 +579,19 @@ export const selectChartStatsNames = createSelector(
   R.map(R.keys)
 )
 
-const selectCurrentMapDataByMap = createSelector(selectMapData, (data) => {
-  const itemKeys = R.reduce((acc, obj) => {
-    R.forEach((key) => acc.add(key), R.keys(obj))
-    return acc
-  }, new Set())(R.values(data))
-  return R.reduce(
-    (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-    {}
-  )(itemKeys.values())
-})
+export const selectCurrentMapDataByMap = createSelector(
+  selectMapData,
+  (data) => {
+    const itemKeys = R.reduce((acc, obj) => {
+      R.forEach((key) => acc.add(key), R.keys(obj))
+      return acc
+    }, new Set())(R.values(data))
+    return R.reduce(
+      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
+      {}
+    )(itemKeys.values())
+  }
+)
 
 // Merged appBar
 
@@ -737,7 +740,7 @@ export const selectCurrentLocalMapDataByMap = createSelector(
 )
 
 // Merged Map Data
-const selectMergedMapData = createSelector(
+export const selectMergedMapData = createSelector(
   [selectMapData, selectLocalMapData],
   (data, localData) => R.mergeDeepLeft(localData)(data)
 )
@@ -756,6 +759,21 @@ const selectCurrentMergedMapDataByMap = createSelector(
       (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
       {}
     )(itemKeys.values())
+  }
+)
+
+export const selectAllLegendGroups = createSelector(
+  selectCurrentMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+)
+export const selectAllLocalLegendGroups = createSelector(
+  selectCurrentLocalMapDataByMap,
+  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
   }
 )
 
@@ -840,7 +858,7 @@ export const selectShowLegendAdvancedControls = createSelector(
   (legendPropFunc) => legendPropFunc('showLegendAdvancedControls', false)
 )
 
-const selectMapControlsByMap = createSelector(
+export const selectMapControlsByMap = createSelector(
   selectCurrentMergedMapDataByMap,
   R.propOr({}, 'mapControls')
 )
@@ -986,7 +1004,7 @@ export const selectIsMapboxTokenProvided = createSelector(
 )
 
 export const selectCurrentMapStyleIdFunc = createSelector(
-  [selectIsMapboxTokenProvided, selectCurrentMapDataByMap],
+  [selectIsMapboxTokenProvided, selectCurrentMergedMapDataByMap],
   (isMapboxTokenProvided, dataObj) =>
     maxSizedMemoization(
       R.identity,
@@ -1011,7 +1029,7 @@ export const selectCurrentMapStyleIdFunc = createSelector(
 )
 
 export const selectLockMapStyleFunc = createSelector(
-  selectCurrentMapDataByMap,
+  selectCurrentMergedMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
       R.identity,
@@ -1028,7 +1046,7 @@ export const selectLockMapStyleFunc = createSelector(
 )
 
 export const selectCurrentMapProjectionFunc = createSelector(
-  [selectCurrentMapDataByMap, selectIsMapboxTokenProvided],
+  [selectCurrentMergedMapDataByMap, selectIsMapboxTokenProvided],
   (dataObj, isMapboxTokenProvided) =>
     maxSizedMemoization(
       R.identity,
@@ -1063,7 +1081,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
 )
 
 export const selectLockMapProjectionFunc = createSelector(
-  selectCurrentMapDataByMap,
+  selectCurrentMergedMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
       R.identity,

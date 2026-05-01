@@ -36,7 +36,9 @@ const PropNumberField = ({ prop, currentVal, sx = [], onChange }) => {
   // Keep our "last sent" marker aligned with the server-authoritative value so
   // external updates don't get re-sent on the next blur.
   useEffect(() => {
-    lastSentRef.current = currentVal ?? prop.value
+    const value = currentVal ?? prop.value
+    setValue(value)
+    lastSentRef.current = value
   }, [currentVal, prop.value])
 
   const handleChangeCommitted = (event, newValue) => {
