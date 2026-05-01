@@ -15,11 +15,21 @@ import {
 } from 'react-icons/md'
 import { PiPerspectiveBold } from 'react-icons/pi'
 import { TbMap } from 'react-icons/tb'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import { WithBadge } from './Legend'
 import useMapApi from './useMapApi'
 
+import {
+  bearingSliderToggle,
+  bearingUpdate,
+  pitchSliderToggle,
+  pitchUpdate,
+  viewportUpdate,
+  changeZoom,
+  openMapModal,
+  toggleMapLegend,
+} from '../../../data/local/mapSlice'
 import {
   selectDefaultViewportFunc,
   selectOptionalViewportsFunc,
@@ -32,24 +42,19 @@ import {
   selectMapProjectionOptionsFunc,
   selectLockMapProjectionFunc,
   selectLockMapStyleFunc,
-  selectViewportsByMap,
-  selectIsMapLegendOpenFunc,
-  selectMapModal,
 } from '../../../data/selectors'
 import {
   MAX_BEARING,
   MAX_PITCH,
-  MAX_ZOOM,
   MIN_BEARING,
   MIN_PITCH,
-  MIN_ZOOM,
 } from '../../../utils/constants'
 import { MAP_PROJECTIONS, unitPlacements } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
 
-import { NumberFormat, forcePath, getSliderMarks } from '../../../utils'
+import { NumberFormat, getSliderMarks } from '../../../utils'
 
 const LIGHT_SLIDER_COLOR = '#0288d1'
 
@@ -193,52 +198,26 @@ const MapButton = ({ icon: Icon, ...props }) => (
   </TooltipButton>
 )
 
-const MapNavButtons = memo(({ mapId, createHandleChangeMapControl }) => {
-  const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
-  const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
-  const viewport = useSelector(selectViewportsByMap)[mapId]
+const MapNavButtons = memo(({ mapId }) => {
+  const dispatch = useDispatch()
 
   const handleClickPitchToggle = useCallback(
-    () =>
-      createHandleChangeMapControl({
-        value: !showPitchSlider,
-        pathTail: 'showPitchSlider',
-        sync: false, // Keep sync local for now
-      }),
-    [createHandleChangeMapControl, showPitchSlider]
+    () => dispatch(pitchSliderToggle({ mapId, sync: false })),
+    [dispatch, mapId]
   )
 
   const handleClickBearingToggle = useCallback(
-    () =>
-      createHandleChangeMapControl({
-        value: !showBearingSlider,
-        pathTail: 'showBearingSlider',
-        sync: false, // Keep sync local for now
-      }),
-    [createHandleChangeMapControl, showBearingSlider]
-  )
-
-  const changeZoom = useMutateStateWithSync(
-    (value) => {
-      const minZoom = R.clamp(MIN_ZOOM, MAX_ZOOM, viewport.minZoom ?? MIN_ZOOM)
-      const maxZoom = R.clamp(minZoom, MAX_ZOOM, viewport.maxZoom ?? MAX_ZOOM)
-      const currentZoom = viewport.zoom ?? minZoom
-      const zoom = R.pipe(R.add(currentZoom), R.clamp(minZoom, maxZoom))(value)
-      return {
-        path: ['maps', 'data', mapId, 'mapControls', 'viewport', 'zoom'],
-        value: zoom,
-      }
-    },
-    [mapId, viewport.maxZoom, viewport.minZoom, viewport.zoom]
+    () => dispatch(bearingSliderToggle({ mapId, sync: false })),
+    [dispatch, mapId]
   )
 
   const handleClickZoomIn = useCallback(() => {
-    changeZoom(0.5)
-  }, [changeZoom])
+    dispatch(changeZoom({ mapId, value: 0.5, sync: false }))
+  }, [dispatch, mapId])
 
   const handleClickZoomOut = useCallback(() => {
-    changeZoom(-0.5)
-  }, [changeZoom])
+    dispatch(changeZoom({ mapId, value: -0.5, sync: false }))
+  }, [dispatch, mapId])
 
   return (
     <ButtonGroup
@@ -287,9 +266,8 @@ const MapControls = ({ mapId }) => {
     mapId
   )
   const legendData = useSelector(selectLegendDataFunc)(mapId)
-  const isMapLegendOpen = useSelector(selectIsMapLegendOpenFunc)(mapId)
-  const mapModal = useSelector(selectMapModal)
   const isStatic = useSelector(selectStaticMap)
+  const dispatch = useDispatch()
 
   const [currentBearing, setCurrentBearing] = useState(bearing)
   const [currentPitch, setCurrentPitch] = useState(pitch)
@@ -342,41 +320,17 @@ const MapControls = ({ mapId }) => {
     [hover, isMapboxSelected]
   )
 
-  const handleClickMapLegendToggle = useMutateStateWithSync(
-    () => ({
-      path: ['maps', 'data', mapId, 'mapLegend', 'isOpen'],
-      value: !isMapLegendOpen,
-      sync: false, // Keep sync local for now
-    }),
-    [isMapLegendOpen, mapId]
+  const handleClickMapLegendToggle = useCallback(
+    () => dispatch(toggleMapLegend({ mapId, sync: false })),
+    [dispatch, mapId]
   )
 
-  const handleClickDefaultViewport = useMutateStateWithSync(() => {
-    const minZoom = R.clamp(
-      MIN_ZOOM,
-      MAX_ZOOM,
-      defaultViewport.minZoom ?? MIN_ZOOM
-    )
-    const maxZoom = R.clamp(
-      minZoom,
-      MAX_ZOOM,
-      defaultViewport.maxZoom ?? MAX_ZOOM
-    )
-    const zoom = R.clamp(minZoom, maxZoom, defaultViewport.zoom ?? 0)
-    const clampedViewport = R.assoc('zoom', zoom)(defaultViewport)
-    return {
-      path: ['maps', 'data', mapId, 'mapControls', 'viewport'],
-      value: R.mergeRight(defaultViewport)(clampedViewport),
-    }
-  }, [mapId])
-
-  const createHandleChangeMapControl = useMutateStateWithSync(
-    ({ value, pathTail, ...args }) => ({
-      path: ['maps', 'data', mapId, 'mapControls', ...forcePath(pathTail)],
-      value,
-      ...args,
-    }),
-    [mapId]
+  const handleClickDefaultViewport = useCallback(
+    () =>
+      dispatch(
+        viewportUpdate({ viewport: defaultViewport, mapId, sync: false })
+      ),
+    [defaultViewport, dispatch, mapId]
   )
 
   const createHandleChangeProjection = useMutateStateWithSync(
@@ -396,16 +350,16 @@ const MapControls = ({ mapId }) => {
 
   const handleChangeBearingCommitted = useCallback(
     (event, value) => {
-      createHandleChangeMapControl({ value, pathTail: ['viewport', 'bearing'] })
+      dispatch(bearingUpdate({ mapId, value, sync: false }))
     },
-    [createHandleChangeMapControl]
+    [dispatch, mapId]
   )
 
   const handleChangePitchCommitted = useCallback(
     (event, value) => {
-      createHandleChangeMapControl({ value, pathTail: ['viewport', 'pitch'] })
+      dispatch(pitchUpdate({ mapId, value, sync: false }))
     },
-    [createHandleChangeMapControl]
+    [dispatch, mapId]
   )
 
   const handleClickGlobeProjection = useCallback(() => {
@@ -416,26 +370,17 @@ const MapControls = ({ mapId }) => {
     createHandleChangeProjection(MAP_PROJECTIONS.MERCATOR)
   }, [createHandleChangeProjection])
 
-  const createHandleClickModal = useMutateStateWithSync(
-    (feature) => ({
-      path: ['maps', 'mapModal'],
-      value: R.mergeLeft({ data: { feature, mapId }, isOpen: true })(mapModal),
-      sync: false, // Keep sync local for now
-    }),
-    [mapId, mapModal]
-  )
-
   const handleClickMapProjectionsModal = useCallback(() => {
-    createHandleClickModal('mapProjections')
-  }, [createHandleClickModal])
+    dispatch(openMapModal({ feature: 'mapProjections', mapId, sync: false }))
+  }, [dispatch, mapId])
 
   const handleClickMapStylesModal = useCallback(() => {
-    createHandleClickModal('mapStyles')
-  }, [createHandleClickModal])
+    dispatch(openMapModal({ feature: 'mapStyles', mapId, sync: false }))
+  }, [dispatch, mapId])
 
   const handleClickViewportsModal = useCallback(() => {
-    createHandleClickModal('viewports')
-  }, [createHandleClickModal])
+    dispatch(openMapModal({ feature: 'viewports', mapId, sync: false }))
+  }, [dispatch, mapId])
 
   const hasAnyOptionalViewport = useMemo(
     () => !R.anyPass([R.isEmpty, R.isNil])(optionalViewports),
@@ -466,11 +411,7 @@ const MapControls = ({ mapId }) => {
             />
           </Box>
         )}
-        {isStatic ? (
-          []
-        ) : (
-          <MapNavButtons {...{ mapId, createHandleChangeMapControl }} />
-        )}
+        {isStatic ? [] : <MapNavButtons {...{ mapId }} />}
       </Box>
       <Box
         sx={rootStyle}
