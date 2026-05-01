@@ -3,6 +3,7 @@ import * as R from 'ramda'
 
 import { overrideSync } from './actions'
 import globalOutputsReducer from './globalOutputsSlice'
+import mapReducer from './mapSlice'
 import settingsReducer, { initialState } from './settingsSlice'
 
 import { sendCommand } from '../data'
@@ -76,6 +77,7 @@ const finalReducer = (state, action) => {
         R.prop('globalOutputs', state),
         action
       ),
+      maps: mapReducer(R.prop('maps', state), action),
       settings: settingsReducer(R.prop('settings', state), action),
     },
     state

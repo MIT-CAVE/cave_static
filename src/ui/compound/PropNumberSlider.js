@@ -1,7 +1,7 @@
 import { Stack, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
@@ -34,6 +34,11 @@ const styles = {
 
 const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
   const [value, setValue] = useState(currentVal ?? prop.value)
+
+  useEffect(() => {
+    setValue(currentVal ?? prop.value)
+  }, [currentVal, prop.value])
+
   // Here, units are excluded from `format` as
   // they are rendered in the prop container
   // eslint-disable-next-line no-unused-vars

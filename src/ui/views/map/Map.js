@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MdDownloading } from 'react-icons/md'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
 import MapControls from './MapControls'
@@ -11,6 +11,7 @@ import MapLegend from './MapLegend'
 import MapModal from './MapModal'
 import useMapApi, { MapContext } from './useMapApi'
 
+import { viewportUpdate, viewportRotate } from '../../../data/local/mapSlice'
 import {
   selectSettingsIconUrl,
   selectGroupedEnabledArcsFunc,
@@ -57,6 +58,7 @@ const Map = ({ mapId }) => {
   const nodeIcons = useSelector(selectAllNodeIcons)
   const mapboxToken = useSelector(selectMapboxToken)
   const draggable = useSelector(selectMapNamesDraggable)
+  const dispatch = useDispatch()
 
   const [currentViewport, setCurrentViewport] = useState(viewport)
 
@@ -75,15 +77,6 @@ const Map = ({ mapId }) => {
     mapStyleOption,
   } = useMapApi(mapId)
 
-  const rotateViewport = useMutateStateWithSync(
-    (rate) => ({
-      path: ['maps', 'data', mapId, 'mapControls', 'viewport', 'longitude'],
-      value: (currentViewport.longitude + rate) % 360,
-      sync: false, // Disabled to prevent conflicts when multiple clients enable demo mode
-    }),
-    [mapId, currentViewport.longitude]
-  )
-
   const clearDemoInterval = useCallback(() => {
     if (demoInterval.current !== -1) {
       clearInterval(demoInterval.current)
@@ -95,13 +88,17 @@ const Map = ({ mapId }) => {
     if (demoMode) {
       if (demoInterval.current === -1) {
         const rate = R.pathOr(0.15, [mapId, 'scrollSpeed'], demoSettings)
-        demoInterval.current = setInterval(() => rotateViewport(rate), 13)
+        dispatch(viewportRotate({ mapId, rate, sync: false }))
+        demoInterval.current = setInterval(
+          () => dispatch(viewportRotate({ mapId, rate, sync: false })),
+          13
+        )
       }
     } else {
       clearDemoInterval()
     }
     return clearDemoInterval
-  }, [clearDemoInterval, demoMode, demoSettings, mapId, rotateViewport])
+  }, [clearDemoInterval, demoMode, demoSettings, mapId, dispatch])
 
   useEffect(() => {
     const iconsToLoad = [
@@ -281,9 +278,9 @@ const Map = ({ mapId }) => {
     (e) => {
       if (e.viewState.zoom === 0) return // Prevents setting incorrect viewport on load
 
-      setCurrentViewport(e.viewState)
+      dispatch(viewportUpdate({ viewport: e.viewState, mapId, sync: false }))
     },
-    [setCurrentViewport]
+    [dispatch, mapId]
   )
 
   const handleMouseMove = useCallback(
