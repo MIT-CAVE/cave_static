@@ -22,7 +22,6 @@ import Loader from './ui/views/common/Loader'
 import { AppModal } from './ui/views/common/Modal'
 import renderAppPane from './ui/views/common/Pane'
 import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
-import SnackBar from './ui/views/common/SnackBar'
 import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
 import { includesPath } from './utils'
@@ -50,6 +49,9 @@ const styles = {
 }
 
 const caveTheme = createTheme({
+  zIndex: {
+    tooltip: 2100,
+  },
   palette: {
     mode: 'dark',
     greyscale: {
@@ -158,7 +160,6 @@ const App = () => {
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={caveTheme}>
         <Box sx={styles.root}>
-          <SnackBar />
           <LeftAppBar />
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={styles.page}>

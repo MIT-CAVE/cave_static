@@ -60,7 +60,7 @@ export const useDraggable = (id) => {
     position: draggables[id]?.position,
     hideDrag: draggables[id]?.hideDragOption,
     hideClose: draggables[id]?.hideCloseOption,
-    showDragHandle: draggables[id]?.showDragHandle,
+    showDragHandle: draggables[id]?.showDragHandle ?? true,
     onClose: handleToggleDraggable,
     onToggleDragHandle: handleToggleHandle,
   }
