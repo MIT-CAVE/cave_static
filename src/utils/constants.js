@@ -274,3 +274,20 @@ export const NUMBER_FORMAT_KEY_PATHS = [
   ['gradient', 'notation'],
   ['gradient', 'notationDisplay'],
 ]
+
+export const MESSAGE_SEVERITY_ORDER = ['error', 'warning', 'success', 'info']
+
+export const MESSAGE_SEVERITY_ABBREV = {
+  error: 'E',
+  warning: 'W',
+  success: 'S',
+  info: 'I',
+}
+
+export const MESSAGE_FILTER_OPTIONS = [
+  { label: 'All', value: null },
+  { label: 'Error and above', value: 'error' },
+  { label: 'Warning and above', value: 'warning' },
+  { label: 'Success and above', value: 'success' },
+  { label: 'Info and above', value: 'info' },
+]

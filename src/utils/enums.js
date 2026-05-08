@@ -27,6 +27,7 @@ export const draggableId = {
   SESSION: 'session',
   GLOBAL_OUTPUTS: 'globalOutputs',
   MAP_NAMES: 'mapNames',
+  NOTIFICATIONS: 'notifications',
 }
 
 export const propId = {
