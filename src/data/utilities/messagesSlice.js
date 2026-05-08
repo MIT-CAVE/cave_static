@@ -18,9 +18,11 @@ export const messagesSlice = createSlice({
     removeMessage: (state, action) => {
       return R.dissoc(R.path(['payload', 'messageKey'], action), state)
     },
+    clearMessages: () => ({}),
   },
 })
 
-export const { addMessage, removeMessage } = messagesSlice.actions
+export const { addMessage, clearMessages, removeMessage } =
+  messagesSlice.actions
 
 export default messagesSlice.reducer
