@@ -6,17 +6,19 @@ import { useSelector } from 'react-redux'
 import { Draggable, DragHandle, useDraggable } from '.'
 
 import { selectMessages } from '../../data/selectors'
+import {
+  MESSAGE_SEVERITY_ORDER,
+  MESSAGE_SEVERITY_ABBREV,
+} from '../../utils/constants'
 import { draggableId } from '../../utils/enums'
 import { TooltipButton } from '../compound'
 import SnackBar from '../views/common/SnackBar'
 
-const SEVERITY_ORDER = ['error', 'warning', 'info', 'success']
-const SEVERITY_ABBREV = { error: 'E', warning: 'W', info: 'I', success: 'S' }
-
 const getMostCriticalLevel = (messages) =>
   R.reduce(
     (acc, msg) =>
-      SEVERITY_ORDER.indexOf(msg.snackbarType) < SEVERITY_ORDER.indexOf(acc)
+      MESSAGE_SEVERITY_ORDER.indexOf(msg.snackbarType) <
+      MESSAGE_SEVERITY_ORDER.indexOf(acc)
         ? msg.snackbarType
         : acc,
     'success',
@@ -61,7 +63,9 @@ export const NotificationsUnhide = () => {
   return (
     <Box sx={styles.unhideBox}>
       <Badge
-        badgeContent={hasMessages ? SEVERITY_ABBREV[mostCriticalLevel] : null}
+        badgeContent={
+          hasMessages ? MESSAGE_SEVERITY_ABBREV[mostCriticalLevel] : null
+        }
         color={mostCriticalLevel}
         invisible={!hasMessages}
       >

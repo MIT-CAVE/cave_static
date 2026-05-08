@@ -30,19 +30,13 @@ import {
   clearMessages,
   removeMessage,
 } from '../../../data/utilities/messagesSlice'
+import {
+  MESSAGE_SEVERITY_ORDER,
+  MESSAGE_FILTER_OPTIONS,
+} from '../../../utils/constants'
 import { useMenu } from '../../../utils/hooks'
 
 import { TooltipButton } from '../../compound'
-
-const SEVERITY_ORDER = ['error', 'warning', 'info', 'success']
-
-const FILTER_OPTIONS = [
-  { label: 'All', value: null },
-  { label: 'Error and above', value: 'error' },
-  { label: 'Warning and above', value: 'warning' },
-  { label: 'Info and above', value: 'info' },
-  { label: 'Success and above', value: 'success' },
-]
 
 const styles = {
   // column-reverse: control bar is first in DOM (appears at bottom),
@@ -152,8 +146,8 @@ const SnackBar = ({ dragHandle }) => {
         R.filter(
           ([, msg]) =>
             filterLevel == null ||
-            SEVERITY_ORDER.indexOf(msg.snackbarType) <=
-              SEVERITY_ORDER.indexOf(filterLevel)
+            MESSAGE_SEVERITY_ORDER.indexOf(msg.snackbarType) <=
+              MESSAGE_SEVERITY_ORDER.indexOf(filterLevel)
         ),
         R.sortBy(([id]) => parseInt(id)),
         limit != null ? R.takeLast(limit) : R.identity,
@@ -214,7 +208,7 @@ const SnackBar = ({ dragHandle }) => {
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          {FILTER_OPTIONS.map(({ label, value }) => (
+          {MESSAGE_FILTER_OPTIONS.map(({ label, value }) => (
             <MenuItem
               key={label}
               selected={filterLevel === value}
