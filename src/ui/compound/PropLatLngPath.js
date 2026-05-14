@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import {
   MdAddCircleOutline,
   MdOutlineCancel,
@@ -145,6 +145,17 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   )
   const [editState, setEditState] = useState(edit.NONE)
   const [pathData, setPathData] = useState(getPathData(allInputValues))
+
+  useEffect(() => {
+    const newValue = currentVal ?? prop.value
+    setAllInputValues(newValue)
+    setViewState({
+      latitude: getLastLat(newValue),
+      longitude: getLastLng(newValue),
+    })
+    setManualInput(newValue[newValue.length - 1])
+    setPathData(getPathData(newValue))
+  }, [currentVal, getPathData, prop.value])
 
   const handleChangeAt = (index) => (event, newLatOrLng) => {
     setManualInput(R.update(index, newLatOrLng))
