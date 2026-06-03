@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useId, useRef } from 'react'
+import { useCallback, useId, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import Spinner, {
@@ -105,6 +105,15 @@ const NumberField = ({
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
+  const commitTimeoutRef = useRef(-1)
+
+  useEffect(() => {
+    return () => {
+      if (commitTimeoutRef.current !== -1)
+        clearTimeout(commitTimeoutRef.current)
+    }
+  }, [])
+
   const getCombinedRef = useCallback(
     (baseInputRef) => (node) => {
       localInputRef.current = node
@@ -142,7 +151,13 @@ const NumberField = ({
     const safe = Number.isFinite(fromLive)
       ? R.clamp(min, max, fromLive)
       : (newValue ?? value)
-    onChangeCommitted(event, Number.isFinite(safe) ? safe : fallback)
+    const committedValue = Number.isFinite(safe) ? safe : fallback
+
+    if (commitTimeoutRef.current !== -1) clearTimeout(commitTimeoutRef.current)
+    commitTimeoutRef.current = setTimeout(() => {
+      onChangeCommitted(event, committedValue)
+      commitTimeoutRef.current = -1
+    }, 500)
   }
 
   const showKeyboardToggle = !(hideKeyboardToggle || readOnly || disabled)
