@@ -115,7 +115,7 @@ const SelectAccordionList = ({
                   values={R.when(
                     R.any(R.isNil),
                     R.always('')
-                  )(values[optionIndex])}
+                  )(values[optionIndex] ?? [])}
                   open={subOpen[optionIndex] ?? false}
                   onOpen={() => {
                     setSubOpen(R.assoc(optionIndex, true))
