@@ -1,4 +1,4 @@
-import { chartVariant, MAP_PROJECTIONS } from './enums'
+import { chartVariant, layerId, MAP_PROJECTIONS } from './enums'
 
 export const DEFAULT_LOCALE = 'en-US'
 
@@ -290,4 +290,12 @@ export const MESSAGE_FILTER_OPTIONS = [
   { label: 'Warning and above', value: 'warning' },
   { label: 'Success and above', value: 'success' },
   { label: 'Info and above', value: 'info' },
+]
+
+export const LAYER_ORDER = [
+  layerId.GEOGRAPHY_LAYER,
+  layerId.INCLUDED_GEOGRAPHY_LAYER,
+  layerId.MULTI_ARC_LAYER_SOLID,
+  layerId.ARC_LAYER_SOLID,
+  layerId.NODE_ICON_LAYER,
 ]

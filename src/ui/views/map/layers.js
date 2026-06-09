@@ -1,5 +1,12 @@
 import * as R from 'ramda'
-import { useEffect, useCallback, useContext, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -8,7 +15,7 @@ import {
   GeosWithHeight,
   ArcsWithHeight,
 } from './CustomLayers'
-import useMapApi, { MapContext } from './useMapApi'
+import { MapContext } from './useMapApi'
 
 import {
   selectNodeLayerGeoJsonFunc,
@@ -21,7 +28,7 @@ import {
   selectFeatureData,
   selectCurrentTimeContinuous,
 } from '../../../data/selectors'
-import { LINE_TYPES } from '../../../utils/constants'
+import { LAYER_ORDER, LINE_TYPES } from '../../../utils/constants'
 import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 
@@ -46,7 +53,6 @@ const DARKEN_FILL_ON_HOVER = [
 
 const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
-  const { Layer, Source } = useMapApi(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const useHandleClickFactory = (feature) =>
@@ -93,23 +99,29 @@ const useMapFeature = () => {
   )
 
   return {
-    Layer,
-    Source,
     arcProps,
     mapId,
     createHandleClick: useHandleClickFactory,
   }
 }
 
-export const Geos = () => {
-  const [loadedGeoJson, setLoadedGeoJson] = useState({})
-  const [lineGeoJsonObject, setLineGeoJsonObject] = useState({})
+export const MapLayers = () => {
+  const { mapId, mapRef, mapLoaded } = useContext(MapContext)
+
+  const [loadedGeoJson, setLoadedGeoJson] = useState([])
+  const [lineGeoJsonObject, setLineGeoJsonObject] = useState([])
 
   const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
   const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
 
-  const { mapId, arcProps, Layer, Source, createHandleClick } = useMapFeature()
+  const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
+  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+  const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
 
+  const featureData = useSelector(selectFeatureData)
+  const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
+
+  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   useEffect(() => {
@@ -119,99 +131,6 @@ export const Geos = () => {
   useEffect(() => {
     lineObjFunc(mapId).then(setLineGeoJsonObject)
   }, [lineObjFunc, mapId])
-
-  return [
-    <GeosWithHeight
-      id="geos-with-altitude"
-      key="geos-with-altitude"
-      geos={!isGlobe ? loadedGeoJson : []}
-      onClick={createHandleClick('geos')}
-    />,
-    <ArcsWithHeight
-      id="geos-arcs-with-altitude"
-      key="geos-arcs-with-altitude"
-      arcs={!isGlobe ? lineGeoJsonObject : []}
-      onClick={createHandleClick('arcs')}
-    />,
-    <Source
-      type="geojson"
-      key={layerId.GEOGRAPHY_LAYER}
-      id={layerId.GEOGRAPHY_LAYER}
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: loadedGeoJson,
-      }}
-    >
-      <Layer
-        id={layerId.GEOGRAPHY_LAYER}
-        key={layerId.GEOGRAPHY_LAYER}
-        react
-        type="fill"
-        layout={{
-          visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
-          'fill-color': DARKEN_FILL_ON_HOVER,
-          'fill-opacity': 0.4,
-        }}
-      />
-    </Source>,
-    <Source
-      id={layerId.MULTI_ARC_LAYER_SOLID}
-      key={layerId.MULTI_ARC_LAYER_SOLID}
-      generateId={true}
-      type="geojson"
-      data={{
-        type: 'FeatureCollection',
-        features: lineGeoJsonObject,
-      }}
-    >
-      <Layer
-        id={layerId.MULTI_ARC_LAYER_SOLID}
-        key={layerId.MULTI_ARC_LAYER_SOLID}
-        {...arcProps}
-      />
-    </Source>,
-  ]
-}
-
-export const IncludedGeos = () => {
-  const { mapId } = useContext(MapContext)
-  const geoObjs = useSelector(selectIncludedGeoJsonFunc)(mapId)
-  const { Layer, Source } = useMapApi(mapId)
-  return (
-    <Source
-      type="geojson"
-      key={layerId.INCLUDED_GEOGRAPHY_LAYER}
-      id={layerId.INCLUDED_GEOGRAPHY_LAYER}
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: geoObjs,
-      }}
-    >
-      <Layer
-        id={layerId.INCLUDED_GEOGRAPHY_LAYER}
-        key={layerId.INCLUDED_GEOGRAPHY_LAYER}
-        type="fill"
-        paint={{
-          'fill-color': DARKEN_FILL_ON_HOVER,
-          'fill-opacity': 0.4,
-        }}
-      />
-    </Source>
-  )
-}
-
-export const Nodes = () => {
-  const { Layer, Source, mapId, createHandleClick } = useMapFeature()
-  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
-  const featureData = useSelector(selectFeatureData)
-  const currentTimeInSeconds = useSelector(selectCurrentTimeContinuous)
-
-  const [animatedNodeGeoJson, setAnimatedNodeGeoJson] = useState(nodeGeoJson)
-  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
 
   const latitudes = useMemo(
     () =>
@@ -361,78 +280,329 @@ export const Nodes = () => {
     return () => window.cancelAnimationFrame(requestId)
   }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])
 
-  return [
-    <NodesWithHeight
-      id="nodes-with-altitude"
-      key="nodes-with-altitude"
-      nodes={!isGlobe ? nodeGeoJson : []}
-      onClick={createHandleClick('nodes')}
-    />,
-    <Source
-      id={layerId.NODE_ICON_LAYER}
-      key={layerId.NODE_ICON_LAYER}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: nodeGeoJson.length === 0 ? [] : animatedNodeGeoJson,
-      }}
-    >
-      <Layer
-        id={layerId.NODE_ICON_LAYER}
-        key={layerId.NODE_ICON_LAYER}
-        type="symbol"
-        layout={{
+  const arcProps = useMemo(
+    () => ({
+      type: 'line',
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+        visibility: isGlobe ? 'visible' : 'none',
+      },
+      paint: {
+        'line-color': DARKEN_FILL_ON_HOVER,
+        'line-opacity': 0.8,
+        'line-width': ['get', 'size'],
+        'line-dasharray': [
+          'case',
+          ['==', ['get', 'dash'], 'dashed'],
+          ['literal', LINE_TYPES.dashed],
+          ['==', ['get', 'dash'], 'dotted'],
+          ['literal', LINE_TYPES.dotted],
+          ['literal', LINE_TYPES.solid],
+        ],
+      },
+    }),
+    [isGlobe]
+  )
+
+  const geojsonLayers = useMemo(() => {
+    const safeLoadedGeoJson = Array.isArray(loadedGeoJson) ? loadedGeoJson : []
+    const safeLineGeoJsonObject = Array.isArray(lineGeoJsonObject)
+      ? lineGeoJsonObject
+      : []
+    const safeGeoObjs = Array.isArray(geoObjs) ? geoObjs : []
+    const safeNodeGeoJson = Array.isArray(nodeGeoJson) ? nodeGeoJson : []
+    const safeAnimatedNodeGeoJson = Array.isArray(animatedNodeGeoJson)
+      ? animatedNodeGeoJson
+      : []
+    const safeArcLayerGeoJson = Array.isArray(arcLayerGeoJson)
+      ? arcLayerGeoJson
+      : []
+
+    const layersMap = {
+      [layerId.GEOGRAPHY_LAYER]: {
+        id: layerId.GEOGRAPHY_LAYER,
+        type: 'fill',
+        data: {
+          type: 'FeatureCollection',
+          features: safeLoadedGeoJson,
+        },
+        layout: {
+          visibility: isGlobe ? 'visible' : 'none',
+        },
+        paint: {
+          'fill-color': DARKEN_FILL_ON_HOVER,
+          'fill-opacity': 0.4,
+        },
+      },
+      [layerId.INCLUDED_GEOGRAPHY_LAYER]: {
+        id: layerId.INCLUDED_GEOGRAPHY_LAYER,
+        type: 'fill',
+        data: {
+          type: 'FeatureCollection',
+          features: safeGeoObjs,
+        },
+        paint: {
+          'fill-color': DARKEN_FILL_ON_HOVER,
+          'fill-opacity': 0.4,
+        },
+      },
+      [layerId.MULTI_ARC_LAYER_SOLID]: {
+        id: layerId.MULTI_ARC_LAYER_SOLID,
+        type: 'line',
+        data: {
+          type: 'FeatureCollection',
+          features: safeLineGeoJsonObject,
+        },
+        layout: arcProps.layout,
+        paint: arcProps.paint,
+      },
+      [layerId.ARC_LAYER_SOLID]: {
+        id: layerId.ARC_LAYER_SOLID,
+        type: 'line',
+        data: {
+          type: 'FeatureCollection',
+          features: safeArcLayerGeoJson,
+        },
+        layout: arcProps.layout,
+        paint: arcProps.paint,
+      },
+      [layerId.NODE_ICON_LAYER]: {
+        id: layerId.NODE_ICON_LAYER,
+        type: 'symbol',
+        data: {
+          type: 'FeatureCollection',
+          features: safeNodeGeoJson.length === 0 ? [] : safeAnimatedNodeGeoJson,
+        },
+        layout: {
           'icon-image': ['get', 'icon'],
           'icon-size': ['get', 'size'],
           'icon-allow-overlap': true,
           visibility: isGlobe ? 'visible' : 'none',
-        }}
-        paint={{
+        },
+        paint: {
           'icon-color': DARKEN_FILL_ON_HOVER,
-        }}
-      />
-    </Source>,
+        },
+      },
+    }
+
+    return R.pipe(
+      R.map((id) => layersMap[id]),
+      R.reject(R.isNil)
+    )(LAYER_ORDER)
+  }, [
+    loadedGeoJson,
+    lineGeoJsonObject,
+    geoObjs,
+    nodeGeoJson,
+    animatedNodeGeoJson,
+    arcLayerGeoJson,
+    isGlobe,
+    arcProps,
+  ])
+
+  const dataRef = useRef(geojsonLayers)
+
+  useEffect(() => {
+    dataRef.current = geojsonLayers
+  }, [geojsonLayers])
+
+  // 1. Manage creation, destruction, and style changes in order
+  useEffect(() => {
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (!map || !mapLoaded) return
+
+    const addAll = () => {
+      const layers = dataRef.current
+
+      layers.forEach(({ id, type, data, layout = {}, paint = {} }) => {
+        if (!map.getSource(id)) {
+          map.addSource(id, {
+            type: 'geojson',
+            data,
+            generateId: true,
+          })
+        }
+        if (!map.getLayer(id)) {
+          map.addLayer({
+            id,
+            type,
+            source: id,
+            layout,
+            paint,
+          })
+        }
+      })
+    }
+
+    if (map.isStyleLoaded()) {
+      addAll()
+    }
+
+    const handleStyleData = () => {
+      addAll()
+    }
+
+    map.on('styledata', handleStyleData)
+
+    return () => {
+      map.off('styledata', handleStyleData)
+      try {
+        if (map.getStyle()) {
+          const layers = dataRef.current
+          // Remove layers in reverse order
+          layers
+            .slice()
+            .reverse()
+            .forEach(({ id }) => {
+              if (map.getLayer(id)) map.removeLayer(id)
+            })
+          // Remove sources
+          layers.forEach(({ id }) => {
+            if (map.getSource(id)) map.removeSource(id)
+          })
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }, [mapRef, mapLoaded])
+
+  // 2. Manage updating data
+  useEffect(() => {
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (!map || !mapLoaded) return
+
+    geojsonLayers.forEach(({ id, data }) => {
+      try {
+        const source = map.getSource(id)
+        if (source && typeof source.setData === 'function') {
+          source.setData(data)
+        }
+      } catch (e) {
+        // Ignore
+      }
+    })
+  }, [geojsonLayers, mapRef, mapLoaded])
+
+  // 3. Manage updating paint and layout properties
+  useEffect(() => {
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (!map || !mapLoaded) return
+
+    geojsonLayers.forEach(({ id, layout = {}, paint = {} }) => {
+      try {
+        if (map.getLayer(id)) {
+          Object.keys(layout).forEach((key) => {
+            map.setLayoutProperty(id, key, layout[key])
+          })
+          Object.keys(paint).forEach((key) => {
+            map.setPaintProperty(id, key, paint[key])
+          })
+        }
+      } catch (e) {
+        // Ignore
+      }
+    })
+  }, [geojsonLayers, mapRef, mapLoaded])
+
+  return null
+}
+
+export const Geos = () => {
+  const [loadedGeoJson, setLoadedGeoJson] = useState([])
+  const [lineGeoJsonObject, setLineGeoJsonObject] = useState([])
+
+  const geoJsonObjectFunc = useSelector(selectFetchedGeoJsonFunc)
+  const lineObjFunc = useSelector(selectFetchedArcGeoJsonFunc)
+
+  const { mapId, createHandleClick } = useMapFeature()
+
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+
+  useEffect(() => {
+    geoJsonObjectFunc(mapId).then(setLoadedGeoJson)
+  }, [geoJsonObjectFunc, mapId])
+
+  useEffect(() => {
+    lineObjFunc(mapId).then(setLineGeoJsonObject)
+  }, [lineObjFunc, mapId])
+
+  const safeLoadedGeoJson = Array.isArray(loadedGeoJson) ? loadedGeoJson : []
+  const safeLineGeoJsonObject = Array.isArray(lineGeoJsonObject)
+    ? lineGeoJsonObject
+    : []
+
+  return [
+    <GeosWithHeight
+      id="geos-with-altitude"
+      key="geos-with-altitude"
+      geos={!isGlobe ? safeLoadedGeoJson : []}
+      onClick={createHandleClick('geos')}
+    />,
+    <ArcsWithHeight
+      id="geos-arcs-with-altitude"
+      key="geos-arcs-with-altitude"
+      arcs={!isGlobe ? safeLineGeoJsonObject : []}
+      onClick={createHandleClick('arcs')}
+    />,
+  ]
+}
+
+export const IncludedGeos = () => {
+  return null
+}
+
+export const Nodes = () => {
+  const { mapId, createHandleClick } = useMapFeature()
+  const nodeGeoJson = useSelector(selectNodeLayerGeoJsonFunc)(mapId)
+
+  const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+  const safeNodeGeoJson = Array.isArray(nodeGeoJson) ? nodeGeoJson : []
+
+  return [
+    <NodesWithHeight
+      id="nodes-with-altitude"
+      key="nodes-with-altitude"
+      nodes={!isGlobe ? safeNodeGeoJson : []}
+      onClick={createHandleClick('nodes')}
+    />,
   ]
 }
 
 export const Arcs = () => {
-  const { Layer, Source, mapId, arcProps, createHandleClick } = useMapFeature()
+  const { mapId, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayerGeoJsonFunc)(mapId)
   const isGlobe = true //useSelector(selectIsGlobe)(mapId)
+  const safeArcLayerGeoJson = Array.isArray(arcLayerGeoJson)
+    ? arcLayerGeoJson
+    : []
 
   return [
     <ArcsWithHeight
       id="arcs-with-altitude"
       key="arcs-with-altitude"
-      arcs={!isGlobe ? arcLayerGeoJson : []}
+      arcs={!isGlobe ? safeArcLayerGeoJson : []}
       onClick={createHandleClick('arcs')}
     />,
-    <Source
-      id={layerId.ARC_LAYER_SOLID}
-      key={layerId.ARC_LAYER_SOLID}
-      type="geojson"
-      generateId={true}
-      data={{
-        type: 'FeatureCollection',
-        features: arcLayerGeoJson,
-      }}
-    >
-      <Layer
-        id={layerId.ARC_LAYER_SOLID}
-        key={layerId.ARC_LAYER_SOLID}
-        {...arcProps}
-      />
-    </Source>,
   ]
 }
 
 export const Arcs3D = () => {
   const { mapId, createHandleClick } = useMapFeature()
   const arcLayerGeoJson = useSelector(selectArcLayer3DGeoJsonFunc)(mapId)
+  const safeArcLayerGeoJson = Array.isArray(arcLayerGeoJson)
+    ? arcLayerGeoJson
+    : []
   return (
     <ArcLayer3D
-      features={arcLayerGeoJson}
+      features={safeArcLayerGeoJson}
       onClick={createHandleClick('arcs')}
     />
   )
