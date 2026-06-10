@@ -2793,3 +2793,14 @@ export const selectFetchedGeoJsonFunc = createSelector(
       'geo'
     )
 )
+
+export const selectGeoTypeKeys = createSelector(
+  selectLocalizedGeoTypes,
+  (data) => R.keys(data),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
+)
