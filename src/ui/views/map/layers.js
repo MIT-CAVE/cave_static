@@ -169,6 +169,8 @@ const MapboxLayer = memo(
           })
         }
         if (!map.getLayer(id)) {
+          const safeBeforeId =
+            beforeId && map.getLayer(beforeId) ? beforeId : undefined
           map.addLayer(
             {
               id,
@@ -177,7 +179,7 @@ const MapboxLayer = memo(
               layout: layoutRef.current,
               paint: paintRef.current,
             },
-            beforeId
+            safeBeforeId
           )
         }
       }
