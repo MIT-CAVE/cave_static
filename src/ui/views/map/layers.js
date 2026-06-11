@@ -31,6 +31,7 @@ import {
   selectNodeLayerGeoJsonFunc,
   selectArcLayerGeoJsonFunc,
   selectArcLayer3DGeoJsonFunc,
+  selectLegendDataFunc,
 } from '../../../data/selectors'
 import { LINE_TYPES } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
@@ -619,6 +620,7 @@ export const MapLayers = () => {
   const nodeTypes = useSelector(selectNodeTypeKeys)
   const arcTypes = useSelector(selectArcTypeKeys)
   const geoTypes = useSelector(selectGeoTypeKeys)
+  const legendData = useSelector((state) => selectLegendDataFunc(state)(mapId))
 
   useEffect(() => {
     geoJsonObjectFunc(mapId).then(setLoadedGeoJson)
@@ -629,14 +631,109 @@ export const MapLayers = () => {
   }, [lineObjFunc, mapId])
 
   const orderedLayerIds = useMemo(() => {
-    const ids = []
-    geoTypes.forEach((type) => ids.push(`geographyLayer-${type}`))
-    geoTypes.forEach((type) => ids.push(`includedGeographyLayer-${type}`))
-    arcTypes.forEach((type) => ids.push(`multiArcLayerSolid-${type}`))
-    arcTypes.forEach((type) => ids.push(`arcLayerSolid-${type}`))
-    nodeTypes.forEach((type) => ids.push(`nodeIconLayer-${type}`))
-    return ids
-  }, [geoTypes, arcTypes, nodeTypes])
+    const getZIndex = (type, category) => {
+      let zIndexVal = null
+      for (const group of Object.values(legendData || {})) {
+        if (group?.data?.[type] && group.data[type].zIndex !== undefined) {
+          zIndexVal = group.data[type].zIndex
+          break
+        }
+      }
+      if (zIndexVal !== null && zIndexVal !== undefined) {
+        return Number(zIndexVal)
+      }
+      // Defaults: geos = -2, arcs = -1, nodes = 0
+      if (category === 'geo') return -2
+      if (category === 'arc') return -1
+      return 0
+    }
+
+    const layers = []
+
+    // 1. Add all geo layers
+    geoTypes.forEach((type, index) => {
+      layers.push({
+        id: `geographyLayer-${type}`,
+        type,
+        category: 'geo',
+        subOrder: 0,
+        typeIndex: index,
+      })
+      layers.push({
+        id: `includedGeographyLayer-${type}`,
+        type,
+        category: 'geo',
+        subOrder: 1,
+        typeIndex: index,
+      })
+    })
+
+    // 2. Add all arc layers
+    arcTypes.forEach((type, index) => {
+      layers.push({
+        id: `multiArcLayerSolid-${type}`,
+        type,
+        category: 'arc',
+        subOrder: 0,
+        typeIndex: index,
+      })
+      layers.push({
+        id: `arcLayerSolid-${type}`,
+        type,
+        category: 'arc',
+        subOrder: 1,
+        typeIndex: index,
+      })
+    })
+
+    // 3. Add all node layers
+    nodeTypes.forEach((type, index) => {
+      layers.push({
+        id: `nodeIconLayer-${type}`,
+        type,
+        category: 'node',
+        subOrder: 0,
+        typeIndex: index,
+      })
+    })
+
+    const categoryOrder = { geo: 0, arc: 1, node: 2 }
+
+    layers.sort((a, b) => {
+      const zA = getZIndex(a.type, a.category)
+      const zB = getZIndex(b.type, b.category)
+
+      // 1. Primary: zIndex ascending
+      if (zA !== zB) {
+        return zA - zB
+      }
+
+      // 2. Secondary: category order (geo < arc < node)
+      const catA = categoryOrder[a.category]
+      const catB = categoryOrder[b.category]
+      if (catA !== catB) {
+        return catA - catB
+      }
+
+      // 3. Tertiary: subOrder ascending (fetched (0) < included (1))
+      if (a.subOrder !== b.subOrder) {
+        return a.subOrder - b.subOrder
+      }
+
+      // 4. Quaternary: typeIndex ascending (stable relative order of types)
+      return a.typeIndex - b.typeIndex
+    })
+
+    return layers.map((layer) => layer.id)
+  }, [geoTypes, arcTypes, nodeTypes, legendData])
+
+  const beforeIdMap = useMemo(() => {
+    const mapping = {}
+    for (let i = 0; i < orderedLayerIds.length; i++) {
+      mapping[orderedLayerIds[i]] = orderedLayerIds[i + 1]
+    }
+    return mapping
+  }, [orderedLayerIds])
 
   useEffect(() => {
     const map = mapRef.current?.getMap
@@ -676,7 +773,7 @@ export const MapLayers = () => {
           key={type}
           type={type}
           allFetchedGeos={safeLoadedGeoJson}
-          beforeId={`includedGeographyLayer-${type}`}
+          beforeId={beforeIdMap[`geographyLayer-${type}`]}
         />
       ))}
       {geoTypes.map((type) => (
@@ -684,11 +781,7 @@ export const MapLayers = () => {
           key={type}
           type={type}
           mapId={mapId}
-          beforeId={
-            arcTypes.length > 0
-              ? `multiArcLayerSolid-${arcTypes[0]}`
-              : undefined
-          }
+          beforeId={beforeIdMap[`includedGeographyLayer-${type}`]}
         />
       ))}
       {arcTypes.map((type) => (
@@ -696,7 +789,7 @@ export const MapLayers = () => {
           key={type}
           type={type}
           allFetchedArcs={safeLineGeoJsonObject}
-          beforeId={`arcLayerSolid-${type}`}
+          beforeId={beforeIdMap[`multiArcLayerSolid-${type}`]}
         />
       ))}
       {arcTypes.map((type) => (
@@ -704,13 +797,16 @@ export const MapLayers = () => {
           key={type}
           type={type}
           mapId={mapId}
-          beforeId={
-            nodeTypes.length > 0 ? `nodeIconLayer-${nodeTypes[0]}` : undefined
-          }
+          beforeId={beforeIdMap[`arcLayerSolid-${type}`]}
         />
       ))}
       {nodeTypes.map((type) => (
-        <NodeIconLayerInstance key={type} type={type} mapId={mapId} />
+        <NodeIconLayerInstance
+          key={type}
+          type={type}
+          mapId={mapId}
+          beforeId={beforeIdMap[`nodeIconLayer-${type}`]}
+        />
       ))}
     </>
   )

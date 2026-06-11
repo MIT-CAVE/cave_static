@@ -30,6 +30,7 @@ import {
   LegendSettings,
   LegendColorMarker,
   GroupScaleControls,
+  ZIndexControl,
 } from './Legend'
 import SizeLegend from './SizeLegend'
 import { MapContext } from './useMapApi'
@@ -130,6 +131,7 @@ const LegendRowDetails = ({
   filters,
   featureTypeProps,
   featureTypeValues,
+  zIndex,
   getRange,
   onChangeVisibility,
 }) => {
@@ -308,6 +310,13 @@ const LegendRowDetails = ({
           <GroupScaleControls
             {...{ groupScaleWithZoom, ...groupScaleSlider }}
             onChangeLegendAttr={handleChangeLegendAttr}
+          />
+        )}
+        {showLegendAdvancedControls && (
+          <ZIndexControl
+            type={id}
+            zIndex={zIndex}
+            onChange={handleChangeLegendAttr('zIndex')}
           />
         )}
       </Stack>

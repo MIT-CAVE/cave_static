@@ -19,6 +19,7 @@ import {
   toggleButtonGroupClasses,
   Typography,
 } from '@mui/material'
+import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useContext, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
@@ -58,6 +59,8 @@ import {
   selectSync,
   selectZoomFunc,
   selectVirtualKeyboard,
+  selectNodeTypeKeys,
+  selectArcTypeKeys,
 } from '../../../data/selectors'
 import { MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import {
@@ -764,6 +767,39 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
       {...{ value, onSelect }}
     />
   )
+}
+
+export const ZIndexControl = ({ type, zIndex, onChange }) => {
+  const nodeTypes = useSelector(selectNodeTypeKeys)
+  const arcTypes = useSelector(selectArcTypeKeys)
+
+  const defaultZIndex = useMemo(() => {
+    if (nodeTypes.includes(type)) return 0
+    if (arcTypes.includes(type)) return -1
+    return -2
+  }, [nodeTypes, arcTypes, type])
+
+  const value = zIndex !== undefined && zIndex !== null ? zIndex : defaultZIndex
+
+  return (
+    <Box sx={{ mt: 1, mb: 1, width: '100%' }}>
+      <NumberField
+        fullWidth
+        label="Render Order (Z-Index)"
+        value={value}
+        numberFormat={{ precision: 0 }}
+        onClickAway={R.F}
+        onChangeCommitted={(event, newValue) => {
+          onChange(newValue)
+        }}
+      />
+    </Box>
+  )
+}
+ZIndexControl.propTypes = {
+  type: PropTypes.string.isRequired,
+  zIndex: PropTypes.number,
+  onChange: PropTypes.func.isRequired,
 }
 
 export const GroupScaleControls = ({
