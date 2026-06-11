@@ -531,11 +531,10 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
   const numColors = displayedColors.length
 
   // Compute grid (max 3 columns)
-  const cols = numColors <= 4 ? 2 : 3
+  const cols = numColors < 2 ? 1 : numColors < 5 ? 2 : 3
   const rows = Math.ceil(numColors / cols)
   const markerWidth = (width - gap * (cols - 1)) / cols
   const markerHeight = (height - gap * (rows - 1)) / rows
-  // const rx = Math.min(markerWidth, markerHeight) * 0.4 // rounded corners
 
   return (
     <svg {...{ height, width }}>
@@ -556,8 +555,8 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
             {...{
               x,
               y,
-              // rx
             }}
+            rx={cols === 1 ? markerHeight * 0.2 : 0} // If only one color, make it fully rounded
             width={markerWidth}
             height={markerHeight}
             fill={color}
