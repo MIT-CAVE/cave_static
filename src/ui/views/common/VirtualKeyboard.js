@@ -423,7 +423,7 @@ const VirtualKeyboard = () => {
       virtualKeyboard.lastKeyPress === null // Only sync from external sources
     ) {
       keyboardRef.current.setInput(virtualKeyboard.inputValue)
-      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue.length)
+      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue?.length)
     }
   }, [virtualKeyboard.inputValue, virtualKeyboard.lastKeyPress])
 
@@ -434,7 +434,7 @@ const VirtualKeyboard = () => {
   useEffect(() => {
     if (keyboardRef.current) {
       keyboardRef.current.setInput(virtualKeyboard.inputValue)
-      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue.length)
+      keyboardRef.current.setCaretPosition(virtualKeyboard.inputValue?.length)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [virtualKeyboard.activeFieldId])
