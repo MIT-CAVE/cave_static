@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["command(npm run lint)", "command(npm run build)"]
+  }
+}

@@ -23,6 +23,9 @@ import {
   selectAllNodeIcons,
   selectMapboxToken,
   selectMapNamesDraggable,
+  selectNodeTypeKeys,
+  selectArcTypeKeys,
+  selectGeoTypeKeys,
 } from '../../../data/selectors'
 import {
   DARK_GLOBE_FOG,
@@ -31,7 +34,6 @@ import {
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
 } from '../../../utils/constants'
-import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { getSvgMarkup } from '../../../utils/svgBuilder'
 import MapNameDraggable from '../../draggables/MapNameDraggable'
@@ -68,7 +70,25 @@ const Map = ({ mapId }) => {
     [groupedEnabledArcsFunc, mapId]
   )
 
-  const interactiveLayerIds = useMemo(() => R.values(layerId), [])
+  const nodeTypes = useSelector(selectNodeTypeKeys)
+  const arcTypes = useSelector(selectArcTypeKeys)
+  const geoTypes = useSelector(selectGeoTypeKeys)
+
+  const interactiveLayerIds = useMemo(() => {
+    const ids = []
+    geoTypes.forEach((type) => {
+      ids.push(`geographyLayer-${type}`)
+      ids.push(`includedGeographyLayer-${type}`)
+    })
+    arcTypes.forEach((type) => {
+      ids.push(`multiArcLayerSolid-${type}`)
+      ids.push(`arcLayerSolid-${type}`)
+    })
+    nodeTypes.forEach((type) => {
+      ids.push(`nodeIconLayer-${type}`)
+    })
+    return ids
+  }, [geoTypes, arcTypes, nodeTypes])
 
   const {
     ReactMapGl,
