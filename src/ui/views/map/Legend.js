@@ -47,7 +47,6 @@ import {
   selectEffectiveNodesBy,
   selectGeoRange,
   selectLegendLayout,
-  selectLegendNumberFormatFunc,
   selectLegendView,
   selectLegendWidth,
   selectNodeRange,
@@ -61,6 +60,7 @@ import {
   selectVirtualKeyboard,
   selectNodeTypeKeys,
   selectArcTypeKeys,
+  selectParsedGradient,
 } from '../../../data/selectors'
 import { MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import {
@@ -92,7 +92,6 @@ import {
   getColorString,
   includesPath,
   NumberFormat,
-  parseGradient,
 } from '../../../utils'
 
 const styles = {
@@ -416,8 +415,9 @@ export const useGradient = ({
   )
 
   const handleSetAutoValueAt = useCallback(
-    (dataIndex, index) => () =>
-      onChangeValueAt(dataIndex)(index < 1 ? 'min' : 'max'),
+    (dataIndex, index) => () => {
+      onChangeValueAt(dataIndex)(index < 1 ? 'min' : 'max')
+    },
     [onChangeValueAt]
   )
 
@@ -447,7 +447,6 @@ export const useGradient = ({
 const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
   const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
-  const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
 
   const valueRange = useMemo(() => {
     const colorRange = getRange(id, colorBy, mapId)
@@ -459,10 +458,10 @@ const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
       : colorRange
   }, [colorBy, getRange, getRangeOnZoom, group, id, mapId])
 
-  const { colors, values } = useMemo(() => {
-    const numberFormat = legendNumberFormatFunc(colorByProp)
-    return parseGradient('color', numberFormat.precision)(valueRange)
-  }, [colorByProp, legendNumberFormatFunc, valueRange])
+  const parsedGradient = useSelector((state) =>
+    selectParsedGradient(state, 'color', colorByProp, valueRange)
+  )
+  const { colors, values } = parsedGradient
 
   const gradientColors = useMemo(() => {
     const { scale, scaleParams } = valueRange.gradient

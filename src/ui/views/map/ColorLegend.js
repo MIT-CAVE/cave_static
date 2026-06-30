@@ -30,7 +30,10 @@ import {
   WithEditBadge,
 } from './Legend'
 
-import { selectLegendNumberFormatFunc } from '../../../data/selectors'
+import {
+  selectLegendNumberFormatFunc,
+  selectParsedGradient,
+} from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 import { getScaledValueAlt } from '../../../utils/scales'
@@ -45,7 +48,6 @@ import {
   getChartItemColor,
   getContrastText,
   orderEntireDict,
-  parseGradient,
 } from '../../../utils'
 
 const styles = {
@@ -175,6 +177,7 @@ const ColorMenu = ({
 
   const dataIndex = dataIndices[index]
   const nextDataIndex = dataIndices[index + 1]
+
   return (
     <div>
       <ToggleButton
@@ -240,10 +243,8 @@ const ColorMenu = ({
 }
 
 const ColorEditSection = ({
-  dataIndices,
-  colors,
-  labels,
-  rawValues,
+  colorByProp,
+  valueRange,
   numberFormat,
   lastIndex,
   isStepScale,
@@ -260,8 +261,12 @@ const ColorEditSection = ({
   onClose,
 }) => {
   const [editLabelAt, setEditLabelAt] = useState({})
-  const [defaultEditValues, setDefaultEditValues] = useState(rawValues)
+  const parsedGradient = useSelector((state) =>
+    selectParsedGradient(state, 'color', colorByProp, valueRange)
+  )
+  const { colors, rawValues, labels, dataIndices } = parsedGradient
   const [itemsOrder, setItemsOrder] = useState(R.range(0, dataIndices.length))
+  const [values, setValues] = useState(rawValues)
 
   const handleToggleEditLabelAt = useCallback(
     (dataIndex) => () => {
@@ -275,17 +280,9 @@ const ColorEditSection = ({
 
   const handleAddColorAt = useCallback(
     (dataIndex) => {
-      // TODO: Update `defaultEditValues` accordingly
-
-      // BUG: Existing indices might change when inserting an element and
-      // the references to those old default values change also, switching
-      // the uncontrolled component into a controlled component. Evaluate
-      // using an object to track indices.
-      // setDefaultEditValues(R.insert(dataIndex, 0))
       const index = dataIndices.indexOf(dataIndex)
-      // console.log({index, dataIndex})
       setItemsOrder(R.insert(index, dataIndices.length))
-      setDefaultEditValues(R.insert(index, 0)) // FIXME: Move new gradient value logic here
+      setValues(R.insert(index, 0)) // FIXME: Move new gradient value logic here
       return onAddColorAt(dataIndex)
     },
     [dataIndices, onAddColorAt]
@@ -294,39 +291,42 @@ const ColorEditSection = ({
   const handleRemoveColorAt = useCallback(
     (dataIndex) => {
       const index = dataIndices.indexOf(dataIndex)
-      const removalIndex = itemsOrder.indexOf(index)
-      // console.log({ dataIndices })
-      setItemsOrder((a) => {
-        const newItemsOrder = R.pipe(
-          R.remove(removalIndex, 1)
-          // Shift by one place to the left each element of the rest of the array
-          // R.addIndex(R.map)((val, idx) =>
-          //   R.when(R.always(idx >= removalIndex), R.dec)(val)
-          // )
-        )(a) // R.update(index, null)(a) //
-        // console.log({ dataIndex, index,removalIndex, itemsOrder: a, newItemsOrder })
-        return newItemsOrder
-      })
-      setDefaultEditValues((a) => {
-        const newDefaultEditValues = R.remove(removalIndex, 1)(a) // R.update(index, null)(a) //
-        // console.log({ dataIndex, index, removalIndex,defaultEditValues: a, newDefaultEditValues })
-        return newDefaultEditValues
-      })
-      return onRemoveColorAt(removalIndex)
+      setItemsOrder((currentItemsOrder) =>
+        R.pipe(
+          R.remove(index, 1),
+          R.map(R.when(R.lt(currentItemsOrder[index]), R.dec))
+        )(currentItemsOrder)
+      )
+      setValues(R.remove(index, 1))
+      return onRemoveColorAt(dataIndex)
     },
-    [dataIndices, itemsOrder, onRemoveColorAt]
+    [dataIndices, onRemoveColorAt]
   )
 
-  // console.log({ dataIndices, itemsOrder, defaultEditValues, rawValues })
+  const handleSetAutoValueAt = useCallback(
+    (dataIndex, index) => () => {
+      const autoValue = index < 1 ? valueRange?.min : valueRange?.max
+      setValues(R.update(index, autoValue))
+      return onSetAutoValueAt(dataIndex, index)()
+    },
+    [onSetAutoValueAt, valueRange?.max, valueRange?.min]
+  )
 
   return (
     <Stack spacing={1} style={{ marginTop: 0 }}>
-      {dataIndices.map((dataIndex, rawIndex) => {
-        const index = R.indexOf(rawIndex)(itemsOrder)
-        // A color item was removed from the gradient
-        if (index < 0) return null
+      {dataIndices.map((rawDataIndex, rawIndex) => {
+        const index = itemsOrder.indexOf(rawIndex)
+        const dataIndex = dataIndices[index]
+        if (index < 0) {
+          console.error('This should not happen. Check these values:', {
+            rawIndex,
+            index,
+            dataIndices,
+          })
+          return null
+        }
 
-        const defaultValue = defaultEditValues[index]
+        const value = values[index]
         /* <div key={index} style={{ position: 'relative' }}>
 
           {index > 0 && (
@@ -348,16 +348,6 @@ const ColorEditSection = ({
             )} */
         const isLabelEmpty = labels[index] == null || labels[index] === ''
         const isLastStepScaleItem = isStepScale && index === lastIndex
-        // console.log(
-        //   'index:',
-        //   rawIndex,
-        //   '->',
-        //   index,
-        //   '| value:',
-        //   defaultValue,
-        //   '| color:',
-        //   colors[index]
-        // )
         return (
           <Grid
             key={rawIndex}
@@ -382,19 +372,12 @@ const ColorEditSection = ({
                       color="warning"
                       sx={styles.inputValue}
                       label={getValueLabelAt(index)}
-                      {...{ defaultValue, numberFormat }}
-                      // onChange={(event, newValue) => {
-
-                      // }}
+                      {...{ value, numberFormat }}
+                      onChange={(event, newValue) => {
+                        setValues(R.update(index, newValue))
+                      }}
                       onChangeCommitted={(event, newValue) => {
-                        // console.log({
-                        //   dataIndex,
-                        //   rawIndex,
-                        //   index,
-                        //   newValue,
-                        //   event,
-                        // })
-                        onChangeValueAt(index)(newValue)
+                        onChangeValueAt(dataIndex)(newValue)
                       }}
                       // Show auto min/max button if custom min/max values are set
                       endAdornments={
@@ -402,7 +385,7 @@ const ColorEditSection = ({
                         (index === lastIndex && lastIndex > 0 && !maxAuto) ? (
                           <IconButton
                             size="small"
-                            onClick={onSetAutoValueAt(dataIndex, index)}
+                            onClick={handleSetAutoValueAt(dataIndex, index)}
                           >
                             <TbFocusAuto />
                           </IconButton>
@@ -433,8 +416,7 @@ const ColorEditSection = ({
             </Grid>
             <Grid size="auto">
               <ColorMenu
-                index={rawIndex}
-                {...{ dataIndices, editLabelAt }}
+                {...{ index, dataIndices, editLabelAt }}
                 onAddColorAt={handleAddColorAt}
                 onRemoveColorAt={handleRemoveColorAt}
                 onToggleEditLabelAt={handleToggleEditLabelAt}
@@ -451,6 +433,7 @@ const ColorEditSection = ({
 const NumericalColorLegend = ({
   group,
   colorBy,
+  colorByProp,
   valueRange,
   numberFormat,
   // eslint-disable-next-line no-unused-vars
@@ -458,11 +441,10 @@ const NumericalColorLegend = ({
   colorPicker,
   onChangePropAttr,
 }) => {
-  const { colors, values, rawValues, labels, dataIndices } = useMemo(
-    () => parseGradient('color', numberFormat.precision)(valueRange),
-    [numberFormat.precision, valueRange]
+  const parsedGradient = useSelector((state) =>
+    selectParsedGradient(state, 'color', colorByProp, valueRange)
   )
-
+  const { colors, rawValues, values, labels, dataIndices } = parsedGradient
   const gradient = valueRange.gradient
 
   const handleAddColorAt = useCallback(
@@ -495,7 +477,6 @@ const NumericalColorLegend = ({
       // }
 
       const newGradientData = R.insert(dataIndex, newItem)(gradient.data)
-      // console.log({ newGradientData })
       onChangePropAttr([colorBy, 'gradient', 'data'])(newGradientData)
     },
     [
@@ -512,39 +493,15 @@ const NumericalColorLegend = ({
       const gradientItem = gradient.data[dataIndex]
       if ('size' in gradientItem) {
         const newItem = R.dissoc('color')(gradientItem)
-        // console.log({
-        //   dataIndex,
-        //   rawValues,
-        //   gradientItem,
-        //   gradient,
-        //   dataIndices,
-        //   newItem,
-        // })
         onChangePropAttr([colorBy, 'gradient', 'data', dataIndex])(newItem)
       } else {
         // Remove the entire gradient item for orphan entries (neither `size` nor `color`)
         const newGradientData = R.remove(dataIndex, 1)(gradient.data)
-        // console.log({
-        //   dataIndex,
-        //   rawValues,
-        //   gradientItem,
-        //   gradient,
-        //   dataIndices,
-        //   newGradientData,
-        // })
         onChangePropAttr([colorBy, 'gradient', 'data'])(newGradientData)
       }
     },
     [colorBy, gradient?.data, onChangePropAttr]
   )
-
-  // console.log({
-  //   values,
-  //   rawValues,
-  //   dataIndices,
-  //   gradient: gradient?.data,
-  //   valueRange,
-  // })
 
   const {
     showColorPicker: showColorPickers,
@@ -665,10 +622,8 @@ const NumericalColorLegend = ({
       {showColorPickers && (
         <ColorEditSection
           {...{
-            dataIndices,
-            colors,
-            labels,
-            rawValues,
+            colorByProp,
+            valueRange,
             numberFormat,
             lastIndex,
             isStepScale,
@@ -848,6 +803,7 @@ const ColorLegend = ({
             {...{
               group,
               colorBy,
+              colorByProp,
               valueRange,
               numberFormat,
               anyNullValue,

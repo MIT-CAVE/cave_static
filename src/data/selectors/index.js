@@ -366,6 +366,25 @@ export const selectLegendNumberFormatFunc = createSelector(
     }
   }
 )
+// NOTE: Use with Redux hook below:
+// const parsedGradient = useSelector((state) => selectParsedGradientFunc(state, <attrKey>, <prop>, <range>, <parseRangeAsNumber>))
+export const selectParsedGradient = createSelector(
+  [
+    selectLegendNumberFormatFunc,
+    (state, attrKey, prop, range, parseRangeAsNumber) => ({
+      attrKey,
+      prop,
+      range,
+      parseRangeAsNumber,
+    }),
+  ],
+  (legendNumberFormatFunc, { attrKey, prop, range, parseRangeAsNumber }) =>
+    parseGradient(
+      attrKey,
+      legendNumberFormatFunc(prop).precision,
+      parseRangeAsNumber
+    )(range)
+)
 export const selectDemoSettings = createSelector(
   selectSettings,
   R.propOr({}, 'demo')
