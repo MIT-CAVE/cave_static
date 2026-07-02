@@ -164,9 +164,9 @@ const SelectAccordionList = ({
             </Fragment>
           )
         }}
-        renderTags={(value, getTagProps) =>
+        renderValue={(value, getItemProps) =>
           value.map((option, index) => {
-            const { key, ...props } = getTagProps({ index })
+            const { key, ...props } = getItemProps({ index })
             const undefGroup = option[0] == null
             return (
               <Chip

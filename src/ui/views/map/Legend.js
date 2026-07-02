@@ -1294,7 +1294,11 @@ export const LegendRoot = (props) => {
         },
       ]}
     >
-      <Stack spacing={1} bgcolor="background.paper" {...props} />
+      <Stack
+        spacing={1}
+        {...props}
+        sx={[{ bgcolor: 'background.paper' }, ...forceArray(props.sx ?? [])]}
+      />
     </Box>
   )
 }

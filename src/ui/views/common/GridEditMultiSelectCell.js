@@ -82,10 +82,10 @@ const GridEditMultiSelectCell = ({
           </li>
         )
       }}
-      renderTags={(value, getTagProps) =>
+      renderValue={(value, getItemProps) =>
         value.map((option, index) => {
           const chipColors = getChipColor(option)
-          const tagProps = getTagProps({ index })
+          const tagProps = getItemProps({ index })
           return (
             <Chip
               key={option}

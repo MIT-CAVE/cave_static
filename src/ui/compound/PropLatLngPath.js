@@ -54,6 +54,14 @@ const styles = {
   },
 }
 
+const LINE_LAYOUT = { 'line-join': 'round', 'line-cap': 'round' }
+const LINE_PAINT = { 'line-color': 'rgba(3, 170, 238, 0.5)', 'line-width': 5 }
+const PATH_SOURCE = {
+  type: 'Feature',
+  properties: {},
+  geometry: { type: 'LineString', coordinates: [] },
+}
+
 const numberFormatProps = {
   precision: 6,
   trailingZeros: true,
@@ -92,46 +100,20 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const { enabled, placeholder } = prop
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
-  const mapSettings = {
-    style: {
-      minHeight: '480px',
-      height: 'auto',
-      width: '100%',
-      borderRadius: '4px',
-      border: '1px solid rgb(128 128 128)',
-      boxSizing: 'border-box',
-    },
-    mapStyle:
-      prop.mapStyle ??
-      (isMapboxTokenProvided
-        ? 'mapbox://styles/mapbox/dark-v11'
-        : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'),
-    lineLayout: {
-      'line-join': 'round',
-      'line-cap': 'round',
-    },
-    linePaint: {
-      'line-color': 'rgba(3, 170, 238, 0.5)',
-      'line-width': 5,
-    },
-    pathSource: {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: [],
-      },
-    },
-  }
+  const mapStyle =
+    prop.mapStyle ??
+    (isMapboxTokenProvided
+      ? 'mapbox://styles/mapbox/dark-v11'
+      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json')
 
   const getPathData = useCallback(
     (path) =>
       R.assocPath(
         ['geometry', 'coordinates'],
         adjustArcPath(path),
-        mapSettings.pathSource
+        PATH_SOURCE
       ),
-    [mapSettings.pathSource]
+    []
   )
 
   const defaultInputValues = currentVal ?? prop.value
@@ -236,8 +218,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
           <ReactMapGl
             {...viewState}
             mapboxAccessToken={mapboxToken}
-            style={mapSettings.style}
-            mapStyle={mapSettings.mapStyle}
+            style={styles.map}
+            mapStyle={mapStyle}
             onMove={(event) => setViewState(event.viewState)}
           >
             <Marker
@@ -252,8 +234,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
                 id="path-line"
                 type="line"
                 source="my-data"
-                layout={mapSettings.lineLayout}
-                paint={mapSettings.linePaint}
+                layout={LINE_LAYOUT}
+                paint={LINE_PAINT}
               />
             </Source>
             <NavigationControl />

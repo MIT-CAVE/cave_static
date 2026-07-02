@@ -213,7 +213,11 @@ const ListItemCard = ({
               )}
             </>
           }
-          {...{ title, titleTypographyProps, subheaderTypographyProps }}
+          slotProps={{
+            title: titleTypographyProps,
+            subheader: subheaderTypographyProps,
+          }}
+          {...{ title }}
         />
         {description && (
           <CardContent>

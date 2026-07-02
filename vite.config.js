@@ -1,7 +1,5 @@
 // eslint-disable-next-line import/no-unresolved
-import babel from '@rolldown/plugin-babel'
-// eslint-disable-next-line import/no-unresolved
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react'
 // eslint-disable-next-line import/no-unresolved
 import { defineConfig, loadEnv, transformWithOxc } from 'vite'
 
@@ -14,6 +12,7 @@ const jsxInJs = () => ({
     return await transformWithOxc(code, id, {
       lang: 'jsx',
       target: 'es2022',
+      reactCompiler: true,
     })
   },
 })
@@ -36,20 +35,7 @@ export default defineConfig(({ mode, isPreview }) => {
   }
 
   return {
-    plugins: [
-      jsxInJs(),
-      react(),
-      // TODO: Replace Babel-based React Compiler with the OXC (Rust) port once
-      // a stable release is available. Then, remove the following dependencies:
-      // - @rolldown/plugin-babel
-      // - @babel/core
-      // - babel-plugin-react-compiler
-      //
-      // Track progress here:
-      // - https://github.com/facebook/react/pull/36173
-      // - https://github.com/oxc-project/oxc/issues/10048
-      babel({ presets: [reactCompilerPreset()] }),
-    ],
+    plugins: [jsxInJs(), react()],
     legacy: {
       // See: https://vite.dev/guide/migration#consistent-commonjs-interop
       inconsistentCjsInterop: true,
@@ -65,6 +51,11 @@ export default defineConfig(({ mode, isPreview }) => {
     server: commonServerConfig,
     preview: commonServerConfig,
     envPrefix: ['REACT_APP_'],
+    define: {
+      'process.env.DRAGGABLE_DEBUG': JSON.stringify(
+        process.env.DRAGGABLE_DEBUG ?? false
+      ),
+    },
     base: mode === 'development' || isPreview ? '/' : env.BASE_URL,
     build: {
       outDir: env.BUILD_PATH || 'build',

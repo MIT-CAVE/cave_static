@@ -317,7 +317,7 @@ const ColorChangeModal = ({ index, label, labelExtra, onClose }) => {
       </Stack>
       <Box sx={styles.content}>
         {R.isEmpty(visibleGroupings) && (
-          <Typography variant="subtitle1" fontWeight={500}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
             In order to change the current graph's colors in this modal, there
             must be two chosen groupings of categories. To do so, head to Chart
             Tools and select two groupings under 'Group By'. You can still

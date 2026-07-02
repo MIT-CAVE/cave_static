@@ -232,26 +232,29 @@ const ComboboxBase = ({
   )
 
   const renderInput = useCallback(
-    ({ InputProps, ...params }) => (
+    (params) => (
       // The placeholder in the API serves as a label in the context of the MUI component.
       <TextField
         label={placeholder}
         {...{ inputRef, fullWidth, ...params }}
         onSelect={handleSelectionChange}
         slotProps={{
+          ...params.slotProps,
           ...slotProps,
           input: {
-            ...InputProps,
+            ...params.slotProps.input,
             ...(!disabled && {
               startAdornment: (
                 <>
                   {startAdornments}
-                  {InputProps.startAdornment}
+                  {params.slotProps.input.startAdornment}
                 </>
               ),
             }),
             ...(!(disabled || readOnly) && {
-              endAdornment: addEndAdornment(InputProps.endAdornment),
+              endAdornment: addEndAdornment(
+                params.slotProps.input.endAdornment
+              ),
             }),
             ...slotProps?.input,
           },
@@ -297,7 +300,7 @@ const ComboboxBase = ({
           />
         )
       }),
-    [indexedOptions, getActiveAttrs]
+    [getActiveAttrs, indexedOptions]
   )
 
   const handleInputChange = useCallback(
