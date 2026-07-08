@@ -36,7 +36,7 @@ import {
 } from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
-import { getScaledValueAlt } from '../../../utils/scales'
+import { getScaledValue } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 import RippleBox from '../../compound/RippleBox'
 import NumberField from '../../prototypes/NumberField'
@@ -455,19 +455,19 @@ const NumericalColorLegend = ({
       // eslint-disable-next-line no-unused-vars
       const isStepScale = scale === scaleId.STEP
       const newItem = {
-        value: 0, // FIXME: Use getScaledValueAlt
-        color: '#fff', // FIXME: Use getScaledValueAlt
+        value: 0, // FIXME: Use getScaledValue
+        color: '#fff', // FIXME: Use getScaledValue
       }
 
       // const newItem = {
-      //   value: getScaledValueAlt(
+      //   value: getScaledValue(
       //     [dataIndices[dataIndex - 1], dataIndices[dataIndex]],
       //     values,
       //     dataIndex,
       //     isStepScale ? scaleId.LINEAR : scale,
       //     scaleParams
       //   ),
-      //   color: getScaledValueAlt(
+      //   color: getScaledValue(
       //     dataIndices,
       //     colors,
       //     dataIndex,
@@ -561,7 +561,7 @@ const NumericalColorLegend = ({
     const maxValue = Math.max(...values)
 
     const scaledValues = R.map((value) =>
-      getScaledValueAlt(
+      getScaledValue(
         [minValue, maxValue],
         [0, 100],
         value,

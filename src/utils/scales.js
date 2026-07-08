@@ -36,7 +36,7 @@ export const getScaleParamDefaults = R.cond([
  *
  * @throws {Error} Throws an error if an invalid scale type is provided.
  */
-export const getScaledValueAlt = R.curry(
+export const getScaledValue = R.curry(
   (
     domain,
     range,

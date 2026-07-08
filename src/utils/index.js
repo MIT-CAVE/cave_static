@@ -11,7 +11,7 @@ import {
 } from './constants'
 import { propId, scaleId } from './enums'
 import { quantileSorted } from './quantile'
-import { getScaledValueAlt } from './scales'
+import { getScaledValue } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
 
@@ -366,24 +366,6 @@ export const getOptimalGridSize = (
   return rows === maxDimension
     ? [Math.ceil(closestSquare), Math.floor(closestSquare)]
     : [Math.floor(closestSquare), Math.ceil(closestSquare)]
-}
-
-export const getScaledValue = (minVal, maxVal, minScale, maxScale, value) => {
-  if (minVal === maxVal) return maxScale
-  const clampedVal = R.gt(maxVal, minVal)
-    ? R.clamp(minVal, maxVal, value)
-    : R.clamp(maxVal, minVal, value)
-  const pctVal = (clampedVal - minVal) / (maxVal - minVal)
-  return pctVal * (maxScale - minScale) + minScale
-}
-
-export const getScaledArray = (minVal, maxVal, minArray, maxArray, value) => {
-  if (minVal === maxVal) return maxArray
-  const clampedVal = R.gt(maxVal, minVal)
-    ? R.clamp(minVal, maxVal, value)
-    : R.clamp(maxVal, minVal, value)
-  const pctVal = (clampedVal - minVal) / (maxVal - minVal)
-  return minArray.map((min, index) => pctVal * (maxArray[index] - min) + min)
 }
 
 export const getChartItemColor = (name) => {
@@ -867,7 +849,7 @@ export const constructFetchedGeoJson = (
                           colorByPropVal,
                           'color',
                         ])(colorRange)
-                      : getScaledValueAlt(
+                      : getScaledValue(
                           parsedColor.values,
                           parsedColor.colors,
                           parseFloat(colorByPropVal),
@@ -904,7 +886,7 @@ export const constructFetchedGeoJson = (
                       ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
                           heightRange
                         )
-                      : getScaledValueAlt(
+                      : getScaledValue(
                           parsedHeight.values,
                           parsedHeight.heights,
                           parseFloat(heightByPropVal),
@@ -948,7 +930,7 @@ export const constructFetchedGeoJson = (
                       ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(
                           sizeRange
                         )
-                      : getScaledValueAlt(
+                      : getScaledValue(
                           parsedSize.values,
                           parsedSize.sizes,
                           parseFloat(sizeByPropVal),
@@ -1041,7 +1023,7 @@ export const constructGeoJson = (
                     colorByPropVal,
                     'color',
                   ])(colorRange)
-                : getScaledValueAlt(
+                : getScaledValue(
                     parsedColor.values,
                     parsedColor.colors,
                     parseFloat(colorByPropVal),
@@ -1070,7 +1052,7 @@ export const constructGeoJson = (
                 ? sizeFallback
                 : isSizeCategorical
                   ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeRange)
-                  : getScaledValueAlt(
+                  : getScaledValue(
                       parsedSize.values,
                       parsedSize.sizes,
                       parseFloat(sizeByPropVal),
@@ -1112,7 +1094,7 @@ export const constructGeoJson = (
                   ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
                       heightRange
                     )
-                  : getScaledValueAlt(
+                  : getScaledValue(
                       parsedHeight.values,
                       parsedHeight.heights,
                       parseFloat(heightByPropVal),

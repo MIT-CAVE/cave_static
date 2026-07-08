@@ -31,7 +31,7 @@ import {
   MAPLIBRE_PROJECTIONS,
   MAP_PROJECTIONS,
 } from '../../utils/enums'
-import { getScaledValueAlt } from '../../utils/scales'
+import { getScaledValue } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
@@ -2601,7 +2601,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               ? sizeFallback
               : isSizeCategorical
                 ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeByProp)
-                : getScaledValueAlt(
+                : getScaledValue(
                     [sizeDomain.min, sizeDomain.max],
                     parsedSize.sizes,
                     parseFloat(sizeByPropVal),
@@ -2633,7 +2633,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     colorByPropVal,
                     'color',
                   ])(colorByProp)
-                : getScaledValueAlt(
+                : getScaledValue(
                     [colorDomain.min, colorDomain.max],
                     parsedColor.colors,
                     parseFloat(colorByPropVal),

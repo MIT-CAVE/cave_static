@@ -74,7 +74,7 @@ import {
 } from '../../../utils/enums'
 import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 import {
-  getScaledValueAlt,
+  getScaledValue,
   getScaleParamDefaults,
   getScaleParamLabel,
   scaleIndexedOptions,
@@ -471,7 +471,7 @@ const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
     const isStepScale = scale === scaleId.STEP
 
     const scaledValues = R.map((value) =>
-      getScaledValueAlt(
+      getScaledValue(
         [minValue, maxValue],
         [0, 100],
         value,
