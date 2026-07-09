@@ -123,14 +123,17 @@ export const scaleId = {
   STEP: 'step',
   LOG: 'log',
   POW: 'pow',
+  EXP: 'exp',
 }
 
 export const scaleParamId = {
   EXPONENT: 'exponent',
+  BASE: 'base',
 }
 
 export const scaleParamsById = {
   [scaleId.POW]: scaleParamId.EXPONENT,
+  [scaleId.EXP]: scaleParamId.BASE,
 }
 
 export const chartVariant = {

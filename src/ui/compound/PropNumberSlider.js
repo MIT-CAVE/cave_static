@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
+import { getInverseScaleTransform, getScaleTransform } from '../../utils/scales'
 import NumberField from '../prototypes/NumberField'
 
 import { forceArray, getSliderMarks, NumberFormat } from '../../utils'
@@ -50,16 +51,26 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
     enabled,
     slotProps,
     fullWidth = true,
+    scale,
+    scaleParams,
     hideKeyboardToggle,
     color,
     propStyle,
   } = prop
 
+  const scaleFunc = useMemo(
+    () => getScaleTransform(scale, scaleParams),
+    [scale, scaleParams]
+  )
+
+  const invScaleFunc = useMemo(
+    () => getInverseScaleTransform(scale, scaleParams),
+    [scale, scaleParams]
+  )
+
   const minValue = prop.minValue ?? -Infinity
-  const maxValue = useMemo(() => {
-    const rawMaxValue = prop.maxValue ?? Infinity
-    return minValue === rawMaxValue ? minValue + 1 : rawMaxValue
-  }, [minValue, prop.maxValue])
+  const rawMaxValue = prop.maxValue ?? Infinity
+  const maxValue = minValue === rawMaxValue ? minValue + 1 : rawMaxValue
 
   const getLabelFormat = useCallback(
     (sliderValue) =>
@@ -71,8 +82,9 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
   )
 
   const marks = useMemo(
-    () => getSliderMarks(minValue, maxValue, 2, getLabelFormat),
-    [getLabelFormat, maxValue, minValue]
+    () =>
+      getSliderMarks(minValue, maxValue, 2, R.pipe(scaleFunc, getLabelFormat)),
+    [getLabelFormat, maxValue, minValue, scaleFunc]
   )
 
   const handleChange = (event, newValue) => {
@@ -94,7 +106,7 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
   )
 
   const step = useMemo(
-    () => 1 / Math.pow(10, numberFormatProps.precision ?? 2),
+    () => 1 / 10 ** (numberFormatProps.precision ?? 2),
     [numberFormatProps.precision]
   )
 
@@ -115,6 +127,7 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
         min={minValue}
         max={maxValue}
         track={false}
+        scale={scaleFunc}
         valueLabelDisplay="auto"
         valueLabelFormat={getLabelFormat}
         {...{ marks, step, value, ...slotProps?.slider }}
@@ -135,7 +148,9 @@ const PropNumberSlider = ({ prop, currentVal, sx = [], onChange }) => {
         sx={{ maxWidth: '50%' }}
         min={minValue}
         max={maxValue}
-        {...{ value, hideKeyboardToggle }}
+        scale={scaleFunc}
+        inverseScale={invScaleFunc}
+        {...{ value, step, hideKeyboardToggle }}
         spinner="leftAndRight"
         size="small"
         numberFormat={numberFormatProps}

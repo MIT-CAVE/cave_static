@@ -699,9 +699,9 @@ export const ScaleSelector = ({
   const validScales = useMemo(
     () =>
       R.pipe(
-        R.values,
+        R.keys,
         R.when(R.always(minDomainValue <= 0), R.without([scaleId.LOG]))
-      )(scaleId),
+      )(scaleIndexedOptions),
     [minDomainValue]
   )
   const scaleParamId = scaleParamsById[scale]

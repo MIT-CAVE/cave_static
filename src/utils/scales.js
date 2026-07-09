@@ -4,6 +4,8 @@ import * as R from 'ramda'
 
 import { scaleId, scaleParamId } from './enums'
 
+// `scaleIndexedOptions` acts as the allowlist of legend-supported
+// scales, keeping unsupported scales (e.g. `exp`) out of the selector
 export const scaleIndexedOptions = {
   [scaleId.LINEAR]: { label: 'Linear', iconName: 'pi/PiArrowUpRight' },
   [scaleId.STEP]: { label: 'Step', iconName: 'pi/PiSteps' },
@@ -22,6 +24,37 @@ export const getScaleParamDefaults = R.cond([
   [R.equals(scaleParamId.EXPONENT), R.always(1)], // Default exponent to 1 (equivalent to `'linear'`)
   [R.T, R.always(null)],
 ])
+
+/**
+ * Returns a transform that maps a raw value to its scaled (display)
+ * representation. Unlike `getScaledValue`, this is the pure, unbounded
+ * scale function with no domain/range interpolation.
+ */
+export const getScaleTransform =
+  (scale = scaleId.LINEAR, scaleParams = {}) =>
+  (value) =>
+    scale === scaleId.POW
+      ? Math.pow(value, scaleParams.exponent ?? 1)
+      : scale === scaleId.LOG
+        ? Math.log(value) / Math.log(scaleParams.base ?? 10)
+        : scale === scaleId.EXP
+          ? Math.pow(scaleParams.base ?? 2, value)
+          : value
+
+/**
+ * Returns the inverse of `getScaleTransform`, mapping a scaled (display)
+ * value back to its raw form.
+ */
+export const getInverseScaleTransform =
+  (scale = scaleId.LINEAR, scaleParams = {}) =>
+  (scaledValue) =>
+    scale === scaleId.POW
+      ? Math.pow(scaledValue, 1 / (scaleParams.exponent ?? 1))
+      : scale === scaleId.LOG
+        ? Math.pow(scaleParams.base ?? 10, scaledValue)
+        : scale === scaleId.EXP
+          ? Math.log(scaledValue) / Math.log(scaleParams.base ?? 2)
+          : scaledValue
 
 /**
  * Returns a scaled value based on the provided domain, range, and scale type.
