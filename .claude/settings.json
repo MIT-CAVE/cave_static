@@ -12,10 +12,11 @@
       "Edit(./package.json)",
       "Read(./index.html)",
       "Edit(./index.html)",
-      "Read(./DEVELOPMENT.md)",
-      "Edit(./DEVELOPMENT.md)",
+      "Read(./AGENTS.md)",
+      "Edit(./AGENTS.md)",
       "Read(./README.md)",
-      "Edit(./README.md)"
+      "Edit(./README.md)",
+      "Bash(npm *)"
     ],
     "deny": [
       "Read(.env)",
