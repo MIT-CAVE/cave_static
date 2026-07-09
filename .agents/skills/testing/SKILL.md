@@ -15,12 +15,11 @@ This project uses **Storybook (Vite edition)** for isolated component workshop d
 
 ## 2. Running Commands
 
-| Command                   | Action                                                                   |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `npm run storybook`       | Launch Storybook on `localhost:6006` for isolated component development. |
-| `npm run build-storybook` | Compiles Storybook assets into `storybook-static`.                       |
-| `npm run test`            | Run the test suite via Vitest (browser mode with Playwright).            |
-| `npm run test:watch`      | Run Vitest in watch mode for hot-reloading test runs.                    |
+| Command              | Action                                                                   |
+| -------------------- | ------------------------------------------------------------------------ |
+| `npm run storybook`  | Launch Storybook on `localhost:6006` for isolated component development. |
+| `npm run test`       | Run the test suite via Vitest (browser mode with Playwright).            |
+| `npm run test:watch` | Run Vitest in watch mode for hot-reloading test runs.                    |
 
 ## 3. Writing Stories (CSF v3)
 
