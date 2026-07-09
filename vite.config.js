@@ -42,6 +42,27 @@ export default defineConfig(({ mode, isPreview }) => {
     },
     optimizeDeps: {
       force: true,
+      include: [
+        '@emotion/styled',
+        '@mui/material/Slider',
+        '@mui/material/InputLabel',
+        '@mui/material/Select',
+        '@mui/material/TextField',
+        '@mui/material/Paper',
+        '@mui/material/Table',
+        '@mui/material/TableBody',
+        '@mui/material/TableCell',
+        '@mui/material/TableContainer',
+        '@mui/material/TableHead',
+        '@mui/material/TablePagination',
+        '@mui/material/TableRow',
+        '@mui/material/styles',
+        '@emotion/react/jsx-runtime',
+        '@reduxjs/toolkit',
+        'react-redux',
+        'ramda',
+        'prop-types',
+      ],
       rolldownOptions: {
         moduleTypes: {
           '.js': 'jsx',

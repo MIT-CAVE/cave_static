@@ -4,20 +4,22 @@ import PropTypes from 'prop-types'
 
 import { createMockStore, CaveAppWrapper } from './base'
 
-const MockStoreProvider = ({ initData, children }) => {
+const MockStoreProvider = ({ initData, preloadedState, children }) => {
   const storeRef = React.useRef()
   if (!storeRef.current) {
-    storeRef.current = createMockStore(initData)
+    storeRef.current = createMockStore(initData, { preloadedState })
   }
   return React.createElement(Provider, { store: storeRef.current }, children)
 }
 MockStoreProvider.propTypes = {
   initData: PropTypes.object.isRequired,
+  preloadedState: PropTypes.object,
   children: PropTypes.node.isRequired,
 }
 
 const globalMockDecorator = (Story, context) => {
   const initData = context.parameters.initData ?? {}
+  const preloadedState = context.parameters.preloadedState ?? {}
   const isFull = context.parameters.layoutWidth === 'full'
 
   const parseDimension = (val, defaultVal) => {
@@ -64,7 +66,7 @@ const globalMockDecorator = (Story, context) => {
 
   return React.createElement(
     MockStoreProvider,
-    { initData },
+    { initData, preloadedState },
     React.createElement(CaveAppWrapper, null, content)
   )
 }
