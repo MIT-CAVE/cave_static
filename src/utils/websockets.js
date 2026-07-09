@@ -4,11 +4,12 @@ import * as R from 'ramda'
 class socket {
   connect(token, onMessage, wsPath, wsEncoding) {
     return new Promise((resolve) => {
-      var connectUrl = R.replace(
-        'http',
-        'ws',
-        window.location.ancestorOrigins[0]
-      )
+      const ancestorOrigin =
+        window.location.ancestorOrigins &&
+        window.location.ancestorOrigins.length > 0
+          ? window.location.ancestorOrigins[0]
+          : window.location.origin
+      var connectUrl = R.replace('http', 'ws', ancestorOrigin)
       // Set ws path to /ws/ if not provided
       if (wsPath === undefined) {
         wsPath = '/ws/'
