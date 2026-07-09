@@ -9,8 +9,8 @@ module.exports = {
     'plugin:import/warnings',
     'plugin:compat/recommended',
     'plugin:ramda/recommended',
-    // 'plugin:react-hooks/recommended',
     'plugin:prettier/recommended',
+    'plugin:storybook/recommended',
   ],
   rules: {
     /* ESLint (core) rules */
@@ -93,5 +93,13 @@ module.exports = {
     /* `eslint-plugin-react-refresh` rules */
     'react-refresh/only-export-components': 'error',
   },
+  overrides: [
+    {
+      files: ['src/stories/**/*.js', 'vitest.config.js', '.storybook/**/*.js'],
+      rules: {
+        'import/no-unresolved': 'off',
+      },
+    },
+  ],
   root: true,
 }
