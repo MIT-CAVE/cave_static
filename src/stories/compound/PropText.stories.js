@@ -1,20 +1,19 @@
 import React from 'react'
 
-import PropLatLngInput from '../ui/compound/PropLatLngInput'
-import PropLatLngMap from '../ui/compound/PropLatLngMap'
+import { PropText, PropTextArea } from '../../ui/compound/PropText'
 
-const propLatLngStories = {
-  title: 'Compound/PropLatLng',
-  component: PropLatLngInput,
+const propTextStories = {
+  title: 'Compound/PropText',
+  component: PropText,
 }
 
-export default propLatLngStories
+export default propTextStories
 
-export const Input = {
+export const SingleLine = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropLatLngInput
+      <PropText
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -27,20 +26,21 @@ export const Input = {
   args: {
     prop: {
       enabled: true,
-      value: [[-122.4194, 37.7749]],
-      placeholder: 'Enter coordinates...',
-      direction: 'row',
+      label: 'Username',
+      value: 'JohnDoe',
+      placeholder: 'Enter username...',
+      fullWidth: true,
     },
-    currentVal: [[-122.4194, 37.7749]],
+    currentVal: 'JohnDoe',
     onChange: () => {},
   },
 }
 
-export const MapView = {
+export const MultiLine = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropLatLngMap
+      <PropTextArea
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -50,16 +50,16 @@ export const MapView = {
       />
     )
   },
-  parameters: {
-    layoutWidth: '600px',
-  },
   args: {
     prop: {
       enabled: true,
-      value: [[-122.4194, 37.7749]],
-      placeholder: 'Enter coordinates...',
+      label: 'Comments / Notes',
+      value: 'Initial comment text...',
+      rows: 4,
+      placeholder: 'Type notes here...',
+      fullWidth: true,
     },
-    currentVal: [[-122.4194, 37.7749]],
+    currentVal: 'Initial comment text...',
     onChange: () => {},
   },
 }

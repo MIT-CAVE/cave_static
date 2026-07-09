@@ -1,19 +1,20 @@
 import React from 'react'
 
-import { PropText, PropTextArea } from '../ui/compound/PropText'
+import PropLatLngInput from '../../ui/compound/PropLatLngInput'
+import PropLatLngMap from '../../ui/compound/PropLatLngMap'
 
-const propTextStories = {
-  title: 'Compound/PropText',
-  component: PropText,
+const propLatLngStories = {
+  title: 'Compound/PropLatLng',
+  component: PropLatLngInput,
 }
 
-export default propTextStories
+export default propLatLngStories
 
-export const SingleLine = {
+export const Input = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropText
+      <PropLatLngInput
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -26,21 +27,20 @@ export const SingleLine = {
   args: {
     prop: {
       enabled: true,
-      label: 'Username',
-      value: 'JohnDoe',
-      placeholder: 'Enter username...',
-      fullWidth: true,
+      value: [[-122.4194, 37.7749]],
+      placeholder: 'Enter coordinates...',
+      direction: 'row',
     },
-    currentVal: 'JohnDoe',
+    currentVal: [[-122.4194, 37.7749]],
     onChange: () => {},
   },
 }
 
-export const MultiLine = {
+export const MapView = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropTextArea
+      <PropLatLngMap
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -50,16 +50,16 @@ export const MultiLine = {
       />
     )
   },
+  parameters: {
+    layoutWidth: '600px',
+  },
   args: {
     prop: {
       enabled: true,
-      label: 'Comments / Notes',
-      value: 'Initial comment text...',
-      rows: 4,
-      placeholder: 'Type notes here...',
-      fullWidth: true,
+      value: [[-122.4194, 37.7749]],
+      placeholder: 'Enter coordinates...',
     },
-    currentVal: 'Initial comment text...',
+    currentVal: [[-122.4194, 37.7749]],
     onChange: () => {},
   },
 }

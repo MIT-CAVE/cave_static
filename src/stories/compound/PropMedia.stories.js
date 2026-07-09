@@ -1,7 +1,7 @@
 import React from 'react'
 
-import PropPicture from '../ui/compound/PropPicture'
-import PropVideo from '../ui/compound/PropVideo'
+import PropPicture from '../../ui/compound/PropPicture'
+import PropVideo from '../../ui/compound/PropVideo'
 
 const propMediaStories = {
   title: 'Compound/PropMedia',

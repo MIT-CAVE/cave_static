@@ -2,14 +2,14 @@ import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
 
-import GlobalOutputsDraggable from '../ui/draggables/GlobalOutputsDraggable'
-import MapNameDraggable from '../ui/draggables/MapNameDraggable'
+import GlobalOutputsDraggable from '../../ui/draggables/GlobalOutputsDraggable'
+import MapNameDraggable from '../../ui/draggables/MapNameDraggable'
 import NotificationsDraggable, {
   NotificationsUnhide,
-} from '../ui/draggables/NotificationsDraggable'
-import SessionDraggable from '../ui/draggables/SessionDraggable'
-import TimeDraggable from '../ui/draggables/TimeDraggable'
-import { draggableId } from '../utils/enums'
+} from '../../ui/draggables/NotificationsDraggable'
+import SessionDraggable from '../../ui/draggables/SessionDraggable'
+import TimeDraggable from '../../ui/draggables/TimeDraggable'
+import { draggableId } from '../../utils/enums'
 
 const mockStore = configureStore({
   reducer: {

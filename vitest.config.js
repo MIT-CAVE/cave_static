@@ -23,6 +23,12 @@ export default defineConfig((env) => {
           '@mui/material/TablePagination',
           '@mui/material/TableRow',
           '@mui/material/styles',
+          '@reduxjs/toolkit',
+          'react-redux',
+          'ramda',
+          'prop-types',
+          'react',
+          'react-dom',
           '@mui/x-data-grid',
           'earcut',
           'echarts-for-react/lib/core',
@@ -68,7 +74,15 @@ export default defineConfig((env) => {
               name: 'storybook',
               browser: {
                 enabled: true,
-                provider: playwright(),
+                provider: playwright({
+                  launch: {
+                    args: [
+                      '--disable-dev-shm-usage',
+                      '--no-sandbox',
+                      '--disable-gpu',
+                    ],
+                  },
+                }),
                 instances: [{ browser: 'chromium' }],
               },
             },

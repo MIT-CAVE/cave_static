@@ -2,8 +2,8 @@ import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
 
-import PropComboBox from '../ui/compound/PropComboBox'
-import PropComboBoxMulti from '../ui/compound/PropComboBoxMulti'
+import PropCheckbox from '../../ui/compound/PropCheckbox'
+import PropHCheckbox from '../../ui/compound/PropHCheckbox'
 
 const mockStore = configureStore({
   reducer: {
@@ -11,18 +11,6 @@ const mockStore = configureStore({
       state = {
         settings: {
           iconUrl: undefined,
-        },
-      }
-    ) => state,
-    utilities: (
-      state = {
-        virtualKeyboard: {
-          isOpen: false,
-          layout: 'default',
-          caretPosition: [0, 0],
-          enter: false,
-          lastKeyPress: null,
-          inputValue: '',
         },
       }
     ) => state,
@@ -35,25 +23,25 @@ const reduxDecorator = (Story) => (
   </Provider>
 )
 
-const propComboBoxStories = {
-  title: 'Compound/PropComboBox',
-  component: PropComboBox,
+const propCheckboxStories = {
+  title: 'Compound/PropCheckbox',
+  component: PropCheckbox,
   decorators: [reduxDecorator],
 }
 
-export default propComboBoxStories
+export default propCheckboxStories
 
 const mockOptions = {
-  opt1: { name: 'Apple', color: '#d32f2f', icon: 'md/MdApple' },
-  opt2: { name: 'Banana', color: '#fbc02d', icon: 'md/MdFavorite' },
-  opt3: { name: 'Cherry', color: '#c2185b', icon: 'md/MdStar' },
+  opt1: { name: 'Option 1', color: '#1976d2' },
+  opt2: { name: 'Option 2', color: '#388e3c' },
+  opt3: { name: 'Option 3 (Disabled)', color: '#d32f2f', enabled: false },
 }
 
-export const Single = {
+export const Standard = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropComboBox
+      <PropCheckbox
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -67,20 +55,20 @@ export const Single = {
     prop: {
       enabled: true,
       options: mockOptions,
-      placeholder: 'Select a fruit',
-      labelPlacement: 'end',
       value: ['opt1'],
+      labelPlacement: 'end',
+      helperText: 'Choose one or more options',
     },
     currentVal: ['opt1'],
     onChange: () => {},
   },
 }
 
-export const Multi = {
+export const Horizontal = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropComboBoxMulti
+      <PropHCheckbox
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -94,10 +82,9 @@ export const Multi = {
     prop: {
       enabled: true,
       options: mockOptions,
-      placeholder: 'Select multiple fruits',
-      labelPlacement: 'end',
-      numVisibleTags: 2,
       value: ['opt1', 'opt2'],
+      labelPlacement: 'bottom',
+      helperText: 'Horizontal checkbox layout',
     },
     currentVal: ['opt1', 'opt2'],
     onChange: () => {},

@@ -31,4 +31,4 @@ Prop components are server-driven UI elements rendered dynamically based on layo
    - Reference this render function in the top-level `getPropRenderFn`.
 
 5. **Lint and Validate**:
-   - Execute `npm run lint` and verify no ESLint or Prettier warnings remain.
+   - Ensure the code complies with formatting and coding standards. You do not need to run `npm run lint` manually for every change as it is automatically run by pre-commit hooks, but you may run it to verify correctness before commits.

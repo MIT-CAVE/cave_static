@@ -1,7 +1,7 @@
 import React from 'react'
 
-import PropHRadio from '../ui/compound/PropHRadio'
-import PropRadio from '../ui/compound/PropRadio'
+import PropHRadio from '../../ui/compound/PropHRadio'
+import PropRadio from '../../ui/compound/PropRadio'
 
 const propRadioStories = {
   title: 'Compound/PropRadio',

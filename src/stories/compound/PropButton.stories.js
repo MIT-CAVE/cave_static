@@ -7,7 +7,7 @@ import {
   PropButtonOutlined,
   PropButtonText,
   PropButtonIcon,
-} from '../ui/compound/PropButton'
+} from '../../ui/compound/PropButton'
 
 const mockStore = configureStore({
   reducer: {
@@ -45,7 +45,7 @@ export const Filled = {
       color: '#1976d2',
       startIcon: 'md/MdSend',
       endIcon: 'md/MdCheck',
-      url: '',
+      url: null,
     },
   },
 }
@@ -59,7 +59,7 @@ export const Outlined = {
       value: 'Outlined Button',
       color: '#2e7d32',
       startIcon: 'md/MdStar',
-      url: '',
+      url: null,
     },
   },
 }
@@ -72,7 +72,7 @@ export const Text = {
       name: 'Text Button',
       value: 'Text Button',
       color: '#ed6c02',
-      url: '',
+      url: null,
     },
   },
 }
@@ -85,7 +85,7 @@ export const Icon = {
       icon: 'md/MdSettings',
       color: '#9c27b0',
       size: 32,
-      url: '',
+      url: null,
     },
   },
 }

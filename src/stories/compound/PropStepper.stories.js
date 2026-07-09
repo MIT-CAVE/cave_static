@@ -1,7 +1,7 @@
 import React from 'react'
 
-import PropHStepper from '../ui/compound/PropHStepper'
-import PropVStepper from '../ui/compound/PropVStepper'
+import PropHStepper from '../../ui/compound/PropHStepper'
+import PropVStepper from '../../ui/compound/PropVStepper'
 
 const propStepperStories = {
   title: 'Compound/PropStepper',

@@ -1,9 +1,9 @@
 import React from 'react'
 
-import PropNumberField from '../ui/compound/PropNumberField'
-import PropNumberIcon from '../ui/compound/PropNumberIcon'
-import PropNumberIconCompact from '../ui/compound/PropNumberIconCompact'
-import PropNumberSlider from '../ui/compound/PropNumberSlider'
+import PropNumberField from '../../ui/compound/PropNumberField'
+import PropNumberIcon from '../../ui/compound/PropNumberIcon'
+import PropNumberIconCompact from '../../ui/compound/PropNumberIconCompact'
+import PropNumberSlider from '../../ui/compound/PropNumberSlider'
 
 const propNumberStories = {
   title: 'Compound/PropNumber',

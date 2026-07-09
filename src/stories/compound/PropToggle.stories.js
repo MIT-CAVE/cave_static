@@ -1,28 +1,23 @@
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import React from 'react'
 
-import { PropDate, PropDateTime, PropTime } from '../ui/compound/PropDate'
+import {
+  PropToggleCheckbox,
+  PropToggleSwitch,
+  PropToggleButton,
+} from '../../ui/compound/PropToggle'
 
-const datePickerDecorator = (Story) => (
-  <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <Story />
-  </LocalizationProvider>
-)
-
-const propDateStories = {
-  title: 'Compound/PropDate',
-  component: PropDate,
-  decorators: [datePickerDecorator],
+const propToggleStories = {
+  title: 'Compound/PropToggle',
+  component: PropToggleCheckbox,
 }
 
-export default propDateStories
+export default propToggleStories
 
-export const Date = {
+export const Checkbox = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropDate
+      <PropToggleCheckbox
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -35,19 +30,19 @@ export const Date = {
   args: {
     prop: {
       enabled: true,
-      value: '2026-07-09',
-      readOnly: false,
+      label: 'Checkbox Feature',
+      value: false,
     },
-    currentVal: '2026-07-09',
+    currentVal: false,
     onChange: () => {},
   },
 }
 
-export const DateTime = {
+export const Switch = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropDateTime
+      <PropToggleSwitch
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -60,19 +55,19 @@ export const DateTime = {
   args: {
     prop: {
       enabled: true,
-      value: '2026-07-09 09:00:00',
-      readOnly: false,
+      label: 'Switch Feature',
+      value: false,
     },
-    currentVal: '2026-07-09 09:00:00',
+    currentVal: false,
     onChange: () => {},
   },
 }
 
-export const Time = {
+export const Button = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropTime
+      <PropToggleButton
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -85,10 +80,10 @@ export const Time = {
   args: {
     prop: {
       enabled: true,
-      value: '09:30:00',
-      readOnly: false,
+      label: 'Toggle Button Feature',
+      value: false,
     },
-    currentVal: '09:30:00',
+    currentVal: false,
     onChange: () => {},
   },
 }
