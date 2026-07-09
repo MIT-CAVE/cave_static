@@ -72,7 +72,7 @@ const NumberField = ({
   max = Infinity,
   numberFormat: numberFormatRaw,
   step,
-  smallStep = numberFormatRaw.precision
+  smallStep = numberFormatRaw.precision != null
     ? // Setting `smallStep` to a maximum of 3 decimal places `precision`
       // is a safeguard against a bug in Base UI's `NumberField` where the
       // spinner doesn't work for smaller step values (e.g. `0.0001`).
