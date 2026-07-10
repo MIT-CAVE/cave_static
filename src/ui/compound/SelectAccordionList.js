@@ -187,7 +187,13 @@ const SelectAccordionList = ({
           })
         }
         renderInput={(params) => {
-          const { InputProps, inputProps, ...other } = params
+          const slotProps = params.slotProps ?? {}
+          const inputProps = slotProps.input ?? params.InputProps ?? {}
+          const htmlInputProps = slotProps.htmlInput ?? params.inputProps ?? {}
+          const other = R.omit(
+            ['slotProps', 'InputProps', 'inputProps'],
+            params
+          )
           // HACK: This workaround ensures proper marqueeing of overflowing tags since tag elements
           // rendered as part of the `startAdornment` prop of a MUI `InputBase` component.
           return (
@@ -195,12 +201,13 @@ const SelectAccordionList = ({
               fullWidth
               {...{ label, ...other }}
               slotProps={{
+                ...slotProps,
                 input: {
-                  ...InputProps,
+                  ...inputProps,
                   startAdornment: (
                     <>
                       <OverflowText>
-                        {InputProps.startAdornment ?? placeholder}
+                        {inputProps.startAdornment ?? placeholder}
                       </OverflowText>
                       {values.length < maxGrouping && (
                         <IconButton
@@ -216,7 +223,7 @@ const SelectAccordionList = ({
                   ),
                 },
                 htmlInput: {
-                  ...inputProps,
+                  ...htmlInputProps,
                   readOnly: true,
                 },
               }}
