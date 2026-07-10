@@ -64,10 +64,12 @@ const globalMockDecorator = (Story, context) => {
         )
       )
 
+  const hideGlobalKeyboard = context.parameters.hideGlobalKeyboard ?? false
+
   return React.createElement(
     MockStoreProvider,
     { initData, preloadedState },
-    React.createElement(CaveAppWrapper, null, content)
+    React.createElement(CaveAppWrapper, { hideGlobalKeyboard }, content)
   )
 }
 

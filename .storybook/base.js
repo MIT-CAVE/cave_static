@@ -10,6 +10,7 @@ import App from '../src/App'
 import dataReducer from '../src/data/data'
 import localReducer from '../src/data/local'
 import utilitiesReducer from '../src/data/utilities'
+import VirtualKeyboard from '../src/ui/views/common/VirtualKeyboard'
 
 // ---------------------------------------------------------------------------
 // Middleware: intercepts sendCommand thunks for 'mutate_session' and applies
@@ -101,7 +102,7 @@ const caveTheme = createTheme({
 // CaveAppWrapper: a marginless, paddingless fullscreen viewport wrapper
 // that sets the default system sans-serif font stack.
 // ---------------------------------------------------------------------------
-const CaveAppWrapper = ({ children }) =>
+const CaveAppWrapper = ({ hideGlobalKeyboard = false, children }) =>
   React.createElement(
     ThemeProvider,
     { theme: caveTheme },
@@ -124,10 +125,12 @@ const CaveAppWrapper = ({ children }) =>
           },
         },
       },
-      children
+      children,
+      !hideGlobalKeyboard && React.createElement(VirtualKeyboard, null)
     )
   )
 CaveAppWrapper.propTypes = {
+  hideGlobalKeyboard: PropTypes.bool,
   children: PropTypes.node.isRequired,
 }
 
