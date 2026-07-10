@@ -29,16 +29,19 @@ export const getScaleParamDefaults = R.cond([
  * Returns a transform that maps a raw value to its scaled (display)
  * representation. Unlike `getScaledValue`, this is the pure, unbounded
  * scale function with no domain/range interpolation.
+ *
+ * The CAVE API requires `exponent` for `'pow'` and `base` for `'exp'`;
+ * only `'log'`'s `base` is optional (defaults to 10).
  */
 export const getScaleTransform =
   (scale = scaleId.LINEAR, scaleParams = {}) =>
   (value) =>
     scale === scaleId.POW
-      ? Math.pow(value, scaleParams.exponent ?? 1)
+      ? Math.pow(value, scaleParams.exponent)
       : scale === scaleId.LOG
         ? Math.log(value) / Math.log(scaleParams.base ?? 10)
         : scale === scaleId.EXP
-          ? Math.pow(scaleParams.base ?? 2, value)
+          ? Math.pow(scaleParams.base, value)
           : value
 
 /**
@@ -49,11 +52,11 @@ export const getInverseScaleTransform =
   (scale = scaleId.LINEAR, scaleParams = {}) =>
   (scaledValue) =>
     scale === scaleId.POW
-      ? Math.pow(scaledValue, 1 / (scaleParams.exponent ?? 1))
+      ? Math.pow(scaledValue, 1 / scaleParams.exponent)
       : scale === scaleId.LOG
         ? Math.pow(scaleParams.base ?? 10, scaledValue)
         : scale === scaleId.EXP
-          ? Math.log(scaledValue) / Math.log(scaleParams.base ?? 2)
+          ? Math.log(scaledValue) / Math.log(scaleParams.base)
           : scaledValue
 
 /**
