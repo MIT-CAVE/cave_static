@@ -12,21 +12,9 @@ export default defineConfig((env) => {
     baseConfig,
     defineConfig({
       optimizeDeps: {
+        // NOTE: `mergeConfig` concatenates this list with the one inherited
+        // from vite.config.js, so entries listed there are not repeated here.
         include: [
-          '@emotion/react/jsx-runtime',
-          '@mui/material/Paper',
-          '@mui/material/Table',
-          '@mui/material/TableBody',
-          '@mui/material/TableCell',
-          '@mui/material/TableContainer',
-          '@mui/material/TableHead',
-          '@mui/material/TablePagination',
-          '@mui/material/TableRow',
-          '@mui/material/styles',
-          '@reduxjs/toolkit',
-          'react-redux',
-          'ramda',
-          'prop-types',
           'react',
           'react-dom',
           '@mui/x-data-grid',

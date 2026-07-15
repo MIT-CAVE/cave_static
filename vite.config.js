@@ -41,13 +41,11 @@ export default defineConfig(({ mode, isPreview }) => {
       inconsistentCjsInterop: true,
     },
     optimizeDeps: {
-      force: true,
+      // Re-enable (or run `npx vite --force` once) if the dep cache goes
+      // stale and modules fail to resolve after dependency/config changes.
+      // force: true,
       include: [
         '@emotion/styled',
-        '@mui/material/Slider',
-        '@mui/material/InputLabel',
-        '@mui/material/Select',
-        '@mui/material/TextField',
         '@mui/material/Paper',
         '@mui/material/Table',
         '@mui/material/TableBody',
