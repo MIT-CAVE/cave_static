@@ -1,0 +1,82 @@
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
+import { playwright } from '@vitest/browser-playwright'
+import { defineConfig, mergeConfig } from 'vitest/config'
+
+import viteConfig from './vite.config.js'
+
+export default defineConfig((env) => {
+  const baseConfig =
+    typeof viteConfig === 'function' ? viteConfig(env) : viteConfig
+
+  return mergeConfig(
+    baseConfig,
+    defineConfig({
+      optimizeDeps: {
+        // NOTE: `mergeConfig` concatenates this list with the one inherited
+        // from vite.config.js, so entries listed there are not repeated here.
+        include: [
+          'react',
+          'react-dom',
+          '@mui/x-data-grid',
+          'earcut',
+          'echarts-for-react/lib/core',
+          'echarts/charts',
+          'echarts/components',
+          'echarts/core',
+          'echarts/renderers',
+          'maplibre-gl',
+          'mui-color-input',
+          'react-draggable',
+          'react-grid-layout',
+          'react-icons/ai',
+          'react-icons/bs',
+          'react-icons/fa',
+          'react-icons/io',
+          'react-icons/lu',
+          'react-icons/pi',
+          'react-icons/ri',
+          'react-markdown',
+          'react-simple-keyboard',
+          'react-syntax-highlighter',
+          'react-syntax-highlighter/dist/esm/styles/prism',
+          'react-transition-group',
+          'react-virtualized-auto-sizer',
+          'react-window',
+          'rehype-katex',
+          'rehype-raw',
+          'remark-gfm',
+          'remark-math',
+          'three',
+        ],
+      },
+      test: {
+        projects: [
+          {
+            extends: true,
+            plugins: [
+              storybookTest({
+                configDir: '.storybook',
+              }),
+            ],
+            test: {
+              name: 'storybook',
+              browser: {
+                enabled: true,
+                provider: playwright({
+                  launch: {
+                    args: [
+                      '--disable-dev-shm-usage',
+                      '--no-sandbox',
+                      '--disable-gpu',
+                    ],
+                  },
+                }),
+                instances: [{ browser: 'chromium' }],
+              },
+            },
+          },
+        ],
+      },
+    })
+  )
+})

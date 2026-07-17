@@ -22,9 +22,15 @@ if (typeof window !== 'undefined') {
       'SharedArrayBuffer is not enabled. Update your application to improve performance.'
     )
   }
+  const ancestorOrigin =
+    window.location.ancestorOrigins &&
+    window.location.ancestorOrigins.length > 0
+      ? window.location.ancestorOrigins[0]
+      : null
+
   const onMessageHandler = async (e) => {
     // check that the data is sent from api
-    if (e.origin === window.location.ancestorOrigins[0]) {
+    if (ancestorOrigin && e.origin === ancestorOrigin) {
       const payload = e.data
       // check if tokens are present in data
       if (payload.event === 'initialize') {

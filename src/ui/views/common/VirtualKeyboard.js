@@ -1,6 +1,6 @@
 import { Box, Paper } from '@mui/material'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { IoMdResize } from 'react-icons/io'
+import { TbResize } from 'react-icons/tb'
 import { useDispatch, useSelector } from 'react-redux'
 import Keyboard from 'react-simple-keyboard'
 import 'react-simple-keyboard/build/css/index.css'
@@ -13,6 +13,9 @@ import {
   setEnter,
   setLastKeyPress,
 } from '../../../data/utilities/virtualKeyboardSlice'
+import RippleBox from '../../compound/RippleBox'
+
+import { DragHandle } from '../../draggables'
 
 const DEFAULT_WIDTH_RATIO = 0.8
 const DEFAULT_TO_NUMPAD_WIDTH_RATIO = 1 / 4
@@ -20,8 +23,6 @@ const DEFAULT_WIDTH_TO_HEIGHT_RATIO = 2 / 7
 const DEFAULT_MAX_WIDTH = 1600
 const DEFAULT_MIN_WIDTH = 1300
 const MIN_HEIGHT = 300
-
-const dragText = 'drag to move'
 
 const styles = {
   '& .react-simple-keyboard': {
@@ -174,35 +175,45 @@ const Resizable = ({
   }, [onMouseMoveResize, isResizing])
 
   return (
-    <Box
+    <RippleBox
+      className="resize-handle"
       sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         position: 'absolute',
-        top: 0,
-        right: 0,
-        transform: 'translate(50%, -50%)',
-        width: '50px',
-        height: '50px',
+        top: '4px',
+        right: '4px',
+        width: '22px',
+        height: '22px',
         zIndex: 1000001,
-        backgroundColor: 'gray',
-        border: '3px solid rgb(116, 116, 116)',
-        borderRadius: '50%',
-        color: 'white',
+        bgcolor: 'grey.800',
         cursor: isResizing ? 'grabbing' : 'grab',
+        color: 'white',
+        ':hover': {
+          bgcolor: 'grey.700',
+        },
       }}
-      onMouseDown={(event) => onResizeStart(event.clientX, event.clientY)}
-      onTouchStart={(event) =>
+      onMouseDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onResizeStart(event.clientX, event.clientY)
+      }}
+      onTouchStart={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
         onResizeStart(event.touches[0].clientX, event.touches[0].clientY)
-      }
-      onTouchMove={(event) =>
+      }}
+      onTouchMove={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
         onResizeMove(event.touches[0].clientX, event.touches[0].clientY)
-      }
-      onTouchEnd={onResizeEnd}
+      }}
+      onTouchEnd={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onResizeEnd()
+      }}
     >
-      <IoMdResize />
-    </Box>
+      <TbResize size={16} style={{ transform: 'translateX(1px)' }} />
+    </RippleBox>
   )
 }
 
@@ -210,24 +221,35 @@ const VirtualKeyboard = () => {
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
+  const isNumPad = useMemo(
+    () => virtualKeyboard.layout === 'numPad',
+    [virtualKeyboard.layout]
+  )
+
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({
     x: window.innerWidth / 2,
     y: (window.innerHeight - MIN_HEIGHT) / 2,
   })
-  const [boxDimensions, setBoxDimensions] = useState({
-    height: MIN_HEIGHT,
-    width: DEFAULT_MIN_WIDTH,
+  const [boxDimensions, setBoxDimensions] = useState(() => {
+    const defaultWidth = Math.min(
+      DEFAULT_WIDTH_RATIO * window.innerWidth,
+      DEFAULT_MAX_WIDTH
+    )
+    return {
+      height: MIN_HEIGHT,
+      width: isNumPad
+        ? Math.min(
+            window.innerWidth,
+            Math.max(325, defaultWidth * DEFAULT_TO_NUMPAD_WIDTH_RATIO)
+          )
+        : Math.min(window.innerWidth, defaultWidth),
+    }
   })
 
   const boxRef = useRef(null)
   const keyboardRef = useRef(null)
   const cursorOffset = useRef({ x: 0, y: 0 })
-
-  const isNumPad = useMemo(
-    () => virtualKeyboard.layout === 'numPad',
-    [virtualKeyboard.layout]
-  )
 
   const enterKeys = useMemo(
     () => (virtualKeyboard.isTextArea ? '[{enter} {blur}]' : '{blur}'),
@@ -243,28 +265,39 @@ const VirtualKeyboard = () => {
   )
 
   useEffect(() => {
-    // Change width when layout is changed
+    const defaultWidth = Math.min(
+      DEFAULT_WIDTH_RATIO * window.innerWidth,
+      DEFAULT_MAX_WIDTH
+    )
+    const newWidth = isNumPad
+      ? Math.min(
+          window.innerWidth,
+          Math.max(325, defaultWidth * DEFAULT_TO_NUMPAD_WIDTH_RATIO)
+        )
+      : Math.min(window.innerWidth, defaultWidth)
+
     setBoxDimensions((prevDimensions) => ({
       ...prevDimensions,
-      width: Math.min(
-        window.innerWidth,
-        prevDimensions.width *
-          (isNumPad
-            ? DEFAULT_TO_NUMPAD_WIDTH_RATIO
-            : 1 / DEFAULT_TO_NUMPAD_WIDTH_RATIO)
-      ),
+      width: newWidth,
     }))
 
     // Reset position and default size when window is resized
     const onResize = () => {
-      const defaultWidth = Math.min(
+      const defaultWidthResized = Math.min(
         DEFAULT_WIDTH_RATIO * window.innerWidth,
         DEFAULT_MAX_WIDTH
       )
-      const height = defaultWidth * DEFAULT_WIDTH_TO_HEIGHT_RATIO
+      const height = defaultWidthResized * DEFAULT_WIDTH_TO_HEIGHT_RATIO
+      const newWidthResized = isNumPad
+        ? Math.min(
+            window.innerWidth,
+            Math.max(325, defaultWidthResized * DEFAULT_TO_NUMPAD_WIDTH_RATIO)
+          )
+        : Math.min(window.innerWidth, defaultWidthResized)
+
       setBoxDimensions({
         height,
-        width: defaultWidth * (isNumPad ? DEFAULT_TO_NUMPAD_WIDTH_RATIO : 1),
+        width: newWidthResized,
       })
       setPosition({
         x: window.innerWidth / 2,
@@ -310,14 +343,13 @@ const VirtualKeyboard = () => {
   // Dragging
   const onDragStart = useCallback(
     (event, clientX, clientY) => {
-      event.preventDefault()
+      if (!event.target.closest('.drag-handle')) return
 
-      if (event.target.innerText === dragText) {
-        setIsDragging(true)
-        cursorOffset.current = {
-          x: clientX - position.x,
-          y: window.innerHeight - clientY - position.y,
-        }
+      event.preventDefault()
+      setIsDragging(true)
+      cursorOffset.current = {
+        x: clientX - position.x,
+        y: window.innerHeight - clientY - position.y,
       }
     },
     [position]
@@ -386,9 +418,11 @@ const VirtualKeyboard = () => {
     }
 
     window.addEventListener('mouseup', onMouseUpGlobal)
+    window.addEventListener('touchend', onMouseUpGlobal)
 
     return () => {
       window.removeEventListener('mouseup', onMouseUpGlobal)
+      window.removeEventListener('touchend', onMouseUpGlobal)
     }
   }, [])
 
@@ -503,13 +537,24 @@ const VirtualKeyboard = () => {
         touchAction: 'none',
         ...styles,
       }}
-      onMouseDown={(event) => onDragStart(event, event.clientX, event.clientY)}
+      onMouseDown={(event) => {
+        event.preventDefault()
+        onDragStart(event, event.clientX, event.clientY)
+      }}
     >
       <Resizable
         position={position}
         setPosition={setPosition}
         boxDimensions={boxDimensions}
         setBoxDimensions={setBoxDimensions}
+      />
+      <DragHandle
+        sx={{
+          position: 'absolute',
+          top: '4px',
+          left: '4px',
+          zIndex: 1,
+        }}
       />
       <Box
         sx={{
@@ -520,7 +565,6 @@ const VirtualKeyboard = () => {
           py: 1,
           backgroundColor: 'var(--gray-3)',
           color: 'text.primary',
-          fontSize: '1.5rem',
           borderBottom: '2px solid var(--gray-1)',
           border: '2px solid',
           borderColor: 'primary.main',
@@ -529,9 +573,24 @@ const VirtualKeyboard = () => {
           minHeight: '50px',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
+          maskImage:
+            'radial-gradient(circle 22px at 0 0, #0000 95%, #000 100%), radial-gradient(circle 22px at 100% 0, #0000 95%, #000 100%)',
+          maskComposite: 'intersect',
+          WebkitMaskImage:
+            'radial-gradient(circle 22px at 0 0, #0000 95%, #000 100%), radial-gradient(circle 22px at 100% 0, #0000 95%, #000 100%)',
+          WebkitMaskComposite: 'source-in',
         }}
       >
-        {virtualKeyboard.inputValue}
+        <Box
+          sx={{
+            flex: '1 1 auto',
+            textAlign: 'right',
+            fontSize: '1.5rem',
+            overflow: 'hidden',
+          }}
+        >
+          {virtualKeyboard.inputValue}
+        </Box>
       </Box>
       <Keyboard
         keyboardRef={(r) => (keyboardRef.current = r)}
@@ -579,14 +638,10 @@ const VirtualKeyboard = () => {
             // QUESTION: Do we really need to check `prevButton` here?
             (virtualKeyboard.lastKeyPress === '{shift}' ||
               virtualKeyboard.lastKeyPress === '{lock}') &&
-            virtualKeyboard.layout === 'shift' &&
-            button !== '{drag}'
+            virtualKeyboard.layout === 'shift'
           ) {
             nextLayout = 'default'
-          } else if (
-            virtualKeyboard.layout === 'shiftAndLock' &&
-            button !== '{drag}'
-          ) {
+          } else if (virtualKeyboard.layout === 'shiftAndLock') {
             nextLayout = 'lock'
           }
 
@@ -604,7 +659,6 @@ const VirtualKeyboard = () => {
             `{lock} a s d f g h j k l ; ' ${enterKeys}`,
             '{shift} z x c v b n m , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
-            '{drag}',
           ],
           shift: [
             '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
@@ -612,7 +666,6 @@ const VirtualKeyboard = () => {
             `{lock} A S D F G H J K L : " ${enterKeys}`,
             '{shift} Z X C V B N M < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
-            '{drag}',
           ],
           lock: [
             '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
@@ -620,7 +673,6 @@ const VirtualKeyboard = () => {
             `{lock} A S D F G H J K L ; ' ${enterKeys}`,
             '{shift} Z X C V B N M , . / {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
-            '{drag}',
           ],
           shiftAndLock: [
             '~ ! @ # $ % ^ & * ( ) _ + {bksp}',
@@ -628,7 +680,6 @@ const VirtualKeyboard = () => {
             `{lock} a s d f g h j k l : " ${enterKeys}`,
             '{shift} z x c v b n m < > ? {shift}',
             '{toggleNumPad} {space} {toggleNumPad}',
-            '{drag}',
           ],
           numPad: [
             '7 8 9',
@@ -636,7 +687,6 @@ const VirtualKeyboard = () => {
             '1 2 3',
             '. 0 -',
             '{toggleDefault} {blur} {bksp}',
-            '{drag}',
           ],
         }}
         display={{
@@ -649,7 +699,6 @@ const VirtualKeyboard = () => {
           '{toggleNumPad}': '123',
           '{toggleDefault}': 'ABC',
           '{space}': ' ',
-          '{drag}': dragText,
         }}
         buttonTheme={[
           {
@@ -663,10 +712,6 @@ const VirtualKeyboard = () => {
           {
             class: 'smaller-keys',
             buttons: '` 1 2 3 4 5 6 7 8 9 0 - = ~ ! @ # $ % ^ & * ( ) _ +',
-          },
-          {
-            class: 'drag',
-            buttons: '{drag}',
           },
           ...addHighlightClass('shift', '{shift}'),
           ...addHighlightClass('lock', '{lock}'),

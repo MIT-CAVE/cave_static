@@ -28,6 +28,7 @@ Refer to these skills in `.agents/skills/` for detailed guides and conventions:
 | [add-prop](.agents/skills/add-prop/SKILL.md)                 | Implementing a new server-driven prop control component.                                               |
 | [lint](.agents/skills/lint/SKILL.md)                         | Formatting and linting files using Prettier and ESLint.                                                |
 | [deploy](.agents/skills/deploy/SKILL.md)                     | Compiling the app and deploying to AWS S3/CloudFront.                                                  |
+| [testing](.agents/skills/testing/SKILL.md)                   | Writing component stories, testing components programmatically, and running Vitest browser tests.      |
 
 ---
 
@@ -61,6 +62,10 @@ src/
     selectors/
       index.js           # All memoized selectors (createSelector / lruMemoize).
                          #   Components read state exclusively through selectors here.
+
+  stories/               # Storybook component stories and integration tests
+    Prop*.stories.js     # Component-specific stories using React local-state wrapping
+    Draggables.stories.js # Story configuration for floating draggable panels
 
   ui/
     compound/            # Reusable prop control components
@@ -187,6 +192,24 @@ Stored in `.env` (not committed). Vite only exposes variables prefixed with `REA
 | `REACT_APP_USE_REDUX_DEVTOOLS` | `true` to enable Redux DevTools in dev builds    |
 | `S3_BUCKET`                    | Target AWS S3 Bucket name for deployments        |
 | `BUILD_VERSION`                | Target AWS S3 prefix folder name for deployments |
+
+---
+
+## Storybook and Testing
+
+We use Storybook for visual development of UI components, combined with Vitest browser mode to run programmatically isolated tests for all component stories.
+
+### Storybook UI Conventions
+
+- All stories live under `src/stories/` and are named `*.stories.js`.
+- Story components use React local-state wrapping for controlled MUI elements to allow instant UI updates upon interaction.
+- The default layout width constraint (`400px` for controls, customized overrides for wider components) is controlled via `.storybook/preview.js`.
+
+### Testing Workflow
+
+- **Linting**: Formatting and syntax checks are run via `npm run lint`.
+- **Unit Tests**: Headless browser test suite executes via `npm run test` or in watch mode via `npm run test:watch`.
+- Vitest configuration is defined in `vitest.config.js` with dynamic dependency pre-bundling configured under `optimizeDeps` to prevent test-run reloads.
 
 ---
 

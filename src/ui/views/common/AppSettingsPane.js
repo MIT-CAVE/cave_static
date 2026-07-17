@@ -184,26 +184,19 @@ const DemoSwitch = () => {
   const dispatch = useDispatch()
   return (
     <FormControl component="fieldset">
-      <FormGroup aria-label="position" row>
-        <FormControlLabel
-          value="start"
-          control={
-            <Switch
-              name="cave-toggle-demo"
-              checked={demoMode}
-              onChange={() => {
-                dispatch(
-                  mutateLocal({
-                    path: ['settings', 'demo'],
-                    value: !demoMode,
-                    sync: false,
-                  })
-                )
-              }}
-            />
-          }
-          label={`Demo mode`}
-          labelPlacement="start"
+      <FormGroup>
+        <ColumnSwitch
+          name="Demo Mode"
+          checked={demoMode}
+          onChange={() => {
+            dispatch(
+              mutateLocal({
+                path: ['settings', 'demo'],
+                value: !demoMode,
+                sync: false,
+              })
+            )
+          }}
         />
       </FormGroup>
     </FormControl>
