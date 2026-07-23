@@ -287,7 +287,7 @@ export const ArcLayer3D = memo(
         const m = new THREE.Matrix4().fromArray(matrix)
         // Note: Y must be inverted, otherwise weird y rendering results
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
-        const zoom = this.map.transform._zoom
+        const zoom = this.map.getZoom()
         const scale = 1 / Math.pow(2, zoom)
         // Note: Scaling isn't perfect due to perspective changes
         R.forEach((line) => line.scale.set(1, 1, scale))(this.lines)
@@ -886,7 +886,7 @@ const CustomLayer = memo(
         const m = new THREE.Matrix4().fromArray(matrix)
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
         camera.projectionMatrix = m.multiply(l)
-        setZoom(this.objects, this.map.transform._zoom)
+        setZoom(this.objects, this.map.getZoom())
         renderer.resetState()
         renderer.render(scene, camera)
         this.map.triggerRepaint()
