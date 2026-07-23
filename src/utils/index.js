@@ -78,6 +78,16 @@ export const forcePath = (pathOrProp) =>
   R.is(Array, pathOrProp) ? pathOrProp : [pathOrProp]
 export const forceArray = forcePath // Just an alias
 
+/**
+ * Returns the value if defined, otherwise returns the fallback.
+ * This considers `undefined` as not set but treats `null` as intentionally set
+ */
+export const getOrDefault = (value, fallback) =>
+  value === undefined ? fallback : value
+
+export const getCurrentAttr = (isActive, attr, activeAttr) =>
+  isActive ? getOrDefault(activeAttr, attr) : attr
+
 export const passLog = (val) => {
   console.log(val)
   return val
