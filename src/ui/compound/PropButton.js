@@ -1,4 +1,5 @@
 import { Button, IconButton as MuiIconButton } from '@mui/material'
+import PropTypes from 'prop-types'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 
@@ -7,6 +8,14 @@ import FetchedIcon from './FetchedIcon'
 import { sendCommand } from '../../data/data'
 
 import { forceArray, getContrastText } from '../../utils'
+
+const sxPropType = PropTypes.oneOfType([
+  PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+  ),
+  PropTypes.func,
+  PropTypes.object,
+])
 
 const styles = {
   getFilled: (color) => ({
@@ -36,10 +45,14 @@ const useButton = ({
   dataName,
   dataPath,
   dataValue,
+  url,
+  suppressCommand,
 }) => {
   const dispatch = useDispatch()
   const handleClick = useCallback(() => {
     if (!enabled) return
+    // Lets `url` act as a pure link when both it and an `apiCommand` are set
+    if (suppressCommand && url) return
     dispatch(
       sendCommand({
         command: 'mutate_session',
@@ -60,6 +73,8 @@ const useButton = ({
     dataName,
     dataPath,
     dataValue,
+    url,
+    suppressCommand,
   ])
 
   return {
@@ -76,6 +91,7 @@ const StandardButton = ({ prop, variant, sx = [] }) => {
     <Button
       href={url}
       target="_blank"
+      rel="noopener noreferrer"
       sx={[{ color }, ...forceArray(sx), propStyle]}
       {...{ disabled, variant, fullWidth }}
       {...(startIcon && {
@@ -90,6 +106,11 @@ const StandardButton = ({ prop, variant, sx = [] }) => {
     </Button>
   )
 }
+StandardButton.propTypes = {
+  prop: PropTypes.object,
+  variant: PropTypes.string,
+  sx: sxPropType,
+}
 
 const PropButtonFilled = ({ sx = [], ...props }) => (
   <StandardButton
@@ -98,6 +119,10 @@ const PropButtonFilled = ({ sx = [], ...props }) => (
     {...props}
   />
 )
+PropButtonFilled.propTypes = {
+  prop: PropTypes.object,
+  sx: sxPropType,
+}
 
 const PropButtonOutlined = ({ sx = [], ...props }) => (
   <StandardButton
@@ -106,6 +131,10 @@ const PropButtonOutlined = ({ sx = [], ...props }) => (
     {...props}
   />
 )
+PropButtonOutlined.propTypes = {
+  prop: PropTypes.object,
+  sx: sxPropType,
+}
 
 const PropButtonText = ({ sx = [], ...props }) => (
   <StandardButton
@@ -114,6 +143,10 @@ const PropButtonText = ({ sx = [], ...props }) => (
     {...props}
   />
 )
+PropButtonText.propTypes = {
+  prop: PropTypes.object,
+  sx: sxPropType,
+}
 
 const PropButtonIcon = ({ prop, sx = [] }) => {
   const { disabled, handleClick } = useButton(prop)
@@ -124,6 +157,7 @@ const PropButtonIcon = ({ prop, sx = [] }) => {
       onClick={handleClick}
       href={url}
       target="_blank"
+      rel="noopener noreferrer"
       sx={[{ color, p: 0 }, ...forceArray(sx), propStyle]}
     >
       <FetchedIcon
@@ -133,6 +167,10 @@ const PropButtonIcon = ({ prop, sx = [] }) => {
       />
     </MuiIconButton>
   )
+}
+PropButtonIcon.propTypes = {
+  prop: PropTypes.object,
+  sx: sxPropType,
 }
 
 export { PropButtonFilled, PropButtonOutlined, PropButtonText, PropButtonIcon }

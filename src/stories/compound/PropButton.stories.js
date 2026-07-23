@@ -89,3 +89,110 @@ export const Icon = {
     },
   },
 }
+
+export const WithUrl = {
+  render: (args) => <PropButtonFilled {...args} />,
+  args: {
+    prop: {
+      enabled: true,
+      name: 'Open Docs',
+      value: 'Open Docs',
+      color: '#1976d2',
+      url: 'https://github.com/MIT-CAVE',
+    },
+  },
+}
+
+export const UrlWithCommand = {
+  render: function Render() {
+    const commandProps = {
+      apiCommand: 'log_click',
+      apiCommandKeys: ['demo'],
+      dataName: 'demo',
+      dataPath: [],
+      dataValue: true,
+      url: 'https://github.com/MIT-CAVE',
+    }
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          alignItems: 'flex-start',
+        }}
+      >
+        <PropButtonFilled
+          prop={{
+            enabled: true,
+            name: 'Both fire (default)',
+            value: 'Both fire (default)',
+            color: '#1976d2',
+            ...commandProps,
+          }}
+        />
+        <PropButtonFilled
+          prop={{
+            enabled: true,
+            name: 'URL only (suppressCommand)',
+            value: 'URL only (suppressCommand)',
+            color: '#2e7d32',
+            suppressCommand: true,
+            ...commandProps,
+          }}
+        />
+      </div>
+    )
+  },
+  args: {},
+}
+
+export const FullWidth = {
+  render: (args) => (
+    <div style={{ width: 300, border: '1px dashed #999', padding: 8 }}>
+      <PropButtonFilled {...args} />
+    </div>
+  ),
+  args: {
+    prop: {
+      enabled: true,
+      name: 'Full Width Button',
+      value: 'Full Width Button',
+      color: '#1976d2',
+      fullWidth: true,
+    },
+  },
+}
+
+export const Disabled = {
+  render: function Render() {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          alignItems: 'flex-start',
+        }}
+      >
+        <PropButtonFilled
+          prop={{ enabled: false, name: 'Disabled Filled', color: '#1976d2' }}
+        />
+        <PropButtonOutlined
+          prop={{
+            enabled: false,
+            name: 'Disabled Outlined',
+            color: '#2e7d32',
+          }}
+        />
+        <PropButtonText
+          prop={{ enabled: false, name: 'Disabled Text', color: '#ed6c02' }}
+        />
+        <PropButtonIcon
+          prop={{ enabled: false, icon: 'md/MdSettings', color: '#9c27b0' }}
+        />
+      </div>
+    )
+  },
+  args: {},
+}
