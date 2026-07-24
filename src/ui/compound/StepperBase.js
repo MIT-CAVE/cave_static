@@ -5,7 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
-import { fetchIcon, forceArray, getContrastText } from '../../utils'
+import {
+  fetchIcon,
+  forceArray,
+  getContrastText,
+  getOrDefault,
+} from '../../utils'
 
 const DEFAULT_MARK_COLOR = '#90caf9' // MUI's primary color
 const DEFAULT_MARK_SIZE = '4px'
@@ -97,13 +102,6 @@ const useIconFetcher = (options, propAttrs, activeDefaults) => {
 
   return icons
 }
-
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
 
 const StepperBase = ({
   isVertical,

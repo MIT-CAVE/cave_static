@@ -7,14 +7,7 @@ import { IoSquareSharp } from 'react-icons/io5'
 import ComboboxBase from './ComboboxBase'
 import FetchedIcon from './FetchedIcon'
 
-import { forceArray, withIndex } from '../../utils'
-
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
+import { forceArray, getOrDefault, withIndex } from '../../utils'
 
 const DEFAULT_SIZE = '18px'
 

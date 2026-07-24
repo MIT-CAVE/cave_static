@@ -8,7 +8,7 @@ import { IoSquareSharp } from 'react-icons/io5'
 import FetchedIcon from './FetchedIcon'
 import { SimpleDropdown } from './SimpleDropdown'
 
-import { forceArray, withIndex } from '../../utils'
+import { forceArray, getCurrentAttr, withIndex } from '../../utils'
 
 const styles = {
   root: {
@@ -25,16 +25,6 @@ const styles = {
 }
 
 const DEFAULT_SIZE = '18px'
-
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
-
-const getCurrentAttr = (value, attr, activeAttr) =>
-  value ? getOrDefault(activeAttr, attr) : attr
 
 // `Select` might replace `SimpleDropdown` in the future, once
 // a `ClickAwayListener` + `Select` bug is resolved in MUI.
