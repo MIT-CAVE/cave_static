@@ -70,11 +70,6 @@ export default defineConfig(({ mode, isPreview }) => {
     server: commonServerConfig,
     preview: commonServerConfig,
     envPrefix: ['REACT_APP_'],
-    define: {
-      'process.env.DRAGGABLE_DEBUG': JSON.stringify(
-        process.env.DRAGGABLE_DEBUG ?? false
-      ),
-    },
     base: mode === 'development' || isPreview ? '/' : env.BASE_URL,
     build: {
       outDir: env.BUILD_PATH || 'build',
