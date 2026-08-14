@@ -4,6 +4,8 @@ import * as R from 'ramda'
 
 import { scaleId, scaleParamId } from './enums'
 
+// `scaleIndexedOptions` acts as the allowlist of legend-supported
+// scales, keeping unsupported scales (e.g. `exp`) out of the selector
 export const scaleIndexedOptions = {
   [scaleId.LINEAR]: { label: 'Linear', iconName: 'pi/PiArrowUpRight' },
   [scaleId.STEP]: { label: 'Step', iconName: 'pi/PiSteps' },
@@ -24,6 +26,40 @@ export const getScaleParamDefaults = R.cond([
 ])
 
 /**
+ * Returns a transform that maps a raw value to its scaled (display)
+ * representation. Unlike `getScaledValue`, this is the pure, unbounded
+ * scale function with no domain/range interpolation.
+ *
+ * The CAVE API requires `exponent` for `'pow'` and `base` for `'exp'`;
+ * only `'log'`'s `base` is optional (defaults to 10).
+ */
+export const getScaleTransform =
+  (scale = scaleId.LINEAR, scaleParams = {}) =>
+  (value) =>
+    scale === scaleId.POW
+      ? Math.pow(value, scaleParams.exponent)
+      : scale === scaleId.LOG
+        ? Math.log(value) / Math.log(scaleParams.base ?? 10)
+        : scale === scaleId.EXP
+          ? Math.pow(scaleParams.base, value)
+          : value
+
+/**
+ * Returns the inverse of `getScaleTransform`, mapping a scaled (display)
+ * value back to its raw form.
+ */
+export const getInverseScaleTransform =
+  (scale = scaleId.LINEAR, scaleParams = {}) =>
+  (scaledValue) =>
+    scale === scaleId.POW
+      ? Math.pow(scaledValue, 1 / scaleParams.exponent)
+      : scale === scaleId.LOG
+        ? Math.pow(scaleParams.base ?? 10, scaledValue)
+        : scale === scaleId.EXP
+          ? Math.log(scaledValue) / Math.log(scaleParams.base)
+          : scaledValue
+
+/**
  * Returns a scaled value based on the provided domain, range, and scale type.
  *
  * @param {Array<number>} domain - The input domain as an array of numbers [min, max].
@@ -36,7 +72,7 @@ export const getScaleParamDefaults = R.cond([
  *
  * @throws {Error} Throws an error if an invalid scale type is provided.
  */
-export const getScaledValueAlt = R.curry(
+export const getScaledValue = R.curry(
   (
     domain,
     range,

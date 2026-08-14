@@ -7,6 +7,7 @@ import {
   ToggleButton,
   styled,
 } from '@mui/material'
+import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -14,7 +15,13 @@ import FetchedIcon from './FetchedIcon'
 
 import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
-import { fetchIcon, forceArray, getContrastText } from '../../utils'
+import {
+  fetchIcon,
+  forceArray,
+  getContrastText,
+  getCurrentAttr,
+  getOrDefault,
+} from '../../utils'
 
 const styles = {
   getButton: ({ activeColor }) => ({
@@ -84,16 +91,6 @@ const styles = {
   }),
 }
 
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
-
-const getCurrentAttr = (value, attr, activeAttr) =>
-  value ? getOrDefault(activeAttr, attr) : attr
-
 const PropToggleButton = ({ prop, currentVal, sx = [], onChange }) => {
   const {
     enabled,
@@ -159,6 +156,18 @@ const PropToggleButton = ({ prop, currentVal, sx = [], onChange }) => {
       </Stack>
     </ToggleButton>
   )
+}
+PropToggleButton.propTypes = {
+  prop: PropTypes.object,
+  currentVal: PropTypes.bool,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
+  onChange: PropTypes.func,
 }
 
 const PropToggleCheckbox = ({ prop, currentVal, sx = [], onChange }) => {
@@ -229,6 +238,18 @@ const PropToggleCheckbox = ({ prop, currentVal, sx = [], onChange }) => {
       />
     </FormControl>
   )
+}
+PropToggleCheckbox.propTypes = {
+  prop: PropTypes.object,
+  currentVal: PropTypes.bool,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
+  onChange: PropTypes.func,
 }
 
 const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
@@ -303,6 +324,9 @@ const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
       ]}
     >
       <FormControlLabel
+        // Switch's larger touch target throws off FormControlLabel's default
+        // start/end spacing, so nudge it manually (mirrors the equivalent
+        // adjustment in RadioBase.js for the same two placements)
         sx={[
           labelPlacement === 'start' && { ml: 0.5, mr: 0 },
           labelPlacement === 'end' && { ml: 0, mr: 0.5 },
@@ -320,6 +344,18 @@ const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
       />
     </FormControl>
   )
+}
+PropToggleSwitch.propTypes = {
+  prop: PropTypes.object,
+  currentVal: PropTypes.bool,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
+  onChange: PropTypes.func,
 }
 
 export { PropToggleButton, PropToggleCheckbox, PropToggleSwitch }

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MdDownloading } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { Geos, Arcs, Nodes, Arcs3D, IncludedGeos } from './layers'
+import { Geos, Arcs, Nodes, Arcs3D, MapLayers } from './layers'
 import MapControls from './MapControls'
 import MapLegend from './MapLegend'
 import MapModal from './MapModal'
@@ -23,6 +23,9 @@ import {
   selectAllNodeIcons,
   selectMapboxToken,
   selectMapNamesDraggable,
+  selectNodeTypeKeys,
+  selectArcTypeKeys,
+  selectGeoTypeKeys,
 } from '../../../data/selectors'
 import {
   DARK_GLOBE_FOG,
@@ -31,7 +34,6 @@ import {
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
 } from '../../../utils/constants'
-import { layerId } from '../../../utils/enums'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { getSvgMarkup } from '../../../utils/svgBuilder'
 import MapNameDraggable from '../../draggables/MapNameDraggable'
@@ -43,6 +45,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
+  const [mapLoaded, setMapLoaded] = useState(false)
   const mapRef = useRef(null)
   const highlight = useRef(null)
   const containerRef = useRef(null)
@@ -67,7 +70,25 @@ const Map = ({ mapId }) => {
     [groupedEnabledArcsFunc, mapId]
   )
 
-  const interactiveLayerIds = useMemo(() => R.values(layerId), [])
+  const nodeTypes = useSelector(selectNodeTypeKeys)
+  const arcTypes = useSelector(selectArcTypeKeys)
+  const geoTypes = useSelector(selectGeoTypeKeys)
+
+  const interactiveLayerIds = useMemo(() => {
+    const ids = []
+    geoTypes.forEach((type) => {
+      ids.push(`geographyLayer-${type}`)
+      ids.push(`includedGeographyLayer-${type}`)
+    })
+    arcTypes.forEach((type) => {
+      ids.push(`multiArcLayerSolid-${type}`)
+      ids.push(`arcLayerSolid-${type}`)
+    })
+    nodeTypes.forEach((type) => {
+      ids.push(`nodeIconLayer-${type}`)
+    })
+    return ids
+  }, [geoTypes, arcTypes, nodeTypes])
 
   const {
     ReactMapGl,
@@ -76,6 +97,10 @@ const Map = ({ mapId }) => {
     mapStyle,
     mapStyleOption,
   } = useMapApi(mapId)
+
+  useEffect(() => {
+    setMapLoaded(false)
+  }, [isMapboxSelected])
 
   const clearDemoInterval = useCallback(() => {
     if (demoInterval.current !== -1) {
@@ -137,6 +162,11 @@ const Map = ({ mapId }) => {
     mapStyleOption?.fog,
     mapStyleOption?.sky,
   ])
+
+  const handleLoad = useCallback(() => {
+    loadSkyAndFog()
+    setMapLoaded(true)
+  }, [loadSkyAndFog])
 
   const loadIconsToStyle = useCallback(() => {
     if (!mapRef.current) return
@@ -367,7 +397,7 @@ const Map = ({ mapId }) => {
         flex: '1 1 auto',
       }}
     >
-      <MapContext.Provider value={{ mapId, mapRef, containerRef }}>
+      <MapContext.Provider value={{ mapId, mapRef, containerRef, mapLoaded }}>
         {draggable.open && <MapNameDraggable {...{ mapId }} />}
         <MapControls {...{ mapId }} />
         <ReactMapGl
@@ -384,7 +414,7 @@ const Map = ({ mapId }) => {
           {...{ mapStyle, interactiveLayerIds, ...currentViewport }}
           onClick={handleClick}
           onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
-          onLoad={loadSkyAndFog}
+          onLoad={handleLoad}
           onMouseMove={handleMouseMove}
           onMouseOver={handleMouseOver}
           onMove={handleMove}
@@ -392,8 +422,8 @@ const Map = ({ mapId }) => {
           onRender={handleRender}
           onStyleData={handleStyleData}
         >
+          <MapLayers />
           <Geos />
-          <IncludedGeos />
           <Arcs />
           <Nodes />
           <Arcs3D />

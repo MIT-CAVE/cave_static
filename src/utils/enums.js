@@ -1,15 +1,3 @@
-export const layerId = {
-  ARC_LAYER_SOLID: 'arcLayerSolid',
-  ARC_LAYER_DASH: 'arcLayerDash',
-  ARC_LAYER_DOT: 'arcLayerDot',
-  MULTI_ARC_LAYER_SOLID: 'multiArcLayerSolid',
-  MULTI_ARC_LAYER_DASH: 'multiArcLayerDash',
-  MULTI_ARC_LAYER_DOT: 'multiArcLayerDot',
-  GEOGRAPHY_LAYER: 'geographyLayer',
-  NODE_ICON_LAYER: 'nodeIconLayer',
-  INCLUDED_GEOGRAPHY_LAYER: 'includedGeographyLayer',
-}
-
 export const asyncStatus = {
   PENDING: 'pending',
   FAIL: 'fail',
@@ -135,14 +123,17 @@ export const scaleId = {
   STEP: 'step',
   LOG: 'log',
   POW: 'pow',
+  EXP: 'exp',
 }
 
 export const scaleParamId = {
   EXPONENT: 'exponent',
+  BASE: 'base',
 }
 
 export const scaleParamsById = {
   [scaleId.POW]: scaleParamId.EXPONENT,
+  [scaleId.EXP]: scaleParamId.BASE,
 }
 
 export const chartVariant = {

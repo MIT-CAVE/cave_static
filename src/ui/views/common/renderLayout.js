@@ -14,6 +14,7 @@ import {
 const renderPropItem = ({ layoutItem, prop, getCurrentVal, onChangeProp }) => {
   const { container, elevation, marquee } = layoutItem
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
+  prop.value = currentValue
   return (
     <Prop
       key={prop.key}

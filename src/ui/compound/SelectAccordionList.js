@@ -115,7 +115,7 @@ const SelectAccordionList = ({
                   values={R.when(
                     R.any(R.isNil),
                     R.always('')
-                  )(values[optionIndex])}
+                  )(values[optionIndex] ?? [])}
                   open={subOpen[optionIndex] ?? false}
                   onOpen={() => {
                     setSubOpen(R.assoc(optionIndex, true))
@@ -164,9 +164,9 @@ const SelectAccordionList = ({
             </Fragment>
           )
         }}
-        renderTags={(value, getTagProps) =>
+        renderValue={(value, getItemProps) =>
           value.map((option, index) => {
-            const { key, ...props } = getTagProps({ index })
+            const { key, ...props } = getItemProps({ index })
             const undefGroup = option[0] == null
             return (
               <Chip
@@ -187,7 +187,13 @@ const SelectAccordionList = ({
           })
         }
         renderInput={(params) => {
-          const { InputProps, inputProps, ...other } = params
+          const slotProps = params.slotProps ?? {}
+          const inputProps = slotProps.input ?? params.InputProps ?? {}
+          const htmlInputProps = slotProps.htmlInput ?? params.inputProps ?? {}
+          const other = R.omit(
+            ['slotProps', 'InputProps', 'inputProps'],
+            params
+          )
           // HACK: This workaround ensures proper marqueeing of overflowing tags since tag elements
           // rendered as part of the `startAdornment` prop of a MUI `InputBase` component.
           return (
@@ -195,12 +201,13 @@ const SelectAccordionList = ({
               fullWidth
               {...{ label, ...other }}
               slotProps={{
+                ...slotProps,
                 input: {
-                  ...InputProps,
+                  ...inputProps,
                   startAdornment: (
                     <>
                       <OverflowText>
-                        {InputProps.startAdornment ?? placeholder}
+                        {inputProps.startAdornment ?? placeholder}
                       </OverflowText>
                       {values.length < maxGrouping && (
                         <IconButton
@@ -216,7 +223,7 @@ const SelectAccordionList = ({
                   ),
                 },
                 htmlInput: {
-                  ...inputProps,
+                  ...htmlInputProps,
                   readOnly: true,
                 },
               }}

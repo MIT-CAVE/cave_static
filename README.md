@@ -29,6 +29,40 @@ At any time, you can apply the `lint` command to format your code to our standar
 npm run lint
 ```
 
+## Visual Development (Storybook)
+
+We use Storybook for visual development and testing of isolated UI components.
+
+To start the local Storybook development server:
+
+```sh
+npm run storybook
+```
+
+This opens the Storybook UI in your browser at `localhost:6006`.
+
+To build a static version of the Storybook project:
+
+```sh
+npm run build-storybook
+```
+
+## Testing (Vitest)
+
+We run programmatically isolated tests for all component stories in a headless browser environment using Vitest.
+
+To run all tests once:
+
+```sh
+npm run test
+```
+
+To run tests in interactive watch mode during development:
+
+```sh
+npm run test:watch
+```
+
 ## Run in development
 
 From the project root:

@@ -133,171 +133,173 @@ const geoJsonToSegments = (features, layerId) => {
   return allArcs
 }
 
-export const ArcLayer3D = memo(({ features, onClick = () => {} }) => {
-  const { mapId, mapRef } = useContext(MapContext)
-  const clickHandler = useRef()
-  const hoverHandler = useRef()
+export const ArcLayer3D = memo(
+  ({ id = '3d-model', features, onClick = () => {} }) => {
+    const { mapId, mapRef } = useContext(MapContext)
+    const clickHandler = useRef()
+    const hoverHandler = useRef()
 
-  const { Layer } = useMapApi(mapId)
+    const { Layer } = useMapApi(mapId)
 
-  const map = mapRef.current
-  const id = '3d-model'
-  const layer = map?.getLayer('3d-model')
-  const canvas = map?.getCanvas()
+    const map = mapRef.current
+    const layer = map?.getLayer(id)
+    const canvas = map?.getCanvas()
 
-  useEffect(() => {
-    // Generate meshes from array of geoJson features
-    if (layer?.implementation)
-      layer.implementation.updateMeshes(geoJsonToSegments(features || [], id))
-  }, [features, layer?.implementation])
+    useEffect(() => {
+      // Generate meshes from array of geoJson features
+      if (layer?.implementation)
+        layer.implementation.updateMeshes(geoJsonToSegments(features || [], id))
+    }, [features, layer?.implementation, id])
 
-  useEffect(() => {
-    // Update onClick if changed
-    if (layer?.implementation) layer.implementation.onClick = onClick
-  }, [layer?.implementation, onClick])
+    useEffect(() => {
+      // Update onClick if changed
+      if (layer?.implementation) layer.implementation.onClick = onClick
+    }, [layer?.implementation, onClick])
 
-  // Cleans up event listeners
-  useEffect(
-    () => () => {
-      if (canvas) {
-        if (clickHandler.current)
-          canvas.removeEventListener('click', clickHandler.current)
-        if (hoverHandler.current)
-          canvas.removeEventListener('mousemove', hoverHandler.current)
-      }
-    },
-    [canvas]
-  )
-
-  if (!map) return null
-
-  // configuration of the custom layer per the CustomLayerInterface
-  const customLayer = {
-    id,
-    type: 'custom',
-    renderingMode: '3d',
-    highlightedId: -1,
-    oldColor: -1,
-    onClick,
-    onAdd: function (map, gl) {
-      this.camera = new THREE.PerspectiveCamera()
-      this.scene = new THREE.Scene()
-      this.map = map
-      this.lines = geoJsonToSegments(features || [], id)
-      // add all generated cylinders to scene
-      R.forEach((line) => this.scene.add(line))(this.lines)
-      // use the Mapbox GL JS map canvas for three.js
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: map.getCanvas(),
-        context: gl,
-        antialias: true,
-      })
-      this.renderer.autoClear = false
-      this.raycaster = new THREE.Raycaster()
-      this.raycaster.near = -1
-      this.raycaster.far = 1e6
-
-      clickHandler.current = (e) => this.raycast(e, true)
-      hoverHandler.current = (e) => this.raycast(e, false)
-      map.getCanvas().addEventListener('mousemove', hoverHandler.current, false)
-      map.getCanvas().addEventListener('click', clickHandler.current, false)
-      map.moveLayer('3d-model')
-    },
-    onRemove: function () {
-      this.map
-        .getCanvas()
-        .removeEventListener('mousemove', hoverHandler.current)
-      this.map.getCanvas().removeEventListener('click', clickHandler.current)
-    },
-    updateMeshes: function (currentMeshes) {
-      this.scene.remove.apply(this.scene, this.scene.children)
-      R.forEach((line) => this.scene.add(line))(currentMeshes)
-      this.lines = currentMeshes
-    },
-    raycast: (e, click) => {
-      const layer =
-        map.getLayer('3d-model') && map.getLayer('3d-model').implementation
-      if (layer) {
-        const point = { x: e.layerX, y: e.layerY }
-        const mouse = new THREE.Vector2()
-        // // scale mouse pixel position to a percentage of the screen's width and height
-        mouse.x = (point.x / e.srcElement.width) * 2 - 1
-        mouse.y = 1 - (point.y / e.srcElement.height) * 2
-        const camInverseProjection = new THREE.Matrix4()
-          .copy(layer.camera.projectionMatrix)
-          .invert()
-        const cameraPosition = new THREE.Vector3().applyMatrix4(
-          camInverseProjection
-        )
-        const mousePosition = new THREE.Vector3(
-          mouse.x,
-          mouse.y,
-          1
-        ).applyMatrix4(camInverseProjection)
-        const viewDirection = mousePosition
-          .clone()
-          .sub(cameraPosition)
-          .normalize()
-
-        layer.raycaster.set(cameraPosition, viewDirection)
-
-        // calculate objects intersecting the picking ray
-        const intersects = layer.raycaster.intersectObjects(layer.lines, true)
-        if (intersects.length) {
-          // Prevent layers under this one from being clicked/highlighted
-          e.stopImmediatePropagation()
-          // Remove current layer highlights
-          const event = new CustomEvent('clearHighlight')
-          document.dispatchEvent(event)
-          if (click) layer.onClick(intersects[0].object.userData)
+    // Cleans up event listeners
+    useEffect(
+      () => () => {
+        if (canvas) {
+          if (clickHandler.current)
+            canvas.removeEventListener('click', clickHandler.current)
+          if (hoverHandler.current)
+            canvas.removeEventListener('mousemove', hoverHandler.current)
         }
-        // handle hovering
-        if (!click) {
+      },
+      [canvas]
+    )
+
+    if (!map) return null
+
+    // configuration of the custom layer per the CustomLayerInterface
+    const customLayer = {
+      id,
+      type: 'custom',
+      renderingMode: '3d',
+      highlightedId: -1,
+      oldColor: -1,
+      onClick,
+      onAdd: function (map, gl) {
+        this.camera = new THREE.PerspectiveCamera()
+        this.scene = new THREE.Scene()
+        this.map = map
+        this.lines = geoJsonToSegments(features || [], id)
+        // add all generated cylinders to scene
+        R.forEach((line) => this.scene.add(line))(this.lines)
+        // use the Mapbox GL JS map canvas for three.js
+        this.renderer = new THREE.WebGLRenderer({
+          canvas: map.getCanvas(),
+          context: gl,
+          antialias: true,
+        })
+        this.renderer.autoClear = false
+        this.raycaster = new THREE.Raycaster()
+        this.raycaster.near = -1
+        this.raycaster.far = 1e6
+
+        clickHandler.current = (e) => this.raycast(e, true)
+        hoverHandler.current = (e) => this.raycast(e, false)
+        map
+          .getCanvas()
+          .addEventListener('mousemove', hoverHandler.current, false)
+        map.getCanvas().addEventListener('click', clickHandler.current, false)
+        map.moveLayer(id)
+      },
+      onRemove: function () {
+        this.map
+          .getCanvas()
+          .removeEventListener('mousemove', hoverHandler.current)
+        this.map.getCanvas().removeEventListener('click', clickHandler.current)
+      },
+      updateMeshes: function (currentMeshes) {
+        this.scene.remove.apply(this.scene, this.scene.children)
+        R.forEach((line) => this.scene.add(line))(currentMeshes)
+        this.lines = currentMeshes
+      },
+      raycast: (e, click) => {
+        const layer = map.getLayer(id) && map.getLayer(id).implementation
+        if (layer) {
+          const point = { x: e.layerX, y: e.layerY }
+          const mouse = new THREE.Vector2()
+          // // scale mouse pixel position to a percentage of the screen's width and height
+          mouse.x = (point.x / e.srcElement.width) * 2 - 1
+          mouse.y = 1 - (point.y / e.srcElement.height) * 2
+          const camInverseProjection = new THREE.Matrix4()
+            .copy(layer.camera.projectionMatrix)
+            .invert()
+          const cameraPosition = new THREE.Vector3().applyMatrix4(
+            camInverseProjection
+          )
+          const mousePosition = new THREE.Vector3(
+            mouse.x,
+            mouse.y,
+            1
+          ).applyMatrix4(camInverseProjection)
+          const viewDirection = mousePosition
+            .clone()
+            .sub(cameraPosition)
+            .normalize()
+
+          layer.raycaster.set(cameraPosition, viewDirection)
+
+          // calculate objects intersecting the picking ray
+          const intersects = layer.raycaster.intersectObjects(layer.lines, true)
           if (intersects.length) {
-            if (
-              layer.highlightedId !== intersects[0].object.userData.cave_name
-            ) {
-              if (layer.highlightedId !== -1) {
+            // Prevent layers under this one from being clicked/highlighted
+            e.stopImmediatePropagation()
+            // Remove current layer highlights
+            const event = new CustomEvent('clearHighlight')
+            document.dispatchEvent(event)
+            if (click) layer.onClick(intersects[0].object.userData)
+          }
+          // handle hovering
+          if (!click) {
+            if (intersects.length) {
+              if (
+                layer.highlightedId !== intersects[0].object.userData.cave_name
+              ) {
+                if (layer.highlightedId !== -1) {
+                  R.forEach((line) => {
+                    if (line.userData.cave_name === layer.highlightedId)
+                      line.material.color.set(layer.oldColor)
+                  })(layer.lines)
+                }
+                map.getCanvas().style.cursor = 'pointer'
+                layer.highlightedId = intersects[0].object.userData.cave_name
+                layer.oldColor = intersects[0].object.material.color.clone()
+                const highlightedColor = colord(layer.oldColor).darken().toHex()
                 R.forEach((line) => {
                   if (line.userData.cave_name === layer.highlightedId)
-                    line.material.color.set(layer.oldColor)
+                    line.material.color.set(highlightedColor)
                 })(layer.lines)
               }
-              map.getCanvas().style.cursor = 'pointer'
-              layer.highlightedId = intersects[0].object.userData.cave_name
-              layer.oldColor = intersects[0].object.material.color.clone()
-              const highlightedColor = colord(layer.oldColor).darken().toHex()
+            } else if (layer.highlightedId !== -1) {
               R.forEach((line) => {
                 if (line.userData.cave_name === layer.highlightedId)
-                  line.material.color.set(highlightedColor)
+                  line.material.color.set(layer.oldColor)
               })(layer.lines)
+              layer.highlightedId = -1
             }
-          } else if (layer.highlightedId !== -1) {
-            R.forEach((line) => {
-              if (line.userData.cave_name === layer.highlightedId)
-                line.material.color.set(layer.oldColor)
-            })(layer.lines)
-            layer.highlightedId = -1
           }
         }
-      }
-    },
-    render: function (gl, matrix) {
-      const m = new THREE.Matrix4().fromArray(matrix)
-      // Note: Y must be inverted, otherwise weird y rendering results
-      const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
-      const zoom = this.map.transform._zoom
-      const scale = 1 / Math.pow(2, zoom)
-      // Note: Scaling isn't perfect due to perspective changes
-      R.forEach((line) => line.scale.set(1, 1, scale))(this.lines)
-      this.camera.projectionMatrix = m.multiply(l)
-      this.renderer.resetState()
-      this.renderer.render(this.scene, this.camera)
-      this.map.triggerRepaint()
-    },
+      },
+      render: function (gl, matrix) {
+        const m = new THREE.Matrix4().fromArray(matrix)
+        // Note: Y must be inverted, otherwise weird y rendering results
+        const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
+        const zoom = this.map.getZoom()
+        const scale = 1 / Math.pow(2, zoom)
+        // Note: Scaling isn't perfect due to perspective changes
+        R.forEach((line) => line.scale.set(1, 1, scale))(this.lines)
+        this.camera.projectionMatrix = m.multiply(l)
+        this.renderer.resetState()
+        this.renderer.render(this.scene, this.camera)
+        this.map.triggerRepaint()
+      },
+    }
+    return <Layer {...customLayer} />
   }
-  return <Layer {...customLayer} />
-})
+)
 
 export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
@@ -884,7 +886,7 @@ const CustomLayer = memo(
         const m = new THREE.Matrix4().fromArray(matrix)
         const l = new THREE.Matrix4().scale(new THREE.Vector3(1, -1, 1))
         camera.projectionMatrix = m.multiply(l)
-        setZoom(this.objects, this.map.transform._zoom)
+        setZoom(this.objects, this.map.getZoom())
         renderer.resetState()
         renderer.render(scene, camera)
         this.map.triggerRepaint()

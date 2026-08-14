@@ -18,7 +18,7 @@ import FetchedIcon from './FetchedIcon'
 import { setInputValue } from '../../data/utilities/virtualKeyboardSlice'
 import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
 
-import { getContrastText } from '../../utils'
+import { getContrastText, getCurrentAttr } from '../../utils'
 
 const DEFAULT_SIZE = '18px'
 
@@ -31,16 +31,6 @@ const styles = {
     },
   }),
 }
-
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
-
-const getCurrentAttr = (value, attr, activeAttr) =>
-  value ? getOrDefault(activeAttr, attr) : attr
 
 const ComboboxBase = ({
   disabled,
@@ -232,26 +222,29 @@ const ComboboxBase = ({
   )
 
   const renderInput = useCallback(
-    ({ InputProps, ...params }) => (
+    (params) => (
       // The placeholder in the API serves as a label in the context of the MUI component.
       <TextField
         label={placeholder}
         {...{ inputRef, fullWidth, ...params }}
         onSelect={handleSelectionChange}
         slotProps={{
+          ...params.slotProps,
           ...slotProps,
           input: {
-            ...InputProps,
+            ...params.slotProps.input,
             ...(!disabled && {
               startAdornment: (
                 <>
                   {startAdornments}
-                  {InputProps.startAdornment}
+                  {params.slotProps.input.startAdornment}
                 </>
               ),
             }),
             ...(!(disabled || readOnly) && {
-              endAdornment: addEndAdornment(InputProps.endAdornment),
+              endAdornment: addEndAdornment(
+                params.slotProps.input.endAdornment
+              ),
             }),
             ...slotProps?.input,
           },
@@ -297,7 +290,7 @@ const ComboboxBase = ({
           />
         )
       }),
-    [indexedOptions, getActiveAttrs]
+    [getActiveAttrs, indexedOptions]
   )
 
   const handleInputChange = useCallback(

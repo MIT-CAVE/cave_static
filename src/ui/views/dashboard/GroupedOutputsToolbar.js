@@ -479,11 +479,14 @@ const GroupedOutputsToolbar = ({ index }) => {
       : SingleStatisticSelector,
   ])
 
+  const isBoxPlotSelected = chartObj.chartType === chartVariant.BOX_PLOT
+
   const AggregationSelector = mapIndexed(
     (_, index) => (
       <Select
         key={index}
         fullWidth
+        disabled={isBoxPlotSelected}
         sx={styles.item}
         getLabel={(item) => capitalize(item)}
         value={R.pathOr('', ['stats', index, 'aggregationType'], chartObj)}

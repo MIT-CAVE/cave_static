@@ -59,7 +59,7 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
       <FlexibleContainer>
         <DataGrid
           {...{ rows, columns }}
-          rowsPerPageOptions={[25, 50, 100]}
+          pageSizeOptions={[25, 50, 100]}
           sx={{
             minWidth: 0,
             bgcolor: 'background.paper',

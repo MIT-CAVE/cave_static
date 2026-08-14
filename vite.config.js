@@ -1,7 +1,5 @@
 // eslint-disable-next-line import/no-unresolved
-import babel from '@rolldown/plugin-babel'
-// eslint-disable-next-line import/no-unresolved
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react'
 // eslint-disable-next-line import/no-unresolved
 import { defineConfig, loadEnv, transformWithOxc } from 'vite'
 
@@ -14,6 +12,7 @@ const jsxInJs = () => ({
     return await transformWithOxc(code, id, {
       lang: 'jsx',
       target: 'es2022',
+      reactCompiler: true,
     })
   },
 })
@@ -36,26 +35,32 @@ export default defineConfig(({ mode, isPreview }) => {
   }
 
   return {
-    plugins: [
-      jsxInJs(),
-      react(),
-      // TODO: Replace Babel-based React Compiler with the OXC (Rust) port once
-      // a stable release is available. Then, remove the following dependencies:
-      // - @rolldown/plugin-babel
-      // - @babel/core
-      // - babel-plugin-react-compiler
-      //
-      // Track progress here:
-      // - https://github.com/facebook/react/pull/36173
-      // - https://github.com/oxc-project/oxc/issues/10048
-      babel({ presets: [reactCompilerPreset()] }),
-    ],
+    plugins: [jsxInJs(), react()],
     legacy: {
       // See: https://vite.dev/guide/migration#consistent-commonjs-interop
       inconsistentCjsInterop: true,
     },
     optimizeDeps: {
-      force: true,
+      // Re-enable (or run `npx vite --force` once) if the dep cache goes
+      // stale and modules fail to resolve after dependency/config changes.
+      // force: true,
+      include: [
+        '@emotion/styled',
+        '@mui/material/Paper',
+        '@mui/material/Table',
+        '@mui/material/TableBody',
+        '@mui/material/TableCell',
+        '@mui/material/TableContainer',
+        '@mui/material/TableHead',
+        '@mui/material/TablePagination',
+        '@mui/material/TableRow',
+        '@mui/material/styles',
+        '@emotion/react/jsx-runtime',
+        '@reduxjs/toolkit',
+        'react-redux',
+        'ramda',
+        'prop-types',
+      ],
       rolldownOptions: {
         moduleTypes: {
           '.js': 'jsx',
