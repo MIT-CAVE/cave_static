@@ -19,6 +19,7 @@ import {
   toggleButtonGroupClasses,
   Typography,
 } from '@mui/material'
+import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useContext, useMemo, useState } from 'react'
 import { LuShapes } from 'react-icons/lu'
@@ -46,7 +47,6 @@ import {
   selectEffectiveNodesBy,
   selectGeoRange,
   selectLegendLayout,
-  selectLegendNumberFormatFunc,
   selectLegendView,
   selectLegendWidth,
   selectNodeRange,
@@ -58,6 +58,9 @@ import {
   selectSync,
   selectZoomFunc,
   selectVirtualKeyboard,
+  selectNodeTypeKeys,
+  selectArcTypeKeys,
+  selectParsedGradient,
 } from '../../../data/selectors'
 import { MAX_ZOOM, MIN_ZOOM } from '../../../utils/constants'
 import {
@@ -71,7 +74,7 @@ import {
 } from '../../../utils/enums'
 import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
 import {
-  getScaledValueAlt,
+  getScaledValue,
   getScaleParamDefaults,
   getScaleParamLabel,
   scaleIndexedOptions,
@@ -89,7 +92,6 @@ import {
   getColorString,
   includesPath,
   NumberFormat,
-  parseGradient,
 } from '../../../utils'
 
 const styles = {
@@ -413,8 +415,9 @@ export const useGradient = ({
   )
 
   const handleSetAutoValueAt = useCallback(
-    (dataIndex, index) => () =>
-      onChangeValueAt(dataIndex)(index < 1 ? 'min' : 'max'),
+    (dataIndex, index) => () => {
+      onChangeValueAt(dataIndex)(index < 1 ? 'min' : 'max')
+    },
     [onChangeValueAt]
   )
 
@@ -444,7 +447,6 @@ export const useGradient = ({
 const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
   const { mapId } = useContext(MapContext)
   const getRangeOnZoom = useSelector(selectNodeRangeAtZoomFunc)
-  const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
 
   const valueRange = useMemo(() => {
     const colorRange = getRange(id, colorBy, mapId)
@@ -456,10 +458,10 @@ const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
       : colorRange
   }, [colorBy, getRange, getRangeOnZoom, group, id, mapId])
 
-  const { colors, values } = useMemo(() => {
-    const numberFormat = legendNumberFormatFunc(colorByProp)
-    return parseGradient('color', numberFormat.precision)(valueRange)
-  }, [colorByProp, legendNumberFormatFunc, valueRange])
+  const parsedGradient = useSelector((state) =>
+    selectParsedGradient(state, 'color', colorByProp, valueRange)
+  )
+  const { colors, values } = parsedGradient
 
   const gradientColors = useMemo(() => {
     const { scale, scaleParams } = valueRange.gradient
@@ -469,7 +471,7 @@ const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
     const isStepScale = scale === scaleId.STEP
 
     const scaledValues = R.map((value) =>
-      getScaledValueAlt(
+      getScaledValue(
         [minValue, maxValue],
         [0, 100],
         value,
@@ -531,11 +533,10 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
   const numColors = displayedColors.length
 
   // Compute grid (max 3 columns)
-  const cols = numColors <= 4 ? 2 : 3
+  const cols = numColors < 2 ? 1 : numColors < 5 ? 2 : 3
   const rows = Math.ceil(numColors / cols)
   const markerWidth = (width - gap * (cols - 1)) / cols
   const markerHeight = (height - gap * (rows - 1)) / rows
-  // const rx = Math.min(markerWidth, markerHeight) * 0.4 // rounded corners
 
   return (
     <svg {...{ height, width }}>
@@ -556,8 +557,8 @@ const CategoricalColorMarker = ({ colorByProp, anyNullValue }) => {
             {...{
               x,
               y,
-              // rx
             }}
+            rx={cols === 1 ? markerHeight * 0.2 : 0} // If only one color, make it fully rounded
             width={markerWidth}
             height={markerHeight}
             fill={color}
@@ -698,9 +699,9 @@ export const ScaleSelector = ({
   const validScales = useMemo(
     () =>
       R.pipe(
-        R.values,
+        R.keys,
         R.when(R.always(minDomainValue <= 0), R.without([scaleId.LOG]))
-      )(scaleId),
+      )(scaleIndexedOptions),
     [minDomainValue]
   )
   const scaleParamId = scaleParamsById[scale]
@@ -764,6 +765,39 @@ export const GroupCalcSelector = ({ type, value, onSelect }) => {
       {...{ value, onSelect }}
     />
   )
+}
+
+export const ZIndexControl = ({ type, zIndex, onChange }) => {
+  const nodeTypes = useSelector(selectNodeTypeKeys)
+  const arcTypes = useSelector(selectArcTypeKeys)
+
+  const defaultZIndex = useMemo(() => {
+    if (nodeTypes.includes(type)) return 0
+    if (arcTypes.includes(type)) return -1
+    return -2
+  }, [nodeTypes, arcTypes, type])
+
+  const value = zIndex !== undefined && zIndex !== null ? zIndex : defaultZIndex
+
+  return (
+    <Box sx={{ mt: 1, mb: 1, width: '100%' }}>
+      <NumberField
+        fullWidth
+        label="Render Order (Z-Index)"
+        value={value}
+        numberFormat={{ precision: 0 }}
+        onClickAway={R.F}
+        onChangeCommitted={(event, newValue) => {
+          onChange(newValue)
+        }}
+      />
+    </Box>
+  )
+}
+ZIndexControl.propTypes = {
+  type: PropTypes.string.isRequired,
+  zIndex: PropTypes.number,
+  onChange: PropTypes.func.isRequired,
 }
 
 export const GroupScaleControls = ({
@@ -1260,7 +1294,11 @@ export const LegendRoot = (props) => {
         },
       ]}
     >
-      <Stack spacing={1} bgcolor="background.paper" {...props} />
+      <Stack
+        spacing={1}
+        {...props}
+        sx={[{ bgcolor: 'background.paper' }, ...forceArray(props.sx ?? [])]}
+      />
     </Box>
   )
 }

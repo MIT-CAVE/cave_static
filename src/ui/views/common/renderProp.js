@@ -148,7 +148,11 @@ const getContainerFn = R.cond([
   [R.has('container'), R.prop('container')],
   [
     R.both(
-      R.pipe(R.prop('type'), R.equals(propId.BUTTON), R.not),
+      R.pipe(
+        R.prop('type'),
+        R.includes(R.__, [propId.BUTTON, propId.HEAD]),
+        R.not
+      ),
       R.pipe(
         R.prop('variant'),
         R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])

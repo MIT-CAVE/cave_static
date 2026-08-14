@@ -4,14 +4,7 @@ import { useCallback, useMemo } from 'react'
 
 import ComboboxBase from './ComboboxBase'
 
-import { forceArray, withIndex } from '../../utils'
-
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
+import { forceArray, getOrDefault, withIndex } from '../../utils'
 
 const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
   const {

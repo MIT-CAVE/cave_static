@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useId, useRef } from 'react'
+import { useCallback, useId, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import Spinner, {
@@ -70,9 +70,12 @@ const NumberField = ({
   defaultValue,
   min = -Infinity,
   max = Infinity,
+  // Actual value stays raw, while the displayed/typed text is in scaled space.
+  scale = R.identity,
+  inverseScale = R.identity,
   numberFormat: numberFormatRaw,
   step,
-  smallStep = numberFormatRaw.precision
+  smallStep = numberFormatRaw.precision != null
     ? // Setting `smallStep` to a maximum of 3 decimal places `precision`
       // is a safeguard against a bug in Base UI's `NumberField` where the
       // spinner doesn't work for smaller step values (e.g. `0.0001`).
@@ -105,6 +108,22 @@ const NumberField = ({
   const dispatch = useDispatch()
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
+  const commitTimeoutRef = useRef(-1)
+
+  // The Base UI field operates in scaled (display) space
+  const scaledValue = value == null ? value : scale(value)
+  const scaledDefaultValue =
+    defaultValue === undefined ? undefined : scale(defaultValue)
+  const scaledMin = scale(min)
+  const scaledMax = scale(max)
+
+  useEffect(() => {
+    return () => {
+      if (commitTimeoutRef.current !== -1)
+        clearTimeout(commitTimeoutRef.current)
+    }
+  }, [])
+
   const getCombinedRef = useCallback(
     (baseInputRef) => (node) => {
       localInputRef.current = node
@@ -121,11 +140,11 @@ const NumberField = ({
       // console.log('Virtual keyboard change', { value, newValue, event })
       dispatch(SetKeyboardInputValue(`${newValue}`))
     }
-    if (value === newValue) return
+    if (scaledValue === newValue) return
     // Guard against null (VK close) and NaN (invalid input like 'fish') during typing
     if (newValue == null || !Number.isFinite(newValue)) return
 
-    onChange(event, newValue)
+    onChange(event, inverseScale(newValue))
   }
 
   const handleValueCommitted = (newValue, event) => {
@@ -133,16 +152,26 @@ const NumberField = ({
     // internal state hasn't settled by the time blur fires. Read the live
     // buffer instead: the VK's Redux value when the VK is open, otherwise the
     // input DOM node's current value — both are synchronously up-to-date.
-    const fallback = isFinite(min) ? min : isFinite(max) ? max : 0
+    const fallback = isFinite(scaledMin)
+      ? scaledMin
+      : isFinite(scaledMax)
+        ? scaledMax
+        : 0
     const liveText = kbRef.current?.isOpen
       ? virtualKeyboard.inputValue
       : localInputRef.current?.value
     const fromLive =
       liveText != null && liveText !== '' ? NumberFormat.parse(liveText) : NaN
     const safe = Number.isFinite(fromLive)
-      ? R.clamp(min, max, fromLive)
-      : (newValue ?? value)
-    onChangeCommitted(event, Number.isFinite(safe) ? safe : fallback)
+      ? R.clamp(scaledMin, scaledMax, fromLive)
+      : (newValue ?? scaledValue)
+    const committedValue = Number.isFinite(safe) ? safe : fallback
+
+    if (commitTimeoutRef.current !== -1) clearTimeout(commitTimeoutRef.current)
+    commitTimeoutRef.current = setTimeout(() => {
+      onChangeCommitted(event, inverseScale(committedValue))
+      commitTimeoutRef.current = -1
+    }, 500)
   }
 
   const showKeyboardToggle = !(hideKeyboardToggle || readOnly || disabled)
@@ -171,10 +200,10 @@ const NumberField = ({
         onValueChange={controlled ? handleValueChange : undefined}
         onValueCommitted={onChangeCommitted ? handleValueCommitted : undefined}
         {...{
-          value,
-          defaultValue,
-          min,
-          max,
+          value: scaledValue,
+          defaultValue: scaledDefaultValue,
+          min: scaledMin,
+          max: scaledMax,
           step,
           smallStep,
           largeStep,
@@ -326,7 +355,7 @@ const NumberField = ({
                 {showKeyboardToggle && (
                   <KeyboardToggle
                     ref={kbRef}
-                    {...{ disabled, min, max }}
+                    {...{ disabled, min: scaledMin, max: scaledMax }}
                     inputRef={localInputRef}
                     inputId={id}
                     fieldId={id}
@@ -370,6 +399,8 @@ NumberField.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   min: PropTypes.number,
   max: PropTypes.number,
+  scale: PropTypes.func,
+  inverseScale: PropTypes.func,
   step: PropTypes.number,
   smallStep: PropTypes.number,
   largeStep: PropTypes.number,

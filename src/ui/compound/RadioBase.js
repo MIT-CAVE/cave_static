@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 
 import FetchedIcon from './FetchedIcon'
 
-import { withIndex } from '../../utils'
+import { getOrDefault, withIndex } from '../../utils'
 
 const DEFAULT_SIZE = '20px'
 
@@ -29,13 +29,6 @@ const styles = {
     },
   }),
 }
-
-/**
- * Returns the value if defined, otherwise returns the fallback.
- * This considers `undefined` as not set but treats `null` as intentionally set
- */
-const getOrDefault = (value, fallback) =>
-  value === undefined ? fallback : value
 
 const RadioBase = ({
   disabled: propDisabled,

@@ -3,7 +3,9 @@
  */
 const config = {
   '*.{json,css,html,md}': 'prettier --write',
-  '*.{js,jsx}': ['prettier --write', 'eslint --max-warnings=0 --fix'],
+  'src/**/*.{js,jsx}': ['prettier --write', 'eslint --max-warnings=0 --fix'],
+  '.storybook/**/*.js': 'prettier --write',
+  '*.js': 'prettier --write',
 }
 
 export default config

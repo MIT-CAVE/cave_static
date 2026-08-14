@@ -98,7 +98,15 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
       >
         <Popper
           disablePortal
-          placement="auto"
+          placement="bottom-end"
+          modifiers={[
+            {
+              name: 'offset',
+              options: {
+                offset: [0, 8],
+              },
+            },
+          ]}
           {...{ anchorEl }}
           open={showMap}
           sx={styles.popper}

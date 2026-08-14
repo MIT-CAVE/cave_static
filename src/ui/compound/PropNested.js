@@ -191,7 +191,7 @@ PropNestedHelper.propTypes = {
   checked: PropTypes.object,
   rootKey: PropTypes.string,
   handleClick: PropTypes.func,
-  enabled: PropTypes.bool,
+  disabled: PropTypes.bool,
 }
 
 export default PropNested

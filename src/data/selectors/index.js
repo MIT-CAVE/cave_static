@@ -31,7 +31,7 @@ import {
   MAPLIBRE_PROJECTIONS,
   MAP_PROJECTIONS,
 } from '../../utils/enums'
-import { getScaledValueAlt } from '../../utils/scales'
+import { getScaledValue } from '../../utils/scales'
 import { getStatFn } from '../../utils/stats'
 import Supercluster from '../../utils/supercluster'
 import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
@@ -365,6 +365,25 @@ export const selectLegendNumberFormatFunc = createSelector(
       },
     }
   }
+)
+// NOTE: Use with Redux hook below:
+// const parsedGradient = useSelector((state) => selectParsedGradientFunc(state, <attrKey>, <prop>, <range>, <parseRangeAsNumber>))
+export const selectParsedGradient = createSelector(
+  [
+    selectLegendNumberFormatFunc,
+    (state, attrKey, prop, range, parseRangeAsNumber) => ({
+      attrKey,
+      prop,
+      range,
+      parseRangeAsNumber,
+    }),
+  ],
+  (legendNumberFormatFunc, { attrKey, prop, range, parseRangeAsNumber }) =>
+    parseGradient(
+      attrKey,
+      legendNumberFormatFunc(prop).precision,
+      parseRangeAsNumber
+    )(range)
 )
 export const selectDemoSettings = createSelector(
   selectSettings,
@@ -2582,7 +2601,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               ? sizeFallback
               : isSizeCategorical
                 ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeByProp)
-                : getScaledValueAlt(
+                : getScaledValue(
                     [sizeDomain.min, sizeDomain.max],
                     parsedSize.sizes,
                     parseFloat(sizeByPropVal),
@@ -2614,7 +2633,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                     colorByPropVal,
                     'color',
                   ])(colorByProp)
-                : getScaledValueAlt(
+                : getScaledValue(
                     [colorDomain.min, colorDomain.max],
                     parsedColor.colors,
                     parseFloat(colorByPropVal),
@@ -2792,4 +2811,15 @@ export const selectFetchedGeoJsonFunc = createSelector(
       geoTypes,
       'geo'
     )
+)
+
+export const selectGeoTypeKeys = createSelector(
+  selectLocalizedGeoTypes,
+  (data) => R.keys(data),
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: R.equals,
+    },
+  }
 )
