@@ -60,6 +60,8 @@ const styles = {
     width: (theme) => `calc(100% - ${theme.spacing(3)})`,
     p: 0.5,
     color: 'text.secondary',
+    // Inherited by DashboardChart's "Empty Chart Data" placeholder;
+    // reset locally rather than removing (see DashboardGlobalOutputs)
     textAlign: 'center',
     flex: '1 1 auto',
   },
