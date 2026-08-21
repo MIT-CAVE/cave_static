@@ -1,6 +1,5 @@
 export * from './NestedList'
 export * from './SimpleDropdown'
-export { IconHeadColumn, IconHeadRow } from './IconHead'
 export {
   PropButtonFilled,
   PropButtonIcon,

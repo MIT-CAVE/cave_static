@@ -38,8 +38,6 @@ import {
   PropVStepper,
   PropNumberIcon,
   PropNumberIconCompact,
-  IconHeadColumn,
-  IconHeadRow,
   PropButtonFilled,
   PropButtonOutlined,
   PropButtonText,
@@ -113,8 +111,10 @@ const getHeaderPropRenderFn = R.cond([
   [R.isNil, R.always(PropHeadColumn)],
   [R.equals(propVariant.COLUMN), R.always(PropHeadColumn)],
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
-  [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
-  [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
+  // `icon`/`iconRow` are aliases for `column`/`row`,
+  // as they render through the exact same components.
+  [R.equals(propVariant.ICON), R.always(PropHeadColumn)],
+  [R.equals(propVariant.ICON_ROW), R.always(PropHeadRow)],
 
   [R.T, invalidVariant('head')],
 ])

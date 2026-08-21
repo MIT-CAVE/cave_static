@@ -2,6 +2,7 @@ import { Divider, Grid, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 
+import FetchedIcon from './FetchedIcon'
 import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
 
@@ -38,6 +39,9 @@ const BaseContainer = ({
     id,
     name,
     help,
+    icon,
+    color,
+    size = 26,
     style, // `style` will become the default escape hatch for prop styling in `4.0.0`.
     propStyle, // Adding the `propStyle` key here for consistency.
   },
@@ -53,6 +57,11 @@ const BaseContainer = ({
       sx={[styles.root, variantStyle, ...forceArray(sx), style, propStyle]}
       {...R.dissoc('currentVal')(props)}
     >
+      {icon && (
+        <Grid sx={{ alignSelf: 'center', pl: 2, pr: 0.5 }}>
+          <FetchedIcon iconName={icon} {...{ color, size }} />
+        </Grid>
+      )}
       <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
         <OverflowText text={title} />
       </Grid>
@@ -67,7 +76,7 @@ const BaseContainer = ({
 }
 BaseContainer.propTypes = {
   prop: PropTypes.object,
-  style: PropTypes.object,
+  variantStyle: PropTypes.object,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

@@ -122,6 +122,10 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
             position: 'absolute',
             maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
             maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
+            // Override the `Paper` ancestor's `textAlign: 'center'` (see
+            // `Dashboard.js`'s `styles.paper`) so props render with their
+            // usual left alignment instead of inheriting it.
+            textAlign: 'left',
           }}
         >
           {renderPropsLayout({
