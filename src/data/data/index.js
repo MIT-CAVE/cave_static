@@ -68,11 +68,22 @@ export const overwriteData = createAsyncThunk(
         R.pluck('data')
       )(getState())
 
+      const currentState = R.prop('data', getState())
+      const dataState = { ...currentState }
+      for (const k of Object.keys(data)) {
+        dataState[k] =
+          typeof data[k] === 'object' &&
+          data[k] !== null &&
+          !Array.isArray(data[k])
+            ? R.mergeDeepRight(currentState[k] || {}, data[k])
+            : data[k]
+      }
+
       dispatch(
         overrideSync({
           pathsToSync,
           desyncedPaths,
-          dataState: R.mergeDeepRight(R.prop('data', getState()), data),
+          dataState,
         })
       )
     }

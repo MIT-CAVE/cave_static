@@ -384,7 +384,8 @@ export const selectParsedGradient = createSelector(
       attrKey,
       legendNumberFormatFunc(prop).precision,
       parseRangeAsNumber
-    )(range)
+    )(range),
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 export const selectDemoSettings = createSelector(
   selectSettings,
@@ -573,11 +574,13 @@ export const selectCharts = createSelector(
 // const chartObj = useSelector((state) => selectChartById(state, <chartId>))
 export const selectChartById = createSelector(
   [selectCharts, (state, chartId) => chartId],
-  (charts, chartId) => charts[chartId]
+  (charts, chartId) => charts[chartId],
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 export const selectChartFiltersById = createSelector(
   [selectCharts, (state, chartId) => chartId],
-  (charts, chartId) => R.pathOr([], [chartId, 'filters'])(charts)
+  (charts, chartId) => R.pathOr([], [chartId, 'filters'])(charts),
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 
 export const selectIsMaximized = createSelector(
@@ -823,7 +826,8 @@ export const selectAllLocalLegendGroups = createSelector(
 // const mapName = useSelector((state) => selectMapName(state, <mapId>))
 export const selectMapName = createSelector(
   [selectMergedMapData, (state, mapId) => mapId],
-  (mapData, mapId) => mapData[mapId]?.name ?? ''
+  (mapData, mapId) => mapData[mapId]?.name ?? '',
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 
 export const selectDefaultViewportFunc = createSelector(
@@ -874,7 +878,8 @@ export const selectDefaultViewportFunc = createSelector(
 // const chartObj = useSelector((state) => selectMapExistsById(state, <mapId>))
 export const selectMapExistsById = createSelector(
   [selectMergedMapData, (state, mapId) => mapId],
-  (mapData, mapId) => Boolean(mapData?.[mapId])
+  (mapData, mapId) => Boolean(mapData?.[mapId]),
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 
 export const selectLegendDataFunc = createSelector(

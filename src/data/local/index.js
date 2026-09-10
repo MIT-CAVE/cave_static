@@ -139,19 +139,30 @@ const localSlice = createSlice({
   },
 })
 
-const finalReducer = (state, action) => {
-  const partialState = R.mergeLeft(
-    {
-      globalOutputs: globalOutputsReducer(
-        R.prop('globalOutputs', state),
-        action
-      ),
-      maps: mapReducer(R.prop('maps', state), action),
-      settings: settingsReducer(R.prop('settings', state), action),
-    },
-    state
-  )
-  return localSlice.reducer(partialState, action)
+const finalReducer = (state = {}, action) => {
+  const prevGlobalOutputs = state.globalOutputs
+  const prevMaps = state.maps
+  const prevSettings = state.settings
+
+  const nextGlobalOutputs = globalOutputsReducer(prevGlobalOutputs, action)
+  const nextMaps = mapReducer(prevMaps, action)
+  const nextSettings = settingsReducer(prevSettings, action)
+
+  let intermediateState = state
+  if (
+    nextGlobalOutputs !== prevGlobalOutputs ||
+    nextMaps !== prevMaps ||
+    nextSettings !== prevSettings
+  ) {
+    intermediateState = {
+      ...state,
+      globalOutputs: nextGlobalOutputs,
+      maps: nextMaps,
+      settings: nextSettings,
+    }
+  }
+
+  return localSlice.reducer(intermediateState, action)
 }
 
 export const { mutateLocal, deleteLocal } = localSlice.actions

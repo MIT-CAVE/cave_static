@@ -206,13 +206,7 @@ class NumberFormat {
     if (value == null) return fallbackValue
     if (value === Infinity || value === -Infinity || isNaN(value)) return 'NaN'
 
-    // Advocate good dev practices
     if (typeof value === 'string') {
-      console.warn(
-        `Value "${value}" is expected to be a number, but a \`string\` was received with the following number formatting options:
-${JSON.stringify({ precision, trailingZeros, notation, notationDisplay, showZeroExponent, unit, unitPlacement }, null, 2)}
-The value will be parsed as a \`float\` number.`
-      )
       value = +value
     }
 
