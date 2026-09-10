@@ -414,7 +414,6 @@ const Map = ({ mapId }) => {
           projection={currentMapProjectionFunc(mapId)}
           {...{ mapStyle, interactiveLayerIds, ...currentViewport }}
           onClick={handleClick}
-          onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
           onLoad={handleLoad}
           onMouseMove={handleMouseMove}
           onMouseOver={handleMouseOver}

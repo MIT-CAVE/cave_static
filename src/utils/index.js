@@ -39,6 +39,7 @@ export const includesPath = (paths, path) => {
 
 // given a path of arc points adjust them to ensure proper wrapping around the anti-meridian
 export const adjustArcPath = (path) => {
+  if (!path || path.length === 0) return path || []
   const idicies = R.range(1, path.length)
   let lastCoord = R.path([0, 0])(path)
   const adjustedCoords = R.map((index) => {
@@ -307,21 +308,33 @@ export const recursiveBubbleMap = R.curry(
           )
         )
 )
-const mergeObjIntoList = (obj, baseList) =>
-  R.reduce((acc, key) => {
+const mergeObjIntoList = (obj, baseList) => {
+  if (!baseList || !Array.isArray(baseList)) return baseList
+  const nextList = baseList.slice()
+  const keys = Object.keys(obj)
+  for (let i = 0; i < keys.length; i++) {
+    const key = Number(keys[i])
     if (isNaN(key)) throw new Error('Can only merge integer keys into list')
-    else return R.update(key, obj[key], acc)
-  }, baseList)(R.keys(obj))
+    nextList[key] = obj[keys[i]]
+  }
+  return nextList
+}
 
 // Merge 2 objects with obj2 overwriting obj1, or inidivual list indicies within it
-const mergeListRight = (obj1, obj2) =>
-  R.reduce(
-    (acc, key) =>
-      R.type(obj2[key]) === 'Object'
-        ? R.assoc(key, mergeObjIntoList(obj2[key], acc[key]), acc)
-        : R.assoc(key, obj2[key], acc),
-    obj1
-  )(R.keys(obj2))
+const mergeListRight = (obj1, obj2) => {
+  const result = { ...obj1 }
+  const keys = Object.keys(obj2)
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    const val2 = obj2[key]
+    if (typeof val2 === 'object' && val2 !== null && !Array.isArray(val2)) {
+      result[key] = mergeObjIntoList(val2, result[key])
+    } else {
+      result[key] = val2
+    }
+  }
+  return result
+}
 
 export const maxSizedMemoization = (keyFunc, resultFunc, maxCache) => {
   const cache = new Map()
@@ -603,48 +616,109 @@ export const checkValidRange = R.pipe(
   R.all(R.identity)
 )
 
-export const getTimeValue = (timeIndex, object) =>
-  recursiveMap(
-    (d) => R.type(d) !== 'Object',
-    R.identity,
-    (d) =>
-      R.has('timeValues', d)
-        ? mergeListRight(d, R.pathOr({}, ['timeValues', timeIndex], d))
-        : d,
-    object
-  )
+export const getTimeValue = (timeIndex, object) => {
+  if (typeof object !== 'object' || object === null || Array.isArray(object)) {
+    return object
+  }
 
-export const orderEntireDict = (object) =>
-  recursiveMap(
-    (d) => R.type(d) !== 'Object',
-    R.identity,
-    (d) =>
-      R.mergeAll([
-        d,
-        // sort subkeys alphabetically
-        R.pipe(
-          R.omit([
-            'order',
-            ...R.keys(R.propOr({}, 'order')(d)),
-            ...R.filter((key) => R.type(d[key]) !== 'Object')(R.keys(d)),
-          ]),
-          R.mapObjIndexed((subObj, key) =>
-            R.reduce((acc, subKey) => {
-              acc[subKey] = R.path([key, subKey], d)
-              return acc
-            }, {})(R.keys(subObj).sort())
-          )
-        )(d),
-        // sort subkeys by order
-        R.mapObjIndexed((ordering, key) =>
-          R.reduce((acc, subKey) => {
-            acc[subKey] = R.path([key, subKey], d)
-            return acc
-          }, {})(R.uniq([...ordering, ...R.keys(d[key])]))
-        )(R.propOr({}, 'order')(d)),
-      ]),
-    object
-  )
+  let hasChanged = false
+  let currentObj = object
+
+  if (
+    object.timeValues &&
+    typeof object.timeValues === 'object' &&
+    object.timeValues[timeIndex]
+  ) {
+    currentObj = mergeListRight(object, object.timeValues[timeIndex])
+    hasChanged = true
+  }
+
+  const keys = Object.keys(currentObj)
+  const result = hasChanged ? { ...currentObj } : {}
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    const val = currentObj[key]
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      const nextVal = getTimeValue(timeIndex, val)
+      if (nextVal !== val) {
+        hasChanged = true
+      }
+      result[key] = nextVal
+    } else if (hasChanged) {
+      result[key] = val
+    }
+  }
+
+  return hasChanged ? result : object
+}
+
+export const orderEntireDict = (object) => {
+  if (typeof object !== 'object' || object === null || Array.isArray(object)) {
+    return object
+  }
+
+  const orderProp = object.order
+  const hasOrder =
+    typeof orderProp === 'object' &&
+    orderProp !== null &&
+    !Array.isArray(orderProp)
+  const keys = Object.keys(object)
+  const result = {}
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    const val = object[key]
+
+    if (
+      typeof val !== 'object' ||
+      val === null ||
+      Array.isArray(val) ||
+      key === 'order'
+    ) {
+      result[key] =
+        typeof val === 'object' && val !== null && !Array.isArray(val)
+          ? orderEntireDict(val)
+          : val
+      continue
+    }
+
+    const subKeys = Object.keys(val)
+    const customOrder =
+      hasOrder && Array.isArray(orderProp[key]) ? orderProp[key] : null
+
+    let orderedSubKeys
+    if (customOrder) {
+      const seen = new Set()
+      orderedSubKeys = []
+      for (let j = 0; j < customOrder.length; j++) {
+        const k = customOrder[j]
+        if (k in val && !seen.has(k)) {
+          seen.add(k)
+          orderedSubKeys.push(k)
+        }
+      }
+      for (let j = 0; j < subKeys.length; j++) {
+        const k = subKeys[j]
+        if (!seen.has(k)) {
+          seen.add(k)
+          orderedSubKeys.push(k)
+        }
+      }
+    } else {
+      orderedSubKeys = subKeys.slice().sort()
+    }
+
+    const orderedSubObj = {}
+    for (let j = 0; j < orderedSubKeys.length; j++) {
+      const subKey = orderedSubKeys[j]
+      orderedSubObj[subKey] = orderEntireDict(val[subKey])
+    }
+    result[key] = orderedSubObj
+  }
+
+  return result
+}
 
 export const serializeNumLabel = (numLabel, precision) =>
   numLabel === Infinity || numLabel === -Infinity
@@ -998,150 +1072,204 @@ export const constructGeoJson = (
 ) =>
   maxSizedMemoization(
     R.identity,
-    (mapId) =>
-      R.pipe(
-        R.map((obj) => {
-          const [id, item] = obj
-          const legendObj = legendObjectsFunc(mapId)[item.type]
-          const filters = R.pipe(
-            R.propOr([], 'filters'),
-            R.reject(R.propEq(false, 'active'))
-          )(legendObj)
-          if (!filterMapFeature(filters, item)) return false
+    (mapId) => {
+      const itemsRaw = itemDataFunc(mapId)
+      const items = Array.isArray(itemsRaw)
+        ? itemsRaw
+        : Object.values(itemsRaw || {})
+      if (!items || items.length === 0) return []
 
-          const { colorBy } = legendObj
-          const colorByPropVal = R.pipe(
-            R.path(['values', colorBy]),
-            R.when(R.isNil, R.always('')),
-            (s) => s.toString()
-          )(item)
-          const colorRange = itemRange(item.type, colorBy, mapId)
-          const colorFallback = R.pathOr(
-            '#000',
-            ['fallback', 'color'],
-            colorRange
-          )
-          const colorByProp = R.path(['props', colorBy], item)
-          const colorByPrecision = legendNumberFormatFunc(colorByProp).precision
-          const parsedColor = parseGradient(
-            'color',
-            colorByPrecision
-          )(colorRange)
+      const legendObjects = legendObjectsFunc(mapId) || {}
+      const typeMetaCache = {}
 
-          const isColorCategorical = colorByProp.type !== propId.NUMBER
-          const rawColor =
-            colorByPropVal === ''
-              ? colorFallback
-              : isColorCategorical
-                ? R.pathOr(getChartItemColor(colorByPropVal), [
-                    'options',
-                    colorByPropVal,
-                    'color',
-                  ])(colorRange)
+      const getTypeMeta = (item) => {
+        const itemType = item.type
+        if (typeMetaCache[itemType]) return typeMetaCache[itemType]
+
+        const legendObj = legendObjects[itemType] || {}
+        const filters = (legendObj.filters || []).filter(
+          (f) => f && f.active !== false
+        )
+
+        // Color metadata
+        const colorBy = legendObj.colorBy
+        const colorRange = itemRange(itemType, colorBy, mapId)
+        const colorFallback = colorRange?.fallback?.color ?? '#000'
+        const colorByProp = item.props?.[colorBy] || {}
+        const colorByPrecision = legendNumberFormatFunc(colorByProp).precision
+        const parsedColor = parseGradient('color', colorByPrecision)(colorRange)
+        const isColorCategorical = colorByProp.type !== propId.NUMBER
+
+        // Size metadata
+        let sizeMeta = null
+        if ((type === 'node' || type === 'arc') && legendObj.sizeBy != null) {
+          const sizeBy = legendObj.sizeBy
+          const sizeRange = itemRange(itemType, sizeBy, mapId)
+          const sizeFallback = sizeRange?.fallback?.size ?? '0'
+          const sizeByProp = item.props?.[sizeBy] || {}
+          const sizeByPrecision = legendNumberFormatFunc(sizeByProp).precision
+          const parsedSize = parseGradient(
+            'size',
+            sizeByPrecision,
+            true
+          )(sizeRange)
+          const isSizeCategorical = sizeByProp.type !== propId.NUMBER
+          sizeMeta = {
+            sizeBy,
+            sizeRange,
+            sizeFallback,
+            parsedSize,
+            isSizeCategorical,
+          }
+        }
+
+        // Height metadata
+        let heightMeta = null
+        if ((type === 'geo' || type === 'arc') && legendObj.heightBy != null) {
+          const heightBy = legendObj.heightBy
+          const heightRange = itemRange(itemType, heightBy, mapId)
+          const defaultHeight =
+            'startHeight' in item && 'endHeight' in item ? '100' : '0'
+          const heightFallback = heightRange?.fallback?.height ?? defaultHeight
+          const heightByProp = item.props?.[heightBy] || {}
+          const heightByPrecision =
+            legendNumberFormatFunc(heightByProp).precision
+          const parsedHeight = parseGradient(
+            'height',
+            heightByPrecision,
+            true
+          )(heightRange)
+          const isHeightCategorical = heightByProp.type !== propId.NUMBER
+          heightMeta = {
+            heightBy,
+            heightRange,
+            heightFallback,
+            parsedHeight,
+            isHeightCategorical,
+          }
+        }
+
+        const meta = {
+          legendObj,
+          filters,
+          colorBy,
+          colorRange,
+          colorFallback,
+          colorByProp,
+          parsedColor,
+          isColorCategorical,
+          sizeMeta,
+          heightMeta,
+        }
+        typeMetaCache[itemType] = meta
+        return meta
+      }
+
+      const results = []
+      for (let i = 0; i < items.length; i++) {
+        const [id, item] = items[i]
+        if (!item) continue
+        const meta = getTypeMeta(item)
+        if (!filterMapFeature(meta.filters, item)) continue
+
+        const colorByPropVal =
+          item.values?.[meta.colorBy] == null
+            ? ''
+            : String(item.values[meta.colorBy])
+
+        const rawColor =
+          colorByPropVal === ''
+            ? meta.colorFallback
+            : meta.isColorCategorical
+              ? (meta.colorRange?.options?.[colorByPropVal]?.color ??
+                getChartItemColor(colorByPropVal))
+              : getScaledValue(
+                  meta.parsedColor.values,
+                  meta.parsedColor.colors,
+                  parseFloat(colorByPropVal),
+                  meta.colorRange?.gradient?.scale,
+                  meta.colorRange?.gradient?.scaleParams
+                )
+
+        let rawSize
+        if (meta.sizeMeta) {
+          const {
+            sizeBy,
+            sizeRange,
+            sizeFallback,
+            parsedSize,
+            isSizeCategorical,
+          } = meta.sizeMeta
+          const sizeByPropVal = item.values?.[sizeBy]
+          rawSize =
+            sizeByPropVal == null
+              ? sizeFallback
+              : isSizeCategorical
+                ? (sizeRange?.options?.[sizeByPropVal]?.size ?? '0')
                 : getScaledValue(
-                    parsedColor.values,
-                    parsedColor.colors,
-                    parseFloat(colorByPropVal),
-                    colorRange.gradient.scale,
-                    colorRange.gradient.scaleParams
+                    parsedSize.values,
+                    parsedSize.sizes,
+                    parseFloat(sizeByPropVal),
+                    sizeRange?.gradient?.scale,
+                    sizeRange?.gradient?.scaleParams
                   )
+        }
 
-          let rawSize
+        if (
+          rawSize != null &&
+          (parseFloat(rawSize) === 0 || isNaN(parseFloat(rawSize)))
+        )
+          continue
+        if (colord(rawColor).alpha() === 0) continue
 
-          if (type === 'node' || type === 'arc') {
-            const { sizeBy } = legendObj
-            const sizeRange = itemRange(item.type, sizeBy, mapId)
-            const sizeByPropVal = item.values[sizeBy]
-            const sizeFallback = R.pathOr('0', ['fallback', 'size'], sizeRange)
-            const sizeByProp = R.path(['props', sizeBy], item)
-            const sizeByPrecision = legendNumberFormatFunc(sizeByProp).precision
-            const parsedSize = parseGradient(
-              'size',
-              sizeByPrecision,
-              true
-            )(sizeRange)
+        let rawHeight
+        if (meta.heightMeta) {
+          const {
+            heightBy,
+            heightRange,
+            heightFallback,
+            parsedHeight,
+            isHeightCategorical,
+          } = meta.heightMeta
+          const heightByPropVal = item.values?.[heightBy]
+          rawHeight =
+            heightByPropVal == null
+              ? heightFallback
+              : isHeightCategorical
+                ? (heightRange?.options?.[heightByPropVal]?.height ?? '0')
+                : getScaledValue(
+                    parsedHeight.values,
+                    parsedHeight.heights,
+                    parseFloat(heightByPropVal),
+                    heightRange?.gradient?.scale,
+                    heightRange?.gradient?.scaleParams
+                  )
+        }
 
-            const isSizeCategorical = sizeByProp.type !== propId.NUMBER
-            rawSize =
-              sizeByPropVal == null
-                ? sizeFallback
-                : isSizeCategorical
-                  ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeRange)
-                  : getScaledValue(
-                      parsedSize.values,
-                      parsedSize.sizes,
-                      parseFloat(sizeByPropVal),
-                      sizeRange.gradient.scale,
-                      sizeRange.gradient.scaleParams
-                    )
-          }
-          if (rawSize === 0 || colord(rawColor).alpha() === 0) return false
+        results.push({
+          type: 'Feature',
+          properties: {
+            cave_obj: item,
+            cave_name: JSON.stringify([item.type, id]),
+            color: getColorString(rawColor),
+            ...(rawHeight != null && { height: parseFloat(rawHeight) }),
+            ...(rawSize != null && {
+              size:
+                type === 'node'
+                  ? parseFloat(rawSize) / ICON_RESOLUTION
+                  : parseFloat(rawSize),
+            }),
+            ...(type === 'node' && { icon: meta.legendObj.icon }),
+            ...(type === 'arc' && {
+              dash: meta.legendObj.lineStyle ?? 'solid',
+            }),
+          },
+          geometry: geometryFunc(item),
+        })
+      }
 
-          let rawHeight
-
-          if (type === 'geo' || type === 'arc') {
-            const { heightBy } = legendObj
-            const heightRange = itemRange(item.type, heightBy, mapId)
-            const heightByPropVal = item.values[heightBy]
-            const defaultHeight =
-              R.has('startHeight', item) && R.has('endHeight', item)
-                ? '100'
-                : '0'
-            const heightFallback = R.pathOr(
-              defaultHeight,
-              ['fallback', 'height'],
-              heightRange
-            )
-            const heightByProp = R.pathOr({}, ['props', heightBy], item)
-            const heightByPrecision =
-              legendNumberFormatFunc(heightByProp).precision
-            const parsedHeight = parseGradient(
-              'height',
-              heightByPrecision,
-              true
-            )(heightRange)
-
-            const isHeightCategorical = heightByProp.type !== propId.NUMBER
-            rawHeight =
-              heightByPropVal == null
-                ? heightFallback
-                : isHeightCategorical
-                  ? R.pathOr('0', ['options', heightByPropVal, 'height'])(
-                      heightRange
-                    )
-                  : getScaledValue(
-                      parsedHeight.values,
-                      parsedHeight.heights,
-                      parseFloat(heightByPropVal),
-                      heightRange.gradient.scale,
-                      heightRange.gradient.scaleParams
-                    )
-          }
-
-          return {
-            type: 'Feature',
-            properties: {
-              cave_obj: item,
-              cave_name: JSON.stringify([item.type, id]),
-              color: getColorString(rawColor),
-              ...(R.isNotNil(rawHeight) && { height: parseFloat(rawHeight) }),
-              ...(R.isNotNil(rawSize) && {
-                size:
-                  type === 'node'
-                    ? parseFloat(rawSize) / ICON_RESOLUTION
-                    : parseFloat(rawSize),
-              }),
-              ...(type === 'node' && { icon: legendObj.icon }),
-              ...(type === 'arc' && {
-                dash: R.propOr('solid', 'lineStyle')(legendObj),
-              }),
-            },
-            geometry: geometryFunc(item),
-          }
-        }),
-        R.values,
-        R.filter(R.identity)
-      )(itemDataFunc(mapId)),
+      return results
+    },
     MAX_MEMOIZED_CHARTS
   )
 

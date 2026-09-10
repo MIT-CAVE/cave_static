@@ -11,6 +11,10 @@ import {
   DEFAULT_MAP_STYLE_OBJECTS,
   MIN_ZOOM,
   MAX_ZOOM,
+  MIN_PITCH,
+  MAX_PITCH,
+  MIN_BEARING,
+  MAX_BEARING,
   MAX_MEMOIZED_CHARTS,
   NUMBER_FORMAT_KEY_PATHS,
   ICON_RESOLUTION,
@@ -370,14 +374,12 @@ export const selectLegendNumberFormatFunc = createSelector(
 export const selectParsedGradient = createSelector(
   [
     selectLegendNumberFormatFunc,
-    (state, attrKey, prop, range, parseRangeAsNumber) => ({
-      attrKey,
-      prop,
-      range,
-      parseRangeAsNumber,
-    }),
+    (state, attrKey) => attrKey,
+    (state, attrKey, prop) => prop,
+    (state, attrKey, prop, range) => range,
+    (state, attrKey, prop, range, parseRangeAsNumber) => parseRangeAsNumber,
   ],
-  (legendNumberFormatFunc, { attrKey, prop, range, parseRangeAsNumber }) =>
+  (legendNumberFormatFunc, attrKey, prop, range, parseRangeAsNumber) =>
     parseGradient(
       attrKey,
       legendNumberFormatFunc(prop).precision,
@@ -453,7 +455,10 @@ export const selectLocalDraggablesData = createSelector(
 
 export const selectMergedDraggables = createSelector(
   [selectLocalDraggablesData, selectDraggablesData],
-  (localData, data) => R.mergeDeepLeft(localData)(data)
+  (localData, data) =>
+    !localData || R.isEmpty(localData)
+      ? data || {}
+      : R.mergeDeepLeft(localData, data || {})
 )
 export const selectSessionDraggable = createSelector(
   selectMergedDraggables,
@@ -514,13 +519,18 @@ export const selectRightPinPane = createSelector(selectPaneState, (data) =>
 export const selectCurrentPage = createSelector(
   [selectLocalPages, selectPages],
   (localPages, pages) => {
-    const fallbackId = R.pipe(R.prop('data'), R.keys, R.prop(0))(pages)
-    const currentId = R.propOr(
-      R.propOr(fallbackId, 'currentPage', pages),
-      'currentPage',
-      localPages
-    )
-    return currentId
+    const pagesData = pages?.data || {}
+    const pageKeys = Object.keys(pagesData)
+    const fallbackId = pageKeys[0]
+    const serverCurrentPage = pages?.currentPage
+    const localCurrentPage = localPages?.currentPage
+    if (localCurrentPage && pagesData[localCurrentPage]) {
+      return localCurrentPage
+    }
+    if (serverCurrentPage && pagesData[serverCurrentPage]) {
+      return serverCurrentPage
+    }
+    return fallbackId
   }
 )
 export const selectDashboard = createSelector(
@@ -760,7 +770,21 @@ export const selectCurrentLocalMapDataByMap = createSelector(
 // Merged Map Data
 export const selectMergedMapData = createSelector(
   [selectMapData, selectLocalMapData],
-  (data, localData) => R.mergeDeepLeft(localData)(data)
+  (data, localData) => {
+    if (!localData || R.isEmpty(localData)) return data || {}
+    if (!data || R.isEmpty(data)) return localData || {}
+    const validLocalData = {}
+    const mapKeys = Object.keys(data)
+    for (let i = 0; i < mapKeys.length; i++) {
+      const mapId = mapKeys[i]
+      if (localData[mapId]) {
+        validLocalData[mapId] = localData[mapId]
+      }
+    }
+    return R.isEmpty(validLocalData)
+      ? data
+      : R.mergeDeepLeft(validLocalData, data)
+  }
 )
 export const selectAnyMapData = createSelector(
   selectMergedMapData,
@@ -799,7 +823,7 @@ export const selectAllLocalLegendGroups = createSelector(
 // const mapName = useSelector((state) => selectMapName(state, <mapId>))
 export const selectMapName = createSelector(
   [selectMergedMapData, (state, mapId) => mapId],
-  (mapData, mapId) => mapData[mapId].name
+  (mapData, mapId) => mapData[mapId]?.name ?? ''
 )
 
 export const selectDefaultViewportFunc = createSelector(
@@ -807,14 +831,41 @@ export const selectDefaultViewportFunc = createSelector(
   (dataObj) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pathOr({}, ['defaultViewport', mapId]),
-          R.when(
-            R.has('zoom'),
-            R.over(R.lensProp('zoom'), R.clamp(MIN_ZOOM, MAX_ZOOM))
-          )
-        )(dataObj),
+      (mapId) => {
+        const vp = R.pathOr({}, ['defaultViewport', mapId])(dataObj)
+        const minZoom = R.clamp(MIN_ZOOM, MAX_ZOOM, vp.minZoom ?? MIN_ZOOM)
+        const maxZoom = R.clamp(minZoom, MAX_ZOOM, vp.maxZoom ?? MAX_ZOOM)
+        const minPitch = R.clamp(MIN_PITCH, MAX_PITCH, vp.minPitch ?? MIN_PITCH)
+        const maxPitch = R.clamp(minPitch, MAX_PITCH, vp.maxPitch ?? MAX_PITCH)
+        const minBearing = R.clamp(
+          MIN_BEARING,
+          MAX_BEARING,
+          vp.minBearing ?? MIN_BEARING
+        )
+        const maxBearing = R.clamp(
+          minBearing,
+          MAX_BEARING,
+          vp.maxBearing ?? MAX_BEARING
+        )
+        return {
+          ...vp,
+          ...(vp.zoom != null && {
+            zoom: R.clamp(minZoom, maxZoom, vp.zoom),
+          }),
+          ...(vp.pitch != null && {
+            pitch: R.clamp(minPitch, maxPitch, vp.pitch),
+          }),
+          ...(vp.bearing != null && {
+            bearing: R.clamp(minBearing, maxBearing, vp.bearing),
+          }),
+          ...(vp.minZoom != null && { minZoom }),
+          ...(vp.maxZoom != null && { maxZoom }),
+          ...(vp.minPitch != null && { minPitch }),
+          ...(vp.maxPitch != null && { maxPitch }),
+          ...(vp.minBearing != null && { minBearing }),
+          ...(vp.maxBearing != null && { maxBearing }),
+        }
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -823,7 +874,7 @@ export const selectDefaultViewportFunc = createSelector(
 // const chartObj = useSelector((state) => selectMapExistsById(state, <mapId>))
 export const selectMapExistsById = createSelector(
   [selectMergedMapData, (state, mapId) => mapId],
-  (mapData, mapId) => R.has(mapId)(mapData)
+  (mapData, mapId) => Boolean(mapData?.[mapId])
 )
 
 export const selectLegendDataFunc = createSelector(
@@ -919,7 +970,9 @@ const selectLocalGlobalOutputs = createSelector(
 export const selectMergedGlobalOutputs = createSelector(
   [selectGlobalOutputs, selectLocalGlobalOutputs],
   (globalOutputsData, localGlobalOutputs) =>
-    R.mergeDeepLeft(localGlobalOutputs)(globalOutputsData)
+    !localGlobalOutputs || R.isEmpty(localGlobalOutputs)
+      ? globalOutputsData || {}
+      : R.mergeDeepLeft(localGlobalOutputs, globalOutputsData || {})
 )
 export const selectAnyGlobalOutputData = createSelector(
   selectMergedGlobalOutputs,
@@ -939,39 +992,96 @@ export const selectGlobalOutputProps = createSelector(
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
   [selectMapControlsByMap, selectDefaultViewportFunc, selectMergedMapData],
-  (mapControls, defaultViewportFunc, maps) =>
-    R.pipe(
-      R.pipe(R.keys, R.concat(R.keys(mapControls)), R.uniq), // Obtain all Map IDs
-      R.converge(R.zipObj, [
-        R.identity,
-        R.map((mapId) =>
-          R.mergeAll([
-            DEFAULT_VIEWPORT,
-            defaultViewportFunc(mapId),
-            R.pathOr({}, [mapId, 'viewport'])(mapControls),
-          ])
-        ),
-      ])
-    )(maps)
+  (mapControls, defaultViewportFunc, maps) => {
+    const mapKeys = Object.keys(maps || {})
+    const viewports = {}
+    for (let i = 0; i < mapKeys.length; i++) {
+      const mapId = mapKeys[i]
+      const defaultVp = defaultViewportFunc(mapId) || {}
+      const localVp = mapControls?.[mapId]?.viewport || {}
+
+      const minZoom = R.clamp(
+        MIN_ZOOM,
+        MAX_ZOOM,
+        defaultVp.minZoom ?? DEFAULT_VIEWPORT.minZoom
+      )
+      const maxZoom = R.clamp(
+        minZoom,
+        MAX_ZOOM,
+        defaultVp.maxZoom ?? DEFAULT_VIEWPORT.maxZoom
+      )
+      const minPitch = R.clamp(
+        MIN_PITCH,
+        MAX_PITCH,
+        defaultVp.minPitch ?? DEFAULT_VIEWPORT.minPitch
+      )
+      const maxPitch = R.clamp(
+        minPitch,
+        MAX_PITCH,
+        defaultVp.maxPitch ?? DEFAULT_VIEWPORT.maxPitch
+      )
+      const minBearing = R.clamp(
+        MIN_BEARING,
+        MAX_BEARING,
+        defaultVp.minBearing ?? DEFAULT_VIEWPORT.minBearing
+      )
+      const maxBearing = R.clamp(
+        minBearing,
+        MAX_BEARING,
+        defaultVp.maxBearing ?? DEFAULT_VIEWPORT.maxBearing
+      )
+
+      const merged = {
+        ...DEFAULT_VIEWPORT,
+        ...defaultVp,
+        ...localVp,
+        minZoom,
+        maxZoom,
+        minPitch,
+        maxPitch,
+        minBearing,
+        maxBearing,
+      }
+
+      merged.zoom = R.clamp(
+        minZoom,
+        maxZoom,
+        merged.zoom ?? DEFAULT_VIEWPORT.zoom
+      )
+      merged.pitch = R.clamp(
+        minPitch,
+        maxPitch,
+        merged.pitch ?? DEFAULT_VIEWPORT.pitch
+      )
+      merged.bearing = R.clamp(
+        minBearing,
+        maxBearing,
+        merged.bearing ?? DEFAULT_VIEWPORT.bearing
+      )
+
+      viewports[mapId] = merged
+    }
+    return viewports
+  }
 )
 export const selectBearingFunc = createSelector(selectViewportsByMap, (data) =>
   maxSizedMemoization(
     R.identity,
-    (mapId) => R.prop('bearing')(data[mapId]),
+    (mapId) => R.pathOr(DEFAULT_VIEWPORT.bearing, [mapId, 'bearing'])(data),
     MAX_MEMOIZED_CHARTS
   )
 )
 export const selectPitchFunc = createSelector(selectViewportsByMap, (data) =>
   maxSizedMemoization(
     R.identity,
-    (mapId) => R.prop('pitch')(data[mapId]),
+    (mapId) => R.pathOr(DEFAULT_VIEWPORT.pitch, [mapId, 'pitch'])(data),
     MAX_MEMOIZED_CHARTS
   )
 )
 export const selectZoomFunc = createSelector(selectViewportsByMap, (data) =>
   maxSizedMemoization(
     R.identity,
-    (mapId) => R.prop('zoom')(data[mapId]),
+    (mapId) => R.pathOr(DEFAULT_VIEWPORT.zoom, [mapId, 'zoom'])(data),
     MAX_MEMOIZED_CHARTS
   )
 )
@@ -1247,7 +1357,8 @@ export const selectLocalGeos = createSelector(
 )
 export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
-  (nodeTypes, localNodes) => R.mergeDeepRight(nodeTypes, localNodes),
+  (nodeTypes, localNodes) =>
+    R.isEmpty(localNodes) ? nodeTypes : R.mergeDeepRight(nodeTypes, localNodes),
   {
     memoize: lruMemoize,
     memoizeOptions: {
@@ -1257,7 +1368,8 @@ export const selectLocalizedNodeTypes = createSelector(
 )
 export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
-  (arcTypes, localArcs) => R.mergeDeepRight(arcTypes, localArcs),
+  (arcTypes, localArcs) =>
+    R.isEmpty(localArcs) ? arcTypes : R.mergeDeepRight(arcTypes, localArcs),
   {
     memoize: lruMemoize,
     memoizeOptions: {
@@ -1267,7 +1379,8 @@ export const selectLocalizedArcTypes = createSelector(
 )
 export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
-  (geoTypes, localGeos) => R.mergeDeepRight(geoTypes, localGeos),
+  (geoTypes, localGeos) =>
+    R.isEmpty(localGeos) ? geoTypes : R.mergeDeepRight(geoTypes, localGeos),
   {
     memoize: lruMemoize,
     memoizeOptions: {
@@ -1296,35 +1409,58 @@ export const selectNodeTypeKeys = createSelector(
   }
 )
 
-const getMergedAllProps = (data, dataType) =>
-  R.mapObjIndexed((type, key) =>
-    R.pipe(
-      R.pathOr({}, ['data', 'location']),
-      R.dissoc('timeValues'),
-      R.values,
-      R.head,
-      R.length,
-      R.range(0),
-      R.map((idx) => {
-        const values = R.pipe(
-          R.pathOr({}, ['data', 'valueLists']),
-          R.dissoc('timeValues'),
-          R.pluck(idx)
-        )(type)
-        const location = R.pipe(
-          R.pathOr({}, ['data', 'location']),
-          dataType === 'node' ? R.map(R.map((d) => d[0])) : R.identity,
-          R.pluck(idx)
-        )(type)
-        return R.pipe(
-          R.assoc('values', values),
-          R.mergeLeft(location),
-          R.assoc('type', key),
-          R.dissoc('data')
-        )(type)
-      })
-    )(type)
-  )(data)
+const getMergedAllProps = (data, dataType) => {
+  const result = {}
+  const typeKeys = Object.keys(data || {})
+  for (let t = 0; t < typeKeys.length; t++) {
+    const key = typeKeys[t]
+    const type = data[key]
+    if (!type || typeof type !== 'object') {
+      result[key] = []
+      continue
+    }
+    const rawLoc = type.data?.location
+    if (!rawLoc || typeof rawLoc !== 'object') {
+      result[key] = []
+      continue
+    }
+    const locationKeys = Object.keys(rawLoc).filter((k) => k !== 'timeValues')
+    if (locationKeys.length === 0) {
+      result[key] = []
+      continue
+    }
+    const count = rawLoc[locationKeys[0]]?.length ?? 0
+    if (count === 0) {
+      result[key] = []
+      continue
+    }
+    const rawValues = type.data?.valueLists || {}
+    const valueKeys = Object.keys(rawValues).filter((k) => k !== 'timeValues')
+    const baseProps = { ...R.dissoc('data', type), type: key }
+
+    const items = new Array(count)
+    for (let i = 0; i < count; i++) {
+      const values = {}
+      for (let j = 0; j < valueKeys.length; j++) {
+        const vk = valueKeys[j]
+        values[vk] = rawValues[vk]?.[i]
+      }
+      const itemLoc = {}
+      for (let j = 0; j < locationKeys.length; j++) {
+        const lk = locationKeys[j]
+        const val = rawLoc[lk]?.[i]
+        itemLoc[lk] = dataType === 'node' && Array.isArray(val) ? val[0] : val
+      }
+      items[i] = {
+        ...baseProps,
+        ...itemLoc,
+        values,
+      }
+    }
+    result[key] = items
+  }
+  return result
+}
 
 export const selectMergedArcs = createSelector(
   [selectLocalizedArcTypes, selectCurrentTime],
@@ -1343,11 +1479,11 @@ const selectEffectiveMapFeaturesBy = createSelector(
   selectLegendTypesFn,
   (legendObjectsFunc) =>
     R.curry((mapId, layerKey, featuresByType, type) => {
-      const legendFeatures = legendObjectsFunc({ mapId, layerKey })
+      const legendFeatures = legendObjectsFunc({ mapId, layerKey }) || {}
       const features = R.propOr([], type)(featuresByType)
       const effectiveMapFeatures = R.map(
         // R.over(R.lensProp('props'), R.mergeDeepLeft(legendFeatures[type].props))
-        R.mergeDeepLeft(legendFeatures[type])
+        R.mergeDeepLeft(legendFeatures[type] || {})
       )(features)
       return effectiveMapFeatures
     })
@@ -1406,21 +1542,34 @@ const selectStatGroupings = createSelector(
 // outputs derived
 export const selectMergedStatGroupings = createSelector(
   [selectLocalStatGroupings, selectStatGroupings],
-  (localData, data) => R.mergeDeepLeft(localData)(data)
+  (localData, data) =>
+    !localData || R.isEmpty(localData)
+      ? data || {}
+      : R.mergeDeepLeft(localData, data || {})
 )
 
 export const selectSlimStatGroupings = createSelector(
   selectMergedStatGroupings,
-  R.pipe(
-    structuredClone,
-    R.mapObjIndexed((grouping) => {
-      // Check if the stat grouping has `levels` and remove `coloring` from it
-      if (grouping.levels) {
-        grouping.levels = R.mapObjIndexed(R.dissoc('coloring'))(grouping.levels)
+  (statGroupings) => {
+    const result = {}
+    const keys = Object.keys(statGroupings || {})
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      const grouping = statGroupings[key]
+      if (grouping && grouping.levels) {
+        const levels = {}
+        const levelKeys = Object.keys(grouping.levels)
+        for (let j = 0; j < levelKeys.length; j++) {
+          const lk = levelKeys[j]
+          levels[lk] = R.dissoc('coloring', grouping.levels[lk])
+        }
+        result[key] = { ...grouping, levels }
+      } else {
+        result[key] = grouping
       }
-      return grouping
-    })
-  ),
+    }
+    return result
+  },
   {
     memoize: lruMemoize,
     memoizeOptions: { equalityCheck: R.equals },
@@ -1429,7 +1578,31 @@ export const selectSlimStatGroupings = createSelector(
 
 const selectStatGroupingIndicies = createSelector(
   selectSlimStatGroupings,
-  R.pipe(R.map(R.over(R.lensPath(['data', 'id']), R.invertObj)))
+  (groupings) => {
+    const result = {}
+    const keys = Object.keys(groupings || {})
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      const grouping = groupings[key]
+      if (grouping && grouping.data && Array.isArray(grouping.data.id)) {
+        const idArr = grouping.data.id
+        const idIndexMap = {}
+        for (let j = 0; j < idArr.length; j++) {
+          idIndexMap[idArr[j]] = j
+        }
+        result[key] = {
+          ...grouping,
+          data: {
+            ...grouping.data,
+            id: idIndexMap,
+          },
+        }
+      } else {
+        result[key] = grouping
+      }
+    }
+    return result
+  }
 )
 
 const selectGroupedOutputValueLists = createSelector(
@@ -2458,78 +2631,105 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
   ) =>
     maxSizedMemoization(
       R.identity,
-      (mapId) =>
-        R.map((group) => {
-          const nodeType = group.properties.type
-          const legendObj = legendObjectsFunc(mapId)[nodeType]
-          const effectiveNodes = effectiveNodesBy(nodeType, mapId)[0]
+      (mapId) => {
+        const clusterData = nodeClustersFunc(mapId)
+        const groups = clusterData?.data || []
+        if (groups.length === 0) return []
 
+        const legendObjects = legendObjectsFunc(mapId) || {}
+        const clusterRange = clusterData.range || {}
+        const typeMetaCache = {}
+
+        const getTypeMeta = (nodeType) => {
+          if (typeMetaCache[nodeType]) return typeMetaCache[nodeType]
+
+          const legendObj = legendObjects[nodeType] || {}
+          const effectiveNodes = effectiveNodesBy(nodeType, mapId)[0] || {}
           const { colorBy, sizeBy } = effectiveNodes
 
-          const sizeByProp = effectiveNodes.props[sizeBy]
-          const sizeObj = group.properties.sizeProp
-          const sizeByPropVal = sizeObj.value
-          const sizeFallback = R.pathOr('0', ['fallback', 'size'])(sizeByProp)
+          const sizeByProp = effectiveNodes.props?.[sizeBy] || {}
+          const sizeFallback = sizeByProp.fallback?.size ?? '0'
           const isSizeCategorical = sizeByProp.type !== propId.NUMBER
-          const sizeDomain = nodeClustersFunc(mapId).range[nodeType].size
+          const sizeDomain = clusterRange[nodeType]?.size || { min: 0, max: 1 }
           const parsedSize = parseGradient(
             'size',
             legendNumberFormatFunc(sizeByProp).precision,
             true
           )(sizeByProp)
-          const rawSize =
-            sizeByPropVal == null
-              ? sizeFallback
-              : isSizeCategorical
-                ? R.pathOr('0', ['options', sizeByPropVal, 'size'])(sizeByProp)
-                : getScaledValue(
-                    [sizeDomain.min, sizeDomain.max],
-                    parsedSize.sizes,
-                    parseFloat(sizeByPropVal),
-                    sizeByProp.gradient.scale,
-                    sizeByProp.gradient.scaleParams
-                  )
 
-          const colorByProp = effectiveNodes.props[colorBy]
-          const colorObj = group.properties.colorProp
-          const colorByPropVal = R.pipe(R.when(R.isNil, R.always('')), (s) =>
-            s.toString()
-          )(colorObj.value)
-          const colorFallback = R.pathOr('#000', ['fallback', 'color'])(
-            colorByProp
-          )
+          const colorByProp = effectiveNodes.props?.[colorBy] || {}
+          const colorFallback = colorByProp.fallback?.color ?? '#000'
           const isColorCategorical = colorByProp.type !== propId.NUMBER
-          const colorDomain = nodeClustersFunc(mapId).range[nodeType].color
+          const colorDomain = clusterRange[nodeType]?.color || {
+            min: 0,
+            max: 1,
+          }
           const parsedColor = parseGradient(
             'color',
             legendNumberFormatFunc(colorByProp).precision
           )(colorByProp)
 
-          const rawColor =
-            colorByPropVal === ''
-              ? colorFallback
-              : isColorCategorical
-                ? R.pathOr(getChartItemColor(colorByPropVal), [
-                    'options',
-                    colorByPropVal,
-                    'color',
-                  ])(colorByProp)
+          const meta = {
+            legendObj,
+            effectiveNodes,
+            sizeByProp,
+            sizeFallback,
+            isSizeCategorical,
+            sizeDomain,
+            parsedSize,
+            colorByProp,
+            colorFallback,
+            isColorCategorical,
+            colorDomain,
+            parsedColor,
+          }
+          typeMetaCache[nodeType] = meta
+          return meta
+        }
+
+        const results = new Array(groups.length)
+        for (let i = 0; i < groups.length; i++) {
+          const group = groups[i]
+          const nodeType = group.properties.type
+          const meta = getTypeMeta(nodeType)
+
+          const sizeObj = group.properties.sizeProp
+          const sizeByPropVal = sizeObj?.value
+          const rawSize =
+            sizeByPropVal == null
+              ? meta.sizeFallback
+              : meta.isSizeCategorical
+                ? (meta.sizeByProp?.options?.[sizeByPropVal]?.size ?? '0')
                 : getScaledValue(
-                    [colorDomain.min, colorDomain.max],
-                    parsedColor.colors,
-                    parseFloat(colorByPropVal),
-                    colorByProp.gradient.scale,
-                    colorByProp.gradient.scaleParams
+                    [meta.sizeDomain.min, meta.sizeDomain.max],
+                    meta.parsedSize.sizes,
+                    parseFloat(sizeByPropVal),
+                    meta.sizeByProp.gradient?.scale,
+                    meta.sizeByProp.gradient?.scaleParams
                   )
 
-          const id = R.pathOr(
-            JSON.stringify(
-              R.slice(0, 2, R.pathOr([], ['properties', 'grouped_ids'], group))
-            ),
-            ['properties', 'id']
-          )(group)
+          const colorObj = group.properties.colorProp
+          const colorByPropVal =
+            colorObj?.value == null ? '' : String(colorObj.value)
+          const rawColor =
+            colorByPropVal === ''
+              ? meta.colorFallback
+              : meta.isColorCategorical
+                ? (meta.colorByProp?.options?.[colorByPropVal]?.color ??
+                  getChartItemColor(colorByPropVal))
+                : getScaledValue(
+                    [meta.colorDomain.min, meta.colorDomain.max],
+                    meta.parsedColor.colors,
+                    parseFloat(colorByPropVal),
+                    meta.colorByProp.gradient?.scale,
+                    meta.colorByProp.gradient?.scaleParams
+                  )
 
-          return {
+          const id =
+            group.properties?.id ??
+            JSON.stringify((group.properties?.grouped_ids || []).slice(0, 2))
+
+          results[i] = {
             type: 'Feature',
             properties: {
               cave_obj: group,
@@ -2537,14 +2737,16 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               cave_name: JSON.stringify([nodeType, id]),
               color: getColorString(rawColor),
               size: parseFloat(rawSize) / ICON_RESOLUTION,
-              icon: legendObj.icon,
+              icon: meta.legendObj.icon,
             },
             geometry: {
               type: 'Point',
               coordinates: group.geometry.coordinates,
             },
           }
-        })(R.propOr([], 'data', nodeClustersFunc(mapId))),
+        }
+        return results
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2649,10 +2851,17 @@ export const selectIncludedGeoJsonFunc = createSelector(
     legendObjectsFunc,
     legendNumberFormatFunc
   ) => {
-    const geometryFunc = (item) => ({
-      type: 'Polygon',
-      coordinates: [item.path],
-    })
+    const geometryFunc = (item) => {
+      const path = item.path || []
+      const isNested =
+        Array.isArray(path[0]) &&
+        Array.isArray(path[0][0]) &&
+        typeof path[0][0][0] === 'number'
+      return {
+        type: 'Polygon',
+        coordinates: isNested ? path : [path],
+      }
+    }
     const modifiedIncludedGeoDataFunc = R.pipe(
       includedGeoDataFunc,
       R.values,

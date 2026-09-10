@@ -55,8 +55,18 @@ const DARKEN_FILL_ON_HOVER = [
 ]
 
 const getTypeFromFeature = (f) => {
+  if (!f || !f.properties) return null
+  if (f.properties._parsedType !== undefined) return f.properties._parsedType
+  if (f.properties.type) {
+    f.properties._parsedType = f.properties.type
+    return f.properties.type
+  }
+  const caveName = f.properties.cave_name
+  if (!caveName) return null
   try {
-    return JSON.parse(f.properties.cave_name)[0]
+    const parsed = JSON.parse(caveName)[0]
+    f.properties._parsedType = parsed
+    return parsed
   } catch (e) {
     return null
   }
@@ -137,7 +147,7 @@ const useMapFeature = () => {
 
 const MapboxLayer = memo(
   ({ id, type, data, layout = {}, paint = {}, beforeId }) => {
-    const { mapRef, mapLoaded } = useContext(MapContext)
+    const { mapRef } = useContext(MapContext)
 
     const dataRef = useRef(data)
     const layoutRef = useRef(layout)
@@ -153,35 +163,37 @@ const MapboxLayer = memo(
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
 
       const addLayer = () => {
-        if (!map.getSource(id)) {
-          map.addSource(id, {
-            type: 'geojson',
-            data: dataRef.current,
-            generateId: true,
-          })
-        }
-        if (!map.getLayer(id)) {
-          const safeBeforeId =
-            beforeId && map.getLayer(beforeId) ? beforeId : undefined
-          map.addLayer(
-            {
-              id,
-              type,
-              source: id,
-              layout: layoutRef.current,
-              paint: paintRef.current,
-            },
-            safeBeforeId
-          )
+        try {
+          if (!map.getSource(id)) {
+            map.addSource(id, {
+              type: 'geojson',
+              data: dataRef.current,
+              generateId: true,
+            })
+          }
+          if (!map.getLayer(id)) {
+            const safeBeforeId =
+              beforeId && map.getLayer(beforeId) ? beforeId : undefined
+            map.addLayer(
+              {
+                id,
+                type,
+                source: id,
+                layout: layoutRef.current,
+                paint: paintRef.current,
+              },
+              safeBeforeId
+            )
+          }
+        } catch (e) {
+          // Ignore
         }
       }
 
-      if (map.isStyleLoaded()) {
-        addLayer()
-      }
+      addLayer()
 
       const handleStyleData = () => {
         addLayer()
@@ -200,13 +212,13 @@ const MapboxLayer = memo(
           // Ignore
         }
       }
-    }, [id, type, mapRef, mapLoaded, beforeId])
+    }, [id, type, mapRef, beforeId])
 
     useEffect(() => {
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
       try {
         const source = map.getSource(id)
         if (source && typeof source.setData === 'function') {
@@ -215,13 +227,13 @@ const MapboxLayer = memo(
       } catch (e) {
         // Ignore
       }
-    }, [id, data, mapRef, mapLoaded])
+    }, [id, data, mapRef])
 
     useEffect(() => {
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
       try {
         if (map.getLayer(id)) {
           Object.keys(layout).forEach((key) => {
@@ -234,7 +246,7 @@ const MapboxLayer = memo(
       } catch (e) {
         // Ignore
       }
-    }, [id, layout, paint, mapRef, mapLoaded])
+    }, [id, layout, paint, mapRef])
 
     return null
   }
@@ -640,7 +652,7 @@ IncludedGeographyLayerInstance.propTypes = {
 }
 
 export const MapLayers = () => {
-  const { mapId, mapRef, mapLoaded } = useContext(MapContext)
+  const { mapId, mapRef } = useContext(MapContext)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState([])
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState([])
@@ -770,18 +782,20 @@ export const MapLayers = () => {
     const map = mapRef.current?.getMap
       ? mapRef.current.getMap()
       : mapRef.current
-    if (!map || !mapLoaded) return
+    if (!map) return
 
     const reorder = () => {
-      const customLayersOnMap = orderedLayerIds.filter((id) => map.getLayer(id))
-      for (let i = 0; i < customLayersOnMap.length - 1; i++) {
-        const currentId = customLayersOnMap[i]
-        const nextId = customLayersOnMap[i + 1]
-        try {
+      try {
+        const customLayersOnMap = orderedLayerIds.filter((id) =>
+          map.getLayer(id)
+        )
+        for (let i = 0; i < customLayersOnMap.length - 1; i++) {
+          const currentId = customLayersOnMap[i]
+          const nextId = customLayersOnMap[i + 1]
           map.moveLayer(currentId, nextId)
-        } catch (e) {
-          // Ignore
         }
+      } catch (e) {
+        // Ignore
       }
     }
 
@@ -790,7 +804,7 @@ export const MapLayers = () => {
     return () => {
       map.off('styledata', reorder)
     }
-  }, [orderedLayerIds, mapRef, mapLoaded])
+  }, [orderedLayerIds, mapRef])
 
   const safeLoadedGeoJson = Array.isArray(loadedGeoJson) ? loadedGeoJson : []
   const safeLineGeoJsonObject = Array.isArray(lineGeoJsonObject)

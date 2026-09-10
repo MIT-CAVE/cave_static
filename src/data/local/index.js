@@ -6,7 +6,68 @@ import globalOutputsReducer from './globalOutputsSlice'
 import mapReducer from './mapSlice'
 import settingsReducer, { initialState } from './settingsSlice'
 
-import { sendCommand } from '../data'
+import { sendCommand, mutateData, overwriteData } from '../data'
+
+const reconcileLocalState = (localState, serverData) => {
+  if (!localState || !serverData) return localState
+
+  let nextState = localState
+
+  // 1. Reconcile current page against server pages or appBar
+  if (nextState.pages?.currentPage) {
+    const serverPages = serverData.pages?.data || serverData.appBar?.data
+    if (serverPages && Object.keys(serverPages).length > 0) {
+      if (!serverPages[nextState.pages.currentPage]) {
+        nextState = R.dissocPath(['pages', 'currentPage'], nextState)
+      }
+    }
+  }
+
+  // 2. Reconcile maps (stale map controls / viewports)
+  if (nextState.maps?.data && serverData.maps?.data) {
+    const validMaps = serverData.maps.data
+    const localMapIds = Object.keys(nextState.maps.data)
+    for (let i = 0; i < localMapIds.length; i++) {
+      const mapId = localMapIds[i]
+      if (!validMaps[mapId]) {
+        nextState = R.dissocPath(['maps', 'data', mapId], nextState)
+      }
+    }
+  }
+
+  // 3. Reconcile panes
+  if (nextState.panes?.paneState && serverData.panes?.data) {
+    const validPanes = serverData.panes.data
+    const leftOpen = nextState.panes.paneState.left?.open
+    if (leftOpen && !validPanes[leftOpen]) {
+      nextState = R.dissocPath(
+        ['panes', 'paneState', 'left', 'open'],
+        nextState
+      )
+    }
+    const rightOpen = nextState.panes.paneState.right?.open
+    if (rightOpen && !validPanes[rightOpen]) {
+      nextState = R.dissocPath(
+        ['panes', 'paneState', 'right', 'open'],
+        nextState
+      )
+    }
+  }
+
+  // 4. Reconcile draggables
+  if (nextState.draggables?.data && serverData.draggables?.data) {
+    const validDraggables = serverData.draggables.data
+    const localDraggableIds = Object.keys(nextState.draggables.data)
+    for (let i = 0; i < localDraggableIds.length; i++) {
+      const dragId = localDraggableIds[i]
+      if (!validDraggables[dragId]) {
+        nextState = R.dissocPath(['draggables', 'data', dragId], nextState)
+      }
+    }
+  }
+
+  return nextState
+}
 
 const localSlice = createSlice({
   name: 'local',
@@ -66,6 +127,14 @@ const localSlice = createSlice({
         })(paths)
       })(action.payload.desyncedPaths)
       return { settings: initialState, ...state }
+    })
+    builder.addCase(overwriteData.fulfilled, (state, action) => {
+      if (action.payload?.noOperation) return state
+      return reconcileLocalState(state, action.payload?.data)
+    })
+    builder.addCase(mutateData.fulfilled, (state, action) => {
+      if (action.payload?.noOperation) return state
+      return reconcileLocalState(state, action.payload?.data)
     })
   },
 })

@@ -275,12 +275,19 @@ const EchartsPlot = ({
     ]
   )(yValues)
 
-  const yMax = R.pipe(
-    R.pluck('data'),
-    R.flatten,
-    R.filter(R.isNotNil),
-    R.apply(Math.max)
-  )(series)
+  let yMax = 0
+  for (let s = 0; s < series.length; s++) {
+    const sData = series[s]?.data
+    if (Array.isArray(sData)) {
+      for (let i = 0; i < sData.length; i++) {
+        const item = sData[i]
+        const val = Array.isArray(item) ? item[1] : item
+        if (typeof val === 'number' && !isNaN(val) && val > yMax) {
+          yMax = val
+        }
+      }
+    }
+  }
 
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)

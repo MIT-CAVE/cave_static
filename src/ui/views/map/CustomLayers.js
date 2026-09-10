@@ -523,7 +523,8 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         holes.forEach(createSideFaces)
 
         const rawColor = R.pathOr('#000', ['properties', 'color'], geo)
-        const color = colord(rawColor).toHex()
+        const colorObj = colord(rawColor)
+        const color = colorObj.toHex()
 
         const sideGeometry = new THREE.BufferGeometry()
         const sideVerticesFloat32Array = new Float32Array(sideVertices)
@@ -533,7 +534,7 @@ export const GeosWithHeight = memo(({ id, geos, onClick = () => {} }) => {
         )
         sideGeometry.setIndex(sideTriangles)
 
-        const opacity = color.alpha()
+        const opacity = colorObj.alpha()
         const meshOptions = {
           color,
           side: THREE.DoubleSide,
