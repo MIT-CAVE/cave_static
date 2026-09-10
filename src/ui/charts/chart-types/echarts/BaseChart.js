@@ -25,6 +25,7 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
+import { memo } from 'react'
 
 import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
@@ -145,43 +146,46 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({
-  options,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-  syncAxes,
-  onSyncAxesChange,
-  numBuckets,
-  onNumBucketsChange,
-  ...restProps
-}) => {
-  return (
-    <>
-      <FlexibleContainer>
-        <ReactEChartsCore
-          echarts={echarts}
-          option={R.mergeDeepRight(
-            R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-          )(options)}
-          notMerge
-          theme="dark"
-          {...restProps}
+const FlexibleChart = memo(
+  ({
+    options,
+    chartHoverOrder,
+    path,
+    xAxisOrder,
+    syncAxes,
+    onSyncAxesChange,
+    numBuckets,
+    onNumBucketsChange,
+    ...restProps
+  }) => {
+    return (
+      <>
+        <FlexibleContainer>
+          <ReactEChartsCore
+            echarts={echarts}
+            option={R.mergeDeepRight(
+              R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
+            )(options)}
+            notMerge
+            theme="dark"
+            {...restProps}
+          />
+        </FlexibleContainer>
+        <ChartControls
+          {...{
+            path,
+            xAxisOrder,
+            syncAxes,
+            onSyncAxesChange,
+            numBuckets,
+            onNumBucketsChange,
+          }}
         />
-      </FlexibleContainer>
-      <ChartControls
-        {...{
-          path,
-          xAxisOrder,
-          syncAxes,
-          onSyncAxesChange,
-          numBuckets,
-          onNumBucketsChange,
-        }}
-      />
-    </>
-  )
-}
+      </>
+    )
+  }
+)
+FlexibleChart.displayName = 'FlexibleChart'
 
 const EchartsPlot = ({
   data,
@@ -408,5 +412,5 @@ const EchartsPlot = ({
   )
 }
 
-export default EchartsPlot
+export default memo(EchartsPlot)
 export { FlexibleChart }

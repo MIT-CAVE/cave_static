@@ -1,6 +1,6 @@
 import { Box, CircularProgress, Stack } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect, useState, useMemo } from 'react'
+import { memo, useCallback, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
@@ -52,7 +52,10 @@ const DashboardChart = ({ chartObj, path }) => {
   const categories = useSelector(selectSlimStatGroupings)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
-  const cleanedChartObj = cleanUndefinedStats(chartObj)
+  const cleanedChartObj = useMemo(
+    () => cleanUndefinedStats(chartObj),
+    [chartObj]
+  )
 
   const chartType = R.propOr(chartVariant.BAR, 'chartType', cleanedChartObj)
   const distributionType = R.propOr(
@@ -127,143 +130,184 @@ const DashboardChart = ({ chartObj, path }) => {
     return () => clearTimeout(workerRunner)
   }, [cleanedChartObj, memoizedChartFunc])
 
-  const groupingRange = R.pipe(
-    R.prop('groupingId'),
-    R.length,
-    R.range(0),
-    R.reverse
-  )(cleanedChartObj)
+  const groupingRange = useMemo(
+    () =>
+      R.pipe(
+        R.prop('groupingId'),
+        R.length,
+        R.range(0),
+        R.reverse
+      )(cleanedChartObj),
+    [cleanedChartObj]
+  )
 
-  const xAxisTitle = cleanedChartObj.groupingId
-    ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
-        cleanedChartObj.groupingLevel &&
-        R.pathOr('', ['groupingLevel', 0], cleanedChartObj)
+  const xAxisTitle = useMemo(
+    () =>
+      cleanedChartObj.groupingId
+        ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
+            cleanedChartObj.groupingLevel &&
+            R.pathOr('', ['groupingLevel', 0], cleanedChartObj)
+              ? ` \u279D ${getSubLabelFn(
+                  categories,
+                  R.path(['groupingId', 0], cleanedChartObj),
+                  R.path(['groupingLevel', 0], cleanedChartObj),
+                  cleanedChartObj
+                )}`
+              : ''
+          }`
+        : '',
+    [categories, cleanedChartObj]
+  )
+
+  const getYAxisTitle = useCallback(
+    (statIdx) => {
+      // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
+      const statDataset = cleanedChartObj.dataset
+      const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
+      const statId = R.propOr('', 'statId', statObject)
+      const statIdLabel = getGroupLabelFn(statisticTypes, [statDataset, statId])
+      const statUnit =
+        R.pathOr({}, [statDataset, statId], statisticTypes).unit ||
+        numberFormatDefault.unit
+
+      const statDivisorId = R.propOr('', 'statIdDivisor', statObject)
+      const statDivisorIdLabel = getGroupLabelFn(statisticTypes, [
+        statDataset,
+        statDivisorId,
+      ])
+      const statDivisorUnit =
+        statisticTypes[statDataset]?.[statDivisorId]?.unit ||
+        numberFormatDefault.unit
+
+      const statAggregation = R.propOr('', 'aggregationType', statObject)
+      const statAggregationGroupingId = R.propOr(
+        '',
+        'aggregationGroupingId',
+        statObject
+      )
+      const statAggregationGroupingLevel = R.propOr(
+        '',
+        'aggregationGroupingLevel',
+        statObject
+      )
+      const statAggregationGroupingLabel = getLabelFn(
+        categories,
+        statAggregationGroupingId
+      )
+      const statAggregationGroupingSubLabel = getSubLabelFn(
+        categories,
+        statAggregationGroupingId,
+        statAggregationGroupingLevel
+      )
+
+      var yAxisTitle = ''
+
+      // TODO: Consider adding sum back in for consistency...
+      if (
+        statAggregation !== 'divisor' &&
+        statAggregation !== '' &&
+        statAggregation !== 'sum'
+      ) {
+        yAxisTitle += `${statAggregation.toUpperCase()} of `
+      }
+      // If the statAggregation is a divisor, add the statId and the divisor name to
+      if (statAggregation === 'divisor') {
+        yAxisTitle += `${statIdLabel} / ${statDivisorIdLabel}`
+        // If stat unit does not equal the divisor units, add the units to the yAxisTitle
+        if (statUnit !== statDivisorUnit) {
+          yAxisTitle += statUnit
+            ? `/n[${statUnit} ${statDivisorUnit ? `/ ${statDivisorUnit} ]` : ']'}`
+            : ''
+        }
+      } else {
+        yAxisTitle += statIdLabel
+        yAxisTitle += statUnit ? ` [${statUnit}]` : ''
+      }
+      yAxisTitle += statAggregationGroupingId
+        ? `\nGrouped By ${statAggregationGroupingLabel} \u279D ${statAggregationGroupingSubLabel}`
+        : ''
+
+      return yAxisTitle
+    },
+    [categories, cleanedChartObj, numberFormatDefault.unit, statisticTypes]
+  )
+
+  const yAxisTitle = useMemo(() => getYAxisTitle(0), [getYAxisTitle])
+
+  const labels = useMemo(
+    () => ({ xAxisTitle, yAxisTitle }),
+    [xAxisTitle, yAxisTitle]
+  )
+
+  const statPaths = useMemo(
+    () =>
+      R.pipe(
+        R.propOr([], 'stats'),
+        R.map((stat) => [cleanedChartObj.dataset, stat.statId])
+      )(cleanedChartObj),
+    [cleanedChartObj]
+  )
+
+  const labelProps = useMemo(() => {
+    const multiStatLabelProps = R.map((idx) => {
+      return {
+        type: 'number',
+        key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
+        label: getYAxisTitle(idx),
+      }
+    })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
+
+    const getGroupingLabel = (n) =>
+      `${getLabelFn(categories)(R.path(['groupingId', n], cleanedChartObj))}${
+        R.path(['groupingLevel', n], cleanedChartObj)
           ? ` \u279D ${getSubLabelFn(
               categories,
-              R.path(['groupingId', 0], cleanedChartObj),
-              R.path(['groupingLevel', 0], cleanedChartObj),
-              cleanedChartObj
+              R.path(['groupingId', n], cleanedChartObj),
+              R.path(['groupingLevel', n], cleanedChartObj)
             )}`
           : ''
       }`
-    : ''
 
-  const getYAxisTitle = (statIdx) => {
-    // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
-    const statDataset = cleanedChartObj.dataset
-    const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
-    const statId = R.propOr('', 'statId', statObject)
-    const statIdLabel = getGroupLabelFn(statisticTypes, [statDataset, statId])
-    const statUnit =
-      R.pathOr({}, [statDataset, statId], statisticTypes).unit ||
-      numberFormatDefault.unit
+    return R.reduce(
+      (acc, value) =>
+        R.prepend(
+          {
+            type: 'string',
+            key: `grouping${value}`,
+            label: getGroupingLabel(value),
+          },
+          acc
+        ),
+      multiStatLabelProps
+    )(groupingRange)
+  }, [categories, cleanedChartObj, getYAxisTitle, groupingRange])
 
-    const statDivisorId = R.propOr('', 'statIdDivisor', statObject)
-    const statDivisorIdLabel = getGroupLabelFn(statisticTypes, [
-      statDataset,
-      statDivisorId,
-    ])
-    const statDivisorUnit =
-      statisticTypes[statDataset]?.[statDivisorId]?.unit ||
-      numberFormatDefault.unit
-
-    const statAggregation = R.propOr('', 'aggregationType', statObject)
-    const statAggregationGroupingId = R.propOr(
-      '',
-      'aggregationGroupingId',
-      statObject
+  const numberFormats = useMemo(() => {
+    const getNumberFormat = R.pipe(
+      numberFormatPropsFn,
+      // `unit`s are excluded as they will be represented
+      // as part of the axis labels or column headers.
+      R.omit(['unit', 'unitPlacement'])
     )
-    const statAggregationGroupingLevel = R.propOr(
-      '',
-      'aggregationGroupingLevel',
-      statObject
-    )
-    const statAggregationGroupingLabel = getLabelFn(
-      categories,
-      statAggregationGroupingId
-    )
-    const statAggregationGroupingSubLabel = getSubLabelFn(
-      categories,
-      statAggregationGroupingId,
-      statAggregationGroupingLevel
-    )
+    return R.reduce(
+      (acc, [dataset, statId]) =>
+        R.assoc(
+          statId,
+          getNumberFormat(
+            R.pathOr({}, [dataset, statId], statisticTypes), // current stat
+            statId
+          )
+        )(acc),
+      {}
+    )(statPaths)
+  }, [numberFormatPropsFn, statPaths, statisticTypes])
 
-    var yAxisTitle = ''
-
-    // TODO: Consider adding sum back in for consistency...
-    if (
-      statAggregation !== 'divisor' &&
-      statAggregation !== '' &&
-      statAggregation !== 'sum'
-    ) {
-      yAxisTitle += `${statAggregation.toUpperCase()} of `
-    }
-    // If the statAggregation is a divisor, add the statId and the divisor name to
-    if (statAggregation === 'divisor') {
-      yAxisTitle += `${statIdLabel} / ${statDivisorIdLabel}`
-      // If stat unit does not equal the divisor units, add the units to the yAxisTitle
-      if (statUnit !== statDivisorUnit) {
-        yAxisTitle += statUnit
-          ? `/n[${statUnit} ${statDivisorUnit ? `/ ${statDivisorUnit} ]` : ']'}`
-          : ''
-      }
-    } else {
-      yAxisTitle += statIdLabel
-      yAxisTitle += statUnit ? ` [${statUnit}]` : ''
-    }
-    yAxisTitle += statAggregationGroupingId
-      ? `\nGrouped By ${statAggregationGroupingLabel} \u279D ${statAggregationGroupingSubLabel}`
-      : ''
-
-    return yAxisTitle
-  }
-
-  const yAxisTitle = getYAxisTitle(0)
-
-  const labels = { xAxisTitle, yAxisTitle }
-
-  const statPaths = R.pipe(
-    R.propOr([], 'stats'),
-    R.map((stat) => [cleanedChartObj.dataset, stat.statId])
-  )(cleanedChartObj)
-
-  const multiStatLabelProps = R.map((idx) => {
-    return {
-      type: 'number',
-      key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
-      label: getYAxisTitle(idx),
-    }
-  })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
-
-  const getGroupingLabel = (n) =>
-    `${getLabelFn(categories)(R.path(['groupingId', n], cleanedChartObj))}${
-      R.path(['groupingLevel', n], cleanedChartObj)
-        ? ` \u279D ${getSubLabelFn(
-            categories,
-            R.path(['groupingId', n], cleanedChartObj),
-            R.path(['groupingLevel', n], cleanedChartObj)
-          )}`
-        : ''
-    }`
-
-  const labelProps = R.reduce(
-    (acc, value) =>
-      R.prepend(
-        {
-          type: 'string',
-          key: `grouping${value}`,
-          label: getGroupingLabel(value),
-        },
-        acc
-      ),
-    multiStatLabelProps
-  )(groupingRange)
-
-  const getNumberFormat = R.pipe(
-    numberFormatPropsFn,
-    // `unit`s are excluded as they will be represented
-    // as part of the axis labels or column headers.
-    R.omit(['unit', 'unitPlacement'])
+  const numberFormat = useMemo(
+    () =>
+      R.keys(numberFormats).length > 1
+        ? numberFormats
+        : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? ''),
+    [cleanedChartObj.stats, numberFormats]
   )
 
   if (R.isEmpty(statisticTypes) || loading) {
@@ -291,23 +335,6 @@ const DashboardChart = ({ chartObj, path }) => {
       </Stack>
     )
   }
-
-  const numberFormats = R.reduce(
-    (acc, [dataset, statId]) =>
-      R.assoc(
-        statId,
-        getNumberFormat(
-          R.pathOr({}, [dataset, statId], statisticTypes), // current stat
-          statId
-        )
-      )(acc),
-    {}
-  )(statPaths)
-
-  const numberFormat =
-    R.keys(numberFormats).length > 1
-      ? numberFormats
-      : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? '')
 
   return (
     <Box

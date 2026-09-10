@@ -49,17 +49,20 @@ const useMapApi = (mapId) => {
     )
   }, [currentMapStyleId, mapStyleOption?.light, mapStyleOption?.name])
 
-  return {
-    mapStyle,
-    mapStyleOption,
-    isDarkStyle,
-    isMapboxSelected,
-    ReactMapGl: isMapboxSelected ? ReactMapboxGL : ReactMapLibreGL,
-    NavigationControl: isMapboxSelected ? MapboxNavCtrl : MapLibreNavCtrl,
-    Marker: isMapboxSelected ? MapboxMarker : MapLibreMarker,
-    Source: isMapboxSelected ? MapboxSource : MapLibreSource,
-    Layer: isMapboxSelected ? MapboxLayer : MapLibreLayer,
-  }
+  return useMemo(
+    () => ({
+      mapStyle,
+      mapStyleOption,
+      isDarkStyle,
+      isMapboxSelected,
+      ReactMapGl: isMapboxSelected ? ReactMapboxGL : ReactMapLibreGL,
+      NavigationControl: isMapboxSelected ? MapboxNavCtrl : MapLibreNavCtrl,
+      Marker: isMapboxSelected ? MapboxMarker : MapLibreMarker,
+      Source: isMapboxSelected ? MapboxSource : MapLibreSource,
+      Layer: isMapboxSelected ? MapboxLayer : MapLibreLayer,
+    }),
+    [isDarkStyle, isMapboxSelected, mapStyle, mapStyleOption]
+  )
 }
 
 export default useMapApi

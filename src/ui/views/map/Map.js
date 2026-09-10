@@ -390,6 +390,11 @@ const Map = ({ mapId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const contextValue = useMemo(
+    () => ({ mapId, mapRef, containerRef, mapLoaded }),
+    [mapId, mapLoaded]
+  )
+
   return (
     <Box
       sx={{
@@ -398,7 +403,7 @@ const Map = ({ mapId }) => {
         flex: '1 1 auto',
       }}
     >
-      <MapContext.Provider value={{ mapId, mapRef, containerRef, mapLoaded }}>
+      <MapContext.Provider value={contextValue}>
         {draggable.open && <MapNameDraggable {...{ mapId }} />}
         <MapControls {...{ mapId }} />
         <ReactMapGl
