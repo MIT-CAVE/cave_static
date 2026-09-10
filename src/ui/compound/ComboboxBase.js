@@ -1,13 +1,24 @@
 import {
   Autocomplete,
+  Box,
+  Button,
   Chip,
   IconButton,
+  Popover,
   Stack,
   TextField,
+  Typography,
   autocompleteClasses,
 } from '@mui/material'
 import * as R from 'ramda'
-import { useState, useEffect, useCallback, Children, cloneElement } from 'react'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  Children,
+  cloneElement,
+} from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
 import { GiEmptyChessboard } from 'react-icons/gi'
 import { IoSquareSharp } from 'react-icons/io5'
@@ -30,6 +41,20 @@ const styles = {
       opacity: 0.7,
     },
   }),
+  moreChip: {
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: '0.75rem',
+    bgcolor: 'action.selected',
+    '&:hover': {
+      bgcolor: 'action.focus',
+    },
+  },
+  popoverPaper: {
+    mt: 0.5,
+    borderRadius: 1.5,
+    boxShadow: 4,
+  },
 }
 
 const ComboboxBase = ({
@@ -53,6 +78,8 @@ const ComboboxBase = ({
 }) => {
   const [value, setValue] = useState(defaultValue ?? (multiple ? [] : ''))
   const [justFocused, setJustFocused] = useState(false)
+  const [anchorEl, setAnchorEl] = useState(null)
+  const containerRef = useRef(null)
   const valueName = multiple ? '' : getOptionLabel(value)
   const [valueText, setValueText] = useState(valueName)
   const dispatch = useDispatch()
@@ -264,10 +291,47 @@ const ComboboxBase = ({
     ]
   )
 
-  const renderValue = useCallback(
-    (value, getItemProps) =>
-      value.map((option, index) => {
-        const itemProps = getItemProps({ index })
+  const effectiveLimit = multiple ? Number(limitTags ?? 1) : undefined
+
+  const renderMoreChip = useCallback(
+    (moreCount) => (
+      <Chip
+        key="more-tags"
+        size="small"
+        clickable
+        label={`+${moreCount} more`}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          setAnchorEl(containerRef.current || event.currentTarget)
+        }}
+        onMouseDown={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }}
+        sx={styles.moreChip}
+      />
+    ),
+    []
+  )
+
+  const getLimitTagsText = useCallback(
+    (more) => renderMoreChip(more),
+    [renderMoreChip]
+  )
+
+  const renderTags = useCallback(
+    (tagValue, getTagProps, ownerState) => {
+      const isFocused = ownerState?.focused
+      const shouldSlice =
+        isFocused && effectiveLimit != null && tagValue.length > effectiveLimit
+      const visibleTags = shouldSlice
+        ? tagValue.slice(0, effectiveLimit)
+        : tagValue
+      const moreCount = tagValue.length - effectiveLimit
+
+      const chips = visibleTags.map((option, index) => {
+        const itemProps = getTagProps({ index })
         const opt = indexedOptions[option]
         const { activeIcon, activeSize, activeName, activeColor } =
           getActiveAttrs(opt)
@@ -275,6 +339,7 @@ const ComboboxBase = ({
         return (
           <Chip
             key={option}
+            size="small"
             {...(activeIcon && {
               icon: (
                 <FetchedIcon
@@ -284,13 +349,20 @@ const ComboboxBase = ({
                 />
               ),
             })}
-            label={activeName}
+            label={activeName ?? option}
             sx={styles.getChip({ activeColor, contrastText })}
             {...R.dissoc('key')(itemProps)}
           />
         )
-      }),
-    [getActiveAttrs, indexedOptions]
+      })
+
+      if (shouldSlice && moreCount > 0) {
+        chips.push(renderMoreChip(moreCount))
+      }
+
+      return chips
+    },
+    [effectiveLimit, getActiveAttrs, indexedOptions, renderMoreChip]
   )
 
   const handleInputChange = useCallback(
@@ -314,33 +386,129 @@ const ComboboxBase = ({
   )
 
   return (
-    <Autocomplete
-      disablePortal
-      // Prevents issues when the clear button is clicked and
-      // `valueText` is temporarily `null` (since `setValueText`
-      // is async and hasn't updated yet)
-      inputValue={valueText ?? ''}
-      {...{
-        disabled,
-        multiple,
-        options,
-        value,
-        limitTags,
-        fullWidth,
-        sx,
-        getOptionLabel,
-        renderOption,
-        renderInput,
-        ...(multiple && { renderValue }), // `ComboboxMulti` only, for now
-      }}
-      onInputChange={handleInputChange}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    />
+    <Box
+      ref={containerRef}
+      sx={[fullWidth && { width: '100%' }, { position: 'relative' }]}
+    >
+      <Autocomplete
+        disablePortal
+        // Prevents issues when the clear button is clicked and
+        // `valueText` is temporarily `null` (since `setValueText`
+        // is async and hasn't updated yet)
+        inputValue={valueText ?? ''}
+        {...{
+          disabled,
+          multiple,
+          options,
+          value,
+          limitTags: effectiveLimit,
+          fullWidth,
+          sx,
+          getOptionLabel,
+          renderOption,
+          renderInput,
+          ...(multiple && {
+            renderTags,
+            getLimitTagsText,
+          }),
+        }}
+        onInputChange={handleInputChange}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      />
+      {multiple && (
+        <Popover
+          open={Boolean(anchorEl) && Boolean(value?.length)}
+          anchorEl={anchorEl}
+          onClose={() => setAnchorEl(null)}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'left',
+          }}
+          slotProps={{
+            paper: {
+              sx: styles.popoverPaper,
+            },
+          }}
+        >
+          <Stack spacing={1} sx={{ p: 1.5, minWidth: 260, maxWidth: 360 }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                {`Selected (${value?.length ?? 0})`}
+              </Typography>
+              {!(disabled || readOnly) && (
+                <Button
+                  size="small"
+                  color="primary"
+                  onClick={() => {
+                    handleChange(null, [])
+                    setAnchorEl(null)
+                  }}
+                  sx={{ py: 0, px: 1, minWidth: 'auto', fontSize: '0.75rem' }}
+                >
+                  Clear all
+                </Button>
+              )}
+            </Stack>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 0.75,
+                maxHeight: 220,
+                overflowY: 'auto',
+                pt: 0.5,
+              }}
+            >
+              {value?.map((option) => {
+                const opt = indexedOptions[option]
+                const { activeIcon, activeSize, activeName, activeColor } =
+                  getActiveAttrs(opt)
+                const contrastText = getContrastText(activeColor)
+                return (
+                  <Chip
+                    key={option}
+                    size="small"
+                    label={activeName ?? option}
+                    {...(activeIcon && {
+                      icon: (
+                        <FetchedIcon
+                          iconName={activeIcon}
+                          color={contrastText}
+                          size={activeSize ?? DEFAULT_SIZE}
+                        />
+                      ),
+                    })}
+                    sx={styles.getChip({ activeColor, contrastText })}
+                    {...(!(disabled || readOnly) && {
+                      onDelete: () => {
+                        const newVal = R.without([option], value)
+                        handleChange(null, newVal)
+                        if (newVal.length <= (effectiveLimit ?? 1)) {
+                          setAnchorEl(null)
+                        }
+                      },
+                    })}
+                  />
+                )
+              })}
+            </Box>
+          </Stack>
+        </Popover>
+      )}
+    </Box>
   )
 }
 

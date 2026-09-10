@@ -40,6 +40,7 @@ export const propVariant = {
   COMBOBOX: 'combobox',
   COMBOBOX_MULTI: 'comboboxMulti',
   DROPDOWN: 'dropdown',
+  DUAL_LIST: 'dualList',
   FIELD: 'field',
   HCHECKBOX: 'hcheckbox',
   HRADIO: 'hradio',

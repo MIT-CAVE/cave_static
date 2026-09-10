@@ -2,23 +2,22 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useMemo } from 'react'
 
-import ComboboxMultiBase from './ComboboxMultiBase'
+import DualListBase from './DualListBase'
 
 import { forceArray, getOrDefault, withIndex } from '../../utils'
 
-const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
+const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
   const {
     enabled,
     options,
-    placeholder,
-    numVisibleTags,
-    limitTags,
-    fullWidth,
+    availableTitle,
+    selectedTitle,
+    height,
+    fullWidth = true,
     propStyle,
     ...propAttrs
   } = prop
 
-  const effectiveLimitTags = numVisibleTags ?? limitTags ?? 1
   const optionsListRaw = withIndex(options)
   const optionsList = useMemo(
     () => R.pluck('id')(optionsListRaw),
@@ -66,14 +65,15 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
   )
 
   return (
-    <ComboboxMultiBase
+    <DualListBase
       disabled={!enabled}
       options={optionsList}
       value={currentVal ?? prop.value ?? []}
-      numVisibleTags={effectiveLimitTags}
       sx={[...forceArray(sx), propStyle]}
       {...{
-        placeholder,
+        availableTitle,
+        selectedTitle,
+        height,
         fullWidth,
         indexedOptions,
         getActiveAttrs,
@@ -83,7 +83,8 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
     />
   )
 }
-PropComboBoxMulti.propTypes = {
+
+PropDualList.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.array,
   sx: PropTypes.oneOfType([
@@ -96,4 +97,4 @@ PropComboBoxMulti.propTypes = {
   onChange: PropTypes.func,
 }
 
-export default PropComboBoxMulti
+export default PropDualList

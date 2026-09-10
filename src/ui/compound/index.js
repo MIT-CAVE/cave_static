@@ -14,6 +14,9 @@ export {
   PropToggleCheckbox,
   PropToggleSwitch,
 } from './PropToggle'
+export { default as ComboboxBase } from './ComboboxBase'
+export { default as ComboboxMultiBase } from './ComboboxMultiBase'
+export { default as DualListBase } from './DualListBase'
 export { default as ErrorBoundary } from './ErrorBoundary'
 export { default as FetchedIcon } from './FetchedIcon'
 export { default as HelpTooltip } from './HelpTooltip'
@@ -28,6 +31,7 @@ export { default as PropComboBox } from './PropComboBox'
 export { default as PropComboBoxMulti } from './PropComboBoxMulti'
 export { default as PropContainer } from './PropContainer'
 export { default as PropDropdown } from './PropDropdown'
+export { default as PropDualList } from './PropDualList'
 export { default as PropHCheckbox } from './PropHCheckbox'
 export { default as PropHRadio } from './PropHRadio'
 export { default as PropHStepper } from './PropHStepper'
