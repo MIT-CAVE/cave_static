@@ -2,7 +2,14 @@ import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
 
-import { MixedChart, Sunburst, Treemap, WaterfallChart } from '../../ui/charts'
+import {
+  BarPlot,
+  LinePlot,
+  MixedChart,
+  Sunburst,
+  Treemap,
+  WaterfallChart,
+} from '../../ui/charts'
 
 const mockStore = configureStore({
   reducer: {
@@ -138,6 +145,66 @@ export const MixedBarAndLineGrouping = {
         revenue: { precision: 0, unit: '$k' },
         margin: { precision: 1, unit: '%' },
       }}
+    />
+  ),
+}
+
+export const MultiGroupedBarPlot = {
+  render: () => (
+    <BarPlot
+      data={[
+        {
+          name: 'Red',
+          children: [
+            { name: 'Michigan ➝ USA', value: [175] },
+            { name: 'Massachusetts ➝ USA', value: [190] },
+            { name: 'Ontario ➝ Canada', value: [199] },
+            { name: 'Quebec ➝ Canada', value: [196] },
+          ],
+        },
+        {
+          name: 'Purple',
+          children: [
+            { name: 'Michigan ➝ USA', value: [60] },
+            { name: 'Massachusetts ➝ USA', value: [65] },
+            { name: 'Ontario ➝ Canada', value: [67] },
+            { name: 'Quebec ➝ Canada', value: [75] },
+          ],
+        },
+      ]}
+      xAxisTitle="Product Colors"
+      yAxisTitle="Sales (units)"
+      numberFormat={{ precision: 0, unit: 'units' }}
+    />
+  ),
+}
+
+export const MultiGroupedLineDivisorPlot = {
+  render: () => (
+    <LinePlot
+      data={[
+        {
+          name: 'Red',
+          children: [
+            { name: 'Michigan ➝ USA', value: [0.897] },
+            { name: 'Massachusetts ➝ USA', value: [0.913] },
+            { name: 'Ontario ➝ Canada', value: [0.926] },
+            { name: 'Quebec ➝ Canada', value: [0.942] },
+          ],
+        },
+        {
+          name: 'Purple',
+          children: [
+            { name: 'Michigan ➝ USA', value: [0.857] },
+            { name: 'Massachusetts ➝ USA', value: [0.833] },
+            { name: 'Ontario ➝ Canada', value: [1.0] },
+            { name: 'Quebec ➝ Canada', value: [0.843] },
+          ],
+        },
+      ]}
+      xAxisTitle="Product Colors"
+      yAxisTitle="Fulfillment Ratio (sales / demand)"
+      numberFormat={{ precision: 2 }}
     />
   ),
 }

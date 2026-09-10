@@ -59,6 +59,60 @@ export const getInverseScaleTransform =
           ? Math.log(scaledValue) / Math.log(scaleParams.base)
           : scaledValue
 
+const scaleCache = new Map()
+const MAX_SCALE_CACHE_SIZE = 1000
+
+/**
+ * Returns a configured scale function for the given domain and range,
+ * caching the instantiated d3 scale and parsed colors.
+ */
+export const getScaleFunction = (
+  domain,
+  range,
+  scale = scaleId.LINEAR,
+  scaleParams = {},
+  fallback = null
+) => {
+  const cacheKey = `${domain[0]},${domain[1]}|${range.join(',')}|${scale}|${scaleParams?.exponent || ''}|${scaleParams?.base || ''}|${fallback}`
+  let scaleFunc = scaleCache.get(cacheKey)
+  if (!scaleFunc) {
+    if (scaleCache.size >= MAX_SCALE_CACHE_SIZE) {
+      scaleCache.clear()
+    }
+    const scaleBuilder =
+      scale === scaleId.LINEAR
+        ? scaleLinear()
+        : scale === scaleId.STEP
+          ? scaleThreshold()
+          : scale === scaleId.LOG
+            ? scaleLog()
+            : scale === scaleId.POW
+              ? scalePow().exponent(
+                  scaleParams?.exponent ||
+                    getScaleParamDefaults(scaleParamId.EXPONENT)
+                )
+              : () => {
+                  throw new Error(`Invalid scale "${scale}"`)
+                }
+
+    // Parse range (when using colors) for CSS Color Module Level 4 compatibility
+    const parsedRange = range.map((rngValue) => {
+      if (typeof rngValue !== 'string') return rngValue
+      const color = colord(rngValue)
+      return color.isValid() ? color.toRgbString() : rngValue
+    })
+
+    const built = scaleBuilder
+      .domain(domain)
+      .range(parsedRange)
+      .unknown(fallback)
+
+    scaleFunc = scale === scaleId.STEP ? (v) => built(v) : built.clamp(true)
+    scaleCache.set(cacheKey, scaleFunc)
+  }
+  return scaleFunc
+}
+
 /**
  * Returns a scaled value based on the provided domain, range, and scale type.
  *
@@ -81,37 +135,13 @@ export const getScaledValue = R.curry(
     scaleParams = {},
     fallback = null
   ) => {
-    const scaleBuilder =
-      scale === scaleId.LINEAR
-        ? scaleLinear()
-        : scale === scaleId.STEP
-          ? scaleThreshold()
-          : scale === scaleId.LOG
-            ? scaleLog()
-            : scale === scaleId.POW
-              ? scalePow().exponent(
-                  scaleParams.exponent ||
-                    getScaleParamDefaults(scaleParamId.EXPONENT)
-                )
-              : () => {
-                  throw new Error(`Invalid scale "${scale}"`)
-                }
-
-    // Parse range (when using colors) for CSS Color Module Level 4 compatibility
-    const parsedRange = range.map((rngValue) => {
-      if (typeof rngValue !== 'string') return rngValue
-      const color = colord(rngValue)
-      return color.isValid() ? color.toRgbString() : rngValue
-    })
-
-    const scaleFunc = scaleBuilder
-      .domain(domain)
-      .range(parsedRange)
-      .unknown(fallback)
-    // Return the scaled value or the fallback
-    return scale === scaleId.STEP
-      ? scaleFunc(value)
-      : // Clamp for all scales except the step function
-        scaleFunc.clamp(true)(value)
+    const scaleFunc = getScaleFunction(
+      domain,
+      range,
+      scale,
+      scaleParams,
+      fallback
+    )
+    return scaleFunc(value)
   }
 )

@@ -63,27 +63,18 @@ const getTypeFromFeature = (f) => {
 }
 
 const useTypeFilteredFeatures = (features, type) => {
-  const ref = useRef([])
-  const filtered = useMemo(() => {
+  return useMemo(() => {
     const safeFeatures = Array.isArray(features) ? features : []
-    const nextFiltered = safeFeatures.filter(
-      (f) => getTypeFromFeature(f) === type
-    )
-    if (R.equals(ref.current, nextFiltered)) {
-      return ref.current
-    }
-    ref.current = nextFiltered
-    return nextFiltered
+    return safeFeatures.filter((f) => getTypeFromFeature(f) === type)
   }, [features, type])
-  return filtered
 }
 
 const useTypeFilteredGeoJson = (selectGeoJsonFunc, mapId, type) => {
-  return useSelector((state) => {
-    const allGeoJson = selectGeoJsonFunc(state)(mapId)
+  const allGeoJson = useSelector((state) => selectGeoJsonFunc(state)(mapId))
+  return useMemo(() => {
     const safeFeatures = Array.isArray(allGeoJson) ? allGeoJson : []
     return safeFeatures.filter((f) => getTypeFromFeature(f) === type)
-  }, R.equals)
+  }, [allGeoJson, type])
 }
 
 const useMapFeature = () => {

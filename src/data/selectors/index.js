@@ -47,7 +47,6 @@ import {
   maxSizedMemoization,
   orderEntireDict,
   addValuesToProps,
-  recursiveBubbleMap,
   filterGroupedOutputs,
   adjustArcPath,
   constructFetchedGeoJson,
@@ -1800,42 +1799,57 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
             : statGroup
         })(statObjs)
         return Promise.all(calculatedStats).then((resolvedStats) => {
+          // Convert integer keys in worker output to string names from intToGroup
+          const mapKeysToIntToGroup = (tree) => {
+            if (typeof tree !== 'object' || tree === null) return tree
+            const newTree = {}
+            for (const key of Object.keys(tree)) {
+              const newKey = key
+                .split(' \u279D ')
+                .map((item) => intToGroup[item] ?? item)
+                .join(' \u279D ')
+              newTree[newKey] = mapKeysToIntToGroup(tree[key])
+            }
+            return newTree
+          }
+
+          // Aggregate / merge values at the lowest level of the tree
+          const isBoxPlot = obj.chartType === chartVariant.BOX_PLOT
+          const mergeStatTree = (tree, aggrType) => {
+            if (typeof tree !== 'object' || tree === null) return tree
+            const values = Object.values(tree)
+            if (values.length === 0) return tree
+            const isLowest = typeof values[0] === 'number'
+            if (isLowest) {
+              if (isBoxPlot) return values
+              const numValues = values.filter(
+                (v) => typeof v === 'number' && !isNaN(v)
+              )
+              if (numValues.length === 0) return 0
+              const aggrFn = mergeFuncs[aggrType] || R.identity
+              return aggrFn(numValues)
+            }
+            const newTree = {}
+            for (const key of Object.keys(tree)) {
+              newTree[key] = mergeStatTree(tree[key], aggrType)
+            }
+            return newTree
+          }
+
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-          const mergedValues = R.addIndex(R.map)(
-            (val, idx) =>
-              recursiveBubbleMap(
-                R.pipe(R.values, R.head, R.is(Object), R.not),
-                R.pipe(
-                  R.values,
-                  R.filter(R.is(Number)),
-                  obj.chartType !== chartVariant.BOX_PLOT
-                    ? R.unless(
-                        R.isEmpty,
-                        mergeFuncs[statObjs[idx].aggregationType]
-                      )
-                    : R.identity
-                ),
-                (d) => {
-                  if (R.type(d) === 'Object') {
-                    for (const key in d) {
-                      const newKey = key
-                        .split(' \u279D ')
-                        .map((item) => intToGroup[item])
-                        .join(' \u279D ')
-                      if (newKey !== key) {
-                        delete Object.assign(d, { [newKey]: d[key] })[key]
-                      }
-                    }
-                  }
-                  return d
-                },
-                R.filter(R.isNotEmpty),
-                val
-              ),
-            resolvedStats
-          )
-          // console.log('mergedValues', mergedValues)
+          const mergedValues = R.addIndex(R.map)((statResult, idx) => {
+            const statObj = statObjs[idx]
+            if (Array.isArray(statResult)) {
+              return statResult.map((group) => {
+                const namedGroup = mapKeysToIntToGroup(group)
+                return mergeStatTree(namedGroup, statObj.aggregationType)
+              })
+            }
+            const namedGroup = mapKeysToIntToGroup(statResult)
+            return mergeStatTree(namedGroup, statObj.aggregationType)
+          })(resolvedStats)
+
           const dividedValues = R.map(
             R.when(R.is(Array), (arr) =>
               R.mergeDeepWith(R.divide, arr[0], arr[1])

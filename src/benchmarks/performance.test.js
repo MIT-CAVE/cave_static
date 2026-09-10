@@ -55,63 +55,47 @@ describe('Performance Benchmarks & Profiling Suite', () => {
       i % 5 === 0 ? `cat_${i % 10}` : Math.random() * 1000
     )
 
-    const ramdaSum = measure('Ramda getSum', () => getSum(randomNumbers), 5)
-    const ramdaMean = measure('Ramda getMean', () => getMean(randomNumbers), 5)
-    const ramdaMax = measure('Ramda getMax', () => getMax(mixedValues), 3)
+    const legacyRamdaSum = (arr) => R.sum(R.filter(R.is(Number), arr))
+    const legacyRamdaMean = (arr) => R.mean(R.filter(R.is(Number), arr))
+    const legacyRamdaMax = (arr) =>
+      R.pipe(
+        R.groupBy(R.type),
+        R.cond([
+          [
+            R.pipe(R.prop('Number'), R.length, R.flip(R.gt)(0)),
+            R.pipe(R.prop('Number'), R.reduce(R.max, -Infinity)),
+          ],
+          [
+            R.pipe(R.prop('String'), R.length, R.flip(R.gt)(0)),
+            R.pipe(R.prop('String'), R.reduce(R.max, '')),
+          ],
+          [R.T, R.always(NaN)],
+        ])
+      )(arr)
 
-    const nativeSumFn = (arr) => {
-      let sum = 0
-      let count = 0
-      for (let i = 0; i < arr.length; i++) {
-        const v = arr[i]
-        if (typeof v === 'number' && !isNaN(v)) {
-          sum += v
-          count++
-        }
-      }
-      return count === 0 ? NaN : sum
-    }
+    const ramdaSum = measure(
+      'Legacy Ramda getSum',
+      () => legacyRamdaSum(randomNumbers),
+      3
+    )
+    const ramdaMean = measure(
+      'Legacy Ramda getMean',
+      () => legacyRamdaMean(randomNumbers),
+      3
+    )
+    const ramdaMax = measure(
+      'Legacy Ramda getMax',
+      () => legacyRamdaMax(mixedValues),
+      2
+    )
 
-    const nativeMeanFn = (arr) => {
-      let sum = 0
-      let count = 0
-      for (let i = 0; i < arr.length; i++) {
-        const v = arr[i]
-        if (typeof v === 'number' && !isNaN(v)) {
-          sum += v
-          count++
-        }
-      }
-      return count === 0 ? NaN : sum / count
-    }
-
-    const nativeMaxFn = (arr) => {
-      let maxNum = -Infinity
-      let maxStr = ''
-      let hasNum = false
-      let hasStr = false
-      for (let i = 0; i < arr.length; i++) {
-        const v = arr[i]
-        if (typeof v === 'number' && !isNaN(v)) {
-          if (v > maxNum) maxNum = v
-          hasNum = true
-        } else if (typeof v === 'string') {
-          if (v > maxStr || !hasStr) maxStr = v
-          hasStr = true
-        }
-      }
-      if (hasNum) return maxNum
-      if (hasStr) return maxStr
-      return NaN
-    }
-
-    const optSum = measure('Native getSum', () => nativeSumFn(randomNumbers), 5)
+    const optSum = measure('Optimized getSum', () => getSum(randomNumbers), 5)
     const optMean = measure(
-      'Native getMean',
-      () => nativeMeanFn(randomNumbers),
+      'Optimized getMean',
+      () => getMean(randomNumbers),
       5
     )
-    const optMax = measure('Native getMax', () => nativeMaxFn(mixedValues), 5)
+    const optMax = measure('Optimized getMax', () => getMax(mixedValues), 5)
 
     console.log(
       `[STATS] getSum (100k): Baseline=${ramdaSum.avgMs.toFixed(2)}ms | Opt=${optSum.avgMs.toFixed(2)}ms | Speedup=${(ramdaSum.avgMs / optSum.avgMs).toFixed(1)}x`
@@ -186,30 +170,32 @@ describe('Performance Benchmarks & Profiling Suite', () => {
     const testColorRange = ['#ff0000', '#00ff00', '#0000ff']
     const testPoints = Array.from({ length: 20000 }, () => Math.random() * 1000)
 
+    const legacyGetScaledValue = (domain, range, value) => {
+      const scaleBuilder = scaleLinear()
+      const parsedRange = range.map((rngValue) => {
+        if (typeof rngValue !== 'string') return rngValue
+        const color = colord(rngValue)
+        return color.isValid() ? color.toRgbString() : rngValue
+      })
+      const scaleFunc = scaleBuilder.domain(domain).range(parsedRange)
+      return scaleFunc.clamp(true)(value)
+    }
+
     const baselineScales = measure(
-      'Baseline getScaledValue (20k)',
+      'Legacy unmemoized getScaledValue (20k)',
       () => {
         for (let i = 0; i < testPoints.length; i++) {
-          getScaledValue(testDomain, testColorRange, testPoints[i], 'linear')
+          legacyGetScaledValue(testDomain, testColorRange, testPoints[i])
         }
       },
       2
     )
 
-    const buildFastScale = (domain, range) => {
-      const parsedRange = range.map((c) =>
-        typeof c === 'string' ? colord(c).toRgbString() : c
-      )
-      const scale = scaleLinear().domain(domain).range(parsedRange).clamp(true)
-      return (val) => scale(val)
-    }
-
-    const fastScaleFn = buildFastScale(testDomain, testColorRange)
     const optScales = measure(
-      'Precomputed Scale (20k)',
+      'Optimized cached getScaledValue (20k)',
       () => {
         for (let i = 0; i < testPoints.length; i++) {
-          fastScaleFn(testPoints[i])
+          getScaledValue(testDomain, testColorRange, testPoints[i], 'linear')
         }
       },
       5

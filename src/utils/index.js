@@ -12,9 +12,10 @@ import {
 } from './constants'
 import { propId, scaleId } from './enums'
 import { quantileSorted } from './quantile'
-import { getScaledValue } from './scales'
+import { getScaledValue, getScaleFunction } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
+export { getScaledValue, getScaleFunction }
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
