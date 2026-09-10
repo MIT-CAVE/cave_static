@@ -1,54 +1,82 @@
 class ThreadMaxWorkers {
   constructor() {
-    this.maxWorkers = navigator.hardwareConcurrency || 8
-    this.activeWorkers = []
+    this.maxWorkers =
+      typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 8 : 8
+    this.workers = []
+    this.idleWorkers = []
     this.messageQueue = []
   }
 
-  doWork(message) {
-    if (this.activeWorkers.length < this.maxWorkers) {
-      return new Promise((resolve, reject) => {
-        const worker = new Worker(
-          new URL('./computationWorker.js', import.meta.url)
-        )
-        this.activeWorkers.push(worker)
-        worker.postMessage(message)
-        worker.onmessage = (e) => {
-          this.processQueue(worker)
-          resolve(e.data)
-        }
-        worker.onerror = (e) => {
-          this.endWork(worker)
-          reject(e)
-        }
-      })
-    } else {
-      return new Promise((resolve, reject) => {
-        this.messageQueue.push({ message, resolve, reject })
-      })
-    }
+  createWorker() {
+    const worker = new Worker(
+      new URL('./computationWorker.js', import.meta.url)
+    )
+    this.workers.push(worker)
+    return worker
   }
 
-  processQueue(worker) {
-    if (this.messageQueue.length > 0) {
-      const { message, resolve, reject } = this.messageQueue.shift()
+  assignWork(worker, { message, transfer, resolve, reject }) {
+    const onMessage = (e) => {
+      worker.removeEventListener('message', onMessage)
+      worker.removeEventListener('error', onError)
+      this.releaseWorker(worker)
+      resolve(e.data)
+    }
+    const onError = (e) => {
+      worker.removeEventListener('message', onMessage)
+      worker.removeEventListener('error', onError)
+      this.destroyWorker(worker)
+      reject(e)
+    }
+
+    worker.addEventListener('message', onMessage)
+    worker.addEventListener('error', onError)
+
+    if (transfer && transfer.length > 0) {
+      worker.postMessage(message, transfer)
+    } else {
       worker.postMessage(message)
-      worker.onmessage = (e) => {
-        this.processQueue(worker)
-        resolve(e.data)
-      }
-      worker.onerror = (e) => {
-        this.endWork(worker)
-        reject(e)
-      }
-    } else {
-      this.endWork(worker)
     }
   }
 
-  endWork(worker) {
+  releaseWorker(worker) {
+    if (this.messageQueue.length > 0) {
+      const task = this.messageQueue.shift()
+      this.assignWork(worker, task)
+    } else {
+      this.idleWorkers.push(worker)
+    }
+  }
+
+  destroyWorker(worker) {
     worker.terminate()
-    this.activeWorkers = this.activeWorkers.filter((w) => w !== worker)
+    this.workers = this.workers.filter((w) => w !== worker)
+    this.idleWorkers = this.idleWorkers.filter((w) => w !== worker)
+  }
+
+  doWork(message, transfer) {
+    return new Promise((resolve, reject) => {
+      const task = { message, transfer, resolve, reject }
+
+      if (this.idleWorkers.length > 0) {
+        const worker = this.idleWorkers.pop()
+        this.assignWork(worker, task)
+      } else if (this.workers.length < this.maxWorkers) {
+        const worker = this.createWorker()
+        this.assignWork(worker, task)
+      } else {
+        this.messageQueue.push(task)
+      }
+    })
+  }
+
+  terminateAll() {
+    for (const worker of this.workers) {
+      worker.terminate()
+    }
+    this.workers = []
+    this.idleWorkers = []
+    this.messageQueue = []
   }
 }
 

@@ -142,12 +142,12 @@ export const selectLocalSettings = createSelector(selectLocal, (data) =>
 )
 export const selectCurrentTime = createSelector(
   selectLocalSettings,
-  (data) => Math.floor(R.prop('currentTimeContinuous')(data)) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
+  (data) => Math.floor(R.propOr(0, 'currentTimeContinuous')(data)) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
   //R.prop('currentTime')(data)
 )
 export const selectCurrentTimeContinuous = createSelector(
   selectLocalSettings,
-  (data) => R.prop('currentTimeContinuous')(data)
+  (data) => R.propOr(0, 'currentTimeContinuous')(data)
 )
 export const selectSync = createSelector(selectLocalSettings, (data) =>
   R.propOr(false, 'sync')(data)
@@ -816,13 +816,7 @@ export const selectDefaultViewportFunc = createSelector(
           )
         )(dataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) => R.equals(a.defaultViewport)(b.defaultViewport),
-    },
-  }
+    )
 )
 
 // NOTE: Use with Redux hook below:
@@ -911,14 +905,7 @@ const selectMapLegendFunc = createSelector(
       R.identity,
       (mapId) => R.pathOr({}, ['mapLegend', mapId])(dataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.propOr({}, 'mapLegend', a), R.propOr({}, 'mapLegend', b)),
-    },
-  }
+    )
 )
 export const selectIsMapLegendOpenFunc = createSelector(
   selectMapLegendFunc,
@@ -967,53 +954,26 @@ export const selectViewportsByMap = createSelector(
       ])
     )(maps)
 )
-export const selectBearingFunc = createSelector(
-  selectViewportsByMap,
-  (data) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) => R.prop('bearing')(data[mapId]),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.pluck('bearing', a), R.pluck('bearing', b)),
-    },
-  }
+export const selectBearingFunc = createSelector(selectViewportsByMap, (data) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) => R.prop('bearing')(data[mapId]),
+    MAX_MEMOIZED_CHARTS
+  )
 )
-export const selectPitchFunc = createSelector(
-  selectViewportsByMap,
-  (data) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) => R.prop('pitch')(data[mapId]),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.pluck('pitch', a), R.pluck('pitch', b)),
-    },
-  }
+export const selectPitchFunc = createSelector(selectViewportsByMap, (data) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) => R.prop('pitch')(data[mapId]),
+    MAX_MEMOIZED_CHARTS
+  )
 )
-export const selectZoomFunc = createSelector(
-  selectViewportsByMap,
-  (data) =>
-    maxSizedMemoization(
-      R.identity,
-      (mapId) => R.prop('zoom')(data[mapId]),
-      MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.pluck('zoom', R.values(a)), R.pluck('zoom', R.values(b))),
-    },
-  }
+export const selectZoomFunc = createSelector(selectViewportsByMap, (data) =>
+  maxSizedMemoization(
+    R.identity,
+    (mapId) => R.prop('zoom')(data[mapId]),
+    MAX_MEMOIZED_CHARTS
+  )
 )
 
 export const selectIsMapboxTokenProvided = createSelector(
@@ -1033,17 +993,7 @@ export const selectCurrentMapStyleIdFunc = createSelector(
         return R.pathOr(defaultMapStyleId, ['currentStyle', mapId])(dataObj)
       },
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'currentStyle', a),
-          R.propOr({}, 'currentStyle', b)
-        ),
-    },
-  }
+    )
 )
 
 export const selectLockMapStyleFunc = createSelector(
@@ -1053,14 +1003,7 @@ export const selectLockMapStyleFunc = createSelector(
       R.identity,
       (mapId) => R.pathOr(false, ['lockStyle', mapId])(dataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(R.propOr({}, 'lockStyle', a), R.propOr({}, 'lockStyle', b)),
-    },
-  }
+    )
 )
 
 export const selectCurrentMapProjectionFunc = createSelector(
@@ -1085,17 +1028,7 @@ export const selectCurrentMapProjectionFunc = createSelector(
               )
             )(dataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'currentProjection', a),
-          R.propOr({}, 'currentProjection', b)
-        ),
-    },
-  }
+    )
 )
 
 export const selectLockMapProjectionFunc = createSelector(
@@ -1105,17 +1038,7 @@ export const selectLockMapProjectionFunc = createSelector(
       R.identity,
       (mapId) => R.pathOr(false, ['lockProjection', mapId])(dataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'lockProjection', a),
-          R.propOr({}, 'lockProjection', b)
-        ),
-    },
-  }
+    )
 )
 
 const selectIsGlobeNotMemoized = createSelector(
@@ -1129,30 +1052,11 @@ const selectIsGlobeNotMemoized = createSelector(
         return [mapId, mapProjection === MAP_PROJECTIONS.GLOBE && zoom < 6]
       }),
       R.fromPairs
-    )(viewportsByMap),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) => {
-        // dataObj
-        if (R.has('currentProjection')(a))
-          return a.currentProjection === b.currentProjection
-        // viewportsByMap
-        const getZoomLevels = R.map((data) => R.prop('zoom', data) < 6)
-        return R.equals(getZoomLevels(a), getZoomLevels(b))
-      },
-    },
-  }
+    )(viewportsByMap)
 )
 export const selectIsGlobe = createSelector(
   [selectIsGlobeNotMemoized],
-  (isGlobeData) => (mapId) => R.prop(mapId, isGlobeData),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) => R.equals(a, b),
-    },
-  }
+  (isGlobeData) => (mapId) => R.prop(mapId, isGlobeData)
 )
 export const selectMapStyleOptions = createSelector(
   [selectOrderedMaps, selectIsMapboxTokenProvided],
@@ -1215,17 +1119,7 @@ export const selectPitchSliderToggleFunc = createSelector(
       R.identity,
       (mapId) => R.prop('showPitchSlider')(controls[mapId]),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.map(R.dissoc('viewport'), a),
-          R.map(R.dissoc('viewport'), b)
-        ),
-    },
-  }
+    )
 )
 export const selectBearingSliderToggleFunc = createSelector(
   selectMapControlsByMap,
@@ -1234,18 +1128,7 @@ export const selectBearingSliderToggleFunc = createSelector(
       R.identity,
       (mapId) => R.prop('showBearingSlider')(controls[mapId]),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) => {
-        return R.equals(
-          R.map(R.dissoc('viewport'), b),
-          R.map(R.dissoc('viewport'), a)
-        )
-      },
-    },
-  }
+    )
 )
 export const selectOptionalViewportsFunc = createSelector(
   selectCurrentMapDataByMap,
@@ -1254,17 +1137,7 @@ export const selectOptionalViewportsFunc = createSelector(
       R.identity,
       (mapId) => R.path(['optionalViewports', mapId])(dataObj),
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'optionalViewports', a),
-          R.propOr({}, 'optionalViewports', b)
-        ),
-    },
-  }
+    )
 )
 // Local -> Map -> layers
 
@@ -1296,17 +1169,7 @@ const selectLegendTypesFn = createSelector(
         )(getEnabledTypes(localMapObj))
       },
       MAX_MEMOIZED_CHARTS
-    ),
-  {
-    memoize: lruMemoize,
-    memoizeOptions: {
-      equalityCheck: (a, b) =>
-        R.equals(
-          R.propOr({}, 'legendGroups', a),
-          R.propOr({}, 'legendGroups', b)
-        ),
-    },
-  }
+    )
 )
 
 export const selectAllNodeIcons = createSelector(

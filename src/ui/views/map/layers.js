@@ -81,23 +81,27 @@ const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
   const isGlobe = true
 
-  const useHandleClickFactory = (feature) =>
-    useMutateStateWithSync(
-      ({ cave_name: caveName, cave_obj: caveObj }) => ({
-        path: ['panes', 'paneState', 'center'],
-        value: {
-          open: {
-            ...(caveObj || {}),
-            key: caveName,
-            mapId,
-            feature,
-            type: caveObj.name ?? JSON.parse(caveName),
-          },
-          type: 'feature',
+  const handleClick = useMutateStateWithSync(
+    (feature, { cave_name: caveName, cave_obj: caveObj } = {}) => ({
+      path: ['panes', 'paneState', 'center'],
+      value: {
+        open: {
+          ...(caveObj || {}),
+          key: caveName,
+          mapId,
+          feature,
+          type: caveObj?.name ?? (caveName ? JSON.parse(caveName) : undefined),
         },
-      }),
-      [mapId]
-    )
+        type: 'feature',
+      },
+    }),
+    [mapId]
+  )
+
+  const createHandleClick = useCallback(
+    (feature) => (params) => handleClick(feature, params),
+    [handleClick]
+  )
 
   const arcProps = useMemo(
     () => ({
@@ -127,7 +131,7 @@ const useMapFeature = () => {
   return {
     arcProps,
     mapId,
-    createHandleClick: useHandleClickFactory,
+    createHandleClick,
   }
 }
 
@@ -317,21 +321,35 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   const moveCoordinates = useCallback(
     (f) => {
-      if (f.properties.cave_isCluster) {
-        return f.geometry.coordinates
+      if (f.properties?.cave_isCluster) {
+        return f.geometry?.coordinates
       }
-      const idx = parseInt(f.properties.cave_obj.id)
-      if (isNaN(idx) || idx >= latitudes.length) {
-        return f.geometry.coordinates
+      let idx = parseInt(f.properties?.cave_obj?.id)
+      if (isNaN(idx)) {
+        try {
+          idx = parseInt(JSON.parse(f.properties?.cave_name)?.[1])
+        } catch (e) {
+          idx = NaN
+        }
+      }
+      if (isNaN(idx) || idx >= latitudes.length || idx < 0) {
+        return f.geometry?.coordinates
       }
 
-      if (R.equals([null], definedNodeTimes[idx])) {
-        return f.geometry.coordinates
+      if (
+        !definedNodeTimes[idx] ||
+        R.equals([null], definedNodeTimes[idx]) ||
+        definedNodeTimes[idx].length === 0
+      ) {
+        return f.geometry?.coordinates
       }
       const definedNodeTime = definedNodeTimes[idx]
       let visible = true
 
-      if (idx in visibilityInfo.visibilities) {
+      if (
+        idx in visibilityInfo.visibilities &&
+        Array.isArray(visibilityInfo.visibilityTimes[idx])
+      ) {
         for (const time of visibilityInfo.visibilityTimes[idx]) {
           if (currentTimeInSeconds > time) {
             visible = !visible
@@ -341,19 +359,20 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
         }
       }
 
-      if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
-        if (visible) {
+      const maxTime = Math.max(...definedNodeTime)
+      if (currentTimeInSeconds >= maxTime) {
+        if (visible && latitudes[idx] && longitudes[idx]) {
           return [
             longitudes[idx][longitudes[idx].length - 1],
             latitudes[idx][latitudes[idx].length - 1],
           ]
         } else {
-          return []
+          return null
         }
       }
 
       if (!visible) {
-        return []
+        return null
       }
       const lowerControlTime = R.last(
         R.filter((t) => t <= currentTimeInSeconds, definedNodeTime)
@@ -361,20 +380,29 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
       const upperControlTime = R.head(
         R.filter((t) => t > currentTimeInSeconds, definedNodeTime)
       )
+      if (
+        lowerControlTime === undefined ||
+        upperControlTime === undefined ||
+        lowerControlTime === upperControlTime
+      ) {
+        const targetTime = lowerControlTime ?? upperControlTime
+        const targetIndex = R.indexOf(targetTime, definedNodeTime)
+        if (targetIndex >= 0 && longitudes[idx] && latitudes[idx]) {
+          return [longitudes[idx][targetIndex], latitudes[idx][targetIndex]]
+        }
+        return f.geometry?.coordinates
+      }
       const t =
         (currentTimeInSeconds - lowerControlTime) /
         (upperControlTime - lowerControlTime)
+      const lowerIdx = R.indexOf(lowerControlTime, definedNodeTime)
+      const upperIdx = R.indexOf(upperControlTime, definedNodeTime)
+      if (lowerIdx < 0 || upperIdx < 0 || !longitudes[idx] || !latitudes[idx]) {
+        return f.geometry?.coordinates
+      }
       return [
-        lerp(
-          longitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
-          longitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
-          t
-        ),
-        lerp(
-          latitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
-          latitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
-          t
-        ),
+        lerp(longitudes[idx][lowerIdx], longitudes[idx][upperIdx], t),
+        lerp(latitudes[idx][lowerIdx], latitudes[idx][upperIdx], t),
       ]
     },
     [
@@ -389,11 +417,21 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   useEffect(() => {
     const requestId = window.requestAnimationFrame(() => {
-      setAnimatedNodeGeoJson(
-        nodeGeoJson.map((f) =>
-          R.assocPath(['geometry', 'coordinates'], moveCoordinates(f), f)
-        )
-      )
+      const updated = []
+      const safeGeoJson = Array.isArray(nodeGeoJson) ? nodeGeoJson : []
+      for (const f of safeGeoJson) {
+        const coords = moveCoordinates(f)
+        if (
+          coords &&
+          Array.isArray(coords) &&
+          coords.length === 2 &&
+          isFinite(coords[0]) &&
+          isFinite(coords[1])
+        ) {
+          updated.push(R.assocPath(['geometry', 'coordinates'], coords, f))
+        }
+      }
+      setAnimatedNodeGeoJson(updated)
     })
     return () => window.cancelAnimationFrame(requestId)
   }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])

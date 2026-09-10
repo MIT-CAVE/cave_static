@@ -73,6 +73,14 @@ export const getScaleFunction = (
   scaleParams = {},
   fallback = null
 ) => {
+  if (
+    !Array.isArray(domain) ||
+    !Array.isArray(range) ||
+    domain.length === 0 ||
+    range.length === 0
+  ) {
+    return () => fallback
+  }
   const cacheKey = `${domain[0]},${domain[1]}|${range.join(',')}|${scale}|${scaleParams?.exponent || ''}|${scaleParams?.base || ''}|${fallback}`
   let scaleFunc = scaleCache.get(cacheKey)
   if (!scaleFunc) {

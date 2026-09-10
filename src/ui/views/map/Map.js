@@ -30,6 +30,7 @@ import {
 import {
   DARK_GLOBE_FOG,
   DARK_SKY_SPEC,
+  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
@@ -254,7 +255,7 @@ const Map = ({ mapId }) => {
     minBearing,
     maxBearing,
     padding,
-  } = viewport
+  } = viewport || DEFAULT_VIEWPORT
 
   useEffect(() => {
     // Avoid using the `viewport` object directly to prevent
