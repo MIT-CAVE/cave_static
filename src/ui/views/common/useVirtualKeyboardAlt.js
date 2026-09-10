@@ -18,6 +18,32 @@ import { NumberFormat } from '../../../utils'
 
 const DELAY = 10
 
+const isTextInput = (el) => {
+  if (!el) return false
+  const tagName = el.tagName?.toLowerCase()
+  if (tagName === 'textarea') return true
+  if (tagName === 'input') {
+    const type = el.type?.toLowerCase() || 'text'
+    const nonTextTypes = [
+      'range',
+      'checkbox',
+      'radio',
+      'button',
+      'submit',
+      'reset',
+      'color',
+      'file',
+      'hidden',
+      'image',
+    ]
+    return !nonTextTypes.includes(type)
+  }
+  const role = el.getAttribute?.('role')
+  return (
+    role === 'combobox' || role === 'textbox' || Boolean(el.isContentEditable)
+  )
+}
+
 const useVirtualKeyboardAlt = ({
   keyboardLayout = 'default',
   disabled,
@@ -107,10 +133,7 @@ const useVirtualKeyboardAlt = ({
       if (disabled) return
 
       const nextFocus = event.relatedTarget || document.activeElement
-      const isClickingAnotherInput =
-        nextFocus?.tagName === 'INPUT' ||
-        nextFocus?.tagName === 'TEXTAREA' ||
-        nextFocus?.getAttribute('role') === 'combobox'
+      const isClickingAnotherInput = isTextInput(nextFocus)
 
       // console.log(isClickingAnotherInput, { nextFocus })
 

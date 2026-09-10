@@ -118,6 +118,13 @@ const NumberField = ({
   const scaledMax = scale(max)
 
   useEffect(() => {
+    if (commitTimeoutRef.current !== -1) {
+      clearTimeout(commitTimeoutRef.current)
+      commitTimeoutRef.current = -1
+    }
+  }, [value])
+
+  useEffect(() => {
     return () => {
       if (commitTimeoutRef.current !== -1)
         clearTimeout(commitTimeoutRef.current)
@@ -140,11 +147,13 @@ const NumberField = ({
       // console.log('Virtual keyboard change', { value, newValue, event })
       dispatch(SetKeyboardInputValue(`${newValue}`))
     }
-    if (scaledValue === newValue) return
+    const parsedValue =
+      typeof newValue === 'string' ? NumberFormat.parse(newValue) : newValue
+    if (scaledValue === parsedValue) return
     // Guard against null (VK close) and NaN (invalid input like 'fish') during typing
-    if (newValue == null || !Number.isFinite(newValue)) return
+    if (parsedValue == null || !Number.isFinite(parsedValue)) return
 
-    onChange(event, inverseScale(newValue))
+    onChange?.(event, inverseScale(parsedValue))
   }
 
   const handleValueCommitted = (newValue, event) => {
@@ -168,10 +177,23 @@ const NumberField = ({
     const committedValue = Number.isFinite(safe) ? safe : fallback
 
     if (commitTimeoutRef.current !== -1) clearTimeout(commitTimeoutRef.current)
-    commitTimeoutRef.current = setTimeout(() => {
-      onChangeCommitted(event, inverseScale(committedValue))
+
+    // For blur or Enter events, commit immediately so that any subsequent interactions
+    // (e.g. moving a slider or clicking another control) are not overridden by a delayed timer.
+    const isBlurOrEnter =
+      event?.type === 'blur' ||
+      event?.type === 'focusout' ||
+      event?.key === 'Enter'
+
+    if (isBlurOrEnter) {
       commitTimeoutRef.current = -1
-    }, 500)
+      onChangeCommitted?.(event, inverseScale(committedValue))
+    } else {
+      commitTimeoutRef.current = setTimeout(() => {
+        onChangeCommitted?.(event, inverseScale(committedValue))
+        commitTimeoutRef.current = -1
+      }, 500)
+    }
   }
 
   const showKeyboardToggle = !(hideKeyboardToggle || readOnly || disabled)
