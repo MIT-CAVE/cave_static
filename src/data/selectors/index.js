@@ -2421,28 +2421,32 @@ export const selectNodeClustersFunc = createSelector(
         }
         // create groups
         const groupsRaw = R.pipe(R.groupBy(R.prop('name')), R.values)(data)
-        const superCluster = new Supercluster(options)
         const groups = {}
         if (data.length > 0) {
+          const preparedGroups = groupsRaw.map((dataGroup) => {
+            const points = dataGroup.map((d) => ({
+              geometry: { coordinates: getPosition(d) },
+              properties: d,
+            }))
+            const sc = new Supercluster(options)
+            sc.load(points)
+            const nodeType = dataGroup[0].type
+            const { groupScaleWithZoom, groupScale } = legendObj[nodeType]
+            return { points, sc, groupScaleWithZoom, groupScale }
+          })
+
           // Iterate through every zoom level
           for (let z = options.maxZoom; z >= options.minZoom; z--) {
-            const clusters = groupsRaw.reduce((acc, dataGroup) => {
-              let points = dataGroup.map((d) => ({
-                geometry: { coordinates: getPosition(d) },
-                properties: d,
-              }))
-
-              superCluster.load(points)
-              const nodeType = dataGroup[0].type
-              const { groupScaleWithZoom, groupScale } = legendObj[nodeType]
+            const clusters = []
+            for (let i = 0; i < preparedGroups.length; i++) {
+              const { points, sc, groupScaleWithZoom, groupScale } =
+                preparedGroups[i]
               const doNotCluster = !groupScaleWithZoom && groupScale > z
               const groupClustersRaw = doNotCluster
                 ? points
-                : superCluster.getClusters([-180, -90, 180, 90], z)
-
-              // Aggregate clusters into a single data structure
-              return acc.concat(groupClustersRaw)
-            }, [])
+                : sc.getClusters([-180, -90, 180, 90], z)
+              clusters.push(...groupClustersRaw)
+            }
 
             const ranges = {}
 

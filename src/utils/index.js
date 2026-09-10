@@ -1,5 +1,6 @@
 import { colord } from 'colord'
 import * as R from 'ramda'
+import React from 'react'
 import { GenIcon } from 'react-icons'
 import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 
@@ -53,10 +54,10 @@ export const adjustArcPath = (path) => {
 
 // simplified combineReducers to allow for localMutation
 export const combineReducers = (reducers) => {
-  const reducerKeys = R.keys(reducers)
+  const reducerKeys = Object.keys(reducers)
   return (state = {}, action) => {
     let hasChanged = false
-    const nextState = structuredClone(state)
+    const nextState = {}
     for (let i = 0; i < reducerKeys.length; i++) {
       const key = reducerKeys[i]
       const reducer = reducers[key]
@@ -401,11 +402,14 @@ export const getContrastText = (bgColor) => {
 
 export const addExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
-  return <ComponentType {...Component.props} {...extraProps} />
+  return React.createElement(ComponentType, {
+    ...Component.props,
+    ...extraProps,
+  })
 }
 export const removeExtraProps = (Component, extraProps) => {
   const ComponentType = Component.type
-  return <ComponentType {...R.omit(extraProps, Component.props)} />
+  return React.createElement(ComponentType, R.omit(extraProps, Component.props))
 }
 
 export const fetchResource = async ({

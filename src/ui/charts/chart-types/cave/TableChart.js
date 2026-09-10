@@ -50,10 +50,6 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
     }),
   }))
 
-  const csv = R.concat([R.pluck('label', labelProps)], R.unnest(rawList)).join(
-    '\n'
-  )
-
   return (
     <>
       <FlexibleContainer>
@@ -80,14 +76,19 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
           variant="contained"
           sx={{}}
           onClick={() => {
+            const csv = R.concat(
+              [R.pluck('label', labelProps)],
+              R.unnest(rawList)
+            ).join('\n')
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
-            link.href = URL.createObjectURL(
-              new Blob([csv], { type: 'text/csv' })
-            )
+            link.href = url
             link.setAttribute('download', 'data.csv')
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
+            URL.revokeObjectURL(url)
           }}
         >
           Download CSV

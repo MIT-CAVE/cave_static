@@ -26,6 +26,31 @@ class NumberFormat {
     ].reverse()
     this._numeral = new RegExp(`[${numerals.join('')}]`, 'g')
     this._index = new Map(numerals.map((d, i) => [d, i]))
+    this._intlCache = new Map()
+  }
+
+  _getIntlFormatter(options) {
+    const key = `${options.minimumFractionDigits}|${options.maximumFractionDigits}|${options.minimumSignificantDigits}|${options.maximumSignificantDigits}|${options.notation}|${options.compactDisplay}`
+    let formatter = this._intlCache.get(key)
+    if (!formatter) {
+      const cleanOptions = {}
+      if (options.minimumFractionDigits !== undefined)
+        cleanOptions.minimumFractionDigits = options.minimumFractionDigits
+      if (options.maximumFractionDigits !== undefined)
+        cleanOptions.maximumFractionDigits = options.maximumFractionDigits
+      if (options.minimumSignificantDigits !== undefined)
+        cleanOptions.minimumSignificantDigits = options.minimumSignificantDigits
+      if (options.maximumSignificantDigits !== undefined)
+        cleanOptions.maximumSignificantDigits = options.maximumSignificantDigits
+      if (options.notation !== undefined)
+        cleanOptions.notation = options.notation
+      if (options.compactDisplay !== undefined)
+        cleanOptions.compactDisplay = options.compactDisplay
+
+      formatter = new Intl.NumberFormat(this._locale, cleanOptions)
+      this._intlCache.set(key, formatter)
+    }
+    return formatter
   }
 
   isValid(valueStr) {
@@ -54,12 +79,13 @@ class NumberFormat {
       notationDisplay = displayOptions.SHORT,
     }
   ) {
-    return num.toLocaleString(this._locale, {
+    const formatter = this._getIntlFormatter({
       minimumFractionDigits: trailingZeros ? precision : 0,
       maximumFractionDigits: precision,
       notation,
       compactDisplay: notationDisplay,
     })
+    return formatter.format(num)
   }
 
   setExponentNotation(numString, notation, notationDisplay, showZeroExponent) {
@@ -124,11 +150,12 @@ class NumberFormat {
       notationDisplay = displayOptions.E_LOWER_PLUS,
     }
   ) {
-    const numString = num.toLocaleString(this._locale, {
+    const formatter = this._getIntlFormatter({
       minimumFractionDigits: trailingZeros ? precision : 0,
       maximumFractionDigits: precision,
       notation,
     })
+    const numString = formatter.format(num)
     return this.setExponentNotation(
       numString,
       notation,
@@ -144,17 +171,19 @@ class NumberFormat {
     { precision, notation, notationDisplay = displayOptions.E_LOWER_PLUS }
   ) {
     if (!Number(num).toPrecision(precision).includes('e')) {
-      return num.toLocaleString(this._locale, {
+      const formatter = this._getIntlFormatter({
         minimumSignificantDigits: precision,
         maximumSignificantDigits: precision,
       })
+      return formatter.format(num)
     }
 
-    const numString = num.toLocaleString(this._locale, {
+    const formatter = this._getIntlFormatter({
       minimumSignificantDigits: precision,
       maximumSignificantDigits: precision,
       notation: 'scientific',
     })
+    const numString = formatter.format(num)
     return this.setExponentNotation(numString, notation, notationDisplay)
   }
 
