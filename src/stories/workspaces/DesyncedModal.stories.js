@@ -1,5 +1,5 @@
 import React from 'react'
-import { expect, within, userEvent } from 'storybook/test'
+import { expect, within, userEvent, fireEvent } from 'storybook/test'
 
 import App from '../../App'
 
@@ -86,10 +86,12 @@ export const CloseDesyncedModalInteraction = {
     )
     expect(modalHeader).toBeDefined()
 
-    // 2. Click the backdrop / modal root to close the modal
-    const modalRoot = document.querySelector('.MuiModal-root')
-    expect(modalRoot).not.toBeNull()
-    await userEvent.click(modalRoot)
+    // 2. Click the modal backdrop to close the modal
+    const modalBackdrop = document.querySelector(
+      '.MuiModal-root .MuiBackdrop-root'
+    )
+    expect(modalBackdrop).not.toBeNull()
+    fireEvent.click(modalBackdrop)
 
     // Wait for modal transition and state update
     await new Promise((resolve) => setTimeout(resolve, 500))
