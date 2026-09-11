@@ -79,38 +79,50 @@ const MixedChart = ({
     const smoothRight = variantType[rightVariant] === 'line' ? true : undefined
 
     if (hasSubgroups) {
-      const subGroups = R.reduce(
-        (acc, item) => {
-          R.forEach((child) => {
-            if (!R.find((sg) => sg.name === child.name, acc)) {
-              acc.push({ name: child.name, leftData: [], rightData: [] })
+      const subGroupsMap = new Map()
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i]
+        if (item.children) {
+          for (let j = 0; j < item.children.length; j++) {
+            const child = item.children[j]
+            if (child && !subGroupsMap.has(child.name)) {
+              subGroupsMap.set(child.name, {
+                name: child.name,
+                leftData: [],
+                rightData: [],
+              })
             }
-          }, item.children)
-          return acc
-        },
-        [],
-        data
-      )
+          }
+        }
+      }
+      const subGroups = Array.from(subGroupsMap.values())
 
-      R.forEach((item) => {
-        R.forEach((subgroup) => {
-          const child = R.find(
-            (child) => child.name === subgroup.name,
-            item.children
-          )
-          subgroup.leftData.push(child ? child.value[0] : undefined)
-          subgroup.rightData.push(child ? child.value[1] : undefined)
-        }, subGroups)
-      }, data)
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i]
+        const childMap = new Map()
+        if (item.children) {
+          for (let j = 0; j < item.children.length; j++) {
+            const child = item.children[j]
+            if (child) childMap.set(child.name, child)
+          }
+        }
+        for (let j = 0; j < subGroups.length; j++) {
+          const subgroup = subGroups[j]
+          const child = childMap.get(subgroup.name)
+          subgroup.leftData.push(child ? child.value?.[0] : undefined)
+          subgroup.rightData.push(child ? child.value?.[1] : undefined)
+        }
+      }
 
-      R.forEach((subgroup) => {
+      for (let i = 0; i < subGroups.length; i++) {
+        const subgroup = subGroups[i]
         if (isCumulative(leftVariant, subgroup.leftData)) {
           subgroup.leftData = accumulate(subgroup.leftData)
         }
         if (isCumulative(rightVariant, subgroup.rightData)) {
           subgroup.rightData = accumulate(subgroup.rightData)
         }
-      }, subGroups)
+      }
 
       const leftData = R.chain(R.prop('leftData'), subGroups)
       const rightData = R.chain(R.prop('rightData'), subGroups)

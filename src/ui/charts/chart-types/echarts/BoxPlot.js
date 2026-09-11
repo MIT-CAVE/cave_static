@@ -65,24 +65,30 @@ const EchartsBoxPlot = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) => ({
-        name: R.head(d).name,
-        type: chartType,
-        smooth: true,
-        color:
-          findColoring(R.head(d).name, colors) ??
-          getChartItemColor(R.head(d).name),
-        emphasis: {
-          focus: 'series',
-        },
-        data: R.map(
-          R.pipe(
-            (idx) => R.find(R.propEq(idx, 'index'), d),
-            R.when(R.isNotNil, R.prop('value')),
-            getQuartiles
-          )
-        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-      })),
+      R.map((d) => {
+        const headItem = R.head(d)
+        const maxIdx = Math.max(...R.pluck('index', d))
+        const data = new Array(maxIdx + 1)
+        const lookup = new Map()
+        for (let i = 0; i < d.length; i++) {
+          lookup.set(d[i].index, d[i].value)
+        }
+        for (let i = 0; i <= maxIdx; i++) {
+          data[i] = getQuartiles(lookup.get(i))
+        }
+        return {
+          name: headItem.name,
+          type: chartType,
+          smooth: true,
+          color:
+            findColoring(headItem.name, colors) ??
+            getChartItemColor(headItem.name),
+          emphasis: {
+            focus: 'series',
+          },
+          data,
+        }
+      }),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
     (d) => [
@@ -100,12 +106,23 @@ const EchartsBoxPlot = ({
     ]
   )(yValues)
 
-  const yMax = R.pipe(
-    R.pluck('data'),
-    R.flatten,
-    R.filter(R.isNotNil),
-    R.apply(Math.max)
-  )(series)
+  let yMax = 0
+  for (let s = 0; s < series.length; s++) {
+    const sData = series[s]?.data
+    if (Array.isArray(sData)) {
+      for (let i = 0; i < sData.length; i++) {
+        const item = sData[i]
+        if (Array.isArray(item)) {
+          for (let j = 0; j < item.length; j++) {
+            const val = item[j]
+            if (typeof val === 'number' && !isNaN(val) && val > yMax) {
+              yMax = val
+            }
+          }
+        }
+      }
+    }
+  }
 
   const legend = R.isEmpty(subGroupLabels)
     ? null

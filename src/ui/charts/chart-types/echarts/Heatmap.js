@@ -2,7 +2,7 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 
-import { NumberFormat, findSubgroupLabels, getMinMax } from '../../../../utils'
+import { NumberFormat, findSubgroupLabels } from '../../../../utils'
 
 const Heatmap = ({
   data,
@@ -27,23 +27,35 @@ const Heatmap = ({
     R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
     R.flatten,
     R.collectBy(R.prop('name')),
-    R.addIndex(R.map)((d, yidx) =>
-      R.map((xidx) =>
-        R.pipe(
-          (idx) => R.find(R.propEq(idx, 'index'), d),
-          R.when(R.isNotNil, (val) => [
-            xidx,
-            yidx,
-            R.pathOr(yValues[xidx][0], ['value', 0], val),
-          ])
-        )(xidx)
-      )(R.range(0, Math.max(...R.pluck('index', d)) + 1))
-    ),
-    R.unnest,
-    R.filter(R.isNotNil)
+    R.addIndex(R.map)((d, yidx) => {
+      const maxIdx = Math.max(...R.pluck('index', d))
+      const lookup = new Map()
+      for (let i = 0; i < d.length; i++) {
+        lookup.set(d[i].index, d[i])
+      }
+      const points = []
+      for (let xidx = 0; xidx <= maxIdx; xidx++) {
+        const val = lookup.get(xidx)
+        if (val != null) {
+          points.push([xidx, yidx, val.value?.[0] ?? yValues[xidx]?.[0]])
+        }
+      }
+      return points
+    }),
+    R.unnest
   )(yValues)
 
-  const [yMin, yMax] = R.pipe(R.pluck(2), getMinMax)(series)
+  let yMin = Infinity
+  let yMax = -Infinity
+  for (let i = 0; i < series.length; i++) {
+    const val = series[i][2]
+    if (typeof val === 'number' && !isNaN(val)) {
+      if (val < yMin) yMin = val
+      if (val > yMax) yMax = val
+    }
+  }
+  if (yMin === Infinity) yMin = 0
+  if (yMax === -Infinity) yMax = 0
 
   const options = {
     visualMap: {

@@ -6,31 +6,54 @@ import { memo, useMemo } from 'react'
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
 
-// Convert chart object to nested arrays of values
-const convertToList = (data, currentRow = []) =>
-  R.map((d) =>
-    R.has('children', d)
-      ? convertToList(
-          R.prop('children', d),
-          R.append(R.prop('name', d), currentRow)
-        )
-      : R.concat(R.append(R.prop('name', d), currentRow), R.prop('value', d))
-  )(data)
+// Convert chart object to flat list of row arrays
+const flattenChartTree = (data) => {
+  const result = []
+  const traverse = (nodes, currentPath = []) => {
+    if (!Array.isArray(nodes)) return
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      if (node == null) continue
+      const nextPath = currentPath.concat(node.name)
+      if (
+        node.children &&
+        Array.isArray(node.children) &&
+        node.children.length > 0
+      ) {
+        traverse(node.children, nextPath)
+      } else {
+        const row = nextPath.slice()
+        if (Array.isArray(node.value)) {
+          for (let j = 0; j < node.value.length; j++) {
+            row.push(node.value[j])
+          }
+        } else if (node.value !== undefined) {
+          row.push(node.value)
+        }
+        result.push(row)
+      }
+    }
+  }
+  traverse(data, [])
+  return result
+}
 
 const TableChart = ({ data, labelProps, numberFormat }) => {
-  const rawList = useMemo(() => convertToList(data), [data])
+  const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
-  const rows = useMemo(
-    () =>
-      R.pipe(
-        R.flatten,
-        R.splitEvery(R.length(labelProps)),
-        R.addIndex(R.map)((row, index) =>
-          R.pipe(R.zipObj(fields), R.assoc('id', index))(row)
-        )
-      )(rawList),
-    [fields, labelProps, rawList]
-  )
+  const rows = useMemo(() => {
+    const numFields = fields.length
+    const result = new Array(rawList.length)
+    for (let i = 0; i < rawList.length; i++) {
+      const rawRow = rawList[i]
+      const rowObj = { id: i }
+      for (let j = 0; j < numFields; j++) {
+        rowObj[fields[j]] = rawRow[j]
+      }
+      result[i] = rowObj
+    }
+    return result
+  }, [fields, rawList])
 
   const multiNumberFormat = useMemo(
     () => R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat),
@@ -84,10 +107,9 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
           variant="contained"
           sx={{}}
           onClick={() => {
-            const csv = R.concat(
-              [R.pluck('label', labelProps)],
-              R.unnest(rawList)
-            ).join('\n')
+            const headerRow = R.pluck('label', labelProps)
+            const csvRows = [headerRow, ...rawList]
+            const csv = csvRows.map((row) => row.join(',')).join('\n')
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
