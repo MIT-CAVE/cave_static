@@ -159,7 +159,17 @@ const FlexibleChart = memo(
     ...restProps
   }) => {
     return (
-      <>
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
+        }}
+      >
         <FlexibleContainer>
           <ReactEChartsCore
             echarts={echarts}
@@ -181,7 +191,7 @@ const FlexibleChart = memo(
             onNumBucketsChange,
           }}
         />
-      </>
+      </div>
     )
   }
 )
