@@ -98,35 +98,49 @@ const localSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(overrideSync, (state, action) => {
-      // first remove all previously synced paths
-      R.forEachObjIndexed((paths) => {
-        R.forEachObjIndexed((path) => {
-          action.asyncDispatch(
-            mutateLocal({
-              path: path,
-              value: undefined,
-            })
-          )
-        })(paths)
-      })(action.payload.desyncedPaths)
-      // now sync all new paths
-      R.forEachObjIndexed((paths, key) => {
-        R.forEachObjIndexed((path, name) => {
-          action.asyncDispatch(
-            mutateLocal({
-              path: ['settings', 'sync', R.concat(key, name)],
-              value: path,
-            })
-          )
-          action.asyncDispatch(
-            mutateLocal({
-              path: path,
-              value: R.path(path, action.payload.dataState),
-            })
-          )
-        })(paths)
-      })(action.payload.desyncedPaths)
-      return { settings: initialState, ...state }
+      let nextState = { ...state, settings: initialState }
+      const { desyncedPaths, dataState } = action.payload || {}
+      if (desyncedPaths) {
+        // first remove all previously synced paths
+        const desyncedGroupKeys = Object.keys(desyncedPaths)
+        for (let i = 0; i < desyncedGroupKeys.length; i++) {
+          const paths = desyncedPaths[desyncedGroupKeys[i]]
+          if (paths && typeof paths === 'object') {
+            const pathKeys = Object.keys(paths)
+            for (let j = 0; j < pathKeys.length; j++) {
+              const path = paths[pathKeys[j]]
+              if (path) {
+                nextState = R.assocPath(path, undefined, nextState)
+              }
+            }
+          }
+        }
+        // now sync all new paths
+        for (let i = 0; i < desyncedGroupKeys.length; i++) {
+          const key = desyncedGroupKeys[i]
+          const paths = desyncedPaths[key]
+          if (paths && typeof paths === 'object') {
+            const nameKeys = Object.keys(paths)
+            for (let j = 0; j < nameKeys.length; j++) {
+              const name = nameKeys[j]
+              const path = paths[name]
+              if (path) {
+                nextState = R.assocPath(
+                  ['settings', 'sync', key + name],
+                  path,
+                  nextState
+                )
+                nextState = R.assocPath(
+                  path,
+                  R.path(path, dataState),
+                  nextState
+                )
+              }
+            }
+          }
+        }
+      }
+      return nextState
     })
     builder.addCase(overwriteData.fulfilled, (state, action) => {
       if (action.payload?.noOperation) return state

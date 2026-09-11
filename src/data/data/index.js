@@ -108,10 +108,10 @@ export const sendCommand = createAsyncThunk(
 )
 
 const updateData = (action) => {
-  const payload = R.pathOr({}, ['payload'], action)
-  const versions = R.pathOr({}, ['versions'], payload)
-  const newLocalVersions = R.pathOr({}, ['newLocalVersions'], payload)
-  const noOperation = R.pathOr(false, ['noOperation'], payload)
+  const payload = action.payload || {}
+  const versions = payload.versions || {}
+  const newLocalVersions = payload.newLocalVersions || {}
+  const noOperation = payload.noOperation || false
   // Check if the new localVersions match the passed versions and fix errors by syncing with the server.
   if (!R.equals(versions, newLocalVersions)) {
     action.asyncDispatch(
@@ -123,20 +123,26 @@ const updateData = (action) => {
   }
   // Apply any mutation/overwrite if the resulting output is not a noop
   if (!noOperation) {
-    return R.pipe(
-      R.mergeLeft(R.pathOr({}, ['payload', 'data'], action)),
-      R.pick(R.keys(versions)),
-      R.assocPath(['versions'], newLocalVersions)
-    )
+    const payloadData = payload.data || {}
+    const versionKeys = Object.keys(versions)
+    return (state) => {
+      const nextState = {}
+      for (let i = 0; i < versionKeys.length; i++) {
+        const k = versionKeys[i]
+        nextState[k] = payloadData[k] !== undefined ? payloadData[k] : state[k]
+      }
+      nextState.versions = newLocalVersions
+      return nextState
+    }
   }
-  return R.identity()
+  return R.identity
 }
 
 const toggleLoadingFx = (action, value) => {
-  const url = R.pathOr('', ['meta', 'arg', 'url'], action)
+  const url = action.meta?.arg?.url || ''
   return url.includes('/get_session_data/')
-    ? R.assocPath(['ignore', 'loading'], value)
-    : R.identity()
+    ? (state) => ({ ...state, ignore: { ...state.ignore, loading: value } })
+    : R.identity
 }
 
 export const dataSlice = createSlice({
