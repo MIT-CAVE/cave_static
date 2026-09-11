@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 import { overrideSync } from './actions'
 import globalOutputsReducer from './globalOutputsSlice'
@@ -7,6 +6,68 @@ import mapReducer from './mapSlice'
 import settingsReducer, { initialState } from './settingsSlice'
 
 import { sendCommand, mutateData, overwriteData } from '../data'
+
+const getPath = (obj, path) => {
+  if (!obj || !path) return undefined
+  let current = obj
+  for (let i = 0; i < path.length; i++) {
+    if (current == null) return undefined
+    current = current[path[i]]
+  }
+  return current
+}
+
+const assocPath = (path, value, obj) => {
+  if (!path || path.length === 0) return value
+  const [head, ...tail] = path
+  if (tail.length === 0) {
+    if (Array.isArray(obj)) {
+      const copy = [...obj]
+      copy[head] = value
+      return copy
+    }
+    return { ...obj, [head]: value }
+  }
+  const nextObj = obj && typeof obj === 'object' ? obj[head] : undefined
+  const child = assocPath(
+    tail,
+    value,
+    typeof nextObj === 'object' && nextObj !== null
+      ? nextObj
+      : typeof tail[0] === 'number'
+        ? []
+        : {}
+  )
+  if (Array.isArray(obj)) {
+    const copy = [...obj]
+    copy[head] = child
+    return copy
+  }
+  return { ...obj, [head]: child }
+}
+
+const dissocPath = (path, obj) => {
+  if (!obj || !path || path.length === 0) return obj
+  const [head, ...tail] = path
+  if (tail.length === 0) {
+    if (Array.isArray(obj)) {
+      const copy = [...obj]
+      copy.splice(head, 1)
+      return copy
+    }
+    const copy = { ...obj }
+    delete copy[head]
+    return copy
+  }
+  if (obj[head] == null || typeof obj[head] !== 'object') return obj
+  const child = dissocPath(tail, obj[head])
+  if (Array.isArray(obj)) {
+    const copy = [...obj]
+    copy[head] = child
+    return copy
+  }
+  return { ...obj, [head]: child }
+}
 
 const reconcileLocalState = (localState, serverData) => {
   if (!localState || !serverData) return localState
@@ -18,7 +79,7 @@ const reconcileLocalState = (localState, serverData) => {
     const serverPages = serverData.pages?.data || serverData.appBar?.data
     if (serverPages && Object.keys(serverPages).length > 0) {
       if (!serverPages[nextState.pages.currentPage]) {
-        nextState = R.dissocPath(['pages', 'currentPage'], nextState)
+        nextState = dissocPath(['pages', 'currentPage'], nextState)
       }
     }
   }
@@ -30,7 +91,7 @@ const reconcileLocalState = (localState, serverData) => {
     for (let i = 0; i < localMapIds.length; i++) {
       const mapId = localMapIds[i]
       if (!validMaps[mapId]) {
-        nextState = R.dissocPath(['maps', 'data', mapId], nextState)
+        nextState = dissocPath(['maps', 'data', mapId], nextState)
       }
     }
   }
@@ -40,17 +101,11 @@ const reconcileLocalState = (localState, serverData) => {
     const validPanes = serverData.panes.data
     const leftOpen = nextState.panes.paneState.left?.open
     if (leftOpen && !validPanes[leftOpen]) {
-      nextState = R.dissocPath(
-        ['panes', 'paneState', 'left', 'open'],
-        nextState
-      )
+      nextState = dissocPath(['panes', 'paneState', 'left', 'open'], nextState)
     }
     const rightOpen = nextState.panes.paneState.right?.open
     if (rightOpen && !validPanes[rightOpen]) {
-      nextState = R.dissocPath(
-        ['panes', 'paneState', 'right', 'open'],
-        nextState
-      )
+      nextState = dissocPath(['panes', 'paneState', 'right', 'open'], nextState)
     }
   }
 
@@ -61,7 +116,7 @@ const reconcileLocalState = (localState, serverData) => {
     for (let i = 0; i < localDraggableIds.length; i++) {
       const dragId = localDraggableIds[i]
       if (!validDraggables[dragId]) {
-        nextState = R.dissocPath(['draggables', 'data', dragId], nextState)
+        nextState = dissocPath(['draggables', 'data', dragId], nextState)
       }
     }
   }
@@ -76,24 +131,27 @@ const localSlice = createSlice({
     //expects {path: [...], value: any, sync: bool}
     mutateLocal: (state, action) => {
       if (action.payload.sync !== true) {
-        return R.assocPath(action.payload.path, action.payload.value, state)
+        return assocPath(action.payload.path, action.payload.value, state)
       } else {
-        action.asyncDispatch(
-          sendCommand({
-            command: 'mutate_session',
-            data: {
-              data_name: R.head(action.payload.path),
-              data_path: R.tail(action.payload.path),
-              data_value: action.payload.value,
-              mutation_type: 'mutate',
-            },
-          })
-        )
+        const path = action.payload.path || []
+        if (typeof action.asyncDispatch === 'function') {
+          action.asyncDispatch(
+            sendCommand({
+              command: 'mutate_session',
+              data: {
+                data_name: path[0],
+                data_path: path.slice(1),
+                data_value: action.payload.value,
+                mutation_type: 'mutate',
+              },
+            })
+          )
+        }
         return state
       }
     },
     deleteLocal: (state, action) => {
-      return R.dissocPath(action.payload.path, state)
+      return dissocPath(action.payload.path, state)
     },
   },
   extraReducers: (builder) => {
@@ -110,7 +168,7 @@ const localSlice = createSlice({
             for (let j = 0; j < pathKeys.length; j++) {
               const path = paths[pathKeys[j]]
               if (path) {
-                nextState = R.assocPath(path, undefined, nextState)
+                nextState = assocPath(path, undefined, nextState)
               }
             }
           }
@@ -125,16 +183,12 @@ const localSlice = createSlice({
               const name = nameKeys[j]
               const path = paths[name]
               if (path) {
-                nextState = R.assocPath(
+                nextState = assocPath(
                   ['settings', 'sync', key + name],
                   path,
                   nextState
                 )
-                nextState = R.assocPath(
-                  path,
-                  R.path(path, dataState),
-                  nextState
-                )
+                nextState = assocPath(path, getPath(dataState, path), nextState)
               }
             }
           }

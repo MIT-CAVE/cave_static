@@ -77,16 +77,49 @@ export const getScaleFunction = (
     !Array.isArray(domain) ||
     !Array.isArray(range) ||
     domain.length === 0 ||
-    range.length === 0
+    range.length === 0 ||
+    !domain.every((d) => typeof d === 'number' && Number.isFinite(d))
   ) {
     return () => fallback
   }
-  const cacheKey = `${domain[0]},${domain[1]}|${range.join(',')}|${scale}|${scaleParams?.exponent || ''}|${scaleParams?.base || ''}|${fallback}`
+  const cacheKey = `${domain.join(',')}|${range.join(',')}|${scale}|${scaleParams?.exponent || ''}|${scaleParams?.base || ''}|${fallback}`
   let scaleFunc = scaleCache.get(cacheKey)
   if (!scaleFunc) {
     if (scaleCache.size >= MAX_SCALE_CACHE_SIZE) {
       scaleCache.clear()
     }
+
+    // Parse range (when using colors) for CSS Color Module Level 4 compatibility
+    const parsedRange = range.map((rngValue) => {
+      if (typeof rngValue !== 'string') return rngValue
+      const color = colord(rngValue)
+      return color.isValid() ? color.toRgbString() : rngValue
+    })
+
+    if (parsedRange.length === 1) {
+      scaleFunc = () => parsedRange[0]
+      scaleCache.set(cacheKey, scaleFunc)
+      return scaleFunc
+    }
+
+    let safeDomain = domain
+    if (scale !== scaleId.STEP) {
+      if (safeDomain.length === 1) {
+        safeDomain = [safeDomain[0], safeDomain[0] + 1]
+      }
+      if (safeDomain[0] === safeDomain[safeDomain.length - 1]) {
+        if (scale === scaleId.LOG) {
+          safeDomain = safeDomain.map(
+            (d, i) => (d <= 0 ? 1 : d) * Math.pow(10, i)
+          )
+        } else {
+          safeDomain = safeDomain.map((d, i) => d + i)
+        }
+      } else if (scale === scaleId.LOG && safeDomain.some((d) => d <= 0)) {
+        safeDomain = safeDomain.map((d) => (d <= 0 ? 1e-6 : d))
+      }
+    }
+
     const scaleBuilder =
       scale === scaleId.LINEAR
         ? scaleLinear()
@@ -103,15 +136,8 @@ export const getScaleFunction = (
                   throw new Error(`Invalid scale "${scale}"`)
                 }
 
-    // Parse range (when using colors) for CSS Color Module Level 4 compatibility
-    const parsedRange = range.map((rngValue) => {
-      if (typeof rngValue !== 'string') return rngValue
-      const color = colord(rngValue)
-      return color.isValid() ? color.toRgbString() : rngValue
-    })
-
     const built = scaleBuilder
-      .domain(domain)
+      .domain(safeDomain)
       .range(parsedRange)
       .unknown(fallback)
 
@@ -143,6 +169,12 @@ export const getScaledValue = R.curry(
     scaleParams = {},
     fallback = null
   ) => {
+    if (
+      value == null ||
+      (typeof value === 'number' && !Number.isFinite(value))
+    ) {
+      return fallback
+    }
     const scaleFunc = getScaleFunction(
       domain,
       range,
@@ -150,6 +182,7 @@ export const getScaledValue = R.curry(
       scaleParams,
       fallback
     )
-    return scaleFunc(value)
+    const result = scaleFunc(value)
+    return result != null && !Number.isNaN(result) ? result : fallback
   }
 )

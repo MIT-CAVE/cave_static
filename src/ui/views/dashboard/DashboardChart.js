@@ -45,6 +45,7 @@ import {
 const DashboardChart = ({ chartObj, path }) => {
   const [formattedData, setFormattedData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [prevChartObj, setPrevChartObj] = useState(null)
 
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -56,6 +57,12 @@ const DashboardChart = ({ chartObj, path }) => {
     () => cleanUndefinedStats(chartObj),
     [chartObj]
   )
+
+  if (cleanedChartObj !== prevChartObj) {
+    setPrevChartObj(cleanedChartObj)
+    setLoading(true)
+    setFormattedData([])
+  }
 
   const chartType = R.propOr(chartVariant.BAR, 'chartType', cleanedChartObj)
   const distributionType = R.propOr(
@@ -111,23 +118,27 @@ const DashboardChart = ({ chartObj, path }) => {
   )
   const xAxisOrder = R.propOr('default', 'xAxisOrder', cleanedChartObj)
 
-  // for some reason useLayoutEffect doesn't set the state before the chart is rendered
-  // so we use useMemo to trigger the loading state
-  useMemo(() => {
-    setLoading(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartType])
-
   useEffect(() => {
+    let isCancelled = false
     const runWorkers = async () => {
-      memoizedChartFunc(cleanedChartObj).then((computedData) => {
-        setFormattedData(computedData)
-        setLoading(false)
-      })
+      try {
+        const computedData = await memoizedChartFunc(cleanedChartObj)
+        if (!isCancelled) {
+          setFormattedData(computedData || [])
+          setLoading(false)
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setFormattedData([])
+          setLoading(false)
+        }
+      }
     }
-    setLoading(true)
     const workerRunner = setTimeout(runWorkers, 10)
-    return () => clearTimeout(workerRunner)
+    return () => {
+      isCancelled = true
+      clearTimeout(workerRunner)
+    }
   }, [cleanedChartObj, memoizedChartFunc])
 
   const groupingRange = useMemo(

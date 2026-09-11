@@ -214,13 +214,15 @@ const EchartsPlot = ({
   numBuckets,
   onNumBucketsChange,
 }) => {
-  if (R.isNil(data) || R.isEmpty(data)) return []
+  if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
 
-  const yValues = R.has('children', R.head(data))
-    ? R.pluck('children', data)
-    : R.pluck('value', data)
+  const headData = R.head(data)
+  const yValues =
+    headData && R.has('children', headData)
+      ? R.pluck('children', data)
+      : R.pluck('value', data)
 
   const subGroupLabels = findSubgroupLabels(yValues)
 
@@ -236,58 +238,72 @@ const EchartsPlot = ({
     seriesObj
   )
 
+  const hasSubObjects =
+    Array.isArray(yValues) &&
+    yValues.length > 0 &&
+    Array.isArray(yValues[0]) &&
+    yValues[0].length > 0 &&
+    typeof yValues[0][0] === 'object' &&
+    yValues[0][0] !== null
+
   // Only true if using a line chart with 1 level of grouping
-  const visualMap =
-    chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
+  const visualMap = chartType === 'line' && !hasSubObjects
 
   const color = R.map(
     (item) => findColoring(item, colors) ?? getChartItemColor(item)
   )(xLabels)
 
-  const series = R.ifElse(
-    (val) => R.type(R.head(R.head(val))) === 'Object',
-    R.pipe(
-      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
-      R.flatten,
-      R.collectBy(R.prop('name')),
-      R.map((d) => {
-        const headItem = R.head(d)
-        const maxIdx = Math.max(...R.pluck('index', d))
-        const data = new Array(maxIdx + 1)
-        for (let i = 0; i < d.length; i++) {
-          const item = d[i]
-          if (item && item.index != null) {
-            data[item.index] = item.value?.[0]
-          }
-        }
-        return R.mergeRight(baseObject, {
-          id: headItem.id,
-          name: headItem.name,
-          color:
-            findColoring(headItem.name, colors) ??
-            getChartItemColor(headItem.name),
-          data,
-        })
-      }),
-      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
-    ),
-    (d) => [
-      R.mergeDeepLeft(
-        R.assoc(
-          'data',
-          R.pipe(
-            R.unnest,
-            visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
-          )(d),
-          baseObject
+  const series = hasSubObjects
+    ? R.pipe(
+        R.addIndex(R.map)((d, idx) =>
+          Array.isArray(d) ? R.map(R.assoc('index', idx))(d) : []
         ),
-        {
-          colorBy: 'data',
-          color,
-        }
-      ),
-    ]
-  )(yValues)
+        R.flatten,
+        R.filter((item) => item && item.name != null),
+        R.collectBy(R.prop('name')),
+        R.map((d) => {
+          if (!d || d.length === 0) return null
+          const headItem = R.head(d)
+          const indices = R.pluck('index', d).filter(
+            (i) => typeof i === 'number' && !isNaN(i)
+          )
+          const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+          if (maxIdx < 0) return null
+          const dataArr = new Array(maxIdx + 1)
+          for (let i = 0; i < d.length; i++) {
+            const item = d[i]
+            if (item && item.index != null) {
+              dataArr[item.index] = item.value?.[0]
+            }
+          }
+          return R.mergeRight(baseObject, {
+            id: headItem?.id,
+            name: headItem?.name,
+            color:
+              findColoring(headItem?.name, colors) ??
+              getChartItemColor(headItem?.name),
+            data: dataArr,
+          })
+        }),
+        R.filter(Boolean),
+        R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+      )(yValues)
+    : [
+        R.mergeDeepLeft(
+          R.assoc(
+            'data',
+            R.pipe(
+              R.unnest,
+              visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
+            )(yValues),
+            baseObject
+          ),
+          {
+            colorBy: 'data',
+            color,
+          }
+        ),
+      ]
 
   let yMax = 0
   for (let s = 0; s < series.length; s++) {

@@ -3,7 +3,6 @@ import {
   createSelectorCreator,
   lruMemoize,
 } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 import {
   DEFAULT_ICON_URL,
@@ -46,9 +45,7 @@ import {
   sortByOrderNameId,
   forcePath,
   customSortByX,
-  withIndex,
   recursiveMap,
-  maxSizedMemoization,
   orderEntireDict,
   addValuesToProps,
   filterGroupedOutputs,
@@ -65,117 +62,325 @@ import {
 
 const workerManager = new ThreadMaxWorkers()
 
-export const selectUtilities = (state) => R.prop('utilities')(state)
+const clamp = (min, max, val) => Math.min(Math.max(val, min), max)
+
+const deepEqual = (a, b) => {
+  if (a === b) return true
+  if (
+    a == null ||
+    b == null ||
+    typeof a !== 'object' ||
+    typeof b !== 'object'
+  ) {
+    return false
+  }
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+  if (Array.isArray(a)) {
+    if (a.length !== b.length) return false
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEqual(a[i], b[i])) return false
+    }
+    return true
+  }
+  const keysA = Object.keys(a)
+  const keysB = Object.keys(b)
+  if (keysA.length !== keysB.length) return false
+  for (let i = 0; i < keysA.length; i++) {
+    const k = keysA[i]
+    if (!Object.prototype.hasOwnProperty.call(b, k) || !deepEqual(a[k], b[k])) {
+      return false
+    }
+  }
+  return true
+}
+
+const deepMerge = (target, source) => {
+  if (!source || typeof source !== 'object') return target
+  const result = { ...(target || {}) }
+  const sourceKeys = Object.keys(source)
+  for (let i = 0; i < sourceKeys.length; i++) {
+    const key = sourceKeys[i]
+    const val = source[key]
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      result[key] = deepMerge(result[key], val)
+    } else {
+      result[key] = val
+    }
+  }
+  return result
+}
+
+const transposeMapData = (data) => {
+  if (!data) return {}
+  const result = {}
+  for (const outerKey in data) {
+    const innerObj = data[outerKey]
+    if (innerObj && typeof innerObj === 'object') {
+      for (const innerKey in innerObj) {
+        if (!result[innerKey]) result[innerKey] = {}
+        result[innerKey][outerKey] = innerObj[innerKey]
+      }
+    }
+  }
+  return result
+}
+
+const maxSizedMemoization = (
+  keyFunc,
+  resultFunc,
+  maxCache = MAX_MEMOIZED_CHARTS
+) => {
+  const cache = new Map()
+  return (...args) => {
+    const key = keyFunc(...args)
+    if (!cache.has(key)) {
+      cache.set(key, resultFunc(...args))
+      if (cache.size > maxCache) {
+        const remove = cache.keys().next().value
+        cache.delete(remove)
+      }
+    }
+    return cache.get(key)
+  }
+}
+
+const getNumericValue = (val) => {
+  if (typeof val === 'number') {
+    return Number.isFinite(val) ? val : null
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    if (trimmed === '') return null
+    const num = Number(trimmed)
+    return Number.isFinite(num) ? num : null
+  }
+  if (Array.isArray(val) && val.length > 0) {
+    return getNumericValue(val[0])
+  }
+  return null
+}
+
+const computeItemRange = (items, prop) => {
+  if (!items || items.length === 0) {
+    return { min: 0, max: 0, gradient: {} }
+  }
+  const propObj = items[0]?.props?.[prop]
+  let result = propObj
+  const isEmpty = !propObj || Object.keys(propObj).length === 0
+  const hasGradient = Boolean(propObj && 'gradient' in propObj)
+
+  if (isEmpty || hasGradient || propObj?.type === propId.NUMBER) {
+    let min = Infinity
+    let max = -Infinity
+    for (let i = 0; i < items.length; i++) {
+      const num = getNumericValue(items[i]?.values?.[prop])
+      if (num != null) {
+        if (num < min) min = num
+        if (num > max) max = num
+      }
+    }
+    const fallbackMin =
+      typeof propObj?.min === 'number' && Number.isFinite(propObj.min)
+        ? propObj.min
+        : 0
+    const fallbackMax =
+      typeof propObj?.max === 'number' && Number.isFinite(propObj.max)
+        ? propObj.max
+        : fallbackMin
+    const resolvedMin = min === Infinity ? fallbackMin : min
+    const resolvedMax = max === -Infinity ? fallbackMax : max
+    result = {
+      ...(propObj || {}),
+      min: resolvedMin,
+      max: resolvedMax,
+    }
+  }
+
+  if (result == null) {
+    return { min: 0, max: 0, gradient: {} }
+  }
+
+  const picked = {}
+  for (let i = 0; i < ALLOWED_RANGE_KEYS.length; i++) {
+    const k = ALLOWED_RANGE_KEYS[i]
+    if (k in result) {
+      picked[k] = result[k]
+    }
+  }
+
+  return checkValidRange(picked) ? picked : { min: 0, max: 0, gradient: {} }
+}
+
+const pickPaths = (paths, obj) => {
+  if (!obj || !paths) return {}
+  const result = {}
+  for (let i = 0; i < paths.length; i++) {
+    const path = forcePath(paths[i])
+    let currObj = obj
+    let has = true
+    for (let j = 0; j < path.length; j++) {
+      if (
+        currObj == null ||
+        typeof currObj !== 'object' ||
+        !(path[j] in currObj)
+      ) {
+        has = false
+        break
+      }
+      currObj = currObj[path[j]]
+    }
+    if (has) {
+      let target = result
+      for (let j = 0; j < path.length - 1; j++) {
+        const key = path[j]
+        if (!target[key] || typeof target[key] !== 'object') {
+          target[key] = {}
+        }
+        target = target[key]
+      }
+      target[path[path.length - 1]] = currObj
+    }
+  }
+  return result
+}
+
+export const selectUtilities = (state) => state?.utilities
 
 // Virtual Keyboard
-export const selectVirtualKeyboard = createSelector(selectUtilities, (data) =>
-  R.prop('virtualKeyboard')(data)
+export const selectVirtualKeyboard = createSelector(
+  selectUtilities,
+  (data) => data?.virtualKeyboard
 )
 
 export const selectVirtualKeyboardValue = createSelector(
   selectVirtualKeyboard,
-  R.prop('inputValue')
+  (data) => data?.inputValue
 )
 
 // Loading
-export const selectLoading = createSelector(selectUtilities, (data) =>
-  R.prop('loading')(data)
+export const selectLoading = createSelector(
+  selectUtilities,
+  (data) => data?.loading
 )
-export const selectSessionLoading = createSelector(selectLoading, (data) =>
-  R.prop('session_loading')(data)
+export const selectSessionLoading = createSelector(
+  selectLoading,
+  (data) => data?.session_loading
 )
-export const selectDataLoading = createSelector(selectLoading, (data) =>
-  R.prop('data_loading')(data)
+export const selectDataLoading = createSelector(
+  selectLoading,
+  (data) => data?.data_loading
 )
 
 // Sessions
-export const selectSessions = createSelector(selectUtilities, (data) =>
-  R.prop('sessions')(data)
+export const selectSessions = createSelector(
+  selectUtilities,
+  (data) => data?.sessions
 )
 export const selectSessionsData = createSelector(
   selectSessions,
-  R.propOr({}, 'data')
+  (data) => data?.data ?? {}
 )
-export const selectCurrentSession = createSelector(selectSessions, (data) =>
-  R.prop('session_id')(data)
+export const selectCurrentSession = createSelector(
+  selectSessions,
+  (data) => data?.session_id
 )
-export const selectTeams = createSelector(
-  selectSessionsData,
-  R.map(R.dissoc('sessions'))
-)
-export const selectSortedTeams = createSelector(
-  selectTeams,
-  R.pipe(
-    R.map(R.renameKeys({ teamId: 'id', teamName: 'name' })),
-    R.values,
-    sortByOrderNameId
-  )
-)
+export const selectTeams = createSelector(selectSessionsData, (data) => {
+  if (!data) return {}
+  const result = {}
+  for (const [id, team] of Object.entries(data)) {
+    if (team) {
+      const rest = { ...team }
+      delete rest.sessions
+      result[id] = rest
+    }
+  }
+  return result
+})
+export const selectSortedTeams = createSelector(selectTeams, (teams) => {
+  if (!teams) return []
+  const mapped = Object.values(teams).map((team) => ({
+    ...team,
+    id: team.teamId,
+    name: team.teamName,
+  }))
+  return sortByOrderNameId(mapped)
+})
 export const selectSessionsByTeam = createSelector(
   selectSessionsData,
-  R.pluck('sessions')
+  (data) => {
+    if (!data) return {}
+    const result = {}
+    for (const [id, team] of Object.entries(data)) {
+      result[id] = team?.sessions
+    }
+    return result
+  }
 )
 
 // Tokens
-export const selectTokens = createSelector(selectUtilities, (data) =>
-  R.prop('tokens')(data)
+export const selectTokens = createSelector(
+  selectUtilities,
+  (data) => data?.tokens
 )
 
-export const selectMapboxToken = createSelector(selectTokens, (data) =>
-  R.prop('mapboxToken')(data)
+export const selectMapboxToken = createSelector(
+  selectTokens,
+  (data) => data?.mapboxToken
 )
 
 // Messages
-export const selectMessages = createSelector(selectUtilities, (data) =>
-  R.prop('messages')(data)
+export const selectMessages = createSelector(
+  selectUtilities,
+  (data) => data?.messages
 )
 
 // Time (Utilities)
-export const selectTime = createSelector(selectUtilities, (data) =>
-  R.prop('time')(data)
-)
+export const selectTime = createSelector(selectUtilities, (data) => data?.time)
 export const selectAnimationInterval = createSelector(
   selectTime,
-  R.prop('animationInterval')
+  (data) => data?.animationInterval
 )
 // Local
-export const selectLocal = (state) => R.propOr({}, 'local')(state)
+export const selectLocal = (state) => state?.local ?? {}
 // Local -> settings
-export const selectLocalSettings = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'settings')(data)
+export const selectLocalSettings = createSelector(
+  selectLocal,
+  (data) => data?.settings ?? {}
 )
-export const selectCurrentTime = createSelector(
-  selectLocalSettings,
-  (data) => Math.floor(R.propOr(0, 'currentTimeContinuous')(data)) // Prevents continuous pausing from delaying discrete time animation whilst continuous animation continues
-  //R.prop('currentTime')(data)
+export const selectCurrentTime = createSelector(selectLocalSettings, (data) =>
+  Math.floor(data?.currentTimeContinuous ?? 0)
 )
 export const selectCurrentTimeContinuous = createSelector(
   selectLocalSettings,
-  (data) => R.propOr(0, 'currentTimeContinuous')(data)
+  (data) => data?.currentTimeContinuous ?? 0
 )
-export const selectSync = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'sync')(data)
+export const selectSync = createSelector(
+  selectLocalSettings,
+  (data) => data?.sync ?? {}
 )
 export const selectEditLayoutMode = createSelector(
   selectLocalSettings,
-  R.propOr(false, 'editLayout')
+  (data) => Boolean(data?.editLayout)
 )
 export const selectMirrorMode = createSelector(selectLocalSettings, (data) =>
-  R.propOr(false, 'mirror', data)
+  Boolean(data?.mirror)
 )
 // Data
-export const selectData = (state) => R.prop('data')(state)
-export const selectIgnoreData = createSelector(selectData, (data) =>
-  R.propOr({}, 'ignore')(data)
+export const selectData = (state) => state?.data
+export const selectIgnoreData = createSelector(
+  selectData,
+  (data) => data?.ignore ?? {}
 )
-export const selectVersionsData = createSelector(selectData, (data) =>
-  R.propOr({}, 'versions')(data)
+export const selectVersionsData = createSelector(
+  selectData,
+  (data) => data?.versions ?? {}
 )
-export const selectMapFeatures = createSelector(selectData, (data) =>
-  R.propOr({}, 'mapFeatures')(data)
+export const selectMapFeatures = createSelector(
+  selectData,
+  (data) => data?.mapFeatures ?? {}
 )
 export const selectAppBar = createSelector(selectData, (data) => {
-  let appBar = R.propOr({}, 'appBar', data)
+  const appBar = { ...(data?.appBar ?? {}) }
 
   // add persistent session and settings
   const systemAppBar = {
@@ -190,46 +395,45 @@ export const selectAppBar = createSelector(selectData, (data) => {
       type: paneId.APP_SETTINGS,
     },
   }
-  const order = R.pathOr([], ['order', 'data'], appBar)
+  const order = appBar.order?.data ?? []
   const updatedOrder = [paneId.SESSION, paneId.APP_SETTINGS, ...order]
-  appBar = R.assocPath(['order', 'data'], updatedOrder, appBar)
-  appBar = R.assocPath(
-    ['data'],
-    R.mergeDeepLeft(R.propOr({}, 'data', appBar), systemAppBar),
-    appBar
-  )
+  appBar.order = { ...(appBar.order ?? {}), data: updatedOrder }
+  appBar.data = deepMerge(systemAppBar, appBar.data ?? {})
   return appBar
 })
 export const selectDraggables = createSelector(
   selectData,
-  R.propOr({}, 'draggables')
+  (data) => data?.draggables ?? {}
 )
-export const selectGroupedOutputs = createSelector(selectData, (data) =>
-  R.propOr({}, 'groupedOutputs')(data)
+export const selectGroupedOutputs = createSelector(
+  selectData,
+  (data) => data?.groupedOutputs ?? {}
 )
-export const selectGlobalOutputs = createSelector(selectData, (data) =>
-  R.propOr({}, 'globalOutputs')(data)
+export const selectGlobalOutputs = createSelector(
+  selectData,
+  (data) => data?.globalOutputs ?? {}
 )
-export const selectPages = createSelector(selectData, (data) =>
-  R.propOr({}, 'pages')(data)
+export const selectPages = createSelector(
+  selectData,
+  (data) => data?.pages ?? {}
 )
-export const selectAssociated = createSelector(selectData, (data) =>
-  R.propOr({}, 'associated')(data)
+export const selectAssociated = createSelector(
+  selectData,
+  (data) => data?.associated ?? {}
 )
 export const selectSettings = createSelector(
   selectData,
-  (data) => orderEntireDict(R.propOr({}, 'settings')(data)),
+  (data) => orderEntireDict(data?.settings ?? {}),
   {
     memoize: lruMemoize,
-    memoizeOptions: { resultEqualityCheck: R.equals },
+    memoizeOptions: { resultEqualityCheck: deepEqual },
   }
 )
-export const selectPanes = createSelector(selectData, (data) =>
-  R.propOr({}, 'panes')(data)
+export const selectPanes = createSelector(
+  selectData,
+  (data) => data?.panes ?? {}
 )
-export const selectMap = createSelector(selectData, (data) =>
-  R.propOr({}, 'maps', data)
-)
+export const selectMap = createSelector(selectData, (data) => data?.maps ?? {})
 // Ordered dicts
 export const selectOrderedAppBar = createSelector(selectAppBar, (data) =>
   orderEntireDict(data)
@@ -247,25 +451,46 @@ const selectOrderedMapFeatures = createSelector(selectMapFeatures, (data) =>
 // Data -> Types
 export const selectFeatureData = createSelector(
   selectOrderedMapFeatures,
-  (data) => R.propOr({}, 'data')(data)
+  (data) => data?.data ?? {}
 )
 export const selectNodeTypes = createSelector(
   [selectFeatureData, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.filter(R.propEq('node', 'type'), data))
+  (data, time) => {
+    if (!data) return {}
+    const filtered = {}
+    for (const [key, val] of Object.entries(data)) {
+      if (val?.type === 'node') filtered[key] = val
+    }
+    return getTimeValue(time, filtered)
+  }
 )
 export const selectArcTypes = createSelector(
   [selectFeatureData, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.filter(R.propEq('arc', 'type'), data))
+  (data, time) => {
+    if (!data) return {}
+    const filtered = {}
+    for (const [key, val] of Object.entries(data)) {
+      if (val?.type === 'arc') filtered[key] = val
+    }
+    return getTimeValue(time, filtered)
+  }
 )
 export const selectGeoTypes = createSelector(
   [selectFeatureData, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.filter(R.propEq('geo', 'type'), data))
+  (data, time) => {
+    if (!data) return {}
+    const filtered = {}
+    for (const [key, val] of Object.entries(data)) {
+      if (val?.type === 'geo') filtered[key] = val
+    }
+    return getTimeValue(time, filtered)
+  }
 )
 // Data -> data
 export const selectPanesData = createSelector(
   [selectPanes, selectCurrentTime],
   (data, time) => {
-    const panesData = getTimeValue(time, R.propOr({}, 'data', data))
+    const panesData = getTimeValue(time, data?.data ?? {})
 
     // add persistent session and settings
     const systemPanesData = {
@@ -281,75 +506,76 @@ export const selectPanesData = createSelector(
       },
     }
 
-    return R.mergeRight(panesData, systemPanesData)
+    return { ...panesData, ...systemPanesData }
   }
 )
 export const selectMapData = createSelector(
   [selectOrderedMaps, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.propOr({}, 'data', data))
+  (data, time) => getTimeValue(time, data?.data ?? {})
 )
-export const selectAppBarData = createSelector(selectOrderedAppBar, (data) =>
-  R.propOr({}, 'data')(data)
+export const selectAppBarData = createSelector(
+  selectOrderedAppBar,
+  (data) => data?.data ?? {}
 )
-export const selectLeftAppBarData = createSelector(
-  selectAppBarData,
-  // Keep only sub objects with bar: upperLeft, lowerLeft
-  R.pipe(
-    R.filter((appBarItem) =>
-      R.includes(R.prop('bar', appBarItem), ['upperLeft', 'lowerLeft'])
-    )
-  )
-)
+export const selectLeftAppBarData = createSelector(selectAppBarData, (data) => {
+  if (!data) return {}
+  const result = {}
+  for (const [key, item] of Object.entries(data)) {
+    if (item?.bar === 'upperLeft' || item?.bar === 'lowerLeft') {
+      result[key] = item
+    }
+  }
+  return result
+})
 
 export const selectRightAppBarData = createSelector(
   selectAppBarData,
-  R.pipe(
-    R.filter((appBarItem) =>
-      R.includes(R.prop('bar', appBarItem), ['upperRight', 'lowerRight'])
-    )
-  )
+  (data) => {
+    if (!data) return {}
+    const result = {}
+    for (const [key, item] of Object.entries(data)) {
+      if (item?.bar === 'upperRight' || item?.bar === 'lowerRight') {
+        result[key] = item
+      }
+    }
+    return result
+  }
 )
 export const selectDraggablesData = createSelector(
   selectDraggables,
-  R.propOr({}, 'data')
+  (data) => data?.data ?? {}
 )
 export const selectGroupedOutputsData = createSelector(
   selectOrderedGroupedOutputs,
-  (data) => R.propOr({}, 'data')(data)
+  (data) => data?.data ?? {}
 )
 export const selectAnyGroupedOutputData = createSelector(
   selectGroupedOutputsData,
-  R.isNotEmpty
+  (data) => Boolean(data && Object.keys(data).length > 0)
 )
 export const selectGlobalOutputsLayout = createSelector(
   selectGlobalOutputs,
-  R.prop('layout')
+  (data) => data?.layout
 )
-export const selectAssociatedData = createSelector(selectAssociated, (data) =>
-  R.propOr({}, 'data')(data)
+export const selectAssociatedData = createSelector(
+  selectAssociated,
+  (data) => data?.data ?? {}
 )
 
 // Data -> settings
-export const selectSettingsIconUrl = createSelector(selectSettings, (data) =>
-  R.propOr(DEFAULT_ICON_URL, 'iconUrl')(data)
-)
-const pickPaths = R.curry((paths, obj) =>
-  R.reduce((acc, val) => {
-    const path = forcePath(val)
-    return R.when(
-      R.always(R.hasPath(path)(obj)),
-      R.assocPath(path, R.path(path)(obj))
-    )(acc)
-  }, {})(paths)
-)
-export const selectNumberFormat = createSelector(
+export const selectSettingsIconUrl = createSelector(
   selectSettings,
-  R.pipe(R.propOr({}, 'defaults'), pickPaths(NUMBER_FORMAT_KEY_PATHS))
+  (data) => data?.iconUrl ?? DEFAULT_ICON_URL
+)
+export const selectNumberFormat = createSelector(selectSettings, (settings) =>
+  pickPaths(NUMBER_FORMAT_KEY_PATHS, settings?.defaults ?? {})
 )
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
-  (numberFormat) =>
-    R.pipe(pickPaths(NUMBER_FORMAT_KEY_PATHS), R.mergeRight(numberFormat))
+  (numberFormat) => (prop) => ({
+    ...numberFormat,
+    ...pickPaths(NUMBER_FORMAT_KEY_PATHS, prop),
+  })
 )
 
 export const selectLegendNumberFormatFunc = createSelector(
@@ -389,47 +615,56 @@ export const selectParsedGradient = createSelector(
 )
 export const selectDemoSettings = createSelector(
   selectSettings,
-  R.propOr({}, 'demo')
+  (data) => data?.demo ?? {}
 )
 export const selectDemoMode = createSelector(
   selectLocalSettings,
-  (localSettings) => R.propOr(false, 'demo', localSettings)
+  (localSettings) => Boolean(localSettings?.demo)
 )
 export const selectTimeSettings = createSelector(
   selectSettings,
-  R.propOr({}, 'time')
+  (data) => data?.time ?? {}
 )
 export const selectCurrentTimeLength = createSelector(
   selectTimeSettings,
-  (data) => R.propOr(0, 'timeLength')(data)
+  (data) => data?.timeLength ?? 0
 )
 export const selectCurrentTimeUnits = createSelector(
   selectTimeSettings,
-  (data) => R.propOr('unit', 'timeUnits')(data)
+  (data) => data?.timeUnits ?? 'unit'
 )
 export const selectCurrentLooping = createSelector(selectTimeSettings, (data) =>
-  R.propOr(false, 'looping')(data)
+  Boolean(data?.looping)
 )
-export const selectCurrentSpeed = createSelector(selectTimeSettings, (data) =>
-  R.propOr(1, 'speed')(data)
+export const selectCurrentSpeed = createSelector(
+  selectTimeSettings,
+  (data) => data?.speed ?? 1
 )
-export const selectSyncToggles = createSelector(selectSettings, (data) =>
-  R.propOr({}, 'sync', data)
+export const selectSyncToggles = createSelector(
+  selectSettings,
+  (data) => data?.sync ?? {}
 )
 // Data -> groupedOutputs
 export const selectGroupedOutputTypes = createSelector(
   selectGroupedOutputsData,
-  R.map(R.propOr({}, 'stats'))
+  (data) => {
+    if (!data) return {}
+    const result = {}
+    for (const [k, v] of Object.entries(data)) {
+      result[k] = v?.stats ?? {}
+    }
+    return result
+  }
 )
 // Data -> dashboard
-export const selectDashboardData = createSelector(selectPages, (data) =>
-  R.propOr({}, 'data')(data)
+export const selectDashboardData = createSelector(
+  selectPages,
+  (data) => data?.data ?? {}
 )
-// Data -> panes
 
 // Data -> ignore
 export const selectIgnoreLoading = createSelector(selectIgnoreData, (data) =>
-  R.propOr(false, 'loading')(data)
+  Boolean(data?.loading)
 )
 // Loading
 export const selectShowLoading = createSelector(
@@ -437,241 +672,230 @@ export const selectShowLoading = createSelector(
   (ignore, session, data) => ignore || session || data
 )
 // Local -> panes
-export const selectLocalPanes = createSelector(selectLocal, (data) =>
-  R.prop('panes')(data)
+export const selectLocalPanes = createSelector(
+  selectLocal,
+  (data) => data?.panes
 )
 export const selectLocalPanesData = createSelector(
   [selectLocalPanes, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.prop('data', data))
+  (data, time) => getTimeValue(time, data?.data)
 )
 // Local -> draggables
 const selectLocalDraggables = createSelector(
   selectLocal,
-  R.propOr({}, 'draggables')
+  (data) => data?.draggables ?? {}
 )
 export const selectLocalDraggablesData = createSelector(
   selectLocalDraggables,
-  R.propOr({}, 'data')
+  (data) => data?.data ?? {}
 )
 
 export const selectMergedDraggables = createSelector(
   [selectLocalDraggablesData, selectDraggablesData],
-  (localData, data) =>
-    !localData || R.isEmpty(localData)
-      ? data || {}
-      : R.mergeDeepLeft(localData, data || {})
+  (localData, data) => {
+    if (!localData || Object.keys(localData).length === 0) return data || {}
+    return deepMerge(data || {}, localData)
+  }
 )
 export const selectSessionDraggable = createSelector(
   selectMergedDraggables,
-  R.propOr({}, draggableId.SESSION)
+  (data) => data?.[draggableId.SESSION] ?? {}
 )
 export const selectGlobalOutputsDraggable = createSelector(
   selectMergedDraggables,
-  R.propOr({}, draggableId.GLOBAL_OUTPUTS)
+  (data) => data?.[draggableId.GLOBAL_OUTPUTS] ?? {}
 )
 export const selectMapNamesDraggable = createSelector(
   selectMergedDraggables,
-  R.propOr({}, draggableId.MAP_NAMES)
+  (data) => data?.[draggableId.MAP_NAMES] ?? {}
 )
 
 // Local -> Dashboard
-export const selectLocalPages = createSelector(selectLocal, (data) =>
-  R.propOr({}, 'pages')(data)
+export const selectLocalPages = createSelector(
+  selectLocal,
+  (data) => data?.pages ?? {}
 )
-export const selectLocalPagesData = createSelector(selectLocalPages, (data) =>
-  R.prop('data', data)
+export const selectLocalPagesData = createSelector(
+  selectLocalPages,
+  (data) => data?.data
 )
 // Local -> appBar (Custom)
-export const selectLocalAppBar = createSelector(selectLocal, (data) =>
-  R.prop('appBar', data)
+export const selectLocalAppBar = createSelector(
+  selectLocal,
+  (data) => data?.appBar
 )
-export const selectLocalAppBarData = createSelector(selectLocalAppBar, (data) =>
-  R.prop('data', data)
+export const selectLocalAppBarData = createSelector(
+  selectLocalAppBar,
+  (data) => data?.data
 )
 export const selectLeftLocalAppBarData = createSelector(
   selectLocalAppBarData,
-  (data) => R.propOr({}, 'left', data)
+  (data) => data?.left ?? {}
 )
 export const selectRightLocalAppBarData = createSelector(
   selectLocalAppBarData,
-  (data) => R.propOr({}, 'right', data)
+  (data) => data?.right ?? {}
 )
 export const selectPaneState = createSelector(
   [selectLocalPanes, selectPanes],
-  (localData, data) =>
-    R.mergeLeft(
-      R.propOr({}, 'paneState', localData),
-      R.propOr({}, 'paneState', data)
-    )
+  (localData, data) => ({
+    left: localData?.paneState?.left ?? data?.paneState?.left ?? {},
+    right: localData?.paneState?.right ?? data?.paneState?.right ?? {},
+    center: localData?.paneState?.center ?? data?.paneState?.center ?? {},
+  })
 )
-export const selectLeftOpenPane = createSelector(selectPaneState, (data) =>
-  R.propOr('', 'open', R.propOr({}, 'left', data))
+export const selectLeftOpenPane = createSelector(
+  selectPaneState,
+  (data) => data?.left?.open ?? ''
 )
 export const selectLeftPinPane = createSelector(selectPaneState, (data) =>
-  R.propOr(false, 'pin', R.propOr({}, 'left', data))
+  Boolean(data?.left?.pin)
 )
-export const selectRightOpenPane = createSelector(selectPaneState, (data) =>
-  R.propOr('', 'open', R.propOr({}, 'right', data))
+export const selectRightOpenPane = createSelector(
+  selectPaneState,
+  (data) => data?.right?.open ?? ''
 )
 export const selectRightPinPane = createSelector(selectPaneState, (data) =>
-  R.propOr(false, 'pin', R.propOr({}, 'right', data))
+  Boolean(data?.right?.pin)
 )
 // Merged pages
 export const selectCurrentPage = createSelector(
   [selectLocalPages, selectPages],
   (localPages, pages) => {
-    const pagesData = pages?.data || {}
-    const pageKeys = Object.keys(pagesData)
-    const fallbackId = pageKeys[0]
-    const serverCurrentPage = pages?.currentPage
-    const localCurrentPage = localPages?.currentPage
-    if (localCurrentPage && pagesData[localCurrentPage]) {
-      return localCurrentPage
-    }
-    if (serverCurrentPage && pagesData[serverCurrentPage]) {
-      return serverCurrentPage
-    }
-    return fallbackId
+    const fallbackId = pages?.data ? Object.keys(pages.data)[0] : undefined
+    return localPages?.currentPage ?? pages?.currentPage ?? fallbackId
   }
 )
 export const selectDashboard = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localdashboardData) =>
-    R.propOr(
-      R.propOr({}, currentPage, dashboardData),
-      currentPage,
-      localdashboardData
+    deepMerge(
+      dashboardData?.[currentPage] ?? {},
+      localdashboardData?.[currentPage] ?? {}
     )
 )
 export const selectStatOptions = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
-    R.pathOr(
-      R.pathOr([], [currentPage, 'statOptions'], dashboardData),
-      [currentPage, 'statOptions'],
-      localDashboardData
-    )
+    localDashboardData?.[currentPage]?.statOptions ??
+    dashboardData?.[currentPage]?.statOptions ??
+    []
 )
 export const selectPageLayout = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
-    R.pathOr(
-      R.pathOr([], [currentPage, 'pageLayout'], dashboardData),
-      [currentPage, 'pageLayout'],
-      localDashboardData
-    )
+    localDashboardData?.[currentPage]?.pageLayout ??
+    dashboardData?.[currentPage]?.pageLayout ??
+    []
 )
 export const selectCharts = createSelector(
   [selectCurrentPage, selectDashboardData, selectLocalPagesData],
   (currentPage, dashboardData, localDashboardData) =>
-    R.pathOr(
-      R.pathOr({}, [currentPage, 'charts'], dashboardData),
-      [currentPage, 'charts'],
-      localDashboardData
+    deepMerge(
+      dashboardData?.[currentPage]?.charts ?? {},
+      localDashboardData?.[currentPage]?.charts ?? {}
     )
 )
 // NOTE: Use with Redux hook below:
 // const chartObj = useSelector((state) => selectChartById(state, <chartId>))
 export const selectChartById = createSelector(
   [selectCharts, (state, chartId) => chartId],
-  (charts, chartId) => charts[chartId],
+  (charts, chartId) => charts?.[chartId],
   { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 export const selectChartFiltersById = createSelector(
   [selectCharts, (state, chartId) => chartId],
-  (charts, chartId) => R.pathOr([], [chartId, 'filters'])(charts),
+  (charts, chartId) => charts?.[chartId]?.filters ?? [],
   { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 
-export const selectIsMaximized = createSelector(
-  selectCharts,
-  R.pipe(R.values, R.any(R.propOr(false, 'maximized')))
+export const selectIsMaximized = createSelector(selectCharts, (charts) =>
+  charts ? Object.values(charts).some((c) => c?.maximized) : false
 )
 export const selectDashboardLockedLayout = createSelector(
   selectDashboard,
-  (dashboard) => R.propOr(false, 'lockedLayout', dashboard)
+  (dashboard) => Boolean(dashboard?.lockedLayout)
 )
 export const selectAllowedStats = createSelector(
   [selectGroupedOutputTypes, selectStatOptions],
-  (statisticTypes, statOptions) =>
-    R.isEmpty(statOptions)
-      ? statisticTypes
-      : R.pick(statOptions, statisticTypes)
+  (statisticTypes, statOptions) => {
+    if (!statOptions || statOptions.length === 0) return statisticTypes ?? {}
+    const result = {}
+    for (let i = 0; i < statOptions.length; i++) {
+      const key = statOptions[i]
+      if (statisticTypes && key in statisticTypes) {
+        result[key] = statisticTypes[key]
+      }
+    }
+    return result
+  }
 )
 export const selectChartStats = createSelector(
   [selectAllowedStats],
-  R.pipe(
-    R.map(R.filter(R.propOr(true, 'allowCharting'))),
-    R.filter(R.isNotEmpty)
-  )
+  (allowed) => {
+    if (!allowed) return {}
+    const result = {}
+    for (const [k, v] of Object.entries(allowed)) {
+      if (v && typeof v === 'object') {
+        const filtered = {}
+        for (const [subK, subV] of Object.entries(v)) {
+          if (subV?.allowCharting !== false) {
+            filtered[subK] = subV
+          }
+        }
+        if (Object.keys(filtered).length > 0) {
+          result[k] = filtered
+        }
+      }
+    }
+    return result
+  }
 )
 export const selectChartStatsNames = createSelector(
   selectChartStats,
-  R.map(R.keys)
+  (chartStats) => {
+    if (!chartStats) return {}
+    const result = {}
+    for (const [k, v] of Object.entries(chartStats)) {
+      result[k] = Object.keys(v || {})
+    }
+    return result
+  }
 )
 
 export const selectCurrentMapDataByMap = createSelector(
   selectMapData,
-  (data) => {
-    const itemKeys = R.reduce((acc, obj) => {
-      R.forEach((key) => acc.add(key), R.keys(obj))
-      return acc
-    }, new Set())(R.values(data))
-    return R.reduce(
-      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-      {}
-    )(itemKeys.values())
-  }
+  transposeMapData
 )
 
 // Merged appBar
 
 export const selectOpenModal = createSelector(
-  [selectLocalPanes, selectPanes],
-  (localData, data) =>
-    R.pipe(
-      R.pathOr(R.pathOr({}, ['paneState', 'center'], data), [
-        'paneState',
-        'center',
-      ]),
-      R.propOr('', 'open')
-    )(localData)
+  selectPaneState,
+  (paneState) => paneState?.center?.open ?? ''
 )
 export const selectModal = createSelector(
-  [selectLocalPanes, selectPanes],
-  (localData, data) =>
-    R.pathOr(
-      R.pathOr({}, ['paneState', 'center'], data),
-      ['paneState', 'center'],
-      localData
-    )
+  selectPaneState,
+  (paneState) => paneState?.center ?? {}
 )
-const groupAppBar = R.pipe(
-  R.mergeDeepRight,
-  R.toPairs,
-  R.groupBy(
-    R.cond([
-      [
-        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperLeft'])),
-        R.always('upperLeft'),
-      ],
-      [
-        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerLeft'])),
-        R.always('lowerLeft'),
-      ],
-      [
-        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['upperRight'])),
-        R.always('upperRight'),
-      ],
-      [
-        R.pipe(R.path([1, 'bar']), R.includes(R.__, ['lowerRight'])),
-        R.always('lowerRight'),
-      ],
-      [R.T, R.always('')],
-    ])
-  ),
-  R.map(R.fromPairs)
-)
+
+const groupAppBar = (localData, serverData) => {
+  const merged = deepMerge(serverData || {}, localData || {})
+  const result = {
+    upperLeft: {},
+    lowerLeft: {},
+    upperRight: {},
+    lowerRight: {},
+  }
+  for (const [key, item] of Object.entries(merged)) {
+    const bar = item?.bar
+    if (bar && result[bar]) {
+      result[bar][key] = item
+    }
+  }
+  return result
+}
+
 export const selectLeftGroupedAppBar = createSelector(
   [selectLeftLocalAppBarData, selectLeftAppBarData],
   groupAppBar
@@ -683,99 +907,85 @@ export const selectRightGroupedAppBar = createSelector(
 export const selectLeftAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && R.isNotEmpty(leftData)) ||
-    (mirrorMode && R.isNotEmpty(rightData))
+    (!mirrorMode && Object.keys(leftData || {}).length > 0) ||
+    (mirrorMode && Object.keys(rightData || {}).length > 0)
 )
 export const selectRightAppBarDisplay = createSelector(
   [selectMirrorMode, selectLeftAppBarData, selectRightAppBarData],
   (mirrorMode, leftData, rightData) =>
-    (!mirrorMode && R.isNotEmpty(rightData)) ||
-    (mirrorMode && R.isNotEmpty(leftData))
+    (!mirrorMode && Object.keys(rightData || {}).length > 0) ||
+    (mirrorMode && Object.keys(leftData || {}).length > 0)
 )
 export const selectDemoViews = createSelector(
   [selectAppBarData, selectDemoSettings],
-  (appBarData, demoSettings) =>
-    R.pipe(
-      R.toPairs,
-      R.filter(
-        (d) =>
-          R.propEq('page', 'type', d[1]) &&
-          R.pathOr(true, [d[0], 'show'], demoSettings)
-      ),
-      R.pluck(0)
-    )(appBarData)
+  (appBarData, demoSettings) => {
+    const result = []
+    for (const [k, v] of Object.entries(appBarData || {})) {
+      if (v?.type === 'page' && (demoSettings?.[k]?.show ?? true)) {
+        result.push(k)
+      }
+    }
+    return result
+  }
 )
 export const selectStaticMap = createSelector(
   [selectCurrentPage, selectAppBarData],
-  (currentPage, appBarData) =>
-    R.pathOr(false, [currentPage, 'static'], appBarData)
+  (currentPage, appBarData) => Boolean(appBarData?.[currentPage]?.static)
 )
 // Merged Panes
 export const selectLeftOpenPanesData = createSelector(
   [selectLeftOpenPane, selectPanesData, selectLocalPanesData],
   (leftOpenPane, panesData, localPanesData) =>
-    R.mergeDeepRight(
-      R.propOr({}, leftOpenPane, panesData),
-      R.propOr({}, leftOpenPane, localPanesData)
+    deepMerge(
+      panesData?.[leftOpenPane] || {},
+      localPanesData?.[leftOpenPane] || {}
     ),
   {
     memoize: lruMemoize,
-    memoizeOptions: { resultEqualityCheck: R.equals },
+    memoizeOptions: { resultEqualityCheck: deepEqual },
   }
 )
 export const selectRightOpenPanesData = createSelector(
   [selectRightOpenPane, selectPanesData, selectLocalPanesData],
   (rightOpenPane, panesData, localPanesData) =>
-    R.mergeDeepRight(
-      R.propOr({}, rightOpenPane, panesData),
-      R.propOr({}, rightOpenPane, localPanesData)
+    deepMerge(
+      panesData?.[rightOpenPane] || {},
+      localPanesData?.[rightOpenPane] || {}
     ),
   {
     memoize: lruMemoize,
-    memoizeOptions: { resultEqualityCheck: R.equals },
+    memoizeOptions: { resultEqualityCheck: deepEqual },
   }
 )
 export const selectOpenModalData = createSelector(
   [selectOpenModal, selectPanesData, selectLocalPanesData],
   (openModal, panesData, localPanesData) =>
-    R.mergeDeepRight(
-      R.propOr({}, openModal, panesData),
-      R.propOr({}, openModal, localPanesData)
-    ),
+    deepMerge(panesData?.[openModal] || {}, localPanesData?.[openModal] || {}),
   {
     memoize: lruMemoize,
-    memoizeOptions: { resultEqualityCheck: R.equals },
+    memoizeOptions: { resultEqualityCheck: deepEqual },
   }
 )
 
 // Local -> Map
 export const selectLocalMap = createSelector(selectLocal, (data) =>
-  orderEntireDict(R.propOr({}, 'maps')(data))
+  orderEntireDict(data?.maps ?? {})
 )
 export const selectLocalMapData = createSelector(
   [selectLocalMap, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.prop('data')(data))
+  (data, time) => getTimeValue(time, data?.data)
 )
 export const selectCurrentLocalMapDataByMap = createSelector(
   [selectLocalMapData],
-  (data) => {
-    const itemKeys = R.reduce((acc, obj) => {
-      R.forEach((key) => acc.add(key), R.keys(obj))
-      return acc
-    }, new Set())(R.values(data))
-    return R.reduce(
-      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-      {}
-    )(itemKeys.values())
-  }
+  transposeMapData
 )
 
 // Merged Map Data
 export const selectMergedMapData = createSelector(
   [selectMapData, selectLocalMapData],
   (data, localData) => {
-    if (!localData || R.isEmpty(localData)) return data || {}
-    if (!data || R.isEmpty(data)) return localData || {}
+    if (!localData || Object.keys(localData).length === 0) return data || {}
+    if (!data || Object.keys(data).length === 0) return localData || {}
     const validLocalData = {}
     const mapKeys = Object.keys(data)
     for (let i = 0; i < mapKeys.length; i++) {
@@ -784,40 +994,30 @@ export const selectMergedMapData = createSelector(
         validLocalData[mapId] = localData[mapId]
       }
     }
-    return R.isEmpty(validLocalData)
+    return Object.keys(validLocalData).length === 0
       ? data
-      : R.mergeDeepLeft(validLocalData, data)
+      : deepMerge(data, validLocalData)
   }
 )
-export const selectAnyMapData = createSelector(
-  selectMergedMapData,
-  R.isNotEmpty
+export const selectAnyMapData = createSelector(selectMergedMapData, (data) =>
+  Boolean(data && Object.keys(data).length > 0)
 )
 const selectCurrentMergedMapDataByMap = createSelector(
   selectMergedMapData,
-  (data) => {
-    const itemKeys = R.reduce((acc, obj) => {
-      R.forEach((key) => acc.add(key), R.keys(obj))
-      return acc
-    }, new Set())(R.values(data))
-    return R.reduce(
-      (acc, key) => R.assoc(key, R.map((obj) => R.prop(key, obj))(data), acc),
-      {}
-    )(itemKeys.values())
-  }
+  transposeMapData
 )
 
 export const selectAllLegendGroups = createSelector(
   selectCurrentMapDataByMap,
-  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj)
+  (mapDataObj) => mapDataObj?.legendGroups ?? {}
 )
 export const selectAllLocalLegendGroups = createSelector(
   selectCurrentLocalMapDataByMap,
-  (mapDataObj) => R.propOr({}, 'legendGroups')(mapDataObj),
+  (mapDataObj) => mapDataObj?.legendGroups ?? {},
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )
@@ -826,7 +1026,7 @@ export const selectAllLocalLegendGroups = createSelector(
 // const mapName = useSelector((state) => selectMapName(state, <mapId>))
 export const selectMapName = createSelector(
   [selectMergedMapData, (state, mapId) => mapId],
-  (mapData, mapId) => mapData[mapId]?.name ?? '',
+  (mapData, mapId) => mapData?.[mapId]?.name ?? '',
   { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
 
@@ -834,19 +1034,19 @@ export const selectDefaultViewportFunc = createSelector(
   selectCurrentMergedMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => {
-        const vp = R.pathOr({}, ['defaultViewport', mapId])(dataObj)
-        const minZoom = R.clamp(MIN_ZOOM, MAX_ZOOM, vp.minZoom ?? MIN_ZOOM)
-        const maxZoom = R.clamp(minZoom, MAX_ZOOM, vp.maxZoom ?? MAX_ZOOM)
-        const minPitch = R.clamp(MIN_PITCH, MAX_PITCH, vp.minPitch ?? MIN_PITCH)
-        const maxPitch = R.clamp(minPitch, MAX_PITCH, vp.maxPitch ?? MAX_PITCH)
-        const minBearing = R.clamp(
+        const vp = dataObj?.defaultViewport?.[mapId] || {}
+        const minZoom = clamp(MIN_ZOOM, MAX_ZOOM, vp.minZoom ?? MIN_ZOOM)
+        const maxZoom = clamp(minZoom, MAX_ZOOM, vp.maxZoom ?? MAX_ZOOM)
+        const minPitch = clamp(MIN_PITCH, MAX_PITCH, vp.minPitch ?? MIN_PITCH)
+        const maxPitch = clamp(minPitch, MAX_PITCH, vp.maxPitch ?? MAX_PITCH)
+        const minBearing = clamp(
           MIN_BEARING,
           MAX_BEARING,
           vp.minBearing ?? MIN_BEARING
         )
-        const maxBearing = R.clamp(
+        const maxBearing = clamp(
           minBearing,
           MAX_BEARING,
           vp.maxBearing ?? MAX_BEARING
@@ -854,13 +1054,13 @@ export const selectDefaultViewportFunc = createSelector(
         return {
           ...vp,
           ...(vp.zoom != null && {
-            zoom: R.clamp(minZoom, maxZoom, vp.zoom),
+            zoom: clamp(minZoom, maxZoom, vp.zoom),
           }),
           ...(vp.pitch != null && {
-            pitch: R.clamp(minPitch, maxPitch, vp.pitch),
+            pitch: clamp(minPitch, maxPitch, vp.pitch),
           }),
           ...(vp.bearing != null && {
-            bearing: R.clamp(minBearing, maxBearing, vp.bearing),
+            bearing: clamp(minBearing, maxBearing, vp.bearing),
           }),
           ...(vp.minZoom != null && { minZoom }),
           ...(vp.maxZoom != null && { maxZoom }),
@@ -886,8 +1086,8 @@ export const selectLegendDataFunc = createSelector(
   selectCurrentMergedMapDataByMap,
   (mapDataObj) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.pathOr({}, ['legendGroups', mapId])(mapDataObj),
+      (mapId) => mapId,
+      (mapId) => mapDataObj?.legendGroups?.[mapId] ?? {},
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -928,20 +1128,17 @@ export const selectShowLegendAdvancedControls = createSelector(
 
 export const selectMapControlsByMap = createSelector(
   selectCurrentMergedMapDataByMap,
-  R.propOr({}, 'mapControls')
+  (data) => data?.mapControls ?? {}
 )
 export const selectMapModal = createSelector(
   selectLocalMap,
   (data) =>
-    R.propOr(
-      {
-        isOpen: false,
-        data: {
-          feature: '',
-        },
+    data?.mapModal ?? {
+      isOpen: false,
+      data: {
+        feature: '',
       },
-      'mapModal'
-    )(data),
+    },
   {
     memoize: lruMemoize,
     memoizeOptions: {
@@ -951,48 +1148,53 @@ export const selectMapModal = createSelector(
     },
   }
 )
-export const selectMapLayers = createSelector(selectLocalMap, (data) =>
-  R.propOr({}, 'mapLayers')(data)
+export const selectMapLayers = createSelector(
+  selectLocalMap,
+  (data) => data?.mapLayers ?? {}
 )
 const selectMapLegendFunc = createSelector(
   selectCurrentLocalMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.pathOr({}, ['mapLegend', mapId])(dataObj),
+      (mapId) => mapId,
+      (mapId) => dataObj?.mapLegend?.[mapId] ?? {},
       MAX_MEMOIZED_CHARTS
     )
 )
 export const selectIsMapLegendOpenFunc = createSelector(
   selectMapLegendFunc,
-  (mapLegendFunc) => (mapId) => R.propOr(true, 'isOpen')(mapLegendFunc(mapId))
+  (mapLegendFunc) => (mapId) => mapLegendFunc(mapId)?.isOpen ?? true
 )
 // Local -> globalOutputs
 const selectLocalGlobalOutputs = createSelector(
   selectLocal,
-  R.propOr({}, 'globalOutputs')
+  (data) => data?.globalOutputs ?? {}
 )
 export const selectMergedGlobalOutputs = createSelector(
   [selectGlobalOutputs, selectLocalGlobalOutputs],
   (globalOutputsData, localGlobalOutputs) =>
-    !localGlobalOutputs || R.isEmpty(localGlobalOutputs)
+    !localGlobalOutputs || Object.keys(localGlobalOutputs).length === 0
       ? globalOutputsData || {}
-      : R.mergeDeepLeft(localGlobalOutputs, globalOutputsData || {})
+      : deepMerge(globalOutputsData || {}, localGlobalOutputs)
 )
 export const selectAnyGlobalOutputData = createSelector(
   selectMergedGlobalOutputs,
-  R.isNotEmpty
+  (data) => Boolean(data && Object.keys(data).length > 0)
 )
 export const selectGlobalOutputProps = createSelector(
   selectMergedGlobalOutputs,
-  R.pipe(
-    R.converge(addValuesToProps, [
-      R.propOr({}, 'props'),
-      R.propOr({}, 'values'),
-    ]),
-    R.reject(R.pipe(R.prop('value'), R.isNil)),
-    R.map(R.assoc('enabled', false))
-  )
+  (merged) => {
+    const props = merged?.props ?? {}
+    const values = merged?.values ?? {}
+    const combined = addValuesToProps(props, values)
+    const result = {}
+    for (const [key, item] of Object.entries(combined)) {
+      if (item && item.value != null) {
+        result[key] = { ...item, enabled: false }
+      }
+    }
+    return result
+  }
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(
@@ -1005,32 +1207,32 @@ export const selectViewportsByMap = createSelector(
       const defaultVp = defaultViewportFunc(mapId) || {}
       const localVp = mapControls?.[mapId]?.viewport || {}
 
-      const minZoom = R.clamp(
+      const minZoom = clamp(
         MIN_ZOOM,
         MAX_ZOOM,
         defaultVp.minZoom ?? DEFAULT_VIEWPORT.minZoom
       )
-      const maxZoom = R.clamp(
+      const maxZoom = clamp(
         minZoom,
         MAX_ZOOM,
         defaultVp.maxZoom ?? DEFAULT_VIEWPORT.maxZoom
       )
-      const minPitch = R.clamp(
+      const minPitch = clamp(
         MIN_PITCH,
         MAX_PITCH,
         defaultVp.minPitch ?? DEFAULT_VIEWPORT.minPitch
       )
-      const maxPitch = R.clamp(
+      const maxPitch = clamp(
         minPitch,
         MAX_PITCH,
         defaultVp.maxPitch ?? DEFAULT_VIEWPORT.maxPitch
       )
-      const minBearing = R.clamp(
+      const minBearing = clamp(
         MIN_BEARING,
         MAX_BEARING,
         defaultVp.minBearing ?? DEFAULT_VIEWPORT.minBearing
       )
-      const maxBearing = R.clamp(
+      const maxBearing = clamp(
         minBearing,
         MAX_BEARING,
         defaultVp.maxBearing ?? DEFAULT_VIEWPORT.maxBearing
@@ -1048,17 +1250,17 @@ export const selectViewportsByMap = createSelector(
         maxBearing,
       }
 
-      merged.zoom = R.clamp(
+      merged.zoom = clamp(
         minZoom,
         maxZoom,
         merged.zoom ?? DEFAULT_VIEWPORT.zoom
       )
-      merged.pitch = R.clamp(
+      merged.pitch = clamp(
         minPitch,
         maxPitch,
         merged.pitch ?? DEFAULT_VIEWPORT.pitch
       )
-      merged.bearing = R.clamp(
+      merged.bearing = clamp(
         minBearing,
         maxBearing,
         merged.bearing ?? DEFAULT_VIEWPORT.bearing
@@ -1071,41 +1273,41 @@ export const selectViewportsByMap = createSelector(
 )
 export const selectBearingFunc = createSelector(selectViewportsByMap, (data) =>
   maxSizedMemoization(
-    R.identity,
-    (mapId) => R.pathOr(DEFAULT_VIEWPORT.bearing, [mapId, 'bearing'])(data),
+    (mapId) => mapId,
+    (mapId) => data?.[mapId]?.bearing ?? DEFAULT_VIEWPORT.bearing,
     MAX_MEMOIZED_CHARTS
   )
 )
 export const selectPitchFunc = createSelector(selectViewportsByMap, (data) =>
   maxSizedMemoization(
-    R.identity,
-    (mapId) => R.pathOr(DEFAULT_VIEWPORT.pitch, [mapId, 'pitch'])(data),
+    (mapId) => mapId,
+    (mapId) => data?.[mapId]?.pitch ?? DEFAULT_VIEWPORT.pitch,
     MAX_MEMOIZED_CHARTS
   )
 )
 export const selectZoomFunc = createSelector(selectViewportsByMap, (data) =>
   maxSizedMemoization(
-    R.identity,
-    (mapId) => R.pathOr(DEFAULT_VIEWPORT.zoom, [mapId, 'zoom'])(data),
+    (mapId) => mapId,
+    (mapId) => data?.[mapId]?.zoom ?? DEFAULT_VIEWPORT.zoom,
     MAX_MEMOIZED_CHARTS
   )
 )
 
 export const selectIsMapboxTokenProvided = createSelector(
   selectMapboxToken,
-  R.both(R.isNotNil, R.isNotEmpty)
+  (token) => token != null && token !== ''
 )
 
 export const selectCurrentMapStyleIdFunc = createSelector(
   [selectIsMapboxTokenProvided, selectCurrentMergedMapDataByMap],
   (isMapboxTokenProvided, dataObj) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => {
         const defaultMapStyleId = isMapboxTokenProvided
           ? 'mapboxDark'
           : 'cartoDarkMatter'
-        return R.pathOr(defaultMapStyleId, ['currentStyle', mapId])(dataObj)
+        return dataObj?.currentStyle?.[mapId] ?? defaultMapStyleId
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1115,8 +1317,8 @@ export const selectLockMapStyleFunc = createSelector(
   selectCurrentMergedMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.pathOr(false, ['lockStyle', mapId])(dataObj),
+      (mapId) => mapId,
+      (mapId) => Boolean(dataObj?.lockStyle?.[mapId]),
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1125,23 +1327,14 @@ export const selectCurrentMapProjectionFunc = createSelector(
   [selectCurrentMergedMapDataByMap, selectIsMapboxTokenProvided],
   (dataObj, isMapboxTokenProvided) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        isMapboxTokenProvided
-          ? R.pipe(
-              R.path(['currentProjection', mapId]),
-              R.when(
-                (proj) => !MAPBOX_PROJECTIONS.has(proj),
-                R.always(MAP_PROJECTIONS.MERCATOR)
-              )
-            )(dataObj)
-          : R.pipe(
-              R.path(['currentProjection', mapId]),
-              R.when(
-                (proj) => !MAPLIBRE_PROJECTIONS.has(proj),
-                R.always(MAP_PROJECTIONS.MERCATOR)
-              )
-            )(dataObj),
+      (mapId) => mapId,
+      (mapId) => {
+        const proj = dataObj?.currentProjection?.[mapId]
+        const validSet = isMapboxTokenProvided
+          ? MAPBOX_PROJECTIONS
+          : MAPLIBRE_PROJECTIONS
+        return validSet.has(proj) ? proj : MAP_PROJECTIONS.MERCATOR
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1150,42 +1343,48 @@ export const selectLockMapProjectionFunc = createSelector(
   selectCurrentMergedMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.pathOr(false, ['lockProjection', mapId])(dataObj),
+      (mapId) => mapId,
+      (mapId) => Boolean(dataObj?.lockProjection?.[mapId]),
       MAX_MEMOIZED_CHARTS
     )
 )
 
 const selectIsGlobeNotMemoized = createSelector(
   [selectViewportsByMap, selectCurrentMapProjectionFunc],
-  (viewportsByMap, currentMapProjectionFunc) =>
-    R.pipe(
-      R.toPairs,
-      R.map(([mapId]) => {
-        const mapProjection = currentMapProjectionFunc(mapId)
-        const zoom = R.path([mapId, 'zoom'], viewportsByMap)
-        return [mapId, mapProjection === MAP_PROJECTIONS.GLOBE && zoom < 6]
-      }),
-      R.fromPairs
-    )(viewportsByMap)
+  (viewportsByMap, currentMapProjectionFunc) => {
+    if (!viewportsByMap) return {}
+    const result = {}
+    for (const [mapId, vp] of Object.entries(viewportsByMap)) {
+      const mapProjection = currentMapProjectionFunc(mapId)
+      const zoom = vp?.zoom
+      result[mapId] = mapProjection === MAP_PROJECTIONS.GLOBE && zoom < 6
+    }
+    return result
+  }
 )
 export const selectIsGlobe = createSelector(
   [selectIsGlobeNotMemoized],
-  (isGlobeData) => (mapId) => R.prop(mapId, isGlobeData)
+  (isGlobeData) => (mapId) => isGlobeData?.[mapId]
 )
 export const selectMapStyleOptions = createSelector(
   [selectOrderedMaps, selectIsMapboxTokenProvided],
-  (data, isMapboxTokenProvided) =>
-    R.pipe(
-      orderEntireDict,
-      R.propOr({}, 'additionalMapStyles'),
-      R.mergeRight(DEFAULT_MAP_STYLE_OBJECTS),
-      R.filter(
-        (styleObj) =>
-          isMapboxTokenProvided ||
-          !(styleObj.mapbox || isMapboxStyle(styleObj.spec))
-      )
-    )(data)
+  (data, isMapboxTokenProvided) => {
+    const ordered = orderEntireDict(data)
+    const merged = {
+      ...DEFAULT_MAP_STYLE_OBJECTS,
+      ...(ordered?.additionalMapStyles ?? {}),
+    }
+    const result = {}
+    for (const [key, styleObj] of Object.entries(merged)) {
+      if (
+        isMapboxTokenProvided ||
+        !(styleObj.mapbox || isMapboxStyle(styleObj.spec))
+      ) {
+        result[key] = styleObj
+      }
+    }
+    return result
+  }
 )
 
 export const selectIsCurrentMapboxStyleFunc = createSelector(
@@ -1194,45 +1393,39 @@ export const selectIsCurrentMapboxStyleFunc = createSelector(
     const currentMapStyleId = currentMapStyleIdFunc(mapId)
     const mapStyleOption = mapStyleOptions[currentMapStyleId]
     const mapStyle = mapStyleOption?.spec
-    return mapStyleOption?.mapbox || isMapboxStyle(mapStyle)
+    return Boolean(mapStyleOption?.mapbox || isMapboxStyle(mapStyle))
   }
 )
 
 export const selectMapProjectionOptionsFunc = createSelector(
   [selectOrderedMaps, selectIsCurrentMapboxStyleFunc],
-  (data, isCurrentMapboxStyleFunc) => (mapId) =>
-    R.pipe(
-      orderEntireDict,
-      R.converge(R.mergeRight, [
-        R.propOr({}, 'additionalProjections'),
-        R.always(
-          R.pipe(
-            R.ifElse(
-              isCurrentMapboxStyleFunc,
-              R.always(MAPBOX_PROJECTIONS),
-              R.always(MAPLIBRE_PROJECTIONS)
-            ),
-            Array.from, // Convert from `Set`
-            R.reject(
-              // Exclude map projection shortcuts
-              R.includes(R.__, [
-                MAP_PROJECTIONS.MERCATOR,
-                MAP_PROJECTIONS.GLOBE,
-              ])
-            ),
-            R.flip(R.pick)(DEFAULT_MAP_PROJECTION_OBJECTS)
-          )(mapId)
-        ),
-      ])
-    )(data)
+  (data, isCurrentMapboxStyleFunc) => (mapId) => {
+    const ordered = orderEntireDict(data) || {}
+    const additional = ordered.additionalProjections || {}
+    const isMapbox = isCurrentMapboxStyleFunc(mapId)
+    const validProjections = isMapbox
+      ? MAPBOX_PROJECTIONS
+      : MAPLIBRE_PROJECTIONS
+    const defaultProjections = {}
+    for (const proj of validProjections) {
+      if (
+        proj !== MAP_PROJECTIONS.MERCATOR &&
+        proj !== MAP_PROJECTIONS.GLOBE &&
+        DEFAULT_MAP_PROJECTION_OBJECTS[proj]
+      ) {
+        defaultProjections[proj] = DEFAULT_MAP_PROJECTION_OBJECTS[proj]
+      }
+    }
+    return { ...defaultProjections, ...additional }
+  }
 )
 
 export const selectPitchSliderToggleFunc = createSelector(
   selectMapControlsByMap,
   (controls) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.prop('showPitchSlider')(controls[mapId]),
+      (mapId) => mapId,
+      (mapId) => controls[mapId]?.showPitchSlider,
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1240,8 +1433,8 @@ export const selectBearingSliderToggleFunc = createSelector(
   selectMapControlsByMap,
   (controls) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.prop('showBearingSlider')(controls[mapId]),
+      (mapId) => mapId,
+      (mapId) => controls[mapId]?.showBearingSlider,
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1249,8 +1442,8 @@ export const selectOptionalViewportsFunc = createSelector(
   selectCurrentMapDataByMap,
   (dataObj) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.path(['optionalViewports', mapId])(dataObj),
+      (mapId) => mapId,
+      (mapId) => dataObj?.optionalViewports?.[mapId],
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1266,22 +1459,26 @@ const selectLegendTypesFn = createSelector(
     maxSizedMemoization(
       ({ mapId, layerKey }) => `${mapId}+${layerKey}`,
       ({ mapId, layerKey }) => {
-        const getEnabledTypes = R.pipe(
-          R.pathOr({}, ['legendGroups', mapId]),
-          R.values,
-          R.pluck('data'),
-          R.mergeAll,
-          (d) =>
-            R.pipe(
-              R.keys,
-              R.filter((key) => R.pathEq(layerKey, [key, 'type'], mapFeatures)),
-              R.flip(R.pick)(d)
-            )(d)
-        )
-        return R.when(
-          R.isEmpty,
-          R.always(getEnabledTypes(mapDataObj))
-        )(getEnabledTypes(localMapObj))
+        const getEnabledTypes = (dataSource) => {
+          const legendGroups = dataSource?.legendGroups?.[mapId] || {}
+          const merged = {}
+          for (const group of Object.values(legendGroups)) {
+            if (group?.data) {
+              Object.assign(merged, group.data)
+            }
+          }
+          const filtered = {}
+          for (const key of Object.keys(merged)) {
+            if (mapFeatures?.[key]?.type === layerKey) {
+              filtered[key] = merged[key]
+            }
+          }
+          return filtered
+        }
+        const localTypes = getEnabledTypes(localMapObj)
+        return Object.keys(localTypes).length === 0
+          ? getEnabledTypes(mapDataObj)
+          : localTypes
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1293,10 +1490,10 @@ export const selectAllNodeIcons = createSelector(
     maxSizedMemoization(
       (mapId) => mapId,
       (mapId) => {
-        return R.pipe(
-          R.pluck('icon'),
-          R.values
-        )(typesFn({ mapId, layerKey: 'node' }))
+        const types = typesFn({ mapId, layerKey: 'node' }) || {}
+        return Object.values(types)
+          .map((item) => item?.icon)
+          .filter(Boolean)
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1307,16 +1504,21 @@ export const selectEnabledTypesFn = createSelector(
     maxSizedMemoization(
       ({ mapId, layerKey }) => `${mapId}+${layerKey}`,
       ({ mapId, layerKey }) => {
-        const allTypes = typesFn({ mapId, layerKey })
-        return R.mapObjIndexed(R.unless(R.prop('value'), R.F))(allTypes)
-      }
+        const allTypes = typesFn({ mapId, layerKey }) || {}
+        const result = {}
+        for (const [key, item] of Object.entries(allTypes)) {
+          result[key] = item?.value ? item : false
+        }
+        return result
+      },
+      MAX_MEMOIZED_CHARTS
     )
 )
 export const selectEnabledArcsFunc = createSelector(
   selectEnabledTypesFn,
   (enabledTypesFunc) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => enabledTypesFunc({ mapId, layerKey: 'arc' }),
       MAX_MEMOIZED_CHARTS
     )
@@ -1325,7 +1527,7 @@ export const selectEnabledNodesFunc = createSelector(
   selectEnabledTypesFn,
   (enabledTypesFunc) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => enabledTypesFunc({ mapId, layerKey: 'node' }),
       MAX_MEMOIZED_CHARTS
     )
@@ -1334,82 +1536,110 @@ export const selectEnabledGeosFunc = createSelector(
   selectEnabledTypesFn,
   (enabledTypesFunc) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => enabledTypesFunc({ mapId, layerKey: 'geo' }),
       MAX_MEMOIZED_CHARTS
     )
 )
 export const selectGeo = createSelector(
   selectMapLayers,
-  R.propOr({}, 'geography')
+  (data) => data?.geography ?? {}
 )
 
 // Local -> features (arcs, nodes, geos)
-export const selectLocalFeatures = createSelector(selectLocal, (data) =>
-  R.pathOr({}, ['mapFeatures', 'data'], data)
+export const selectLocalFeatures = createSelector(
+  selectLocal,
+  (data) => data?.mapFeatures?.data ?? {}
 )
 export const selectLocalNodes = createSelector(
   [selectLocalFeatures, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.filter(R.propEq('node', 'type'), data))
+  (data, time) => {
+    if (!data) return {}
+    const filtered = {}
+    for (const [key, val] of Object.entries(data)) {
+      if (val?.type === 'node') filtered[key] = val
+    }
+    return getTimeValue(time, filtered)
+  }
 )
 export const selectLocalArcs = createSelector(
   [selectLocalFeatures, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.filter(R.propEq('arc', 'type'), data))
+  (data, time) => {
+    if (!data) return {}
+    const filtered = {}
+    for (const [key, val] of Object.entries(data)) {
+      if (val?.type === 'arc') filtered[key] = val
+    }
+    return getTimeValue(time, filtered)
+  }
 )
 export const selectLocalGeos = createSelector(
   [selectLocalFeatures, selectCurrentTime],
-  (data, time) => getTimeValue(time, R.filter(R.propEq('geo', 'type'), data))
+  (data, time) => {
+    if (!data) return {}
+    const filtered = {}
+    for (const [key, val] of Object.entries(data)) {
+      if (val?.type === 'geo') filtered[key] = val
+    }
+    return getTimeValue(time, filtered)
+  }
 )
 export const selectLocalizedNodeTypes = createSelector(
   [selectNodeTypes, selectLocalNodes],
   (nodeTypes, localNodes) =>
-    R.isEmpty(localNodes) ? nodeTypes : R.mergeDeepRight(nodeTypes, localNodes),
+    !localNodes || Object.keys(localNodes).length === 0
+      ? nodeTypes
+      : deepMerge(nodeTypes, localNodes),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )
 export const selectLocalizedArcTypes = createSelector(
   [selectArcTypes, selectLocalArcs],
   (arcTypes, localArcs) =>
-    R.isEmpty(localArcs) ? arcTypes : R.mergeDeepRight(arcTypes, localArcs),
+    !localArcs || Object.keys(localArcs).length === 0
+      ? arcTypes
+      : deepMerge(arcTypes, localArcs),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )
 export const selectLocalizedGeoTypes = createSelector(
   [selectGeoTypes, selectLocalGeos],
   (geoTypes, localGeos) =>
-    R.isEmpty(localGeos) ? geoTypes : R.mergeDeepRight(geoTypes, localGeos),
+    !localGeos || Object.keys(localGeos).length === 0
+      ? geoTypes
+      : deepMerge(geoTypes, localGeos),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )
 export const selectArcTypeKeys = createSelector(
   selectLocalizedArcTypes,
-  (data) => R.keys(data),
+  (data) => Object.keys(data || {}),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )
 export const selectNodeTypeKeys = createSelector(
   selectLocalizedNodeTypes,
-  (data) => R.keys(data),
+  (data) => Object.keys(data || {}),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )
@@ -1441,7 +1671,9 @@ const getMergedAllProps = (data, dataType) => {
     }
     const rawValues = type.data?.valueLists || {}
     const valueKeys = Object.keys(rawValues).filter((k) => k !== 'timeValues')
-    const baseProps = { ...R.dissoc('data', type), type: key }
+    const restType = { ...type }
+    delete restType.data
+    const baseProps = { ...restType, type: key }
 
     const items = new Array(count)
     for (let i = 0; i < count; i++) {
@@ -1482,53 +1714,52 @@ export const selectMergedGeos = createSelector(
 
 const selectEffectiveMapFeaturesBy = createSelector(
   selectLegendTypesFn,
-  (legendObjectsFunc) =>
-    R.curry((mapId, layerKey, featuresByType, type) => {
-      const legendFeatures = legendObjectsFunc({ mapId, layerKey }) || {}
-      const features = R.propOr([], type)(featuresByType)
-      const effectiveMapFeatures = R.map(
-        // R.over(R.lensProp('props'), R.mergeDeepLeft(legendFeatures[type].props))
-        R.mergeDeepLeft(legendFeatures[type] || {})
-      )(features)
-      return effectiveMapFeatures
-    })
+  (legendObjectsFunc) => (mapId, layerKey, featuresByType, type) => {
+    const legendFeatures = legendObjectsFunc({ mapId, layerKey }) || {}
+    const features = featuresByType?.[type] || []
+    const legendObj = legendFeatures[type]
+    if (!legendObj) return features
+    const result = new Array(features.length)
+    for (let i = 0; i < features.length; i++) {
+      result[i] = deepMerge(features[i], legendObj)
+    }
+    return result
+  }
 )
 export const selectEffectiveArcsBy = createSelector(
   [selectEffectiveMapFeaturesBy, selectMergedArcs],
-  (effectiveMapFeaturesBy, arcsByType) =>
-    R.curry((type, mapId) =>
-      effectiveMapFeaturesBy(mapId, 'arc', arcsByType, type)
-    )
+  (effectiveMapFeaturesBy, arcsByType) => (type, mapId) =>
+    effectiveMapFeaturesBy(mapId, 'arc', arcsByType, type)
 )
 export const selectEffectiveNodesBy = createSelector(
   [selectEffectiveMapFeaturesBy, selectMergedNodes],
-  (effectiveMapFeaturesBy, nodesByType) =>
-    R.curry((type, mapId) =>
-      effectiveMapFeaturesBy(mapId, 'node', nodesByType, type)
-    )
+  (effectiveMapFeaturesBy, nodesByType) => (type, mapId) =>
+    effectiveMapFeaturesBy(mapId, 'node', nodesByType, type)
 )
 export const selectEffectiveGeosBy = createSelector(
   [selectEffectiveMapFeaturesBy, selectMergedGeos],
-  (effectiveMapFeaturesBy, geosByType) =>
-    R.curry((type, mapId) =>
-      effectiveMapFeaturesBy(mapId, 'geo', geosByType, type)
-    )
+  (effectiveMapFeaturesBy, geosByType) => (type, mapId) =>
+    effectiveMapFeaturesBy(mapId, 'geo', geosByType, type)
 )
 
 // Map (Custom)
-export const selectLayerById = (state, id) =>
-  R.path(['local', 'map', 'mapLayers', id])(state)
+export const selectLayerById = (state, id) => state?.local?.map?.mapLayers?.[id]
 
 export const selectNodeDataFunc = createSelector(
   [selectEnabledNodesFunc, selectMergedNodes],
   (enabledNodesFunc, mergedData) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.pick(R.keys(R.filter(R.identity, enabledNodesFunc(mapId)))),
-          R.map(R.toPairs)
-        )(mergedData),
+      (mapId) => mapId,
+      (mapId) => {
+        const enabled = enabledNodesFunc(mapId) || {}
+        const result = {}
+        for (const [key, isEnabled] of Object.entries(enabled)) {
+          if (isEnabled && mergedData?.[key]) {
+            result[key] = Object.entries(mergedData[key])
+          }
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1536,21 +1767,21 @@ export const selectNodeDataFunc = createSelector(
 // Local -> groupedOutputs
 const selectLocalStatGroupings = createSelector(
   selectLocal,
-  R.pathOr({}, ['groupedOutputs', 'groupings'])
+  (data) => data?.groupedOutputs?.groupings ?? {}
 )
 
 const selectStatGroupings = createSelector(
   selectOrderedGroupedOutputs,
-  R.propOr({}, 'groupings')
+  (data) => data?.groupings ?? {}
 )
 
 // outputs derived
 export const selectMergedStatGroupings = createSelector(
   [selectLocalStatGroupings, selectStatGroupings],
   (localData, data) =>
-    !localData || R.isEmpty(localData)
+    !localData || Object.keys(localData).length === 0
       ? data || {}
-      : R.mergeDeepLeft(localData, data || {})
+      : deepMerge(data || {}, localData)
 )
 
 export const selectSlimStatGroupings = createSelector(
@@ -1566,7 +1797,9 @@ export const selectSlimStatGroupings = createSelector(
         const levelKeys = Object.keys(grouping.levels)
         for (let j = 0; j < levelKeys.length; j++) {
           const lk = levelKeys[j]
-          levels[lk] = R.dissoc('coloring', grouping.levels[lk])
+          const restLevel = { ...(grouping.levels[lk] || {}) }
+          delete restLevel.coloring
+          levels[lk] = restLevel
         }
         result[key] = { ...grouping, levels }
       } else {
@@ -1577,7 +1810,7 @@ export const selectSlimStatGroupings = createSelector(
   },
   {
     memoize: lruMemoize,
-    memoizeOptions: { equalityCheck: R.equals },
+    memoizeOptions: { equalityCheck: deepEqual },
   }
 )
 
@@ -1612,81 +1845,129 @@ const selectStatGroupingIndicies = createSelector(
 
 const selectGroupedOutputValueLists = createSelector(
   selectGroupedOutputsData,
-  R.pluck('valueLists')
+  (groupedOutputs) => {
+    const result = {}
+    for (const [k, v] of Object.entries(groupedOutputs || {})) {
+      result[k] = v?.valueLists
+    }
+    return result
+  }
 )
 
 const SKIP_EQUALITY_CHECK = '__skipEqualityCheck__'
 
-// Performs deep equality checks on arguments while allowing
-// specific ones to opt out via the `SKIP_EQUALITY_CHECK` flag
-const skipEqualityCheck = R.propOr(false, SKIP_EQUALITY_CHECK)
+const skipEqualityCheck = (obj) => Boolean(obj?.[SKIP_EQUALITY_CHECK])
 
 const createSafeDeepEqualSelector = createSelectorCreator({
   memoize: lruMemoize,
   memoizeOptions: {
     equalityCheck: (a, b) =>
-      skipEqualityCheck(a) || skipEqualityCheck(b) || R.equals(a)(b),
+      skipEqualityCheck(a) || skipEqualityCheck(b) || deepEqual(a, b),
   },
 })
 
 const selectGroupedOutputValueBuffers = createSelector(
   selectGroupedOutputValueLists,
-  R.pipe(
-    R.map(
-      R.map((arr) => {
-        const buffer = window.crossOriginIsolated
-          ? new SharedArrayBuffer(arr.length * 8)
-          : new ArrayBuffer(arr.length * 8)
-        const view = new Float64Array(buffer)
-        for (let i = 0; i < arr.length; i++) {
-          view[i] = arr[i]
+  (valueLists) => {
+    const result = {}
+    for (const [k, lists] of Object.entries(valueLists || {})) {
+      if (lists && typeof lists === 'object') {
+        const buffers = {}
+        for (const [statKey, arr] of Object.entries(lists)) {
+          if (Array.isArray(arr)) {
+            const isCrossOriginIsolated =
+              typeof window !== 'undefined' && window.crossOriginIsolated
+            const buffer = isCrossOriginIsolated
+              ? new SharedArrayBuffer(arr.length * 8)
+              : new ArrayBuffer(arr.length * 8)
+            const view = new Float64Array(buffer)
+            for (let i = 0; i < arr.length; i++) {
+              view[i] = arr[i]
+            }
+            buffers[statKey] = view.buffer
+          }
         }
-        return view.buffer
-      })
-    ),
-    // Skip deep equality to avoid false negatives caused by binary data
-    R.assoc(SKIP_EQUALITY_CHECK, true)
-  )
+        result[k] = buffers
+      }
+    }
+    result[SKIP_EQUALITY_CHECK] = true
+    return result
+  }
 )
 
 export const selectChartColors = createSelector(
   selectMergedStatGroupings,
   (statGroupings) => (chartType, groupingId, groupingLevel) => {
-    const groupingRange = R.pipe(R.length, R.range(0), R.reverse)(groupingId)
+    const groupingLen = groupingId?.length ?? 0
+    const groupingRange = []
+    for (let i = groupingLen - 1; i >= 0; i--) {
+      groupingRange.push(i)
+    }
     const isHierarchicalChart =
       chartType === chartVariant.SUNBURST || chartType === chartVariant.TREEMAP
-    return isHierarchicalChart
-      ? R.mergeAll(
-          R.map((idx) =>
-            getColoringFn(statGroupings, groupingId[idx], groupingLevel[idx])
-          )(groupingRange)
-        )
-      : getColoringFn(
+    if (isHierarchicalChart) {
+      const merged = {}
+      for (let i = 0; i < groupingRange.length; i++) {
+        const idx = groupingRange[i]
+        const fn = getColoringFn(
           statGroupings,
-          groupingId[R.head(groupingRange)],
-          groupingLevel[R.head(groupingRange)]
+          groupingId[idx],
+          groupingLevel[idx]
         )
+        Object.assign(merged, fn)
+      }
+      return merged
+    }
+    const firstIdx = groupingRange[0]
+    return getColoringFn(
+      statGroupings,
+      groupingId[firstIdx],
+      groupingLevel[firstIdx]
+    )
   }
 )
 
 export const selectFilterableStats = createSelector(
   selectGroupedOutputTypes,
-  R.pipe(
-    R.values,
-    R.unnest,
-    R.mergeAll,
-    R.map(R.assoc('type', 'num')),
-    R.filter(R.propOr(true, 'allowFiltering'))
-  )
+  (groupedOutputTypes) => {
+    if (!groupedOutputTypes) return {}
+    const result = {}
+    for (const group of Object.values(groupedOutputTypes)) {
+      if (group && typeof group === 'object') {
+        for (const [key, statObj] of Object.entries(group)) {
+          if (statObj?.allowFiltering !== false) {
+            result[key] = { ...statObj, type: 'num' }
+          }
+        }
+      }
+    }
+    return result
+  }
 )
 
 const mergeFuncs = {
-  [chartAggrFunc.SUM]: R.identity,
-  [chartAggrFunc.MIN]: (val) => R.reduce(R.min, R.head(val), R.tail(val)),
-  [chartAggrFunc.MAX]: (val) => R.reduce(R.max, R.head(val), R.tail(val)),
-  [chartAggrFunc.MEAN]: R.mean,
-  // divisor logic happens once stats are calculated - treat as a sum here
-  [chartAggrFunc.DIVISOR]: R.sum,
+  [chartAggrFunc.SUM]: (val) => {
+    if (!val || val.length === 0) return 0
+    let sum = 0
+    for (let i = 0; i < val.length; i++) sum += val[i]
+    return sum
+  },
+  [chartAggrFunc.MIN]: (val) =>
+    val && val.length ? Math.min(...val) : undefined,
+  [chartAggrFunc.MAX]: (val) =>
+    val && val.length ? Math.max(...val) : undefined,
+  [chartAggrFunc.MEAN]: (val) => {
+    if (!val || val.length === 0) return 0
+    let sum = 0
+    for (let i = 0; i < val.length; i++) sum += val[i]
+    return sum / val.length
+  },
+  [chartAggrFunc.DIVISOR]: (val) => {
+    if (!val || val.length === 0) return 0
+    let sum = 0
+    for (let i = 0; i < val.length; i++) sum += val[i]
+    return sum
+  },
 }
 
 export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
@@ -1701,6 +1982,9 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       async (obj) => {
+        if (!obj || !obj.dataset || !groupedOutputs?.[obj.dataset]) {
+          return []
+        }
         const groupDict = { All: 0 }
         const intToGroup = ['All']
         const statObjs = obj.stats ?? []
@@ -1711,57 +1995,59 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
           currentLevel,
           onlyOrdering = false
         ) => {
-          const parent = R.path(
-            [category, 'levels', currentLevel, 'parent'],
-            groupings
-          )
+          const parent = groupings?.[category]?.levels?.[currentLevel]?.parent
           if (
-            R.isNil(parent) ||
+            parent == null ||
             (onlyOrdering &&
-              !R.pathOr(
-                true,
-                [category, 'levels', currentLevel, 'orderWithParent'],
-                groupings
-              ))
-          )
-            return R.append(currentLevel, path)
-          else
+              groupings?.[category]?.levels?.[currentLevel]?.orderWithParent ===
+                false)
+          ) {
+            return [...path, currentLevel]
+          } else {
             return createParentalPath(
-              R.append(currentLevel, path),
+              [...path, currentLevel],
               category,
               parent,
               onlyOrdering
             )
+          }
         }
 
-        const groupLength = R.values(
-          groupedOutputs[obj.dataset]['valueLists']
-        )[0].length
+        const valueListsObj = groupedOutputs[obj.dataset]?.valueLists || {}
+        const groupLength = Object.values(valueListsObj)[0]?.length ?? 0
 
         // Given an index returns a string to group all similar indicies by
-        const categoryFunc = R.curry((category, level) => {
+        const categoryFunc = (category, level) => {
           const parentalPath = createParentalPath([], category, level)
-          const groupList = R.path([obj.dataset, 'groupLists', category])(
-            groupedOutputs
-          )
-          const groupingVal = R.pipe(
-            R.path([category, 'data']),
-            R.pick(parentalPath),
-            R.values
-          )(groupings)
-          let groupBy = Array(groupLength * groupingVal.length)
+          const groupList =
+            groupedOutputs?.[obj.dataset]?.groupLists?.[category]
+          const catData = groupings?.[category]?.data || {}
+          const groupingVal = []
+          for (let p = 0; p < parentalPath.length; p++) {
+            const pKey = parentalPath[p]
+            if (catData[pKey]) groupingVal.push(catData[pKey])
+          }
+
+          if (groupList == null || groupingVal.length === 0) {
+            return {
+              groupBy: new Array(groupLength).fill(0),
+              parentLength: 1,
+              groupLength,
+            }
+          }
+
+          let groupBy = new Array(groupLength * groupingVal.length)
           for (let index = 0; index < groupLength; index++) {
-            if (groupList == null) return []
             const groupName = groupList[index]
             const groupingIndex =
-              groupingIndicies[category]['data']['id'][groupName]
+              groupingIndicies?.[category]?.data?.id?.[groupName]
             for (let i = 0; i < groupingVal.length; i++) {
-              if (groupDict[groupingVal[i][groupingIndex]] == null) {
-                groupDict[groupingVal[i][groupingIndex]] = intToGroup.length
-                intToGroup.push(groupingVal[i][groupingIndex])
+              const itemVal = groupingVal[i]?.[groupingIndex]
+              if (groupDict[itemVal] == null) {
+                groupDict[itemVal] = intToGroup.length
+                intToGroup.push(itemVal)
               }
-              groupBy[index * groupingVal.length + i] =
-                groupDict[groupingVal[i][groupingIndex]]
+              groupBy[index * groupingVal.length + i] = groupDict[itemVal]
             }
           }
           return {
@@ -1769,39 +2055,38 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
             parentLength: groupingVal.length,
             groupLength,
           }
-        })
+        }
         let groupBys = []
         const parentLengths = []
+        const groupingIds = obj.groupingId ?? []
+        const groupingLevels = obj.groupingLevel ?? []
         // For each grouping, calculate the groupBy and parentLength
-        for (let i = 0; i < obj.groupingId.length; i++) {
-          if (obj.groupingId[i] != null) {
-            const category = categoryFunc(
-              obj.groupingId[i],
-              obj.groupingLevel[i]
-            )
+        for (let i = 0; i < groupingIds.length; i++) {
+          if (groupingIds[i] != null) {
+            const category = categoryFunc(groupingIds[i], groupingLevels[i])
             groupBys = groupBys.concat(category.groupBy)
             parentLengths.push(category.parentLength)
           } else {
-            groupBys = groupBys.concat(R.repeat(0, groupLength))
+            groupBys = groupBys.concat(new Array(groupLength).fill(0))
             parentLengths.push(1)
           }
         }
-        if (R.isEmpty(groupBys)) {
-          groupBys = groupBys.concat(R.repeat(0, groupLength))
+        if (groupBys.length === 0) {
+          groupBys = groupBys.concat(new Array(groupLength).fill(0))
           parentLengths.push(1)
         }
 
         const filteredStatsToCalc = filterGroupedOutputs(
           groupedOutputs[obj.dataset],
-          R.propOr([], 'filters', obj),
+          obj?.filters ?? [],
           groupingIndicies
         )
         // Calculates stat values without applying mergeFunc
-        const calculatedStats = R.map((stat) => {
+        const calculatedStats = statObjs.map((stat) => {
           // Add the aggregationGroupingLevel to the groupBys
           let finalGroupBy = []
           let statParentLengths = []
-          if (R.has('aggregationGroupingLevel', stat)) {
+          if ('aggregationGroupingLevel' in stat) {
             const category = categoryFunc(
               stat.aggregationGroupingId,
               stat.aggregationGroupingLevel
@@ -1809,24 +2094,30 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
             finalGroupBy = category.groupBy
             statParentLengths = parentLengths.concat(category.parentLength)
           } else {
-            finalGroupBy = groupBys.slice(-groupLength * parentLengths.at(-1))
-            statParentLengths = parentLengths.concat(parentLengths.at(-1))
+            finalGroupBy = new Array(groupLength)
+            for (let i = 0; i < groupLength; i++) {
+              finalGroupBy[i] = i
+            }
+            statParentLengths = parentLengths.concat(1)
           }
           const buffersize = (finalGroupBy.length + groupBys.length) * 4
-          const buffer = window.crossOriginIsolated
+          const isCrossOriginIsolated =
+            typeof window !== 'undefined' && window.crossOriginIsolated
+          const buffer = isCrossOriginIsolated
             ? new SharedArrayBuffer(buffersize)
             : new ArrayBuffer(buffersize)
           const view = new Uint32Array(buffer)
           view.set(groupBys)
           view.set(finalGroupBy, groupBys.length)
+          const datasetBuffers = valueBuffers?.[obj.dataset] || {}
           const statGroup = workerManager.doWork({
             groupBys: buffer,
             parentLengths: statParentLengths,
             groupLength,
             indicies: filteredStatsToCalc,
-            valueList: valueBuffers[obj.dataset][stat.statId],
+            valueList: datasetBuffers[stat.statId],
           })
-          return R.has('statIdDivisor', stat)
+          return 'statIdDivisor' in stat
             ? Promise.all([
                 statGroup,
                 workerManager.doWork({
@@ -1834,15 +2125,19 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
                   parentLengths: statParentLengths,
                   groupLength,
                   indicies: filteredStatsToCalc,
-                  valueList: valueBuffers[obj.dataset][stat.statIdDivisor],
+                  valueList: datasetBuffers[stat.statIdDivisor],
                 }),
               ])
             : statGroup
-        })(statObjs)
+        })
         return Promise.all(calculatedStats).then((resolvedStats) => {
           // Convert integer keys in worker output to string names from intToGroup
           const mapKeysToIntToGroup = (tree) => {
             if (typeof tree !== 'object' || tree === null) return tree
+            const values = Object.values(tree)
+            if (values.length > 0 && typeof values[0] === 'number') {
+              return tree
+            }
             const newTree = {}
             for (const key of Object.keys(tree)) {
               const newKey = key
@@ -1855,19 +2150,21 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
           }
 
           // Aggregate / merge values at the lowest level of the tree
-          const isBoxPlot = obj.chartType === chartVariant.BOX_PLOT
+          const isRawValuesChart =
+            obj.chartType === chartVariant.BOX_PLOT ||
+            obj.chartType === chartVariant.DISTRIBUTION
           const mergeStatTree = (tree, aggrType) => {
             if (typeof tree !== 'object' || tree === null) return tree
             const values = Object.values(tree)
             if (values.length === 0) return tree
             const isLowest = typeof values[0] === 'number'
             if (isLowest) {
-              if (isBoxPlot) return values
               const numValues = values.filter(
                 (v) => typeof v === 'number' && !isNaN(v)
               )
+              if (isRawValuesChart) return numValues
               if (numValues.length === 0) return 0
-              const aggrFn = mergeFuncs[aggrType] || R.identity
+              const aggrFn = mergeFuncs[aggrType] || ((v) => v)
               return aggrFn(numValues)
             }
             const newTree = {}
@@ -1879,7 +2176,7 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
 
           // merge the calculated stats - unless boxplot
           // NOTE: Boxplot needs subgrouping - handle this in chart adapter
-          const mergedValues = R.addIndex(R.map)((statResult, idx) => {
+          const mergedValues = resolvedStats.map((statResult, idx) => {
             const statObj = statObjs[idx]
             if (Array.isArray(statResult)) {
               return statResult.map((group) => {
@@ -1889,124 +2186,201 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
             }
             const namedGroup = mapKeysToIntToGroup(statResult)
             return mergeStatTree(namedGroup, statObj.aggregationType)
-          })(resolvedStats)
+          })
 
-          const dividedValues = R.map(
-            R.when(R.is(Array), (arr) =>
-              R.mergeDeepWith(R.divide, arr[0], arr[1])
-            )
-          )(mergedValues)
+          const deepDivide = (a, b) => {
+            if (typeof a === 'number' && typeof b === 'number') {
+              return b !== 0 ? a / b : 0
+            }
+            if (a && typeof a === 'object' && b && typeof b === 'object') {
+              const res = {}
+              const allKeys = new Set([...Object.keys(a), ...Object.keys(b)])
+              for (const k of allKeys) {
+                res[k] = deepDivide(a[k], b[k])
+              }
+              return res
+            }
+            return a
+          }
+
+          const dividedValues = mergedValues.map((val) =>
+            Array.isArray(val) ? deepDivide(val[0], val[1]) : val
+          )
+
           // Helper function to map merged stats to chart input object
-          const recursiveMapLayers = (val, lowestGroupings) =>
-            R.type(val) === 'Object'
-              ? R.pipe(
-                  R.values,
-                  R.head,
-                  (item) => R.type(item) === 'Object'
-                )(val)
-                ? R.values(
-                    R.mapObjIndexed((value, key) => ({
-                      name: R.isNil(obj.groupingId) ? 'All' : key,
-                      children: recursiveMapLayers(value, lowestGroupings),
-                    }))(val)
-                  )
-                : R.map((key) => ({
-                    name: key,
-                    value: recursiveMapLayers(R.propOr(0, key, val)),
-                  }))(R.isNil(lowestGroupings) ? R.keys(val) : lowestGroupings)
-              : R.is(Array, val)
-                ? val
-                : [val]
+          const recursiveMapLayers = (val, lowestGroupings) => {
+            if (val && typeof val === 'object' && !Array.isArray(val)) {
+              const firstVal = Object.values(val)[0]
+              if (
+                firstVal &&
+                typeof firstVal === 'object' &&
+                !Array.isArray(firstVal)
+              ) {
+                return Object.entries(val).map(([key, value]) => ({
+                  name: obj.groupingId == null ? 'All' : key,
+                  children: recursiveMapLayers(value, lowestGroupings),
+                }))
+              } else {
+                const keys = lowestGroupings ?? Object.keys(val)
+                return keys.map((key) => ({
+                  name: key,
+                  value: recursiveMapLayers(val[key] ?? 0),
+                }))
+              }
+            } else if (Array.isArray(val)) {
+              return val
+            } else {
+              return [val]
+            }
+          }
 
           // Helper function to list all of the lowest grouping levels before recursing
           const recursiveMapLayersHelper = (objWithGroups) => {
-            const listLowestGroupings = (groupingLevel) =>
-              R.ifElse(
-                R.pipe(R.values, R.head, R.type, R.equals('Object')),
-                R.pipe(R.values, R.map(listLowestGroupings), R.flatten, R.uniq),
-                R.keys
-              )(groupingLevel)
+            const listLowestGroupings = (groupingLevel) => {
+              if (groupingLevel && typeof groupingLevel === 'object') {
+                const first = Object.values(groupingLevel)[0]
+                if (
+                  first &&
+                  typeof first === 'object' &&
+                  !Array.isArray(first)
+                ) {
+                  const set = new Set()
+                  for (const sub of Object.values(groupingLevel)) {
+                    const subKeys = listLowestGroupings(sub)
+                    for (let i = 0; i < subKeys.length; i++) set.add(subKeys[i])
+                  }
+                  return Array.from(set)
+                }
+                return Object.keys(groupingLevel)
+              }
+              return []
+            }
 
             return recursiveMapLayers(
               objWithGroups,
-              R.propOr(false, 'defaultToZero', obj)
-                ? listLowestGroupings(objWithGroups)
-                : null
+              obj?.defaultToZero ? listLowestGroupings(objWithGroups) : null
             )
           }
 
           // Ordering for the X's in the chart
           const getOrderingsAtIndex = (idx) => {
-            const parentalPath = createParentalPath(
-              [],
-              R.path(['groupingId', idx], obj),
-              R.path(['groupingLevel', idx], obj),
-              true
+            const gId = obj.groupingId?.[idx]
+            const gLevel = obj.groupingLevel?.[idx]
+            const parentalPath = createParentalPath([], gId, gLevel, true)
+            return parentalPath.map(
+              (level) => groupings?.[gId]?.levels?.[level]?.ordering ?? []
             )
-            return R.map((level) =>
-              R.pathOr(
-                [],
-                [R.path(['groupingId', idx], obj), 'levels', level, 'ordering']
-              )(groupings)
-            )(parentalPath)
           }
-          const nLevelOrder = R.curry((depth, chartItem) => {
-            return R.has('children', chartItem)
-              ? R.assoc(
-                  'children',
-                  R.map(nLevelOrder(depth + 1))(
-                    customSortByX(
-                      getOrderingsAtIndex(depth),
-                      R.prop('children', chartItem)
-                    )
-                  ),
-                  chartItem
-                )
-              : chartItem
-          })
+          const nLevelOrder = (depth) => (chartItem) => {
+            if (chartItem && chartItem.children) {
+              const sortedChildren = customSortByX(
+                getOrderingsAtIndex(depth),
+                chartItem.children
+              )
+              return {
+                ...chartItem,
+                children: sortedChildren.map(nLevelOrder(depth + 1)),
+              }
+            }
+            return chartItem
+          }
           // Formats and sorts merged stats
-          const getFormattedData = R.map(
-            R.pipe(
-              recursiveMap(
-                (val) => R.type(val) !== 'Object',
-                R.identity,
-                R.dissoc(undefined)
-              ),
-              recursiveMapLayersHelper,
-              customSortByX(getOrderingsAtIndex(0)),
-              // The 0th layer is sorted above due to not being a child, so we start at 1
-              R.map(nLevelOrder(1))
-            )
-          )
-          const formattedData = getFormattedData(dividedValues)
-          const conditionalMerge = (key, a, b) =>
-            key === 'name'
-              ? a
-              : key === 'value'
-                ? R.concat(a, b)
-                : // key === 'children'
-                  mergeMultiStatData([a, b])
+          const formattedData = dividedValues.map((val) => {
+            const cleaned = recursiveMap(
+              (v) => typeof v !== 'object' || v === null || Array.isArray(v),
+              (v) => v,
+              (v) => {
+                if (v && typeof v === 'object') {
+                  const copy = { ...v }
+                  delete copy[undefined]
+                  return copy
+                }
+                return v
+              }
+            )(val)
+            const mapped = recursiveMapLayersHelper(cleaned)
+            const sorted = customSortByX(getOrderingsAtIndex(0), mapped)
+            return sorted.map(nLevelOrder(1))
+          })
 
-          const mergeMultiStatData = R.pipe(
-            R.reduce(R.mergeDeepWithKey(conditionalMerge), {}),
-            R.values
-          )
+          const mergeDataItems = (a, b) => {
+            if (!a) return b
+            if (!b) return a
+            const result = {}
+            const allKeys = new Set([...Object.keys(a), ...Object.keys(b)])
+            for (const key of allKeys) {
+              if (key === 'name') {
+                result.name = a.name ?? b.name
+              } else if (key === 'value') {
+                result.value = (a.value || []).concat(b.value || [])
+              } else if (key === 'children') {
+                const mapA = {}
+                for (const c of a.children || []) mapA[c.name] = c
+                const mergedChildren = []
+                const visited = new Set()
+                for (const cb of b.children || []) {
+                  visited.add(cb.name)
+                  if (mapA[cb.name]) {
+                    mergedChildren.push(mergeDataItems(mapA[cb.name], cb))
+                  } else {
+                    mergedChildren.push(cb)
+                  }
+                }
+                for (const ca of a.children || []) {
+                  if (!visited.has(ca.name)) {
+                    mergedChildren.push(ca)
+                  }
+                }
+                result.children = mergedChildren
+              } else {
+                result[key] = b[key] ?? a[key]
+              }
+            }
+            return result
+          }
+
+          const mergeMultiStatData = (statsArr) => {
+            if (!statsArr || statsArr.length === 0) return []
+            let mergedMap = {}
+            for (let i = 0; i < statsArr.length; i++) {
+              const currentList = statsArr[i] || []
+              for (let j = 0; j < currentList.length; j++) {
+                const item = currentList[j]
+                if (!mergedMap[item.name]) {
+                  mergedMap[item.name] = item
+                } else {
+                  mergedMap[item.name] = mergeDataItems(
+                    mergedMap[item.name],
+                    item
+                  )
+                }
+              }
+            }
+            return Object.values(mergedMap)
+          }
+
           const result =
             obj.stats.length > 1
               ? mergeMultiStatData(formattedData)
-              : R.head(formattedData)
-          const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
-          const getValue = (item) =>
-            R.has('children', item)
-              ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
-              : R.path(['value', 0], item)
+              : formattedData[0] || []
+          const xAxisOrder = obj?.xAxisOrder ?? 'default'
+          const getValue = (item) => {
+            if (item && item.children) {
+              let sum = 0
+              for (let i = 0; i < item.children.length; i++) {
+                sum += getValue(item.children[i])
+              }
+              return sum
+            }
+            return item?.value?.[0] ?? 0
+          }
           const sortFn = {
             value_ascending: (a, b) => getValue(a) - getValue(b),
             value_descending: (a, b) => getValue(b) - getValue(a),
             alpha_ascending: (a, b) => a.name.localeCompare(b.name),
             alpha_descending: (a, b) => b.name.localeCompare(a.name),
           }[xAxisOrder]
-          const sortedResult = sortFn ? R.sort(sortFn, result) : result
+          const sortedResult = sortFn ? [...result].sort(sortFn) : result
           return sortedResult
         })
       },
@@ -2020,60 +2394,56 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
     maxSizedMemoization(
       (obj) => JSON.stringify(obj),
       (obj) => {
-        const selectedGlobalOutputs = forcePath(
-          R.propOr([], 'globalOutput', obj)
-        )
-        const formattedGlobalOutputs = R.pipe(
-          R.values,
-          R.filter((val) =>
-            R.includes(val.name, R.propOr([], 'sessions', obj))
-          ),
-          R.map((val) => ({
-            name: val.name,
-            children: R.pipe(
-              R.path(['data', 'globalOutputs']),
-              R.converge(addValuesToProps, [
-                R.propOr({}, 'props'),
-                R.propOr({}, 'values'),
-              ]),
-              R.pick(selectedGlobalOutputs),
-              R.reject(R.pipe(R.prop('value'), R.isNil)), // It should be filtered by now, but just in case
-              withIndex,
-              R.map((globalOutput) =>
-                R.assoc(
-                  'value',
-                  [
-                    R.pipe(
-                      R.prop('value'),
-                      R.when(
-                        R.includes(','),
-                        // Convert thousand-separator formatted numbers to float
-                        R.replace(/,/g, '')
-                      ),
-                      parseFloat
-                    )(globalOutput),
-                  ],
-                  {
-                    id: globalOutput.id,
-                    name: globalOutput.name || globalOutput.id,
+        const selectedGlobalOutputs = forcePath(obj?.globalOutput ?? [])
+        const sessionsFilter = obj?.sessions ?? []
+        const formattedGlobalOutputs = []
+
+        if (associatedData) {
+          for (const val of Object.values(associatedData)) {
+            if (sessionsFilter.includes(val?.name)) {
+              const globalOutputs = val?.data?.globalOutputs
+              const props = globalOutputs?.props ?? {}
+              const values = globalOutputs?.values ?? {}
+              const combined = addValuesToProps(props, values)
+              const children = []
+              for (let i = 0; i < selectedGlobalOutputs.length; i++) {
+                const k = selectedGlobalOutputs[i]
+                const item = combined[k]
+                if (item && item.value != null) {
+                  let numVal = item.value
+                  if (typeof numVal === 'string' && numVal.includes(',')) {
+                    numVal = numVal.replace(/,/g, '')
                   }
-                )
-              )
-            )(val),
-          })),
-          R.when(
-            R.always(R.has(R.prop('chartType', obj), chartStatUses)),
-            R.map((session) => ({
-              name: session.name,
-              value: R.unnest(R.pluck('value', session.children)),
-            }))
-          )
-        )(associatedData)
-        const xAxisOrder = R.propOr('default', 'xAxisOrder', obj)
-        const getValue = (item) =>
-          R.has('children', item)
-            ? R.pipe(R.prop('children'), R.map(getValue), R.sum)(item)
-            : R.path(['value', 0], item)
+                  children.push({
+                    id: item.id ?? k,
+                    name: item.name || item.id || k,
+                    value: [parseFloat(numVal)],
+                  })
+                }
+              }
+              const sessionItem = {
+                name: val.name,
+                children,
+              }
+              if (obj?.chartType in chartStatUses) {
+                sessionItem.value = children.flatMap((c) => c.value)
+              }
+              formattedGlobalOutputs.push(sessionItem)
+            }
+          }
+        }
+
+        const xAxisOrder = obj?.xAxisOrder ?? 'default'
+        const getValue = (item) => {
+          if (item?.children) {
+            let sum = 0
+            for (let i = 0; i < item.children.length; i++) {
+              sum += getValue(item.children[i])
+            }
+            return sum
+          }
+          return item?.value?.[0] ?? 0
+        }
         const sortFn = {
           value_ascending: (a, b) => getValue(a) - getValue(b),
           value_descending: (a, b) => getValue(b) - getValue(a),
@@ -2081,7 +2451,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
           alpha_descending: (a, b) => b.name.localeCompare(a.name),
         }[xAxisOrder]
         const sortedFormattedGlobalOutputs = sortFn
-          ? R.sort(sortFn, formattedGlobalOutputs)
+          ? [...formattedGlobalOutputs].sort(sortFn)
           : formattedGlobalOutputs
         return sortedFormattedGlobalOutputs
       },
@@ -2093,31 +2463,29 @@ export const selectGroupedEnabledArcsFunc = createSelector(
   [selectEnabledArcsFunc, selectMergedArcs, selectCurrentMapProjectionFunc],
   (enabledArcsFunc, mergedArcs, projectionFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.toPairs,
-          R.filter((d) => R.propOr(false, d[0], enabledArcsFunc(mapId))),
-          R.groupBy(
-            R.pipe(
-              R.path([1, 0]),
-              R.cond([
-                [R.has('geoJson'), R.always('geoJson')],
-                [
-                  R.converge(R.and, [
-                    R.propEq('3d', 'displayType'),
-                    R.always(
-                      R.equals(MAP_PROJECTIONS.MERCATOR, projectionFunc(mapId))
-                    ),
-                  ]),
-                  R.always('3d'),
-                ],
-                [R.T, R.always('false')],
-              ])
-            )
-          ),
-          R.map(R.fromPairs)
-        )(mergedArcs),
+      (mapId) => mapId,
+      (mapId) => {
+        const enabledArcs = enabledArcsFunc(mapId) || {}
+        const isMercator = projectionFunc(mapId) === MAP_PROJECTIONS.MERCATOR
+        const result = {
+          geoJson: {},
+          '3d': {},
+          false: {},
+        }
+        for (const [key, arcItems] of Object.entries(mergedArcs || {})) {
+          if (enabledArcs[key]) {
+            const firstItem = arcItems?.[0]
+            let groupKey = 'false'
+            if (firstItem && 'geoJson' in firstItem) {
+              groupKey = 'geoJson'
+            } else if (firstItem?.displayType === '3d' && isMercator) {
+              groupKey = '3d'
+            }
+            result[groupKey][key] = arcItems
+          }
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2125,8 +2493,15 @@ export const selectLineDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
   (dataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.map(R.toPairs)(R.propOr({}, 'false', dataFunc(mapId))),
+      (mapId) => mapId,
+      (mapId) => {
+        const data = dataFunc(mapId)?.false || {}
+        const result = {}
+        for (const [k, v] of Object.entries(data)) {
+          result[k] = Object.entries(v)
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2134,8 +2509,15 @@ export const selectArcDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
   (dataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.map(R.toPairs)(R.propOr({}, '3d', dataFunc(mapId))),
+      (mapId) => mapId,
+      (mapId) => {
+        const data = dataFunc(mapId)?.['3d'] || {}
+        const result = {}
+        for (const [k, v] of Object.entries(data)) {
+          result[k] = Object.entries(v)
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2143,56 +2525,49 @@ export const selectMultiLineDataFunc = createSelector(
   selectGroupedEnabledArcsFunc,
   (dataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.map(R.toPairs)(R.propOr({}, 'geoJson', dataFunc(mapId))),
+      (mapId) => mapId,
+      (mapId) => {
+        const data = dataFunc(mapId)?.geoJson || {}
+        const result = {}
+        for (const [k, v] of Object.entries(data)) {
+          result[k] = Object.entries(v)
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
 export const selectArcRange = createSelector(
   selectEffectiveArcsBy,
   (effectiveArcsBy) =>
-    R.memoizeWith(
-      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+    maxSizedMemoization(
+      (type, prop, mapId) => `${type}+${prop}+${mapId}`,
       (type, prop, mapId) => {
         const effectiveArcs = effectiveArcsBy(type, mapId)
-        return R.pipe(
-          R.path([0, 'props', prop]), // Picking a specific index (in this case 0) is irrelevant as the elements of the array only vary by value and the props should remain the same
-          R.when(
-            R.either(R.isEmpty, R.has('gradient')),
-            R.mergeRight(
-              R.reduce(
-                (acc, value) => ({
-                  max: R.max(
-                    acc.max,
-                    R.pathOr(acc.max, ['values', prop], value)
-                  ),
-                  min: R.min(
-                    acc.min,
-                    R.pathOr(acc.min, ['values', prop], value)
-                  ),
-                }),
-                { min: Infinity, max: -Infinity }
-              )(effectiveArcs)
-            )
-          ),
-          R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
-          R.unless(checkValidRange, R.always({ min: 0, max: 0, gradient: {} }))
-        )(effectiveArcs)
-      }
+        return computeItemRange(effectiveArcs, prop)
+      },
+      MAX_MEMOIZED_CHARTS
     )
 )
 export const selectGroupedEnabledGeosFunc = createSelector(
   [selectEnabledGeosFunc, selectMergedGeos],
   (enabledGeosFunc, mergedGeos) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.toPairs,
-          R.filter((d) => R.propOr(false, d[0], enabledGeosFunc(mapId))),
-          R.groupBy(R.hasPath([1, 0, 'geoJson'])),
-          R.map(R.fromPairs)
-        )(mergedGeos),
+      (mapId) => mapId,
+      (mapId) => {
+        const enabledGeos = enabledGeosFunc(mapId) || {}
+        const result = {
+          true: {},
+          false: {},
+        }
+        for (const [key, geoItems] of Object.entries(mergedGeos || {})) {
+          if (enabledGeos[key]) {
+            const hasGeoJson = Boolean(geoItems?.[0]?.geoJson)
+            result[hasGeoJson ? 'true' : 'false'][key] = geoItems
+          }
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2201,8 +2576,8 @@ export const selectFetchedGeoDataFunc = createSelector(
   selectGroupedEnabledGeosFunc,
   (dataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.propOr({}, 'true', dataFunc(mapId)),
+      (mapId) => mapId,
+      (mapId) => dataFunc(mapId)?.true ?? {},
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2211,9 +2586,15 @@ export const selectIncludedGeoDataFunc = createSelector(
   selectGroupedEnabledGeosFunc,
   (dataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(R.propOr({}, 'false'), R.map(R.toPairs))(dataFunc(mapId)),
+      (mapId) => mapId,
+      (mapId) => {
+        const data = dataFunc(mapId)?.false || {}
+        const result = {}
+        for (const [k, v] of Object.entries(data)) {
+          result[k] = Object.entries(v)
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2222,16 +2603,22 @@ export const selectMatchingKeysByTypeFunc = createSelector(
   [selectFetchedGeoDataFunc],
   (geosByType) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.map(
-            R.pipe(
-              R.addIndex(R.map)(R.flip(R.assoc('data_key'))),
-              R.indexBy(R.prop('geoJsonValue'))
-            )
-          )
-        )(geosByType(mapId)),
+      (mapId) => mapId,
+      (mapId) => {
+        const typesObj = geosByType(mapId) || {}
+        const result = {}
+        for (const [typeKey, items] of Object.entries(typesObj)) {
+          const byVal = {}
+          if (Array.isArray(items)) {
+            for (let i = 0; i < items.length; i++) {
+              const item = { ...items[i], data_key: i }
+              byVal[item.geoJsonValue] = item
+            }
+          }
+          result[typeKey] = byVal
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2241,31 +2628,34 @@ export const selectSplitNodeDataFunc = createSelector(
   [selectEnabledNodesFunc, selectNodeDataFunc],
   (enabledNodesFunc, nodeDataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.values,
-          R.unnest,
-          R.filter((d) => {
-            const nodeType = d[1].type
-            const enabledNodes = enabledNodesFunc(mapId)
-            const { colorBy, sizeBy, group } = enabledNodes[nodeType]
-            const colorFallback = d[1].props[colorBy]?.fallback?.color
-            const sizeFallback = d[1].props[sizeBy]?.fallback?.size
-            const colorValue = d[1].values[colorBy]
-            const sizeValue = d[1].values[sizeBy]
-            // TODO: Handle `null` values in categorical props
-            return (
+      (mapId) => mapId,
+      (mapId) => {
+        const enabledNodes = enabledNodesFunc(mapId) || {}
+        const nodeData = nodeDataFunc(mapId) || {}
+        const result = { true: [], false: [] }
+        for (const entries of Object.values(nodeData)) {
+          for (let i = 0; i < entries.length; i++) {
+            const d = entries[i]
+            const nodeType = d[1]?.type
+            const enabledConfig = enabledNodes[nodeType]
+            if (!enabledConfig) continue
+            const { colorBy, sizeBy, group } = enabledConfig
+            const colorFallback = d[1]?.props?.[colorBy]?.fallback?.color
+            const sizeFallback = d[1]?.props?.[sizeBy]?.fallback?.size
+            const colorValue = d[1]?.values?.[colorBy]
+            const sizeValue = d[1]?.values?.[sizeBy]
+            if (
               (colorFallback != null || colorValue != null) &&
               (sizeFallback != null || sizeValue != null) &&
               !(group && colorValue == null)
-            )
-          }),
-          R.groupBy((d) => {
-            const nodeType = d[1].type
-            return enabledNodesFunc(mapId)[nodeType].group || false
-          })
-        )(nodeDataFunc(mapId)),
+            ) {
+              const isGrouped = Boolean(group)
+              result[isGrouped ? 'true' : 'false'].push(d)
+            }
+          }
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2274,11 +2664,11 @@ export const selectGroupedNodesWithIdFunc = createSelector(
   selectSplitNodeDataFunc,
   (splitNodeDataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.map((d) => R.assoc('id', d[0])(d[1]))(
-          R.propOr([], true, splitNodeDataFunc(mapId))
-        ),
+      (mapId) => mapId,
+      (mapId) => {
+        const groupedList = splitNodeDataFunc(mapId)?.true || []
+        return groupedList.map((d) => ({ ...d[1], id: d[0] }))
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2286,67 +2676,25 @@ export const selectGroupedNodesWithIdFunc = createSelector(
 export const selectNodeRange = createSelector(
   selectEffectiveNodesBy,
   (effectiveNodesBy) =>
-    R.memoizeWith(
-      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+    maxSizedMemoization(
+      (type, prop, mapId) => `${type}+${prop}+${mapId}`,
       (type, prop, mapId) => {
         const effectiveNodes = effectiveNodesBy(type, mapId)
-        return R.pipe(
-          R.path([0, 'props', prop]),
-          R.when(
-            R.either(R.isEmpty, R.has('gradient')),
-            R.mergeRight(
-              R.reduce(
-                (acc, value) => ({
-                  max: R.max(
-                    acc.max,
-                    R.pathOr(acc.max, ['values', prop], value)
-                  ),
-                  min: R.min(
-                    acc.min,
-                    R.pathOr(acc.min, ['values', prop], value)
-                  ),
-                }),
-                { min: Infinity, max: -Infinity }
-              )(effectiveNodes)
-            )
-          ),
-          R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
-          R.unless(checkValidRange, R.always({ min: 0, max: 0, gradient: {} }))
-        )(effectiveNodes)
-      }
+        return computeItemRange(effectiveNodes, prop)
+      },
+      MAX_MEMOIZED_CHARTS
     )
 )
 export const selectGeoRange = createSelector(
   [selectEffectiveGeosBy],
   (effectiveGeosBy) =>
-    R.memoizeWith(
-      (type, prop, mapId) => JSON.stringify([type, prop, mapId]),
+    maxSizedMemoization(
+      (type, prop, mapId) => `${type}+${prop}+${mapId}`,
       (type, prop, mapId) => {
         const effectiveGeos = effectiveGeosBy(type, mapId)
-        return R.pipe(
-          R.path([0, 'props', prop]),
-          R.when(
-            R.either(R.isEmpty, R.has('gradient')),
-            R.mergeRight(
-              R.reduce(
-                (acc, value) => ({
-                  max: R.max(
-                    acc.max,
-                    R.pathOr(acc.max, ['values', prop], value)
-                  ),
-                  min: R.min(
-                    acc.min,
-                    R.pathOr(acc.min, ['values', prop], value)
-                  ),
-                }),
-                { min: Infinity, max: -Infinity }
-              )(effectiveGeos)
-            )
-          ),
-          R.unless(R.isNil, R.pick(ALLOWED_RANGE_KEYS)),
-          R.unless(checkValidRange, R.always({ min: 0, max: 0, gradient: {} }))
-        )(effectiveGeos)
-      }
+        return computeItemRange(effectiveGeos, prop)
+      },
+      MAX_MEMOIZED_CHARTS
     )
 )
 
@@ -2355,29 +2703,34 @@ export const selectLineMatchingKeysByTypeFunc = createSelector(
   [selectEnabledArcsFunc, selectMultiLineDataFunc],
   (enabledArcsFunc, dataFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.pipe(
-          R.values,
-          R.unnest,
-          R.map((d) => R.assoc('data_key', d[0], d[1])),
-          R.filter((d) => {
-            const arcType = d.type
-            const enabledArcs = enabledArcsFunc(mapId)
-            const { colorBy, sizeBy } = enabledArcs[arcType]
-            const colorFallback = d.props[colorBy]?.fallback?.color
-            const sizeFallback = d.props[sizeBy]?.fallback?.size
-            const colorValue = d.values[colorBy]
-            const sizeValue = d.values[sizeBy]
-            // TODO: Handle `null` values in categorical props
-            return (
+      (mapId) => mapId,
+      (mapId) => {
+        const enabledArcs = enabledArcsFunc(mapId) || {}
+        const multiLineData = dataFunc(mapId) || {}
+        const result = {}
+        for (const entries of Object.values(multiLineData)) {
+          for (let i = 0; i < entries.length; i++) {
+            const d = entries[i]
+            const item = { ...d[1], data_key: d[0] }
+            const arcType = item.type
+            const enabledConfig = enabledArcs[arcType]
+            if (!enabledConfig) continue
+            const { colorBy, sizeBy } = enabledConfig
+            const colorFallback = item.props?.[colorBy]?.fallback?.color
+            const sizeFallback = item.props?.[sizeBy]?.fallback?.size
+            const colorValue = item.values?.[colorBy]
+            const sizeValue = item.values?.[sizeBy]
+            if (
               (colorFallback != null || colorValue != null) &&
               (sizeFallback != null || sizeValue != null)
-            )
-          }),
-          R.groupBy(R.prop('type')),
-          R.map(R.indexBy(R.prop('geoJsonValue')))
-        )(dataFunc(mapId)),
+            ) {
+              if (!result[arcType]) result[arcType] = {}
+              result[arcType][item.geoJsonValue] = item
+            }
+          }
+        }
+        return result
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2386,34 +2739,29 @@ export const selectNodeClustersFunc = createSelector(
   [selectGroupedNodesWithIdFunc, selectEnabledNodesFunc],
   (dataFunc, legendObjectsFunc) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => {
-        const data = dataFunc(mapId)
-        const legendObj = legendObjectsFunc(mapId)
+        const data = dataFunc(mapId) || []
+        const legendObj = legendObjectsFunc(mapId) || {}
         // define helper functions
-        const getVarByProp = R.curry((varByKey, nodeObj) =>
-          R.path([nodeObj.type, varByKey])(legendObj)
-        )
-        const getClusterVarByProp = R.curry((varByKey, nodeCluster) =>
-          R.path([nodeCluster.properties.type, varByKey])(legendObj)
-        )
+        const getVarByProp = (varByKey, nodeObj) =>
+          legendObj[nodeObj?.type]?.[varByKey]
+        const getClusterVarByProp = (varByKey, nodeCluster) =>
+          legendObj[nodeCluster?.properties?.type]?.[varByKey]
         const getPosition = (d) => [d.longitude, d.latitude, d.altitude + 1]
-        const getGroupCalculation = R.curry((groupCalculation, nodeCluster) =>
-          R.pathOr(statId.COUNT, [
-            nodeCluster.properties.type,
-            groupCalculation,
-          ])(legendObj)
-        )
+        const getGroupCalculation = (groupCalculation, nodeCluster) =>
+          legendObj[nodeCluster?.properties?.type]?.[groupCalculation] ??
+          statId.COUNT
 
-        const getColorGroupFn = R.pipe(
-          getGroupCalculation('groupCalcByColor'),
-          R.nth(R.__, getStatFn)
-        )
+        const getColorGroupFn = (cluster) => {
+          const calc = getGroupCalculation('groupCalcByColor', cluster)
+          return getStatFn[calc]
+        }
 
-        const getSizeGroupFn = R.pipe(
-          getGroupCalculation('groupCalcBySize'),
-          R.nth(R.__, getStatFn)
-        )
+        const getSizeGroupFn = (cluster) => {
+          const calc = getGroupCalculation('groupCalcBySize', cluster)
+          return getStatFn[calc]
+        }
 
         // Set the "supercluster" constructor parameters
         const options = {
@@ -2425,57 +2773,54 @@ export const selectNodeClustersFunc = createSelector(
             const colorProp = getVarByProp('colorBy', d)
             const sizeProp = getVarByProp('sizeBy', d)
 
-            const sizePropObj = {
-              [sizeProp]: sizeProp
-                ? {
-                    value: [d.values[sizeProp]],
-                  }
-                : {},
-            }
+            const sizePropObj = sizeProp
+              ? { [sizeProp]: { value: [d.values[sizeProp]] } }
+              : {}
 
-            const colorPropObj = {
-              [colorProp]: colorProp
-                ? {
-                    type: d.props[colorProp].type,
+            const colorPropObj = colorProp
+              ? {
+                  [colorProp]: {
+                    type: d.props[colorProp]?.type,
                     value: [d.values[colorProp]],
-                  }
-                : {},
-            }
+                  },
+                }
+              : {}
+
             return {
               type: d.type,
               colorDomain: null,
               sizeDomain: null,
               icon: d['icon'],
               grouped_ids: [d.id],
-              ...R.mergeDeepRight(colorPropObj, sizePropObj),
+              ...deepMerge(colorPropObj, sizePropObj),
             }
           },
           reduce: (acc, dProps) => {
             const id = dProps.grouped_ids
             const colorProp = getVarByProp('colorBy', dProps)
             const sizeProp = getVarByProp('sizeBy', dProps)
-            if (sizeProp) {
+            if (sizeProp && dProps[sizeProp]) {
               const propValue = dProps[sizeProp].value
               acc[sizeProp].value = acc[sizeProp].value.concat(propValue)
             }
 
-            // BUG: At some point, I noticed that there are more values
-            // in the resulting array than the actual points in the cluster,
-            // e.g. a cluster with two nodes with values 100 and 50 might end
-            // up with an array of values of [100, 50, 60].
-            // Not sure if this bug went away after some other fixes
-            if (colorProp && colorProp !== sizeProp) {
+            if (colorProp && colorProp !== sizeProp && dProps[colorProp]) {
               const propValue = dProps[colorProp].value
               acc[colorProp].value = acc[colorProp].value.concat(propValue)
             }
-            // all the ids of the points grouped in this cluster
             if (id) {
               acc.grouped_ids = acc.grouped_ids.concat(id)
             }
           },
         }
         // create groups
-        const groupsRaw = R.pipe(R.groupBy(R.prop('name')), R.values)(data)
+        const groupsMap = {}
+        for (let i = 0; i < data.length; i++) {
+          const name = data[i].name
+          if (!groupsMap[name]) groupsMap[name] = []
+          groupsMap[name].push(data[i])
+        }
+        const groupsRaw = Object.values(groupsMap)
         const groups = {}
         if (data.length > 0) {
           const preparedGroups = groupsRaw.map((dataGroup) => {
@@ -2486,7 +2831,7 @@ export const selectNodeClustersFunc = createSelector(
             const sc = new Supercluster(options)
             sc.load(points)
             const nodeType = dataGroup[0].type
-            const { groupScaleWithZoom, groupScale } = legendObj[nodeType]
+            const { groupScaleWithZoom, groupScale } = legendObj[nodeType] || {}
             return { points, sc, groupScaleWithZoom, groupScale }
           })
 
@@ -2508,22 +2853,20 @@ export const selectNodeClustersFunc = createSelector(
             // find color/size value for each cluster - store min/max by type
             for (let cluster of clusters) {
               // The node type in this cluster
-              const clusterType = R.path(['properties', 'type'])(cluster)
+              const clusterType = cluster.properties?.type
               // The props that we use in the legend for colorBy and sizeBy for a specific node type
               const colorProp = getClusterVarByProp('colorBy', cluster)
               const sizeProp = getClusterVarByProp('sizeBy', cluster)
               // The prop type of colorProp to determine if the prop is categorical
               const colorPropType = cluster.properties.cluster
-                ? cluster.properties[colorProp].type
-                : cluster.properties.props[colorProp].type
+                ? cluster.properties[colorProp]?.type
+                : cluster.properties.props?.[colorProp]?.type
 
               // gets the values and aggregates by groupCalculationFn
               const getDomainValue = (prop, groupCalculationFn) =>
                 cluster.properties.cluster
-                  ? groupCalculationFn(cluster.properties[prop].value)
-                  : // Nodes that were not within the radius to form a cluster
-                    // This uses the calculationFn to apply count properly
-                    groupCalculationFn([cluster.properties.values[prop]])
+                  ? groupCalculationFn(cluster.properties[prop]?.value)
+                  : groupCalculationFn([cluster.properties.values?.[prop]])
 
               // All elements of a cluster contain the same `nodeType`
               // required to get the corresponding calculationGroup (color or size)
@@ -2543,31 +2886,65 @@ export const selectNodeClustersFunc = createSelector(
               }
 
               // Find the current min/max for this node type
-              const { min: sizeMin, max: sizeMax } = R.pathOr(
-                { min: Infinity, max: -Infinity },
-                [clusterType, 'size'],
-                ranges
-              )
-              const { min: colorMin, max: colorMax } = R.pathOr(
-                { min: Infinity, max: -Infinity },
-                [clusterType, 'color'],
-                ranges
-              )
+              const prevSize = ranges[clusterType]?.size
+              const prevColor = ranges[clusterType]?.color
+              const sizeMin = Number.isFinite(prevSize?.min)
+                ? prevSize.min
+                : Infinity
+              const sizeMax = Number.isFinite(prevSize?.max)
+                ? prevSize.max
+                : -Infinity
+              const colorMin = Number.isFinite(prevColor?.min)
+                ? prevColor.min
+                : Infinity
+              const colorMax = Number.isFinite(prevColor?.max)
+                ? prevColor.max
+                : -Infinity
+
+              const numColorVal = Number(colorValue)
+              const numSizeVal = Number(sizeValue)
+
+              const newColorMin = Number.isFinite(numColorVal)
+                ? Math.min(colorMin, numColorVal)
+                : colorMin
+              const newColorMax = Number.isFinite(numColorVal)
+                ? Math.max(colorMax, numColorVal)
+                : colorMax
+              const newSizeMin = Number.isFinite(numSizeVal)
+                ? Math.min(sizeMin, numSizeVal)
+                : sizeMin
+              const newSizeMax = Number.isFinite(numSizeVal)
+                ? Math.max(sizeMax, numSizeVal)
+                : sizeMax
+
               // Update the types min/max with new values
               ranges[clusterType] = {
                 color:
                   colorPropType === propId.NUMBER
                     ? {
-                        min: R.min(colorMin, +colorValue),
-                        max: R.max(colorMax, +colorValue),
+                        min: newColorMin,
+                        max: newColorMax,
                       }
                     : {}, // Empty for a categorical prop
                 size: {
-                  min: R.min(sizeMin, sizeValue),
-                  max: R.max(sizeMax, sizeValue),
+                  min: newSizeMin,
+                  max: newSizeMax,
                 },
               }
             }
+
+            for (const cType of Object.keys(ranges)) {
+              const r = ranges[cType]
+              if (r.size) {
+                if (r.size.min === Infinity) r.size.min = 0
+                if (r.size.max === -Infinity) r.size.max = 0
+              }
+              if (r.color && r.color.min != null) {
+                if (r.color.min === Infinity) r.color.min = 0
+                if (r.color.max === -Infinity) r.color.max = 0
+              }
+            }
+
             groups[z] = { data: clusters, range: ranges }
           }
         }
@@ -2581,9 +2958,8 @@ export const selectNodeClustersAtZoomFunc = createSelector(
   [selectNodeClustersFunc, selectZoomFunc],
   (nodeClustersFunc, zoomFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) =>
-        R.propOr({}, Math.floor(zoomFunc(mapId)), nodeClustersFunc(mapId)),
+      (mapId) => mapId,
+      (mapId) => nodeClustersFunc(mapId)?.[Math.floor(zoomFunc(mapId))] ?? {},
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2592,8 +2968,8 @@ export const selectNodeRangeAtZoomFunc = createSelector(
   selectNodeClustersAtZoomFunc,
   (nodeClustersFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.propOr({}, 'range')(nodeClustersFunc(mapId)),
+      (mapId) => mapId,
+      (mapId) => nodeClustersFunc(mapId)?.range ?? {},
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -2606,7 +2982,7 @@ export const selectNodeGeoJsonObjectFunc = createSelector(
     selectLegendNumberFormatFunc,
   ],
   (nodeDataSplitFunc, nodeRange, legendObjectsFunc, legendNumberFormatFunc) => {
-    const nodeDataFunc = R.pipe(nodeDataSplitFunc, R.propOr({}, 'false'))
+    const nodeDataFunc = (mapId) => nodeDataSplitFunc(mapId)?.false ?? {}
     const geometryFunc = (item) => ({
       type: 'Point',
       coordinates: [item.longitude, item.latitude],
@@ -2635,7 +3011,7 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
     legendNumberFormatFunc
   ) =>
     maxSizedMemoization(
-      R.identity,
+      (mapId) => mapId,
       (mapId) => {
         const clusterData = nodeClustersFunc(mapId)
         const groups = clusterData?.data || []
@@ -2655,24 +3031,29 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
           const sizeByProp = effectiveNodes.props?.[sizeBy] || {}
           const sizeFallback = sizeByProp.fallback?.size ?? '0'
           const isSizeCategorical = sizeByProp.type !== propId.NUMBER
-          const sizeDomain = clusterRange[nodeType]?.size || { min: 0, max: 1 }
+          const sizeDomainRaw = clusterRange[nodeType]?.size
+          const sizeDomain = {
+            min: Number.isFinite(sizeDomainRaw?.min) ? sizeDomainRaw.min : 0,
+            max: Number.isFinite(sizeDomainRaw?.max) ? sizeDomainRaw.max : 0,
+          }
           const parsedSize = parseGradient(
             'size',
             legendNumberFormatFunc(sizeByProp).precision,
             true
-          )(sizeByProp)
+          )({ ...sizeByProp, min: sizeDomain.min, max: sizeDomain.max })
 
           const colorByProp = effectiveNodes.props?.[colorBy] || {}
           const colorFallback = colorByProp.fallback?.color ?? '#000'
           const isColorCategorical = colorByProp.type !== propId.NUMBER
-          const colorDomain = clusterRange[nodeType]?.color || {
-            min: 0,
-            max: 1,
+          const colorDomainRaw = clusterRange[nodeType]?.color
+          const colorDomain = {
+            min: Number.isFinite(colorDomainRaw?.min) ? colorDomainRaw.min : 0,
+            max: Number.isFinite(colorDomainRaw?.max) ? colorDomainRaw.max : 0,
           }
           const parsedColor = parseGradient(
             'color',
             legendNumberFormatFunc(colorByProp).precision
-          )(colorByProp)
+          )({ ...colorByProp, min: colorDomain.min, max: colorDomain.max })
 
           const meta = {
             legendObj,
@@ -2706,11 +3087,12 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
               : meta.isSizeCategorical
                 ? (meta.sizeByProp?.options?.[sizeByPropVal]?.size ?? '0')
                 : getScaledValue(
-                    [meta.sizeDomain.min, meta.sizeDomain.max],
+                    meta.parsedSize.values,
                     meta.parsedSize.sizes,
                     parseFloat(sizeByPropVal),
                     meta.sizeByProp.gradient?.scale,
-                    meta.sizeByProp.gradient?.scaleParams
+                    meta.sizeByProp.gradient?.scaleParams,
+                    meta.sizeFallback
                   )
 
           const colorObj = group.properties.colorProp
@@ -2723,11 +3105,12 @@ export const selectNodeClusterGeoJsonObjectFunc = createSelector(
                 ? (meta.colorByProp?.options?.[colorByPropVal]?.color ??
                   getChartItemColor(colorByPropVal))
                 : getScaledValue(
-                    [meta.colorDomain.min, meta.colorDomain.max],
+                    meta.parsedColor.values,
                     meta.parsedColor.colors,
                     parseFloat(colorByPropVal),
                     meta.colorByProp.gradient?.scale,
-                    meta.colorByProp.gradient?.scaleParams
+                    meta.colorByProp.gradient?.scaleParams,
+                    meta.colorFallback
                   )
 
           const id =
@@ -2760,11 +3143,25 @@ export const selectNodeLayerGeoJsonFunc = createSelector(
   [selectNodeGeoJsonObjectFunc, selectNodeClusterGeoJsonObjectFunc],
   (nodesFunc, clustersFunc) =>
     maxSizedMemoization(
-      R.identity,
-      (mapId) => R.concat(nodesFunc(mapId), clustersFunc(mapId)),
+      (mapId) => mapId,
+      (mapId) => nodesFunc(mapId).concat(clustersFunc(mapId)),
       MAX_MEMOIZED_CHARTS
     )
 )
+
+const flattenArcData = (data) => {
+  const result = []
+  if (data) {
+    for (const group of Object.values(data)) {
+      if (Array.isArray(group)) {
+        for (let i = 0; i < group.length; i++) {
+          result.push(group[i])
+        }
+      }
+    }
+  }
+  return result
+}
 
 export const selectArcLayerGeoJsonFunc = createSelector(
   [
@@ -2774,13 +3171,11 @@ export const selectArcLayerGeoJsonFunc = createSelector(
     selectLegendNumberFormatFunc,
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
-    const geometryFunc = (item) => {
-      return {
-        type: 'LineString',
-        coordinates: adjustArcPath(item.path),
-      }
-    }
-    const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
+    const geometryFunc = (item) => ({
+      type: 'LineString',
+      coordinates: adjustArcPath(item.path),
+    })
+    const modifiedArcDataFunc = (mapId) => flattenArcData(arcDataFunc(mapId))
     return constructGeoJson(
       arcRange,
       modifiedArcDataFunc,
@@ -2800,13 +3195,11 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
     selectLegendNumberFormatFunc,
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
-    const geometryFunc = (item) => {
-      return {
-        type: 'LineString',
-        coordinates: adjustArcPath(item.path),
-      }
-    }
-    const modifiedArcDataFunc = R.pipe(arcDataFunc, R.values, R.unnest)
+    const geometryFunc = (item) => ({
+      type: 'LineString',
+      coordinates: adjustArcPath(item.path),
+    })
+    const modifiedArcDataFunc = (mapId) => flattenArcData(arcDataFunc(mapId))
     return constructGeoJson(
       arcRange,
       modifiedArcDataFunc,
@@ -2867,11 +3260,8 @@ export const selectIncludedGeoJsonFunc = createSelector(
         coordinates: isNested ? path : [path],
       }
     }
-    const modifiedIncludedGeoDataFunc = R.pipe(
-      includedGeoDataFunc,
-      R.values,
-      R.unnest
-    )
+    const modifiedIncludedGeoDataFunc = (mapId) =>
+      flattenArcData(includedGeoDataFunc(mapId))
     return constructGeoJson(
       geoRange,
       modifiedIncludedGeoDataFunc,
@@ -2910,11 +3300,11 @@ export const selectFetchedGeoJsonFunc = createSelector(
 
 export const selectGeoTypeKeys = createSelector(
   selectLocalizedGeoTypes,
-  (data) => R.keys(data),
+  (data) => Object.keys(data || {}),
   {
     memoize: lruMemoize,
     memoizeOptions: {
-      resultEqualityCheck: R.equals,
+      resultEqualityCheck: deepEqual,
     },
   }
 )

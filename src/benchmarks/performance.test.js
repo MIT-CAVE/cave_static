@@ -1,34 +1,23 @@
-import { colord } from 'colord'
-import { scaleLinear } from 'd3-scale'
 import { performance } from 'perf_hooks'
-import * as R from 'ramda'
 import { describe, it, expect } from 'vitest'
 
+import { mutateLocal } from '../data/local'
+import { addMessage, clearMessages } from '../data/utilities/messagesSlice'
+import { parseGradient } from '../utils'
 import NumberFormat from '../utils/NumberFormat'
-import { getScaledValue } from '../utils/scales'
-import { getSum, getMean, getMax } from '../utils/stats'
+import { getScaledValue, getScaleFunction } from '../utils/scales'
+import {
+  getSum,
+  getMean,
+  getMax,
+  getMin,
+  getMode,
+  getMedian,
+} from '../utils/stats'
+import { store } from '../utils/store'
 import Supercluster from '../utils/supercluster'
 
-// Exact implementation of cave combineReducers from src/utils/index.js (line 55)
-const caveCombineReducers = (reducers) => {
-  const reducerKeys = Object.keys(reducers)
-  return (state = {}, action) => {
-    let hasChanged = false
-    const nextState = structuredClone(state)
-    for (let i = 0; i < reducerKeys.length; i++) {
-      const key = reducerKeys[i]
-      const reducer = reducers[key]
-      const previousStateForKey = state[key]
-      const nextStateForKey = reducer(previousStateForKey, action)
-      nextState[key] = nextStateForKey
-      hasChanged = hasChanged || nextStateForKey !== previousStateForKey
-    }
-    hasChanged = hasChanged || reducerKeys.length !== Object.keys(state).length
-    return hasChanged ? nextState : state
-  }
-}
-
-function measure(name, fn, iterations = 1) {
+function measure(fn, iterations = 1) {
   try {
     fn()
   } catch (e) {
@@ -41,75 +30,38 @@ function measure(name, fn, iterations = 1) {
   const end = performance.now()
   const totalMs = end - start
   const avgMs = totalMs / iterations
-  return { name, totalMs, avgMs, iterations }
+  return { totalMs, avgMs, iterations }
 }
 
-describe('Performance Benchmarks & Profiling Suite', () => {
+describe('Performance Benchmarks Suite', () => {
   it('1. Statistics Aggregation Benchmark (100k items)', () => {
     const numItems = 100000
-    const randomNumbers = Array.from(
-      { length: numItems },
-      () => Math.random() * 1000
-    )
-    const mixedValues = Array.from({ length: numItems }, (_, i) =>
-      i % 5 === 0 ? `cat_${i % 10}` : Math.random() * 1000
+    const numbers = Array.from({ length: numItems }, (_, i) => i + 1)
+    const mixed = Array.from({ length: numItems }, (_, i) =>
+      i % 5 === 0 ? `cat_${i % 10}` : (i % 100) + 1
     )
 
-    const legacyRamdaSum = (arr) => R.sum(R.filter(R.is(Number), arr))
-    const legacyRamdaMean = (arr) => R.mean(R.filter(R.is(Number), arr))
-    const legacyRamdaMax = (arr) =>
-      R.pipe(
-        R.groupBy(R.type),
-        R.cond([
-          [
-            R.pipe(R.prop('Number'), R.length, R.flip(R.gt)(0)),
-            R.pipe(R.prop('Number'), R.reduce(R.max, -Infinity)),
-          ],
-          [
-            R.pipe(R.prop('String'), R.length, R.flip(R.gt)(0)),
-            R.pipe(R.prop('String'), R.reduce(R.max, '')),
-          ],
-          [R.T, R.always(NaN)],
-        ])
-      )(arr)
+    const sumMetric = measure(() => getSum(numbers), 5)
+    const meanMetric = measure(() => getMean(numbers), 5)
+    const maxMetric = measure(() => getMax(mixed), 5)
+    const minMetric = measure(() => getMin(mixed), 5)
+    const modeMetric = measure(() => getMode(mixed), 5)
+    const medianMetric = measure(() => getMedian(numbers), 3)
 
-    const ramdaSum = measure(
-      'Legacy Ramda getSum',
-      () => legacyRamdaSum(randomNumbers),
-      3
-    )
-    const ramdaMean = measure(
-      'Legacy Ramda getMean',
-      () => legacyRamdaMean(randomNumbers),
-      3
-    )
-    const ramdaMax = measure(
-      'Legacy Ramda getMax',
-      () => legacyRamdaMax(mixedValues),
-      2
-    )
+    expect(getSum(numbers)).toBe((numItems * (numItems + 1)) / 2)
+    expect(getMean(numbers)).toBe((numItems + 1) / 2)
+    expect(getMax(mixed)).toBe(100)
+    expect(getMin(mixed)).toBe('cat_0')
+    expect(getMin(numbers)).toBe(1)
+    expect(typeof getMode(mixed)).toBe('string')
+    expect(getMedian(numbers)).toBe((numItems + 1) / 2)
 
-    const optSum = measure('Optimized getSum', () => getSum(randomNumbers), 5)
-    const optMean = measure(
-      'Optimized getMean',
-      () => getMean(randomNumbers),
-      5
-    )
-    const optMax = measure('Optimized getMax', () => getMax(mixedValues), 5)
-
-    console.log(
-      `[STATS] getSum (100k): Baseline=${ramdaSum.avgMs.toFixed(2)}ms | Opt=${optSum.avgMs.toFixed(2)}ms | Speedup=${(ramdaSum.avgMs / optSum.avgMs).toFixed(1)}x`
-    )
-    console.log(
-      `[STATS] getMean (100k): Baseline=${ramdaMean.avgMs.toFixed(2)}ms | Opt=${optMean.avgMs.toFixed(2)}ms | Speedup=${(ramdaMean.avgMs / optMean.avgMs).toFixed(1)}x`
-    )
-    console.log(
-      `[STATS] getMax (100k): Baseline=${ramdaMax.avgMs.toFixed(2)}ms | Opt=${optMax.avgMs.toFixed(2)}ms | Speedup=${(ramdaMax.avgMs / optMax.avgMs).toFixed(1)}x`
-    )
-
-    expect(optSum.avgMs).toBeLessThan(ramdaSum.avgMs)
-    expect(optMean.avgMs).toBeLessThan(ramdaMean.avgMs)
-    expect(optMax.avgMs).toBeLessThan(ramdaMax.avgMs)
+    expect(sumMetric.avgMs).toBeLessThan(50)
+    expect(meanMetric.avgMs).toBeLessThan(50)
+    expect(maxMetric.avgMs).toBeLessThan(50)
+    expect(minMetric.avgMs).toBeLessThan(50)
+    expect(modeMetric.avgMs).toBeLessThan(100)
+    expect(medianMetric.avgMs).toBeLessThan(200)
   })
 
   it('2. Number Formatting Benchmark (20k items)', () => {
@@ -118,93 +70,65 @@ describe('Performance Benchmarks & Profiling Suite', () => {
       () => Math.random() * 100000
     )
 
-    const baselineNumberFormat = measure(
-      'Baseline format',
-      () => {
-        for (let i = 0; i < sampleNums.length; i++) {
-          NumberFormat.format(sampleNums[i], {
-            precision: 2,
-            trailingZeros: true,
-          })
-        }
-      },
-      2
-    )
-
-    const intlCache = new Map()
-    const getCachedFormatter = (locale, opts) => {
-      const key = `${locale}_${opts.notation}_${opts.precision}_${opts.trailingZeros}_${opts.compactDisplay}`
-      let fmt = intlCache.get(key)
-      if (!fmt) {
-        fmt = new Intl.NumberFormat(locale, {
-          minimumFractionDigits: opts.trailingZeros ? opts.precision : 0,
-          maximumFractionDigits: opts.precision,
-          notation: opts.notation,
-          compactDisplay: opts.compactDisplay,
+    const standardMetric = measure(() => {
+      for (let i = 0; i < sampleNums.length; i++) {
+        NumberFormat.format(sampleNums[i], {
+          precision: 2,
+          trailingZeros: true,
         })
-        intlCache.set(key, fmt)
       }
-      return fmt
-    }
+    }, 2)
 
-    const optNumberFormat = measure(
-      'Cached Intl format',
-      () => {
-        const opts = { notation: 'standard', precision: 2, trailingZeros: true }
-        const formatter = getCachedFormatter('en-US', opts)
-        for (let i = 0; i < sampleNums.length; i++) {
-          formatter.format(sampleNums[i])
-        }
-      },
-      2
-    )
+    const compactMetric = measure(() => {
+      for (let i = 0; i < sampleNums.length; i++) {
+        NumberFormat.format(sampleNums[i], {
+          notation: 'compact',
+          precision: 1,
+        })
+      }
+    }, 2)
 
-    console.log(
-      `[NUMBER_FORMAT] 20k calls: Baseline=${baselineNumberFormat.avgMs.toFixed(2)}ms | Opt=${optNumberFormat.avgMs.toFixed(2)}ms | Speedup=${(baselineNumberFormat.avgMs / optNumberFormat.avgMs).toFixed(1)}x`
-    )
-    expect(optNumberFormat.avgMs).toBeLessThan(baselineNumberFormat.avgMs)
+    expect(standardMetric.avgMs).toBeLessThan(150)
+    expect(compactMetric.avgMs).toBeLessThan(150)
   })
 
   it('3. Map Scales & Color Interpolation Benchmark (20k points)', () => {
-    const testDomain = [0, 1000]
+    const testDomain = [0, 500, 1000]
     const testColorRange = ['#ff0000', '#00ff00', '#0000ff']
     const testPoints = Array.from({ length: 20000 }, () => Math.random() * 1000)
 
-    const legacyGetScaledValue = (domain, range, value) => {
-      const scaleBuilder = scaleLinear()
-      const parsedRange = range.map((rngValue) => {
-        if (typeof rngValue !== 'string') return rngValue
-        const color = colord(rngValue)
-        return color.isValid() ? color.toRgbString() : rngValue
-      })
-      const scaleFunc = scaleBuilder.domain(domain).range(parsedRange)
-      return scaleFunc.clamp(true)(value)
+    const scaleFunc = getScaleFunction(testDomain, testColorRange, 'linear')
+    expect(typeof scaleFunc).toBe('function')
+    expect(scaleFunc(0)).toBe('rgb(255, 0, 0)')
+    expect(scaleFunc(1000)).toBe('rgb(0, 0, 255)')
+
+    const linearMetric = measure(() => {
+      for (let i = 0; i < testPoints.length; i++) {
+        getScaledValue(testDomain, testColorRange, testPoints[i], 'linear')
+      }
+    }, 3)
+
+    const gradientObj = {
+      gradient: {
+        scale: 'linear',
+        data: [
+          { value: 'min', color: '#ff0000', size: 10 },
+          { value: 500, color: '#00ff00', size: 25 },
+          { value: 'max', color: '#0000ff', size: 50 },
+        ],
+      },
+      min: 0,
+      max: 1000,
     }
 
-    const baselineScales = measure(
-      'Legacy unmemoized getScaledValue (20k)',
-      () => {
-        for (let i = 0; i < testPoints.length; i++) {
-          legacyGetScaledValue(testDomain, testColorRange, testPoints[i])
-        }
-      },
-      2
-    )
+    const parseMetric = measure(() => {
+      for (let i = 0; i < 5000; i++) {
+        parseGradient('color', 2)(gradientObj)
+      }
+    }, 3)
 
-    const optScales = measure(
-      'Optimized cached getScaledValue (20k)',
-      () => {
-        for (let i = 0; i < testPoints.length; i++) {
-          getScaledValue(testDomain, testColorRange, testPoints[i], 'linear')
-        }
-      },
-      5
-    )
-
-    console.log(
-      `[SCALES] 20k points: Baseline=${baselineScales.avgMs.toFixed(2)}ms | Opt=${optScales.avgMs.toFixed(2)}ms | Speedup=${(baselineScales.avgMs / optScales.avgMs).toFixed(1)}x`
-    )
-    expect(optScales.avgMs).toBeLessThan(baselineScales.avgMs)
+    expect(linearMetric.avgMs).toBeLessThan(100)
+    expect(parseMetric.avgMs).toBeLessThan(50)
   })
 
   it('4. Supercluster Spatial Clustering Benchmark (10k points, 17 zoom levels)', () => {
@@ -226,147 +150,44 @@ describe('Performance Benchmarks & Profiling Suite', () => {
     const minZoom = 0
     const maxZoom = 16
 
-    const baselineCluster = measure(
-      'Current: superCluster.load in zoom loop (17x)',
-      () => {
-        const superCluster = new Supercluster({ minZoom, maxZoom, radius: 40 })
-        const groups = {}
-        for (let z = maxZoom; z >= minZoom; z--) {
-          superCluster.load(nodes)
-          groups[z] = superCluster.getClusters([-180, -90, 180, 90], z)
-        }
-        return groups
-      },
-      1
-    )
-
-    const optCluster = measure(
-      'Optimized: superCluster.load once, query 17 zooms',
-      () => {
-        const superCluster = new Supercluster({ minZoom, maxZoom, radius: 40 })
-        superCluster.load(nodes)
-        const groups = {}
-        for (let z = maxZoom; z >= minZoom; z--) {
-          groups[z] = superCluster.getClusters([-180, -90, 180, 90], z)
-        }
-        return groups
-      },
-      2
-    )
-
-    console.log(
-      `[SUPERCLUSTER] 10k points / 17 zooms: Baseline=${baselineCluster.avgMs.toFixed(2)}ms | Opt=${optCluster.avgMs.toFixed(2)}ms | Speedup=${(baselineCluster.avgMs / optCluster.avgMs).toFixed(1)}x`
-    )
-    expect(optCluster.avgMs).toBeLessThan(baselineCluster.avgMs)
-  })
-
-  it('5. Redux Reducer with Large State (50k items in state)', () => {
-    const largeState = {
-      data: {
-        nodes: Object.fromEntries(
-          Array.from({ length: 50000 }, (_, i) => [
-            `node_${i}`,
-            { id: `node_${i}`, lat: 37.7, lng: -122.4, val: i },
-          ])
-        ),
-        settings: { theme: 'dark', zoom: 5 },
-      },
-      utilities: {
-        time: { currentTime: 10 },
-        loading: { session_loading: false },
-      },
-    }
-
-    const testAction = { type: 'time/setTime', payload: 11 }
-    const mockReducers = {
-      data: (s = largeState.data) => s,
-      utilities: (s = largeState.utilities, a) =>
-        a.type === 'time/setTime'
-          ? { ...s, time: { currentTime: a.payload } }
-          : s,
-    }
-
-    const baselineReducer = measure(
-      'Current combineReducers with structuredClone',
-      () => {
-        const reducer = caveCombineReducers(mockReducers)
-        reducer(largeState, testAction)
-      },
-      3
-    )
-
-    const shallowCombineReducers = (reducers) => {
-      const keys = Object.keys(reducers)
-      return (state = {}, action) => {
-        let hasChanged = false
-        const nextState = {}
-        for (let i = 0; i < keys.length; i++) {
-          const k = keys[i]
-          const r = reducers[k]
-          const prev = state[k]
-          const next = r(prev, action)
-          nextState[k] = next
-          hasChanged = hasChanged || next !== prev
-        }
-        return hasChanged ? nextState : state
+    const clusterMetric = measure(() => {
+      const superCluster = new Supercluster({ minZoom, maxZoom, radius: 40 })
+      superCluster.load(nodes)
+      const groups = {}
+      for (let z = maxZoom; z >= minZoom; z--) {
+        groups[z] = superCluster.getClusters([-180, -90, 180, 90], z)
       }
-    }
+      return groups
+    }, 2)
 
-    const optReducer = measure(
-      'Optimized shallow combineReducers',
-      () => {
-        const reducer = shallowCombineReducers(mockReducers)
-        reducer(largeState, testAction)
-      },
-      10
-    )
-
-    console.log(
-      `[REDUX] 50k items in store: Baseline=${baselineReducer.avgMs.toFixed(2)}ms | Opt=${optReducer.avgMs.toFixed(2)}ms | Speedup=${(baselineReducer.avgMs / optReducer.avgMs).toFixed(1)}x`
-    )
-    expect(optReducer.avgMs).toBeLessThan(baselineReducer.avgMs)
+    expect(clusterMetric.avgMs).toBeLessThan(500)
   })
 
-  it('6. Chart Series Transformation (5k points, O(N^2) vs O(N))', () => {
-    const chartPoints = Array.from({ length: 5000 }, (_, i) => ({
-      index: i,
-      name: 'Series A',
-      value: [Math.random() * 100],
-    }))
+  it('5. Redux Store Action Dispatch Benchmark', () => {
+    const dispatchMetric = measure(() => {
+      for (let i = 0; i < 500; i++) {
+        store.dispatch(
+          mutateLocal({
+            path: ['settings', 'theme'],
+            value: i % 2 === 0 ? 'dark' : 'light',
+            sync: false,
+          })
+        )
+      }
+    }, 3)
 
-    const baselineChartSeries = measure(
-      'Baseline O(N^2) R.find',
-      () => {
-        const maxIdx = 4999
-        const d = chartPoints
-        const mapped = R.map(
-          R.pipe(
-            (idx) => R.find(R.propEq(idx, 'index'), d),
-            R.when(R.isNotNil, R.path(['value', 0]))
-          )
-        )(R.range(0, maxIdx + 1))
-        return mapped
-      },
-      1
-    )
+    const messagesMetric = measure(() => {
+      for (let i = 0; i < 200; i++) {
+        store.dispatch(
+          addMessage({
+            data: { message: `Alert ${i}`, snackbarShow: true },
+          })
+        )
+      }
+      store.dispatch(clearMessages())
+    }, 3)
 
-    const optChartSeries = measure(
-      'Optimized O(N) Array Indexing',
-      () => {
-        const maxIdx = 4999
-        const d = chartPoints
-        const lookup = new Array(maxIdx + 1)
-        for (let i = 0; i < d.length; i++) {
-          lookup[d[i].index] = d[i].value?.[0]
-        }
-        return lookup
-      },
-      10
-    )
-
-    console.log(
-      `[CHARTS] Series data (5k points): Baseline=${baselineChartSeries.avgMs.toFixed(2)}ms | Opt=${optChartSeries.avgMs.toFixed(2)}ms | Speedup=${(baselineChartSeries.avgMs / optChartSeries.avgMs).toFixed(1)}x`
-    )
-    expect(optChartSeries.avgMs).toBeLessThan(baselineChartSeries.avgMs)
+    expect(dispatchMetric.avgMs).toBeLessThan(100)
+    expect(messagesMetric.avgMs).toBeLessThan(100)
   })
 })

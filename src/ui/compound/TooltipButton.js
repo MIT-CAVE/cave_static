@@ -29,7 +29,6 @@ const TooltipButton = ({
   ...props
 }) => (
   <Tooltip
-    aria-label={ariaLabel}
     {...{ title, placement, ...slotProps?.tooltip }}
     slotProps={{
       tooltip: { sx: [styles.tooltip, ...forceArray(slotProps?.tooltip?.sx)] },
@@ -37,6 +36,10 @@ const TooltipButton = ({
   >
     <span>
       <IconButton
+        aria-label={
+          ariaLabel || (typeof title === 'string' ? title : undefined)
+        }
+        title={typeof title === 'string' ? title : undefined}
         size="large"
         {...slotProps?.button}
         sx={[

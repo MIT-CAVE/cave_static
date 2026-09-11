@@ -48,9 +48,9 @@ const MixedChart = ({
   colors,
 }) => {
   const [syncAxes, setSyncAxes] = useState(true)
-  const hasSubgroups = R.has('children', R.head(data))
-  const xLabels = R.pluck('name', data)
-  const labels = R.pluck('label')(labelProps)
+  const hasSubgroups = Boolean(data && data[0] && 'children' in data[0])
+  const xLabels = data ? R.pluck('name', data) : []
+  const labels = R.pluck('label')(labelProps || [])
   const [xAxisLabel, leftLabel, rightLabel] = hasSubgroups
     ? R.props([0, 2, 3])(labels)
     : R.take(3)(labels)

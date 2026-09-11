@@ -1,4 +1,4 @@
-import { expect, within } from 'storybook/test'
+import { expect, within, userEvent } from 'storybook/test'
 
 import App from '../../App'
 
@@ -2288,11 +2288,36 @@ export const Default = {
   render: () => <App />,
   play: async ({ canvasElement }) => {
     // Wait for initial render and async chart computations to complete
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 800))
     // When ErrorBoundary catches an unhandled render exception, it renders SessionPane.
     // Assert that the app loaded successfully and did NOT fall back to SessionPane.
     const canvas = within(canvasElement)
     expect(canvas.queryByText('Sessions Pane')).toBeNull()
+    expect(document.body.textContent).not.toContain('Sessions Pane')
+
+    // Find and click the "Chart Tools" button on an existing bar chart
+    const chartToolsButtons = await canvas.findAllByRole('button', {
+      name: 'Chart Tools',
+    })
+    expect(chartToolsButtons.length).toBeGreaterThan(0)
+    await userEvent.click(chartToolsButtons[0])
+
+    // Wait for ChartToolsModal to open and click the Distribution chart type button
+    const body = within(document.body)
+    const distributionElements = await body.findAllByText(
+      'Distribution',
+      {},
+      { timeout: 3000 }
+    )
+    const distributionButton =
+      distributionElements[0].closest('button') || distributionElements[0]
+    await userEvent.click(distributionButton)
+
+    // Wait for async chart calculation and re-rendering to complete
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    // Assert that changing to distribution chart did NOT trigger fallback to Sessions Pane
+    expect(body.queryByText('Sessions Pane')).toBeNull()
     expect(document.body.textContent).not.toContain('Sessions Pane')
   },
 }

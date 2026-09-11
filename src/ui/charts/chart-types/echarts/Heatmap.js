@@ -28,7 +28,11 @@ const Heatmap = ({
     R.flatten,
     R.collectBy(R.prop('name')),
     R.addIndex(R.map)((d, yidx) => {
-      const maxIdx = Math.max(...R.pluck('index', d))
+      const indices = R.pluck('index', d).filter(
+        (i) => typeof i === 'number' && !isNaN(i)
+      )
+      const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+      if (maxIdx < 0) return []
       const lookup = new Map()
       for (let i = 0; i < d.length; i++) {
         lookup.set(d[i].index, d[i])

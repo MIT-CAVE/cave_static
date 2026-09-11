@@ -24,13 +24,24 @@ const getQuantiles = R.curry((n, values) => {
 
 // Given a list of chart children find all subgroup labels in given order
 // Note: If all labels aren't present in at least one parent order is estimated
-export const findSubgroupLabels = R.pipe(
-  R.map(R.pluck('name')),
-  R.map(R.filter(R.isNotNil)),
-  R.sortBy(R.pipe(R.length, R.negate)),
-  R.unnest,
-  R.uniq
-)
+export const findSubgroupLabels = (yValues) => {
+  if (!Array.isArray(yValues) || yValues.length === 0) return []
+  const labels = []
+  const seen = new Set()
+  for (let i = 0; i < yValues.length; i++) {
+    const group = yValues[i]
+    if (Array.isArray(group)) {
+      for (let j = 0; j < group.length; j++) {
+        const item = group[j]
+        if (item && item.name != null && !seen.has(item.name)) {
+          seen.add(item.name)
+          labels.push(item.name)
+        }
+      }
+    }
+  }
+  return labels
+}
 
 // checks if paths contains the given path, or a path to one of its parents
 export const includesPath = (paths, path) => {
@@ -110,8 +121,10 @@ export const getColoringFn = R.curry((data, item, subItem) =>
 )
 
 export const findColoring = (name, colors) => {
-  const smallestName = R.pipe(R.split(' \u279D '), R.head)(name)
-  return R.prop(smallestName, colors)
+  if (name == null) return undefined
+  const str = typeof name === 'string' ? name : String(name)
+  const smallestName = str.split(' \u279D ')[0]
+  return colors ? colors[smallestName] : undefined
 }
 export const getFreeName = (name, namesList) => {
   const namesSet = new Set(namesList)
@@ -250,9 +263,11 @@ const checkIfStatSatisfiesFilter = (statistics, groupingIndices, i, filter) => {
 export const filterGroupedOutputs = (statistics, filters, groupingIndices) => {
   const valueLists = R.prop('valueLists', statistics)
   const indicies = R.pipe(R.values, R.head, R.length)(valueLists)
+  const isCrossOriginIsolated =
+    typeof window !== 'undefined' && window.crossOriginIsolated
   // if no filters are present, return all indicies
   if (R.isEmpty(filters)) {
-    const indiciesBuffer = window.crossOriginIsolated
+    const indiciesBuffer = isCrossOriginIsolated
       ? new SharedArrayBuffer(indicies * 4)
       : new ArrayBuffer(indicies * 4)
     const indiciesView = new Uint32Array(indiciesBuffer)
@@ -272,7 +287,7 @@ export const filterGroupedOutputs = (statistics, filters, groupingIndices) => {
         filteredItems.push(i)
       }
     }
-    const indiciesBuffer = window.crossOriginIsolated
+    const indiciesBuffer = isCrossOriginIsolated
       ? new SharedArrayBuffer(filteredItems.length * 4)
       : new ArrayBuffer(filteredItems.length * 4)
     const indiciesView = new Uint32Array(indiciesBuffer)
@@ -512,11 +527,20 @@ export const adjustMinMax = (valueMin, valueMax, adjustPct = 0.05) =>
  * @param {Object} values Values dictionary with value for each prop
  * @returns {Object} props with values added
  */
-export const addValuesToProps = (props, values) =>
-  R.mapObjIndexed((prop, propId) => {
-    const value = R.prop(propId, values)
-    return R.assoc('value', value, prop)
-  }, props)
+export const addValuesToProps = (props, values) => {
+  const result = {}
+  for (const [propId, prop] of Object.entries(props || {})) {
+    const rawVal = values?.[propId]
+    const val =
+      rawVal !== undefined
+        ? rawVal && typeof rawVal === 'object' && 'value' in rawVal
+          ? rawVal.value
+          : rawVal
+        : prop?.value
+    result[propId] = { ...prop, value: val }
+  }
+  return result
+}
 
 /**
  * Creates a list of all values that a given internal
@@ -590,11 +614,17 @@ export const getQuartilesData = R.mapObjIndexed(
   R.pipe(R.values, R.sort(R.comparator(R.lt)), getQuantiles(5))
 )
 
-export const getQuartiles = R.ifElse(
-  R.isNil,
-  R.always(R.repeat(NaN, 5)),
-  R.pipe(R.sort(R.comparator(R.lt)), getQuantiles(5))
-)
+export const getQuartiles = (val) => {
+  if (val == null) return R.repeat(NaN, 5)
+  const arr = Array.isArray(val)
+    ? val.filter((v) => typeof v === 'number' && !isNaN(v))
+    : typeof val === 'number' && !isNaN(val)
+      ? [val]
+      : []
+  if (arr.length === 0) return R.repeat(NaN, 5)
+  const sorted = [...arr].sort((a, b) => a - b)
+  return getQuantiles(5, sorted)
+}
 
 export const ALLOWED_RANGE_KEYS = [
   'timeValues',
@@ -606,15 +636,20 @@ export const ALLOWED_RANGE_KEYS = [
 ]
 
 // checks that range is either min/max or list of strings
-export const checkValidRange = R.pipe(
-  R.mapObjIndexed((value, key) =>
-    key === 'min' || key === 'max'
-      ? R.is(Number, value)
-      : R.includes(key, ALLOWED_RANGE_KEYS) || R.is(String, value)
-  ),
-  R.values,
-  R.all(R.identity)
-)
+export const checkValidRange = (range) => {
+  if (!range || typeof range !== 'object') return false
+  const keys = Object.keys(range)
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    const value = range[key]
+    if (key === 'min' || key === 'max') {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return false
+    } else if (!ALLOWED_RANGE_KEYS.includes(key) && typeof value !== 'string') {
+      return false
+    }
+  }
+  return true
+}
 
 export const getTimeValue = (timeIndex, object) => {
   if (typeof object !== 'object' || object === null || Array.isArray(object)) {
@@ -803,54 +838,72 @@ export const parseGradient = R.memoizeWith(
   R.curry((attrKey, precision = 2, parseRangeAsNumber = false) => (range) => {
     // Avoid negative exponents to prevent floating-point precision issues
     const minPositiveValue = 1 / Math.pow(10, precision)
-    return R.ifElse(
-      R.pipe(R.propOr({}, 'gradient'), R.isNotEmpty),
-      R.pipe(
-        R.path(['gradient', 'data']),
-        // `dataIndex` tracks the original index of a gradient item before filtering
-        // for color/size viz, allowing changes to be traced and updated consistently.
-        R.addIndex(R.map)((val, idx) => R.assoc('dataIndex', idx)(val)),
-        R.filter(R.has(attrKey)),
-        R.applySpec({
-          [`${attrKey}s`]: R.map(
-            R.pipe(
-              R.prop(attrKey),
-              R.when(R.always(parseRangeAsNumber), parseFloat)
-            )
-          ),
-          rawValues: R.map(
-            R.pipe(
-              R.prop('value'),
-              R.cond([
-                [R.equals('min'), R.always(range?.min)],
-                [R.equals('max'), R.always(range?.max)],
-                [R.T, R.identity],
-              ])
-            )
-          ),
-          labels: R.pluck('label'),
-          dataIndices: R.pluck('dataIndex'),
-        }),
-        R.converge(R.mergeLeft, [
-          R.pipe(
-            R.propOr([], 'rawValues'),
-            R.when(
-              R.always(range?.gradient?.scale === scaleId.LOG),
-              R.map(R.when(R.gte(0), R.always(minPositiveValue)))
-            ),
-            R.objOf('values')
-          ),
-          R.identity,
-        ])
-      ),
-      R.always({
+    const gradientData = range?.gradient?.data
+    if (
+      !gradientData ||
+      !Array.isArray(gradientData) ||
+      gradientData.length === 0
+    ) {
+      return {
         [`${attrKey}s`]: [],
         rawValues: [],
         values: [],
         labels: [],
         dataIndices: [],
-      })
-    )(range)
+      }
+    }
+
+    const resolvedMin = Number.isFinite(range?.min) ? range.min : 0
+    const resolvedMax = Number.isFinite(range?.max) ? range.max : resolvedMin
+    const isLog = range?.gradient?.scale === scaleId.LOG
+
+    const attrList = []
+    const rawValues = []
+    const values = []
+    const labels = []
+    const dataIndices = []
+
+    for (let idx = 0; idx < gradientData.length; idx++) {
+      const item = gradientData[idx]
+      if (!item || !(attrKey in item)) continue
+
+      let attrVal = item[attrKey]
+      if (parseRangeAsNumber) {
+        attrVal = parseFloat(attrVal)
+      }
+      attrList.push(attrVal)
+
+      let rawVal = item.value
+      if (rawVal === 'min') {
+        rawVal = resolvedMin
+      } else if (rawVal === 'max') {
+        rawVal = resolvedMax
+      } else if (
+        typeof rawVal === 'string' &&
+        rawVal.trim() !== '' &&
+        !Number.isNaN(Number(rawVal))
+      ) {
+        rawVal = Number(rawVal)
+      }
+      rawValues.push(rawVal)
+
+      let val = rawVal
+      if (isLog && typeof val === 'number' && val <= 0) {
+        val = minPositiveValue
+      }
+      values.push(val)
+
+      labels.push(item.label)
+      dataIndices.push(idx)
+    }
+
+    return {
+      [`${attrKey}s`]: attrList,
+      rawValues,
+      values,
+      labels,
+      dataIndices,
+    }
   })
 )
 
@@ -942,8 +995,9 @@ export const constructFetchedGeoJson = (
                           parsedColor.values,
                           parsedColor.colors,
                           parseFloat(colorByPropVal),
-                          colorRange.gradient.scale,
-                          colorRange.gradient.scaleParams
+                          colorRange.gradient?.scale,
+                          colorRange.gradient?.scaleParams,
+                          colorFallback
                         )
 
                 const heightBy = enabledItems[geoObj.type].heightBy
@@ -979,8 +1033,9 @@ export const constructFetchedGeoJson = (
                           parsedHeight.values,
                           parsedHeight.heights,
                           parseFloat(heightByPropVal),
-                          heightRange.gradient.scale,
-                          heightRange.gradient.scaleParams
+                          heightRange.gradient?.scale,
+                          heightRange.gradient?.scaleParams,
+                          heightFallback
                         )
 
                 // don't calculate size, dash, or adjust path for geos
@@ -1023,8 +1078,9 @@ export const constructFetchedGeoJson = (
                           parsedSize.values,
                           parsedSize.sizes,
                           parseFloat(sizeByPropVal),
-                          sizeRange.gradient.scale,
-                          sizeRange.gradient.scaleParams
+                          sizeRange.gradient?.scale,
+                          sizeRange.gradient?.scaleParams,
+                          sizeFallback
                         )
 
                 const dashPattern = enabledItems[geoType].lineStyle ?? 'solid'
@@ -1188,7 +1244,8 @@ export const constructGeoJson = (
                   meta.parsedColor.colors,
                   parseFloat(colorByPropVal),
                   meta.colorRange?.gradient?.scale,
-                  meta.colorRange?.gradient?.scaleParams
+                  meta.colorRange?.gradient?.scaleParams,
+                  meta.colorFallback
                 )
 
         let rawSize
@@ -1211,7 +1268,8 @@ export const constructGeoJson = (
                     parsedSize.sizes,
                     parseFloat(sizeByPropVal),
                     sizeRange?.gradient?.scale,
-                    sizeRange?.gradient?.scaleParams
+                    sizeRange?.gradient?.scaleParams,
+                    sizeFallback
                   )
         }
 
@@ -1242,7 +1300,8 @@ export const constructGeoJson = (
                     parsedHeight.heights,
                     parseFloat(heightByPropVal),
                     heightRange?.gradient?.scale,
-                    heightRange?.gradient?.scaleParams
+                    heightRange?.gradient?.scaleParams,
+                    heightFallback
                   )
         }
 
