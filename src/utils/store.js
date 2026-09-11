@@ -9,24 +9,26 @@ const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
 // This middleware will just add the property "async dispatch" to all actions
 const asyncDispatchMiddleware = (store) => (next) => (action) => {
   let syncActivityFinished = false
-  let actionQueue = []
+  const actionQueue = []
 
   const flushQueue = () => {
-    actionQueue.forEach((a) => store.dispatch(a)) // flush queue
-    actionQueue = []
+    while (actionQueue.length > 0) {
+      const asyncAction = actionQueue.shift()
+      store.dispatch(asyncAction)
+    }
   }
 
   const asyncDispatch = (asyncAction) => {
-    actionQueue = actionQueue.concat([asyncAction])
+    actionQueue.push(asyncAction)
 
     if (syncActivityFinished) {
       flushQueue()
     }
   }
 
-  const actionWithAsyncDispatch = Object.assign({}, action, { asyncDispatch })
+  action.asyncDispatch = asyncDispatch
 
-  const res = next(actionWithAsyncDispatch)
+  const res = next(action)
 
   syncActivityFinished = true
   flushQueue()

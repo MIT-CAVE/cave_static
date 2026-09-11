@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 export const messagesSlice = createSlice({
   name: 'messages',
@@ -7,16 +6,21 @@ export const messagesSlice = createSlice({
   reducers: {
     addMessage: (state, action) => {
       // Only add the message to the redux state if snackbarShow is true
-      if (R.prop('snackbarShow', action.payload.data)) {
-        const messageId =
-          Number(R.reduce(R.max, 0, R.map(parseInt, R.keys(state)))) + 1
-        return R.assoc(messageId, action.payload.data, state)
-      } else {
-        return state
+      if (action.payload?.data?.snackbarShow) {
+        const keys = Object.keys(state)
+        let maxId = 0
+        for (let i = 0; i < keys.length; i++) {
+          const id = parseInt(keys[i], 10)
+          if (!isNaN(id) && id > maxId) maxId = id
+        }
+        state[maxId + 1] = action.payload.data
       }
     },
     removeMessage: (state, action) => {
-      return R.dissoc(R.path(['payload', 'messageKey'], action), state)
+      const messageKey = action.payload?.messageKey
+      if (messageKey != null) {
+        delete state[messageKey]
+      }
     },
     clearMessages: () => ({}),
   },

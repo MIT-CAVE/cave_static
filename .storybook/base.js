@@ -49,20 +49,91 @@ const customDataReducer = (state, action) => {
 }
 
 // ---------------------------------------------------------------------------
+// Middleware: attaches asyncDispatch to actions for deferred store dispatches
+// ---------------------------------------------------------------------------
+const asyncDispatchMiddleware = (store) => (next) => (action) => {
+  let syncActivityFinished = false
+  const actionQueue = []
+
+  const flushQueue = () => {
+    while (actionQueue.length > 0) {
+      const asyncAction = actionQueue.shift()
+      store.dispatch(asyncAction)
+    }
+  }
+
+  const asyncDispatch = (asyncAction) => {
+    actionQueue.push(asyncAction)
+
+    if (syncActivityFinished) {
+      flushQueue()
+    }
+  }
+
+  action.asyncDispatch = asyncDispatch
+
+  const res = next(action)
+
+  syncActivityFinished = true
+  flushQueue()
+
+  return res
+}
+
+// ---------------------------------------------------------------------------
 // Store factory: builds a fully configured mock Redux store from init data.
 // Supports overriding initial state slices via options.preloadedState.
 // ---------------------------------------------------------------------------
+const extractDesynced = (syncObj) => {
+  const desynced = {}
+  if (!syncObj || typeof syncObj !== 'object') return desynced
+  for (const [k, v] of Object.entries(syncObj)) {
+    if (v && !v.value && v.data) {
+      desynced[k] = v.data
+    }
+  }
+  return desynced
+}
+
 const createMockStore = (initData, options = {}) => {
   const defaultLocalState = localReducer(undefined, { type: '@@INIT' })
   const defaultUtilitiesState = utilitiesReducer(undefined, { type: '@@INIT' })
 
+  const desyncedPaths = extractDesynced(initData?.settings?.sync)
+  let initialLocalState = R.mergeDeepRight(defaultLocalState, {
+    settings: {
+      sync: {},
+    },
+  })
+  if (desyncedPaths) {
+    const desyncedGroupKeys = Object.keys(desyncedPaths)
+    for (let i = 0; i < desyncedGroupKeys.length; i++) {
+      const groupKey = desyncedGroupKeys[i]
+      const paths = desyncedPaths[groupKey]
+      if (paths && typeof paths === 'object') {
+        const nameKeys = Object.keys(paths)
+        for (let j = 0; j < nameKeys.length; j++) {
+          const name = nameKeys[j]
+          const path = paths[name]
+          if (path) {
+            initialLocalState = R.assocPath(
+              ['settings', 'sync', groupKey + name],
+              path,
+              initialLocalState
+            )
+            const val = R.path(path, initData)
+            if (val !== undefined) {
+              initialLocalState = R.assocPath(path, val, initialLocalState)
+            }
+          }
+        }
+      }
+    }
+  }
+
   const defaultPreloadedState = {
     data: initData,
-    local: R.mergeDeepRight(defaultLocalState, {
-      settings: {
-        sync: {},
-      },
-    }),
+    local: initialLocalState,
     utilities: R.mergeDeepRight(defaultUtilitiesState, {
       loading: {
         session_loading: false,
@@ -84,7 +155,9 @@ const createMockStore = (initData, options = {}) => {
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: false,
-      }).concat(localDataUpdatesMiddleware),
+      })
+        .concat(asyncDispatchMiddleware)
+        .concat(localDataUpdatesMiddleware),
     preloadedState: mergedState,
   })
 }

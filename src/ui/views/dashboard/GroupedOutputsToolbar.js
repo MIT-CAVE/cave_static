@@ -156,6 +156,8 @@ const GroupedOutputsToolbar = ({ index }) => {
   const sync = useSelector(selectSync)
 
   const path = ['pages', 'data', currentPage, 'charts', index]
+  if (!chartObj) return null
+
   const distributionType = R.propOr(
     distributionTypes.PDF,
     'distributionType',
@@ -648,25 +650,10 @@ const GroupedOutputsToolbar = ({ index }) => {
       {showFull && chartObj.chartType === chartVariant.DISTRIBUTION && (
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
-            <>
-              {R.map(
-                ({ selector: Selector, labelId }) => (
-                  <Selector key={labelId} />
-                ),
-                [
-                  {
-                    selector: DistributionTypeSelector,
-                    label: 'Type',
-                    labelId: 'distribution-type-label',
-                  },
-                  {
-                    selector: DistributionYAxisSelector,
-                    label: 'Y Axis',
-                    labelId: 'distribution-y-axis-label',
-                  },
-                ]
-              )}
-            </>
+            {DistributionTypeSelector}
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper sx={styles.field}>
+            {DistributionYAxisSelector}
           </ChartDropdownWrapper>
         </Box>
       )}

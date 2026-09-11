@@ -75,6 +75,13 @@ export default defineConfig((env) => {
               },
             },
           },
+          {
+            test: {
+              name: 'unit',
+              include: ['src/**/*.test.js'],
+              environment: 'node',
+            },
+          },
         ],
       },
     })

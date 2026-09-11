@@ -1,57 +1,84 @@
 import { Box, Button } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
+import { memo, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
 
+// Convert chart object to flat list of row arrays
+const flattenChartTree = (data) => {
+  const result = []
+  const traverse = (nodes, currentPath = []) => {
+    if (!Array.isArray(nodes)) return
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      if (node == null) continue
+      const nextPath = currentPath.concat(node.name)
+      if (
+        node.children &&
+        Array.isArray(node.children) &&
+        node.children.length > 0
+      ) {
+        traverse(node.children, nextPath)
+      } else {
+        const row = nextPath.slice()
+        if (Array.isArray(node.value)) {
+          for (let j = 0; j < node.value.length; j++) {
+            row.push(node.value[j])
+          }
+        } else if (node.value !== undefined) {
+          row.push(node.value)
+        }
+        result.push(row)
+      }
+    }
+  }
+  traverse(data, [])
+  return result
+}
+
 const TableChart = ({ data, labelProps, numberFormat }) => {
-  // Convert chart object to nested arrays of values
-  const convertToList = (data, currentRow) =>
-    R.map((d) =>
-      R.has('children', d)
-        ? convertToList(
-            R.prop('children', d),
-            R.append(R.prop('name', d), currentRow)
-          )
-        : R.concat(R.append(R.prop('name', d), currentRow), R.prop('value', d))
-    )(data)
+  const rawList = useMemo(() => flattenChartTree(data), [data])
+  const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
+  const rows = useMemo(() => {
+    const numFields = fields.length
+    const result = new Array(rawList.length)
+    for (let i = 0; i < rawList.length; i++) {
+      const rawRow = rawList[i]
+      const rowObj = { id: i }
+      for (let j = 0; j < numFields; j++) {
+        rowObj[fields[j]] = rawRow[j]
+      }
+      result[i] = rowObj
+    }
+    return result
+  }, [fields, rawList])
 
-  const rawList = convertToList(data, [])
-  const fields = R.pluck('key')(labelProps)
-  const rows = R.pipe(
-    R.flatten,
-    R.splitEvery(R.length(labelProps)),
-    R.addIndex(R.map)((row, index) =>
-      R.pipe(R.zipObj(fields), R.assoc('id', index))(row)
-    )
-  )(rawList)
+  const multiNumberFormat = useMemo(
+    () => R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat),
+    [numberFormat]
+  )
 
-  const multiNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
-
-  const columns = labelProps.map(({ label, key: field, type }) => ({
-    headerName: label,
-    type,
-    field,
-    minWidth: 150,
-    flex: 1,
-    ...(type === 'number' && {
-      headerAlign: 'center',
-      align: 'center',
-      valueFormatter: (value) =>
-        NumberFormat.format(
-          value,
-          multiNumberFormat ? numberFormat[field] : numberFormat
-        ),
-    }),
-  }))
-
-  const csv = R.concat([R.pluck('label', labelProps)], R.unnest(rawList)).join(
-    '\n'
+  const columns = useMemo(
+    () =>
+      labelProps.map(({ label, key: field, type }) => ({
+        headerName: label,
+        type,
+        field,
+        minWidth: 150,
+        flex: 1,
+        ...(type === 'number' && {
+          headerAlign: 'center',
+          align: 'center',
+          valueFormatter: (value) =>
+            NumberFormat.format(
+              value,
+              multiNumberFormat ? numberFormat[field] : numberFormat
+            ),
+        }),
+      })),
+    [labelProps, multiNumberFormat, numberFormat]
   )
 
   return (
@@ -80,14 +107,18 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
           variant="contained"
           sx={{}}
           onClick={() => {
+            const headerRow = R.pluck('label', labelProps)
+            const csvRows = [headerRow, ...rawList]
+            const csv = csvRows.map((row) => row.join(',')).join('\n')
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
-            link.href = URL.createObjectURL(
-              new Blob([csv], { type: 'text/csv' })
-            )
+            link.href = url
             link.setAttribute('download', 'data.csv')
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
+            URL.revokeObjectURL(url)
           }}
         >
           Download CSV
@@ -97,4 +128,4 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
   )
 }
 
-export default TableChart
+export default memo(TableChart)

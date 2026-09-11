@@ -1,21 +1,40 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 import { overrideState } from './actions'
+
+const deepMerge = (target, source) => {
+  if (!source || typeof source !== 'object') return target
+  const result = { ...(target || {}) }
+  const sourceKeys = Object.keys(source)
+  for (let i = 0; i < sourceKeys.length; i++) {
+    const key = sourceKeys[i]
+    const val = source[key]
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      result[key] = deepMerge(result[key], val)
+    } else {
+      result[key] = val
+    }
+  }
+  return result
+}
 
 export const globalOutputsSlice = createSlice({
   name: 'globalOutputs',
   initialState: {},
   reducers: {
     mapGlobalOutputToggle: (state, action) => {
-      const path = [action.payload, 'mapGlobalOutput']
-      return R.assocPath(path, !R.pathOr(false, path)(state))(state)
+      const outputKey = action.payload
+      if (!state[outputKey]) {
+        state[outputKey] = {}
+      }
+      state[outputKey].mapGlobalOutput = !state[outputKey].mapGlobalOutput
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(overrideState, (state, action) =>
-      R.mergeDeepRight(state, R.propOr({}, 'globalOutputs', action.payload))
-    )
+    builder.addCase(overrideState, (state, action) => {
+      const globalOutputs = action.payload?.globalOutputs || {}
+      return deepMerge(state, globalOutputs)
+    })
   },
 })
 

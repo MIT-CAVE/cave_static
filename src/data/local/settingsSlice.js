@@ -1,7 +1,22 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 import { overrideState } from './actions'
+
+const deepMerge = (target, source) => {
+  if (!source || typeof source !== 'object') return target
+  const result = { ...(target || {}) }
+  const sourceKeys = Object.keys(source)
+  for (let i = 0; i < sourceKeys.length; i++) {
+    const key = sourceKeys[i]
+    const val = source[key]
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      result[key] = deepMerge(result[key], val)
+    } else {
+      result[key] = val
+    }
+  }
+  return result
+}
 
 export const initialState = {
   // currentTime: 0,
@@ -56,7 +71,8 @@ export const settingsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(overrideState, (state, action) => {
-      return R.mergeDeepRight(state, R.propOr({}, 'settings', action.payload))
+      const settings = action.payload?.settings || {}
+      return deepMerge(state, settings)
     })
   },
 })

@@ -53,13 +53,13 @@ export const useModal = () => {
 export const useIndexedModal = () => {
   const [openIndex, setOpenIndex] = useState(null)
 
-  const handleOpenModal = (index) => {
+  const handleOpenModal = useCallback((index) => {
     setOpenIndex(index)
-  }
+  }, [])
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setOpenIndex(null)
-  }
+  }, [])
 
   return { openIndex, handleOpenModal, handleCloseModal }
 }
