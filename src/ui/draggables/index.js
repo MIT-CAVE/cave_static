@@ -29,9 +29,20 @@ const styles = {
     borderRadius: 1,
     zIndex: 2001,
   },
+  dockedRoot: {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 1,
+  },
   menuRoot: {
     my: 'auto',
     mr: 1,
+  },
+  dockedMenuRoot: {
+    my: 'auto',
+    ml: 'auto',
+    flexShrink: 0,
   },
   dragHandle: {
     bgcolor: 'grey.800',
@@ -56,13 +67,23 @@ export const useDraggable = (id) => {
     []
   )
 
+  const handleToggleDocked = useMutateStateWithSync(
+    () => ({
+      path: ['draggables', 'data', id, 'docked'],
+      value: !draggables[id]?.docked,
+    }),
+    [draggables]
+  )
+
   return {
     position: draggables[id]?.position,
     hideDrag: draggables[id]?.hideDragOption,
     hideClose: draggables[id]?.hideCloseOption,
+    docked: draggables[id]?.docked ?? false,
     showDragHandle: draggables[id]?.showDragHandle ?? true,
     onClose: handleToggleDraggable,
     onToggleDragHandle: handleToggleHandle,
+    onToggleDocked: handleToggleDocked,
   }
 }
 
@@ -108,8 +129,11 @@ export const Draggable = ({
   hideMenu,
   hideClose,
   hideDrag,
+  hideDock,
+  docked = false,
   showDragHandle,
   onToggleDragHandle,
+  onToggleDocked,
   onClose,
   children,
   slotProps = {},
@@ -118,16 +142,76 @@ export const Draggable = ({
   const nodeRef = useRef(null)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
+  const effectiveHideDrag = hideDrag || docked
+
   const contentStyles = useMemo(
     () => [
-      styles.root,
+      docked ? styles.dockedRoot : styles.root,
       component.type === Paper && { elevation: 7 },
       ...forceArray(slotProps.component?.sx),
       ...forceArray(sx),
     ],
-    [component.type, slotProps.component?.sx, sx]
+    [docked, component.type, slotProps.component?.sx, sx]
   )
-  const showMenu = !hideMenu && !(hideDrag && hideClose)
+  const showMenu = !hideMenu && !(effectiveHideDrag && hideClose && hideDock)
+
+  const menu = showMenu && (
+    <Box
+      sx={docked ? styles.dockedMenuRoot : styles.menuRoot}
+      {...slotProps.menuRoot}
+    >
+      <IconButton size="small" onClick={handleOpenMenu}>
+        <MdMoreVert />
+      </IconButton>
+      <Menu
+        {...{ anchorEl }}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        // slotProps={{ paper: { sx: { width: '21.5ch' } } }}
+        sx={{ p: 0 }}
+      >
+        {!effectiveHideDrag && (
+          <ToggleMenuItem
+            key="drag-handle-toggle"
+            label="Drag Handle"
+            value={showDragHandle}
+            onClick={onToggleDragHandle}
+          />
+        )}
+        {!hideDock && (
+          <ToggleMenuItem
+            key="dock-toggle"
+            label="Dock to Status Bar"
+            value={docked}
+            onClick={onToggleDocked}
+          />
+        )}
+        {!hideClose && (
+          <BaseMenuItem
+            key="close-draggable"
+            label="Close"
+            ReactIcon={MdOutlineClose}
+            onClick={onClose}
+          />
+        )}
+      </Menu>
+    </Box>
+  )
+
+  const content = (
+    <Box
+      ref={nodeRef}
+      {...{ component, ...slotProps.component }}
+      sx={contentStyles}
+    >
+      {children}
+      {menu}
+    </Box>
+  )
+
+  if (docked) return content
 
   return (
     <ReactDraggable
@@ -136,46 +220,7 @@ export const Draggable = ({
       defaultPosition={position}
       {...{ nodeRef, ...props }}
     >
-      <Box
-        ref={nodeRef}
-        {...{ component, ...slotProps.component }}
-        sx={contentStyles}
-      >
-        {children}
-        {showMenu && (
-          <Box sx={styles.menuRoot} {...slotProps.menuRoot}>
-            <IconButton size="small" onClick={handleOpenMenu}>
-              <MdMoreVert />
-            </IconButton>
-            <Menu
-              {...{ anchorEl }}
-              open={Boolean(anchorEl)}
-              onClose={handleCloseMenu}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              // slotProps={{ paper: { sx: { width: '21.5ch' } } }}
-              sx={{ p: 0 }}
-            >
-              {!hideDrag && (
-                <ToggleMenuItem
-                  key="drag-handle-toggle"
-                  label="Drag Handle"
-                  value={showDragHandle}
-                  onClick={onToggleDragHandle}
-                />
-              )}
-              {!hideClose && (
-                <BaseMenuItem
-                  key="close-draggable"
-                  label="Close"
-                  ReactIcon={MdOutlineClose}
-                  onClick={onClose}
-                />
-              )}
-            </Menu>
-          </Box>
-        )}
-      </Box>
+      {content}
     </ReactDraggable>
   )
 }
@@ -192,6 +237,9 @@ Draggable.propTypes = {
     PropTypes.func,
     PropTypes.object,
   ]),
+  docked: PropTypes.bool,
+  hideDock: PropTypes.bool,
+  onToggleDocked: PropTypes.func,
   onClose: PropTypes.func,
   children: PropTypes.node,
 }

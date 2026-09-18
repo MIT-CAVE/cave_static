@@ -11,12 +11,14 @@ import { mutateLocal } from './data/local'
 import {
   selectCurrentPage,
   selectAppBarData,
+  selectAnyDraggableDocked,
   selectDemoMode,
   selectDemoViews,
   selectSync,
   selectDemoSettings,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
+import DockBar from './ui/draggables/DockBar'
 import Draggables from './ui/draggables/Draggables'
 import Loader from './ui/views/common/Loader'
 import { AppModal } from './ui/views/common/Modal'
@@ -39,6 +41,15 @@ const styles = {
     label: 'workspace',
     position: 'relative',
     flex: '1 1 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    minHeight: 0,
+  },
+  content: {
+    position: 'relative',
+    flex: '1 1 auto',
+    minHeight: 0,
   },
   pane: {
     display: 'flex',
@@ -114,6 +125,7 @@ const App = () => {
   const appBarViews = useSelector(selectDemoViews)
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
+  const anyDraggableDocked = useSelector(selectAnyDraggableDocked)
   const sync = useSelector(selectSync)
 
   const demoTimeout = useRef(-1)
@@ -166,7 +178,10 @@ const App = () => {
               <Loader />
 
               <ErrorBoundary fallback={<SessionPane />}>
-                <Dashboard />
+                {anyDraggableDocked && <DockBar />}
+                <Box sx={styles.content}>
+                  <Dashboard />
+                </Box>
                 <Panes />
                 <AppModal />
                 <Draggables />

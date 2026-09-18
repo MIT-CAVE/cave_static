@@ -3,6 +3,7 @@ import React from 'react'
 import PropNumberField from '../../ui/compound/PropNumberField'
 import PropNumberIcon from '../../ui/compound/PropNumberIcon'
 import PropNumberIconCompact from '../../ui/compound/PropNumberIconCompact'
+import PropNumberIconCompactAlt from '../../ui/compound/PropNumberIconCompactAlt'
 import PropNumberSlider from '../../ui/compound/PropNumberSlider'
 
 const propNumberStories = {
@@ -93,6 +94,32 @@ export const NumberIconCompact = {
       icon: 'md/MdDeviceThermostat',
       precision: 1,
       unit: '°C',
+    },
+  },
+}
+
+export const NumberIconCompactAlt = {
+  render: (args) => <PropNumberIconCompactAlt {...args} />,
+  args: {
+    prop: {
+      name: 'Total Revenue',
+      value: 1250000,
+      icon: 'md/MdTrendingUp',
+      precision: 2,
+      unit: '$',
+      color: '#2e7d32',
+    },
+  },
+}
+
+export const NumberIconCompactAltNeutral = {
+  render: (args) => <PropNumberIconCompactAlt {...args} />,
+  args: {
+    prop: {
+      name: 'Units Shipped',
+      value: 18400,
+      icon: 'md/MdLocalShipping',
+      precision: 0,
     },
   },
 }
