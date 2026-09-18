@@ -89,6 +89,7 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
           pageSizeOptions={[25, 50, 100]}
           sx={{
             minWidth: 0,
+            height: '100%',
             bgcolor: 'background.paper',
           }}
         />

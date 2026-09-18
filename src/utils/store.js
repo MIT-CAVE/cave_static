@@ -49,7 +49,11 @@ const store = configureStore({
   preloadedState,
   // keep middleware default and add async dispatch
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(asyncDispatchMiddleware),
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActionPaths: ['asyncDispatch'],
+      },
+    }).concat(asyncDispatchMiddleware),
   // Use Redux Dev Tools if not in proudction or the build is a dev build
   devTools:
     import.meta.env.REACT_APP_USE_REDUX_DEVTOOLS === 'true' &&

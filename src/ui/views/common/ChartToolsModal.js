@@ -45,7 +45,6 @@ const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
   const anyMapData = useSelector(selectAnyMapData)
   const anyGroupedOutputData = useSelector(selectAnyGroupedOutputData)
 
-  const vizType = chartObj?.type ?? 'groupedOutput'
   const vizTypeOptions = useMemo(
     () =>
       R.pipe(
@@ -76,6 +75,11 @@ const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
       )([]),
     [anyGlobalOutputData, anyGroupedOutputData, anyMapData]
   )
+
+  const vizType =
+    vizTypeOptions.find((opt) => opt.value === chartObj?.type)?.value ??
+    vizTypeOptions[0]?.value ??
+    ''
   const handleSelectVizType = useMutateStateWithSync(
     (value) => ({
       path: ['pages', 'data', currentPage, 'charts', index],
@@ -104,9 +108,9 @@ const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
             <GroupedOutputsToolbar {...{ index }} />
           ) : vizType === 'globalOutput' ? (
             <GlobalOutputsToolbar {...{ index }} />
-          ) : (
+          ) : vizType === 'map' ? (
             <MapToolbar {...{ index }} />
-          ))}
+          ) : null)}
       </Card>
     </DataGridModal>
   )

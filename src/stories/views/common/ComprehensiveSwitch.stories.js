@@ -432,12 +432,12 @@ const comprehensiveDataset = {
       smoothLight: {
         name: 'Smooth Light',
         icon: 'fi/FiSun',
-        spec: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
+        spec: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       },
       smoothDark: {
         name: 'Smooth Dark',
         icon: 'fi/FiMoon',
-        spec: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
+        spec: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       },
     },
     data: {
@@ -529,7 +529,7 @@ const comprehensiveDataset = {
                 allowGrouping: true,
                 group: true,
                 groupCalcBySize: 'count',
-                groupCalcByColor: 'and',
+                groupCalcByColor: 'mean',
                 icon: 'bs/BsBuilding',
                 colorByOptions: ['numericPropExampleA', 'numericPropExampleB'],
                 sizeByOptions: [

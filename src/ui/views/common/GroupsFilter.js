@@ -38,7 +38,7 @@ const styles = {
     '& .MuiAccordion-region': {
       bgcolor: 'rgba(0, 0, 0, .125)',
     },
-    '&:not(:last-child)': {
+    '&:not(:last-of-type)': {
       borderBottom: 0,
     },
     '&::before': {

@@ -5,15 +5,23 @@ import { useSelector } from 'react-redux'
 
 import { selectSettingsIconUrl } from '../../data/selectors'
 
-import { fetchIcon, addExtraProps, removeExtraProps } from '../../utils'
+import { fetchIcon } from '../../utils'
 
 const FetchedIcon = ({ iconName = 'md/MdDownloading', ...props }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
-  const [icon, setIcon] = useState(<BiSolidSquareRounded />)
+  const [IconComponent, setIconComponent] = useState(() => BiSolidSquareRounded)
   useEffect(() => {
-    fetchIcon(iconName, iconUrl).then((item) => setIcon(item))
+    let active = true
+    fetchIcon(iconName, iconUrl).then((item) => {
+      if (active && typeof item === 'function') {
+        setIconComponent(() => item)
+      }
+    })
+    return () => {
+      active = false
+    }
   }, [iconName, iconUrl])
-  return removeExtraProps(addExtraProps(icon, props), ['$$typeof', 'type'])
+  return <IconComponent {...props} />
 }
 FetchedIcon.propTypes = { iconName: PropTypes.string }
 
