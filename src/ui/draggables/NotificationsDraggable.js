@@ -84,14 +84,19 @@ export const NotificationsUnhide = () => {
 const NotificationsDraggable = () => {
   const draggable = useDraggable(draggableId.NOTIFICATIONS)
 
-  // hideDrag + hideClose → showMenu becomes false, so the three-dot menu is
-  // not rendered. All controls live in the SnackBar control bar instead.
+  // hideDrag + hideClose + hideDock → showMenu becomes false, so the
+  // three-dot menu is not rendered. All controls live in the SnackBar
+  // control bar instead. Docking is conceptually supported for Notifications
+  // later but is explicitly suppressed for now (unlike Map Names, which is
+  // permanently unsupported) — hideDock keeps the menu item from ever
+  // appearing.
   return (
     <Draggable
       component="div"
       sx={styles.root}
       hideDrag={true}
       hideClose={true}
+      hideDock={true}
       bounds={false}
       position={draggable.position}
       showDragHandle={true}

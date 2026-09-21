@@ -697,6 +697,10 @@ export const selectMergedDraggables = createSelector(
     return deepMerge(data || {}, localData)
   }
 )
+export const selectTimeDraggable = createSelector(
+  selectMergedDraggables,
+  (data) => data?.[draggableId.TIME] ?? {}
+)
 export const selectSessionDraggable = createSelector(
   selectMergedDraggables,
   (data) => data?.[draggableId.SESSION] ?? {}
@@ -1190,11 +1194,34 @@ export const selectGlobalOutputProps = createSelector(
     const result = {}
     for (const [key, item] of Object.entries(combined)) {
       if (item && item.value != null) {
-        result[key] = { ...item, enabled: false }
+        // NOTE: `draggable` is deprecated and will be removed in a future
+        // version in favor of `quickView
+        result[key] = {
+          ...item,
+          enabled: false,
+          quickView: item.quickView ?? item.draggable,
+        }
       }
     }
     return result
   }
+)
+export const selectAnyGlobalOutputQuickView = createSelector(
+  selectGlobalOutputProps,
+  (outputs) => Object.values(outputs).some((output) => output.quickView)
+)
+
+export const selectAnyDraggableDocked = createSelector(
+  [
+    selectSessionDraggable,
+    selectTimeDraggable,
+    selectGlobalOutputsDraggable,
+    selectAnyGlobalOutputQuickView,
+  ],
+  (session, time, globalOutputs, anyGlobalOutputQuickView) =>
+    (session.open && session.docked) ||
+    (time.open && time.docked) ||
+    (globalOutputs.open && globalOutputs.docked && anyGlobalOutputQuickView)
 )
 // Local -> Map -> mapControls
 export const selectViewportsByMap = createSelector(

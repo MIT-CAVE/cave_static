@@ -108,6 +108,40 @@ ColumnSwitch.propTypes = {
   onChange: PropTypes.func,
 }
 
+const GlobalOutputsQuickViewList = ({ open }) => {
+  const globalOutputProps = useSelector(selectGlobalOutputProps)
+
+  const onSelect = useMutateStateWithSync(
+    (value) => ({
+      path: ['globalOutputs', 'props'],
+      value: R.mapObjIndexed((prop, key) =>
+        R.assoc('quickView', R.includes(key)(value))(prop)
+      )(globalOutputProps),
+    }),
+    [globalOutputProps]
+  )
+
+  if (!open) return null
+
+  return (
+    <List
+      sx={{ ml: 2, my: 1 }}
+      header="Select Global Outputs"
+      value={R.keys(R.filter(R.prop('quickView'))(globalOutputProps))}
+      optionsList={R.pipe(
+        withIndex,
+        R.project(['id', 'name', 'icon']),
+        R.map(R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
+      )(globalOutputProps)}
+      size="small"
+      {...{ onSelect }}
+    />
+  )
+}
+GlobalOutputsQuickViewList.propTypes = {
+  open: PropTypes.bool,
+}
+
 const LayoutGroup = () => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const mirrorMode = useSelector(selectMirrorMode)
@@ -226,39 +260,17 @@ const DraggableSwitch = ({ id, name }) => {
     />
   )
 }
+DraggableSwitch.propTypes = {
+  id: PropTypes.string,
+  name: PropTypes.string,
+}
 
 const GlobalOutputsSwitch = () => {
   const draggable = useSelector(selectGlobalOutputsDraggable)
-  const globalOutputProps = useSelector(selectGlobalOutputProps)
-
-  const onSelect = useMutateStateWithSync(
-    (value) => ({
-      path: ['globalOutputs', 'props'],
-      value: R.mapObjIndexed((prop, key) =>
-        R.assoc('draggable', R.includes(key)(value))(prop)
-      )(globalOutputProps),
-    }),
-    [globalOutputProps]
-  )
   return (
     <>
       <DraggableSwitch id={draggableId.GLOBAL_OUTPUTS} name="Global Outputs" />
-      {draggable.open && (
-        <List
-          sx={{ ml: 2, my: 1 }}
-          header="Select Global Outputs"
-          value={R.keys(R.filter(R.prop('draggable'))(globalOutputProps))}
-          optionsList={R.pipe(
-            withIndex,
-            R.project(['id', 'name', 'icon']),
-            R.map(
-              R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' })
-            )
-          )(globalOutputProps)}
-          size="small"
-          {...{ onSelect }}
-        />
-      )}
+      <GlobalOutputsQuickViewList open={draggable.open} />
     </>
   )
 }

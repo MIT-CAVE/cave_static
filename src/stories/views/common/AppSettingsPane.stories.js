@@ -23,6 +23,45 @@ export const Default = {
             kpi1: {
               type: 'num',
               name: 'Total Revenue',
+              quickView: true,
+              unit: '$',
+              precision: 2,
+            },
+          },
+        },
+        maps: {
+          data: {
+            map_1: { name: 'Logistics Grid' },
+          },
+        },
+      },
+      local: {
+        settings: {
+          demo: false,
+          editLayout: false,
+          mirror: false,
+          sync: {},
+        },
+        panes: {
+          data: {},
+        },
+      },
+    },
+  },
+}
+
+// Confirms the deprecated `draggable` flag still works via the
+// `quickView` fallback normalized in `selectGlobalOutputProps`.
+export const DeprecatedDraggableFlag = {
+  render: () => <AppSettingsPane />,
+  parameters: {
+    preloadedState: {
+      data: {
+        globalOutputs: {
+          props: {
+            kpi1: {
+              type: 'num',
+              name: 'Total Revenue',
               draggable: true,
               unit: '$',
               precision: 2,
