@@ -9,24 +9,26 @@ const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
 // This middleware will just add the property "async dispatch" to all actions
 const asyncDispatchMiddleware = (store) => (next) => (action) => {
   let syncActivityFinished = false
-  let actionQueue = []
+  const actionQueue = []
 
   const flushQueue = () => {
-    actionQueue.forEach((a) => store.dispatch(a)) // flush queue
-    actionQueue = []
+    while (actionQueue.length > 0) {
+      const asyncAction = actionQueue.shift()
+      store.dispatch(asyncAction)
+    }
   }
 
   const asyncDispatch = (asyncAction) => {
-    actionQueue = actionQueue.concat([asyncAction])
+    actionQueue.push(asyncAction)
 
     if (syncActivityFinished) {
       flushQueue()
     }
   }
 
-  const actionWithAsyncDispatch = Object.assign({}, action, { asyncDispatch })
+  action.asyncDispatch = asyncDispatch
 
-  const res = next(actionWithAsyncDispatch)
+  const res = next(action)
 
   syncActivityFinished = true
   flushQueue()
@@ -47,7 +49,11 @@ const store = configureStore({
   preloadedState,
   // keep middleware default and add async dispatch
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(asyncDispatchMiddleware),
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActionPaths: ['asyncDispatch'],
+      },
+    }).concat(asyncDispatchMiddleware),
   // Use Redux Dev Tools if not in proudction or the build is a dev build
   devTools:
     import.meta.env.REACT_APP_USE_REDUX_DEVTOOLS === 'true' &&

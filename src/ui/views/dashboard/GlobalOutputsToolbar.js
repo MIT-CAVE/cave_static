@@ -79,6 +79,8 @@ const GlobalOutputsToolbar = ({ index }) => {
     [currentPage, index]
   )
 
+  if (!chartObj) return null
+
   const handleSelectChart = (value) => {
     dispatch(
       mutateLocal({

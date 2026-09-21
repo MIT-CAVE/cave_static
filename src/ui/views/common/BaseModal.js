@@ -114,13 +114,10 @@ const DataGridModal = ({ open, slotProps = {}, ...props }) => (
   <BaseModal
     slotProps={{
       root: {
-        // Keep the component mounted to avoid losing `apiRef`
-        keepMounted: true,
+        keepMounted: false,
         ...slotProps.root,
       },
       paper: {
-        // Preserve `apiRef` using `visibility`
-        visibility: open ? 'visible' : 'hidden',
         ...slotProps.paper,
       },
     }}

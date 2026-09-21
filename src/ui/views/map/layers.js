@@ -55,58 +55,63 @@ const DARKEN_FILL_ON_HOVER = [
 ]
 
 const getTypeFromFeature = (f) => {
+  if (!f || !f.properties) return null
+  if (f.properties._parsedType !== undefined) return f.properties._parsedType
+  if (f.properties.type) {
+    f.properties._parsedType = f.properties.type
+    return f.properties.type
+  }
+  const caveName = f.properties.cave_name
+  if (!caveName) return null
   try {
-    return JSON.parse(f.properties.cave_name)[0]
+    const parsed = JSON.parse(caveName)[0]
+    f.properties._parsedType = parsed
+    return parsed
   } catch (e) {
     return null
   }
 }
 
 const useTypeFilteredFeatures = (features, type) => {
-  const ref = useRef([])
-  const filtered = useMemo(() => {
+  return useMemo(() => {
     const safeFeatures = Array.isArray(features) ? features : []
-    const nextFiltered = safeFeatures.filter(
-      (f) => getTypeFromFeature(f) === type
-    )
-    if (R.equals(ref.current, nextFiltered)) {
-      return ref.current
-    }
-    ref.current = nextFiltered
-    return nextFiltered
+    return safeFeatures.filter((f) => getTypeFromFeature(f) === type)
   }, [features, type])
-  return filtered
 }
 
 const useTypeFilteredGeoJson = (selectGeoJsonFunc, mapId, type) => {
-  return useSelector((state) => {
-    const allGeoJson = selectGeoJsonFunc(state)(mapId)
+  const allGeoJson = useSelector((state) => selectGeoJsonFunc(state)(mapId))
+  return useMemo(() => {
     const safeFeatures = Array.isArray(allGeoJson) ? allGeoJson : []
     return safeFeatures.filter((f) => getTypeFromFeature(f) === type)
-  }, R.equals)
+  }, [allGeoJson, type])
 }
 
 const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
   const isGlobe = true
 
-  const useHandleClickFactory = (feature) =>
-    useMutateStateWithSync(
-      ({ cave_name: caveName, cave_obj: caveObj }) => ({
-        path: ['panes', 'paneState', 'center'],
-        value: {
-          open: {
-            ...(caveObj || {}),
-            key: caveName,
-            mapId,
-            feature,
-            type: caveObj.name ?? JSON.parse(caveName),
-          },
-          type: 'feature',
+  const handleClick = useMutateStateWithSync(
+    (feature, { cave_name: caveName, cave_obj: caveObj } = {}) => ({
+      path: ['panes', 'paneState', 'center'],
+      value: {
+        open: {
+          ...(caveObj || {}),
+          key: caveName,
+          mapId,
+          feature,
+          type: caveObj?.name ?? (caveName ? JSON.parse(caveName) : undefined),
         },
-      }),
-      [mapId]
-    )
+        type: 'feature',
+      },
+    }),
+    [mapId]
+  )
+
+  const createHandleClick = useCallback(
+    (feature) => (params) => handleClick(feature, params),
+    [handleClick]
+  )
 
   const arcProps = useMemo(
     () => ({
@@ -136,13 +141,13 @@ const useMapFeature = () => {
   return {
     arcProps,
     mapId,
-    createHandleClick: useHandleClickFactory,
+    createHandleClick,
   }
 }
 
 const MapboxLayer = memo(
   ({ id, type, data, layout = {}, paint = {}, beforeId }) => {
-    const { mapRef, mapLoaded } = useContext(MapContext)
+    const { mapRef } = useContext(MapContext)
 
     const dataRef = useRef(data)
     const layoutRef = useRef(layout)
@@ -158,35 +163,37 @@ const MapboxLayer = memo(
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
 
       const addLayer = () => {
-        if (!map.getSource(id)) {
-          map.addSource(id, {
-            type: 'geojson',
-            data: dataRef.current,
-            generateId: true,
-          })
-        }
-        if (!map.getLayer(id)) {
-          const safeBeforeId =
-            beforeId && map.getLayer(beforeId) ? beforeId : undefined
-          map.addLayer(
-            {
-              id,
-              type,
-              source: id,
-              layout: layoutRef.current,
-              paint: paintRef.current,
-            },
-            safeBeforeId
-          )
+        try {
+          if (!map.getSource(id)) {
+            map.addSource(id, {
+              type: 'geojson',
+              data: dataRef.current,
+              generateId: true,
+            })
+          }
+          if (!map.getLayer(id)) {
+            const safeBeforeId =
+              beforeId && map.getLayer(beforeId) ? beforeId : undefined
+            map.addLayer(
+              {
+                id,
+                type,
+                source: id,
+                layout: layoutRef.current,
+                paint: paintRef.current,
+              },
+              safeBeforeId
+            )
+          }
+        } catch (e) {
+          // Ignore
         }
       }
 
-      if (map.isStyleLoaded()) {
-        addLayer()
-      }
+      addLayer()
 
       const handleStyleData = () => {
         addLayer()
@@ -205,13 +212,13 @@ const MapboxLayer = memo(
           // Ignore
         }
       }
-    }, [id, type, mapRef, mapLoaded, beforeId])
+    }, [id, type, mapRef, beforeId])
 
     useEffect(() => {
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
       try {
         const source = map.getSource(id)
         if (source && typeof source.setData === 'function') {
@@ -220,13 +227,13 @@ const MapboxLayer = memo(
       } catch (e) {
         // Ignore
       }
-    }, [id, data, mapRef, mapLoaded])
+    }, [id, data, mapRef])
 
     useEffect(() => {
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
       try {
         if (map.getLayer(id)) {
           Object.keys(layout).forEach((key) => {
@@ -239,7 +246,7 @@ const MapboxLayer = memo(
       } catch (e) {
         // Ignore
       }
-    }, [id, layout, paint, mapRef, mapLoaded])
+    }, [id, layout, paint, mapRef])
 
     return null
   }
@@ -326,21 +333,35 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   const moveCoordinates = useCallback(
     (f) => {
-      if (f.properties.cave_isCluster) {
-        return f.geometry.coordinates
+      if (f.properties?.cave_isCluster) {
+        return f.geometry?.coordinates
       }
-      const idx = parseInt(f.properties.cave_obj.id)
-      if (isNaN(idx) || idx >= latitudes.length) {
-        return f.geometry.coordinates
+      let idx = parseInt(f.properties?.cave_obj?.id)
+      if (isNaN(idx)) {
+        try {
+          idx = parseInt(JSON.parse(f.properties?.cave_name)?.[1])
+        } catch (e) {
+          idx = NaN
+        }
+      }
+      if (isNaN(idx) || idx >= latitudes.length || idx < 0) {
+        return f.geometry?.coordinates
       }
 
-      if (R.equals([null], definedNodeTimes[idx])) {
-        return f.geometry.coordinates
+      if (
+        !definedNodeTimes[idx] ||
+        R.equals([null], definedNodeTimes[idx]) ||
+        definedNodeTimes[idx].length === 0
+      ) {
+        return f.geometry?.coordinates
       }
       const definedNodeTime = definedNodeTimes[idx]
       let visible = true
 
-      if (idx in visibilityInfo.visibilities) {
+      if (
+        idx in visibilityInfo.visibilities &&
+        Array.isArray(visibilityInfo.visibilityTimes[idx])
+      ) {
         for (const time of visibilityInfo.visibilityTimes[idx]) {
           if (currentTimeInSeconds > time) {
             visible = !visible
@@ -350,19 +371,20 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
         }
       }
 
-      if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
-        if (visible) {
+      const maxTime = Math.max(...definedNodeTime)
+      if (currentTimeInSeconds >= maxTime) {
+        if (visible && latitudes[idx] && longitudes[idx]) {
           return [
             longitudes[idx][longitudes[idx].length - 1],
             latitudes[idx][latitudes[idx].length - 1],
           ]
         } else {
-          return []
+          return null
         }
       }
 
       if (!visible) {
-        return []
+        return null
       }
       const lowerControlTime = R.last(
         R.filter((t) => t <= currentTimeInSeconds, definedNodeTime)
@@ -370,20 +392,29 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
       const upperControlTime = R.head(
         R.filter((t) => t > currentTimeInSeconds, definedNodeTime)
       )
+      if (
+        lowerControlTime === undefined ||
+        upperControlTime === undefined ||
+        lowerControlTime === upperControlTime
+      ) {
+        const targetTime = lowerControlTime ?? upperControlTime
+        const targetIndex = R.indexOf(targetTime, definedNodeTime)
+        if (targetIndex >= 0 && longitudes[idx] && latitudes[idx]) {
+          return [longitudes[idx][targetIndex], latitudes[idx][targetIndex]]
+        }
+        return f.geometry?.coordinates
+      }
       const t =
         (currentTimeInSeconds - lowerControlTime) /
         (upperControlTime - lowerControlTime)
+      const lowerIdx = R.indexOf(lowerControlTime, definedNodeTime)
+      const upperIdx = R.indexOf(upperControlTime, definedNodeTime)
+      if (lowerIdx < 0 || upperIdx < 0 || !longitudes[idx] || !latitudes[idx]) {
+        return f.geometry?.coordinates
+      }
       return [
-        lerp(
-          longitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
-          longitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
-          t
-        ),
-        lerp(
-          latitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
-          latitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
-          t
-        ),
+        lerp(longitudes[idx][lowerIdx], longitudes[idx][upperIdx], t),
+        lerp(latitudes[idx][lowerIdx], latitudes[idx][upperIdx], t),
       ]
     },
     [
@@ -398,11 +429,21 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   useEffect(() => {
     const requestId = window.requestAnimationFrame(() => {
-      setAnimatedNodeGeoJson(
-        nodeGeoJson.map((f) =>
-          R.assocPath(['geometry', 'coordinates'], moveCoordinates(f), f)
-        )
-      )
+      const updated = []
+      const safeGeoJson = Array.isArray(nodeGeoJson) ? nodeGeoJson : []
+      for (const f of safeGeoJson) {
+        const coords = moveCoordinates(f)
+        if (
+          coords &&
+          Array.isArray(coords) &&
+          coords.length === 2 &&
+          isFinite(coords[0]) &&
+          isFinite(coords[1])
+        ) {
+          updated.push(R.assocPath(['geometry', 'coordinates'], coords, f))
+        }
+      }
+      setAnimatedNodeGeoJson(updated)
     })
     return () => window.cancelAnimationFrame(requestId)
   }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])
@@ -611,7 +652,7 @@ IncludedGeographyLayerInstance.propTypes = {
 }
 
 export const MapLayers = () => {
-  const { mapId, mapRef, mapLoaded } = useContext(MapContext)
+  const { mapId, mapRef } = useContext(MapContext)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState([])
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState([])
@@ -741,18 +782,20 @@ export const MapLayers = () => {
     const map = mapRef.current?.getMap
       ? mapRef.current.getMap()
       : mapRef.current
-    if (!map || !mapLoaded) return
+    if (!map) return
 
     const reorder = () => {
-      const customLayersOnMap = orderedLayerIds.filter((id) => map.getLayer(id))
-      for (let i = 0; i < customLayersOnMap.length - 1; i++) {
-        const currentId = customLayersOnMap[i]
-        const nextId = customLayersOnMap[i + 1]
-        try {
+      try {
+        const customLayersOnMap = orderedLayerIds.filter((id) =>
+          map.getLayer(id)
+        )
+        for (let i = 0; i < customLayersOnMap.length - 1; i++) {
+          const currentId = customLayersOnMap[i]
+          const nextId = customLayersOnMap[i + 1]
           map.moveLayer(currentId, nextId)
-        } catch (e) {
-          // Ignore
         }
+      } catch (e) {
+        // Ignore
       }
     }
 
@@ -761,7 +804,7 @@ export const MapLayers = () => {
     return () => {
       map.off('styledata', reorder)
     }
-  }, [orderedLayerIds, mapRef, mapLoaded])
+  }, [orderedLayerIds, mapRef])
 
   const safeLoadedGeoJson = Array.isArray(loadedGeoJson) ? loadedGeoJson : []
   const safeLineGeoJsonObject = Array.isArray(lineGeoJsonObject)

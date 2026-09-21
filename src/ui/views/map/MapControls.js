@@ -73,11 +73,11 @@ const styles = {
   btnGroup: {
     bgcolor: 'background.paper',
     borderRadius: 1,
-    '&> :first-child button': {
+    '&> :first-of-type button': {
       borderTopLeftRadius: '4px',
       borderBottomLeftRadius: '4px',
     },
-    '&> :last-child button': {
+    '&> :last-of-type button': {
       borderTopRightRadius: '4px',
       borderBottomRightRadius: '4px',
     },
@@ -85,11 +85,11 @@ const styles = {
   btnGroupVert: {
     bgcolor: 'background.paper',
     borderRadius: 1,
-    '&> :first-child button': {
+    '&> :first-of-type button': {
       borderTopLeftRadius: '4px',
       borderTopRightRadius: '4px',
     },
-    '&> :last-child button': {
+    '&> :last-of-type button': {
       borderBottomLeftRadius: '4px',
       borderBottomRightRadius: '4px',
     },

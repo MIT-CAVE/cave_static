@@ -25,6 +25,7 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
+import { memo } from 'react'
 
 import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
@@ -145,43 +146,56 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({
-  options,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-  syncAxes,
-  onSyncAxesChange,
-  numBuckets,
-  onNumBucketsChange,
-  ...restProps
-}) => {
-  return (
-    <>
-      <FlexibleContainer>
-        <ReactEChartsCore
-          echarts={echarts}
-          option={R.mergeDeepRight(
-            R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-          )(options)}
-          notMerge
-          theme="dark"
-          {...restProps}
-        />
-      </FlexibleContainer>
-      <ChartControls
-        {...{
-          path,
-          xAxisOrder,
-          syncAxes,
-          onSyncAxesChange,
-          numBuckets,
-          onNumBucketsChange,
+const FlexibleChart = memo(
+  ({
+    options,
+    chartHoverOrder,
+    path,
+    xAxisOrder,
+    syncAxes,
+    onSyncAxesChange,
+    numBuckets,
+    onNumBucketsChange,
+    ...restProps
+  }) => {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
         }}
-      />
-    </>
-  )
-}
+      >
+        <FlexibleContainer>
+          <ReactEChartsCore
+            echarts={echarts}
+            option={R.mergeDeepRight(
+              R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
+            )(options)}
+            notMerge
+            theme="dark"
+            {...restProps}
+          />
+        </FlexibleContainer>
+        <ChartControls
+          {...{
+            path,
+            xAxisOrder,
+            syncAxes,
+            onSyncAxesChange,
+            numBuckets,
+            onNumBucketsChange,
+          }}
+        />
+      </div>
+    )
+  }
+)
+FlexibleChart.displayName = 'FlexibleChart'
 
 const EchartsPlot = ({
   data,
@@ -200,13 +214,15 @@ const EchartsPlot = ({
   numBuckets,
   onNumBucketsChange,
 }) => {
-  if (R.isNil(data) || R.isEmpty(data)) return []
+  if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
 
-  const yValues = R.has('children', R.head(data))
-    ? R.pluck('children', data)
-    : R.pluck('value', data)
+  const headData = R.head(data)
+  const yValues =
+    headData && R.has('children', headData)
+      ? R.pluck('children', data)
+      : R.pluck('value', data)
 
   const subGroupLabels = findSubgroupLabels(yValues)
 
@@ -222,61 +238,86 @@ const EchartsPlot = ({
     seriesObj
   )
 
+  const hasSubObjects =
+    Array.isArray(yValues) &&
+    yValues.length > 0 &&
+    Array.isArray(yValues[0]) &&
+    yValues[0].length > 0 &&
+    typeof yValues[0][0] === 'object' &&
+    yValues[0][0] !== null
+
   // Only true if using a line chart with 1 level of grouping
-  const visualMap =
-    chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
+  const visualMap = chartType === 'line' && !hasSubObjects
 
   const color = R.map(
     (item) => findColoring(item, colors) ?? getChartItemColor(item)
   )(xLabels)
 
-  const series = R.ifElse(
-    (val) => R.type(R.head(R.head(val))) === 'Object',
-    R.pipe(
-      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
-      R.flatten,
-      R.collectBy(R.prop('name')),
-      R.map((d) =>
-        R.mergeRight(baseObject, {
-          id: R.head(d).id,
-          name: R.head(d).name,
-          color:
-            findColoring(R.head(d).name, colors) ??
-            getChartItemColor(R.head(d).name),
-          data: R.map(
-            R.pipe(
-              (idx) => R.find(R.propEq(idx, 'index'), d),
-              R.when(R.isNotNil, R.path(['value', 0]))
-            )
-          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-        })
-      ),
-      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
-    ),
-    (d) => [
-      R.mergeDeepLeft(
-        R.assoc(
-          'data',
-          R.pipe(
-            R.unnest,
-            visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
-          )(d),
-          baseObject
+  const series = hasSubObjects
+    ? R.pipe(
+        R.addIndex(R.map)((d, idx) =>
+          Array.isArray(d) ? R.map(R.assoc('index', idx))(d) : []
         ),
-        {
-          colorBy: 'data',
-          color,
-        }
-      ),
-    ]
-  )(yValues)
+        R.flatten,
+        R.filter((item) => item && item.name != null),
+        R.collectBy(R.prop('name')),
+        R.map((d) => {
+          if (!d || d.length === 0) return null
+          const headItem = R.head(d)
+          const indices = R.pluck('index', d).filter(
+            (i) => typeof i === 'number' && !isNaN(i)
+          )
+          const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+          if (maxIdx < 0) return null
+          const dataArr = new Array(maxIdx + 1)
+          for (let i = 0; i < d.length; i++) {
+            const item = d[i]
+            if (item && item.index != null) {
+              dataArr[item.index] = item.value?.[0]
+            }
+          }
+          return R.mergeRight(baseObject, {
+            id: headItem?.id,
+            name: headItem?.name,
+            color:
+              findColoring(headItem?.name, colors) ??
+              getChartItemColor(headItem?.name),
+            data: dataArr,
+          })
+        }),
+        R.filter(Boolean),
+        R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+      )(yValues)
+    : [
+        R.mergeDeepLeft(
+          R.assoc(
+            'data',
+            R.pipe(
+              R.unnest,
+              visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
+            )(yValues),
+            baseObject
+          ),
+          {
+            colorBy: 'data',
+            color,
+          }
+        ),
+      ]
 
-  const yMax = R.pipe(
-    R.pluck('data'),
-    R.flatten,
-    R.filter(R.isNotNil),
-    R.apply(Math.max)
-  )(series)
+  let yMax = 0
+  for (let s = 0; s < series.length; s++) {
+    const sData = series[s]?.data
+    if (Array.isArray(sData)) {
+      for (let i = 0; i < sData.length; i++) {
+        const item = sData[i]
+        const val = Array.isArray(item) ? item[1] : item
+        if (typeof val === 'number' && !isNaN(val) && val > yMax) {
+          yMax = val
+        }
+      }
+    }
+  }
 
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
@@ -397,5 +438,5 @@ const EchartsPlot = ({
   )
 }
 
-export default EchartsPlot
+export default memo(EchartsPlot)
 export { FlexibleChart }

@@ -129,8 +129,8 @@ const BucketsControl = ({ numBuckets, onNumBucketsChange }) => (
   >
     <Typography sx={{ whiteSpace: 'nowrap' }}>Number of Buckets</Typography>
     <CustomSlider
-      value={numBuckets}
-      onChange={(e) => onNumBucketsChange(e.target.value)}
+      value={numBuckets ?? 10}
+      onChange={(e, val) => onNumBucketsChange(val ?? e.target.value)}
       min={2}
       max={20}
       valueLabelDisplay="auto"

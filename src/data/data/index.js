@@ -1,18 +1,76 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 import websocket from '../../utils/websockets'
 import { overrideSync } from '../local/actions'
 
+const areVersionsEqual = (v1, v2) => {
+  if (v1 === v2) return true
+  if (!v1 || !v2) return false
+  const k1 = Object.keys(v1)
+  const k2 = Object.keys(v2)
+  if (k1.length !== k2.length) return false
+  for (let i = 0; i < k1.length; i++) {
+    const k = k1[i]
+    if (v1[k] !== v2[k]) return false
+  }
+  return true
+}
+
+const assocPath = (path, value, obj) => {
+  if (!path || path.length === 0) return value
+  const [head, ...tail] = path
+  if (tail.length === 0) {
+    if (Array.isArray(obj)) {
+      const copy = [...obj]
+      copy[head] = value
+      return copy
+    }
+    return { ...obj, [head]: value }
+  }
+  const nextObj = obj && typeof obj === 'object' ? obj[head] : undefined
+  const child = assocPath(
+    tail,
+    value,
+    typeof nextObj === 'object' && nextObj !== null
+      ? nextObj
+      : typeof tail[0] === 'number'
+        ? []
+        : {}
+  )
+  if (Array.isArray(obj)) {
+    const copy = [...obj]
+    copy[head] = child
+    return copy
+  }
+  return { ...obj, [head]: child }
+}
+
+const deepMerge = (target, source) => {
+  if (!source || typeof source !== 'object') return target
+  const result = { ...(target || {}) }
+  const sourceKeys = Object.keys(source)
+  for (let i = 0; i < sourceKeys.length; i++) {
+    const key = sourceKeys[i]
+    const val = source[key]
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      result[key] = deepMerge(result[key], val)
+    } else {
+      result[key] = val
+    }
+  }
+  return result
+}
+
 export const mutateData = createAsyncThunk(
   'data/mutateData',
   async (arg, { getState }) => {
-    const localVersions = R.path(['data', 'versions'], getState())
-    const versions = R.prop('versions', arg)
+    const state = getState()
+    const localVersions = state?.data?.versions
+    const versions = arg?.versions
     // Get the mutated data name
-    const data_name = R.path(['data', 'data_name'], arg)
+    const data_name = arg?.data?.data_name
     // Check for Matching Versions or Button Response (Noop)
-    if (R.equals(versions)(localVersions) || R.isNil(data_name)) {
+    if (areVersionsEqual(versions, localVersions) || data_name == null) {
       return {
         noOperation: true,
         data: {},
@@ -20,18 +78,31 @@ export const mutateData = createAsyncThunk(
         newLocalVersions: localVersions,
       }
     }
-    const mutation = R.prop('data', arg)
-    let data = R.pipe(
-      R.path(['data', data_name]),
-      R.assocPath(mutation.data_path, mutation.data_value)
-    )(getState())
+    const mutation = arg?.data || {}
+    const currentDataSlice = state?.data?.[data_name]
+    const mutatedSlice = assocPath(
+      mutation.data_path,
+      mutation.data_value,
+      currentDataSlice
+    )
+
+    const newLocalVersions = {}
+    if (versions) {
+      const vKeys = Object.keys(versions)
+      for (let i = 0; i < vKeys.length; i++) {
+        const k = vKeys[i]
+        if (localVersions && k in localVersions) {
+          newLocalVersions[k] = localVersions[k]
+        }
+      }
+      if (data_name in versions) {
+        newLocalVersions[data_name] = versions[data_name]
+      }
+    }
 
     return {
-      data: { [data_name]: data },
-      newLocalVersions: R.mergeRight(
-        R.pick(R.keys(versions), localVersions),
-        R.pick([data_name], versions)
-      ),
+      data: { [data_name]: mutatedSlice },
+      newLocalVersions,
       versions: versions,
     }
   }
@@ -40,12 +111,13 @@ export const mutateData = createAsyncThunk(
 export const overwriteData = createAsyncThunk(
   'data/overwriteData',
   async (arg, { dispatch, getState }) => {
-    const localVersions = R.path(['data', 'versions'], getState())
-    const versions = R.prop('versions', arg)
-    const forceOverwrite = R.propOr(false, 'forceOverwrite', arg)
+    const state = getState()
+    const localVersions = state?.data?.versions
+    const versions = arg?.versions
+    const forceOverwrite = Boolean(arg?.forceOverwrite)
     // Check for Matching Versions or Button Response (Noop)
 
-    if (R.equals(versions)(localVersions) && !forceOverwrite) {
+    if (areVersionsEqual(versions, localVersions) && !forceOverwrite) {
       return {
         noOperation: true,
         data: {},
@@ -54,34 +126,64 @@ export const overwriteData = createAsyncThunk(
       }
     }
     // Overwrite
-    const data = R.prop('data')(arg)
+    const data = arg?.data || {}
 
-    if (R.has('settings', data)) {
-      const desyncedPaths = R.pipe(
-        R.pathOr({}, ['settings', 'sync']),
-        R.filter(R.pipe(R.prop('value'), R.not)),
-        R.pluck('data')
-      )(data)
-      const pathsToSync = R.pipe(
-        R.pathOr({}, ['data', 'settings', 'sync']),
-        R.filter(R.pipe(R.prop('value'), R.not)),
-        R.pluck('data')
-      )(getState())
+    if ('settings' in data) {
+      const extractDesynced = (syncObj) => {
+        const desynced = {}
+        if (!syncObj || typeof syncObj !== 'object') return desynced
+        for (const [k, v] of Object.entries(syncObj)) {
+          if (v && !v.value && v.data) {
+            desynced[k] = v.data
+          }
+        }
+        return desynced
+      }
+
+      const desyncedPaths = extractDesynced(data.settings?.sync)
+      const pathsToSync = extractDesynced(state?.data?.settings?.sync)
+
+      const currentState = state?.data || {}
+      const dataState = { ...currentState }
+      for (const k of Object.keys(data)) {
+        dataState[k] =
+          typeof data[k] === 'object' &&
+          data[k] !== null &&
+          !Array.isArray(data[k])
+            ? deepMerge(currentState[k] || {}, data[k])
+            : data[k]
+      }
 
       dispatch(
         overrideSync({
           pathsToSync,
           desyncedPaths,
-          dataState: R.mergeDeepRight(R.prop('data', getState()), data),
+          dataState,
         })
       )
     }
+
+    const newLocalVersions = {}
+    if (versions) {
+      const vKeys = Object.keys(versions)
+      for (let i = 0; i < vKeys.length; i++) {
+        const k = vKeys[i]
+        if (localVersions && k in localVersions) {
+          newLocalVersions[k] = localVersions[k]
+        }
+      }
+      const dataKeys = Object.keys(data)
+      for (let i = 0; i < dataKeys.length; i++) {
+        const k = dataKeys[i]
+        if (k in versions) {
+          newLocalVersions[k] = versions[k]
+        }
+      }
+    }
+
     return {
       data: data,
-      newLocalVersions: R.mergeRight(
-        R.pick(R.keys(versions), localVersions),
-        R.pick(R.keys(data), versions)
-      ),
+      newLocalVersions,
       versions: versions,
     }
   }
@@ -90,19 +192,19 @@ export const overwriteData = createAsyncThunk(
 export const sendCommand = createAsyncThunk(
   'data/sendCommand',
   async (arg, { getState }) => {
-    const localVersions = R.path(['data', 'versions'], getState())
-    const fullArg = R.assocPath(['data', 'data_versions'], localVersions, arg)
+    const localVersions = getState()?.data?.versions
+    const fullArg = assocPath(['data', 'data_versions'], localVersions, arg)
     websocket.send(fullArg)
   }
 )
 
 const updateData = (action) => {
-  const payload = R.pathOr({}, ['payload'], action)
-  const versions = R.pathOr({}, ['versions'], payload)
-  const newLocalVersions = R.pathOr({}, ['newLocalVersions'], payload)
-  const noOperation = R.pathOr(false, ['noOperation'], payload)
+  const payload = action.payload || {}
+  const versions = payload.versions || {}
+  const newLocalVersions = payload.newLocalVersions || {}
+  const noOperation = payload.noOperation || false
   // Check if the new localVersions match the passed versions and fix errors by syncing with the server.
-  if (!R.equals(versions, newLocalVersions)) {
+  if (!areVersionsEqual(versions, newLocalVersions)) {
     action.asyncDispatch(
       sendCommand({
         command: 'get_session_data',
@@ -112,20 +214,26 @@ const updateData = (action) => {
   }
   // Apply any mutation/overwrite if the resulting output is not a noop
   if (!noOperation) {
-    return R.pipe(
-      R.mergeLeft(R.pathOr({}, ['payload', 'data'], action)),
-      R.pick(R.keys(versions)),
-      R.assocPath(['versions'], newLocalVersions)
-    )
+    const payloadData = payload.data || {}
+    const versionKeys = Object.keys(versions)
+    return (state) => {
+      const nextState = {}
+      for (let i = 0; i < versionKeys.length; i++) {
+        const k = versionKeys[i]
+        nextState[k] = payloadData[k] !== undefined ? payloadData[k] : state[k]
+      }
+      nextState.versions = newLocalVersions
+      return nextState
+    }
   }
-  return R.identity()
+  return (state) => state
 }
 
 const toggleLoadingFx = (action, value) => {
-  const url = R.pathOr('', ['meta', 'arg', 'url'], action)
+  const url = action.meta?.arg?.url || ''
   return url.includes('/get_session_data/')
-    ? R.assocPath(['ignore', 'loading'], value)
-    : R.identity()
+    ? (state) => ({ ...state, ignore: { ...state.ignore, loading: value } })
+    : (state) => state
 }
 
 export const dataSlice = createSlice({
@@ -145,7 +253,7 @@ export const dataSlice = createSlice({
   },
   reducers: {
     clearVersions: (state) => {
-      return R.assoc('versions', {}, state)
+      state.versions = {}
     },
   },
   extraReducers: (builder) => {

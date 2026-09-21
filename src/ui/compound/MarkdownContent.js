@@ -2,8 +2,6 @@ import { Box, styled } from '@mui/material'
 import PropTypes from 'prop-types'
 import { memo, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { materialDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
@@ -12,8 +10,24 @@ import remarkMath from 'remark-math'
 import CopyButton from './CopyButton'
 
 const styles = {
-  code: {
+  codeBlock: {
     position: 'relative',
+    my: 1,
+    p: 1.5,
+    borderRadius: 1.5,
+    bgcolor: 'action.hover',
+    fontFamily: 'Consolas, monospace',
+    fontSize: '0.9em',
+    lineHeight: 1.5,
+    overflowX: 'auto',
+  },
+  inlineCode: {
+    bgcolor: 'action.hover',
+    px: 0.75,
+    py: 0.25,
+    borderRadius: '4px',
+    fontSize: '0.95em',
+    fontFamily: 'Consolas, monospace',
   },
   copyButton: {
     position: 'absolute',
@@ -57,13 +71,6 @@ const StyledContainer = styled(Box)(({ theme }) => ({
     margin: '8px 0',
     fontSize: '1rem',
     lineHeight: 1.6,
-  },
-  '& code': {
-    backgroundColor: theme.palette.action.hover,
-    padding: '2px 6px',
-    borderRadius: 4,
-    fontSize: '0.95em',
-    fontFamily: 'Consolas, monospace',
   },
   '& pre code': {
     display: 'block',
@@ -113,28 +120,28 @@ const MarkdownContent = ({ content, innerRef, sx = [] }) => {
   const components = useMemo(
     () => ({
       code: ({ className, children, ...props }) => {
-        const match = /language-(\w+)/.exec(className || '')
-        if (match == null) {
-          return <code {...props}>{children}</code>
+        const isBlock = Boolean(className) || String(children).includes('\n')
+        if (!isBlock) {
+          return (
+            <Box component="code" sx={styles.inlineCode} {...props}>
+              {children}
+            </Box>
+          )
         }
-        const code = String(children).trim()
+        const codeText = String(children).trim()
         return (
-          <Box sx={styles.code}>
-            <SyntaxHighlighter
-              style={materialDark}
-              language={match[1]}
-              PreTag="div"
-              customStyle={{
-                margin: 0,
-                borderRadius: 6,
-                fontSize: '0.9em',
-                lineHeight: 1.5,
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
+          <Box sx={styles.codeBlock}>
+            <Box component="pre" sx={{ m: 0, p: 0, overflowX: 'auto' }}>
+              <Box component="code" {...props}>
+                {children}
+              </Box>
+            </Box>
             <Box sx={styles.copyButton}>
-              <CopyButton tooltip="Copy code" size={16} getText={() => code} />
+              <CopyButton
+                tooltip="Copy code"
+                size={16}
+                getText={() => codeText}
+              />
             </Box>
           </Box>
         )
@@ -157,6 +164,13 @@ const MarkdownContent = ({ content, innerRef, sx = [] }) => {
 MarkdownContent.propTypes = {
   content: PropTypes.string.isRequired,
   innerRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
 }
 
 export default memo(MarkdownContent)

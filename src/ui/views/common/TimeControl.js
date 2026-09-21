@@ -148,7 +148,7 @@ const TimeControl = () => {
           <Select
             size="small"
             sx={{
-              '&> :first-child': {
+              '&> :first-of-type': {
                 justifyContent: 'center',
               },
             }}

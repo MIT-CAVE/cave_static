@@ -30,6 +30,7 @@ import {
 import {
   DARK_GLOBE_FOG,
   DARK_SKY_SPEC,
+  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   LIGHT_GLOBE_FOG,
   LIGHT_SKY_SPEC,
@@ -254,7 +255,7 @@ const Map = ({ mapId }) => {
     minBearing,
     maxBearing,
     padding,
-  } = viewport
+  } = viewport || DEFAULT_VIEWPORT
 
   useEffect(() => {
     // Avoid using the `viewport` object directly to prevent
@@ -389,6 +390,11 @@ const Map = ({ mapId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const contextValue = useMemo(
+    () => ({ mapId, mapRef, containerRef, mapLoaded }),
+    [mapId, mapLoaded]
+  )
+
   return (
     <Box
       sx={{
@@ -397,7 +403,7 @@ const Map = ({ mapId }) => {
         flex: '1 1 auto',
       }}
     >
-      <MapContext.Provider value={{ mapId, mapRef, containerRef, mapLoaded }}>
+      <MapContext.Provider value={contextValue}>
         {draggable.open && <MapNameDraggable {...{ mapId }} />}
         <MapControls {...{ mapId }} />
         <ReactMapGl
@@ -413,7 +419,6 @@ const Map = ({ mapId }) => {
           projection={currentMapProjectionFunc(mapId)}
           {...{ mapStyle, interactiveLayerIds, ...currentViewport }}
           onClick={handleClick}
-          onData={loadSkyAndFog} // TODO: Remove this and go back to `setTimeout`
           onLoad={handleLoad}
           onMouseMove={handleMouseMove}
           onMouseOver={handleMouseOver}
