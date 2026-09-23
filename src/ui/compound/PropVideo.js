@@ -35,7 +35,7 @@ const PropVideo = ({
     ]}
   >
     <iframe
-      credentialless="true"
+      credentialless={true}
       title="Embedded Video"
       src={url}
       style={styles.iframe}
