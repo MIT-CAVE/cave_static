@@ -231,6 +231,9 @@ const StepperBase = ({
             getOrDefault(opt.color, propAttrs.color) ?? DEFAULT_MARK_COLOR
           const size =
             getOrDefault(opt.size, propAttrs.size) ?? DEFAULT_MARK_SIZE
+          // `idx` here is in natural declaration order, but `isOptionEnabled`
+          // expects slider-space (reversed for vertical) — convert before use.
+          const markIndex = isVertical ? lastIndex - idx : idx
 
           return {
             ...(await acc),
@@ -248,7 +251,7 @@ const StepperBase = ({
                     height: activeSize,
                     width: activeSize,
                   }),
-              ...(!isOptionEnabled(idx) && {
+              ...(!isOptionEnabled(markIndex) && {
                 opacity: 0.4,
                 cursor: 'not-allowed',
               }),

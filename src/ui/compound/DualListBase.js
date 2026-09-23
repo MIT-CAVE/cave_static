@@ -189,36 +189,18 @@ const DualListBase = ({
   )
 
   const handleTransferRight = useCallback(() => {
-    if (disabled || readOnly) return
-    const toMove = leftChecked.length > 0 ? leftChecked : filteredAvailable
-    if (toMove.length === 0) return
-    const next = R.uniq(R.concat(selectedKeys, toMove))
+    if (disabled || readOnly || leftChecked.length === 0) return
+    const next = R.uniq(R.concat(selectedKeys, leftChecked))
     setLeftChecked([])
     onChange(next)
-  }, [
-    disabled,
-    filteredAvailable,
-    leftChecked,
-    onChange,
-    readOnly,
-    selectedKeys,
-  ])
+  }, [disabled, leftChecked, onChange, readOnly, selectedKeys])
 
   const handleTransferLeft = useCallback(() => {
-    if (disabled || readOnly) return
-    const toRemove = rightChecked.length > 0 ? rightChecked : filteredSelected
-    if (toRemove.length === 0) return
-    const next = R.without(toRemove, selectedKeys)
+    if (disabled || readOnly || rightChecked.length === 0) return
+    const next = R.without(rightChecked, selectedKeys)
     setRightChecked([])
     onChange(next)
-  }, [
-    disabled,
-    filteredSelected,
-    onChange,
-    readOnly,
-    rightChecked,
-    selectedKeys,
-  ])
+  }, [disabled, onChange, readOnly, rightChecked, selectedKeys])
 
   const handleSelectAll = useCallback(() => {
     if (disabled || readOnly || availableKeys.length === 0) return
@@ -414,11 +396,7 @@ const DualListBase = ({
             <span>
               <IconButton
                 size="small"
-                disabled={
-                  disabled ||
-                  readOnly ||
-                  (leftChecked.length === 0 && filteredAvailable.length === 0)
-                }
+                disabled={disabled || readOnly || leftChecked.length === 0}
                 onClick={handleTransferRight}
               >
                 <MdKeyboardArrowRight size={18} />
@@ -429,11 +407,7 @@ const DualListBase = ({
             <span>
               <IconButton
                 size="small"
-                disabled={
-                  disabled ||
-                  readOnly ||
-                  (rightChecked.length === 0 && filteredSelected.length === 0)
-                }
+                disabled={disabled || readOnly || rightChecked.length === 0}
                 onClick={handleTransferLeft}
               >
                 <MdKeyboardArrowLeft size={18} />
