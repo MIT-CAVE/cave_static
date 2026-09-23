@@ -10,12 +10,14 @@ import {
   Typography,
   autocompleteClasses,
 } from '@mui/material'
+import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import {
   useState,
   useEffect,
   useCallback,
   useRef,
+  useMemo,
   Children,
   cloneElement,
 } from 'react'
@@ -29,7 +31,7 @@ import FetchedIcon from './FetchedIcon'
 import { setInputValue } from '../../data/utilities/virtualKeyboardSlice'
 import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
 
-import { getContrastText, getCurrentAttr } from '../../utils'
+import { getActiveDefaults, getContrastText, getOrDefault } from '../../utils'
 
 const DEFAULT_SIZE = '18px'
 
@@ -62,6 +64,7 @@ const ComboboxBase = ({
   readOnly,
   multiple,
   placeholder,
+  helperText,
   options,
   indexedOptions,
   value: defaultValue,
@@ -72,10 +75,15 @@ const ComboboxBase = ({
   slotProps,
   endAdornments,
   startAdornments,
+  propAttrs = {},
   getActiveAttrs,
   getOptionLabel,
   onChange,
 }) => {
+  const activeDefaults = useMemo(
+    () => getActiveDefaults(propAttrs),
+    [propAttrs]
+  )
   const [value, setValue] = useState(defaultValue ?? (multiple ? [] : ''))
   const [justFocused, setJustFocused] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
@@ -194,10 +202,16 @@ const ComboboxBase = ({
             : ''
 
       const selected = option === value
-      const currentLabel = getCurrentAttr(selected, name, activeName)
-      const currentIcon = getCurrentAttr(selected, icon, activeIcon)
-      const currentColor = getCurrentAttr(selected, color, activeColor)
-      const currentSize = getCurrentAttr(selected, size, activeSize)
+      const currentLabel = selected ? getOrDefault(activeName, name) : name
+      const currentIcon = selected
+        ? (getOrDefault(activeIcon, icon) ?? activeDefaults.icon)
+        : icon
+      const currentColor = selected
+        ? (getOrDefault(activeColor, color) ?? activeDefaults.color)
+        : color
+      const currentSize = selected
+        ? (getOrDefault(activeSize, size) ?? activeDefaults.size)
+        : size
 
       const markerStyle = {
         verticalAlign: 'middle',
@@ -245,7 +259,12 @@ const ComboboxBase = ({
         </Stack>
       )
     },
-    [indexedOptions, labelPlacement, value]
+    [activeDefaults, indexedOptions, labelPlacement, value]
+  )
+
+  const getOptionDisabled = useCallback(
+    (option) => !getOrDefault(indexedOptions[option]?.enabled, true),
+    [indexedOptions]
   )
 
   const renderInput = useCallback(
@@ -253,7 +272,7 @@ const ComboboxBase = ({
       // The placeholder in the API serves as a label in the context of the MUI component.
       <TextField
         label={placeholder}
-        {...{ inputRef, fullWidth, ...params }}
+        {...{ inputRef, fullWidth, helperText, ...params }}
         onSelect={handleSelectionChange}
         slotProps={{
           ...params.slotProps,
@@ -283,6 +302,7 @@ const ComboboxBase = ({
       disabled,
       fullWidth,
       handleSelectionChange,
+      helperText,
       inputRef,
       placeholder,
       readOnly,
@@ -405,6 +425,7 @@ const ComboboxBase = ({
           fullWidth,
           sx,
           getOptionLabel,
+          getOptionDisabled,
           renderOption,
           renderInput,
           ...(multiple && {
@@ -510,6 +531,18 @@ const ComboboxBase = ({
       )}
     </Box>
   )
+}
+ComboboxBase.propTypes = {
+  helperText: PropTypes.string,
+  propAttrs: PropTypes.object,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
+  onChange: PropTypes.func,
 }
 
 export default ComboboxBase

@@ -1,4 +1,4 @@
-import { Slider } from '@mui/material'
+import { FormControl, FormHelperText, Slider } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -8,6 +8,7 @@ import { getIconSvgDataUri } from '../../utils/svgBuilder'
 import {
   fetchIcon,
   forceArray,
+  getActiveDefaults,
   getContrastText,
   getOrDefault,
 } from '../../utils'
@@ -110,6 +111,7 @@ const StepperBase = ({
   options,
   propStyle,
   propAttrs,
+  helperText,
   sx = [],
   onChange,
 }) => {
@@ -126,26 +128,52 @@ const StepperBase = ({
   }, [value, optionsList])
 
   const activeDefaults = useMemo(
-    () => ({
-      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
-      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
-      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
-    }),
+    () => getActiveDefaults(propAttrs),
     [propAttrs]
   )
 
   const lastIndex = optionsList.length - 1
 
+  const isOptionEnabled = useCallback(
+    (idx) => getOrDefault(options[optionsList[idx]]?.enabled, true),
+    [options, optionsList]
+  )
+
+  // Finds the nearest enabled option to `targetIndex`, searching outward
+  // in both directions; falls back to `targetIndex` if every option is disabled.
+  const getNearestEnabledIndex = useCallback(
+    (targetIndex) => {
+      if (isOptionEnabled(targetIndex)) return targetIndex
+      for (let offset = 1; offset <= lastIndex; offset++) {
+        if (targetIndex - offset >= 0 && isOptionEnabled(targetIndex - offset))
+          return targetIndex - offset
+        if (
+          targetIndex + offset <= lastIndex &&
+          isOptionEnabled(targetIndex + offset)
+        )
+          return targetIndex + offset
+      }
+      return targetIndex
+    },
+    [isOptionEnabled, lastIndex]
+  )
+
   const marks = useMemo(
     () =>
       R.pipe(
         R.values,
-        R.addIndex(R.map)((opt, idx) => ({
-          value: isVertical ? lastIndex - idx : idx,
-          label: opt.name ?? opt.id,
-        }))
+        R.addIndex(R.map)((opt, idx) => {
+          const markIndex = isVertical ? lastIndex - idx : idx
+          const isActive = markIndex === index
+          return {
+            value: markIndex,
+            label: isActive
+              ? getOrDefault(opt.activeName, opt.name ?? opt.id)
+              : (opt.name ?? opt.id),
+          }
+        })
       )(options),
-    [isVertical, lastIndex, options]
+    [index, isVertical, lastIndex, options]
   )
 
   const currentMaxSize = useMemo(
@@ -220,6 +248,10 @@ const StepperBase = ({
                     height: activeSize,
                     width: activeSize,
                   }),
+              ...(!isOptionEnabled(idx) && {
+                opacity: 0.4,
+                cursor: 'not-allowed',
+              }),
             },
           }
         },
@@ -245,6 +277,7 @@ const StepperBase = ({
     activeDefaults.size,
     activeSvgIcons,
     index,
+    isOptionEnabled,
     isVertical,
     lastIndex,
     options,
@@ -260,48 +293,54 @@ const StepperBase = ({
   const handleChange = useCallback(
     (event, newIndex) => {
       if (disabled) return
-      setIndex(newIndex)
+      setIndex(getNearestEnabledIndex(newIndex))
     },
-    [disabled]
+    [disabled, getNearestEnabledIndex]
   )
 
   const handleChangeComitted = useCallback(
     (event, newIndex) => {
       if (disabled) return
-      const newValue = optionsList[newIndex]
+      const snappedIndex = getNearestEnabledIndex(newIndex)
+      const newValue = optionsList[snappedIndex]
+      if (snappedIndex !== newIndex) setIndex(snappedIndex)
       // REVIEW: Icon re-fetching issue
       // `onChange` triggers a prop update, which cascades down
       // and causes icon re-fetching despite no changes in icon dependencies.
       // In general, we need to rethink how we trigger prop value updates.
       onChange([newValue])
     },
-    [disabled, onChange, optionsList]
+    [disabled, getNearestEnabledIndex, onChange, optionsList]
   )
 
   return (
-    <Slider
-      {...{ disabled, marks }}
-      orientation={isVertical ? 'vertical' : 'horizontal'}
-      sx={[
-        ...(sliderStyles ? sliderStyles : []),
-        isVertical
-          ? styles.getSliderV({ numSteps: lastIndex + 1, currentMaxSize })
-          : styles.sliderH,
-      ]}
-      min={0}
-      max={lastIndex}
-      step={null}
-      track={false}
-      valueLabelDisplay="off"
-      value={index}
-      onChange={handleChange}
-      onChangeCommitted={handleChangeComitted}
-    />
+    <FormControl fullWidth>
+      <Slider
+        {...{ disabled, marks }}
+        orientation={isVertical ? 'vertical' : 'horizontal'}
+        sx={[
+          ...(sliderStyles ? sliderStyles : []),
+          isVertical
+            ? styles.getSliderV({ numSteps: lastIndex + 1, currentMaxSize })
+            : styles.sliderH,
+        ]}
+        min={0}
+        max={lastIndex}
+        step={null}
+        track={false}
+        valueLabelDisplay="off"
+        value={index}
+        onChange={handleChange}
+        onChangeCommitted={handleChangeComitted}
+      />
+      <FormHelperText>{helperText}</FormHelperText>
+    </FormControl>
   )
 }
 StepperBase.propTypes = {
   prop: PropTypes.object,
   currentVal: PropTypes.array,
+  helperText: PropTypes.string,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

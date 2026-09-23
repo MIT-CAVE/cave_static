@@ -3,6 +3,8 @@ import {
   Button,
   Checkbox,
   Chip,
+  FormControl,
+  FormHelperText,
   IconButton,
   InputAdornment,
   List,
@@ -201,6 +203,7 @@ const ComboboxMultiBase = ({
   disabled,
   readOnly,
   placeholder,
+  helperText,
   options = [],
   indexedOptions = {},
   value = [],
@@ -271,7 +274,7 @@ const ComboboxMultiBase = ({
   const effectiveLimit = Math.max(0, Number(numVisibleTags ?? 1))
 
   return (
-    <>
+    <FormControl sx={[fullWidth && { width: '100%' }, ...forceArray(sx)]}>
       <Box
         ref={containerRef}
         onClick={() => {
@@ -281,8 +284,6 @@ const ComboboxMultiBase = ({
           styles.triggerRoot,
           open && styles.triggerOpen,
           (disabled || readOnly) && styles.triggerDisabled,
-          fullWidth && { width: '100%' },
-          ...forceArray(sx),
         ]}
       >
         <Box sx={styles.triggerContent}>
@@ -358,6 +359,8 @@ const ComboboxMultiBase = ({
           </IconButton>
         </Stack>
       </Box>
+
+      <FormHelperText>{helperText}</FormHelperText>
 
       <Popover
         open={open && Boolean(containerRef.current)}
@@ -573,7 +576,7 @@ const ComboboxMultiBase = ({
           </Box>
         </Box>
       </Popover>
-    </>
+    </FormControl>
   )
 }
 
@@ -581,6 +584,7 @@ ComboboxMultiBase.propTypes = {
   disabled: PropTypes.bool,
   readOnly: PropTypes.bool,
   placeholder: PropTypes.string,
+  helperText: PropTypes.string,
   options: PropTypes.array,
   indexedOptions: PropTypes.object,
   value: PropTypes.array,

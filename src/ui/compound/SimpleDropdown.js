@@ -1,4 +1,5 @@
 import { Box, Button, Menu, MenuItem, Paper } from '@mui/material'
+import * as R from 'ramda'
 import { MdArrowDropDown, MdArrowDropUp } from 'react-icons/md'
 
 import OverflowText from './OverflowText'
@@ -15,6 +16,7 @@ export const SimpleDropdown = ({
   enabled = true,
   slotProps = {},
   getLabel = (label) => label,
+  getOptionDisabled = R.F,
   onSelect,
   ...props
 }) => {
@@ -65,6 +67,7 @@ export const SimpleDropdown = ({
         {optionsList.map((name) => (
           <MenuItem
             key={name}
+            disabled={getOptionDisabled(name)}
             onClick={() => {
               handleCloseMenu()
               onSelect && onSelect(name)

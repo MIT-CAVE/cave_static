@@ -2,6 +2,8 @@ import {
   Box,
   Button,
   Checkbox,
+  FormControl,
+  FormHelperText,
   IconButton,
   InputAdornment,
   List,
@@ -106,6 +108,7 @@ const DualListBase = ({
   availableTitle = 'Available',
   selectedTitle = 'Selected',
   height = DEFAULT_HEIGHT,
+  helperText,
   fullWidth = true,
   sx = [],
   getActiveAttrs = R.identity,
@@ -249,359 +252,356 @@ const DualListBase = ({
   ])
 
   return (
-    <Box
-      sx={[
-        styles.root,
-        { height },
-        fullWidth && { width: '100%' },
-        ...forceArray(sx),
-      ]}
-    >
-      {/* Available List Box */}
-      <Paper elevation={0} sx={styles.listCard}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={styles.header}
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+    <FormControl sx={[fullWidth && { width: '100%' }, ...forceArray(sx)]}>
+      <Box sx={[styles.root, { height }]}>
+        {/* Available List Box */}
+        <Paper elevation={0} sx={styles.listCard}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={styles.header}
           >
-            {`${availableTitle} (${filteredAvailable.length})`}
-          </Typography>
-          {!(disabled || readOnly) && availableKeys.length > 0 && (
-            <Button
-              size="small"
-              color="primary"
-              onClick={handleSelectAll}
-              sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 600, fontSize: '0.8rem' }}
             >
-              Select all
-            </Button>
-          )}
-        </Stack>
-        <Box sx={styles.searchBox}>
-          <TextField
-            size="small"
-            fullWidth
-            placeholder="Search available..."
-            value={leftSearch}
-            disabled={disabled}
-            onChange={(e) => setLeftSearch(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MdSearch size={16} />
-                  </InputAdornment>
-                ),
-                endAdornment: leftSearch && (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setLeftSearch('')}
-                      edge="end"
-                    >
-                      <MdClose size={14} />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                sx: { fontSize: '0.8rem', height: 28 },
-              },
-            }}
-          />
-        </Box>
-        <List dense sx={styles.listContainer}>
-          {filteredAvailable.length === 0 ? (
-            <Box sx={styles.emptyState}>
-              {availableKeys.length === 0
-                ? 'All items selected'
-                : 'No matching items'}
-            </Box>
-          ) : (
-            filteredAvailable.map((key) => {
-              const opt = indexedOptions[key] ?? {}
-              const { icon, color, size, name } = getBaseAttrs(opt)
-              const label = name ?? opt.name ?? key
-              const isChecked = leftChecked.includes(key)
-              return (
-                <ListItem
-                  key={key}
-                  disablePadding
-                  secondaryAction={
-                    !(disabled || readOnly) && (
+              {`${availableTitle} (${filteredAvailable.length})`}
+            </Typography>
+            {!(disabled || readOnly) && availableKeys.length > 0 && (
+              <Button
+                size="small"
+                color="primary"
+                onClick={handleSelectAll}
+                sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
+              >
+                Select all
+              </Button>
+            )}
+          </Stack>
+          <Box sx={styles.searchBox}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search available..."
+              value={leftSearch}
+              disabled={disabled}
+              onChange={(e) => setLeftSearch(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MdSearch size={16} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: leftSearch && (
+                    <InputAdornment position="end">
                       <IconButton
+                        size="small"
+                        onClick={() => setLeftSearch('')}
                         edge="end"
-                        size="small"
-                        onClick={() => handleAddItem(key)}
-                        title="Add item"
-                        sx={{ mr: 0.5 }}
                       >
-                        <MdKeyboardArrowRight size={18} />
+                        <MdClose size={14} />
                       </IconButton>
-                    )
-                  }
-                >
-                  <ListItemButton
-                    dense
-                    disabled={disabled || readOnly || opt.enabled === false}
-                    onClick={() => handleToggleLeft(key)}
-                    onDoubleClick={() => handleAddItem(key)}
-                    sx={styles.listItemButton}
+                    </InputAdornment>
+                  ),
+                  sx: { fontSize: '0.8rem', height: 28 },
+                },
+              }}
+            />
+          </Box>
+          <List dense sx={styles.listContainer}>
+            {filteredAvailable.length === 0 ? (
+              <Box sx={styles.emptyState}>
+                {availableKeys.length === 0
+                  ? 'All items selected'
+                  : 'No matching items'}
+              </Box>
+            ) : (
+              filteredAvailable.map((key) => {
+                const opt = indexedOptions[key] ?? {}
+                const { icon, color, size, name } = getBaseAttrs(opt)
+                const label = name ?? opt.name ?? key
+                const isChecked = leftChecked.includes(key)
+                return (
+                  <ListItem
+                    key={key}
+                    disablePadding
+                    secondaryAction={
+                      !(disabled || readOnly) && (
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() => handleAddItem(key)}
+                          title="Add item"
+                          sx={{ mr: 0.5 }}
+                        >
+                          <MdKeyboardArrowRight size={18} />
+                        </IconButton>
+                      )
+                    }
                   >
-                    <ListItemIcon sx={styles.listItemIcon}>
-                      <Checkbox
-                        edge="start"
-                        checked={isChecked}
-                        tabIndex={-1}
-                        disableRipple
-                        size="small"
+                    <ListItemButton
+                      dense
+                      disabled={disabled || readOnly || opt.enabled === false}
+                      onClick={() => handleToggleLeft(key)}
+                      onDoubleClick={() => handleAddItem(key)}
+                      sx={styles.listItemButton}
+                    >
+                      <ListItemIcon sx={styles.listItemIcon}>
+                        <Checkbox
+                          edge="start"
+                          checked={isChecked}
+                          tabIndex={-1}
+                          disableRipple
+                          size="small"
+                        />
+                      </ListItemIcon>
+                      {icon ? (
+                        <FetchedIcon
+                          iconName={icon}
+                          color={color}
+                          size={size ?? DEFAULT_SIZE}
+                          style={styles.marker}
+                        />
+                      ) : color ? (
+                        <IoSquareSharp
+                          color={color}
+                          size={size ?? DEFAULT_SIZE}
+                          style={styles.marker}
+                        />
+                      ) : size ? (
+                        <GiEmptyChessboard
+                          size={size ?? DEFAULT_SIZE}
+                          style={styles.marker}
+                        />
+                      ) : null}
+                      <ListItemText
+                        primary={label}
+                        primaryTypographyProps={{
+                          noWrap: true,
+                          variant: 'body2',
+                          fontSize: '0.82rem',
+                        }}
                       />
-                    </ListItemIcon>
-                    {icon ? (
-                      <FetchedIcon
-                        iconName={icon}
-                        color={color}
-                        size={size ?? DEFAULT_SIZE}
-                        style={styles.marker}
-                      />
-                    ) : color ? (
-                      <IoSquareSharp
-                        color={color}
-                        size={size ?? DEFAULT_SIZE}
-                        style={styles.marker}
-                      />
-                    ) : size ? (
-                      <GiEmptyChessboard
-                        size={size ?? DEFAULT_SIZE}
-                        style={styles.marker}
-                      />
-                    ) : null}
-                    <ListItemText
-                      primary={label}
-                      primaryTypographyProps={{
-                        noWrap: true,
-                        variant: 'body2',
-                        fontSize: '0.82rem',
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              )
-            })
-          )}
-        </List>
-      </Paper>
+                    </ListItemButton>
+                  </ListItem>
+                )
+              })
+            )}
+          </List>
+        </Paper>
 
-      {/* Transfer Action Controls */}
-      <Stack
-        spacing={0.5}
-        justifyContent="center"
-        alignItems="center"
-        sx={styles.transferButtons}
-      >
-        <Tooltip title="Move all to selected" placement="top">
-          <span>
-            <IconButton
-              size="small"
-              disabled={disabled || readOnly || availableKeys.length === 0}
-              onClick={handleSelectAll}
-            >
-              <MdKeyboardDoubleArrowRight size={18} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Move checked to selected" placement="top">
-          <span>
-            <IconButton
-              size="small"
-              disabled={
-                disabled ||
-                readOnly ||
-                (leftChecked.length === 0 && filteredAvailable.length === 0)
-              }
-              onClick={handleTransferRight}
-            >
-              <MdKeyboardArrowRight size={18} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Move checked to available" placement="bottom">
-          <span>
-            <IconButton
-              size="small"
-              disabled={
-                disabled ||
-                readOnly ||
-                (rightChecked.length === 0 && filteredSelected.length === 0)
-              }
-              onClick={handleTransferLeft}
-            >
-              <MdKeyboardArrowLeft size={18} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Remove all selected" placement="bottom">
-          <span>
-            <IconButton
-              size="small"
-              disabled={disabled || readOnly || selectedKeys.length === 0}
-              onClick={handleClearAll}
-            >
-              <MdKeyboardDoubleArrowLeft size={18} />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Stack>
-
-      {/* Selected List Box */}
-      <Paper elevation={0} sx={styles.listCard}>
+        {/* Transfer Action Controls */}
         <Stack
-          direction="row"
-          justifyContent="space-between"
+          spacing={0.5}
+          justifyContent="center"
           alignItems="center"
-          sx={styles.header}
+          sx={styles.transferButtons}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{ fontWeight: 600, fontSize: '0.8rem' }}
-          >
-            {`${selectedTitle} (${filteredSelected.length})`}
-          </Typography>
-          {!(disabled || readOnly) && selectedKeys.length > 0 && (
-            <Button
-              size="small"
-              color="primary"
-              onClick={handleClearAll}
-              sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
-            >
-              Clear all
-            </Button>
-          )}
+          <Tooltip title="Move all to selected" placement="top">
+            <span>
+              <IconButton
+                size="small"
+                disabled={disabled || readOnly || availableKeys.length === 0}
+                onClick={handleSelectAll}
+              >
+                <MdKeyboardDoubleArrowRight size={18} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Move checked to selected" placement="top">
+            <span>
+              <IconButton
+                size="small"
+                disabled={
+                  disabled ||
+                  readOnly ||
+                  (leftChecked.length === 0 && filteredAvailable.length === 0)
+                }
+                onClick={handleTransferRight}
+              >
+                <MdKeyboardArrowRight size={18} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Move checked to available" placement="bottom">
+            <span>
+              <IconButton
+                size="small"
+                disabled={
+                  disabled ||
+                  readOnly ||
+                  (rightChecked.length === 0 && filteredSelected.length === 0)
+                }
+                onClick={handleTransferLeft}
+              >
+                <MdKeyboardArrowLeft size={18} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Remove all selected" placement="bottom">
+            <span>
+              <IconButton
+                size="small"
+                disabled={disabled || readOnly || selectedKeys.length === 0}
+                onClick={handleClearAll}
+              >
+                <MdKeyboardDoubleArrowLeft size={18} />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Stack>
-        <Box sx={styles.searchBox}>
-          <TextField
-            size="small"
-            fullWidth
-            placeholder="Search selected..."
-            value={rightSearch}
-            disabled={disabled}
-            onChange={(e) => setRightSearch(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MdSearch size={16} />
-                  </InputAdornment>
-                ),
-                endAdornment: rightSearch && (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setRightSearch('')}
-                      edge="end"
-                    >
-                      <MdClose size={14} />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                sx: { fontSize: '0.8rem', height: 28 },
-              },
-            }}
-          />
-        </Box>
-        <List dense sx={styles.listContainer}>
-          {filteredSelected.length === 0 ? (
-            <Box sx={styles.emptyState}>
-              {selectedKeys.length === 0
-                ? 'No items selected'
-                : 'No matching items'}
-            </Box>
-          ) : (
-            filteredSelected.map((key) => {
-              const opt = indexedOptions[key] ?? {}
-              const { activeIcon, activeColor, activeSize, activeName } =
-                getActiveAttrs(opt)
-              const contrastText = getContrastText(activeColor)
-              const label = activeName ?? opt.name ?? key
-              const isChecked = rightChecked.includes(key)
-              return (
-                <ListItem
-                  key={key}
-                  disablePadding
-                  secondaryAction={
-                    !(disabled || readOnly) && (
+
+        {/* Selected List Box */}
+        <Paper elevation={0} sx={styles.listCard}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={styles.header}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+            >
+              {`${selectedTitle} (${filteredSelected.length})`}
+            </Typography>
+            {!(disabled || readOnly) && selectedKeys.length > 0 && (
+              <Button
+                size="small"
+                color="primary"
+                onClick={handleClearAll}
+                sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
+              >
+                Clear all
+              </Button>
+            )}
+          </Stack>
+          <Box sx={styles.searchBox}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search selected..."
+              value={rightSearch}
+              disabled={disabled}
+              onChange={(e) => setRightSearch(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MdSearch size={16} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: rightSearch && (
+                    <InputAdornment position="end">
                       <IconButton
+                        size="small"
+                        onClick={() => setRightSearch('')}
                         edge="end"
-                        size="small"
-                        onClick={() => handleRemoveItem(key)}
-                        title="Remove item"
-                        sx={{ mr: 0.5 }}
                       >
-                        <MdClose size={16} />
+                        <MdClose size={14} />
                       </IconButton>
-                    )
-                  }
-                >
-                  <ListItemButton
-                    dense
-                    disabled={disabled || readOnly}
-                    onClick={() => handleToggleRight(key)}
-                    onDoubleClick={() => handleRemoveItem(key)}
-                    sx={styles.listItemButton}
+                    </InputAdornment>
+                  ),
+                  sx: { fontSize: '0.8rem', height: 28 },
+                },
+              }}
+            />
+          </Box>
+          <List dense sx={styles.listContainer}>
+            {filteredSelected.length === 0 ? (
+              <Box sx={styles.emptyState}>
+                {selectedKeys.length === 0
+                  ? 'No items selected'
+                  : 'No matching items'}
+              </Box>
+            ) : (
+              filteredSelected.map((key) => {
+                const opt = indexedOptions[key] ?? {}
+                const { activeIcon, activeColor, activeSize, activeName } =
+                  getActiveAttrs(opt)
+                const contrastText = getContrastText(activeColor)
+                const label = activeName ?? opt.name ?? key
+                const isChecked = rightChecked.includes(key)
+                return (
+                  <ListItem
+                    key={key}
+                    disablePadding
+                    secondaryAction={
+                      !(disabled || readOnly) && (
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() => handleRemoveItem(key)}
+                          title="Remove item"
+                          sx={{ mr: 0.5 }}
+                        >
+                          <MdClose size={16} />
+                        </IconButton>
+                      )
+                    }
                   >
-                    <ListItemIcon sx={styles.listItemIcon}>
-                      <Checkbox
-                        edge="start"
-                        checked={isChecked}
-                        tabIndex={-1}
-                        disableRipple
-                        size="small"
+                    <ListItemButton
+                      dense
+                      disabled={disabled || readOnly}
+                      onClick={() => handleToggleRight(key)}
+                      onDoubleClick={() => handleRemoveItem(key)}
+                      sx={styles.listItemButton}
+                    >
+                      <ListItemIcon sx={styles.listItemIcon}>
+                        <Checkbox
+                          edge="start"
+                          checked={isChecked}
+                          tabIndex={-1}
+                          disableRipple
+                          size="small"
+                        />
+                      </ListItemIcon>
+                      {activeIcon ? (
+                        <FetchedIcon
+                          iconName={activeIcon}
+                          color={activeColor ?? contrastText}
+                          size={activeSize ?? DEFAULT_SIZE}
+                          style={styles.marker}
+                        />
+                      ) : activeColor ? (
+                        <IoSquareSharp
+                          color={activeColor}
+                          size={activeSize ?? DEFAULT_SIZE}
+                          style={styles.marker}
+                        />
+                      ) : activeSize ? (
+                        <GiEmptyChessboard
+                          size={activeSize ?? DEFAULT_SIZE}
+                          style={styles.marker}
+                        />
+                      ) : null}
+                      <ListItemText
+                        primary={label}
+                        primaryTypographyProps={{
+                          noWrap: true,
+                          variant: 'body2',
+                          fontSize: '0.82rem',
+                        }}
                       />
-                    </ListItemIcon>
-                    {activeIcon ? (
-                      <FetchedIcon
-                        iconName={activeIcon}
-                        color={activeColor ?? contrastText}
-                        size={activeSize ?? DEFAULT_SIZE}
-                        style={styles.marker}
-                      />
-                    ) : activeColor ? (
-                      <IoSquareSharp
-                        color={activeColor}
-                        size={activeSize ?? DEFAULT_SIZE}
-                        style={styles.marker}
-                      />
-                    ) : activeSize ? (
-                      <GiEmptyChessboard
-                        size={activeSize ?? DEFAULT_SIZE}
-                        style={styles.marker}
-                      />
-                    ) : null}
-                    <ListItemText
-                      primary={label}
-                      primaryTypographyProps={{
-                        noWrap: true,
-                        variant: 'body2',
-                        fontSize: '0.82rem',
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              )
-            })
-          )}
-        </List>
-      </Paper>
-    </Box>
+                    </ListItemButton>
+                  </ListItem>
+                )
+              })
+            )}
+          </List>
+        </Paper>
+      </Box>
+      <FormHelperText>{helperText}</FormHelperText>
+    </FormControl>
   )
 }
 
 DualListBase.propTypes = {
   disabled: PropTypes.bool,
   readOnly: PropTypes.bool,
+  helperText: PropTypes.string,
   options: PropTypes.array,
   indexedOptions: PropTypes.object,
   value: PropTypes.array,

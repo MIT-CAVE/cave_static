@@ -88,6 +88,51 @@ export const getOrDefault = (value, fallback) =>
 export const getCurrentAttr = (isActive, attr, activeAttr) =>
   isActive ? getOrDefault(activeAttr, attr) : attr
 
+/**
+ * Computes prop-level active* fallback defaults (icon/color/size),
+ * cascading from a prop's own active* attribute to its base attribute.
+ * Used as the second fallback level after an option's own active/base attrs,
+ * in components like `CheckboxBase`, `RadioBase`, and `StepperBase`.
+ */
+export const getActiveDefaults = (propAttrs) => ({
+  icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
+  color: getOrDefault(propAttrs.activeColor, propAttrs.color),
+  size: getOrDefault(propAttrs.activeSize, propAttrs.size),
+})
+
+/**
+ * Computes prop-level base fallback defaults (icon/color/size) for an
+ * option's unselected/base appearance, as opposed to `getActiveDefaults`'s
+ * active-state defaults.
+ */
+export const getBaseDefaults = (propAttrs) => ({
+  icon: propAttrs.icon,
+  color: propAttrs.color,
+  size: propAttrs.size,
+})
+
+/**
+ * Computes an option's active-state display attrs, cascading in two levels:
+ * option active* -> option base* -> prop-level active defaults.
+ */
+export const getOptionActiveAttrs = (opt = {}, activeDefaults = {}) => ({
+  activeName: getOrDefault(opt.activeName, opt.name),
+  activeIcon: getOrDefault(opt.activeIcon, opt.icon) ?? activeDefaults.icon,
+  activeColor: getOrDefault(opt.activeColor, opt.color) ?? activeDefaults.color,
+  activeSize: getOrDefault(opt.activeSize, opt.size) ?? activeDefaults.size,
+})
+
+/**
+ * Computes an option's base/unselected display attrs, cascading one level:
+ * option base* -> prop-level base defaults.
+ */
+export const getOptionBaseAttrs = (opt = {}, baseDefaults = {}) => ({
+  name: opt.name,
+  icon: getOrDefault(opt.icon, baseDefaults.icon),
+  color: getOrDefault(opt.color, baseDefaults.color),
+  size: getOrDefault(opt.size, baseDefaults.size),
+})
+
 export const passLog = (val) => {
   console.log(val)
   return val

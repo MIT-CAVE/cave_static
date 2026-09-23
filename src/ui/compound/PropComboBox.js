@@ -7,7 +7,12 @@ import { IoSquareSharp } from 'react-icons/io5'
 import ComboboxBase from './ComboboxBase'
 import FetchedIcon from './FetchedIcon'
 
-import { forceArray, getOrDefault, withIndex } from '../../utils'
+import {
+  forceArray,
+  getActiveDefaults,
+  getOrDefault,
+  withIndex,
+} from '../../utils'
 
 const DEFAULT_SIZE = '18px'
 
@@ -16,6 +21,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
     enabled,
     options,
     placeholder,
+    helperText,
     labelPlacement = 'end',
     fullWidth,
     propStyle,
@@ -34,11 +40,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
   )
 
   const activeDefaults = useMemo(
-    () => ({
-      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
-      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
-      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
-    }),
+    () => getActiveDefaults(propAttrs),
     [propAttrs]
   )
 
@@ -81,8 +83,13 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
   }, [activeColor, activeIcon, activeSize, labelPlacement])
 
   const getOptionLabel = useCallback(
-    (option) => options[option]?.name ?? option,
-    [options]
+    (option) => {
+      const currentOpt = options[option]
+      return option === value
+        ? (getOrDefault(currentOpt?.activeName, currentOpt?.name) ?? option)
+        : (currentOpt?.name ?? option)
+    },
+    [options, value]
   )
 
   return (
@@ -94,9 +101,11 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
         indexedOptions,
         value,
         placeholder,
+        helperText,
         labelPlacement,
         fullWidth,
         slotProps,
+        propAttrs,
         getOptionLabel,
         onChange,
       }}

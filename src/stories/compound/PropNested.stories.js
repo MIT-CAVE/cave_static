@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
 
-import PropDropdown from '../../ui/compound/PropDropdown'
+import PropNested from '../../ui/compound/PropNested'
 
 const mockStore = configureStore({
   reducer: {
@@ -22,29 +22,41 @@ const reduxDecorator = (Story) => (
   </Provider>
 )
 
-const propDropdownStories = {
-  title: 'Compound/PropDropdown',
-  component: PropDropdown,
+const propNestedStories = {
+  title: 'Compound/PropNested',
+  component: PropNested,
   decorators: [reduxDecorator],
 }
 
-export default propDropdownStories
+export default propNestedStories
 
 const mockOptions = {
   // No `activeColor`/`activeIcon` set, so these fall back to the
-  // prop-level `activeColor`/`activeIcon` below when selected.
-  opt1: { name: 'High Priority', color: '#d32f2f', icon: 'md/MdError' },
-  opt2: {
-    name: 'Medium Priority',
-    color: '#ed6c02',
-    icon: 'md/MdWarning',
-    activeName: 'Medium Priority (Selected)',
+  // prop-level `activeColor`/`activeIcon` below when checked.
+  apple: {
+    name: 'Apple',
+    path: ['Produce', 'Fruits'],
+    color: '#d32f2f',
+    icon: 'md/MdApple',
+    activeName: 'Apple (Selected)',
   },
-  opt3: { name: 'Low Priority', color: '#2e7d32', icon: 'md/MdInfo' },
-  opt4: {
-    name: 'Archived (Disabled)',
-    color: '#9e9e9e',
-    icon: 'md/MdArchive',
+  banana: {
+    name: 'Banana',
+    path: ['Produce', 'Fruits'],
+    color: '#fbc02d',
+    icon: 'md/MdFavorite',
+  },
+  carrot: {
+    name: 'Carrot',
+    path: ['Produce', 'Vegetables'],
+    color: '#ff9800',
+    icon: 'md/MdEco',
+  },
+  kale: {
+    name: 'Kale (Disabled)',
+    path: ['Produce', 'Vegetables'],
+    color: '#388e3c',
+    icon: 'md/MdEco',
     enabled: false,
   },
 }
@@ -53,7 +65,7 @@ export const Standard = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
     return (
-      <PropDropdown
+      <PropNested
         {...args}
         currentVal={currentVal}
         onChange={(val) => {
@@ -67,13 +79,12 @@ export const Standard = {
     prop: {
       enabled: true,
       options: mockOptions,
-      labelPlacement: 'end',
-      value: ['opt2'],
-      helperText: 'Choose a priority level',
+      value: ['apple'],
+      helperText: 'Choose one or more produce items',
       activeColor: '#000000',
       activeIcon: 'md/MdCheckCircle',
     },
-    currentVal: ['opt2'],
+    currentVal: ['apple'],
     onChange: () => {},
   },
 }

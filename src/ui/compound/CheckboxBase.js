@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 
 import FetchedIcon from './FetchedIcon'
 
-import { getOrDefault, withIndex } from '../../utils'
+import { getActiveDefaults, getOrDefault, withIndex } from '../../utils'
 
 const DEFAULT_SIZE = '20px'
 
@@ -43,11 +43,7 @@ const CheckboxBase = ({
 }) => {
   const indexedOptions = useMemo(() => withIndex(options), [options])
   const activeDefaults = useMemo(
-    () => ({
-      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
-      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
-      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
-    }),
+    () => getActiveDefaults(propAttrs),
     [propAttrs]
   )
   const currentMaxSize = useMemo(
