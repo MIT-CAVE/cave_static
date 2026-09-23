@@ -7,21 +7,15 @@ import {
   Source as MapboxSource,
   // eslint-disable-next-line import/no-unresolved
 } from 'react-map-gl/mapbox'
-import {
-  Map as ReactMapLibreGL,
-  NavigationControl as MapLibreNavCtrl,
-  Marker as MapLibreMarker,
-  Layer as MapLibreLayer,
-  Source as MapLibreSource,
-  // eslint-disable-next-line import/no-unresolved
-} from 'react-map-gl/maplibre'
 import { useSelector } from 'react-redux'
 
 import {
   selectCurrentMapStyleIdFunc,
-  selectIsCurrentMapboxStyleFunc,
   selectMapStyleOptions,
 } from '../../../data/selectors'
+import { DARK_GLOBE_FOG, LIGHT_GLOBE_FOG } from '../../../utils/constants'
+
+import { normalizeFog } from '../../../utils'
 
 export const MapContext = createContext({
   mapId: null,
@@ -32,14 +26,13 @@ export const MapContext = createContext({
 const useMapApi = (mapId) => {
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const currentMapStyleId = useSelector(selectCurrentMapStyleIdFunc)(mapId)
-  const isMapboxSelected = useSelector(selectIsCurrentMapboxStyleFunc)(mapId)
 
   const mapStyleOption = mapStyleOptions[currentMapStyleId]
   const mapStyle = mapStyleOption?.spec
 
   const isDarkStyle = useMemo(() => {
     const styleIdLower = currentMapStyleId?.toLowerCase()
-    const styleName = mapStyleOption?.name.toLowerCase()
+    const styleName = mapStyleOption?.name?.toLowerCase()
     return !(
       mapStyleOption?.light ||
       styleName?.includes('light') ||
@@ -49,19 +42,26 @@ const useMapApi = (mapId) => {
     )
   }, [currentMapStyleId, mapStyleOption?.light, mapStyleOption?.name])
 
+  const fog = useMemo(() => {
+    const defaultFog = isDarkStyle ? DARK_GLOBE_FOG : LIGHT_GLOBE_FOG
+    const rawFog = mapStyleOption?.fog ?? mapStyle?.fog ?? defaultFog
+    return normalizeFog(rawFog)
+  }, [isDarkStyle, mapStyle?.fog, mapStyleOption?.fog])
+
   return useMemo(
     () => ({
       mapStyle,
       mapStyleOption,
+      fog,
       isDarkStyle,
-      isMapboxSelected,
-      ReactMapGl: isMapboxSelected ? ReactMapboxGL : ReactMapLibreGL,
-      NavigationControl: isMapboxSelected ? MapboxNavCtrl : MapLibreNavCtrl,
-      Marker: isMapboxSelected ? MapboxMarker : MapLibreMarker,
-      Source: isMapboxSelected ? MapboxSource : MapLibreSource,
-      Layer: isMapboxSelected ? MapboxLayer : MapLibreLayer,
+      isMapboxSelected: true,
+      ReactMapGl: ReactMapboxGL,
+      NavigationControl: MapboxNavCtrl,
+      Marker: MapboxMarker,
+      Source: MapboxSource,
+      Layer: MapboxLayer,
     }),
-    [isDarkStyle, isMapboxSelected, mapStyle, mapStyleOption]
+    [fog, isDarkStyle, mapStyle, mapStyleOption]
   )
 }
 

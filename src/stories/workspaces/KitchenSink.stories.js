@@ -968,19 +968,9 @@ const initData = {
   },
   maps: {
     order: {
-      additionalMapStyles: ['smoothLight', 'smoothDark'],
+      additionalMapStyles: ['osmRasterTiles', 'customStreets'],
     },
     additionalMapStyles: {
-      smoothLight: {
-        name: 'Smooth Light',
-        icon: 'fi/FiSun',
-        spec: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
-      },
-      smoothDark: {
-        name: 'Smooth Dark',
-        icon: 'fi/FiMoon',
-        spec: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
-      },
       osmRasterTiles: {
         name: 'OSM Raster Tiles',
         icon: 'md/MdBrush',
@@ -1031,25 +1021,10 @@ const initData = {
           starIntensity: ['interpolate', ['linear'], ['zoom'], 5, 0.35, 6, 0],
         },
       },
-      streets: {
-        name: 'Streets',
+      customStreets: {
+        name: 'Custom Streets',
         icon: 'md/MdStreetview',
         spec: 'mapbox://styles/mapbox/streets-v12',
-      },
-      outdoors: {
-        name: 'Outdoors',
-        icon: 'md/MdForest',
-        spec: 'mapbox://styles/mapbox/outdoors-v12',
-      },
-      satellite: {
-        name: 'Satellite',
-        icon: 'md/MdSatelliteAlt',
-        spec: 'mapbox://styles/mapbox/satellite-v9',
-      },
-      satellite_streets: {
-        name: 'Satellite Streets',
-        icon: 'md/MdSatellite',
-        spec: 'mapbox://styles/mapbox/satellite-streets-v12',
       },
     },
     data: {

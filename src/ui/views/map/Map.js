@@ -27,14 +27,7 @@ import {
   selectArcTypeKeys,
   selectGeoTypeKeys,
 } from '../../../data/selectors'
-import {
-  DARK_GLOBE_FOG,
-  DARK_SKY_SPEC,
-  DEFAULT_VIEWPORT,
-  ICON_RESOLUTION,
-  LIGHT_GLOBE_FOG,
-  LIGHT_SKY_SPEC,
-} from '../../../utils/constants'
+import { DEFAULT_VIEWPORT, ICON_RESOLUTION } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
 import { getSvgMarkup } from '../../../utils/svgBuilder'
 import MapNameDraggable from '../../draggables/MapNameDraggable'
@@ -42,12 +35,15 @@ import MapNameDraggable from '../../draggables/MapNameDraggable'
 import { fetchIcon } from '../../../utils'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
-import 'maplibre-gl/dist/maplibre-gl.css'
 
 const Map = ({ mapId }) => {
   const [iconData, setIconData] = useState({})
   const [mapLoaded, setMapLoaded] = useState(false)
   const mapRef = useRef(null)
+  if (typeof window !== 'undefined') {
+    window.__maps = window.__maps || {}
+    window.__maps[mapId] = mapRef
+  }
   const highlight = useRef(null)
   const containerRef = useRef(null)
   const demoInterval = useRef(-1)
@@ -78,30 +74,24 @@ const Map = ({ mapId }) => {
   const interactiveLayerIds = useMemo(() => {
     const ids = []
     geoTypes.forEach((type) => {
-      ids.push(`geographyLayer-${type}`)
-      ids.push(`includedGeographyLayer-${type}`)
+      ids.push(`geographyLayer-${mapId}-${type}`)
+      ids.push(`includedGeographyLayer-${mapId}-${type}`)
     })
     arcTypes.forEach((type) => {
-      ids.push(`multiArcLayerSolid-${type}`)
-      ids.push(`arcLayerSolid-${type}`)
+      ids.push(`multiArcLayerSolid-${mapId}-${type}`)
+      ids.push(`arcLayerSolid-${mapId}-${type}`)
     })
     nodeTypes.forEach((type) => {
-      ids.push(`nodeIconLayer-${type}`)
+      ids.push(`nodeIconLayer-${mapId}-${type}`)
     })
     return ids
-  }, [geoTypes, arcTypes, nodeTypes])
+  }, [geoTypes, arcTypes, nodeTypes, mapId])
 
-  const {
-    ReactMapGl,
-    isDarkStyle,
-    isMapboxSelected,
-    mapStyle,
-    mapStyleOption,
-  } = useMapApi(mapId)
+  const { ReactMapGl, mapStyle, fog } = useMapApi(mapId)
 
   useEffect(() => {
     setMapLoaded(false)
-  }, [isMapboxSelected])
+  }, [mapStyle])
 
   const clearDemoInterval = useCallback(() => {
     if (demoInterval.current !== -1) {
@@ -126,61 +116,155 @@ const Map = ({ mapId }) => {
     return clearDemoInterval
   }, [clearDemoInterval, demoMode, demoSettings, mapId, dispatch])
 
-  useEffect(() => {
-    const iconsToLoad = [
-      ...new Set(R.without(R.keys(iconData))(nodeIcons(mapId))),
-    ]
-    R.forEach(async (iconName) => {
-      const iconComponent =
-        iconName === 'MdDownloading'
-          ? MdDownloading
-          : await fetchIcon(iconName, iconUrl)
-      const svgMarkup = getSvgMarkup(iconComponent)
-      const iconImage = new Image(ICON_RESOLUTION, ICON_RESOLUTION)
-      iconImage.onload = () => {
-        setIconData(R.assoc(iconName, iconImage))
-      }
-      iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
-    })(iconsToLoad)
-  }, [iconUrl, iconData, nodeIcons, mapId])
+  const PLACEHOLDER_IMAGE = useMemo(
+    () => ({
+      width: ICON_RESOLUTION,
+      height: ICON_RESOLUTION,
+      data: new Uint8Array(ICON_RESOLUTION * ICON_RESOLUTION * 4),
+    }),
+    []
+  )
+
+  const iconDataRef = useRef({})
 
   const loadSkyAndFog = useCallback(() => {
-    const map = mapRef.current?.getMap()
-    if (!map || !map.isStyleLoaded()) return
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (!map) return
+    if (!map.isStyleLoaded || !map.isStyleLoaded()) return
 
-    if (isMapboxSelected) {
-      const defaultFog = isDarkStyle ? DARK_GLOBE_FOG : LIGHT_GLOBE_FOG
-      map.setFog(mapStyleOption?.fog ?? mapStyle?.fog ?? defaultFog)
-    } else {
-      const defaultSky = isDarkStyle ? DARK_SKY_SPEC : LIGHT_SKY_SPEC
-      map.setSky(mapStyleOption?.sky ?? mapStyle?.sky ?? defaultSky)
+    try {
+      map.setFog?.(fog)
+    } catch (e) {
+      // Ignore
     }
-  }, [
-    isDarkStyle,
-    isMapboxSelected,
-    mapStyle?.fog,
-    mapStyle?.sky,
-    mapStyleOption?.fog,
-    mapStyleOption?.sky,
-  ])
-
-  const handleLoad = useCallback(() => {
-    loadSkyAndFog()
-    setMapLoaded(true)
-  }, [loadSkyAndFog])
+  }, [fog])
 
   const loadIconsToStyle = useCallback(() => {
     if (!mapRef.current) return
-    R.forEachObjIndexed((iconImage, iconName) => {
-      if (!mapRef.current.hasImage(iconName)) {
-        mapRef.current.addImage(iconName, iconImage, { sdf: true })
+    const map = mapRef.current.getMap ? mapRef.current.getMap() : mapRef.current
+    if (!map || !map.isStyleLoaded || !map.isStyleLoaded()) return
+    try {
+      const allIcons = nodeIcons(mapId)
+      allIcons.forEach((iconName) => {
+        if (!map.hasImage(iconName)) {
+          const img = iconDataRef.current[iconName] || PLACEHOLDER_IMAGE
+          try {
+            map.addImage(iconName, img, { sdf: true })
+          } catch (e) {
+            // Ignore
+          }
+        }
+      })
+    } catch (e) {
+      // Ignore
+    }
+  }, [mapId, nodeIcons, PLACEHOLDER_IMAGE])
+
+  useEffect(() => {
+    const iconsToLoad = [
+      ...new Set(R.without(R.keys(iconDataRef.current))(nodeIcons(mapId))),
+    ]
+    iconsToLoad.forEach(async (iconName) => {
+      try {
+        const iconComponent =
+          iconName === 'MdDownloading'
+            ? MdDownloading
+            : await fetchIcon(iconName, iconUrl)
+        const svgMarkup = getSvgMarkup(iconComponent)
+        const iconImage = new Image(ICON_RESOLUTION, ICON_RESOLUTION)
+        iconImage.onload = () => {
+          iconDataRef.current[iconName] = iconImage
+          setIconData((prev) => ({ ...prev, [iconName]: iconImage }))
+          const map = mapRef.current?.getMap
+            ? mapRef.current.getMap()
+            : mapRef.current
+          if (map && map.isStyleLoaded && map.isStyleLoaded()) {
+            try {
+              if (map.hasImage(iconName)) {
+                map.updateImage(iconName, iconImage)
+              } else {
+                map.addImage(iconName, iconImage, { sdf: true })
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }
+        }
+        iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
+      } catch (e) {
+        // Ignore
       }
-    }, iconData)
-  }, [iconData])
+    })
+  }, [iconUrl, nodeIcons, mapId])
+
+  const handleLoad = useCallback(() => {
+    loadIconsToStyle()
+    loadSkyAndFog()
+    setMapLoaded(true)
+  }, [loadSkyAndFog, loadIconsToStyle])
 
   useEffect(() => {
     loadIconsToStyle()
-  }, [loadIconsToStyle])
+  }, [iconData, loadIconsToStyle])
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (!map) return
+
+    loadSkyAndFog()
+
+    const handleStyleLoad = () => {
+      loadSkyAndFog()
+    }
+    const handleStyleData = () => {
+      loadSkyAndFog()
+    }
+
+    map.on('style.load', handleStyleLoad)
+    map.on('styledata', handleStyleData)
+
+    return () => {
+      map.off('style.load', handleStyleLoad)
+      map.off('styledata', handleStyleData)
+    }
+  }, [loadSkyAndFog, mapLoaded])
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (map && !mapLoaded) {
+      setMapLoaded(true)
+    }
+  }, [mapLoaded])
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (!map) return
+
+    const handleImageMissing = (e) => {
+      const iconName = e.id
+      const iconImage = iconDataRef.current[iconName] || PLACEHOLDER_IMAGE
+      try {
+        if (!map.hasImage(iconName)) {
+          map.addImage(iconName, iconImage, { sdf: true })
+        }
+      } catch (err) {
+        // Ignore
+      }
+    }
+
+    map.on('styleimagemissing', handleImageMissing)
+    return () => {
+      map.off('styleimagemissing', handleImageMissing)
+    }
+  }, [mapLoaded, PLACEHOLDER_IMAGE])
 
   const getFeatureFromEvent = useCallback(
     (e) => {
@@ -321,7 +405,13 @@ const Map = ({ mapId }) => {
       const canvas = mapRef.current.getCanvas()
       const featureObj = getFeatureFromEvent(e)
       if (R.isNotNil(highlight.current)) {
-        mapRef.current.setFeatureState(highlight.current, { hover: false })
+        try {
+          if (mapRef.current.getSource?.(highlight.current.source)) {
+            mapRef.current.setFeatureState(highlight.current, { hover: false })
+          }
+        } catch (err) {
+          // Ignore
+        }
         highlight.current = null
       }
       if (!featureObj) {
@@ -329,8 +419,14 @@ const Map = ({ mapId }) => {
       } else {
         const id = featureObj[3]
         const source = featureObj[4]
-        mapRef.current.setFeatureState({ source, id }, { hover: true })
-        highlight.current = { source, id }
+        try {
+          if (mapRef.current.getSource?.(source)) {
+            mapRef.current.setFeatureState({ source, id }, { hover: true })
+            highlight.current = { source, id }
+          }
+        } catch (err) {
+          // Ignore
+        }
         if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
       }
     },
@@ -344,7 +440,13 @@ const Map = ({ mapId }) => {
 
       const [id, feature, obj] = featureObj
       if (R.isNotNil(highlight.current)) {
-        mapRef.current.setFeatureState(highlight.current, { hover: false })
+        try {
+          if (mapRef.current?.getSource?.(highlight.current.source)) {
+            mapRef.current.setFeatureState(highlight.current, { hover: false })
+          }
+        } catch (err) {
+          // Ignore
+        }
         highlight.current = null
       }
 
@@ -367,20 +469,26 @@ const Map = ({ mapId }) => {
 
   const handleMouseOver = useCallback(() => {
     if (R.isNotNil(highlight.current)) {
-      mapRef.current.setFeatureState(highlight.current, { hover: false })
+      try {
+        if (mapRef.current?.getSource?.(highlight.current.source)) {
+          mapRef.current.setFeatureState(highlight.current, { hover: false })
+        }
+      } catch (err) {
+        // Ignore
+      }
       highlight.current = null
     }
   }, [])
 
-  const handleRender = useCallback(() => {
-    // Mapbox GL doesn't resize properly without this. MapLibre fires onMove constantly if resize is fired
-    // Checking if token is provided to prevents both issues
-    isMapboxSelected && mapRef.current?.resize()
-  }, [isMapboxSelected])
-
   const handleStyleData = useCallback(() => {
     loadIconsToStyle()
     loadSkyAndFog()
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (map && map.getStyle && map.getStyle()) {
+      setMapLoaded(true)
+    }
   }, [loadSkyAndFog, loadIconsToStyle])
 
   useEffect(() => {
@@ -410,13 +518,9 @@ const Map = ({ mapId }) => {
           ref={mapRef}
           hash="map"
           container="map"
-          style={
-            !isMapboxSelected && {
-              backgroundColor: isDarkStyle ? '#1a1a1a' : '#dfe7ef',
-            }
-          }
-          mapboxAccessToken={isMapboxSelected && mapboxToken}
+          mapboxAccessToken={mapboxToken}
           projection={currentMapProjectionFunc(mapId)}
+          fog={fog}
           {...{ mapStyle, interactiveLayerIds, ...currentViewport }}
           onClick={handleClick}
           onLoad={handleLoad}
@@ -424,7 +528,6 @@ const Map = ({ mapId }) => {
           onMouseOver={handleMouseOver}
           onMove={handleMove}
           onMoveEnd={handleMoveEnd}
-          onRender={handleRender}
           onStyleData={handleStyleData}
         >
           <MapLayers />

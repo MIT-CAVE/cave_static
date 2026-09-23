@@ -1223,7 +1223,16 @@ export const constructGeoJson = (
 
       const results = []
       for (let i = 0; i < items.length; i++) {
-        const [id, item] = items[i]
+        const entry = items[i]
+        if (!entry) continue
+        let id, item
+        if (Array.isArray(entry)) {
+          id = entry[0]
+          item = entry[1]
+        } else {
+          item = entry
+          id = item.id ?? item.key ?? i
+        }
         if (!item) continue
         const meta = getTypeMeta(item)
         if (!filterMapFeature(meta.filters, item)) continue
@@ -1358,4 +1367,38 @@ export const isMapboxStyle = (mapStyle) => {
   }
 
   return false
+}
+
+export const normalizeFog = (fog) => {
+  if (!fog || typeof fog !== 'object') return fog
+  const normalized = { ...fog }
+  if (fog['high-color'] === undefined) {
+    if (fog.highColor !== undefined) normalized['high-color'] = fog.highColor
+    else if (fog.high_color !== undefined)
+      normalized['high-color'] = fog.high_color
+  }
+  if (fog['space-color'] === undefined) {
+    if (fog.spaceColor !== undefined) normalized['space-color'] = fog.spaceColor
+    else if (fog.space_color !== undefined)
+      normalized['space-color'] = fog.space_color
+  }
+  if (fog['horizon-blend'] === undefined) {
+    if (fog.horizonBlend !== undefined)
+      normalized['horizon-blend'] = fog.horizonBlend
+    else if (fog.horizon_blend !== undefined)
+      normalized['horizon-blend'] = fog.horizon_blend
+  }
+  if (fog['star-intensity'] === undefined) {
+    if (fog.starIntensity !== undefined)
+      normalized['star-intensity'] = fog.starIntensity
+    else if (fog.star_intensity !== undefined)
+      normalized['star-intensity'] = fog.star_intensity
+  }
+  if (fog['vertical-range'] === undefined) {
+    if (fog.verticalRange !== undefined)
+      normalized['vertical-range'] = fog.verticalRange
+    else if (fog.vertical_range !== undefined)
+      normalized['vertical-range'] = fog.vertical_range
+  }
+  return normalized
 }

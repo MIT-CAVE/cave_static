@@ -1,16 +1,40 @@
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { playwright } from '@vitest/browser-playwright'
+import fs from 'node:fs'
+import path from 'node:path'
 import { defineConfig, mergeConfig } from 'vitest/config'
 
 import viteConfig from './vite.config.js'
+
+const getMapboxToken = () => {
+  const tokPath = path.resolve(process.cwd(), 'mapbox.tok')
+  if (!fs.existsSync(tokPath)) {
+    throw new Error(
+      "Missing 'mapbox.tok' file in the project root. You must have that token set as mapbox.tok in the project root with the structure: MAPBOX_TOKEN='pk.mytokenhere'"
+    )
+  }
+  const content = fs.readFileSync(tokPath, 'utf8')
+  const match = content.match(/MAPBOX_TOKEN\s*=\s*['"]?([^'"\r\n]+)['"]?/)
+  if (!match || !match[1]) {
+    throw new Error(
+      "Invalid 'mapbox.tok' file in the project root. You must have that token set as mapbox.tok in the project root with the structure: MAPBOX_TOKEN='pk.mytokenhere'"
+    )
+  }
+  return match[1].trim()
+}
 
 export default defineConfig((env) => {
   const baseConfig =
     typeof viteConfig === 'function' ? viteConfig(env) : viteConfig
 
+  const mapboxToken = getMapboxToken()
+
   return mergeConfig(
     baseConfig,
     defineConfig({
+      define: {
+        __MAPBOX_TOKEN__: JSON.stringify(mapboxToken),
+      },
       optimizeDeps: {
         // NOTE: `mergeConfig` concatenates this list with the one inherited
         // from vite.config.js, so entries listed there are not repeated here.
@@ -24,7 +48,7 @@ export default defineConfig((env) => {
           'echarts/components',
           'echarts/core',
           'echarts/renderers',
-          'maplibre-gl',
+          'mapbox-gl',
           'mui-color-input',
           'react-draggable',
           'react-grid-layout',
@@ -38,6 +62,8 @@ export default defineConfig((env) => {
           'react-markdown',
           'react-simple-keyboard',
           'react-syntax-highlighter',
+          'react-map-gl/mapbox',
+          'react-map-gl/maplibre',
           'react-syntax-highlighter/dist/esm/styles/prism',
           'react-transition-group',
           'react-virtualized-auto-sizer',
@@ -48,6 +74,7 @@ export default defineConfig((env) => {
           'remark-math',
           'three',
         ],
+        exclude: ['maplibre-gl'],
       },
       test: {
         projects: [

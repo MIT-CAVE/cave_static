@@ -22,10 +22,7 @@ import { PiEraser } from 'react-icons/pi'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
-import {
-  selectIsMapboxTokenProvided,
-  selectMapboxToken,
-} from '../../data/selectors'
+import { selectMapboxToken } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
@@ -96,15 +93,10 @@ const displayPath = (path) => {
 
 const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const mapboxToken = useSelector(selectMapboxToken)
-  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const { enabled, placeholder } = prop
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
-  const mapStyle =
-    prop.mapStyle ??
-    (isMapboxTokenProvided
-      ? 'mapbox://styles/mapbox/dark-v11'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json')
+  const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
 
   const getPathData = useCallback(
     (path) =>

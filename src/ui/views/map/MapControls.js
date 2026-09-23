@@ -252,7 +252,7 @@ const MapNavButtons = memo(({ mapId }) => {
 
 const MapControls = ({ mapId }) => {
   const [hover, setHover] = useState(false)
-  const { isMapboxSelected, isDarkStyle } = useMapApi(mapId)
+  const { isDarkStyle } = useMapApi(mapId)
 
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
@@ -314,10 +314,9 @@ const MapControls = ({ mapId }) => {
   const rootStyle = useMemo(
     () => [
       styles.root,
-      !isMapboxSelected && { bottom: '40px' },
       { 'button,.MuiSlider-root': { opacity: hover ? 1 : 0.8 } },
     ],
-    [hover, isMapboxSelected]
+    [hover]
   )
 
   const handleClickMapLegendToggle = useCallback(
@@ -516,7 +515,7 @@ const MapControls = ({ mapId }) => {
       </Box>
 
       {showBearingSlider && (
-        <Box sx={[styles.bearing, !isMapboxSelected && { bottom: '80px' }]}>
+        <Box sx={styles.bearing}>
           <Slider
             sx={[styles.bearingSlider, !isDarkStyle && styles.lightSlider]}
             min={MIN_BEARING}

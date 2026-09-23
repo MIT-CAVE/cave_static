@@ -16,7 +16,7 @@ const mockStore = configureStore({
           data: {
             map_1: {
               name: 'Logistics Network',
-              currentStyle: 'cartoDarkMatter',
+              currentStyle: 'mapboxDark',
               legendView: legendViews.COMPACT,
               legendGroups: {
                 group_1: {

@@ -131,6 +131,14 @@ const createMockStore = (initData, options = {}) => {
     }
   }
 
+  const mapboxToken =
+    /* global __MAPBOX_TOKEN__ */
+    typeof __MAPBOX_TOKEN__ !== 'undefined'
+      ? __MAPBOX_TOKEN__
+      : typeof process !== 'undefined'
+        ? process.env?.REACT_APP_MAPBOX_TOKEN || ''
+        : ''
+
   const defaultPreloadedState = {
     data: initData,
     local: initialLocalState,
@@ -138,6 +146,9 @@ const createMockStore = (initData, options = {}) => {
       loading: {
         session_loading: false,
         data_loading: false,
+      },
+      tokens: {
+        mapboxToken,
       },
     }),
   }

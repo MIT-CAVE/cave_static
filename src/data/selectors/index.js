@@ -31,7 +31,6 @@ import {
   legendLayouts,
   legendWidths,
   MAPBOX_PROJECTIONS,
-  MAPLIBRE_PROJECTIONS,
   MAP_PROJECTIONS,
 } from '../../utils/enums'
 import { getScaledValue } from '../../utils/scales'
@@ -56,8 +55,8 @@ import {
   getColorString,
   parseGradient,
   getChartItemColor,
-  isMapboxStyle,
   getColoringFn,
+  normalizeFog,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -1299,16 +1298,11 @@ export const selectIsMapboxTokenProvided = createSelector(
 )
 
 export const selectCurrentMapStyleIdFunc = createSelector(
-  [selectIsMapboxTokenProvided, selectCurrentMergedMapDataByMap],
-  (isMapboxTokenProvided, dataObj) =>
+  selectCurrentMergedMapDataByMap,
+  (dataObj) =>
     maxSizedMemoization(
       (mapId) => mapId,
-      (mapId) => {
-        const defaultMapStyleId = isMapboxTokenProvided
-          ? 'mapboxDark'
-          : 'cartoDarkMatter'
-        return dataObj?.currentStyle?.[mapId] ?? defaultMapStyleId
-      },
+      (mapId) => dataObj?.currentStyle?.[mapId] ?? 'mapboxDark',
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -1324,16 +1318,13 @@ export const selectLockMapStyleFunc = createSelector(
 )
 
 export const selectCurrentMapProjectionFunc = createSelector(
-  [selectCurrentMergedMapDataByMap, selectIsMapboxTokenProvided],
-  (dataObj, isMapboxTokenProvided) =>
+  selectCurrentMergedMapDataByMap,
+  (dataObj) =>
     maxSizedMemoization(
       (mapId) => mapId,
       (mapId) => {
         const proj = dataObj?.currentProjection?.[mapId]
-        const validSet = isMapboxTokenProvided
-          ? MAPBOX_PROJECTIONS
-          : MAPLIBRE_PROJECTIONS
-        return validSet.has(proj) ? proj : MAP_PROJECTIONS.MERCATOR
+        return MAPBOX_PROJECTIONS.has(proj) ? proj : MAP_PROJECTIONS.MERCATOR
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -1367,47 +1358,59 @@ export const selectIsGlobe = createSelector(
   (isGlobeData) => (mapId) => isGlobeData?.[mapId]
 )
 export const selectMapStyleOptions = createSelector(
-  [selectOrderedMaps, selectIsMapboxTokenProvided],
-  (data, isMapboxTokenProvided) => {
+  selectOrderedMaps,
+  (data) => {
     const ordered = orderEntireDict(data)
-    const merged = {
-      ...DEFAULT_MAP_STYLE_OBJECTS,
-      ...(ordered?.additionalMapStyles ?? {}),
-    }
-    const result = {}
-    for (const [key, styleObj] of Object.entries(merged)) {
-      if (
-        isMapboxTokenProvided ||
-        !(styleObj.mapbox || isMapboxStyle(styleObj.spec))
-      ) {
-        result[key] = styleObj
+    const additional = ordered?.additionalMapStyles ?? {}
+    const normalizedAdditional = {}
+    for (const [key, val] of Object.entries(additional)) {
+      if (val && typeof val === 'object') {
+        const valFog = val.fog ? normalizeFog(val.fog) : undefined
+        if (val.spec && typeof val.spec === 'object') {
+          const specFog = val.spec.fog ? normalizeFog(val.spec.fog) : undefined
+          normalizedAdditional[key] = {
+            ...val,
+            ...(valFog && { fog: valFog }),
+            spec: {
+              glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+              sprite: 'mapbox://sprites/mapbox/dark-v11',
+              ...val.spec,
+              ...(specFog && { fog: specFog }),
+            },
+          }
+        } else {
+          normalizedAdditional[key] = {
+            ...val,
+            ...(valFog && { fog: valFog }),
+          }
+        }
+      } else {
+        normalizedAdditional[key] = val
       }
     }
-    return result
+    return {
+      ...DEFAULT_MAP_STYLE_OBJECTS,
+      ...normalizedAdditional,
+    }
+  },
+  {
+    memoize: lruMemoize,
+    memoizeOptions: {
+      resultEqualityCheck: deepEqual,
+    },
   }
 )
 
-export const selectIsCurrentMapboxStyleFunc = createSelector(
-  [selectMapStyleOptions, selectCurrentMapStyleIdFunc],
-  (mapStyleOptions, currentMapStyleIdFunc) => (mapId) => {
-    const currentMapStyleId = currentMapStyleIdFunc(mapId)
-    const mapStyleOption = mapStyleOptions[currentMapStyleId]
-    const mapStyle = mapStyleOption?.spec
-    return Boolean(mapStyleOption?.mapbox || isMapboxStyle(mapStyle))
-  }
-)
+// eslint-disable-next-line ramda/prefer-ramda-boolean
+export const selectIsCurrentMapboxStyleFunc = () => () => true
 
 export const selectMapProjectionOptionsFunc = createSelector(
-  [selectOrderedMaps, selectIsCurrentMapboxStyleFunc],
-  (data, isCurrentMapboxStyleFunc) => (mapId) => {
+  selectOrderedMaps,
+  (data) => () => {
     const ordered = orderEntireDict(data) || {}
     const additional = ordered.additionalProjections || {}
-    const isMapbox = isCurrentMapboxStyleFunc(mapId)
-    const validProjections = isMapbox
-      ? MAPBOX_PROJECTIONS
-      : MAPLIBRE_PROJECTIONS
     const defaultProjections = {}
-    for (const proj of validProjections) {
+    for (const proj of MAPBOX_PROJECTIONS) {
       if (
         proj !== MAP_PROJECTIONS.MERCATOR &&
         proj !== MAP_PROJECTIONS.GLOBE &&
@@ -1450,35 +1453,25 @@ export const selectOptionalViewportsFunc = createSelector(
 // Local -> Map -> layers
 
 const selectLegendTypesFn = createSelector(
-  [
-    selectCurrentLocalMapDataByMap,
-    selectCurrentMapDataByMap,
-    selectFeatureData,
-  ],
-  (localMapObj, mapDataObj, mapFeatures) =>
+  [selectLegendDataFunc, selectFeatureData],
+  (legendDataFunc, mapFeatures) =>
     maxSizedMemoization(
       ({ mapId, layerKey }) => `${mapId}+${layerKey}`,
       ({ mapId, layerKey }) => {
-        const getEnabledTypes = (dataSource) => {
-          const legendGroups = dataSource?.legendGroups?.[mapId] || {}
-          const merged = {}
-          for (const group of Object.values(legendGroups)) {
-            if (group?.data) {
-              Object.assign(merged, group.data)
-            }
+        const legendGroups = legendDataFunc(mapId) || {}
+        const merged = {}
+        for (const group of Object.values(legendGroups)) {
+          if (group?.data) {
+            Object.assign(merged, group.data)
           }
-          const filtered = {}
-          for (const key of Object.keys(merged)) {
-            if (mapFeatures?.[key]?.type === layerKey) {
-              filtered[key] = merged[key]
-            }
-          }
-          return filtered
         }
-        const localTypes = getEnabledTypes(localMapObj)
-        return Object.keys(localTypes).length === 0
-          ? getEnabledTypes(mapDataObj)
-          : localTypes
+        const filtered = {}
+        for (const key of Object.keys(merged)) {
+          if (mapFeatures?.[key]?.type === layerKey) {
+            filtered[key] = merged[key]
+          }
+        }
+        return filtered
       },
       MAX_MEMOIZED_CHARTS
     )
@@ -2816,9 +2809,9 @@ export const selectNodeClustersFunc = createSelector(
         // create groups
         const groupsMap = {}
         for (let i = 0; i < data.length; i++) {
-          const name = data[i].name
-          if (!groupsMap[name]) groupsMap[name] = []
-          groupsMap[name].push(data[i])
+          const groupKey = `${data[i].type}_${data[i].name}`
+          if (!groupsMap[groupKey]) groupsMap[groupKey] = []
+          groupsMap[groupKey].push(data[i])
         }
         const groupsRaw = Object.values(groupsMap)
         const groups = {}
@@ -3144,7 +3137,13 @@ export const selectNodeLayerGeoJsonFunc = createSelector(
   (nodesFunc, clustersFunc) =>
     maxSizedMemoization(
       (mapId) => mapId,
-      (mapId) => nodesFunc(mapId).concat(clustersFunc(mapId)),
+      (mapId) => {
+        const nodes = nodesFunc(mapId) || []
+        const clusters = clustersFunc(mapId) || []
+        if (clusters.length === 0) return nodes
+        if (nodes.length === 0) return clusters
+        return nodes.concat(clusters)
+      },
       MAX_MEMOIZED_CHARTS
     )
 )
@@ -3155,7 +3154,12 @@ const flattenArcData = (data) => {
     for (const group of Object.values(data)) {
       if (Array.isArray(group)) {
         for (let i = 0; i < group.length; i++) {
-          result.push(group[i])
+          const entry = group[i]
+          if (Array.isArray(entry)) {
+            result.push({ ...entry[1], id: entry[0] })
+          } else if (entry) {
+            result.push(entry)
+          }
         }
       }
     }
@@ -3171,10 +3175,20 @@ export const selectArcLayerGeoJsonFunc = createSelector(
     selectLegendNumberFormatFunc,
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
-    const geometryFunc = (item) => ({
-      type: 'LineString',
-      coordinates: adjustArcPath(item.path),
-    })
+    const geometryFunc = (item) => {
+      let coords = item.path
+      if (
+        !coords &&
+        Array.isArray(item.latitude) &&
+        Array.isArray(item.longitude)
+      ) {
+        coords = item.latitude.map((lat, idx) => [item.longitude[idx], lat])
+      }
+      return {
+        type: 'LineString',
+        coordinates: adjustArcPath(coords || []),
+      }
+    }
     const modifiedArcDataFunc = (mapId) => flattenArcData(arcDataFunc(mapId))
     return constructGeoJson(
       arcRange,
@@ -3195,10 +3209,20 @@ export const selectArcLayer3DGeoJsonFunc = createSelector(
     selectLegendNumberFormatFunc,
   ],
   (arcRange, arcDataFunc, legendObjectsFunc, legendNumberFormatFunc) => {
-    const geometryFunc = (item) => ({
-      type: 'LineString',
-      coordinates: adjustArcPath(item.path),
-    })
+    const geometryFunc = (item) => {
+      let coords = item.path
+      if (
+        !coords &&
+        Array.isArray(item.latitude) &&
+        Array.isArray(item.longitude)
+      ) {
+        coords = item.latitude.map((lat, idx) => [item.longitude[idx], lat])
+      }
+      return {
+        type: 'LineString',
+        coordinates: adjustArcPath(coords || []),
+      }
+    }
     const modifiedArcDataFunc = (mapId) => flattenArcData(arcDataFunc(mapId))
     return constructGeoJson(
       arcRange,
@@ -3250,7 +3274,15 @@ export const selectIncludedGeoJsonFunc = createSelector(
     legendNumberFormatFunc
   ) => {
     const geometryFunc = (item) => {
-      const path = item.path || []
+      let path = item.path
+      if (
+        !path &&
+        Array.isArray(item.latitude) &&
+        Array.isArray(item.longitude)
+      ) {
+        path = item.latitude.map((lat, idx) => [item.longitude[idx], lat])
+      }
+      path = path || []
       const isNested =
         Array.isArray(path[0]) &&
         Array.isArray(path[0][0]) &&

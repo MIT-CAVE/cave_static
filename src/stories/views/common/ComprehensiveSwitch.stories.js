@@ -432,12 +432,12 @@ const comprehensiveDataset = {
       smoothLight: {
         name: 'Smooth Light',
         icon: 'fi/FiSun',
-        spec: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        spec: 'mapbox://styles/mapbox/light-v11',
       },
       smoothDark: {
         name: 'Smooth Dark',
         icon: 'fi/FiMoon',
-        spec: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        spec: 'mapbox://styles/mapbox/dark-v11',
       },
     },
     data: {
