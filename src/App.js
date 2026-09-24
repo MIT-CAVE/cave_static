@@ -15,6 +15,8 @@ import {
   selectDemoViews,
   selectSync,
   selectDemoSettings,
+  selectAllGlobalIcons,
+  selectSettingsIconUrl,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
 import Draggables from './ui/draggables/Draggables'
@@ -24,7 +26,7 @@ import renderAppPane from './ui/views/common/Pane'
 import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
 import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
-import { includesPath } from './utils'
+import { includesPath, loadIconImages } from './utils'
 import { paneId } from './utils/enums'
 
 const styles = {
@@ -115,8 +117,16 @@ const App = () => {
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
   const sync = useSelector(selectSync)
+  const iconUrl = useSelector(selectSettingsIconUrl)
+  const allGlobalIcons = useSelector(selectAllGlobalIcons)
 
   const demoTimeout = useRef(-1)
+
+  useEffect(() => {
+    if (allGlobalIcons.length > 0) {
+      loadIconImages(allGlobalIcons, iconUrl)
+    }
+  }, [allGlobalIcons, iconUrl])
 
   useEffect(() => {
     if (demoMode && demoTimeout.current === -1) {

@@ -52,6 +52,10 @@ const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActionPaths: ['asyncDispatch'],
+        warnAfter: 128,
+      },
+      immutableCheck: {
+        warnAfter: 128,
       },
     }).concat(asyncDispatchMiddleware),
   // Use Redux Dev Tools if not in proudction or the build is a dev build

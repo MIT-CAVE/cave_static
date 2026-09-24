@@ -13,9 +13,11 @@ import {
 import { propId, scaleId } from './enums'
 import { quantileSorted } from './quantile'
 import { getScaledValue, getScaleFunction } from './scales'
+import { renderIconTreeToSvg } from './svgBuilder'
 
 export { default as NumberFormat } from './NumberFormat'
 export { getScaledValue, getScaleFunction }
+export { renderIconTreeToSvg, getSvgMarkup } from './svgBuilder'
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
@@ -441,6 +443,60 @@ export const removeExtraProps = (Component, extraProps) => {
   return React.createElement(ComponentType, R.omit(extraProps, Component.props))
 }
 
+export const extractIconsFromState = (data) => {
+  if (!data || typeof data !== 'object') return []
+  const icons = new Set()
+  const stack = [data]
+
+  while (stack.length > 0) {
+    const current = stack.pop()
+    if (!current || typeof current !== 'object') continue
+
+    if (Array.isArray(current)) {
+      for (let i = 0; i < current.length; i++) {
+        const item = current[i]
+        if (item && typeof item === 'object') {
+          stack.push(item)
+        }
+      }
+      continue
+    }
+
+    for (const key in current) {
+      if (!Object.prototype.hasOwnProperty.call(current, key)) continue
+      const val = current[key]
+      if (
+        typeof val === 'string' &&
+        (key === 'icon' ||
+          key === 'iconName' ||
+          key === 'activeIcon' ||
+          key === 'startIcon' ||
+          key === 'endIcon' ||
+          key === 'expandIcon') &&
+        val.includes('/')
+      ) {
+        icons.add(val)
+      } else if (val && typeof val === 'object') {
+        stack.push(val)
+      }
+    }
+  }
+
+  return Array.from(icons)
+}
+
+const inMemoryIconTreeCache = new Map()
+const inMemoryIconImageCache = new Map()
+const inMemoryIconPromises = new Map()
+
+export const getCachedIconImage = (iconName) =>
+  inMemoryIconImageCache.get(iconName)
+
+export const getCachedIconTree = (iconName, iconUrl = DEFAULT_ICON_URL) => {
+  const url = `${iconUrl || DEFAULT_ICON_URL}/${iconName}.js`
+  return inMemoryIconTreeCache.get(url)
+}
+
 export const fetchResource = async ({
   url,
   cacheName,
@@ -448,17 +504,50 @@ export const fetchResource = async ({
   rawBody = false,
 }) => {
   try {
-    // Open cache only if it's not provided
-    const activeCache = cache || (await caches.open(cacheName))
-    let response = await activeCache.match(url)
-    // Add to cache if not found
-    if (response == null) {
-      await activeCache.add(url)
-      response = await activeCache.match(url)
+    if (cacheName === 'icons' && inMemoryIconTreeCache.has(url) && !rawBody) {
+      const cached = inMemoryIconTreeCache.get(url)
+      if (cached && typeof cached === 'object' && cached.tag) {
+        return cached
+      }
     }
-    return rawBody ? response : await response.json()
+    let response = null
+    let activeCache = null
+    if (typeof caches !== 'undefined') {
+      try {
+        activeCache = cache || (await caches.open(cacheName))
+        response = await activeCache.match(url)
+      } catch (e) {
+        // Ignore CacheStorage failure in restricted environments
+      }
+    }
+    if (!response) {
+      const res = await fetch(url)
+      if (!res.ok) {
+        return null
+      }
+      if (activeCache) {
+        try {
+          await activeCache.put(url, res.clone())
+        } catch (e) {
+          // Ignore cache put error
+        }
+      }
+      response = res
+    }
+    const result = rawBody ? response : await response.json()
+    if (
+      cacheName === 'icons' &&
+      result &&
+      typeof result === 'object' &&
+      result.tag &&
+      !rawBody
+    ) {
+      inMemoryIconTreeCache.set(url, result)
+    }
+    return result
   } catch (error) {
     console.error('Error fetching resource:', error)
+    return null
   }
 }
 
@@ -467,9 +556,79 @@ export const fetchIcon = async (
   iconUrl = DEFAULT_ICON_URL,
   rawIcon = false
 ) => {
-  const url = `${iconUrl}/${iconName}.js`
-  const iconTree = (await fetchResource({ url, cacheName: 'icons' })) ?? {}
+  if (!iconName) return rawIcon ? null : () => null
+  const url = `${iconUrl || DEFAULT_ICON_URL}/${iconName}.js`
+  let iconTree = inMemoryIconTreeCache.get(url)
+  if (!iconTree || !iconTree.tag) {
+    const fetched = await fetchResource({ url, cacheName: 'icons' })
+    if (fetched && typeof fetched === 'object' && fetched.tag) {
+      iconTree = fetched
+      inMemoryIconTreeCache.set(url, iconTree)
+    }
+  }
+  if (!iconTree || !iconTree.tag) {
+    return rawIcon ? null : () => null
+  }
   return rawIcon ? iconTree : GenIcon(iconTree)
+}
+
+export const loadIconImage = async (
+  iconName,
+  iconUrl = DEFAULT_ICON_URL,
+  resolution = ICON_RESOLUTION
+) => {
+  if (!iconName) return null
+  const cached = inMemoryIconImageCache.get(iconName)
+  if (cached) return cached
+
+  const pending = inMemoryIconPromises.get(iconName)
+  if (pending) return pending
+
+  const promise = (async () => {
+    try {
+      const iconTree = await fetchIcon(iconName, iconUrl, true)
+      if (!iconTree || !iconTree.tag) return null
+
+      const svgMarkup = renderIconTreeToSvg(iconTree, undefined, resolution)
+      if (!svgMarkup) return null
+
+      const iconImage = new Image(resolution, resolution)
+      await new Promise((resolve, reject) => {
+        iconImage.onload = () => resolve(iconImage)
+        iconImage.onerror = reject
+        iconImage.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`
+      })
+      inMemoryIconImageCache.set(iconName, iconImage)
+      return iconImage
+    } catch (err) {
+      console.error(`Failed to load icon image ${iconName}:`, err)
+      return null
+    } finally {
+      inMemoryIconPromises.delete(iconName)
+    }
+  })()
+
+  inMemoryIconPromises.set(iconName, promise)
+  return promise
+}
+
+export const loadIconImages = async (
+  iconNames = [],
+  iconUrl = DEFAULT_ICON_URL,
+  resolution = ICON_RESOLUTION
+) => {
+  const uniqueNames = [...new Set(iconNames)].filter(Boolean)
+  if (uniqueNames.length === 0) return {}
+  const results = await Promise.allSettled(
+    uniqueNames.map((name) => loadIconImage(name, iconUrl, resolution))
+  )
+  const map = {}
+  uniqueNames.forEach((name, i) => {
+    if (results[i].status === 'fulfilled' && results[i].value) {
+      map[name] = results[i].value
+    }
+  })
+  return map
 }
 
 export const getStatusIcon = (color) => {

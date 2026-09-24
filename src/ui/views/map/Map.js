@@ -2,7 +2,6 @@ import { Box } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MdDownloading } from 'react-icons/md'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Geos, Arcs, Nodes, Arcs3D, MapLayers } from './layers'
@@ -21,18 +20,22 @@ import {
   selectDemoSettings,
   selectViewportsByMap,
   selectAllNodeIcons,
+  selectAllGlobalIcons,
   selectMapboxToken,
   selectMapNamesDraggable,
   selectNodeTypeKeys,
   selectArcTypeKeys,
   selectGeoTypeKeys,
 } from '../../../data/selectors'
-import { DEFAULT_VIEWPORT, ICON_RESOLUTION } from '../../../utils/constants'
+import { DEFAULT_VIEWPORT } from '../../../utils/constants'
 import { useMutateStateWithSync } from '../../../utils/hooks'
-import { getSvgMarkup } from '../../../utils/svgBuilder'
 import MapNameDraggable from '../../draggables/MapNameDraggable'
 
-import { fetchIcon } from '../../../utils'
+import {
+  getCachedIconImage,
+  loadIconImage,
+  loadIconImages,
+} from '../../../utils'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -56,9 +59,15 @@ const Map = ({ mapId }) => {
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
   const nodeIcons = useSelector(selectAllNodeIcons)
+  const allGlobalIcons = useSelector(selectAllGlobalIcons)
   const mapboxToken = useSelector(selectMapboxToken)
   const draggable = useSelector(selectMapNamesDraggable)
   const dispatch = useDispatch()
+
+  const allIcons = useMemo(
+    () => [...new Set([...(nodeIcons(mapId) || []), ...allGlobalIcons])],
+    [mapId, nodeIcons, allGlobalIcons]
+  )
 
   const [currentViewport, setCurrentViewport] = useState(viewport)
 
@@ -116,15 +125,6 @@ const Map = ({ mapId }) => {
     return clearDemoInterval
   }, [clearDemoInterval, demoMode, demoSettings, mapId, dispatch])
 
-  const PLACEHOLDER_IMAGE = useMemo(
-    () => ({
-      width: ICON_RESOLUTION,
-      height: ICON_RESOLUTION,
-      data: new Uint8Array(ICON_RESOLUTION * ICON_RESOLUTION * 4),
-    }),
-    []
-  )
-
   const iconDataRef = useRef({})
 
   const loadSkyAndFog = useCallback(() => {
@@ -141,63 +141,92 @@ const Map = ({ mapId }) => {
     }
   }, [fog])
 
+  const refreshNodeSources = useCallback(
+    (map) => {
+      if (!map || !map.isStyleLoaded || !map.isStyleLoaded()) return
+      nodeTypes.forEach((type) => {
+        const source = map.getSource(`nodeIconLayer-${mapId}-${type}`)
+        if (source && source._data && typeof source.setData === 'function') {
+          const d = source._data
+          source.setData(
+            typeof d === 'object' && d !== null
+              ? Array.isArray(d.features)
+                ? { ...d, features: [...d.features] }
+                : { ...d }
+              : d
+          )
+        }
+      })
+      map.triggerRepaint?.()
+    },
+    [mapId, nodeTypes]
+  )
+
   const loadIconsToStyle = useCallback(() => {
     if (!mapRef.current) return
     const map = mapRef.current.getMap ? mapRef.current.getMap() : mapRef.current
     if (!map || !map.isStyleLoaded || !map.isStyleLoaded()) return
     try {
-      const allIcons = nodeIcons(mapId)
+      let updated = false
       allIcons.forEach((iconName) => {
         if (!map.hasImage(iconName)) {
-          const img = iconDataRef.current[iconName] || PLACEHOLDER_IMAGE
-          try {
-            map.addImage(iconName, img, { sdf: true })
-          } catch (e) {
-            // Ignore
-          }
-        }
-      })
-    } catch (e) {
-      // Ignore
-    }
-  }, [mapId, nodeIcons, PLACEHOLDER_IMAGE])
-
-  useEffect(() => {
-    const iconsToLoad = [
-      ...new Set(R.without(R.keys(iconDataRef.current))(nodeIcons(mapId))),
-    ]
-    iconsToLoad.forEach(async (iconName) => {
-      try {
-        const iconComponent =
-          iconName === 'MdDownloading'
-            ? MdDownloading
-            : await fetchIcon(iconName, iconUrl)
-        const svgMarkup = getSvgMarkup(iconComponent)
-        const iconImage = new Image(ICON_RESOLUTION, ICON_RESOLUTION)
-        iconImage.onload = () => {
-          iconDataRef.current[iconName] = iconImage
-          setIconData((prev) => ({ ...prev, [iconName]: iconImage }))
-          const map = mapRef.current?.getMap
-            ? mapRef.current.getMap()
-            : mapRef.current
-          if (map && map.isStyleLoaded && map.isStyleLoaded()) {
+          const cachedImg =
+            getCachedIconImage(iconName) || iconDataRef.current[iconName]
+          if (cachedImg) {
             try {
-              if (map.hasImage(iconName)) {
-                map.updateImage(iconName, iconImage)
-              } else {
-                map.addImage(iconName, iconImage, { sdf: true })
-              }
+              map.addImage(iconName, cachedImg, { sdf: true })
+              updated = true
             } catch (e) {
               // Ignore
             }
           }
         }
-        iconImage.src = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
-      } catch (e) {
-        // Ignore
+      })
+      if (updated) {
+        refreshNodeSources(map)
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, [allIcons, refreshNodeSources])
+
+  useEffect(() => {
+    if (allIcons.length === 0) return
+
+    let isMounted = true
+    loadIconImages(allIcons, iconUrl).then((loadedImages) => {
+      if (!isMounted) return
+      Object.assign(iconDataRef.current, loadedImages)
+      setIconData((prev) => ({ ...prev, ...loadedImages }))
+      const map = mapRef.current?.getMap
+        ? mapRef.current.getMap()
+        : mapRef.current
+      if (map && map.isStyleLoaded && map.isStyleLoaded()) {
+        try {
+          let updated = false
+          Object.entries(loadedImages).forEach(([iconName, iconImage]) => {
+            if (iconImage && !map.hasImage(iconName)) {
+              try {
+                map.addImage(iconName, iconImage, { sdf: true })
+                updated = true
+              } catch (e) {
+                // Ignore
+              }
+            }
+          })
+          if (updated) {
+            refreshNodeSources(map)
+          }
+        } catch (e) {
+          // Ignore
+        }
       }
     })
-  }, [iconUrl, nodeIcons, mapId])
+
+    return () => {
+      isMounted = false
+    }
+  }, [iconUrl, allIcons, refreshNodeSources])
 
   const handleLoad = useCallback(() => {
     loadIconsToStyle()
@@ -207,7 +236,7 @@ const Map = ({ mapId }) => {
 
   useEffect(() => {
     loadIconsToStyle()
-  }, [iconData, loadIconsToStyle])
+  }, [allIcons, iconData, loadIconsToStyle])
 
   useEffect(() => {
     const map = mapRef.current?.getMap
@@ -218,9 +247,11 @@ const Map = ({ mapId }) => {
     loadSkyAndFog()
 
     const handleStyleLoad = () => {
+      loadIconsToStyle()
       loadSkyAndFog()
     }
     const handleStyleData = () => {
+      loadIconsToStyle()
       loadSkyAndFog()
     }
 
@@ -231,7 +262,7 @@ const Map = ({ mapId }) => {
       map.off('style.load', handleStyleLoad)
       map.off('styledata', handleStyleData)
     }
-  }, [loadSkyAndFog, mapLoaded])
+  }, [loadIconsToStyle, loadSkyAndFog, mapLoaded])
 
   useEffect(() => {
     const map = mapRef.current?.getMap
@@ -250,13 +281,33 @@ const Map = ({ mapId }) => {
 
     const handleImageMissing = (e) => {
       const iconName = e.id
-      const iconImage = iconDataRef.current[iconName] || PLACEHOLDER_IMAGE
-      try {
-        if (!map.hasImage(iconName)) {
-          map.addImage(iconName, iconImage, { sdf: true })
+      if (map.hasImage(iconName)) return
+      const cached = getCachedIconImage(iconName)
+      if (cached) {
+        try {
+          map.addImage(iconName, cached, { sdf: true })
+          refreshNodeSources(map)
+        } catch (err) {
+          // Ignore
         }
-      } catch (err) {
-        // Ignore
+      } else {
+        loadIconImage(iconName, iconUrl).then((img) => {
+          if (img) {
+            iconDataRef.current[iconName] = img
+            if (
+              map.isStyleLoaded &&
+              map.isStyleLoaded() &&
+              !map.hasImage(iconName)
+            ) {
+              try {
+                map.addImage(iconName, img, { sdf: true })
+                refreshNodeSources(map)
+              } catch (err) {
+                // Ignore
+              }
+            }
+          }
+        })
       }
     }
 
@@ -264,7 +315,7 @@ const Map = ({ mapId }) => {
     return () => {
       map.off('styleimagemissing', handleImageMissing)
     }
-  }, [mapLoaded, PLACEHOLDER_IMAGE])
+  }, [mapLoaded, iconUrl, refreshNodeSources])
 
   const getFeatureFromEvent = useCallback(
     (e) => {

@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest'
 
-import { selectMapStyleOptions } from './index'
+import {
+  selectAllGlobalIcons,
+  selectAllGlobalNodeIcons,
+  selectMapStyleOptions,
+} from './index'
 
-import { isMapboxStyle, includesPath, normalizeFog } from '../../utils'
+import {
+  extractIconsFromState,
+  getSvgMarkup,
+  includesPath,
+  isMapboxStyle,
+  normalizeFog,
+  renderIconTreeToSvg,
+} from '../../utils'
 
 describe('includesPath', () => {
   it('returns true for exact path matches in array of paths', () => {
@@ -342,5 +353,135 @@ describe('selectMapStyleOptions with fog normalization', () => {
     expect(styleOptions.customFogStyle.fog['high-color']).toBe('red')
     expect(styleOptions.customFogStyle.fog['space-color']).toBe('blue')
     expect(styleOptions.mapboxDark.fog).toBeDefined()
+  })
+})
+
+describe('renderIconTreeToSvg and getSvgMarkup', () => {
+  it('renders AST tree to SVG markup correctly with size and fill', () => {
+    const iconTree = {
+      tag: 'svg',
+      attr: { viewBox: '0 0 24 24' },
+      child: [
+        {
+          tag: 'path',
+          attr: { d: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' },
+        },
+      ],
+    }
+    const svg = renderIconTreeToSvg(iconTree, '#ff0000', 48)
+    expect(svg).toContain('viewBox="0 0 24 24"')
+    expect(svg).toContain('width="48"')
+    expect(svg).toContain('height="48"')
+    expect(svg).toContain('fill="#ff0000"')
+    expect(svg).toContain(
+      '<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path>'
+    )
+  })
+
+  it('renders SVG markup via getSvgMarkup for AST object', () => {
+    const iconTree = {
+      tag: 'svg',
+      attr: { viewBox: '0 0 24 24' },
+      child: [],
+    }
+    const markup = getSvgMarkup(iconTree, '#00ff00', 32)
+    expect(markup).toContain('fill="#00ff00"')
+    expect(markup).toContain('width="32"')
+  })
+})
+
+describe('selectAllGlobalIcons and extractIconsFromState', () => {
+  it('extracts all icons from across the entire state tree', () => {
+    const mockState = {
+      data: {
+        appBar: {
+          data: {
+            page1: { icon: 'md/MdMap' },
+            page2: { icon: 'md/MdDashboard' },
+          },
+        },
+        panes: {
+          data: {
+            pane1: { icon: 'md/MdSettings' },
+          },
+        },
+        maps: {
+          data: {
+            map1: {
+              legendGroups: {
+                lg1: {
+                  data: {
+                    nodeTypeA: { icon: 'md/MdHome' },
+                    nodeTypeB: { icon: 'md/MdWork' },
+                  },
+                },
+              },
+            },
+          },
+          additionalMapStyles: {
+            style1: { icon: 'md/MdBrush' },
+          },
+        },
+      },
+    }
+    const extracted = extractIconsFromState(mockState.data)
+    expect(extracted).toContain('md/MdMap')
+    expect(extracted).toContain('md/MdDashboard')
+    expect(extracted).toContain('md/MdSettings')
+    expect(extracted).toContain('md/MdHome')
+    expect(extracted).toContain('md/MdWork')
+    expect(extracted).toContain('md/MdBrush')
+
+    const globalIcons = selectAllGlobalIcons(mockState)
+    expect(globalIcons).toEqual(expect.arrayContaining(extracted))
+
+    const globalNodeIcons = selectAllGlobalNodeIcons(mockState)
+    expect(globalNodeIcons).toEqual(globalIcons)
+  })
+
+  it('updates extracted icons dynamically when redux state changes without reload', () => {
+    const initialState = {
+      data: {
+        maps: {
+          data: {
+            map1: {
+              legendGroups: {
+                lg1: {
+                  data: {
+                    nodeA: { icon: 'fa/FaCar' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }
+    const icons1 = selectAllGlobalIcons(initialState)
+    expect(icons1).toEqual(['fa/FaCar'])
+
+    // Mutate state with new map and features
+    const updatedState = {
+      data: {
+        maps: {
+          data: {
+            map2: {
+              legendGroups: {
+                lg2: {
+                  data: {
+                    nodeB: { icon: 'fa/FaTruck' },
+                    nodeC: { icon: 'fa/FaBicycle' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }
+    const icons2 = selectAllGlobalIcons(updatedState)
+    expect(icons2).toContain('fa/FaTruck')
+    expect(icons2).toContain('fa/FaBicycle')
+    expect(icons2).not.toContain('fa/FaCar')
   })
 })

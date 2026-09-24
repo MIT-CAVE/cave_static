@@ -599,8 +599,21 @@ export const Default = {
       return data?.features?.length
     }
 
-    const squareMap = window.__maps?.squareMap?.current
-    const squareMapGl = squareMap?.getMap ? squareMap.getMap() : squareMap
+    const waitForMap = async (mapRef, timeout = 6000) => {
+      const start = Date.now()
+      while (Date.now() - start < timeout) {
+        const mapGl = mapRef?.current?.getMap
+          ? mapRef.current.getMap()
+          : mapRef?.current
+        if (mapGl && mapGl.isStyleLoaded && mapGl.isStyleLoaded()) {
+          return mapGl
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+      return mapRef?.current?.getMap ? mapRef.current.getMap() : mapRef?.current
+    }
+
+    const squareMapGl = await waitForMap(window.__maps?.squareMap)
     expect(
       squareMapGl?.getLayer('nodeIconLayer-squareMap-squareGridPoint')
     ).toBeDefined()
@@ -611,10 +624,7 @@ export const Default = {
       )
     ).toBe(3)
 
-    const landscapeMap = window.__maps?.landscapeMap?.current
-    const landscapeMapGl = landscapeMap?.getMap
-      ? landscapeMap.getMap()
-      : landscapeMap
+    const landscapeMapGl = await waitForMap(window.__maps?.landscapeMap)
     expect(
       landscapeMapGl?.getLayer('nodeIconLayer-landscapeMap-landscapeGridPoint')
     ).toBeDefined()
@@ -625,10 +635,7 @@ export const Default = {
       )
     ).toBe(2)
 
-    const portraitMap = window.__maps?.portraitMap?.current
-    const portraitMapGl = portraitMap?.getMap
-      ? portraitMap.getMap()
-      : portraitMap
+    const portraitMapGl = await waitForMap(window.__maps?.portraitMap)
     expect(
       portraitMapGl?.getLayer('nodeIconLayer-portraitMap-portraitGridPoint')
     ).toBeDefined()
@@ -639,10 +646,7 @@ export const Default = {
       )
     ).toBe(2)
 
-    const warehouseMap = window.__maps?.warehouseMap?.current
-    const warehouseMapGl = warehouseMap?.getMap
-      ? warehouseMap.getMap()
-      : warehouseMap
+    const warehouseMapGl = await waitForMap(window.__maps?.warehouseMap)
     expect(
       getSourceFeaturesCount(warehouseMapGl, 'nodeIconLayer-warehouseMap-robot')
     ).toBe(1)

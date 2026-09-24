@@ -39,24 +39,25 @@ import Supercluster from '../../utils/supercluster'
 import ThreadMaxWorkers from '../../utils/ThreadMaxWorkers'
 
 import {
-  checkValidRange,
-  getTimeValue,
-  sortByOrderNameId,
-  forcePath,
-  customSortByX,
-  recursiveMap,
-  orderEntireDict,
   addValuesToProps,
-  filterGroupedOutputs,
   adjustArcPath,
+  ALLOWED_RANGE_KEYS,
+  checkValidRange,
   constructFetchedGeoJson,
   constructGeoJson,
-  ALLOWED_RANGE_KEYS,
-  getColorString,
-  parseGradient,
+  customSortByX,
+  extractIconsFromState,
+  filterGroupedOutputs,
+  forcePath,
   getChartItemColor,
   getColoringFn,
+  getColorString,
+  getTimeValue,
   normalizeFog,
+  orderEntireDict,
+  parseGradient,
+  recursiveMap,
+  sortByOrderNameId,
 } from '../../utils'
 
 const workerManager = new ThreadMaxWorkers()
@@ -1491,6 +1492,12 @@ export const selectAllNodeIcons = createSelector(
       MAX_MEMOIZED_CHARTS
     )
 )
+
+export const selectAllGlobalIcons = createSelector(selectData, (data) =>
+  extractIconsFromState(data)
+)
+
+export const selectAllGlobalNodeIcons = selectAllGlobalIcons
 export const selectEnabledTypesFn = createSelector(
   selectLegendTypesFn,
   (typesFn) =>

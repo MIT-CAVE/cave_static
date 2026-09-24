@@ -11,7 +11,6 @@ import {
   useContext,
   useMemo,
 } from 'react'
-import { MdDownloading } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 import * as THREE from 'three'
 
@@ -19,9 +18,8 @@ import useMapApi, { MapContext } from './useMapApi'
 
 import { selectSettingsIconUrl } from '../../../data/selectors'
 import { ICON_RESOLUTION } from '../../../utils/constants'
-import { getSvgMarkup } from '../../../utils/svgBuilder'
 
-import { fetchIcon } from '../../../utils'
+import { getCachedIconImage, loadIconImages } from '../../../utils'
 
 const MAX_HEIGHT = 0.00325
 // Generate line segment by creating cylinders between adjacent points on the curve
@@ -333,7 +331,8 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
         nodeXYZ.z =
           R.pathOr(0, ['geometry', 'coordinates', 2], node) * MAX_HEIGHT
 
-        const iconSrc = iconData[R.path(['properties', 'icon'], node)]
+        const iconName = R.path(['properties', 'icon'], node)
+        const iconSrc = iconData[iconName] || getCachedIconImage(iconName)?.src
         const texture = new THREE.TextureLoader().load(iconSrc, (texture) => {
           const canvas = document.createElement('canvas')
           const context = canvas.getContext('2d')
@@ -392,17 +391,23 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
   useEffect(() => {
     const iconsToLoad = [
       ...new Set(nodesMemo.map((node) => R.path(['properties', 'icon'], node))),
-    ]
-    R.forEach(async (iconName) => {
-      const iconComponent =
-        iconName === 'MdDownloading'
-          ? MdDownloading
-          : await fetchIcon(iconName, iconUrl)
-      const svgMarkup = getSvgMarkup(iconComponent)
-      const iconSrc = `data:image/svg+xml;base64,${window.btoa(svgMarkup)}`
-      if (!iconData[iconName]) setIconData(R.assoc(iconName, iconSrc))
-    })(iconsToLoad)
-  }, [nodesMemo, iconUrl, iconData])
+    ].filter(Boolean)
+    if (iconsToLoad.length === 0) return
+
+    let isMounted = true
+    loadIconImages(iconsToLoad, iconUrl).then((loadedImages) => {
+      if (!isMounted) return
+      const newIconData = {}
+      for (const [name, img] of Object.entries(loadedImages)) {
+        if (img?.src) newIconData[name] = img.src
+      }
+      setIconData((prev) => ({ ...prev, ...newIconData }))
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [nodesMemo, iconUrl])
 
   return (
     <CustomLayer
