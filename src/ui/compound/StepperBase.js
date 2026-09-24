@@ -3,6 +3,8 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import OverflowText from './OverflowText'
+
 import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
 import {
@@ -35,13 +37,16 @@ const styles = {
     },
     '& .MuiSlider-mark': { borderRadius: '50%' },
   }),
-  sliderH: {
+  getSliderH: ({ numSteps }) => ({
     mt: 1,
     mb: 3.5,
-    mx: 3,
-    width: (theme) => `calc(100% - ${theme.spacing(6)})`,
+    mx: 5,
+    width: (theme) => `calc(100% - ${theme.spacing(10)})`,
     '& .MuiSlider-mark': { transform: 'translate(-50%, -50%)' },
-  },
+    // Each label gets an equal slice of the rail, so text only
+    // marquees when it exceeds the space it really has.
+    '& .MuiSlider-markLabel': { maxWidth: `calc(100% / ${numSteps})` },
+  }),
   getSliderV: ({ numSteps, currentMaxSize }) => ({
     my: 3,
     mx: 1,
@@ -165,11 +170,17 @@ const StepperBase = ({
         R.addIndex(R.map)((opt, idx) => {
           const markIndex = isVertical ? lastIndex - idx : idx
           const isActive = markIndex === index
+          const label = isActive
+            ? getOrDefault(opt.activeName, opt.name ?? opt.id)
+            : (opt.name ?? opt.id)
           return {
             value: markIndex,
-            label: isActive
-              ? getOrDefault(opt.activeName, opt.name ?? opt.id)
-              : (opt.name ?? opt.id),
+            // Only hstepper marquees overflowing labels
+            label: isVertical ? (
+              label
+            ) : (
+              <OverflowText text={label} sx={{ maxWidth: '100%' }} />
+            ),
           }
         })
       )(options),
@@ -325,7 +336,7 @@ const StepperBase = ({
           ...(sliderStyles ? sliderStyles : []),
           isVertical
             ? styles.getSliderV({ numSteps: lastIndex + 1, currentMaxSize })
-            : styles.sliderH,
+            : styles.getSliderH({ numSteps: lastIndex + 1 }),
         ]}
         min={0}
         max={lastIndex}
