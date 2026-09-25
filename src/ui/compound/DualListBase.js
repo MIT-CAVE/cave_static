@@ -148,6 +148,45 @@ const DualListBase = ({
     })
   }, [getActiveAttrs, indexedOptions, rightSearch, selectedKeys])
 
+  // Disabled options are frozen on whichever side they sit
+  const isEnabled = useCallback(
+    (key) => indexedOptions[key]?.enabled !== false,
+    [indexedOptions]
+  )
+
+  const enabledAvailable = useMemo(
+    () => availableKeys.filter(isEnabled),
+    [availableKeys, isEnabled]
+  )
+  const enabledSelected = useMemo(
+    () => selectedKeys.filter(isEnabled),
+    [selectedKeys, isEnabled]
+  )
+
+  // Rows the header toggles and checked-transfer buttons operate on
+  const selectableAvailable = useMemo(
+    () => filteredAvailable.filter(isEnabled),
+    [filteredAvailable, isEnabled]
+  )
+  const selectableSelected = useMemo(
+    () => filteredSelected.filter(isEnabled),
+    [filteredSelected, isEnabled]
+  )
+  const visibleLeftChecked = useMemo(
+    () => selectableAvailable.filter((key) => leftChecked.includes(key)),
+    [leftChecked, selectableAvailable]
+  )
+  const visibleRightChecked = useMemo(
+    () => selectableSelected.filter((key) => rightChecked.includes(key)),
+    [rightChecked, selectableSelected]
+  )
+  const allLeftChecked =
+    selectableAvailable.length > 0 &&
+    visibleLeftChecked.length === selectableAvailable.length
+  const allRightChecked =
+    selectableSelected.length > 0 &&
+    visibleRightChecked.length === selectableSelected.length
+
   const handleToggleLeft = useCallback(
     (key) => {
       if (disabled || readOnly) return
@@ -168,50 +207,88 @@ const DualListBase = ({
     [disabled, readOnly, rightChecked]
   )
 
+  const handleToggleAllLeft = useCallback(() => {
+    if (disabled || readOnly || selectableAvailable.length === 0) return
+    setLeftChecked(
+      allLeftChecked
+        ? R.without(selectableAvailable, leftChecked)
+        : R.uniq(R.concat(leftChecked, selectableAvailable))
+    )
+  }, [allLeftChecked, disabled, leftChecked, readOnly, selectableAvailable])
+
+  const handleToggleAllRight = useCallback(() => {
+    if (disabled || readOnly || selectableSelected.length === 0) return
+    setRightChecked(
+      allRightChecked
+        ? R.without(selectableSelected, rightChecked)
+        : R.uniq(R.concat(rightChecked, selectableSelected))
+    )
+  }, [allRightChecked, disabled, readOnly, rightChecked, selectableSelected])
+
   const handleAddItem = useCallback(
     (key) => {
-      if (disabled || readOnly) return
+      if (disabled || readOnly || !isEnabled(key)) return
       const next = R.append(key, selectedKeys)
       setLeftChecked(R.without([key], leftChecked))
       onChange(next)
     },
-    [disabled, leftChecked, onChange, readOnly, selectedKeys]
+    [disabled, isEnabled, leftChecked, onChange, readOnly, selectedKeys]
   )
 
   const handleRemoveItem = useCallback(
     (key) => {
-      if (disabled || readOnly) return
+      if (disabled || readOnly || !isEnabled(key)) return
       const next = R.without([key], selectedKeys)
       setRightChecked(R.without([key], rightChecked))
       onChange(next)
     },
-    [disabled, onChange, readOnly, rightChecked, selectedKeys]
+    [disabled, isEnabled, onChange, readOnly, rightChecked, selectedKeys]
   )
 
+  // Only checked rows that are currently visible get moved
   const handleTransferRight = useCallback(() => {
-    if (disabled || readOnly || leftChecked.length === 0) return
-    const next = R.uniq(R.concat(selectedKeys, leftChecked))
-    setLeftChecked([])
+    if (disabled || readOnly || visibleLeftChecked.length === 0) return
+    const next = R.uniq(R.concat(selectedKeys, visibleLeftChecked))
+    setLeftChecked(R.without(visibleLeftChecked, leftChecked))
     onChange(next)
-  }, [disabled, leftChecked, onChange, readOnly, selectedKeys])
+  }, [
+    disabled,
+    leftChecked,
+    onChange,
+    readOnly,
+    selectedKeys,
+    visibleLeftChecked,
+  ])
 
   const handleTransferLeft = useCallback(() => {
-    if (disabled || readOnly || rightChecked.length === 0) return
-    const next = R.without(rightChecked, selectedKeys)
-    setRightChecked([])
+    if (disabled || readOnly || visibleRightChecked.length === 0) return
+    const next = R.without(visibleRightChecked, selectedKeys)
+    setRightChecked(R.without(visibleRightChecked, rightChecked))
     onChange(next)
-  }, [disabled, onChange, readOnly, rightChecked, selectedKeys])
+  }, [
+    disabled,
+    onChange,
+    readOnly,
+    rightChecked,
+    selectedKeys,
+    visibleRightChecked,
+  ])
 
   const handleSelectAll = useCallback(() => {
-    if (disabled || readOnly || availableKeys.length === 0) return
-    const toAdd = leftSearch ? filteredAvailable : availableKeys
+    if (disabled || readOnly) return
+    const toAdd = (leftSearch ? filteredAvailable : availableKeys).filter(
+      isEnabled
+    )
+    if (toAdd.length === 0) return
     const next = R.uniq(R.concat(selectedKeys, toAdd))
-    setLeftChecked([])
+    setLeftChecked(R.without(toAdd, leftChecked))
     onChange(next)
   }, [
     availableKeys,
     disabled,
     filteredAvailable,
+    isEnabled,
+    leftChecked,
     leftSearch,
     onChange,
     readOnly,
@@ -219,16 +296,21 @@ const DualListBase = ({
   ])
 
   const handleClearAll = useCallback(() => {
-    if (disabled || readOnly || selectedKeys.length === 0) return
-    const toRemove = rightSearch ? filteredSelected : selectedKeys
+    if (disabled || readOnly) return
+    const toRemove = (rightSearch ? filteredSelected : selectedKeys).filter(
+      isEnabled
+    )
+    if (toRemove.length === 0) return
     const next = R.without(toRemove, selectedKeys)
-    setRightChecked([])
+    setRightChecked(R.without(toRemove, rightChecked))
     onChange(next)
   }, [
     disabled,
     filteredSelected,
+    isEnabled,
     onChange,
     readOnly,
+    rightChecked,
     rightSearch,
     selectedKeys,
   ])
@@ -250,14 +332,14 @@ const DualListBase = ({
             >
               {`${availableTitle} (${filteredAvailable.length})`}
             </Typography>
-            {!(disabled || readOnly) && availableKeys.length > 0 && (
+            {!(disabled || readOnly) && selectableAvailable.length > 0 && (
               <Button
                 size="small"
                 color="primary"
-                onClick={handleSelectAll}
+                onClick={handleToggleAllLeft}
                 sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
               >
-                Select all
+                {`${allLeftChecked ? 'Deselect' : 'Select'} ${leftSearch ? 'filtered' : 'all'}`}
               </Button>
             )}
           </Stack>
@@ -310,7 +392,8 @@ const DualListBase = ({
                     key={key}
                     disablePadding
                     secondaryAction={
-                      !(disabled || readOnly) && (
+                      !(disabled || readOnly) &&
+                      opt.enabled !== false && (
                         <IconButton
                           edge="end"
                           size="small"
@@ -385,7 +468,7 @@ const DualListBase = ({
             <span>
               <IconButton
                 size="small"
-                disabled={disabled || readOnly || availableKeys.length === 0}
+                disabled={disabled || readOnly || enabledAvailable.length === 0}
                 onClick={handleSelectAll}
               >
                 <MdKeyboardDoubleArrowRight size={18} />
@@ -396,7 +479,9 @@ const DualListBase = ({
             <span>
               <IconButton
                 size="small"
-                disabled={disabled || readOnly || leftChecked.length === 0}
+                disabled={
+                  disabled || readOnly || visibleLeftChecked.length === 0
+                }
                 onClick={handleTransferRight}
               >
                 <MdKeyboardArrowRight size={18} />
@@ -407,7 +492,9 @@ const DualListBase = ({
             <span>
               <IconButton
                 size="small"
-                disabled={disabled || readOnly || rightChecked.length === 0}
+                disabled={
+                  disabled || readOnly || visibleRightChecked.length === 0
+                }
                 onClick={handleTransferLeft}
               >
                 <MdKeyboardArrowLeft size={18} />
@@ -418,7 +505,7 @@ const DualListBase = ({
             <span>
               <IconButton
                 size="small"
-                disabled={disabled || readOnly || selectedKeys.length === 0}
+                disabled={disabled || readOnly || enabledSelected.length === 0}
                 onClick={handleClearAll}
               >
                 <MdKeyboardDoubleArrowLeft size={18} />
@@ -441,14 +528,14 @@ const DualListBase = ({
             >
               {`${selectedTitle} (${filteredSelected.length})`}
             </Typography>
-            {!(disabled || readOnly) && selectedKeys.length > 0 && (
+            {!(disabled || readOnly) && selectableSelected.length > 0 && (
               <Button
                 size="small"
                 color="primary"
-                onClick={handleClearAll}
+                onClick={handleToggleAllRight}
                 sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
               >
-                Clear all
+                {`${allRightChecked ? 'Deselect' : 'Select'} ${rightSearch ? 'filtered' : 'all'}`}
               </Button>
             )}
           </Stack>
@@ -503,7 +590,8 @@ const DualListBase = ({
                     key={key}
                     disablePadding
                     secondaryAction={
-                      !(disabled || readOnly) && (
+                      !(disabled || readOnly) &&
+                      opt.enabled !== false && (
                         <IconButton
                           edge="end"
                           size="small"
@@ -518,7 +606,7 @@ const DualListBase = ({
                   >
                     <ListItemButton
                       dense
-                      disabled={disabled || readOnly}
+                      disabled={disabled || readOnly || opt.enabled === false}
                       onClick={() => handleToggleRight(key)}
                       onDoubleClick={() => handleRemoveItem(key)}
                       sx={styles.listItemButton}
