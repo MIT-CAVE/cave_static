@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Checkbox,
   FormControl,
   FormHelperText,
@@ -32,6 +31,7 @@ import {
 } from 'react-icons/md'
 
 import FetchedIcon from './FetchedIcon'
+import OverflowText from './OverflowText'
 
 import { forceArray, getContrastText } from '../../utils'
 
@@ -59,8 +59,14 @@ const styles = {
     overflow: 'hidden',
   },
   header: {
-    px: 1.5,
-    py: 0.75,
+    // Left padding lines the header checkbox up with the row checkboxes
+    pl: '1px',
+    pr: 1,
+    py: 0.25,
+    boxSizing: 'border-box',
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     bgcolor: 'action.hover',
     borderBottom: 1,
     borderColor: 'divider',
@@ -83,6 +89,13 @@ const styles = {
   listItemIcon: {
     minWidth: 32,
   },
+  headerTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontWeight: 600,
+    fontSize: '0.8rem',
+  },
+  bulkCheckbox: { p: 0.5, mr: 0.5, flexShrink: 0 },
   transferButtons: {
     alignSelf: 'center',
     px: 0.25,
@@ -97,6 +110,39 @@ const styles = {
     verticalAlign: 'middle',
     margin: '0 6px 0 2px',
   },
+}
+
+const getBulkTooltip = (allChecked, search, count) =>
+  `${allChecked ? 'Deselect' : 'Select'} ${
+    search ? `${count} filtered ${count === 1 ? 'item' : 'items'}` : 'all items'
+  }`
+
+// Constant-size header checkbox: never changes the header layout. It stays
+// in layout (hidden) when there is nothing to select.
+const BulkToggleCheckbox = ({
+  checked,
+  indeterminate,
+  hidden,
+  tooltip,
+  onChange,
+}) => (
+  <Tooltip title={tooltip}>
+    <Checkbox
+      size="small"
+      checked={checked}
+      indeterminate={indeterminate}
+      slotProps={{ input: { 'aria-label': tooltip } }}
+      onChange={onChange}
+      sx={[styles.bulkCheckbox, hidden && { visibility: 'hidden' }]}
+    />
+  </Tooltip>
+)
+BulkToggleCheckbox.propTypes = {
+  checked: PropTypes.bool,
+  indeterminate: PropTypes.bool,
+  hidden: PropTypes.bool,
+  tooltip: PropTypes.string,
+  onChange: PropTypes.func,
 }
 
 const DualListBase = ({
@@ -320,28 +366,27 @@ const DualListBase = ({
       <Box sx={[styles.root, { height }]}>
         {/* Available List Box */}
         <Paper elevation={0} sx={styles.listCard}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={styles.header}
-          >
+          <Stack direction="row" sx={styles.header}>
+            <BulkToggleCheckbox
+              checked={allLeftChecked}
+              indeterminate={!allLeftChecked && visibleLeftChecked.length > 0}
+              hidden={disabled || readOnly || selectableAvailable.length === 0}
+              tooltip={getBulkTooltip(
+                allLeftChecked,
+                leftSearch,
+                selectableAvailable.length
+              )}
+              onChange={handleToggleAllLeft}
+            />
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+              component="div"
+              sx={styles.headerTitle}
             >
-              {`${availableTitle} (${filteredAvailable.length})`}
+              <OverflowText
+                text={`${availableTitle} (${filteredAvailable.length})`}
+              />
             </Typography>
-            {!(disabled || readOnly) && selectableAvailable.length > 0 && (
-              <Button
-                size="small"
-                color="primary"
-                onClick={handleToggleAllLeft}
-                sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
-              >
-                {`${allLeftChecked ? 'Deselect' : 'Select'} ${leftSearch ? 'filtered' : 'all'}`}
-              </Button>
-            )}
           </Stack>
           <Box sx={styles.searchBox}>
             <TextField
@@ -516,28 +561,27 @@ const DualListBase = ({
 
         {/* Selected List Box */}
         <Paper elevation={0} sx={styles.listCard}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={styles.header}
-          >
+          <Stack direction="row" sx={styles.header}>
+            <BulkToggleCheckbox
+              checked={allRightChecked}
+              indeterminate={!allRightChecked && visibleRightChecked.length > 0}
+              hidden={disabled || readOnly || selectableSelected.length === 0}
+              tooltip={getBulkTooltip(
+                allRightChecked,
+                rightSearch,
+                selectableSelected.length
+              )}
+              onChange={handleToggleAllRight}
+            />
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+              component="div"
+              sx={styles.headerTitle}
             >
-              {`${selectedTitle} (${filteredSelected.length})`}
+              <OverflowText
+                text={`${selectedTitle} (${filteredSelected.length})`}
+              />
             </Typography>
-            {!(disabled || readOnly) && selectableSelected.length > 0 && (
-              <Button
-                size="small"
-                color="primary"
-                onClick={handleToggleAllRight}
-                sx={{ py: 0, px: 0.75, minWidth: 'auto', fontSize: '0.7rem' }}
-              >
-                {`${allRightChecked ? 'Deselect' : 'Select'} ${rightSearch ? 'filtered' : 'all'}`}
-              </Button>
-            )}
           </Stack>
           <Box sx={styles.searchBox}>
             <TextField
