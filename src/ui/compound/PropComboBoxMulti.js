@@ -21,14 +21,12 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
     helperText,
     numVisibleTags,
     labelPlacement = 'end',
-    limitTags,
     fullWidth,
     propStyle,
     slotProps,
     ...propAttrs
   } = prop
 
-  const effectiveLimitTags = numVisibleTags ?? limitTags ?? 1
   const optionsListRaw = withIndex(options)
   const optionsList = useMemo(
     () => R.pluck('id')(optionsListRaw),
@@ -58,7 +56,7 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
       disabled={!enabled}
       options={optionsList}
       value={currentVal ?? prop.value ?? []}
-      numVisibleTags={effectiveLimitTags}
+      numVisibleTags={numVisibleTags}
       sx={[...forceArray(sx), propStyle]}
       {...{
         indexedOptions,
