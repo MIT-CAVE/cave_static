@@ -77,3 +77,31 @@ export const Standard = {
     onChange: () => {},
   },
 }
+
+export const Empty = {
+  render: function Render(args) {
+    const [currentVal, setCurrentVal] = React.useState(args.currentVal)
+    return (
+      <PropDropdown
+        {...args}
+        currentVal={currentVal}
+        onChange={(val) => {
+          args.onChange(val)
+          setCurrentVal(val)
+        }}
+      />
+    )
+  },
+  args: {
+    prop: {
+      enabled: true,
+      options: mockOptions,
+      labelPlacement: 'end',
+      value: [],
+      placeholder: 'Select a priority level',
+      helperText: 'The placeholder is shown until an option is selected',
+    },
+    currentVal: [],
+    onChange: () => {},
+  },
+}

@@ -13,6 +13,7 @@ export const SimpleDropdown = ({
   optionsList,
   fullWidth,
   marquee,
+  placeholder,
   enabled = true,
   slotProps = {},
   getLabel = (label) => label,
@@ -40,7 +41,15 @@ export const SimpleDropdown = ({
         onClick={enabled ? handleOpenMenu : () => {}}
         {...props}
       >
-        {marquee ? <OverflowText text={getLabel(value)} /> : getLabel(value)}
+        {placeholder && (value == null || value === '') ? (
+          <Box component="span" sx={{ color: 'text.secondary' }}>
+            {placeholder}
+          </Box>
+        ) : marquee ? (
+          <OverflowText text={getLabel(value)} />
+        ) : (
+          getLabel(value)
+        )}
         <Box
           component="span"
           sx={{

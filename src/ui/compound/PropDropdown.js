@@ -34,6 +34,7 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
     enabled,
     options,
     labelPlacement = 'end',
+    placeholder,
     helperText,
     fullWidth,
     propStyle,
@@ -122,7 +123,7 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
       <SimpleDropdown
         disabled={!enabled}
         optionsList={R.pluck('id')(optionsListRaw)}
-        {...{ value, fullWidth, getLabel, getOptionDisabled }}
+        {...{ value, fullWidth, placeholder, getLabel, getOptionDisabled }}
         sx={[styles.root, propStyle]}
         onSelect={(val) => {
           if (enabled) onChange([val])
