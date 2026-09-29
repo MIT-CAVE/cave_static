@@ -30,7 +30,12 @@ import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
-import { adjustArcPath, forceArray } from '../../utils'
+import {
+  NumberFormat,
+  adjustArcPath,
+  forceArray,
+  getCoordinateNumberFormat,
+} from '../../utils'
 
 const styles = {
   text: {
@@ -62,12 +67,6 @@ const PATH_SOURCE = {
   geometry: { type: 'LineString', coordinates: [] },
 }
 
-const numberFormatProps = {
-  precision: 6,
-  trailingZeros: true,
-  unitPlacement: 'afterWithSpace',
-}
-
 const edit = {
   NONE: '',
   ADD: 'add',
@@ -76,7 +75,7 @@ const edit = {
 
 const getLastLat = (path) => path[path.length - 1][1]
 const getLastLng = (path) => path[path.length - 1][0]
-const displayPath = (path) => {
+const displayPath = (path, numberFormatProps) => {
   return (
     <List sx={styles.text}>
       {path.map(([lng, lat], idx) => {
@@ -84,7 +83,7 @@ const displayPath = (path) => {
           <ListItem key={idx} disablePadding sx={{ maxHeight: 200 }}>
             <ListItemButton component="a" href="#simple-list">
               <ListItemText
-                primary={`(${lat.toFixed(6)}, ${lng.toFixed(6)})\n`}
+                primary={`(${NumberFormat.format(lat, numberFormatProps)}, ${NumberFormat.format(lng, numberFormatProps)})\n`}
               />
             </ListItemButton>
           </ListItem>
@@ -98,6 +97,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const { enabled, placeholder } = prop
+  const numberFormatProps = getCoordinateNumberFormat(prop)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const mapStyle =
@@ -188,10 +188,11 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   }, [allInputValues, enabled, getPathData, onChange])
 
   const handleClearPath = useCallback(() => {
+    if (!enabled) return
     setPathData(getPathData([allInputValues[0]]))
     setManualInput(allInputValues[0])
     setEditState(edit.RESET)
-  }, [getPathData, allInputValues])
+  }, [enabled, getPathData, allInputValues])
 
   const { ReactMapGl, Layer, Marker, NavigationControl, Source } = useMapApi()
 
@@ -223,7 +224,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             onMove={(event) => setViewState(event.viewState)}
           >
             <Marker
-              draggable
+              draggable={enabled}
               anchor="center"
               longitude={getLastLng(allInputValues)}
               latitude={getLastLat(allInputValues)}
@@ -233,7 +234,6 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
               <Layer
                 id="path-line"
                 type="line"
-                source="my-data"
                 layout={LINE_LAYOUT}
                 paint={LINE_PAINT}
               />
@@ -264,6 +264,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
               // onChangeCommitted={handleChangeCommittedAt(0)}
             />
             <ToggleButton
+              disabled={!enabled}
               selected={showMap}
               value="prop-lat-lng-map-view"
               onClick={showMap ? handleCloseMenu : handleOpenMenu}
@@ -296,6 +297,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       ) : (
         <Stack spacing={1} direction="row">
           <Button
+            disabled={!enabled}
             sx={{ flexGrow: 5 }}
             variant="contained"
             startIcon={<MdAddCircleOutline />}
@@ -304,7 +306,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             Enter Input Mode
           </Button>
           <Button
-            disabled={allInputValues.length - 1 <= 1}
+            disabled={!enabled || allInputValues.length < 3}
             sx={{ flexGrow: 3.5 }}
             color="warning"
             variant="contained"
@@ -314,6 +316,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             Undo Last
           </Button>
           <Button
+            disabled={!enabled}
             sx={{ flexGrow: 3.5 }}
             color="error"
             variant="contained"
@@ -324,7 +327,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
           </Button>
         </Stack>
       )}
-      {editState !== edit.RESET && displayPath(allInputValues)}
+      {editState !== edit.RESET &&
+        displayPath(allInputValues, numberFormatProps)}
     </Stack>
   )
 }

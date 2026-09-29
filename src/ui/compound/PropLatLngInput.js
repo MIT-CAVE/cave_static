@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 
 import NumberField from '../prototypes/NumberField'
 
-import { forceArray } from '../../utils'
+import { forceArray, getCoordinateNumberFormat } from '../../utils'
 
 const PropLatLngInput = ({ prop, currentVal, sx = [], onChange }) => {
   const defaultValue = currentVal ?? prop.value
@@ -16,11 +16,7 @@ const PropLatLngInput = ({ prop, currentVal, sx = [], onChange }) => {
   }, [currentVal, prop.value])
 
   const { enabled, placeholder, direction = 'row' } = prop
-  const numberFormatProps = {
-    precision: 6,
-    trailingZeros: true,
-    unitPlacement: 'afterWithSpace',
-  }
+  const numberFormatProps = getCoordinateNumberFormat(prop)
 
   const handleChangeAt = (index) => (event, newLatOrLng) => {
     setValue(R.update(index, newLatOrLng))

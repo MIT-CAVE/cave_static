@@ -9,11 +9,29 @@ import {
   ICON_RESOLUTION,
   MAX_MEMOIZED_CHARTS,
 } from './constants'
-import { propId, scaleId } from './enums'
+import { propId, scaleId, unitPlacements } from './enums'
 import { quantileSorted } from './quantile'
 import { getScaledValue } from './scales'
 
 export { default as NumberFormat } from './NumberFormat'
+
+const COORDINATE_NUMBER_FORMAT_DEFAULTS = {
+  precision: 6,
+  trailingZeros: true,
+  // Only meaningful once `unit` is set (no coordinate-specific default for
+  // `unit` itself, to avoid rendering a `°` no prop previously requested).
+  // The generic `NumberFormat` default is `afterWithSpace`, but degree
+  // symbols are conventionally typeset directly against the number.
+  unitPlacement: unitPlacements.AFTER,
+}
+// `coordinate` props don't inherit the app's global `settings.defaults` number
+// format (tuned for arbitrary business numbers, not degrees) - this merges
+// prop-level overrides directly onto coordinate-specific defaults instead.
+export const getCoordinateNumberFormat = (prop) =>
+  R.mergeRight(
+    COORDINATE_NUMBER_FORMAT_DEFAULTS,
+    R.pick(['precision', 'trailingZeros', 'unit', 'unitPlacement'], prop)
+  )
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)

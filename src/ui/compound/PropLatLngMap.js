@@ -13,7 +13,7 @@ import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
-import { forceArray } from '../../utils'
+import { forceArray, getCoordinateNumberFormat } from '../../utils'
 
 const styles = {
   popper: {
@@ -32,12 +32,6 @@ const styles = {
   },
 }
 
-const numberFormatProps = {
-  precision: 6,
-  trailingZeros: true,
-  unitPlacement: 'afterWithSpace',
-}
-
 const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const defaultValue = currentVal ?? prop.value
   const [value, setValue] = useState(defaultValue[0])
@@ -53,6 +47,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   }, [currentVal, prop.value])
 
   const { enabled, placeholder } = prop
+  const numberFormatProps = getCoordinateNumberFormat(prop)
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
 
@@ -121,7 +116,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
             onMove={(event) => setViewState(event.viewState)}
           >
             <Marker
-              draggable
+              draggable={enabled}
               anchor="center"
               longitude={value[0]}
               latitude={value[1]}
@@ -152,6 +147,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           onChangeCommitted={handleChangeCommittedAt(0)}
         />
         <ToggleButton
+          disabled={!enabled}
           selected={showMap}
           value="prop-lat-lng-map-view"
           onClick={showMap ? handleCloseMenu : handleOpenMenu}
