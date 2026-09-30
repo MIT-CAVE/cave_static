@@ -699,7 +699,7 @@ export const selectMergedDraggables = createSelector(
 )
 export const selectTimeDraggable = createSelector(
   selectMergedDraggables,
-  R.propOr({}, draggableId.TIME)
+  (data) => data?.[draggableId.TIME] ?? {}
 )
 export const selectSessionDraggable = createSelector(
   selectMergedDraggables,
@@ -1192,7 +1192,7 @@ export const selectGlobalOutputProps = createSelector(
     const values = merged?.values ?? {}
     const combined = addValuesToProps(props, values)
     const result = {}
-    
+
     for (const [key, item] of Object.entries(combined)) {
       if (item?.value == null) continue
       result[key] = {
@@ -1203,13 +1203,13 @@ export const selectGlobalOutputProps = createSelector(
         quickView: item.quickView ?? item.draggable,
       }
     }
-    
+
     return result
   }
 )
 export const selectAnyGlobalOutputQuickView = createSelector(
   selectGlobalOutputProps,
-  R.pipe(R.values, R.any(R.prop('quickView')))
+  (outputs) => Object.values(outputs).some((output) => output.quickView)
 )
 export const selectAnyDraggableDocked = createSelector(
   [
