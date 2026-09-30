@@ -20,7 +20,6 @@ import {
   selectDemoSettings,
   selectViewportsByMap,
   selectAllNodeIcons,
-  selectAllGlobalIcons,
   selectMapboxToken,
   selectMapNamesDraggable,
   selectNodeTypeKeys,
@@ -59,14 +58,13 @@ const Map = ({ mapId }) => {
   const demoMode = useSelector(selectDemoMode)
   const demoSettings = useSelector(selectDemoSettings)
   const nodeIcons = useSelector(selectAllNodeIcons)
-  const allGlobalIcons = useSelector(selectAllGlobalIcons)
   const mapboxToken = useSelector(selectMapboxToken)
   const draggable = useSelector(selectMapNamesDraggable)
   const dispatch = useDispatch()
 
   const allIcons = useMemo(
-    () => [...new Set([...(nodeIcons(mapId) || []), ...allGlobalIcons])],
-    [mapId, nodeIcons, allGlobalIcons]
+    () => [...new Set(nodeIcons(mapId) || [])],
+    [mapId, nodeIcons]
   )
 
   const [currentViewport, setCurrentViewport] = useState(viewport)
@@ -205,9 +203,18 @@ const Map = ({ mapId }) => {
         try {
           let updated = false
           Object.entries(loadedImages).forEach(([iconName, iconImage]) => {
-            if (iconImage && !map.hasImage(iconName)) {
+            if (iconImage) {
               try {
-                map.addImage(iconName, iconImage, { sdf: true })
+                if (map.hasImage(iconName)) {
+                  if (typeof map.updateImage === 'function') {
+                    map.updateImage(iconName, iconImage)
+                  } else {
+                    map.removeImage(iconName)
+                    map.addImage(iconName, iconImage, { sdf: true })
+                  }
+                } else {
+                  map.addImage(iconName, iconImage, { sdf: true })
+                }
                 updated = true
               } catch (e) {
                 // Ignore
@@ -291,17 +298,37 @@ const Map = ({ mapId }) => {
           // Ignore
         }
       } else {
+        const loadingImg = getCachedIconImage('md/MdDownloading')
+        if (loadingImg && !map.hasImage(iconName)) {
+          try {
+            map.addImage(iconName, loadingImg, { sdf: true })
+          } catch (err) {
+            // Ignore
+          }
+        }
         loadIconImage(iconName, iconUrl).then((img) => {
           if (img) {
             iconDataRef.current[iconName] = img
+            const activeMap = mapRef.current?.getMap
+              ? mapRef.current.getMap()
+              : mapRef.current
             if (
-              map.isStyleLoaded &&
-              map.isStyleLoaded() &&
-              !map.hasImage(iconName)
+              activeMap &&
+              activeMap.isStyleLoaded &&
+              activeMap.isStyleLoaded()
             ) {
               try {
-                map.addImage(iconName, img, { sdf: true })
-                refreshNodeSources(map)
+                if (activeMap.hasImage(iconName)) {
+                  if (typeof activeMap.updateImage === 'function') {
+                    activeMap.updateImage(iconName, img)
+                  } else {
+                    activeMap.removeImage(iconName)
+                    activeMap.addImage(iconName, img, { sdf: true })
+                  }
+                } else {
+                  activeMap.addImage(iconName, img, { sdf: true })
+                }
+                refreshNodeSources(activeMap)
               } catch (err) {
                 // Ignore
               }

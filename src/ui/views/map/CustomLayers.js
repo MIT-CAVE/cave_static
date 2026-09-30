@@ -332,7 +332,10 @@ export const NodesWithHeight = memo(({ id, nodes, onClick = () => {} }) => {
           R.pathOr(0, ['geometry', 'coordinates', 2], node) * MAX_HEIGHT
 
         const iconName = R.path(['properties', 'icon'], node)
-        const iconSrc = iconData[iconName] || getCachedIconImage(iconName)?.src
+        const iconSrc =
+          iconData[iconName] ||
+          getCachedIconImage(iconName)?.src ||
+          getCachedIconImage('md/MdDownloading')?.src
         const texture = new THREE.TextureLoader().load(iconSrc, (texture) => {
           const canvas = document.createElement('canvas')
           const context = canvas.getContext('2d')

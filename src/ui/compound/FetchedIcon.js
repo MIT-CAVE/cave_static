@@ -11,8 +11,13 @@ import { fetchIcon, getCachedIconTree } from '../../utils'
 const FetchedIcon = ({ iconName = 'md/MdDownloading', ...props }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
   const cachedTree = iconName ? getCachedIconTree(iconName, iconUrl) : null
+  const downloadingTree = getCachedIconTree('md/MdDownloading', iconUrl)
   const [IconComponent, setIconComponent] = useState(() =>
-    cachedTree?.tag ? GenIcon(cachedTree) : BiSolidSquareRounded
+    cachedTree?.tag
+      ? GenIcon(cachedTree)
+      : downloadingTree?.tag
+        ? GenIcon(downloadingTree)
+        : BiSolidSquareRounded
   )
 
   useEffect(() => {
@@ -22,6 +27,10 @@ const FetchedIcon = ({ iconName = 'md/MdDownloading', ...props }) => {
     if (currentCached?.tag) {
       setIconComponent(() => GenIcon(currentCached))
       return
+    }
+    const currentDownloading = getCachedIconTree('md/MdDownloading', iconUrl)
+    if (currentDownloading?.tag) {
+      setIconComponent(() => GenIcon(currentDownloading))
     }
     fetchIcon(iconName, iconUrl).then((item) => {
       if (active && typeof item === 'function') {

@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   selectAllGlobalIcons,
   selectAllGlobalNodeIcons,
+  selectHasData,
   selectMapStyleOptions,
 } from './index'
 
@@ -483,5 +484,55 @@ describe('selectAllGlobalIcons and extractIconsFromState', () => {
     expect(icons2).toContain('fa/FaTruck')
     expect(icons2).toContain('fa/FaBicycle')
     expect(icons2).not.toContain('fa/FaCar')
+  })
+})
+
+describe('selectHasData', () => {
+  it('returns false for empty or uninitialized data state', () => {
+    expect(selectHasData({})).toBe(false)
+    expect(selectHasData({ data: {} })).toBe(false)
+    expect(
+      selectHasData({
+        data: {
+          settings: {},
+          appBar: {},
+          versions: {},
+        },
+      })
+    ).toBe(false)
+  })
+
+  it('returns true when versions, appBar, maps, or nodes are populated', () => {
+    expect(
+      selectHasData({
+        data: {
+          versions: { appBar: 'v1' },
+        },
+      })
+    ).toBe(true)
+
+    expect(
+      selectHasData({
+        data: {
+          appBar: { data: { page1: {} } },
+        },
+      })
+    ).toBe(true)
+
+    expect(
+      selectHasData({
+        data: {
+          maps: { data: { map1: {} } },
+        },
+      })
+    ).toBe(true)
+
+    expect(
+      selectHasData({
+        data: {
+          nodes: { data: { node1: {} } },
+        },
+      })
+    ).toBe(true)
   })
 })

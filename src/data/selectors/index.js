@@ -1520,6 +1520,15 @@ export const selectAllNodeIcons = createSelector(
     )
 )
 
+export const selectHasData = createSelector(selectData, (data) =>
+  Boolean(
+    (data?.versions && Object.keys(data.versions).length > 0) ||
+    (data?.appBar?.data && Object.keys(data.appBar.data).length > 0) ||
+    (data?.maps?.data && Object.keys(data.maps.data).length > 0) ||
+    (data?.nodes && Object.keys(data.nodes).length > 0)
+  )
+)
+
 export const selectAllGlobalIcons = createSelector(selectData, (data) =>
   extractIconsFromState(data)
 )
