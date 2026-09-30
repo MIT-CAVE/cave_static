@@ -835,7 +835,7 @@ IncludedGeographyLayerInstance.propTypes = {
 }
 
 export const MapLayers = () => {
-  const { mapId } = useContext(MapContext)
+  const { mapId, mapRef } = useContext(MapContext)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState([])
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState([])
@@ -960,6 +960,78 @@ export const MapLayers = () => {
     }
     return mapping
   }, [orderedLayerIds])
+
+  useEffect(() => {
+    const map = mapRef?.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef?.current
+    if (!map) return
+
+    let isReordering = false
+
+    const reorder = () => {
+      if (isReordering) return
+      isReordering = true
+      try {
+        if (
+          typeof map.getStyle !== 'function' ||
+          typeof map.getLayer !== 'function' ||
+          typeof map.moveLayer !== 'function'
+        ) {
+          return
+        }
+        const style = map.getStyle()
+        if (!style || !style.layers) return
+
+        const customLayersOnMap = orderedLayerIds.filter((id) =>
+          map.getLayer(id)
+        )
+        if (customLayersOnMap.length < 2) return
+
+        const styleLayers = style.layers
+        const indexMap = new Map()
+        for (let i = 0; i < styleLayers.length; i++) {
+          indexMap.set(styleLayers[i].id, i)
+        }
+
+        let isOrdered = true
+        for (let i = 0; i < customLayersOnMap.length - 1; i++) {
+          const idxCurrent = indexMap.get(customLayersOnMap[i])
+          const idxNext = indexMap.get(customLayersOnMap[i + 1])
+          if (
+            idxCurrent === undefined ||
+            idxNext === undefined ||
+            idxCurrent > idxNext
+          ) {
+            isOrdered = false
+            break
+          }
+        }
+
+        if (!isOrdered) {
+          for (let i = customLayersOnMap.length - 2; i >= 0; i--) {
+            const currentId = customLayersOnMap[i]
+            const nextId = customLayersOnMap[i + 1]
+            map.moveLayer(currentId, nextId)
+          }
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        isReordering = false
+      }
+    }
+
+    reorder()
+    if (typeof map.on === 'function') {
+      map.on('styledata', reorder)
+    }
+    return () => {
+      if (typeof map.off === 'function') {
+        map.off('styledata', reorder)
+      }
+    }
+  }, [orderedLayerIds, mapRef])
 
   const safeLoadedGeoJson = Array.isArray(loadedGeoJson) ? loadedGeoJson : []
   const safeLineGeoJsonObject = Array.isArray(lineGeoJsonObject)
