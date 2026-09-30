@@ -344,7 +344,12 @@ const mergeListRight = (obj1, obj2) => {
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]
     const val2 = obj2[key]
-    if (typeof val2 === 'object' && val2 !== null && !Array.isArray(val2)) {
+    if (
+      Array.isArray(result[key]) &&
+      typeof val2 === 'object' &&
+      val2 !== null &&
+      !Array.isArray(val2)
+    ) {
       result[key] = mergeObjIntoList(val2, result[key])
     } else {
       result[key] = val2
@@ -817,6 +822,7 @@ export const getTimeValue = (timeIndex, object) => {
 
   let hasChanged = false
   let currentObj = object
+  let result = null
 
   if (
     object.timeValues &&
@@ -825,22 +831,24 @@ export const getTimeValue = (timeIndex, object) => {
   ) {
     currentObj = mergeListRight(object, object.timeValues[timeIndex])
     hasChanged = true
+    result = currentObj
   }
 
   const keys = Object.keys(currentObj)
-  const result = hasChanged ? { ...currentObj } : {}
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]
+    if (key === 'timeValues') continue
     const val = currentObj[key]
     if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
       const nextVal = getTimeValue(timeIndex, val)
       if (nextVal !== val) {
-        hasChanged = true
+        if (!hasChanged) {
+          hasChanged = true
+          result = { ...currentObj }
+        }
+        result[key] = nextVal
       }
-      result[key] = nextVal
-    } else if (hasChanged) {
-      result[key] = val
     }
   }
 
