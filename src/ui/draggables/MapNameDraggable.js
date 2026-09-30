@@ -99,6 +99,7 @@ const MapNameDraggable = ({ mapId }) => {
       {...draggable}
       position={dragPosition}
       hideMenu={isEditing}
+      hideDock
       sx={rootStyle}
     >
       {draggable.showDragHandle && !isEditing && <DragHandle />}

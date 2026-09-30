@@ -14,6 +14,7 @@ export {
   PropToggleCheckbox,
   PropToggleSwitch,
 } from './PropToggle'
+export { default as Carousel } from './Carousel'
 export { default as ComboboxBase } from './ComboboxBase'
 export { default as ComboboxMultiBase } from './ComboboxMultiBase'
 export { default as DualListBase } from './DualListBase'
@@ -23,6 +24,7 @@ export { default as HelpTooltip } from './HelpTooltip'
 export { default as List } from './List'
 export { default as PropNumberIcon } from './PropNumberIcon'
 export { default as PropNumberIconCompact } from './PropNumberIconCompact'
+export { default as PropNumberIconCompactAlt } from './PropNumberIconCompactAlt'
 export { default as NumberInput } from './NumberInput'
 export { default as OptionalWrapper } from './OptionalWrapper'
 export { default as OverflowText } from './OverflowText'

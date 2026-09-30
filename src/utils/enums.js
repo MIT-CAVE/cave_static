@@ -63,6 +63,7 @@ export const propVariant = {
   ICON: 'icon',
   ICON_ROW: 'iconRow',
   ICON_COMPACT: 'iconCompact',
+  ICON_COMPACT_ALT: 'iconCompactAlt',
   FILLED: 'filled',
   OUTLINED: 'outlined',
 }

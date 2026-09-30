@@ -39,6 +39,7 @@ import {
   PropVStepper,
   PropNumberIcon,
   PropNumberIconCompact,
+  PropNumberIconCompactAlt,
   PropButtonFilled,
   PropButtonOutlined,
   PropButtonText,
@@ -84,6 +85,7 @@ const getNumberPropRenderFn = R.cond([
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
   [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.equals(propVariant.ICON_COMPACT), R.always(PropNumberIconCompact)],
+  [R.equals(propVariant.ICON_COMPACT_ALT), R.always(PropNumberIconCompactAlt)],
   [R.equals(propVariant.INCSLIDER), R.always(PropIncSlider)],
   [R.T, invalidVariant('num')],
 ])
@@ -157,7 +159,11 @@ const getContainerFn = R.cond([
       ),
       R.pipe(
         R.prop('variant'),
-        R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
+        R.includes(R.__, [
+          propVariant.ICON,
+          propVariant.ICON_COMPACT,
+          propVariant.ICON_COMPACT_ALT,
+        ])
       )
     ),
     R.always(propContainer.NONE),

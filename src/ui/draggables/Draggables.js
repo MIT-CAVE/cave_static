@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import GlobalOutputsDraggable from './GlobalOutputsDraggable'
@@ -12,7 +12,7 @@ import TimeDraggable from './TimeDraggable'
 import { sendCommand } from '../../data/data'
 import { mutateLocal } from '../../data/local'
 import {
-  selectGlobalOutputProps,
+  selectAnyGlobalOutputQuickView,
   selectMergedDraggables,
   selectMessages,
 } from '../../data/selectors'
@@ -20,7 +20,7 @@ import { draggableId } from '../../utils/enums'
 
 const Draggables = () => {
   const draggables = useSelector(selectMergedDraggables)
-  const props = useSelector(selectGlobalOutputProps)
+  const anyGlobalOutputQuickView = useSelector(selectAnyGlobalOutputQuickView)
   const messages = useSelector(selectMessages)
   const dispatch = useDispatch()
 
@@ -48,11 +48,6 @@ const Draggables = () => {
     messageCountRef.current = messageCount
   }, [messageCount, notifOpen, dispatch])
 
-  const anyDraggableGlobalOutput = useMemo(
-    () => R.pipe(R.values, R.any(R.prop('draggable')))(props),
-    [props]
-  )
-
   // Request session info if we have none
   useEffect(() => {
     if (!draggables[draggableId.SESSION]?.open) return
@@ -70,12 +65,15 @@ const Draggables = () => {
     // Either we specify a z-index for each Pad or
     // we sort them from lowest to highest priority
     <>
-      {anyDraggableGlobalOutput &&
-        draggables[draggableId.GLOBAL_OUTPUTS]?.open && (
+      {anyGlobalOutputQuickView &&
+        draggables[draggableId.GLOBAL_OUTPUTS]?.open &&
+        !draggables[draggableId.GLOBAL_OUTPUTS]?.docked && (
           <GlobalOutputsDraggable />
         )}
-      {draggables[draggableId.TIME]?.open && <TimeDraggable />}
-      {draggables[draggableId.SESSION]?.open && <SessionDraggable />}
+      {draggables[draggableId.TIME]?.open &&
+        !draggables[draggableId.TIME]?.docked && <TimeDraggable />}
+      {draggables[draggableId.SESSION]?.open &&
+        !draggables[draggableId.SESSION]?.docked && <SessionDraggable />}
       {notifOpen ? (
         <NotificationsDraggable />
       ) : (

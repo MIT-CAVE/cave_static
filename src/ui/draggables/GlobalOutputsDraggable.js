@@ -39,7 +39,7 @@ const GlobalOutputsDraggable = () => {
     () =>
       R.pipe(
         R.map(R.assoc('variant', propVariant.ICON_COMPACT)),
-        R.filter(R.prop('draggable'))
+        R.filter(R.prop('quickView'))
       )(props),
     [props]
   )
