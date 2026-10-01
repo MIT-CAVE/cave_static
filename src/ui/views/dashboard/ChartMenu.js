@@ -45,11 +45,11 @@ const styles = {
       opacity: 0.8,
       ':hover': { opacity: 1 },
     },
-    '&> :first-child button': {
+    '&> :first-of-type button': {
       borderTopLeftRadius: '4px',
       borderTopRightRadius: '4px',
     },
-    '&> :last-child button': {
+    '&> :last-of-type button': {
       borderBottomLeftRadius: '4px',
       borderBottomRightRadius: '4px',
     },

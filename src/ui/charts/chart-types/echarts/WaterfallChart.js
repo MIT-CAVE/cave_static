@@ -157,21 +157,24 @@ const WaterfallChart = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) =>
-        R.mergeDeepLeft(baseData, {
-          name: R.head(d).name,
+      R.map((d) => {
+        const headItem = R.head(d)
+        const maxIdx = Math.max(...R.pluck('index', d))
+        const data = new Array(maxIdx + 1)
+        for (let i = 0; i < d.length; i++) {
+          const item = d[i]
+          if (item && item.index != null) {
+            data[item.index] = item.value?.[0]
+          }
+        }
+        return R.mergeDeepLeft(baseData, {
+          name: headItem.name,
           color:
-            findColoring(R.head(d).name, colors) ??
-            getChartItemColor(R.head(d).name),
-          data: R.map(
-            // Sort by index, ensuring that empty data is set to undefined
-            R.pipe(
-              (idx) => R.find(R.propEq(idx, 'index'), d),
-              R.when(R.isNotNil, R.path(['value', 0]))
-            )
-          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+            findColoring(headItem.name, colors) ??
+            getChartItemColor(headItem.name),
+          data,
         })
-      ),
+      }),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
     (d) => [
@@ -328,9 +331,16 @@ const StackedWaterfallChart = ({
       categoryBounds[params.dataIndexInside]
     )
 
-    const storedSeriesIndex = R.findIndex(R.propEq(params.seriesName, 'name'))(
-      yValues[index]
-    )
+    let storedSeriesIndex = -1
+    const yValGroup = yValues[index]
+    if (Array.isArray(yValGroup)) {
+      for (let i = 0; i < yValGroup.length; i++) {
+        if (yValGroup[i]?.name === params.seriesName) {
+          storedSeriesIndex = i
+          break
+        }
+      }
+    }
 
     const previousVal =
       storedSeriesIndex !== 0 && storedSeriesIndex !== -1
@@ -414,21 +424,24 @@ const StackedWaterfallChart = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) =>
-        R.mergeDeepLeft(baseData, {
-          name: R.head(d).name,
+      R.map((d) => {
+        const headItem = R.head(d)
+        const maxIdx = Math.max(...R.pluck('index', d))
+        const data = new Array(maxIdx + 1)
+        for (let i = 0; i < d.length; i++) {
+          const item = d[i]
+          if (item && item.index != null) {
+            data[item.index] = item.value?.[0]
+          }
+        }
+        return R.mergeDeepLeft(baseData, {
+          name: headItem.name,
           color:
-            findColoring(R.head(d).name, colors) ??
-            getChartItemColor(R.head(d).name),
-          data: R.map(
-            // Sort by index, ensuring that empty data is set to undefined
-            R.pipe(
-              (idx) => R.find(R.propEq(idx, 'index'), d),
-              R.when(R.isNotNil, R.path(['value', 0]))
-            )
-          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+            findColoring(headItem.name, colors) ??
+            getChartItemColor(headItem.name),
+          data,
         })
-      ),
+      }),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
     (d) => [

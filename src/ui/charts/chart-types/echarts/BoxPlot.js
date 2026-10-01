@@ -47,65 +47,103 @@ const EchartsBoxPlot = ({
   path,
   xAxisOrder,
 }) => {
-  if (R.isNil(data) || R.isEmpty(data)) return []
+  if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
 
-  const yValues = R.has('children', R.head(data))
-    ? R.pluck('children', data)
-    : R.pluck('value', data)
+  const headData = R.head(data)
+  const yValues =
+    headData && R.has('children', headData)
+      ? R.pluck('children', data)
+      : R.pluck('value', data)
 
   const subGroupLabels = findSubgroupLabels(yValues)
 
   const chartType = 'boxplot'
 
-  const series = R.ifElse(
-    (val) => R.type(R.head(R.head(val))) === 'Object',
-    R.pipe(
-      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
-      R.flatten,
-      R.collectBy(R.prop('name')),
-      R.map((d) => ({
-        name: R.head(d).name,
-        type: chartType,
-        smooth: true,
-        color:
-          findColoring(R.head(d).name, colors) ??
-          getChartItemColor(R.head(d).name),
-        emphasis: {
-          focus: 'series',
-        },
-        data: R.map(
-          R.pipe(
-            (idx) => R.find(R.propEq(idx, 'index'), d),
-            R.when(R.isNotNil, R.prop('value')),
-            getQuartiles
-          )
-        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-      })),
-      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
-    ),
-    (d) => [
-      R.assoc('data', R.map(getQuartiles, d), {
-        type: chartType,
-        smooth: true,
-        emphasis: {
-          focus: 'series',
-        },
-        colorBy: 'data',
-        color: R.map(
-          (item) => findColoring(item, colors) ?? getChartItemColor(item)
-        )(xLabels),
-      }),
-    ]
-  )(yValues)
+  const hasSubObjects =
+    Array.isArray(yValues) &&
+    yValues.length > 0 &&
+    Array.isArray(yValues[0]) &&
+    yValues[0].length > 0 &&
+    typeof yValues[0][0] === 'object' &&
+    yValues[0][0] !== null
 
-  const yMax = R.pipe(
-    R.pluck('data'),
-    R.flatten,
-    R.filter(R.isNotNil),
-    R.apply(Math.max)
-  )(series)
+  const series = hasSubObjects
+    ? R.pipe(
+        R.addIndex(R.map)((d, idx) =>
+          Array.isArray(d) ? R.map(R.assoc('index', idx))(d) : []
+        ),
+        R.flatten,
+        R.filter((item) => item && item.name != null),
+        R.collectBy(R.prop('name')),
+        R.map((d) => {
+          if (!d || d.length === 0) return null
+          const headItem = R.head(d)
+          const indices = R.pluck('index', d).filter(
+            (i) => typeof i === 'number' && !isNaN(i)
+          )
+          const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+          if (maxIdx < 0) return null
+          const dataArr = new Array(maxIdx + 1)
+          const lookup = new Map()
+          for (let i = 0; i < d.length; i++) {
+            lookup.set(d[i].index, d[i].value)
+          }
+          for (let i = 0; i <= maxIdx; i++) {
+            dataArr[i] = getQuartiles(lookup.get(i))
+          }
+          return {
+            name: headItem?.name,
+            type: chartType,
+            smooth: true,
+            color:
+              findColoring(headItem?.name, colors) ??
+              getChartItemColor(headItem?.name),
+            emphasis: {
+              focus: 'series',
+            },
+            data: dataArr,
+          }
+        }),
+        R.filter(Boolean),
+        R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+      )(yValues)
+    : [
+        {
+          type: chartType,
+          smooth: true,
+          emphasis: {
+            focus: 'series',
+          },
+          colorBy: 'data',
+          color: R.map(
+            (item) => findColoring(item, colors) ?? getChartItemColor(item)
+          )(xLabels),
+          data: R.map((item) => {
+            const raw = Array.isArray(item) ? item : [item]
+            return getQuartiles(raw)
+          }, yValues),
+        },
+      ]
+
+  let yMax = 0
+  for (let s = 0; s < series.length; s++) {
+    const sData = series[s]?.data
+    if (Array.isArray(sData)) {
+      for (let i = 0; i < sData.length; i++) {
+        const item = sData[i]
+        if (Array.isArray(item)) {
+          for (let j = 0; j < item.length; j++) {
+            const val = item[j]
+            if (typeof val === 'number' && !isNaN(val) && val > yMax) {
+              yMax = val
+            }
+          }
+        }
+      }
+    }
+  }
 
   const legend = R.isEmpty(subGroupLabels)
     ? null

@@ -11,7 +11,6 @@ import {
   ListItemIcon,
   ListItemText,
   Popover,
-  Stack,
   TextField,
   Typography,
 } from '@mui/material'
@@ -96,6 +95,10 @@ const styles = {
     flexShrink: 0,
   },
   adornments: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0.25,
     flexShrink: 0,
     ml: 0.5,
   },
@@ -131,6 +134,10 @@ const styles = {
     bgcolor: 'action.hover',
   },
   sectionHeader: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     mb: 0.75,
   },
   sectionTitle: {
@@ -334,12 +341,7 @@ const ComboboxMultiBase = ({
           )}
         </Box>
 
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={0.25}
-          sx={styles.adornments}
-        >
+        <Box sx={styles.adornments}>
           {selectedKeys.length > 0 && !(disabled || readOnly) && (
             <IconButton
               size="small"
@@ -356,7 +358,7 @@ const ComboboxMultiBase = ({
           <IconButton size="small" tabIndex={-1} sx={styles.iconBtn}>
             {open ? <MdArrowDropUp size={22} /> : <MdArrowDropDown size={22} />}
           </IconButton>
-        </Stack>
+        </Box>
       </Box>
 
       <Popover
@@ -424,12 +426,7 @@ const ComboboxMultiBase = ({
           {/* 2. Selected Chips Section */}
           {selectedKeys.length > 0 && (
             <Box sx={styles.selectedSection}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={styles.sectionHeader}
-              >
+              <Box sx={styles.sectionHeader}>
                 <Typography variant="caption" sx={styles.sectionTitle}>
                   {`SELECTED (${selectedKeys.length})`}
                 </Typography>
@@ -441,7 +438,7 @@ const ComboboxMultiBase = ({
                 >
                   Clear all
                 </Button>
-              </Stack>
+              </Box>
               <Box sx={styles.selectedChipsBox}>
                 {selectedKeys.map((key) => {
                   const opt = indexedOptions[key] ?? {}
@@ -473,12 +470,7 @@ const ComboboxMultiBase = ({
 
           {/* 3. Options List Section */}
           <Box sx={styles.optionsSection}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              sx={styles.sectionHeader}
-            >
+            <Box sx={styles.sectionHeader}>
               <Typography variant="caption" sx={styles.sectionTitle}>
                 {`OPTIONS (${filteredOptions.length})`}
               </Typography>
@@ -498,7 +490,7 @@ const ComboboxMultiBase = ({
                     : 'Select all filtered'}
                 </Button>
               )}
-            </Stack>
+            </Box>
             <List dense sx={styles.optionsList}>
               {filteredOptions.length === 0 ? (
                 <Box sx={styles.emptyState}>No matching options found</Box>

@@ -99,47 +99,6 @@ export const LIGHT_GLOBE_FOG = {
     0,
   ],
 }
-
-export const DARK_SKY_SPEC = {
-  'sky-color': '#0a0a1a',
-  'horizon-color': '#2a2a3a',
-  'fog-color': '#000033',
-  'sky-horizon-blend': 0.6,
-  'horizon-fog-blend': 0.7,
-  'fog-ground-blend': 0.4,
-  'atmosphere-blend': [
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    0,
-    0.2,
-    10,
-    0.8,
-    12,
-    0,
-  ],
-}
-
-export const LIGHT_SKY_SPEC = {
-  'sky-color': '#88c6fc',
-  'horizon-color': '#e6f0fa',
-  'fog-color': '#d4e7ff',
-  'sky-horizon-blend': 0.85,
-  'horizon-fog-blend': 0.9,
-  'fog-ground-blend': 0.6,
-  'atmosphere-blend': [
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    0,
-    0.8,
-    10,
-    1,
-    12,
-    0.3,
-  ],
-}
-
 export const DEFAULT_MAP_STYLE_OBJECTS = {
   mapboxDark: {
     name: 'Mapbox Dark',
@@ -147,17 +106,20 @@ export const DEFAULT_MAP_STYLE_OBJECTS = {
     // Full spec (via a Mapbox's guest token) available at:
     // https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=pk.eyJ1IjoiZXhhbXBsZXMiLCJhIjoiY2xxeTBib3pyMGsxcTJpbXQ3bmo4YXU0ZiJ9.wvqlBMQSxTHgvAh6l9OXXw
     spec: 'mapbox://styles/mapbox/dark-v11',
+    fog: DARK_GLOBE_FOG,
   },
   mapboxLight: {
     name: 'Mapbox Light',
     icon: 'si/SiMapbox',
     spec: 'mapbox://styles/mapbox/light-v11',
+    fog: LIGHT_GLOBE_FOG,
   },
   mapboxStreets: {
     name: 'Mapbox Streets',
     icon: 'si/SiMapbox',
     spec: 'mapbox://styles/mapbox/streets-v12',
     light: true,
+    fog: LIGHT_GLOBE_FOG,
   },
   mapboxSatellite: {
     name: 'Mapbox Satellite',
@@ -169,21 +131,25 @@ export const DEFAULT_MAP_STYLE_OBJECTS = {
     name: 'Mapbox Navigation Day',
     icon: 'si/SiMapbox',
     spec: 'mapbox://styles/mapbox/navigation-day-v1',
+    fog: LIGHT_GLOBE_FOG,
   },
   mapboxNavNight: {
     name: 'Mapbox Navigation Night',
     icon: 'si/SiMapbox',
     spec: 'mapbox://styles/mapbox/navigation-night-v1',
+    fog: DARK_GLOBE_FOG,
   },
   cartoPositron: {
     name: 'Carto Light',
     icon: 'md/MdLightMode',
     spec: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    fog: LIGHT_GLOBE_FOG,
   },
   cartoDarkMatter: {
     name: 'Carto Dark',
     icon: 'md/MdDarkMode',
     spec: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    fog: DARK_GLOBE_FOG,
   },
   openStreetMap: {
     name: 'Open Street Maps',

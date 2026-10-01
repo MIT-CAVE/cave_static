@@ -5,10 +5,7 @@ import { useCallback, useState, useEffect } from 'react'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
-import {
-  selectIsMapboxTokenProvided,
-  selectMapboxToken,
-} from '../../data/selectors'
+import { selectMapboxToken } from '../../data/selectors'
 import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
@@ -54,15 +51,10 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
 
   const { enabled, placeholder } = prop
   const mapboxToken = useSelector(selectMapboxToken)
-  const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
 
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
-  const mapStyle =
-    prop.mapStyle ??
-    (isMapboxTokenProvided
-      ? 'mapbox://styles/mapbox/dark-v11'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json')
+  const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
 
   const { ReactMapGl, Marker, NavigationControl } = useMapApi()
 

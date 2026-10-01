@@ -86,17 +86,30 @@ const useMapFilter = ({ group, filtersPath, featureTypeProps, filters }) => {
     [filtersPath]
   )
 
-  return {
-    labelStart,
-    isFilterDisabled,
-    numActiveFilters,
-    filterableProps,
-    filterableExtraProps,
-    filterOpen: Boolean(anchorEl),
-    handleOpenFilter: handleOpenMenu,
-    handleCloseFilter: handleCloseMenu,
-    handleSaveFilters,
-  }
+  return useMemo(
+    () => ({
+      labelStart,
+      isFilterDisabled,
+      numActiveFilters,
+      filterableProps,
+      filterableExtraProps,
+      filterOpen: Boolean(anchorEl),
+      handleOpenFilter: handleOpenMenu,
+      handleCloseFilter: handleCloseMenu,
+      handleSaveFilters,
+    }),
+    [
+      anchorEl,
+      filterableExtraProps,
+      filterableProps,
+      handleCloseMenu,
+      handleOpenMenu,
+      handleSaveFilters,
+      isFilterDisabled,
+      labelStart,
+      numActiveFilters,
+    ]
+  )
 }
 
 export default useMapFilter

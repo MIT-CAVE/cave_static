@@ -18,10 +18,15 @@ const Treemap = ({
   path,
   xAxisOrder,
 }) => {
+  if (R.isNil(data) || R.isEmpty(data)) return []
+
   const findNames = (data) =>
-    R.has('children', R.head(data))
-      ? R.map((d) => R.prepend(R.prop('name', d), findNames(d.children)), data)
-      : R.pluck('name', data)
+    data && data.length > 0 && R.has('children', R.head(data))
+      ? R.map(
+          (d) => R.prepend(R.prop('name', d), findNames(d?.children || [])),
+          data
+        )
+      : R.pluck('name', data || [])
   const xLabels = R.pipe(findNames, R.flatten)(data)
 
   const assignColors = () => {
