@@ -62,10 +62,14 @@ class ThreadMaxWorkers {
     worker.addEventListener('message', onMessage)
     worker.addEventListener('error', onError)
 
-    if (transfer && transfer.length > 0) {
-      worker.postMessage(message, transfer)
-    } else {
-      worker.postMessage(message)
+    try {
+      if (transfer && transfer.length > 0) {
+        worker.postMessage(message, transfer)
+      } else {
+        worker.postMessage(message)
+      }
+    } catch (e) {
+      onError(e)
     }
   }
 
@@ -82,6 +86,18 @@ class ThreadMaxWorkers {
     worker.terminate()
     this.workers = this.workers.filter((w) => w !== worker)
     this.idleWorkers = this.idleWorkers.filter((w) => w !== worker)
+    if (this.messageQueue.length > 0) {
+      const task = this.messageQueue.shift()
+      try {
+        const newWorker =
+          this.idleWorkers.length > 0
+            ? this.idleWorkers.pop()
+            : this.createWorker()
+        this.assignWork(newWorker, task)
+      } catch (e) {
+        task.reject(e)
+      }
+    }
   }
 
   doWork(message, transfer) {
