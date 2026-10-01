@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
+import { expect } from 'storybook/test'
 
 import { BarPlot } from '../../ui/charts'
 
@@ -42,6 +43,22 @@ export const SimpleBar = {
     xAxisTitle: 'Region',
     yAxisTitle: 'Shipments',
     numberFormat: { precision: 0, unit: 'units' },
+  },
+  play: async ({ canvasElement }) => {
+    // Wait for the chart to render
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    const canvas = canvasElement.querySelector('canvas')
+    expect(canvas).not.toBeNull()
+    const initialWidth = canvas.width
+    expect(initialWidth).toBeGreaterThan(0)
+
+    // Trigger window resize
+    window.dispatchEvent(new Event('resize'))
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    const resizedCanvas = canvasElement.querySelector('canvas')
+    expect(resizedCanvas).not.toBeNull()
+    expect(resizedCanvas.width).toBeGreaterThan(0)
   },
 }
 

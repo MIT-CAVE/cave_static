@@ -48,7 +48,45 @@ const Map = ({ mapId }) => {
   }
   const highlight = useRef(null)
   const containerRef = useRef(null)
+  const mapContainerRef = useRef(null)
   const demoInterval = useRef(-1)
+
+  useEffect(() => {
+    const container = mapContainerRef.current
+    if (!container) return
+
+    const resizeMap = () => {
+      const map = mapRef.current?.getMap
+        ? mapRef.current.getMap()
+        : mapRef.current
+      if (map && typeof map.resize === 'function') {
+        map.resize()
+      }
+    }
+
+    let rafId = null
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(resizeMap)
+    })
+    observer.observe(container)
+
+    let timeoutId = null
+    const handleWindowResize = () => {
+      resizeMap()
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(resizeMap, 250)
+    }
+
+    window.addEventListener('resize', handleWindowResize)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      clearTimeout(timeoutId)
+      observer.disconnect()
+      window.removeEventListener('resize', handleWindowResize)
+    }
+  }, [])
 
   const viewport = useSelector(selectViewportsByMap)[mapId]
   const currentMapProjectionFunc = useSelector(selectCurrentMapProjectionFunc)
@@ -239,6 +277,12 @@ const Map = ({ mapId }) => {
     loadIconsToStyle()
     loadSkyAndFog()
     setMapLoaded(true)
+    const map = mapRef.current?.getMap
+      ? mapRef.current.getMap()
+      : mapRef.current
+    if (map && typeof map.resize === 'function') {
+      map.resize()
+    }
   }, [loadSkyAndFog, loadIconsToStyle])
 
   useEffect(() => {
@@ -275,8 +319,13 @@ const Map = ({ mapId }) => {
     const map = mapRef.current?.getMap
       ? mapRef.current.getMap()
       : mapRef.current
-    if (map && !mapLoaded) {
-      setMapLoaded(true)
+    if (map) {
+      if (!mapLoaded) {
+        setMapLoaded(true)
+      }
+      if (typeof map.resize === 'function') {
+        map.resize()
+      }
     }
   }, [mapLoaded])
 
@@ -583,10 +632,16 @@ const Map = ({ mapId }) => {
 
   return (
     <Box
+      ref={mapContainerRef}
       sx={{
         display: 'flex',
         position: 'relative',
         flex: '1 1 auto',
+        minHeight: 0,
+        minWidth: 0,
+        overflow: 'hidden',
+        height: '100%',
+        width: '100%',
       }}
     >
       <MapContext.Provider value={contextValue}>

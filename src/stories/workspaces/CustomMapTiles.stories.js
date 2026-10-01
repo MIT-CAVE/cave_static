@@ -706,6 +706,17 @@ export const Default = {
         expect(body.queryByText('Sessions Pane')).toBeNull()
         expect(document.body.textContent).not.toContain('Sessions Pane')
       }
+
+      // Assert that map resizes properly on window resize
+      let mapResizeCalled = false
+      const originalResize = squareMapGl.resize.bind(squareMapGl)
+      squareMapGl.resize = (...args) => {
+        mapResizeCalled = true
+        return originalResize(...args)
+      }
+      window.dispatchEvent(new Event('resize'))
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      expect(mapResizeCalled).toBe(true)
     }
   },
 }

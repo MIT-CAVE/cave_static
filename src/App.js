@@ -52,6 +52,8 @@ const styles = {
     position: 'relative',
     flex: '1 1 auto',
     minHeight: 0,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   pane: {
     display: 'flex',

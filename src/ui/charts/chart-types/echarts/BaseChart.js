@@ -25,7 +25,7 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import { memo } from 'react'
+import { memo, useCallback, useEffect, useRef } from 'react'
 
 import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
@@ -159,6 +159,32 @@ const FlexibleChart = memo(
     onNumBucketsChange,
     ...restProps
   }) => {
+    const echartsRef = useRef(null)
+
+    const handleResize = useCallback(({ width, height }) => {
+      const chart = echartsRef.current?.getEchartsInstance?.()
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize({ width, height })
+      }
+    }, [])
+
+    const handleChartReady = useCallback(
+      (chartInstance) => {
+        if (chartInstance && typeof chartInstance.resize === 'function') {
+          chartInstance.resize()
+        }
+        restProps.onChartReady?.(chartInstance)
+      },
+      [restProps]
+    )
+
+    useEffect(() => {
+      const chart = echartsRef.current?.getEchartsInstance?.()
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize()
+      }
+    })
+
     return (
       <div
         style={{
@@ -166,13 +192,15 @@ const FlexibleChart = memo(
           width: '100%',
           height: '100%',
           minHeight: 0,
+          minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
           flex: '1 1 auto',
         }}
       >
-        <FlexibleContainer>
+        <FlexibleContainer onResize={handleResize}>
           <ReactEChartsCore
+            ref={echartsRef}
             echarts={echarts}
             option={R.mergeDeepRight(
               R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
@@ -180,6 +208,7 @@ const FlexibleChart = memo(
             notMerge
             theme="dark"
             {...restProps}
+            onChartReady={handleChartReady}
           />
         </FlexibleContainer>
         <ChartControls

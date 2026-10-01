@@ -66,6 +66,9 @@ const styles = {
     // reset locally rather than removing (see DashboardGlobalOutputs)
     textAlign: 'center',
     flex: '1 1 auto',
+    minHeight: 0,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   loader: {
     mx: 'auto',
@@ -569,14 +572,24 @@ const Dashboard = () => {
           { p: 0 },
           leftBar && rightBar
             ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
-            : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
+            : leftBar || rightBar
+              ? { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` }
+              : { width: '100%' },
         ]}
         disableGutters
       >
-        <div style={{ flex: '1 1 auto', overflow: 'hidden' }}>
+        <div
+          style={{
+            flex: '1 1 auto',
+            overflow: 'hidden',
+            width: '100%',
+            height: '100%',
+          }}
+        >
           <AutoSizer
+            style={{ width: '100%', height: '100%' }}
             renderProp={({ height, width }) =>
-              R.isNotEmpty(pageLayout) && (
+              Boolean(height && width && R.isNotEmpty(pageLayout)) && (
                 <ReactGridLayout
                   className="layout"
                   {...{ width }}
@@ -635,6 +648,9 @@ const Dashboard = () => {
                         sx={{
                           display: 'flex',
                           cursor: `${cursor} !important`,
+                          minHeight: 0,
+                          minWidth: 0,
+                          overflow: 'hidden',
                         }}
                       >
                         {chartObj != null && (
