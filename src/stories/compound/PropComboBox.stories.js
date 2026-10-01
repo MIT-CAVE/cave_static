@@ -44,9 +44,22 @@ const propComboBoxStories = {
 export default propComboBoxStories
 
 const mockOptions = {
-  opt1: { name: 'Apple', color: '#d32f2f', icon: 'md/MdApple' },
+  // No `activeColor`/`activeIcon` set, so these fall back to the
+  // prop-level `activeColor`/`activeIcon` below when selected.
+  opt1: {
+    name: 'Apple',
+    color: '#d32f2f',
+    icon: 'md/MdApple',
+    activeName: 'Apple (Selected)',
+  },
   opt2: { name: 'Banana', color: '#fbc02d', icon: 'md/MdFavorite' },
   opt3: { name: 'Cherry', color: '#c2185b', icon: 'md/MdStar' },
+  opt4: {
+    name: 'Durian (Disabled)',
+    color: '#9e9e9e',
+    icon: 'md/MdBlock',
+    enabled: false,
+  },
 }
 
 export const Single = {
@@ -70,6 +83,9 @@ export const Single = {
       placeholder: 'Select a fruit',
       labelPlacement: 'end',
       value: ['opt1'],
+      helperText: 'Pick your favorite fruit',
+      activeColor: '#000000',
+      activeIcon: 'md/MdCheckCircle',
     },
     currentVal: ['opt1'],
     onChange: () => {},
@@ -98,6 +114,9 @@ export const Multi = {
       labelPlacement: 'end',
       numVisibleTags: 2,
       value: ['opt1', 'opt2'],
+      helperText: 'Pick as many fruits as you like',
+      activeColor: '#000000',
+      activeIcon: 'md/MdCheckCircle',
     },
     currentVal: ['opt1', 'opt2'],
     onChange: () => {},
