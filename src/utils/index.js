@@ -950,6 +950,27 @@ export const getDecimalScaleLabel = R.pipe(
   ])
 )
 
+export const getYExtremes = (series) => {
+  let yMin = Infinity
+  let yMax = -Infinity
+  for (let s = 0; s < (series?.length ?? 0); s++) {
+    const sData = series[s]?.data
+    if (Array.isArray(sData)) {
+      for (let i = 0; i < sData.length; i++) {
+        const item = sData[i]
+        const val = Array.isArray(item) ? item[1] : item
+        if (typeof val === 'number' && !isNaN(val)) {
+          if (val > yMax) yMax = val
+          if (val < yMin) yMin = val
+        }
+      }
+    }
+  }
+  if (yMax === -Infinity) yMax = 0
+  if (yMin === Infinity) yMin = 0
+  return [yMin, yMax]
+}
+
 export const capitalize = R.when(
   R.isNotNil,
   R.converge(R.concat, [R.pipe(R.head, R.toUpper), R.pipe(R.toLower, R.tail)])

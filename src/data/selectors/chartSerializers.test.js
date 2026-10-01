@@ -295,6 +295,48 @@ describe('Chart Data Serializers', () => {
       ])
     })
 
+    it('handles large datasets (e.g. >100,000 items) for min and max without call stack overflow', async () => {
+      const count = 150000
+      const largeValues = new Array(count)
+      for (let i = 0; i < count; i++) largeValues[i] = i + 10
+      largeValues[0] = 5
+      largeValues[count - 1] = 999999
+
+      const largeState = {
+        data: {
+          groupedOutputs: {
+            groupings: {},
+            data: {
+              largeData: {
+                stats: { val: { name: 'Value' } },
+                valueLists: { val: largeValues },
+                groupLists: {},
+              },
+            },
+          },
+        },
+      }
+      const largeChartFunc = selectMemoizedChartFunc(largeState)
+
+      const minResult = await largeChartFunc({
+        chartType: chartVariant.BAR,
+        dataset: 'largeData',
+        groupingId: [],
+        groupingLevel: [],
+        stats: [{ statId: 'val', aggregationType: 'min' }],
+      })
+      expect(minResult).toEqual([{ name: 'All', value: [5] }])
+
+      const maxResult = await largeChartFunc({
+        chartType: chartVariant.BAR,
+        dataset: 'largeData',
+        groupingId: [],
+        groupingLevel: [],
+        stats: [{ statId: 'val', aggregationType: 'max' }],
+      })
+      expect(maxResult).toEqual([{ name: 'All', value: [999999] }])
+    })
+
     it('aggregates divisor correctly (revenue / units)', async () => {
       const chartObj = {
         chartType: chartVariant.BAR,
@@ -493,6 +535,50 @@ describe('Chart Data Serializers', () => {
       expect(findSubgroupLabels([])).toEqual([])
       expect(findSubgroupLabels(null)).toEqual([])
       expect(findSubgroupLabels([[1], [0]])).toEqual([])
+    })
+
+    it('getYExtremes computes min and max correctly without flooring yMax at 0 for negative ranges', async () => {
+      const { getYExtremes, getDecimalScaleFactor, getDecimalScaleLabel } =
+        await import('../../utils')
+
+      // All negative values: yMax should be the highest negative value (-1000000), not floored at 0
+      const negativeSeries = [{ data: [-5000000, -2000000, -1000000] }]
+      const [negMin, negMax] = getYExtremes(negativeSeries)
+      expect(negMin).toBe(-5000000)
+      expect(negMax).toBe(-1000000)
+
+      // Range scales properly to millions based on the maximum magnitude
+      const maxMagnitude = Math.max(Math.abs(negMin), Math.abs(negMax))
+      expect(getDecimalScaleFactor(maxMagnitude)).toBe(1000000)
+      expect(getDecimalScaleLabel(maxMagnitude)).toBe('millions')
+
+      // VisualMap array format [[x, y], ...]
+      const visualMapSeries = [
+        {
+          data: [
+            [0, -4000000],
+            [1, -1500000],
+          ],
+        },
+      ]
+      const [vmMin, vmMax] = getYExtremes(visualMapSeries)
+      expect(vmMin).toBe(-4000000)
+      expect(vmMax).toBe(-1500000)
+
+      // Mixed negative and positive range
+      const mixedSeries = [{ data: [-3000000, 1000000] }]
+      const [mixMin, mixMax] = getYExtremes(mixedSeries)
+      expect(mixMin).toBe(-3000000)
+      expect(mixMax).toBe(1000000)
+      const mixedMagnitude = Math.max(Math.abs(mixMin), Math.abs(mixMax))
+      expect(getDecimalScaleFactor(mixedMagnitude)).toBe(1000000)
+      expect(getDecimalScaleLabel(mixedMagnitude)).toBe('millions')
+
+      // Empty or non-numeric series safely defaults to [0, 0]
+      expect(getYExtremes([])).toEqual([0, 0])
+      expect(getYExtremes([{ data: [] }])).toEqual([0, 0])
+      expect(getYExtremes([{ data: [NaN, null, undefined] }])).toEqual([0, 0])
+      expect(getYExtremes(null)).toEqual([0, 0])
     })
   })
 })

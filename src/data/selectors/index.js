@@ -1988,10 +1988,22 @@ const mergeFuncs = {
     for (let i = 0; i < val.length; i++) sum += val[i]
     return sum
   },
-  [chartAggrFunc.MIN]: (val) =>
-    val && val.length ? Math.min(...val) : undefined,
-  [chartAggrFunc.MAX]: (val) =>
-    val && val.length ? Math.max(...val) : undefined,
+  [chartAggrFunc.MIN]: (val) => {
+    if (!val || val.length === 0) return undefined
+    let min = val[0]
+    for (let i = 1; i < val.length; i++) {
+      if (val[i] < min) min = val[i]
+    }
+    return min
+  },
+  [chartAggrFunc.MAX]: (val) => {
+    if (!val || val.length === 0) return undefined
+    let max = val[0]
+    for (let i = 1; i < val.length; i++) {
+      if (val[i] > max) max = val[i]
+    }
+    return max
+  },
   [chartAggrFunc.MEAN]: (val) => {
     if (!val || val.length === 0) return 0
     let sum = 0

@@ -31,12 +31,13 @@ import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
 
 import {
-  NumberFormat,
+  findColoring,
   findSubgroupLabels,
+  getChartItemColor,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
-  getChartItemColor,
-  findColoring,
+  getYExtremes,
+  NumberFormat,
 } from '../../../../utils'
 
 // Register the required components
@@ -305,22 +306,10 @@ const EchartsPlot = ({
         ),
       ]
 
-  let yMax = 0
-  for (let s = 0; s < series.length; s++) {
-    const sData = series[s]?.data
-    if (Array.isArray(sData)) {
-      for (let i = 0; i < sData.length; i++) {
-        const item = sData[i]
-        const val = Array.isArray(item) ? item[1] : item
-        if (typeof val === 'number' && !isNaN(val) && val > yMax) {
-          yMax = val
-        }
-      }
-    }
-  }
-
-  const scaleFactor = getDecimalScaleFactor(yMax)
-  const scaleLabel = getDecimalScaleLabel(yMax)
+  const [yMin, yMax] = getYExtremes(series)
+  const maxVal = Math.max(Math.abs(yMin), Math.abs(yMax))
+  const scaleFactor = getDecimalScaleFactor(maxVal)
+  const scaleLabel = getDecimalScaleLabel(maxVal)
 
   const lineMap = visualMap
     ? {

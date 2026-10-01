@@ -99,3 +99,31 @@ export const StackedBar = {
     numberFormat: { precision: 0, unit: 'crates' },
   },
 }
+
+export const NegativeRangeBar = {
+  args: {
+    data: [
+      { name: 'Jan', value: [-1200000] },
+      { name: 'Feb', value: [-2500000] },
+      { name: 'Mar', value: [-1800000] },
+      { name: 'Apr', value: [-3200000] },
+    ],
+    xAxisTitle: 'Month',
+    yAxisTitle: 'Operating Deficit ($)',
+    numberFormat: { precision: 1, unit: '$' },
+  },
+}
+
+export const MixedRangeBar = {
+  args: {
+    data: [
+      { name: 'Jan', value: [-2500000] },
+      { name: 'Feb', value: [1500000] },
+      { name: 'Mar', value: [-800000] },
+      { name: 'Apr', value: [3000000] },
+    ],
+    xAxisTitle: 'Month',
+    yAxisTitle: 'Net Income ($)',
+    numberFormat: { precision: 1, unit: '$' },
+  },
+}
