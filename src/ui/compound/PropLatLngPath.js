@@ -136,6 +136,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   )
   const [editState, setEditState] = useState(edit.NONE)
   const [pathData, setPathData] = useState(getPathData(allInputValues))
+  const [confirmingClear, setConfirmingClear] = useState(false)
 
   useLayoutEffect(() => {
     if (fieldsRef.current) setToggleSize(fieldsRef.current.offsetHeight)
@@ -208,10 +209,13 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
 
   const handleClearPath = useCallback(() => {
     if (!enabled) return
-    setPathData(getPathData([allInputValues[0]]))
-    setManualInput(allInputValues[0])
+    const resetValue = [allInputValues[0]]
+    onChange(resetValue)
+    setAllInputValues(resetValue)
+    setPathData(getPathData(resetValue))
+    setManualInput(resetValue[0])
     setEditState(edit.RESET)
-  }, [enabled, getPathData, allInputValues])
+  }, [enabled, getPathData, allInputValues, onChange])
 
   const { ReactMapGl, Layer, Marker, NavigationControl, Source } = useMapApi()
 
@@ -326,6 +330,29 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             </Button>
           </Stack>
         </>
+      ) : confirmingClear ? (
+        <Stack spacing={1} direction="row">
+          <Button
+            fullWidth
+            color="error"
+            variant="contained"
+            startIcon={<PiEraser />}
+            onClick={() => {
+              handleClearPath()
+              setConfirmingClear(false)
+            }}
+          >
+            Confirm Clear
+          </Button>
+          <Button
+            fullWidth
+            variant="contained"
+            startIcon={<MdOutlineCancel />}
+            onClick={() => setConfirmingClear(false)}
+          >
+            Cancel
+          </Button>
+        </Stack>
       ) : (
         <Stack spacing={1} direction="row">
           <Button
@@ -353,7 +380,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             color="error"
             variant="contained"
             startIcon={<PiEraser />}
-            onClick={handleClearPath}
+            onClick={() => setConfirmingClear(true)}
           >
             Clear Path
           </Button>
