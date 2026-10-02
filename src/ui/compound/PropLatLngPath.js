@@ -11,7 +11,13 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useState, useEffect } from 'react'
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 import {
   MdAddCircleOutline,
   MdOutlineCancel,
@@ -96,8 +102,11 @@ const displayPath = (path, numberFormatProps) => {
 const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
-  const { enabled, placeholder } = prop
+  const { enabled, placeholder, direction = 'row' } = prop
   const numberFormatProps = getCoordinateNumberFormat(prop)
+  const fieldsRef = useRef(null)
+  const [toggleSize, setToggleSize] = useState(null)
+
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
 
   const mapStyle =
@@ -128,6 +137,12 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const [editState, setEditState] = useState(edit.NONE)
   const [pathData, setPathData] = useState(getPathData(allInputValues))
 
+  useLayoutEffect(() => {
+    if (fieldsRef.current) setToggleSize(fieldsRef.current.offsetHeight)
+  }, [direction, editState])
+  const iconSize =
+    toggleSize && direction === 'column' ? Math.round(toggleSize / 3) : 28
+
   useEffect(() => {
     const newValue = currentVal ?? prop.value
     setAllInputValues(newValue)
@@ -146,13 +161,17 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const handleAddManualInput = useCallback(() => {
     if (!enabled) return
 
+    const clampedInput = [
+      R.clamp(-180, 180)(manualInput[0]),
+      R.clamp(-90, 90)(manualInput[1]),
+    ]
     const updatedValue = (
       editState === edit.RESET ? [] : allInputValues
-    ).concat([manualInput])
+    ).concat([clampedInput])
     onChange(updatedValue)
     setAllInputValues(updatedValue)
     setPathData(getPathData(updatedValue))
-    setViewState({ latitude: manualInput[1], longitude: manualInput[0] })
+    setViewState({ latitude: clampedInput[1], longitude: clampedInput[0] })
 
     editState === edit.RESET && setEditState(edit.NONE)
   }, [allInputValues, editState, enabled, getPathData, manualInput, onChange])
@@ -245,31 +264,44 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       {editState !== edit.NONE ? (
         <>
           <Stack useFlexGap direction="row" spacing={1}>
-            <NumberField
-              disabled={!enabled}
-              label="Latitude"
-              {...{ placeholder, max: 90, min: -90 }}
-              numberFormat={numberFormatProps}
-              value={manualInput[1]}
-              onChange={handleChangeAt(1)}
-              // onChangeCommitted={handleChangeCommittedAt(1)}
-            />
-            <NumberField
-              disabled={!enabled}
-              label="Longitude"
-              {...{ placeholder, max: 180, min: -180 }}
-              numberFormat={numberFormatProps}
-              value={manualInput[0]}
-              onChange={handleChangeAt(0)}
-              // onChangeCommitted={handleChangeCommittedAt(0)}
-            />
+            <Stack
+              useFlexGap
+              ref={fieldsRef}
+              {...{ direction }}
+              spacing={direction === 'row' ? 1 : 2}
+              sx={{ flexGrow: 1 }}
+            >
+              <NumberField
+                disabled={!enabled}
+                label="Latitude"
+                {...{ placeholder, max: 90, min: -90 }}
+                numberFormat={numberFormatProps}
+                value={R.clamp(-90, 90)(manualInput[1])}
+                onChange={handleChangeAt(1)}
+                // onChangeCommitted={handleChangeCommittedAt(1)}
+              />
+              <NumberField
+                disabled={!enabled}
+                label="Longitude"
+                {...{ placeholder, max: 180, min: -180 }}
+                numberFormat={numberFormatProps}
+                value={R.clamp(-180, 180)(manualInput[0])}
+                onChange={handleChangeAt(0)}
+                // onChangeCommitted={handleChangeCommittedAt(0)}
+              />
+            </Stack>
             <ToggleButton
               disabled={!enabled}
               selected={showMap}
               value="prop-lat-lng-map-view"
               onClick={showMap ? handleCloseMenu : handleOpenMenu}
+              style={
+                toggleSize && direction === 'column'
+                  ? { height: toggleSize, width: toggleSize }
+                  : undefined
+              }
             >
-              <TfiMapAlt size={28} />
+              <TfiMapAlt size={iconSize} />
             </ToggleButton>
           </Stack>
           <Stack useFlexGap direction="row" spacing={1}>

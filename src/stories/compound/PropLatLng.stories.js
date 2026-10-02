@@ -93,6 +93,35 @@ export const MapViewDisabled = {
   },
 }
 
+export const MapViewColumn = {
+  render: function Render(args) {
+    const [currentVal, setCurrentVal] = React.useState(args.currentVal)
+    return (
+      <PropLatLngMap
+        {...args}
+        currentVal={currentVal}
+        onChange={(val) => {
+          args.onChange(val)
+          setCurrentVal(val)
+        }}
+      />
+    )
+  },
+  parameters: {
+    layoutWidth: '600px',
+  },
+  args: {
+    prop: {
+      enabled: true,
+      value: [[-122.4194, 37.7749]],
+      placeholder: 'Enter coordinates...',
+      direction: 'column',
+    },
+    currentVal: [[-122.4194, 37.7749]],
+    onChange: () => {},
+  },
+}
+
 export const Path = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
@@ -119,6 +148,43 @@ export const Path = {
         [-122.41, 37.775],
       ],
       placeholder: 'Enter coordinates...',
+    },
+    currentVal: [
+      [-122.4194, 37.7749],
+      [-122.42, 37.78],
+      [-122.41, 37.775],
+    ],
+    onChange: () => {},
+  },
+}
+
+export const PathColumn = {
+  render: function Render(args) {
+    const [currentVal, setCurrentVal] = React.useState(args.currentVal)
+    return (
+      <PropLatLngPath
+        {...args}
+        currentVal={currentVal}
+        onChange={(val) => {
+          args.onChange(val)
+          setCurrentVal(val)
+        }}
+      />
+    )
+  },
+  parameters: {
+    layoutWidth: '600px',
+  },
+  args: {
+    prop: {
+      enabled: true,
+      value: [
+        [-122.4194, 37.7749],
+        [-122.42, 37.78],
+        [-122.41, 37.775],
+      ],
+      placeholder: 'Enter coordinates...',
+      direction: 'column',
     },
     currentVal: [
       [-122.4194, 37.7749],

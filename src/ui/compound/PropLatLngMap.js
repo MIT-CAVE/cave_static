@@ -1,7 +1,13 @@
 import { ClickAwayListener, Popper, Stack, ToggleButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useState, useEffect } from 'react'
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
@@ -46,8 +52,16 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     setViewState({ latitude: newValue[1], longitude: newValue[0] })
   }, [currentVal, prop.value])
 
-  const { enabled, placeholder } = prop
+  const { enabled, placeholder, direction = 'row' } = prop
   const numberFormatProps = getCoordinateNumberFormat(prop)
+  const fieldsRef = useRef(null)
+  const [toggleSize, setToggleSize] = useState(null)
+
+  useLayoutEffect(() => {
+    if (fieldsRef.current) setToggleSize(fieldsRef.current.offsetHeight)
+  }, [direction])
+  const iconSize =
+    toggleSize && direction === 'column' ? Math.round(toggleSize / 3) : 28
   const mapboxToken = useSelector(selectMapboxToken)
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
 
@@ -128,31 +142,44 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
       </ClickAwayListener>
 
       <Stack useFlexGap direction="row" spacing={1}>
-        <NumberField
-          disabled={!enabled}
-          label="Latitude"
-          {...{ placeholder, max: 90, min: -90 }}
-          numberFormat={numberFormatProps}
-          value={R.clamp(-90, 90)(value[1])}
-          onChange={handleChangeAt(1)}
-          onChangeCommitted={handleChangeCommittedAt(1)}
-        />
-        <NumberField
-          disabled={!enabled}
-          label="Longitude"
-          {...{ placeholder, max: 180, min: -180 }}
-          numberFormat={numberFormatProps}
-          value={R.clamp(-180, 180, value[0])}
-          onChange={handleChangeAt(0)}
-          onChangeCommitted={handleChangeCommittedAt(0)}
-        />
+        <Stack
+          useFlexGap
+          ref={fieldsRef}
+          {...{ direction }}
+          spacing={direction === 'row' ? 1 : 2}
+          sx={{ flexGrow: 1 }}
+        >
+          <NumberField
+            disabled={!enabled}
+            label="Latitude"
+            {...{ placeholder, max: 90, min: -90 }}
+            numberFormat={numberFormatProps}
+            value={R.clamp(-90, 90)(value[1])}
+            onChange={handleChangeAt(1)}
+            onChangeCommitted={handleChangeCommittedAt(1)}
+          />
+          <NumberField
+            disabled={!enabled}
+            label="Longitude"
+            {...{ placeholder, max: 180, min: -180 }}
+            numberFormat={numberFormatProps}
+            value={R.clamp(-180, 180, value[0])}
+            onChange={handleChangeAt(0)}
+            onChangeCommitted={handleChangeCommittedAt(0)}
+          />
+        </Stack>
         <ToggleButton
           disabled={!enabled}
           selected={showMap}
           value="prop-lat-lng-map-view"
           onClick={showMap ? handleCloseMenu : handleOpenMenu}
+          style={
+            toggleSize && direction === 'column'
+              ? { height: toggleSize, width: toggleSize }
+              : undefined
+          }
         >
-          <TfiMapAlt size={28} />
+          <TfiMapAlt size={iconSize} />
         </ToggleButton>
       </Stack>
     </Stack>
