@@ -6,8 +6,11 @@ import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 import { colorGen } from './ColorGen'
 import {
   DEFAULT_ICON_URL,
+  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   MAX_MEMOIZED_CHARTS,
+  MAX_ZOOM,
+  MIN_ZOOM,
 } from './constants'
 import { propId, scaleId, unitPlacements } from './enums'
 import { quantileSorted } from './quantile'
@@ -32,6 +35,26 @@ export const getCoordinateNumberFormat = (prop) =>
     COORDINATE_NUMBER_FORMAT_DEFAULTS,
     R.pick(['precision', 'trailingZeros', 'unit', 'unitPlacement'], prop)
   )
+
+// Mirrors the defensive min/max/zoom clamp already used for the main
+// dashboard map (`src/data/local/mapSlice.js`): `maxZoom` can't go below the
+// resolved `minZoom`, and `defaultZoom` is kept within the resolved bounds,
+// even though `cave_utils` validates each field independently.
+export const getCoordinateMapOptions = (prop) => {
+  const minZoom = Math.min(
+    Math.max(prop.minZoom ?? MIN_ZOOM, MIN_ZOOM),
+    MAX_ZOOM
+  )
+  const maxZoom = Math.min(
+    Math.max(prop.maxZoom ?? MAX_ZOOM, minZoom),
+    MAX_ZOOM
+  )
+  const defaultZoom = Math.min(
+    Math.max(prop.defaultZoom ?? DEFAULT_VIEWPORT.zoom, minZoom),
+    maxZoom
+  )
+  return { minZoom, maxZoom, defaultZoom }
+}
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)

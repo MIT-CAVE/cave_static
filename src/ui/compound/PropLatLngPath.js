@@ -40,6 +40,7 @@ import {
   NumberFormat,
   adjustArcPath,
   forceArray,
+  getCoordinateMapOptions,
   getCoordinateNumberFormat,
 } from '../../utils'
 
@@ -66,7 +67,10 @@ const styles = {
 }
 
 const LINE_LAYOUT = { 'line-join': 'round', 'line-cap': 'round' }
-const LINE_PAINT = { 'line-color': 'rgba(3, 170, 238, 0.5)', 'line-width': 5 }
+const DEFAULT_LINE_PAINT = {
+  'line-color': 'rgba(3, 170, 238, 0.5)',
+  'line-width': 5,
+}
 const PATH_SOURCE = {
   type: 'Feature',
   properties: {},
@@ -104,6 +108,11 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const isMapboxTokenProvided = useSelector(selectIsMapboxTokenProvided)
   const { enabled, placeholder, direction = 'row' } = prop
   const numberFormatProps = getCoordinateNumberFormat(prop)
+  const { minZoom, maxZoom, defaultZoom } = getCoordinateMapOptions(prop)
+  const linePaint = {
+    'line-color': prop.pathColor ?? DEFAULT_LINE_PAINT['line-color'],
+    'line-width': prop.pathWeight ?? DEFAULT_LINE_PAINT['line-width'],
+  }
   const fieldsRef = useRef(null)
   const [toggleSize, setToggleSize] = useState(null)
 
@@ -130,6 +139,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const [viewState, setViewState] = useState({
     latitude: getLastLat(allInputValues),
     longitude: getLastLng(allInputValues),
+    zoom: defaultZoom,
   })
   const [manualInput, setManualInput] = useState(
     allInputValues[allInputValues.length - 1]
@@ -150,10 +160,11 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     setViewState({
       latitude: getLastLat(newValue),
       longitude: getLastLng(newValue),
+      zoom: defaultZoom,
     })
     setManualInput(newValue[newValue.length - 1])
     setPathData(getPathData(newValue))
-  }, [currentVal, getPathData, prop.value])
+  }, [currentVal, getPathData, prop.value, defaultZoom])
 
   const handleChangeAt = (index) => (event, newLatOrLng) => {
     setManualInput(R.update(index, newLatOrLng))
@@ -241,6 +252,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
         >
           <ReactMapGl
             {...viewState}
+            {...{ minZoom, maxZoom }}
             mapboxAccessToken={mapboxToken}
             style={styles.map}
             mapStyle={mapStyle}
@@ -258,7 +270,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
                 id="path-line"
                 type="line"
                 layout={LINE_LAYOUT}
-                paint={LINE_PAINT}
+                paint={linePaint}
               />
             </Source>
             <NavigationControl />

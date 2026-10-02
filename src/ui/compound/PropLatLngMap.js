@@ -19,7 +19,11 @@ import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
-import { forceArray, getCoordinateNumberFormat } from '../../utils'
+import {
+  forceArray,
+  getCoordinateMapOptions,
+  getCoordinateNumberFormat,
+} from '../../utils'
 
 const styles = {
   popper: {
@@ -41,16 +45,22 @@ const styles = {
 const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const defaultValue = currentVal ?? prop.value
   const [value, setValue] = useState(defaultValue[0])
+  const { minZoom, maxZoom, defaultZoom } = getCoordinateMapOptions(prop)
   const [viewState, setViewState] = useState({
     latitude: value[1],
     longitude: value[0],
+    zoom: defaultZoom,
   })
 
   useEffect(() => {
     const newValue = (currentVal ?? prop.value)[0]
     setValue(newValue)
-    setViewState({ latitude: newValue[1], longitude: newValue[0] })
-  }, [currentVal, prop.value])
+    setViewState({
+      latitude: newValue[1],
+      longitude: newValue[0],
+      zoom: defaultZoom,
+    })
+  }, [currentVal, prop.value, defaultZoom])
 
   const { enabled, placeholder, direction = 'row' } = prop
   const numberFormatProps = getCoordinateNumberFormat(prop)
@@ -126,7 +136,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           <ReactMapGl
             mapboxAccessToken={mapboxToken}
             style={styles.map}
-            {...{ mapStyle, ...viewState }}
+            {...{ mapStyle, minZoom, maxZoom, ...viewState }}
             onMove={(event) => setViewState(event.viewState)}
           >
             <Marker
