@@ -1,5 +1,18 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
+
+const setPath = (obj, path, value) => {
+  if (!path || path.length === 0) return value
+  let current = obj
+  for (let i = 0; i < path.length - 1; i++) {
+    const key = path[i]
+    if (current[key] == null || typeof current[key] !== 'object') {
+      current[key] = typeof path[i + 1] === 'number' ? [] : {}
+    }
+    current = current[key]
+  }
+  current[path[path.length - 1]] = value
+  return obj
+}
 
 export const loadingSlice = createSlice({
   name: 'loading',
@@ -10,11 +23,11 @@ export const loadingSlice = createSlice({
   reducers: {
     // Update loading from ws message
     updateLoading: (state, action) => {
-      return R.assocPath(
-        action.payload.data.data_path,
-        action.payload.data.data,
-        state
-      )
+      const dataPath = action.payload?.data?.data_path
+      const dataVal = action.payload?.data?.data
+      if (dataPath) {
+        setPath(state, dataPath, dataVal)
+      }
     },
   },
 })

@@ -936,6 +936,7 @@ const SessionPane = ({ width }) => {
           sx={{ py: 3 }}
         />
         <DataGrid
+          autoHeight
           showToolbar
           disableVirtualization
           sx={{

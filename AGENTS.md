@@ -5,7 +5,7 @@
 `cave_static` is a React-based single-page application (SPA) that serves as the frontend for the `cave_app` platform. Core capabilities:
 
 - **Real-time data consumption** — connects to `cave_app` via WebSocket, receiving data mutations and overwrites keyed by version numbers
-- **Interactive map views** — renders nodes, arcs, and geographies using Mapbox GL / MapLibre GL with dynamic color, size, and height encoding
+- **Interactive map views** — renders nodes, arcs, and geographies using Mapbox GL with dynamic color, size, and height encoding
 - **Chart dashboard** — ECharts-based visualizations (bar, line, scatter, box, heatmap, treemap, sunburst, waterfall, gauge, and more) plus a custom table chart
 - **Configurable prop panels** — server-driven UI controls (number fields, dropdowns, toggles, sliders, date pickers, etc.) laid out via a server-defined grid schema
 - **Draggable overlays** — floating panels for time control, session selection, global outputs, and map labels
@@ -128,7 +128,7 @@ src/
         Legend.js / FullLegend.js / CompactLegend.js
         ColorLegend.js / HeightLegend.js / SizeLegend.js
         CustomLayers.js
-        layers.js        # MapLibre/Mapbox layer definitions for nodes, arcs, geos
+        layers.js        # Mapbox layer definitions for nodes, arcs, geos
         useMapApi.js
         useMapFilter.js
     charts/

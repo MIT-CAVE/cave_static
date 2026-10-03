@@ -5,17 +5,19 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import * as R from 'ramda'
 import { useEffect, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, useStore } from 'react-redux'
 
 import { mutateLocal } from './data/local'
 import {
-  selectCurrentPage,
-  selectAppBarData,
   selectAnyDraggableDocked,
+  selectAppBarData,
+  selectCurrentPage,
   selectDemoMode,
-  selectDemoViews,
-  selectSync,
   selectDemoSettings,
+  selectDemoViews,
+  selectHasData,
+  selectSettingsIconUrl,
+  selectSync,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
 import DockBar from './ui/draggables/DockBar'
@@ -26,7 +28,7 @@ import renderAppPane from './ui/views/common/Pane'
 import { LeftAppBar, RightAppBar, Panes } from './ui/views/common/renderAppBar'
 import VirtualKeyboard from './ui/views/common/VirtualKeyboard'
 import Dashboard from './ui/views/dashboard/Dashboard'
-import { includesPath } from './utils'
+import { extractIconsFromState, includesPath, loadIconImages } from './utils'
 import { paneId } from './utils/enums'
 
 const styles = {
@@ -50,6 +52,8 @@ const styles = {
     position: 'relative',
     flex: '1 1 auto',
     minHeight: 0,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   pane: {
     display: 'flex',
@@ -127,8 +131,26 @@ const App = () => {
   const demoSettings = useSelector(selectDemoSettings)
   const anyDraggableDocked = useSelector(selectAnyDraggableDocked)
   const sync = useSelector(selectSync)
+  const hasData = useSelector(selectHasData)
+  const iconUrl = useSelector(selectSettingsIconUrl)
+  const store = useStore()
+  const hasPreloadedIcons = useRef(false)
 
   const demoTimeout = useRef(-1)
+
+  useEffect(() => {
+    if (!hasData) {
+      hasPreloadedIcons.current = false
+      return
+    }
+    if (hasPreloadedIcons.current) return
+    hasPreloadedIcons.current = true
+
+    const state = store.getState()
+    const icons = extractIconsFromState(state?.data)
+    const iconsToPreload = [...new Set([...icons, 'md/MdDownloading'])]
+    loadIconImages(iconsToPreload, iconUrl)
+  }, [hasData, iconUrl, store])
 
   useEffect(() => {
     if (demoMode && demoTimeout.current === -1) {

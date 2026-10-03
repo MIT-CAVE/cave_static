@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 export const virtualKeyboardSlice = createSlice({
   name: 'virtualKeyboard',
@@ -15,28 +14,28 @@ export const virtualKeyboardSlice = createSlice({
   },
   reducers: {
     setIsOpen(state, action) {
-      return R.assoc('isOpen', action.payload, state)
+      state.isOpen = action.payload
     },
     setLayout(state, action) {
-      return R.assoc('layout', action.payload, state)
+      state.layout = action.payload
     },
     setInputValue(state, action) {
-      return R.assoc('inputValue', action.payload, state)
+      state.inputValue = action.payload
     },
     setCaretPosition(state, action) {
-      return R.assoc('caretPosition', action.payload, state)
+      state.caretPosition = action.payload
     },
     setEnter(state, action) {
-      return R.assoc('enter', action.payload, state)
+      state.enter = action.payload
     },
     setLastKeyPress(state, action) {
-      return R.assoc('lastKeyPress', action.payload, state)
+      state.lastKeyPress = action.payload
     },
     setIsTextArea(state, action) {
-      return R.assoc('isTextArea', action.payload, state)
+      state.isTextArea = action.payload
     },
     setActiveFieldId(state, action) {
-      return R.assoc('activeFieldId', action.payload, state)
+      state.activeFieldId = action.payload
     },
     toggleOpen(state) {
       state.isOpen = !state.isOpen
