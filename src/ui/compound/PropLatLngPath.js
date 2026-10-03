@@ -345,7 +345,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       ) : confirmingClear ? (
         <Stack spacing={1} direction="row">
           <Button
-            fullWidth
+            sx={{ flexGrow: 1 }}
             color="error"
             variant="contained"
             startIcon={<PiEraser />}
@@ -357,7 +357,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             Confirm Clear
           </Button>
           <Button
-            fullWidth
+            sx={{ flexGrow: 1 }}
             variant="contained"
             startIcon={<MdOutlineCancel />}
             onClick={() => setConfirmingClear(false)}
