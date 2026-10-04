@@ -22,6 +22,32 @@ export { default as NumberFormat } from './NumberFormat'
 export { getScaledValue, getScaleFunction }
 export { renderIconTreeToSvg, getSvgMarkup } from './svgBuilder'
 
+// Remembers a boolean UI flag in this browser. Storage can be unavailable
+// (private windows, blocked site data), so failures fall back silently.
+export const readStoredFlag = (key) => {
+  try {
+    return localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+export const writeStoredFlag = (key, value) => {
+  try {
+    localStorage.setItem(key, value ? '1' : '0')
+  } catch {
+    // Storage unavailable: the flag simply isn't remembered.
+  }
+}
+
+// True when a click landed inside `element`. Checks the composed path too,
+// because a click can re-render the clicked node out of the DOM before
+// listeners run, which makes `contains(event.target)` misreport it.
+export const isEventInside = (event, element) => {
+  if (!element) return false
+  const path = event.composedPath?.() ?? []
+  return path.includes(element) || element.contains(event.target)
+}
+
 const COORDINATE_NUMBER_FORMAT_DEFAULTS = {
   precision: 6,
   trailingZeros: true,

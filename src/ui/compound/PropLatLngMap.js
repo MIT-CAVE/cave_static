@@ -12,7 +12,6 @@ import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
 import { selectMapboxToken } from '../../data/selectors'
-import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
@@ -20,6 +19,9 @@ import {
   forceArray,
   getCoordinateMapOptions,
   getCoordinateNumberFormat,
+  isEventInside,
+  readStoredFlag,
+  writeStoredFlag,
 } from '../../utils'
 
 const styles = {
@@ -71,7 +73,13 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     toggleSize && direction === 'column' ? Math.round(toggleSize / 3) : 28
   const mapboxToken = useSelector(selectMapboxToken)
 
-  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  const containerRef = useRef(null)
+  const mapOpenKey = `cave.latLngMap.mapOpen.${prop.id ?? prop.name}`
+  const [showMap, setShowMapState] = useState(() => readStoredFlag(mapOpenKey))
+  const setShowMap = (open) => {
+    setShowMapState(open)
+    writeStoredFlag(mapOpenKey, open)
+  }
 
   const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
 
@@ -97,30 +105,27 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     },
     [enabled, onChange]
   )
-  const showMap = Boolean(anchorEl)
   return (
-    <Stack useFlexGap spacing={2} sx={[{ width: '100%' }, ...forceArray(sx)]}>
+    <Stack
+      ref={containerRef}
+      useFlexGap
+      spacing={2}
+      sx={[{ width: '100%' }, ...forceArray(sx)]}
+    >
       <ClickAwayListener
         onClickAway={(event) => {
           // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
           if (sessionStorage.getItem('mui-select-open-flag') === '1') return
-          handleCloseMenu(event)
+          if (isEventInside(event, containerRef.current)) return
+          setShowMap(false)
         }}
       >
         <Popper
           disablePortal
-          placement="bottom-end"
-          modifiers={[
-            {
-              name: 'offset',
-              options: {
-                offset: [0, 8],
-              },
-            },
-          ]}
-          {...{ anchorEl }}
+          placement="right-start"
+          anchorEl={containerRef.current}
           open={showMap}
-          sx={styles.popper}
+          sx={[styles.popper, { width: containerRef.current?.offsetWidth }]}
           onClick={(event) => {
             event.stopPropagation()
           }}
@@ -174,7 +179,10 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           disabled={!enabled}
           selected={showMap}
           value="prop-lat-lng-map-view"
-          onClick={showMap ? handleCloseMenu : handleOpenMenu}
+          onClick={(event) => {
+            event.stopPropagation()
+            setShowMap(!showMap)
+          }}
           style={
             toggleSize && direction === 'column'
               ? { height: toggleSize, width: toggleSize }

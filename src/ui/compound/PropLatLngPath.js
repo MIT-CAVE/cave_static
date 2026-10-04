@@ -13,6 +13,7 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import {
   useCallback,
+  useMemo,
   useState,
   useEffect,
   useLayoutEffect,
@@ -29,7 +30,6 @@ import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
 import { selectMapboxToken } from '../../data/selectors'
-import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
@@ -38,6 +38,9 @@ import {
   adjustArcPath,
   forceArray,
   getCoordinateMapOptions,
+  isEventInside,
+  readStoredFlag,
+  writeStoredFlag,
   getCoordinateNumberFormat,
 } from '../../utils'
 
@@ -81,14 +84,20 @@ const edit = {
 }
 
 const getLastLat = (path) => path[path.length - 1][1]
+const viewCenter = (path, index) =>
+  index !== null && index < path.length ? path[index] : path[path.length - 1]
 const getLastLng = (path) => path[path.length - 1][0]
-const displayPath = (path, numberFormatProps) => {
+const displayPath = (path, numberFormatProps, selectedIndex, onSelect) => {
   return (
     <List sx={styles.text}>
       {path.map(([lng, lat], idx) => {
         return (
           <ListItem key={idx} disablePadding sx={{ maxHeight: 200 }}>
-            <ListItemButton component="a" href="#simple-list">
+            <ListItemButton
+              dense
+              selected={idx === selectedIndex}
+              onClick={() => onSelect(idx)}
+            >
               <ListItemText
                 primary={`(${NumberFormat.format(lat, numberFormatProps)}, ${NumberFormat.format(lng, numberFormatProps)})\n`}
               />
@@ -112,7 +121,14 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const fieldsRef = useRef(null)
   const [toggleSize, setToggleSize] = useState(null)
 
-  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  const containerRef = useRef(null)
+  const mapOpenKey = `cave.latLngPath.mapOpen.${prop.id ?? prop.name}`
+  const [showMap, setShowMapState] = useState(() => readStoredFlag(mapOpenKey))
+  const setShowMap = (open) => {
+    setShowMapState(open)
+    writeStoredFlag(mapOpenKey, open)
+  }
+  const handleCloseMenu = () => setShowMap(false)
 
   const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
 
@@ -139,24 +155,62 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const [editState, setEditState] = useState(edit.NONE)
   const [pathData, setPathData] = useState(getPathData(allInputValues))
   const [confirmingClear, setConfirmingClear] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(null)
 
+  const entryVisible = editState !== edit.NONE || selectedIndex !== null
   useLayoutEffect(() => {
     if (fieldsRef.current) setToggleSize(fieldsRef.current.offsetHeight)
-  }, [direction, editState])
+  }, [direction, entryVisible])
   const iconSize =
     toggleSize && direction === 'column' ? Math.round(toggleSize / 3) : 28
+
+  const pointColor = prop.pathColor ?? '#03aaee'
+  const pointsData = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: allInputValues.map((coordinates, index) => ({
+        type: 'Feature',
+        properties: { index },
+        geometry: { type: 'Point', coordinates },
+      })),
+    }),
+    [allInputValues]
+  )
+  const selectedKey = selectedIndex ?? -1
+  const pointPaint = {
+    'circle-radius': ['case', ['==', ['get', 'index'], selectedKey], 9, 6],
+    'circle-color': [
+      'case',
+      ['==', ['get', 'index'], selectedKey],
+      '#ffffff',
+      pointColor,
+    ],
+    'circle-stroke-width': 2,
+    'circle-stroke-color': pointColor,
+  }
+  const activeIndex = selectedIndex ?? allInputValues.length - 1
+  const activePoint = allInputValues[activeIndex]
 
   useEffect(() => {
     const newValue = currentVal ?? prop.value
     setAllInputValues(newValue)
-    setViewState({
-      latitude: getLastLat(newValue),
-      longitude: getLastLng(newValue),
-      zoom: defaultZoom,
-    })
-    setManualInput(newValue[newValue.length - 1])
     setPathData(getPathData(newValue))
-  }, [currentVal, getPathData, prop.value, defaultZoom])
+  }, [currentVal, getPathData, prop.value])
+
+  useEffect(() => {
+    const [lng, lat] = viewCenter(currentVal ?? prop.value, selectedIndex)
+    setViewState((prev) => ({ ...prev, latitude: lat, longitude: lng }))
+  }, [currentVal, prop.value, selectedIndex])
+
+  useEffect(() => {
+    const newValue = currentVal ?? prop.value
+    if (selectedIndex !== null && selectedIndex < newValue.length) {
+      setManualInput(newValue[selectedIndex])
+    } else {
+      setSelectedIndex(null)
+      setManualInput(newValue[newValue.length - 1])
+    }
+  }, [currentVal, prop.value, selectedIndex])
 
   const handleChangeAt = (index) => (event, newLatOrLng) => {
     setManualInput(R.update(index, newLatOrLng))
@@ -175,7 +229,11 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     onChange(updatedValue)
     setAllInputValues(updatedValue)
     setPathData(getPathData(updatedValue))
-    setViewState({ latitude: clampedInput[1], longitude: clampedInput[0] })
+    setViewState((prev) => ({
+      ...prev,
+      latitude: clampedInput[1],
+      longitude: clampedInput[0],
+    }))
 
     editState === edit.RESET && setEditState(edit.NONE)
   }, [allInputValues, editState, enabled, getPathData, manualInput, onChange])
@@ -184,16 +242,18 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     (event) => {
       if (!enabled) return
       const { lat: latitude, lng: longitude } = event.lngLat
-      const updatedValue = (
-        editState === edit.RESET ? [] : allInputValues
-      ).concat([[longitude, latitude]])
+      const point = [longitude, latitude]
+      const updatedValue =
+        selectedIndex !== null
+          ? R.update(selectedIndex, point, allInputValues)
+          : (editState === edit.RESET ? [] : allInputValues).concat([point])
       onChange(updatedValue)
       setAllInputValues(updatedValue)
       setPathData(getPathData(updatedValue))
-      setViewState({ latitude, longitude })
-      setManualInput([longitude, latitude])
+      setViewState((prev) => ({ ...prev, latitude, longitude }))
+      setManualInput(point)
     },
-    [allInputValues, editState, enabled, getPathData, onChange]
+    [allInputValues, editState, enabled, getPathData, onChange, selectedIndex]
   )
 
   const handleUndoLast = useCallback(() => {
@@ -204,11 +264,17 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     onChange(slicedPath)
     setAllInputValues(slicedPath)
     setPathData(getPathData(slicedPath))
-    setViewState({
-      latitude: getLastLat(slicedPath),
-      longitude: getLastLng(slicedPath),
-    })
-  }, [allInputValues, enabled, getPathData, onChange])
+    const [lng, lat] = viewCenter(
+      slicedPath,
+      selectedIndex !== null && selectedIndex < slicedPath.length
+        ? selectedIndex
+        : null
+    )
+    setViewState((prev) => ({ ...prev, latitude: lat, longitude: lng }))
+    if (selectedIndex !== null && selectedIndex >= slicedPath.length) {
+      setSelectedIndex(null)
+    }
+  }, [allInputValues, enabled, getPathData, onChange, selectedIndex])
 
   const handleClearPath = useCallback(() => {
     if (!enabled) return
@@ -218,26 +284,85 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     setPathData(getPathData(resetValue))
     setManualInput(resetValue[0])
     setEditState(edit.RESET)
+    setSelectedIndex(null)
   }, [enabled, getPathData, allInputValues, onChange])
+
+  const handleCancelEntry = () => {
+    setSelectedIndex(null)
+    setEditState(edit.NONE)
+    setManualInput(allInputValues[allInputValues.length - 1])
+  }
+
+  const handleSelectPoint = (index) => {
+    if (selectedIndex === index) {
+      handleCancelEntry()
+      return
+    }
+    setEditState(edit.NONE)
+    setSelectedIndex(index)
+    setManualInput(allInputValues[index])
+  }
+
+  const handleUpdateSelected = () => {
+    if (!enabled || selectedIndex === null) return
+    const point = [
+      R.clamp(-180, 180, manualInput[0]),
+      R.clamp(-90, 90, manualInput[1]),
+    ]
+    const updatedValue = R.update(selectedIndex, point, allInputValues)
+    onChange(updatedValue)
+    setAllInputValues(updatedValue)
+    setPathData(getPathData(updatedValue))
+    setViewState((prev) => ({
+      ...prev,
+      latitude: point[1],
+      longitude: point[0],
+    }))
+    setManualInput(point)
+    setSelectedIndex(null)
+  }
+
+  const handleDeleteSelected = () => {
+    if (!enabled || selectedIndex === null || allInputValues.length <= 2) return
+    const updatedValue = R.remove(selectedIndex, 1, allInputValues)
+    onChange(updatedValue)
+    setAllInputValues(updatedValue)
+    setPathData(getPathData(updatedValue))
+    const [lng, lat] = viewCenter(updatedValue, null)
+    setViewState((prev) => ({ ...prev, latitude: lat, longitude: lng }))
+    setManualInput(updatedValue[updatedValue.length - 1])
+    setSelectedIndex(null)
+  }
 
   const { ReactMapGl, Layer, Marker, NavigationControl, Source } = useMapApi()
 
-  const showMap = Boolean(anchorEl)
+  // RESET is the "Set As Start" flow after Clear Path, which adds the first point.
+  const mapVisible =
+    showMap &&
+    (selectedIndex !== null ||
+      editState === edit.ADD ||
+      editState === edit.RESET)
   return (
-    <Stack useFlexGap spacing={2} sx={[{ width: '100%' }, ...forceArray(sx)]}>
+    <Stack
+      ref={containerRef}
+      useFlexGap
+      spacing={2}
+      sx={[{ width: '100%' }, ...forceArray(sx)]}
+    >
       <ClickAwayListener
         onClickAway={(event) => {
           // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
           if (sessionStorage.getItem('mui-select-open-flag') === '1') return
-          handleCloseMenu(event)
+          if (isEventInside(event, containerRef.current)) return
+          handleCloseMenu()
         }}
       >
         <Popper
           disablePortal
-          placement="auto"
-          {...{ anchorEl }}
-          open={showMap}
-          sx={styles.popper}
+          placement="right-start"
+          anchorEl={containerRef.current}
+          open={mapVisible}
+          sx={[styles.popper, { width: containerRef.current?.offsetWidth }]}
           onClick={(event) => {
             event.stopPropagation()
           }}
@@ -253,8 +378,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             <Marker
               draggable={enabled}
               anchor="center"
-              longitude={getLastLng(allInputValues)}
-              latitude={getLastLat(allInputValues)}
+              longitude={activePoint[0]}
+              latitude={activePoint[1]}
               onDragEnd={handleDragEnd}
             />
             <Source id="polylineLayer" type="geojson" data={pathData}>
@@ -265,11 +390,14 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
                 paint={linePaint}
               />
             </Source>
+            <Source id="pointsLayer" type="geojson" data={pointsData}>
+              <Layer id="path-points" type="circle" paint={pointPaint} />
+            </Source>
             <NavigationControl />
           </ReactMapGl>
         </Popper>
       </ClickAwayListener>
-      {editState !== edit.NONE ? (
+      {entryVisible ? (
         <>
           <Stack useFlexGap direction="row" spacing={1}>
             <Stack
@@ -302,7 +430,10 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
               disabled={!enabled}
               selected={showMap}
               value="prop-lat-lng-map-view"
-              onClick={showMap ? handleCloseMenu : handleOpenMenu}
+              onClick={(event) => {
+                event.stopPropagation()
+                setShowMap(!showMap)
+              }}
               style={
                 toggleSize && direction === 'column'
                   ? { height: toggleSize, width: toggleSize }
@@ -313,26 +444,48 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             </ToggleButton>
           </Stack>
           <Stack useFlexGap direction="row" spacing={1}>
-            {editState === edit.ADD && (
+            {(editState === edit.ADD || selectedIndex !== null) && (
               <Button
                 fullWidth
                 color="error"
                 variant="contained"
                 startIcon={<MdOutlineCancel />}
-                onClick={() => setEditState(edit.NONE)}
+                onClick={handleCancelEntry}
               >
-                Exit Input Mode
+                Cancel
               </Button>
             )}
             <Button
               fullWidth
               variant="contained"
               startIcon={<MdOutlineCheck />}
-              onClick={handleAddManualInput}
+              onClick={
+                selectedIndex !== null
+                  ? handleUpdateSelected
+                  : handleAddManualInput
+              }
             >
-              {editState === edit.ADD ? 'Add Input' : 'Set As Start'}
+              {selectedIndex !== null
+                ? 'Update Point'
+                : editState === edit.ADD
+                  ? 'Add Point'
+                  : 'Set As Start'}
             </Button>
           </Stack>
+          {selectedIndex !== null && (
+            <Stack spacing={1} direction="row">
+              <Button
+                disabled={!enabled || allInputValues.length <= 2}
+                sx={{ flexGrow: 1 }}
+                color="error"
+                variant="contained"
+                startIcon={<PiEraser />}
+                onClick={handleDeleteSelected}
+              >
+                Delete Point
+              </Button>
+            </Stack>
+          )}
         </>
       ) : confirmingClear ? (
         <Stack spacing={1} direction="row">
@@ -364,9 +517,12 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             sx={{ flexGrow: 5 }}
             variant="contained"
             startIcon={<MdAddCircleOutline />}
-            onClick={() => setEditState(edit.ADD)}
+            onClick={() => {
+              setSelectedIndex(null)
+              setEditState(edit.ADD)
+            }}
           >
-            Enter Input Mode
+            Add Point
           </Button>
           <Button
             disabled={!enabled || allInputValues.length < 3}
@@ -391,7 +547,12 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
         </Stack>
       )}
       {editState !== edit.RESET &&
-        displayPath(allInputValues, numberFormatProps)}
+        displayPath(
+          allInputValues,
+          numberFormatProps,
+          selectedIndex,
+          handleSelectPoint
+        )}
     </Stack>
   )
 }
