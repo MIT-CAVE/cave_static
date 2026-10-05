@@ -1,42 +1,15 @@
 import React from 'react'
 import { expect, fn, userEvent, within } from 'storybook/test'
 
-import PropLatLngInput from '../../ui/compound/PropLatLngInput'
 import PropLatLngMap from '../../ui/compound/PropLatLngMap'
 import PropLatLngPath from '../../ui/compound/PropLatLngPath'
 
 const propLatLngStories = {
   title: 'Compound/PropLatLng',
-  component: PropLatLngInput,
+  component: PropLatLngMap,
 }
 
 export default propLatLngStories
-
-export const Input = {
-  render: function Render(args) {
-    const [currentVal, setCurrentVal] = React.useState(args.currentVal)
-    return (
-      <PropLatLngInput
-        {...args}
-        currentVal={currentVal}
-        onChange={(val) => {
-          args.onChange(val)
-          setCurrentVal(val)
-        }}
-      />
-    )
-  },
-  args: {
-    prop: {
-      enabled: true,
-      value: [[-122.4194, 37.7749]],
-      placeholder: 'Enter coordinates...',
-      direction: 'row',
-    },
-    currentVal: [[-122.4194, 37.7749]],
-    onChange: () => {},
-  },
-}
 
 export const MapView = {
   render: function Render(args) {
