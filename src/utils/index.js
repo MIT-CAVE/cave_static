@@ -306,22 +306,15 @@ const doesFeatureSatisfyFilter = (filterObj, featureObj) => {
   const option = R.prop('option', filterObj)
 
   if (type === 'selector') {
-    if (R.isNotNil(option)) {
-      if (option === 'exc') {
-        return !R.any(R.flip(R.includes)(value), filterValue)
-      } else if (option === 'inc') {
-        return !R.none(R.flip(R.includes)(value), filterValue)
-      }
-    } else {
-      return R.all(R.pipe(R.flip(R.includes)(value), R.not), filterValue)
-    }
-  } else if (type === 'num' && option !== 'eq') {
-    return checkIfValueSatisfiesCondition(value, option, filterValue)
-  } else {
-    return filterValue === value
+    const isMatch = Array.isArray(value)
+      ? R.any((v) => R.includes(v, filterValue || []), value)
+      : R.includes(value, filterValue || [])
+    return option === 'inc' ? isMatch : !isMatch
   }
-
-  return true
+  if (type === 'num' && option !== 'eq') {
+    return checkIfValueSatisfiesCondition(value, option, filterValue)
+  }
+  return filterValue === value
 }
 
 const doesFeatureSatisfyGroup = (groupId, logic, filters, featureObj) => {
@@ -366,9 +359,10 @@ const checkIfStatSatisfiesFilter = (statistics, groupingIndices, i, filter) => {
   const option = R.prop('option', filter)
 
   if (format !== 'stat') {
-    return R.isNotNil(option)
-      ? !R.any(R.flip(R.includes)(value), filterValue)
-      : !R.all(R.pipe(R.equals(value), R.not), filterValue)
+    const isMatch = Array.isArray(value)
+      ? R.any((v) => R.includes(v, filterValue || []), value)
+      : R.includes(value, filterValue || [])
+    return option === 'exc' ? !isMatch : isMatch
   } else if (R.isNotNil(option)) {
     return checkIfValueSatisfiesCondition(value, option, filterValue)
   }

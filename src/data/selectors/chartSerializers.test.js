@@ -580,5 +580,59 @@ describe('Chart Data Serializers', () => {
       expect(getYExtremes([{ data: [NaN, null, undefined] }])).toEqual([0, 0])
       expect(getYExtremes(null)).toEqual([0, 0])
     })
+
+    it('filterGroupedOutputs uses exact matching and does not exclude prefix substrings like Week 1 vs Week 13', async () => {
+      const { filterGroupedOutputs } = await import('../../utils')
+      const statistics = {
+        valueLists: {
+          val: [10, 20, 30, 40],
+        },
+        groupLists: {
+          time_period: ['W1', 'W10', 'W13', 'W2'],
+        },
+      }
+      const groupingIndices = {
+        time_period: {
+          data: {
+            id: { W1: 0, W10: 1, W13: 2, W2: 3 },
+            week: ['Week 1', 'Week 10', 'Week 13', 'Week 2'],
+          },
+        },
+      }
+
+      // Filter excluding 'Week 1' and 'Week 2' should keep 'Week 10' and 'Week 13' (not match as substring)
+      const excludeFilter = [
+        {
+          format: 'time_period',
+          prop: 'week',
+          value: ['Week 1', 'Week 2'],
+          option: 'exc',
+        },
+      ]
+      const excBuffer = filterGroupedOutputs(
+        statistics,
+        excludeFilter,
+        groupingIndices
+      )
+      const excView = new Uint32Array(excBuffer)
+      expect(Array.from(excView)).toEqual([1, 2]) // indices for W10 and W13
+
+      // Filter including 'Week 13' should only keep 'Week 13'
+      const includeFilter = [
+        {
+          format: 'time_period',
+          prop: 'week',
+          value: ['Week 13'],
+          option: 'inc',
+        },
+      ]
+      const incBuffer = filterGroupedOutputs(
+        statistics,
+        includeFilter,
+        groupingIndices
+      )
+      const incView = new Uint32Array(incBuffer)
+      expect(Array.from(incView)).toEqual([2]) // index for W13
+    })
   })
 })
