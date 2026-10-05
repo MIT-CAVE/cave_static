@@ -44,7 +44,8 @@ const styles = {
 const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const defaultValue = currentVal ?? prop.value
   const [value, setValue] = useState(defaultValue[0])
-  const { minZoom, maxZoom, defaultZoom } = getCoordinateMapOptions(prop)
+  const { minZoom, maxZoom, defaultZoom, maxBounds } =
+    getCoordinateMapOptions(prop)
   const [viewState, setViewState] = useState({
     latitude: value[1],
     longitude: value[0],
@@ -133,7 +134,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           <ReactMapGl
             mapboxAccessToken={mapboxToken}
             style={styles.map}
-            {...{ mapStyle, minZoom, maxZoom, ...viewState }}
+            {...{ mapStyle, minZoom, maxZoom, maxBounds, ...viewState }}
             onMove={(event) => setViewState(event.viewState)}
           >
             <Marker
