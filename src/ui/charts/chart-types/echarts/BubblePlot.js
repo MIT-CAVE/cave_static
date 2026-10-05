@@ -12,7 +12,7 @@ import {
 const BubblePlot = ({
   data,
   labelProps,
-  numberFormat,
+  numberFormat = {},
   colors,
   chartHoverOrder,
 }) => {
@@ -71,7 +71,11 @@ const BubblePlot = ({
   )(initialSeries)
 
   const getNumberFormat = (labelKey, value) =>
-    NumberFormat.format(value, numberFormat[labelKey])
+    NumberFormat.format(
+      value,
+      numberFormat?.[labelKey] ??
+        (R.is(Object, numberFormat) ? numberFormat : {})
+    )
 
   const options = {
     grid: {

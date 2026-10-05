@@ -12,7 +12,7 @@ import {
 const ScatterPlot = ({
   data,
   labelProps,
-  numberFormat,
+  numberFormat = {},
   colors,
   chartHoverOrder,
 }) => {
@@ -64,7 +64,11 @@ const ScatterPlot = ({
   const yRange = yMax - yMin
 
   const getNumberFormat = (labelKey, value) =>
-    NumberFormat.format(value, numberFormat[labelKey])
+    NumberFormat.format(
+      value,
+      numberFormat?.[labelKey] ??
+        (R.is(Object, numberFormat) ? numberFormat : {})
+    )
 
   const options = {
     xAxis: {

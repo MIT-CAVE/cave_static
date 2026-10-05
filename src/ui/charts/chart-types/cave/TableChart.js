@@ -38,7 +38,7 @@ const flattenChartTree = (data) => {
   return result
 }
 
-const TableChart = ({ data, labelProps, numberFormat }) => {
+const TableChart = ({ data, labelProps, numberFormat = {} }) => {
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
   const rows = useMemo(() => {
@@ -74,7 +74,7 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
           valueFormatter: (value) =>
             NumberFormat.format(
               value,
-              multiNumberFormat ? numberFormat[field] : numberFormat
+              (multiNumberFormat ? numberFormat?.[field] : numberFormat) ?? {}
             ),
         }),
       })),

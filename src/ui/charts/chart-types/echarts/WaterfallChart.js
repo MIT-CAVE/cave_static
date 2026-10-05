@@ -64,7 +64,7 @@ const WaterfallChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
   chartHoverOrder,
@@ -203,6 +203,14 @@ const WaterfallChart = ({
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const options = {
     tooltip: {
       formatter: (params) =>
@@ -214,7 +222,7 @@ const WaterfallChart = ({
                       ? false
                       : `<div style="display: flex">
                         <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                        <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                       </div>`
                   )
                   .filter(R.identity)
@@ -226,7 +234,7 @@ const WaterfallChart = ({
                 ? false
                 : `<div style="display: flex">
                   <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                  <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                  <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
             .filter(R.identity)
@@ -258,7 +266,7 @@ const StackedWaterfallChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
   chartHoverOrder,
@@ -491,6 +499,14 @@ const StackedWaterfallChart = ({
     getYDomain
   )(yValues)
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const getGraphSeries = (nodesData) => ({
     type: 'graph',
     coordinateSystem: 'cartesian2d',
@@ -523,7 +539,8 @@ const StackedWaterfallChart = ({
     },
     nodes: nodesData,
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      valueFormatter: (value) =>
+        NumberFormat.format(value, resolvedNumberFormat),
     },
   })
 
@@ -591,7 +608,7 @@ const StackedWaterfallChart = ({
                       ? false
                       : `<div style="display: flex">
                         <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                        <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                       </div>`
                   )
                   .filter(R.identity)
@@ -603,7 +620,7 @@ const StackedWaterfallChart = ({
                 ? false
                 : `<div style="display: flex">
                   <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesType === 'graph' ? '' : seriesName}</div>
-                  <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                  <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
             .filter(R.identity)

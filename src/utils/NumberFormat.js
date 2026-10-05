@@ -70,18 +70,17 @@ class NumberFormat {
     return num ? +num : NaN
   }
 
-  commonFormat(
-    num,
-    {
+  commonFormat(num, options = {}) {
+    const {
       notation,
-      precision,
+      precision = 2,
       trailingZeros,
       notationDisplay = displayOptions.SHORT,
-    }
-  ) {
+    } = typeof options === 'object' && options !== null ? options : {}
+    const safePrecision = precision != null && !isNaN(precision) ? precision : 2
     const formatter = this._getIntlFormatter({
-      minimumFractionDigits: trailingZeros ? precision : 0,
-      maximumFractionDigits: precision,
+      minimumFractionDigits: trailingZeros ? safePrecision : 0,
+      maximumFractionDigits: safePrecision,
       notation,
       compactDisplay: notationDisplay,
     })
@@ -140,19 +139,18 @@ class NumberFormat {
     return `${significand}${exponentSep}${exponent}`
   }
 
-  exponentialFormat(
-    num,
-    {
-      precision,
+  exponentialFormat(num, options = {}) {
+    const {
+      precision = 2,
       trailingZeros,
       showZeroExponent,
-      notation,
+      notation = notationOptions.SCIENTIFIC,
       notationDisplay = displayOptions.E_LOWER_PLUS,
-    }
-  ) {
+    } = typeof options === 'object' && options !== null ? options : {}
+    const safePrecision = precision != null && !isNaN(precision) ? precision : 2
     const formatter = this._getIntlFormatter({
-      minimumFractionDigits: trailingZeros ? precision : 0,
-      maximumFractionDigits: precision,
+      minimumFractionDigits: trailingZeros ? safePrecision : 0,
+      maximumFractionDigits: safePrecision,
       notation,
     })
     const numString = formatter.format(num)
@@ -166,21 +164,25 @@ class NumberFormat {
 
   /* A localized version of the `toPrecision` method */
   // `precision` must be > 0
-  precisionFormat(
-    num,
-    { precision, notation, notationDisplay = displayOptions.E_LOWER_PLUS }
-  ) {
-    if (!Number(num).toPrecision(precision).includes('e')) {
+  precisionFormat(num, options = {}) {
+    const {
+      precision = 2,
+      notation = notationOptions.PRECISION,
+      notationDisplay = displayOptions.E_LOWER_PLUS,
+    } = typeof options === 'object' && options !== null ? options : {}
+    const safePrecision =
+      precision != null && !isNaN(precision) && precision > 0 ? precision : 2
+    if (!Number(num).toPrecision(safePrecision).includes('e')) {
       const formatter = this._getIntlFormatter({
-        minimumSignificantDigits: precision,
-        maximumSignificantDigits: precision,
+        minimumSignificantDigits: safePrecision,
+        maximumSignificantDigits: safePrecision,
       })
       return formatter.format(num)
     }
 
     const formatter = this._getIntlFormatter({
-      minimumSignificantDigits: precision,
-      maximumSignificantDigits: precision,
+      minimumSignificantDigits: safePrecision,
+      maximumSignificantDigits: safePrecision,
       notation: 'scientific',
     })
     const numString = formatter.format(num)
@@ -190,9 +192,8 @@ class NumberFormat {
   // Units are handled outside the ECMAScript 2023 spec,
   // as custom units are not supported by this specification.
   // See: https://tc39.es/proposal-intl-enumeration/#sec-measurement-unit-identifiers
-  format(
-    value,
-    {
+  format(value, rawOptions = {}) {
+    let {
       precision = 2,
       trailingZeros = true,
       fallbackValue = 'N/A',
@@ -201,8 +202,12 @@ class NumberFormat {
       unit,
       unitPlacement = unitPlacements.AFTER_WITH_SPACE,
       showZeroExponent = false, // REVIEW: Should this be included in the API?
+    } = typeof rawOptions === 'object' && rawOptions !== null ? rawOptions : {}
+    if (value == null) return fallbackValue
+    if (Array.isArray(value)) {
+      value =
+        value.length >= 2 && typeof value[0] === 'number' ? value[1] : value[0]
     }
-  ) {
     if (value == null) return fallbackValue
     if (value === Infinity || value === -Infinity || isNaN(value)) return 'NaN'
 
@@ -226,9 +231,11 @@ class NumberFormat {
             ? undefined
             : notationDisplay
 
+    const safePrecision = precision != null && !isNaN(precision) ? precision : 2
+
     const opts = {
       notation,
-      precision,
+      precision: safePrecision,
       trailingZeros,
       notationDisplay,
       showZeroExponent,

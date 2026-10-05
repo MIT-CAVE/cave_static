@@ -317,7 +317,7 @@ const DashboardChart = ({ chartObj, path }) => {
     () =>
       R.keys(numberFormats).length > 1
         ? numberFormats
-        : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? ''),
+        : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? {}),
     [cleanedChartObj.stats, numberFormats]
   )
 
@@ -511,7 +511,7 @@ const DashboardChart = ({ chartObj, path }) => {
         <ScatterPlot
           data={formattedData}
           labelProps={R.dissoc(3)(labelProps)}
-          {...{ colors, numberFormat, chartHoverOrder }}
+          {...{ colors, numberFormat: numberFormats, chartHoverOrder }}
         />
       ) : chartType === chartVariant.DISTRIBUTION ? (
         <DistributionChart
@@ -539,7 +539,12 @@ const DashboardChart = ({ chartObj, path }) => {
       ) : chartType === chartVariant.SCATTER ? (
         <BubblePlot
           data={formattedData}
-          {...{ labelProps, colors, numberFormat, chartHoverOrder }}
+          {...{
+            labelProps,
+            colors,
+            numberFormat: numberFormats,
+            chartHoverOrder,
+          }}
         />
       ) : (
         <></>

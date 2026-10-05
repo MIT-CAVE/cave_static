@@ -11,7 +11,7 @@ const LinePlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   stack = false,
   area = false,

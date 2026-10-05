@@ -21,7 +21,7 @@ const DistributionChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   cumulative,
   chartType,

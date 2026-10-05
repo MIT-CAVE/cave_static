@@ -40,7 +40,7 @@ const EchartsBoxPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
   chartHoverOrder,
@@ -158,11 +158,19 @@ const EchartsBoxPlot = ({
 
   const tooltipOrder = ['Drop', 'Min: ', 'Q1: ', 'Median: ', 'Q3: ', 'Max: ']
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const mapValuesForTooltip = (value) => {
     return value
       .map(
         (val, idx) =>
-          `<div>${tooltipOrder[idx]}${NumberFormat.format(val, numberFormat)}</div>`
+          `<div>${tooltipOrder[idx]}${NumberFormat.format(val, resolvedNumberFormat)}</div>`
       )
       .slice(1)
       .join('')

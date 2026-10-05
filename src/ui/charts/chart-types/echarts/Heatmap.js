@@ -8,7 +8,7 @@ const Heatmap = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   chartHoverOrder,
   path,
   xAxisOrder,
@@ -61,6 +61,14 @@ const Heatmap = ({
   if (yMin === Infinity) yMin = 0
   if (yMax === -Infinity) yMax = 0
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const options = {
     visualMap: {
       min: yMin,
@@ -91,7 +99,7 @@ const Heatmap = ({
       type: 'heatmap',
       label: {
         formatter: (params) =>
-          NumberFormat.format(params.data[2], numberFormat),
+          NumberFormat.format(params.data[2], resolvedNumberFormat),
         show: true,
       },
       emphasis: {
@@ -102,7 +110,8 @@ const Heatmap = ({
       },
     },
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      valueFormatter: (value) =>
+        NumberFormat.format(value, resolvedNumberFormat),
     },
   }
 

@@ -13,7 +13,7 @@ import {
 const Sunburst = ({
   data,
   colors,
-  numberFormat,
+  numberFormat = {},
   chartHoverOrder,
   path,
   xAxisOrder,
@@ -118,7 +118,13 @@ const Sunburst = ({
     },
     tooltip: {
       trigger: 'item',
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      valueFormatter: (value) =>
+        NumberFormat.format(
+          value,
+          R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat)
+            ? R.values(numberFormat)[0]
+            : (numberFormat ?? {})
+        ),
     },
   }
 

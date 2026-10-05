@@ -8,7 +8,7 @@ const CumulativeLineChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
   chartHoverOrder,

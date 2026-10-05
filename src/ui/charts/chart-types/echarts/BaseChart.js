@@ -231,7 +231,7 @@ const EchartsPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   chartType,
   stack = false,
   seriesObj = {},
@@ -329,6 +329,7 @@ const EchartsPlot = ({
             baseObject
           ),
           {
+            name: '',
             colorBy: 'data',
             color,
           }
@@ -362,13 +363,42 @@ const EchartsPlot = ({
     R.equals('Object')
   )(numberFormat)
 
-  const getNumberFormat = (labelKey, value) =>
-    NumberFormat.format(value, numberFormat[labelKey])
+  const getChartValue = (value) => {
+    if (Array.isArray(value)) {
+      return visualMap || (value.length >= 2 && typeof value[0] === 'number')
+        ? value[1]
+        : value[0]
+    }
+    return value
+  }
+
+  const getNumberFormat = (labelKey, value, seriesName) =>
+    NumberFormat.format(
+      getChartValue(value),
+      numberFormat?.[labelKey] ??
+        numberFormat?.[seriesName] ??
+        (multiNumberFormat
+          ? R.is(Object, numberFormat)
+            ? R.values(numberFormat)[0]
+            : undefined
+          : numberFormat) ??
+        {}
+    )
+
+  const cleanSeriesName = (seriesName) =>
+    seriesName == null || /^series\d+$/i.test(seriesName) ? '' : seriesName
+
+  const renderSeriesTitle = (marker, seriesName, isSingle) => {
+    const cleanName = isSingle ? '' : cleanSeriesName(seriesName)
+    return cleanName
+      ? `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${cleanName}</div>`
+      : `<div style="text-align: center; flex: 1 1 auto">${marker}</div>`
+  }
 
   const sortParams = (params) => {
     const handleByValue =
       chartHoverOrder === 'valueAsc' || chartHoverOrder === 'valueDesc'
-        ? R.sortBy(({ value }) => value)(params)
+        ? R.sortBy(({ value }) => getChartValue(value))(params)
         : params
     return chartHoverOrder === 'valueAsc' || chartHoverOrder === 'seriesAsc'
       ? handleByValue.reverse()
@@ -396,47 +426,38 @@ const EchartsPlot = ({
     tooltip: {
       ...(multiNumberFormat
         ? {
-            formatter: (params) =>
-              `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${sortParams(params)
+            formatter: (params) => {
+              const isSingle = params.length === 1
+              return `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesId, seriesName, value }) =>
-                    R.isNil(value) && !showNA
+                    R.isNil(getChartValue(value)) && !showNA
                       ? false
                       : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                        <div><strong>${getNumberFormat(seriesId, value)}</strong></div>
-                      </div>`
-                  )
-                  .filter(R.identity)
-                  .join('')}`,
-          }
-        : {
-            formatter: (params) =>
-              params.length === 1
-                ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${params
-                  .map(({ marker, value }) =>
-                    R.isNil(value) && !showNA
-                      ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
+                        ${renderSeriesTitle(marker, seriesName, isSingle)}
+                        <div><strong>${getNumberFormat(seriesId, value, seriesName)}</strong></div>
                       </div>`
                   )
                   .filter(R.identity)
                   .join('')}`
-                : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${sortParams(params)
+            },
+          }
+        : {
+            formatter: (params) => {
+              const isSingle = params.length === 1
+              return `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesName, value }) =>
-                    R.isNil(value) && !showNA
+                    R.isNil(getChartValue(value)) && !showNA
                       ? false
                       : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                        <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
+                        ${renderSeriesTitle(marker, seriesName, isSingle)}
+                        <div><strong>${NumberFormat.format(getChartValue(value), numberFormat ?? {})}</strong></div>
                       </div>`
                   )
                   .filter(R.identity)
-                  .join('')}`,
+                  .join('')}`
+            },
           }),
     },
     ...lineMap,

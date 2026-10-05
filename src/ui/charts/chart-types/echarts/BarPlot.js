@@ -6,7 +6,7 @@ const BarPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   stack = false,
   showNA,
