@@ -4,7 +4,14 @@ import { useCallback, useMemo } from 'react'
 
 import DualListBase from './DualListBase'
 
-import { forceArray, getOrDefault, withIndex } from '../../utils'
+import {
+  forceArray,
+  getActiveDefaults,
+  getBaseDefaults,
+  getOptionActiveAttrs,
+  getOptionBaseAttrs,
+  withIndex,
+} from '../../utils'
 
 const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
   const {
@@ -13,6 +20,7 @@ const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
     availableTitle,
     selectedTitle,
     height,
+    helperText,
     fullWidth = true,
     propStyle,
     ...propAttrs
@@ -26,42 +34,19 @@ const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
 
   const activeDefaults = useMemo(
-    () => ({
-      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
-      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
-      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
-    }),
+    () => getActiveDefaults(propAttrs),
     [propAttrs]
   )
-
-  const baseDefaults = useMemo(
-    () => ({
-      icon: propAttrs.icon,
-      color: propAttrs.color,
-      size: propAttrs.size,
-    }),
-    [propAttrs]
-  )
+  const baseDefaults = useMemo(() => getBaseDefaults(propAttrs), [propAttrs])
 
   const getActiveAttrs = useCallback(
-    (opt = {}) => ({
-      activeName: getOrDefault(opt.activeName, opt.name),
-      activeIcon: getOrDefault(opt.activeIcon, opt.icon) ?? activeDefaults.icon,
-      activeColor:
-        getOrDefault(opt.activeColor, opt.color) ?? activeDefaults.color,
-      activeSize: getOrDefault(opt.activeSize, opt.size) ?? activeDefaults.size,
-    }),
-    [activeDefaults.color, activeDefaults.icon, activeDefaults.size]
+    (opt) => getOptionActiveAttrs(opt, activeDefaults),
+    [activeDefaults]
   )
 
   const getBaseAttrs = useCallback(
-    (opt = {}) => ({
-      name: opt.name,
-      icon: getOrDefault(opt.icon, baseDefaults.icon),
-      color: getOrDefault(opt.color, baseDefaults.color),
-      size: getOrDefault(opt.size, baseDefaults.size),
-    }),
-    [baseDefaults.color, baseDefaults.icon, baseDefaults.size]
+    (opt) => getOptionBaseAttrs(opt, baseDefaults),
+    [baseDefaults]
   )
 
   return (
@@ -74,6 +59,7 @@ const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
         availableTitle,
         selectedTitle,
         height,
+        helperText,
         fullWidth,
         indexedOptions,
         getActiveAttrs,

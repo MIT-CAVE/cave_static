@@ -69,6 +69,7 @@ export const Standard = {
       availableTitle: 'Available Fruits',
       selectedTitle: 'Selected Fruits',
       height: 260,
+      helperText: 'Move fruits between the lists to build your selection',
       value: ['opt1', 'opt2', 'opt3'],
     },
     currentVal: ['opt1', 'opt2', 'opt3'],
