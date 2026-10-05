@@ -1,16 +1,28 @@
 import { ClickAwayListener, Popper, Stack, ToggleButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useCallback, useState, useEffect } from 'react'
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
 import { selectMapboxToken } from '../../data/selectors'
-import { useMenu } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
-import { forceArray } from '../../utils'
+import {
+  forceArray,
+  getCoordinateMapOptions,
+  getCoordinateNumberFormat,
+  isEventInside,
+  readStoredFlag,
+  writeStoredFlag,
+} from '../../utils'
 
 const styles = {
   popper: {
@@ -29,30 +41,45 @@ const styles = {
   },
 }
 
-const numberFormatProps = {
-  precision: 6,
-  trailingZeros: true,
-  unitPlacement: 'afterWithSpace',
-}
-
 const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const defaultValue = currentVal ?? prop.value
   const [value, setValue] = useState(defaultValue[0])
+  const { minZoom, maxZoom, defaultZoom } = getCoordinateMapOptions(prop)
   const [viewState, setViewState] = useState({
     latitude: value[1],
     longitude: value[0],
+    zoom: defaultZoom,
   })
 
   useEffect(() => {
     const newValue = (currentVal ?? prop.value)[0]
     setValue(newValue)
-    setViewState({ latitude: newValue[1], longitude: newValue[0] })
-  }, [currentVal, prop.value])
+    setViewState({
+      latitude: newValue[1],
+      longitude: newValue[0],
+      zoom: defaultZoom,
+    })
+  }, [currentVal, prop.value, defaultZoom])
 
-  const { enabled, placeholder } = prop
+  const { enabled, placeholder, direction = 'row' } = prop
+  const numberFormatProps = getCoordinateNumberFormat(prop)
+  const fieldsRef = useRef(null)
+  const [toggleSize, setToggleSize] = useState(null)
+
+  useLayoutEffect(() => {
+    if (fieldsRef.current) setToggleSize(fieldsRef.current.offsetHeight)
+  }, [direction])
+  const iconSize =
+    toggleSize && direction === 'column' ? Math.round(toggleSize / 3) : 28
   const mapboxToken = useSelector(selectMapboxToken)
 
-  const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
+  const containerRef = useRef(null)
+  const mapOpenKey = `cave.latLngMap.mapOpen.${prop.id ?? prop.name}`
+  const [showMap, setShowMapState] = useState(() => readStoredFlag(mapOpenKey))
+  const setShowMap = (open) => {
+    setShowMapState(open)
+    writeStoredFlag(mapOpenKey, open)
+  }
 
   const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
 
@@ -78,30 +105,27 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     },
     [enabled, onChange]
   )
-  const showMap = Boolean(anchorEl)
   return (
-    <Stack useFlexGap spacing={2} sx={[{ width: '100%' }, ...forceArray(sx)]}>
+    <Stack
+      ref={containerRef}
+      useFlexGap
+      spacing={2}
+      sx={[{ width: '100%' }, ...forceArray(sx)]}
+    >
       <ClickAwayListener
         onClickAway={(event) => {
           // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
           if (sessionStorage.getItem('mui-select-open-flag') === '1') return
-          handleCloseMenu(event)
+          if (isEventInside(event, containerRef.current)) return
+          setShowMap(false)
         }}
       >
         <Popper
           disablePortal
-          placement="bottom-end"
-          modifiers={[
-            {
-              name: 'offset',
-              options: {
-                offset: [0, 8],
-              },
-            },
-          ]}
-          {...{ anchorEl }}
+          placement="right-start"
+          anchorEl={containerRef.current}
           open={showMap}
-          sx={styles.popper}
+          sx={[styles.popper, { width: containerRef.current?.offsetWidth }]}
           onClick={(event) => {
             event.stopPropagation()
           }}
@@ -109,11 +133,11 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           <ReactMapGl
             mapboxAccessToken={mapboxToken}
             style={styles.map}
-            {...{ mapStyle, ...viewState }}
+            {...{ mapStyle, minZoom, maxZoom, ...viewState }}
             onMove={(event) => setViewState(event.viewState)}
           >
             <Marker
-              draggable
+              draggable={enabled}
               anchor="center"
               longitude={value[0]}
               latitude={value[1]}
@@ -125,30 +149,47 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
       </ClickAwayListener>
 
       <Stack useFlexGap direction="row" spacing={1}>
-        <NumberField
-          disabled={!enabled}
-          label="Latitude"
-          {...{ placeholder, max: 90, min: -90 }}
-          numberFormat={numberFormatProps}
-          value={R.clamp(-90, 90)(value[1])}
-          onChange={handleChangeAt(1)}
-          onChangeCommitted={handleChangeCommittedAt(1)}
-        />
-        <NumberField
-          disabled={!enabled}
-          label="Longitude"
-          {...{ placeholder, max: 180, min: -180 }}
-          numberFormat={numberFormatProps}
-          value={R.clamp(-180, 180, value[0])}
-          onChange={handleChangeAt(0)}
-          onChangeCommitted={handleChangeCommittedAt(0)}
-        />
+        <Stack
+          useFlexGap
+          ref={fieldsRef}
+          {...{ direction }}
+          spacing={direction === 'row' ? 1 : 2}
+          sx={{ flexGrow: 1 }}
+        >
+          <NumberField
+            disabled={!enabled}
+            label="Latitude"
+            {...{ placeholder, max: 90, min: -90 }}
+            numberFormat={numberFormatProps}
+            value={R.clamp(-90, 90)(value[1])}
+            onChange={handleChangeAt(1)}
+            onChangeCommitted={handleChangeCommittedAt(1)}
+          />
+          <NumberField
+            disabled={!enabled}
+            label="Longitude"
+            {...{ placeholder, max: 180, min: -180 }}
+            numberFormat={numberFormatProps}
+            value={R.clamp(-180, 180, value[0])}
+            onChange={handleChangeAt(0)}
+            onChangeCommitted={handleChangeCommittedAt(0)}
+          />
+        </Stack>
         <ToggleButton
+          disabled={!enabled}
           selected={showMap}
           value="prop-lat-lng-map-view"
-          onClick={showMap ? handleCloseMenu : handleOpenMenu}
+          onClick={(event) => {
+            event.stopPropagation()
+            setShowMap(!showMap)
+          }}
+          style={
+            toggleSize && direction === 'column'
+              ? { height: toggleSize, width: toggleSize }
+              : undefined
+          }
         >
-          <TfiMapAlt size={28} />
+          <TfiMapAlt size={iconSize} />
         </ToggleButton>
       </Stack>
     </Stack>

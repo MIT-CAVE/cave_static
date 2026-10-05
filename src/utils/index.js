@@ -7,10 +7,13 @@ import { BiError, BiInfoCircle, BiCheckCircle } from 'react-icons/bi'
 import { colorGen } from './ColorGen'
 import {
   DEFAULT_ICON_URL,
+  DEFAULT_VIEWPORT,
   ICON_RESOLUTION,
   MAX_MEMOIZED_CHARTS,
+  MAX_ZOOM,
+  MIN_ZOOM,
 } from './constants'
-import { propId, scaleId } from './enums'
+import { propId, scaleId, unitPlacements } from './enums'
 import { quantileSorted } from './quantile'
 import { getScaledValue, getScaleFunction } from './scales'
 import { renderIconTreeToSvg } from './svgBuilder'
@@ -18,6 +21,70 @@ import { renderIconTreeToSvg } from './svgBuilder'
 export { default as NumberFormat } from './NumberFormat'
 export { getScaledValue, getScaleFunction }
 export { renderIconTreeToSvg, getSvgMarkup } from './svgBuilder'
+
+// Remembers a boolean UI flag in this browser. Storage can be unavailable
+// (private windows, blocked site data), so failures fall back silently.
+export const readStoredFlag = (key) => {
+  try {
+    return localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+export const writeStoredFlag = (key, value) => {
+  try {
+    localStorage.setItem(key, value ? '1' : '0')
+  } catch {
+    // Storage unavailable: the flag simply isn't remembered.
+  }
+}
+
+// True when a click landed inside `element`. Checks the composed path too,
+// because a click can re-render the clicked node out of the DOM before
+// listeners run, which makes `contains(event.target)` misreport it.
+export const isEventInside = (event, element) => {
+  if (!element) return false
+  const path = event.composedPath?.() ?? []
+  return path.includes(element) || element.contains(event.target)
+}
+
+const COORDINATE_NUMBER_FORMAT_DEFAULTS = {
+  precision: 6,
+  trailingZeros: true,
+  // Only meaningful once `unit` is set (no coordinate-specific default for
+  // `unit` itself, to avoid rendering a `°` no prop previously requested).
+  // The generic `NumberFormat` default is `afterWithSpace`, but degree
+  // symbols are conventionally typeset directly against the number.
+  unitPlacement: unitPlacements.AFTER,
+}
+// `coordinate` props don't inherit the app's global `settings.defaults` number
+// format (tuned for arbitrary business numbers, not degrees) - this merges
+// prop-level overrides directly onto coordinate-specific defaults instead.
+export const getCoordinateNumberFormat = (prop) =>
+  R.mergeRight(
+    COORDINATE_NUMBER_FORMAT_DEFAULTS,
+    R.pick(['precision', 'trailingZeros', 'unit', 'unitPlacement'], prop)
+  )
+
+// Mirrors the defensive min/max/zoom clamp already used for the main
+// dashboard map (`src/data/local/mapSlice.js`): `maxZoom` can't go below the
+// resolved `minZoom`, and `defaultZoom` is kept within the resolved bounds,
+// even though `cave_utils` validates each field independently.
+export const getCoordinateMapOptions = (prop) => {
+  const minZoom = Math.min(
+    Math.max(prop.minZoom ?? MIN_ZOOM, MIN_ZOOM),
+    MAX_ZOOM
+  )
+  const maxZoom = Math.min(
+    Math.max(prop.maxZoom ?? MAX_ZOOM, minZoom),
+    MAX_ZOOM
+  )
+  const defaultZoom = Math.min(
+    Math.max(prop.defaultZoom ?? DEFAULT_VIEWPORT.zoom, minZoom),
+    maxZoom
+  )
+  return { minZoom, maxZoom, defaultZoom }
+}
 
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)

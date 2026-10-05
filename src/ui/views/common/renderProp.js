@@ -24,7 +24,6 @@ import {
   PropHeadColumn,
   PropHeadRow,
   PropIncSlider,
-  PropLatLngInput,
   PropLatLngMap,
   PropLatLngPath,
   PropNested,
@@ -123,8 +122,9 @@ const getHeaderPropRenderFn = R.cond([
   [R.T, invalidVariant('head')],
 ])
 const getCoordinatePropRenderFn = R.cond([
-  [R.isNil, R.always(PropLatLngInput)],
-  [R.equals(propVariant.LATLNG_INPUT), R.always(PropLatLngInput)],
+  [R.isNil, R.always(PropLatLngMap)],
+  // Deprecated alias of `latLngMap`; removed in 4.0.0.
+  [R.equals(propVariant.LATLNG_INPUT), R.always(PropLatLngMap)],
   [R.equals(propVariant.LATLNG_MAP), R.always(PropLatLngMap)],
   [R.equals(propVariant.LATLNG_PATH), R.always(PropLatLngPath)],
   [R.T, invalidVariant('coordinate')],

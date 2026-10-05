@@ -75,12 +75,7 @@ const NumberField = ({
   inverseScale = R.identity,
   numberFormat: numberFormatRaw,
   step,
-  smallStep = numberFormatRaw.precision != null
-    ? // Setting `smallStep` to a maximum of 3 decimal places `precision`
-      // is a safeguard against a bug in Base UI's `NumberField` where the
-      // spinner doesn't work for smaller step values (e.g. `0.0001`).
-      1 / 10 ** Math.min(3, numberFormatRaw.precision)
-    : undefined,
+  smallStep = 1 / 10 ** numberFormatRaw.precision,
   largeStep,
   color = 'default',
   helperText,
@@ -230,6 +225,11 @@ const NumberField = ({
           smallStep,
           largeStep,
           readOnly,
+          // Without an explicit `format`, Base UI's `NumberField` falls back
+          // to `Intl.NumberFormat`'s own default of at most 3 fraction
+          // digits for the focused/live input buffer, silently truncating
+          // any configured `precision` greater than 3.
+          format: { maximumFractionDigits: numberFormatRaw.precision ?? 3 },
           ...rest,
         }}
         style={{ width: fullWidth ? '100%' : 'auto' }}
