@@ -69,7 +69,8 @@ export const getCoordinateNumberFormat = (prop) =>
 // Mirrors the defensive min/max/zoom clamp already used for the main
 // dashboard map (`src/data/local/mapSlice.js`): `maxZoom` can't go below the
 // resolved `minZoom`, and `defaultZoom` is kept within the resolved bounds,
-// even though `cave_utils` validates each field independently.
+// even though `cave_utils` validates each field independently. `maxBounds` is
+// passed through as-is, and stays `undefined` (no pan restriction) when unset.
 export const getCoordinateMapOptions = (prop) => {
   const minZoom = Math.min(
     Math.max(prop.minZoom ?? MIN_ZOOM, MIN_ZOOM),
@@ -83,7 +84,8 @@ export const getCoordinateMapOptions = (prop) => {
     Math.max(prop.defaultZoom ?? DEFAULT_VIEWPORT.zoom, minZoom),
     maxZoom
   )
-  return { minZoom, maxZoom, defaultZoom }
+  const { maxBounds } = prop
+  return { minZoom, maxZoom, defaultZoom, maxBounds }
 }
 
 const getQuantiles = R.curry((n, values) => {

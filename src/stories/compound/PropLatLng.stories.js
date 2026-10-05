@@ -36,6 +36,10 @@ export const MapView = {
       defaultZoom: 16,
       minZoom: 10,
       maxZoom: 19,
+      maxBounds: [
+        [-122.45, 37.74],
+        [-122.38, 37.8],
+      ],
     },
     currentVal: [[-122.4194, 37.7749]],
     onChange: () => {},

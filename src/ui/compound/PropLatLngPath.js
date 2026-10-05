@@ -113,7 +113,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const mapboxToken = useSelector(selectMapboxToken)
   const { enabled, placeholder, direction = 'row' } = prop
   const numberFormatProps = getCoordinateNumberFormat(prop)
-  const { minZoom, maxZoom, defaultZoom } = getCoordinateMapOptions(prop)
+  const { minZoom, maxZoom, defaultZoom, maxBounds } =
+    getCoordinateMapOptions(prop)
   const linePaint = {
     'line-color': prop.pathColor ?? DEFAULT_LINE_PAINT['line-color'],
     'line-width': prop.pathWeight ?? DEFAULT_LINE_PAINT['line-width'],
@@ -369,7 +370,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
         >
           <ReactMapGl
             {...viewState}
-            {...{ minZoom, maxZoom }}
+            {...{ minZoom, maxZoom, maxBounds }}
             mapboxAccessToken={mapboxToken}
             style={styles.map}
             mapStyle={mapStyle}
