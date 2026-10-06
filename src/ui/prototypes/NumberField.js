@@ -176,9 +176,14 @@ const NumberField = ({
     // For blur or Enter events, commit immediately so that any subsequent interactions
     // (e.g. moving a slider or clicking another control) are not overridden by a delayed timer.
     const isBlurOrEnter =
+      event?.reason === 'input-blur' ||
+      event?.reason === 'keyboard' ||
       event?.type === 'blur' ||
       event?.type === 'focusout' ||
-      event?.key === 'Enter'
+      event?.key === 'Enter' ||
+      event?.event?.type === 'blur' ||
+      event?.event?.type === 'focusout' ||
+      event?.event?.key === 'Enter'
 
     if (isBlurOrEnter) {
       commitTimeoutRef.current = -1
@@ -364,13 +369,49 @@ const NumberField = ({
                         getStatusIcon(color)}
                     </InputAdornment>
                   }
-                  onChange={kbRef.current?.handleChange}
+                  onChange={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleChange(e)
+                    } else {
+                      props.onChange?.(e)
+                    }
+                  }}
                   onSelect={props.onSelect}
-                  onFocus={kbRef.current?.handleFocus}
-                  onBlur={kbRef.current?.handleBlur}
-                  onTouchStart={kbRef.current?.handleTouchStart}
-                  onTouchMove={kbRef.current?.handleTouchMove}
-                  onTouchEnd={kbRef.current?.handleTouchEnd}
+                  onFocus={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleFocus(e)
+                    } else {
+                      props.onFocus?.(e)
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleBlur(e)
+                    } else {
+                      props.onBlur?.(e)
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleTouchStart(e)
+                    } else {
+                      props.onTouchStart?.(e)
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleTouchMove(e)
+                    } else {
+                      props.onTouchMove?.(e)
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleTouchEnd(e)
+                    } else {
+                      props.onTouchEnd?.(e)
+                    }
+                  }}
                   onKeyUp={props.onKeyUp}
                   onKeyDown={props.onKeyDown}
                 />

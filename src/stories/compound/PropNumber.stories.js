@@ -1,4 +1,5 @@
 import React from 'react'
+import { expect, fn, userEvent, within } from 'storybook/test'
 
 import PropNumberField from '../../ui/compound/PropNumberField'
 import PropNumberIcon from '../../ui/compound/PropNumberIcon'
@@ -39,7 +40,22 @@ export const NumberField = {
       step: 10,
     },
     currentVal: 125,
-    onChange: () => {},
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+    // Click into the input box
+    await userEvent.click(input)
+    // Select all and type 1500 (over max 1000)
+    await userEvent.clear(input)
+    await userEvent.type(input, '1500')
+    // Now backspace to 150 (within range)
+    await userEvent.keyboard('{Backspace}')
+    // Click away (blur)
+    await userEvent.click(document.body)
+    await expect(args.onChange).toHaveBeenLastCalledWith(150)
+    await expect(input.value).toBe('150.00')
   },
 }
 
@@ -67,7 +83,22 @@ export const NumberSlider = {
       color: '#42a5f5',
     },
     currentVal: 75,
-    onChange: () => {},
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+    // Click into the input box
+    await userEvent.click(input)
+    // Select all and type 150 (over max 100)
+    await userEvent.clear(input)
+    await userEvent.type(input, '150')
+    // Now backspace to 15 (within range [0, 100])
+    await userEvent.keyboard('{Backspace}')
+    // Click away (blur)
+    await userEvent.click(document.body)
+    await expect(args.onChange).toHaveBeenLastCalledWith(15)
+    await expect(input.value).toBe('15.00')
   },
 }
 
