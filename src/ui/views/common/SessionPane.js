@@ -21,6 +21,7 @@ import {
   FilterPanelTrigger,
   ToolbarButton,
 } from '@mui/x-data-grid'
+import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useEffect, useState, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -576,7 +577,7 @@ const ActionModal = ({ open, label, confirmText, onConfirm, onCancel }) => {
   )
 }
 
-const SessionPane = ({ width }) => {
+const SessionPane = ({ width = PANE_WIDTH }) => {
   const dispatch = useDispatch()
   const {
     modalOpen: resetModalOpen,
@@ -831,10 +832,16 @@ const SessionPane = ({ width }) => {
   )
 
   if (currentAction.command === 'create') {
+    const firstTeamId = rows[0]?.teamId ?? teams[0]?.id
     rows.unshift({
-      ...rows[0],
-      id: `0-${rows[0].teamId}`,
+      ...(rows[0] ?? {}),
+      id: `0-${firstTeamId}`,
+      teamId: firstTeamId,
       index: ACTION_TYPES.CREATE,
+      currentAction,
+      teams,
+      onClickCancelHandler,
+      onClickConfirmCreateHandler,
     })
   } else if (currentAction.command === 'duplicate') {
     const idx = rows.findIndex(
@@ -865,7 +872,8 @@ const SessionPane = ({ width }) => {
           height: (theme) => `calc(100% - ${theme.spacing(2.5)})`,
           position: 'absolute',
           ...(width && {
-            width: (theme) => `calc(${PANE_WIDTH}px - ${theme.spacing(5)})`,
+            width: (theme) =>
+              `calc(${typeof width === 'number' ? `${width}px` : width} - ${theme.spacing(5)})`,
           }),
         }}
       >
@@ -936,10 +944,17 @@ const SessionPane = ({ width }) => {
           sx={{ py: 3 }}
         />
         <DataGrid
-          autoHeight
           showToolbar
           disableVirtualization
+          pageSizeOptions={[5, 10, 25, 50]}
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 5, page: 0 },
+            },
+          }}
           sx={{
+            flex: 1,
+            minHeight: 0,
             '.MuiDataGrid-virtualScrollerRenderZone': {
               width: '97%',
             },
@@ -998,6 +1013,10 @@ const SessionPane = ({ width }) => {
       />
     </>
   )
+}
+
+SessionPane.propTypes = {
+  width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 }
 
 export default SessionPane
