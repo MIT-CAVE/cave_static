@@ -65,6 +65,7 @@ echarts.use([
 ])
 
 const baseOptions = {
+  hoverLayerThreshold: Infinity,
   backgroundColor: '#4a4a4a',
   grid: {
     top: 64,
