@@ -138,6 +138,15 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const numberFormatProps = getCoordinateNumberFormat(prop)
   const { minZoom, maxZoom, defaultZoom, maxBounds } =
     getCoordinateMapOptions(prop)
+  // When set, manual entry is clamped to `maxBounds` (not just the global
+  // lat/lng range) to match dragging, which the popup map already keeps
+  // within those bounds.
+  const [lngMin, lngMax] = maxBounds
+    ? [maxBounds[0][0], maxBounds[1][0]]
+    : [-180, 180]
+  const [latMin, latMax] = maxBounds
+    ? [maxBounds[0][1], maxBounds[1][1]]
+    : [-90, 90]
   const linePaint = {
     'line-color': prop.pathColor ?? DEFAULT_LINE_PAINT['line-color'],
     'line-width': prop.pathWeight ?? DEFAULT_LINE_PAINT['line-width'],
@@ -244,8 +253,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     if (!enabled) return
 
     const clampedInput = [
-      R.clamp(-180, 180)(manualInput[0]),
-      R.clamp(-90, 90)(manualInput[1]),
+      R.clamp(lngMin, lngMax)(manualInput[0]),
+      R.clamp(latMin, latMax)(manualInput[1]),
     ]
     const updatedValue = (
       editState === edit.RESET ? [] : allInputValues
@@ -260,7 +269,18 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     }))
 
     editState === edit.RESET && setEditState(edit.NONE)
-  }, [allInputValues, editState, enabled, getPathData, manualInput, onChange])
+  }, [
+    allInputValues,
+    editState,
+    enabled,
+    getPathData,
+    latMax,
+    latMin,
+    lngMax,
+    lngMin,
+    manualInput,
+    onChange,
+  ])
 
   const handleDragEnd = useCallback(
     (event) => {
@@ -310,8 +330,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const handleUpdateSelected = () => {
     if (!enabled || selectedIndex === null) return
     const point = [
-      R.clamp(-180, 180, manualInput[0]),
-      R.clamp(-90, 90, manualInput[1]),
+      R.clamp(lngMin, lngMax, manualInput[0]),
+      R.clamp(latMin, latMax, manualInput[1]),
     ]
     const updatedValue = R.update(selectedIndex, point, allInputValues)
     onChange(updatedValue)
@@ -417,18 +437,18 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
               <NumberField
                 disabled={!enabled}
                 label="Latitude"
-                {...{ placeholder, max: 90, min: -90 }}
+                {...{ placeholder, max: latMax, min: latMin }}
                 numberFormat={numberFormatProps}
-                value={R.clamp(-90, 90)(manualInput[1])}
+                value={R.clamp(latMin, latMax)(manualInput[1])}
                 onChange={handleChangeAt(1)}
                 // onChangeCommitted={handleChangeCommittedAt(1)}
               />
               <NumberField
                 disabled={!enabled}
                 label="Longitude"
-                {...{ placeholder, max: 180, min: -180 }}
+                {...{ placeholder, max: lngMax, min: lngMin }}
                 numberFormat={numberFormatProps}
-                value={R.clamp(-180, 180)(manualInput[0])}
+                value={R.clamp(lngMin, lngMax)(manualInput[0])}
                 onChange={handleChangeAt(0)}
                 // onChangeCommitted={handleChangeCommittedAt(0)}
               />

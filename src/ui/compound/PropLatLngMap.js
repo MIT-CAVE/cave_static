@@ -46,6 +46,15 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const [value, setValue] = useState(defaultValue[0])
   const { minZoom, maxZoom, defaultZoom, maxBounds } =
     getCoordinateMapOptions(prop)
+  // When set, manual entry is clamped to `maxBounds` (not just the global
+  // lat/lng range) to match dragging, which the popup map already keeps
+  // within those bounds.
+  const [lngMin, lngMax] = maxBounds
+    ? [maxBounds[0][0], maxBounds[1][0]]
+    : [-180, 180]
+  const [latMin, latMax] = maxBounds
+    ? [maxBounds[0][1], maxBounds[1][1]]
+    : [-90, 90]
   const [viewState, setViewState] = useState({
     latitude: value[1],
     longitude: value[0],
@@ -92,7 +101,11 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
 
   const handleChangeCommittedAt = (index) => (event, newLatOrLng) => {
     if (!enabled) return
-    const newValue = R.update(index, newLatOrLng)(value)
+    const clamped =
+      index === 0
+        ? R.clamp(lngMin, lngMax, newLatOrLng)
+        : R.clamp(latMin, latMax, newLatOrLng)
+    const newValue = R.update(index, clamped)(value)
     setViewState({ latitude: newValue[1], longitude: newValue[0] })
     onChange([newValue])
   }
@@ -160,18 +173,18 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           <NumberField
             disabled={!enabled}
             label="Latitude"
-            {...{ placeholder, max: 90, min: -90 }}
+            {...{ placeholder, max: latMax, min: latMin }}
             numberFormat={numberFormatProps}
-            value={R.clamp(-90, 90)(value[1])}
+            value={R.clamp(latMin, latMax)(value[1])}
             onChange={handleChangeAt(1)}
             onChangeCommitted={handleChangeCommittedAt(1)}
           />
           <NumberField
             disabled={!enabled}
             label="Longitude"
-            {...{ placeholder, max: 180, min: -180 }}
+            {...{ placeholder, max: lngMax, min: lngMin }}
             numberFormat={numberFormatProps}
-            value={R.clamp(-180, 180, value[0])}
+            value={R.clamp(lngMin, lngMax, value[0])}
             onChange={handleChangeAt(0)}
             onChangeCommitted={handleChangeCommittedAt(0)}
           />
