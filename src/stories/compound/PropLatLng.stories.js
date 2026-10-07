@@ -275,22 +275,19 @@ export const PathPointEdit = {
     onChange: fn(),
   },
   play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement)
-    const rows = () => canvasElement.querySelectorAll('.MuiListItemButton-root')
+    const chips = () => canvasElement.querySelectorAll('.MuiChip-root')
 
-    // Selecting a row shows the point editor, and deleting it commits one fewer point
-    await userEvent.click(rows()[1])
-    await userEvent.click(canvas.getByRole('button', { name: /delete point/i }))
+    // Selecting a chip shows the point editor, and its delete icon commits one fewer point
+    await userEvent.click(chips()[1])
+    await userEvent.click(chips()[1].querySelector('.MuiChip-deleteIcon'))
     await expect(args.onChange).toHaveBeenLastCalledWith([
       [-122.4194, 37.7749],
       [-122.41, 37.775],
     ])
 
-    // At the 2-point minimum, Delete is disabled
-    await userEvent.click(rows()[0])
-    await expect(
-      canvas.getByRole('button', { name: /delete point/i })
-    ).toBeDisabled()
+    // At the 2-point minimum, the delete icon doesn't show
+    await userEvent.click(chips()[0])
+    await expect(chips()[0].querySelector('.MuiChip-deleteIcon')).toBeNull()
   },
 }
 
@@ -339,9 +336,7 @@ export const PathMapPopup = {
     await expect(canvasElement.contains(popper)).toBe(true)
     await expect(popper.getBoundingClientRect().height).toBeGreaterThan(0)
 
-    await userEvent.click(
-      canvasElement.querySelector('.MuiListItemButton-root')
-    )
+    await userEvent.click(canvasElement.querySelector('.MuiChip-root'))
     await expect(document.querySelector('[role="tooltip"]')).not.toBeNull()
   },
 }

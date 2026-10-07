@@ -1,10 +1,9 @@
 import {
+  Avatar,
+  Box,
   Button,
+  Chip,
   ClickAwayListener,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   Popper,
   Stack,
   ToggleButton,
@@ -23,7 +22,6 @@ import {
   MdAddCircleOutline,
   MdOutlineCancel,
   MdOutlineCheck,
-  MdUndo,
 } from 'react-icons/md'
 import { PiEraser } from 'react-icons/pi'
 import { TfiMapAlt } from 'react-icons/tfi'
@@ -45,11 +43,25 @@ import {
 } from '../../utils'
 
 const styles = {
-  text: {
-    overflow: 'auto',
-    maxHeight: 200,
+  chipsContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    justifyItems: 'start',
+    alignContent: 'start',
+    gap: 1,
+    flexGrow: 1,
+    minHeight: 0,
+    overflowY: 'auto',
     border: 1,
+    borderColor: 'divider',
+    borderRadius: 1,
+    p: 1,
   },
+  getChip: (selected) => ({
+    '&:hover': {
+      backgroundColor: selected ? 'primary.main' : 'transparent',
+    },
+  }),
   popper: {
     width: '100%',
     height: '100%',
@@ -87,25 +99,36 @@ const getLastLat = (path) => path[path.length - 1][1]
 const viewCenter = (path, index) =>
   index !== null && index < path.length ? path[index] : path[path.length - 1]
 const getLastLng = (path) => path[path.length - 1][0]
-const displayPath = (path, numberFormatProps, selectedIndex, onSelect) => {
+const displayPath = (
+  path,
+  numberFormatProps,
+  selectedIndex,
+  enabled,
+  onSelect,
+  onDeleteSelected
+) => {
   return (
-    <List sx={styles.text}>
+    <Box sx={styles.chipsContainer}>
       {path.map(([lng, lat], idx) => {
+        const selected = idx === selectedIndex
         return (
-          <ListItem key={idx} disablePadding sx={{ maxHeight: 200 }}>
-            <ListItemButton
-              dense
-              selected={idx === selectedIndex}
-              onClick={() => onSelect(idx)}
-            >
-              <ListItemText
-                primary={`(${NumberFormat.format(lat, numberFormatProps)}, ${NumberFormat.format(lng, numberFormatProps)})\n`}
-              />
-            </ListItemButton>
-          </ListItem>
+          <Chip
+            key={idx}
+            avatar={<Avatar>{idx + 1}</Avatar>}
+            label={`(${NumberFormat.format(lat, numberFormatProps)}, ${NumberFormat.format(lng, numberFormatProps)})`}
+            color={selected ? 'primary' : 'default'}
+            variant={selected ? 'filled' : 'outlined'}
+            sx={styles.getChip(selected)}
+            onClick={() => onSelect(idx)}
+            onDelete={
+              selected && enabled && path.length > 2
+                ? onDeleteSelected
+                : undefined
+            }
+          />
         )
       })}
-    </List>
+    </Box>
   )
 }
 
@@ -257,26 +280,6 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     [allInputValues, editState, enabled, getPathData, onChange, selectedIndex]
   )
 
-  const handleUndoLast = useCallback(() => {
-    const lastIndex = allInputValues.length - 1
-    if (!enabled || lastIndex <= 1) return
-
-    const slicedPath = allInputValues.slice(0, lastIndex)
-    onChange(slicedPath)
-    setAllInputValues(slicedPath)
-    setPathData(getPathData(slicedPath))
-    const [lng, lat] = viewCenter(
-      slicedPath,
-      selectedIndex !== null && selectedIndex < slicedPath.length
-        ? selectedIndex
-        : null
-    )
-    setViewState((prev) => ({ ...prev, latitude: lat, longitude: lng }))
-    if (selectedIndex !== null && selectedIndex >= slicedPath.length) {
-      setSelectedIndex(null)
-    }
-  }, [allInputValues, enabled, getPathData, onChange, selectedIndex])
-
   const handleClearPath = useCallback(() => {
     if (!enabled) return
     const resetValue = [allInputValues[0]]
@@ -348,7 +351,10 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       ref={containerRef}
       useFlexGap
       spacing={2}
-      sx={[{ width: '100%' }, ...forceArray(sx)]}
+      sx={[
+        { width: '100%', height: '100%', alignSelf: 'stretch' },
+        ...forceArray(sx),
+      ]}
     >
       <ClickAwayListener
         onClickAway={(event) => {
@@ -473,20 +479,6 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
                   : 'Set As Start'}
             </Button>
           </Stack>
-          {selectedIndex !== null && (
-            <Stack spacing={1} direction="row">
-              <Button
-                disabled={!enabled || allInputValues.length <= 2}
-                sx={{ flexGrow: 1 }}
-                color="error"
-                variant="contained"
-                startIcon={<PiEraser />}
-                onClick={handleDeleteSelected}
-              >
-                Delete Point
-              </Button>
-            </Stack>
-          )}
         </>
       ) : confirmingClear ? (
         <Stack spacing={1} direction="row">
@@ -515,7 +507,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
         <Stack spacing={1} direction="row">
           <Button
             disabled={!enabled}
-            sx={{ flexGrow: 5 }}
+            sx={{ flexGrow: 1 }}
             variant="contained"
             startIcon={<MdAddCircleOutline />}
             onClick={() => {
@@ -526,18 +518,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             Add Point
           </Button>
           <Button
-            disabled={!enabled || allInputValues.length < 3}
-            sx={{ flexGrow: 3.5 }}
-            color="warning"
-            variant="contained"
-            startIcon={<MdUndo />}
-            onClick={handleUndoLast}
-          >
-            Undo Last
-          </Button>
-          <Button
             disabled={!enabled}
-            sx={{ flexGrow: 3.5 }}
+            sx={{ flexGrow: 1 }}
             color="error"
             variant="contained"
             startIcon={<PiEraser />}
@@ -552,7 +534,9 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
           allInputValues,
           numberFormatProps,
           selectedIndex,
-          handleSelectPoint
+          enabled,
+          handleSelectPoint,
+          handleDeleteSelected
         )}
     </Stack>
   )
