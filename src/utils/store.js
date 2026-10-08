@@ -3,6 +3,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import dataReducer from '../data/data'
 import localReducer from '../data/local'
 import utilitiesReducer from '../data/utilities'
+import messageExpiryMiddleware from '../data/utilities/messageExpiryMiddleware'
 
 const getInitialState = (reducer) => reducer(undefined, { type: '@@INIT' })
 
@@ -57,7 +58,7 @@ const store = configureStore({
       immutableCheck: {
         warnAfter: 128,
       },
-    }).concat(asyncDispatchMiddleware),
+    }).concat(asyncDispatchMiddleware, messageExpiryMiddleware),
   // Use Redux Dev Tools if not in proudction or the build is a dev build
   devTools:
     import.meta.env.REACT_APP_USE_REDUX_DEVTOOLS === 'true' &&
