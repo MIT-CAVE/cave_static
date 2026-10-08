@@ -34,7 +34,9 @@ const styles = {
   pane: {
     display: 'flex',
     position: 'absolute',
-    height: '100vh',
+    // Relative to App.js's `workspace` box, which already excludes DockBar's
+    // height, so the pane starts below the dock bar instead of behind it.
+    height: '100%',
     top: 0,
   },
 }
