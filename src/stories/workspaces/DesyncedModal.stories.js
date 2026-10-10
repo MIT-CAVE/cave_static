@@ -1,5 +1,5 @@
 import React from 'react'
-import { expect, within, userEvent, fireEvent } from 'storybook/test'
+import { expect, within, userEvent, fireEvent, waitFor } from 'storybook/test'
 
 import App from '../../App'
 
@@ -109,8 +109,15 @@ export const CloseDesyncedModalInteraction = {
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     // 5. Verify that the modal is open again
-    expect(
-      await body.findByText('Example Modal', {}, { timeout: 3000 })
-    ).toBeDefined()
+    // (scoped to the modal, since the app bar button tooltip shows the same name)
+    await waitFor(
+      () =>
+        expect(
+          within(document.querySelector('.MuiModal-root')).getByText(
+            'Example Modal'
+          )
+        ).toBeDefined(),
+      { timeout: 3000 }
+    )
   },
 }
