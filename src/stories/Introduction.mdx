@@ -1,0 +1,31 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Introduction" />
+
+# CAVE Static — Component Catalog
+
+This Storybook shows the UI components of [cave_static](https://github.com/MIT-CAVE/cave_static), the React frontend of every CAVE app. Each component is rendered in isolation with sample data.
+
+App developers do not write React: they declare these components in Python, in the `session_data` returned by `execute_command` (see the [cave_app](https://github.com/MIT-CAVE/cave_app) README).
+
+## How the catalog is organized
+
+- **Charts**: bar, line, scatter, heatmap, sunburst, treemap, waterfall, gauge, table, and more. Declared in `pages.data.*.charts` (`chartType`), with data from `groupedOutputs` or `globalOutputs`.
+- **Compound**: input props such as number, text, toggle, dropdown, date, and dual list. Declared as `props` in `panes` and `mapFeatures`.
+- **Map**: map elements such as the legend. Declared in `maps` and `mapFeatures`.
+- **Draggables**: floating panels and controls. Declared in `draggables`.
+- **Views**: parts of the app layout, such as the session and settings panes, dashboard toolbars, and map views.
+- **Workspaces**: complete app scenarios built from a full `session_data`, e.g. **KitchenSink**, which shows most features at once.
+
+Field-level details for each key are in the [API Spec](https://mit-cave.github.io/cave_utils/cave_utils/api.html).
+
+## Using this Storybook
+
+- **Controls**: change a component's inputs live.
+- **Accessibility**: each story is audited with axe (see the Accessibility panel).
+- **Interactions**: stories with a play function show their test steps.
+
+## See also
+
+- [Using The Example App](https://github.com/MIT-CAVE/cave_app#using-the-example-app): the same components in a running app
+- [cave_static README](https://github.com/MIT-CAVE/cave_static#readme): development setup
