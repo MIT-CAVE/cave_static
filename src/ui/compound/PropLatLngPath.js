@@ -24,6 +24,7 @@ import {
   MdOutlineCheck,
 } from 'react-icons/md'
 import { PiEraser } from 'react-icons/pi'
+import { TbMagnet, TbMagnetOff } from 'react-icons/tb'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
@@ -76,7 +77,22 @@ const styles = {
     border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
   },
+  snapToggle: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 1,
+    bgcolor: 'background.paper',
+    opacity: 0.5,
+    '&.Mui-selected': {
+      opacity: 1,
+    },
+  },
 }
+
+// Screen-pixel snap radius for dragging a point onto an existing one,
+// roughly matching the point-circle radii in `pointPaint` below (6/9px).
+const SNAP_RADIUS_PX = 12
 
 const LINE_LAYOUT = { 'line-join': 'round', 'line-cap': 'round' }
 const DEFAULT_LINE_PAINT = {
@@ -155,6 +171,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const [toggleSize, setToggleSize] = useState(null)
 
   const containerRef = useRef(null)
+  const mapRef = useRef(null)
   const mapOpenKey = `cave.latLngPath.mapOpen.${prop.id ?? prop.name}`
   const [showMap, setShowMapState] = useState(() => readStoredFlag(mapOpenKey))
   const setShowMap = (open) => {
@@ -162,6 +179,15 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     writeStoredFlag(mapOpenKey, open)
   }
   const handleCloseMenu = () => setShowMap(false)
+
+  const snapKey = `cave.latLngPath.snapToPoint.${prop.id ?? prop.name}`
+  const [snapEnabled, setSnapEnabledState] = useState(() =>
+    readStoredFlag(snapKey)
+  )
+  const setSnapEnabled = (enabledFlag) => {
+    setSnapEnabledState(enabledFlag)
+    writeStoredFlag(snapKey, enabledFlag)
+  }
 
   const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
 
@@ -282,11 +308,65 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     onChange,
   ])
 
+  // When snapping is on, dragging a point near any other point in the path
+  // (besides itself, if repositioning a selected one) snaps it onto that
+  // point's exact coordinates instead of the raw drop location. This can
+  // produce duplicate points anywhere in the path, including a closed
+  // ring when snapped onto the first point - that's just one outcome
+  // among many, not a dedicated "closed polygon" mode.
+  const getSnappedPoint = useCallback(
+    (longitude, latitude) => {
+      if (!snapEnabled) return [longitude, latitude]
+      const map = mapRef.current?.getMap
+        ? mapRef.current.getMap()
+        : mapRef.current
+      if (!map) return [longitude, latitude]
+      const dropPixel = map.project([longitude, latitude])
+      let closestPoint = null
+      let closestDist = SNAP_RADIUS_PX
+      allInputValues.forEach((point, idx) => {
+        if (idx === selectedIndex) return
+        const pixel = map.project(point)
+        const dist = Math.hypot(pixel.x - dropPixel.x, pixel.y - dropPixel.y)
+        if (dist <= closestDist) {
+          closestDist = dist
+          closestPoint = point
+        }
+      })
+      return closestPoint ?? [longitude, latitude]
+    },
+    [allInputValues, selectedIndex, snapEnabled]
+  )
+
+  // Snaps the marker's own live position while it's still being dragged,
+  // rather than only computing the snap once it's dropped - `event.target`
+  // is the underlying mapbox marker, and `setLngLat` is the same method
+  // mapbox-gl's own drag handling calls on every pointer move, so calling
+  // it here overrides that for this tick whenever within snapping range.
+  const handleDrag = useCallback(
+    (event) => {
+      if (!enabled || !snapEnabled) return
+      const { lat: latitude, lng: longitude } = event.lngLat
+      const [snappedLng, snappedLat] = getSnappedPoint(longitude, latitude)
+      if (snappedLng !== longitude || snappedLat !== latitude) {
+        event.target.setLngLat([snappedLng, snappedLat])
+      }
+    },
+    [enabled, getSnappedPoint, snapEnabled]
+  )
+
   const handleDragEnd = useCallback(
     (event) => {
       if (!enabled) return
       const { lat: latitude, lng: longitude } = event.lngLat
-      const point = [longitude, latitude]
+      const point = getSnappedPoint(longitude, latitude)
+      // A dragged point that snaps back onto its own starting location is
+      // a no-op: don't commit a redundant point. `activePoint` is exactly
+      // where the dragged marker started, whether it's an existing
+      // selected point being repositioned or a new/reset point whose
+      // marker starts at the path's last point.
+      if (point[0] === activePoint[0] && point[1] === activePoint[1]) return
+
       const updatedValue =
         selectedIndex !== null
           ? R.update(selectedIndex, point, allInputValues)
@@ -294,10 +374,23 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       onChange(updatedValue)
       setAllInputValues(updatedValue)
       setPathData(getPathData(updatedValue))
-      setViewState((prev) => ({ ...prev, latitude, longitude }))
+      setViewState((prev) => ({
+        ...prev,
+        latitude: point[1],
+        longitude: point[0],
+      }))
       setManualInput(point)
     },
-    [allInputValues, editState, enabled, getPathData, onChange, selectedIndex]
+    [
+      activePoint,
+      allInputValues,
+      editState,
+      enabled,
+      getPathData,
+      getSnappedPoint,
+      onChange,
+      selectedIndex,
+    ]
   )
 
   const handleClearPath = useCallback(() => {
@@ -395,6 +488,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
           }}
         >
           <ReactMapGl
+            ref={mapRef}
             {...viewState}
             {...{ minZoom, maxZoom, maxBounds }}
             mapboxAccessToken={mapboxToken}
@@ -402,11 +496,26 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             mapStyle={mapStyle}
             onMove={(event) => setViewState(event.viewState)}
           >
+            <ToggleButton
+              disabled={!enabled}
+              size="small"
+              value="prop-lat-lng-path-snap"
+              selected={snapEnabled}
+              title="Snap to existing point"
+              onClick={(event) => {
+                event.stopPropagation()
+                setSnapEnabled(!snapEnabled)
+              }}
+              sx={styles.snapToggle}
+            >
+              {snapEnabled ? <TbMagnet size={18} /> : <TbMagnetOff size={18} />}
+            </ToggleButton>
             <Marker
               draggable={enabled}
               anchor="center"
               longitude={activePoint[0]}
               latitude={activePoint[1]}
+              onDrag={handleDrag}
               onDragEnd={handleDragEnd}
             />
             <Source id="polylineLayer" type="geojson" data={pathData}>
