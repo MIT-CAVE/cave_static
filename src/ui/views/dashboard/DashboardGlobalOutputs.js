@@ -77,6 +77,18 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
 
   const selectedGlobalOutputKeys = R.keys(globalOutputData)
 
+  const tableData = formattedGlobalOutputs.map((session) => {
+    const valuesById = Object.fromEntries(
+      session.children.map(({ id, value }) => [id, value[0]])
+    )
+    return {
+      name: session.name,
+      value: selectedGlobalOutputKeys.map(
+        (key) => valuesById[globalOutputData[key]?.id ?? key] ?? null
+      ),
+    }
+  })
+
   const globalOutputUnits = R.map((item) => {
     const globalOutput = R.propOr({}, item)(globalOutputData)
     return globalOutput.unit || numberFormatDefault.unit
@@ -135,10 +147,7 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
           })}
         </Box>
       ) : chartObj.chartType === chartVariant.TABLE ? (
-        <TableChart
-          data={formattedGlobalOutputs}
-          {...{ labelProps, numberFormat }}
-        />
+        <TableChart data={tableData} {...{ labelProps, numberFormat }} />
       ) : chartObj.chartType === chartVariant.BAR ? (
         <BarPlot
           data={formattedGlobalOutputs}
