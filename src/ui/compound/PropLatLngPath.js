@@ -215,6 +215,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     setCoordsEnabled,
     cursorPosition,
     cursorDisplayRef,
+    reportPosition,
     handleMapMouseMove,
     handleMapMouseLeave,
   } = useCoordinateReadout(coordsKey)
@@ -292,6 +293,16 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   // updating from the auto-pan loop) would fight the live drag and snap
   // the marker back to where it started.
   const markerPosition = dragPosition ?? activePoint
+
+  // While dragging, the readout tracks the marker's own live position
+  // (snap-adjusted, and kept moving by the auto-pan loop) rather than the
+  // raw cursor: a native `mousemove` event still fires with the
+  // unsnapped pointer position during a drag, and doesn't fire at all
+  // while the camera auto-pans without the pointer itself moving, so
+  // relying on it alone would show stale or pre-snap coordinates.
+  useEffect(() => {
+    if (dragPosition) reportPosition(dragPosition)
+  }, [dragPosition, reportPosition])
 
   useEffect(() => {
     const newValue = currentVal ?? prop.value

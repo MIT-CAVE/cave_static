@@ -126,6 +126,7 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     setCoordsEnabled,
     cursorPosition,
     cursorDisplayRef,
+    reportPosition,
     handleMapMouseMove,
     handleMapMouseLeave,
   } = useCoordinateReadout(coordsKey)
@@ -144,6 +145,15 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   // auto-pan loop) would fight the live drag and snap the marker back to
   // where it started.
   const markerPosition = dragPosition ?? value
+
+  // While dragging, the readout tracks the marker's own live position
+  // (kept moving by the auto-pan loop) rather than the raw cursor: a
+  // native `mousemove` event doesn't fire while the camera auto-pans
+  // without the pointer itself moving, so relying on it alone would show
+  // a stale position.
+  useEffect(() => {
+    if (dragPosition) reportPosition(dragPosition)
+  }, [dragPosition, reportPosition])
 
   const { ReactMapGl, Marker, NavigationControl } = useMapApi()
 

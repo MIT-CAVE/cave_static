@@ -312,6 +312,13 @@ export const usePersistedToggle = (storageKey) => {
  * toggle is off), so a readout can fade away rather than show a stale
  * position. `cursorDisplayRef` keeps the last real position around through
  * that fade-out, so it doesn't flash empty right as the cursor leaves.
+ *
+ * `reportPosition` is exposed separately from the mouse-move handler below
+ * so callers can also drive the readout from a dragged marker's own live
+ * position (snap-adjusted, and continuously updated by `useDragAutoPan`'s
+ * pan loop) instead of the raw cursor - the two diverge whenever snapping is
+ * on or the camera is auto-panning, since neither changes the actual mouse
+ * position a native `mousemove` event would report.
  */
 export const useCoordinateReadout = (storageKey) => {
   const [cursorPosition, setCursorPosition] = useState(null)
@@ -325,14 +332,17 @@ export const useCoordinateReadout = (storageKey) => {
     },
     [setCoordsEnabledFlag]
   )
-  const handleMapMouseMove = useCallback(
-    (event) => {
+  const reportPosition = useCallback(
+    (position) => {
       if (!coordsEnabledFlag) return
-      const next = [event.lngLat.lng, event.lngLat.lat]
-      cursorDisplayRef.current = next
-      setCursorPosition(next)
+      cursorDisplayRef.current = position
+      setCursorPosition(position)
     },
     [coordsEnabledFlag]
+  )
+  const handleMapMouseMove = useCallback(
+    (event) => reportPosition([event.lngLat.lng, event.lngLat.lat]),
+    [reportPosition]
   )
   const handleMapMouseLeave = useCallback(() => setCursorPosition(null), [])
 
@@ -341,6 +351,7 @@ export const useCoordinateReadout = (storageKey) => {
     setCoordsEnabled,
     cursorPosition,
     cursorDisplayRef,
+    reportPosition,
     handleMapMouseMove,
     handleMapMouseLeave,
   }
