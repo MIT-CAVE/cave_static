@@ -1,9 +1,9 @@
 import {
-  Box,
   ClickAwayListener,
   Popper,
   Stack,
   ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
@@ -18,9 +18,14 @@ import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
 import { CoordinateReadout, CoordinateToggleButton } from './CoordinateReadout'
+import { ProjectionToggleButton } from './ProjectionToggleButton'
 
 import { selectMapboxToken } from '../../data/selectors'
-import { useCoordinateReadout, useDragAutoPan } from '../../utils/hooks'
+import {
+  useCoordinateReadout,
+  useDragAutoPan,
+  usePersistedToggle,
+} from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
@@ -53,8 +58,6 @@ const styles = {
     top: 8,
     left: 8,
     zIndex: 1,
-    display: 'flex',
-    gap: 1,
   },
 }
 
@@ -126,6 +129,10 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     handleMapMouseMove,
     handleMapMouseLeave,
   } = useCoordinateReadout(coordsKey)
+
+  const projectionKey = `cave.latLngMap.globeProjection.${prop.id ?? prop.name}`
+  const [globeEnabled, setGlobeEnabled] = usePersistedToggle(projectionKey)
+  const projection = globeEnabled ? 'globe' : 'mercator'
 
   const { dragPosition, suppressClickAwayRef, registerDrag, endDrag } =
     useDragAutoPan({ getMap, setViewState })
@@ -215,18 +222,30 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
             ref={mapRef}
             mapboxAccessToken={mapboxToken}
             style={styles.map}
-            {...{ mapStyle, minZoom, maxZoom, maxBounds, ...viewState }}
+            {...{
+              mapStyle,
+              minZoom,
+              maxZoom,
+              maxBounds,
+              projection,
+              ...viewState,
+            }}
             onMove={(event) => setViewState(event.viewState)}
             onMouseMove={handleMapMouseMove}
             onMouseLeave={handleMapMouseLeave}
           >
-            <Box sx={styles.mapControls}>
+            <ToggleButtonGroup sx={styles.mapControls}>
+              <ProjectionToggleButton
+                enabled={enabled}
+                selected={globeEnabled}
+                onToggle={setGlobeEnabled}
+              />
               <CoordinateToggleButton
                 enabled={enabled}
                 selected={coordsEnabled}
                 onToggle={setCoordsEnabled}
               />
-            </Box>
+            </ToggleButtonGroup>
             <CoordinateReadout
               active={Boolean(cursorPosition)}
               position={cursorDisplayRef.current}

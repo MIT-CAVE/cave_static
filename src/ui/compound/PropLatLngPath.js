@@ -7,6 +7,7 @@ import {
   Popper,
   Stack,
   ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
@@ -29,9 +30,14 @@ import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
 import { CoordinateReadout, CoordinateToggleButton } from './CoordinateReadout'
+import { ProjectionToggleButton } from './ProjectionToggleButton'
 
 import { selectMapboxToken } from '../../data/selectors'
-import { useCoordinateReadout, useDragAutoPan } from '../../utils/hooks'
+import {
+  useCoordinateReadout,
+  useDragAutoPan,
+  usePersistedToggle,
+} from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
@@ -85,8 +91,6 @@ const styles = {
     top: 8,
     left: 8,
     zIndex: 1,
-    display: 'flex',
-    gap: 1,
   },
   // Matches `CoordinateToggleButton`'s own look, for the adjacent snap
   // toggle, which isn't part of that shared component.
@@ -214,6 +218,10 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
     handleMapMouseMove,
     handleMapMouseLeave,
   } = useCoordinateReadout(coordsKey)
+
+  const projectionKey = `cave.latLngPath.globeProjection.${prop.id ?? prop.name}`
+  const [globeEnabled, setGlobeEnabled] = usePersistedToggle(projectionKey)
+  const projection = globeEnabled ? 'globe' : 'mercator'
 
   const getPathData = useCallback(
     (path) =>
@@ -558,7 +566,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
           <ReactMapGl
             ref={mapRef}
             {...viewState}
-            {...{ minZoom, maxZoom, maxBounds }}
+            {...{ minZoom, maxZoom, maxBounds, projection }}
             mapboxAccessToken={mapboxToken}
             style={styles.map}
             mapStyle={mapStyle}
@@ -566,7 +574,12 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             onMouseMove={handleMapMouseMove}
             onMouseLeave={handleMapMouseLeave}
           >
-            <Box sx={styles.mapControls}>
+            <ToggleButtonGroup sx={styles.mapControls}>
+              <ProjectionToggleButton
+                enabled={enabled}
+                selected={globeEnabled}
+                onToggle={setGlobeEnabled}
+              />
               <ToggleButton
                 disabled={!enabled}
                 size="small"
@@ -590,7 +603,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
                 selected={coordsEnabled}
                 onToggle={setCoordsEnabled}
               />
-            </Box>
+            </ToggleButtonGroup>
             <CoordinateReadout
               active={Boolean(cursorPosition)}
               position={cursorDisplayRef.current}

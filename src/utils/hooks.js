@@ -286,6 +286,24 @@ export const useDragAutoPan = ({ getMap, setViewState }) => {
 }
 
 /**
+ * A boolean flag, persisted in `localStorage` under `storageKey` (e.g. a
+ * toggle button's on/off state keyed by prop id), surviving remounts the
+ * same way the flag-backed `showMap`/`snapEnabled`-style toggles elsewhere
+ * in the `latLngPath`/`latLngMap` prop controls do.
+ */
+export const usePersistedToggle = (storageKey) => {
+  const [enabled, setEnabledState] = useState(() => readStoredFlag(storageKey))
+  const setEnabled = useCallback(
+    (nextEnabled) => {
+      setEnabledState(nextEnabled)
+      writeStoredFlag(storageKey, nextEnabled)
+    },
+    [storageKey]
+  )
+  return [enabled, setEnabled]
+}
+
+/**
  * Live (lat, lng) readout for whatever's under the cursor while a popup map
  * is open, togglable and persisted per `storageKey` (e.g. keyed by prop id),
  * independently of the map's own open/closed state.
@@ -298,30 +316,28 @@ export const useDragAutoPan = ({ getMap, setViewState }) => {
 export const useCoordinateReadout = (storageKey) => {
   const [cursorPosition, setCursorPosition] = useState(null)
   const cursorDisplayRef = useRef(null)
-  const [coordsEnabled, setCoordsEnabledState] = useState(() =>
-    readStoredFlag(storageKey)
-  )
+  const [coordsEnabledFlag, setCoordsEnabledFlag] =
+    usePersistedToggle(storageKey)
   const setCoordsEnabled = useCallback(
     (enabledFlag) => {
-      setCoordsEnabledState(enabledFlag)
-      writeStoredFlag(storageKey, enabledFlag)
+      setCoordsEnabledFlag(enabledFlag)
       if (!enabledFlag) setCursorPosition(null)
     },
-    [storageKey]
+    [setCoordsEnabledFlag]
   )
   const handleMapMouseMove = useCallback(
     (event) => {
-      if (!coordsEnabled) return
+      if (!coordsEnabledFlag) return
       const next = [event.lngLat.lng, event.lngLat.lat]
       cursorDisplayRef.current = next
       setCursorPosition(next)
     },
-    [coordsEnabled]
+    [coordsEnabledFlag]
   )
   const handleMapMouseLeave = useCallback(() => setCursorPosition(null), [])
 
   return {
-    coordsEnabled,
+    coordsEnabled: coordsEnabledFlag,
     setCoordsEnabled,
     cursorPosition,
     cursorDisplayRef,
