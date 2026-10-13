@@ -28,7 +28,10 @@ import { TbMagnet, TbMagnetOff } from 'react-icons/tb'
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
+import { CoordinateReadout, CoordinateToggleButton } from './CoordinateReadout'
+
 import { selectMapboxToken } from '../../data/selectors'
+import { useCoordinateReadout, useDragAutoPan } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
@@ -77,11 +80,17 @@ const styles = {
     border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
   },
-  snapToggle: {
+  mapControls: {
     position: 'absolute',
     top: 8,
     left: 8,
     zIndex: 1,
+    display: 'flex',
+    gap: 1,
+  },
+  // Matches `CoordinateToggleButton`'s own look, for the adjacent snap
+  // toggle, which isn't part of that shared component.
+  mapToggleButton: {
     bgcolor: 'background.paper',
     opacity: 0.5,
     '&.Mui-selected': {
@@ -154,9 +163,8 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const numberFormatProps = getCoordinateNumberFormat(prop)
   const { minZoom, maxZoom, defaultZoom, maxBounds } =
     getCoordinateMapOptions(prop)
-  // When set, manual entry is clamped to `maxBounds` (not just the global
-  // lat/lng range) to match dragging, which the popup map already keeps
-  // within those bounds.
+  // When set, both manual entry and dragging (clamped in `handleDragEnd`)
+  // are bounded to `maxBounds` instead of just the global lat/lng range.
   const [lngMin, lngMax] = maxBounds
     ? [maxBounds[0][0], maxBounds[1][0]]
     : [-180, 180]
@@ -172,6 +180,12 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
+  // `mapRef.current` (the ref `react-map-gl`/`@vis.gl/react-mapbox` forwards)
+  // is already a wrapper exposing `.project`/`.unproject`/`.getCenter`/
+  // `.getContainer`/etc. directly off the real, library-managed camera -
+  // there's no separate "raw" map to unwrap to via `.getMap()`, so just use
+  // the wrapper as-is.
+  const getMap = useCallback(() => mapRef.current, [])
   const mapOpenKey = `cave.latLngPath.mapOpen.${prop.id ?? prop.name}`
   const [showMap, setShowMapState] = useState(() => readStoredFlag(mapOpenKey))
   const setShowMap = (open) => {
@@ -190,6 +204,16 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   }
 
   const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
+
+  const coordsKey = `cave.latLngPath.showCoords.${prop.id ?? prop.name}`
+  const {
+    coordsEnabled,
+    setCoordsEnabled,
+    cursorPosition,
+    cursorDisplayRef,
+    handleMapMouseMove,
+    handleMapMouseLeave,
+  } = useCoordinateReadout(coordsKey)
 
   const getPathData = useCallback(
     (path) =>
@@ -249,6 +273,17 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   }
   const activeIndex = selectedIndex ?? allInputValues.length - 1
   const activePoint = allInputValues[activeIndex]
+  const { dragPosition, suppressClickAwayRef, registerDrag, endDrag } =
+    useDragAutoPan({ getMap, setViewState })
+  // While a drag is in progress, the dragged marker's rendered position is
+  // driven by this instead of `activePoint`. `activePoint` only updates
+  // once the drag commits, in `handleDragEnd` - the underlying Marker
+  // wrapper forcibly re-syncs to its `longitude`/`latitude` props on every
+  // render (not just on mount), so leaving it pointed at the stale
+  // `activePoint` while other state changes mid-drag (e.g. `viewState`
+  // updating from the auto-pan loop) would fight the live drag and snap
+  // the marker back to where it started.
+  const markerPosition = dragPosition ?? activePoint
 
   useEffect(() => {
     const newValue = currentVal ?? prop.value
@@ -317,9 +352,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   const getSnappedPoint = useCallback(
     (longitude, latitude) => {
       if (!snapEnabled) return [longitude, latitude]
-      const map = mapRef.current?.getMap
-        ? mapRef.current.getMap()
-        : mapRef.current
+      const map = getMap()
       if (!map) return [longitude, latitude]
       const dropPixel = map.project([longitude, latitude])
       let closestPoint = null
@@ -335,7 +368,7 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       })
       return closestPoint ?? [longitude, latitude]
     },
-    [allInputValues, selectedIndex, snapEnabled]
+    [allInputValues, getMap, selectedIndex, snapEnabled]
   )
 
   // Snaps the marker's own live position while it's still being dragged,
@@ -343,23 +376,49 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
   // is the underlying mapbox marker, and `setLngLat` is the same method
   // mapbox-gl's own drag handling calls on every pointer move, so calling
   // it here overrides that for this tick whenever within snapping range.
+  // Always re-asserting it (even to its own unsnapped position) keeps the
+  // native marker and `useDragAutoPan`'s own tracked drag position - which
+  // its auto-pan loop also repositions every animation frame - from ever
+  // drifting apart, which is what let the marker lag behind on fast drags.
   const handleDrag = useCallback(
     (event) => {
-      if (!enabled || !snapEnabled) return
+      if (!enabled) return
       const { lat: latitude, lng: longitude } = event.lngLat
-      const [snappedLng, snappedLat] = getSnappedPoint(longitude, latitude)
-      if (snappedLng !== longitude || snappedLat !== latitude) {
-        event.target.setLngLat([snappedLng, snappedLat])
+      let finalLng = longitude
+      let finalLat = latitude
+      if (snapEnabled) {
+        const snapped = getSnappedPoint(longitude, latitude)
+        ;[finalLng, finalLat] = snapped
       }
+      event.target.setLngLat([finalLng, finalLat])
+      registerDrag(event, [finalLng, finalLat])
     },
-    [enabled, getSnappedPoint, snapEnabled]
+    [enabled, getSnappedPoint, registerDrag, snapEnabled]
   )
 
   const handleDragEnd = useCallback(
     (event) => {
+      endDrag()
       if (!enabled) return
       const { lat: latitude, lng: longitude } = event.lngLat
-      const point = getSnappedPoint(longitude, latitude)
+      // Only clamped here, at drop time - clamping mid-drag (every tick, or
+      // in the auto-pan loop) fed a bounded position back into the pan/delta
+      // math driving the camera and the live marker, which kept both stuck
+      // short of `maxBounds`'s actual edge once the camera got pinned there.
+      // A one-time clamp on the final value has no such feedback loop.
+      //
+      // Clamp *before* snapping, not after: a raw drop far outside
+      // `maxBounds` (e.g. while zoomed out) can project within the snap
+      // radius of an unrelated existing point purely from screen-pixel
+      // distortion at that zoom, silently redirecting the commit to that
+      // point instead of the true edge. Snapping against the already-valid,
+      // clamped position only matches points actually near where the point
+      // is landing.
+      const bounded = [
+        R.clamp(lngMin, lngMax, longitude),
+        R.clamp(latMin, latMax, latitude),
+      ]
+      const point = getSnappedPoint(bounded[0], bounded[1])
       // A dragged point that snaps back onto its own starting location is
       // a no-op: don't commit a redundant point. `activePoint` is exactly
       // where the dragged marker started, whether it's an existing
@@ -386,8 +445,13 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
       allInputValues,
       editState,
       enabled,
+      endDrag,
       getPathData,
       getSnappedPoint,
+      latMax,
+      latMin,
+      lngMax,
+      lngMin,
       onChange,
       selectedIndex,
     ]
@@ -473,6 +537,10 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
         onClickAway={(event) => {
           // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
           if (sessionStorage.getItem('mui-select-open-flag') === '1') return
+          if (suppressClickAwayRef.current) {
+            suppressClickAwayRef.current = false
+            return
+          }
           if (isEventInside(event, containerRef.current)) return
           handleCloseMenu()
         }}
@@ -495,26 +563,44 @@ const PropLatLngPath = ({ prop, currentVal, sx = [], onChange }) => {
             style={styles.map}
             mapStyle={mapStyle}
             onMove={(event) => setViewState(event.viewState)}
+            onMouseMove={handleMapMouseMove}
+            onMouseLeave={handleMapMouseLeave}
           >
-            <ToggleButton
-              disabled={!enabled}
-              size="small"
-              value="prop-lat-lng-path-snap"
-              selected={snapEnabled}
-              title="Snap to existing point"
-              onClick={(event) => {
-                event.stopPropagation()
-                setSnapEnabled(!snapEnabled)
-              }}
-              sx={styles.snapToggle}
-            >
-              {snapEnabled ? <TbMagnet size={18} /> : <TbMagnetOff size={18} />}
-            </ToggleButton>
+            <Box sx={styles.mapControls}>
+              <ToggleButton
+                disabled={!enabled}
+                size="small"
+                value="prop-lat-lng-path-snap"
+                selected={snapEnabled}
+                title="Snap to existing point"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setSnapEnabled(!snapEnabled)
+                }}
+                sx={styles.mapToggleButton}
+              >
+                {snapEnabled ? (
+                  <TbMagnet size={18} />
+                ) : (
+                  <TbMagnetOff size={18} />
+                )}
+              </ToggleButton>
+              <CoordinateToggleButton
+                enabled={enabled}
+                selected={coordsEnabled}
+                onToggle={setCoordsEnabled}
+              />
+            </Box>
+            <CoordinateReadout
+              active={Boolean(cursorPosition)}
+              position={cursorDisplayRef.current}
+              numberFormatProps={numberFormatProps}
+            />
             <Marker
               draggable={enabled}
               anchor="center"
-              longitude={activePoint[0]}
-              latitude={activePoint[1]}
+              longitude={markerPosition[0]}
+              latitude={markerPosition[1]}
               onDrag={handleDrag}
               onDragEnd={handleDragEnd}
             />

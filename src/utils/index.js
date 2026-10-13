@@ -88,6 +88,42 @@ export const getCoordinateMapOptions = (prop) => {
   return { minZoom, maxZoom, defaultZoom, maxBounds }
 }
 
+// While dragging a point on a popup map (`latLngPath`/`latLngMap`), the map
+// auto-pans once the point nears the container's edge, so the destination
+// doesn't need to already be in view. This is entirely our own logic -
+// Mapbox has no built-in auto-pan-while-dragging behavior - so the speed
+// curve is ours to tune. It scales with how deep into the edge zone the
+// point is, continuing to ramp up (up to `EDGE_PAN_MAX_FACTOR`x) even past
+// the container's edge, since a drag (or a finger, on touch) is frequently
+// held or moving beyond it.
+export const EDGE_PAN_THRESHOLD_PX = 40
+export const EDGE_PAN_MAX_SPEED_PX = 12
+export const EDGE_PAN_MAX_FACTOR = 3
+
+export const computeEdgePan = (pixel, width, height) => {
+  const edgeFactor = (distance) =>
+    Math.max(
+      0,
+      Math.min(
+        EDGE_PAN_MAX_FACTOR,
+        (EDGE_PAN_THRESHOLD_PX - distance) / EDGE_PAN_THRESHOLD_PX
+      )
+    )
+  let panX = 0
+  let panY = 0
+  if (pixel.x < EDGE_PAN_THRESHOLD_PX) {
+    panX = -EDGE_PAN_MAX_SPEED_PX * edgeFactor(pixel.x)
+  } else if (pixel.x > width - EDGE_PAN_THRESHOLD_PX) {
+    panX = EDGE_PAN_MAX_SPEED_PX * edgeFactor(width - pixel.x)
+  }
+  if (pixel.y < EDGE_PAN_THRESHOLD_PX) {
+    panY = -EDGE_PAN_MAX_SPEED_PX * edgeFactor(pixel.y)
+  } else if (pixel.y > height - EDGE_PAN_THRESHOLD_PX) {
+    panY = EDGE_PAN_MAX_SPEED_PX * edgeFactor(height - pixel.y)
+  }
+  return [panX, panY]
+}
+
 const getQuantiles = R.curry((n, values) => {
   const percentiles = R.times((i) => i / (n - 1), n)
   return R.map((pct) => quantileSorted(values, pct))(percentiles)

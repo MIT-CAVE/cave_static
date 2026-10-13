@@ -1,4 +1,10 @@
-import { ClickAwayListener, Popper, Stack, ToggleButton } from '@mui/material'
+import {
+  Box,
+  ClickAwayListener,
+  Popper,
+  Stack,
+  ToggleButton,
+} from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import {
@@ -11,7 +17,10 @@ import {
 import { TfiMapAlt } from 'react-icons/tfi'
 import { useSelector } from 'react-redux'
 
+import { CoordinateReadout, CoordinateToggleButton } from './CoordinateReadout'
+
 import { selectMapboxToken } from '../../data/selectors'
+import { useCoordinateReadout, useDragAutoPan } from '../../utils/hooks'
 import NumberField from '../prototypes/NumberField'
 import useMapApi from '../views/map/useMapApi'
 
@@ -38,6 +47,14 @@ const styles = {
     borderRadius: '4px',
     border: '1px solid rgb(128 128 128)',
     boxSizing: 'border-box',
+  },
+  mapControls: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 1,
+    display: 'flex',
+    gap: 1,
   },
 }
 
@@ -84,6 +101,13 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   const mapboxToken = useSelector(selectMapboxToken)
 
   const containerRef = useRef(null)
+  const mapRef = useRef(null)
+  // `mapRef.current` (the ref `react-map-gl`/`@vis.gl/react-mapbox` forwards)
+  // is already a wrapper exposing `.project`/`.unproject`/`.getCenter`/
+  // `.getContainer`/etc. directly off the real, library-managed camera -
+  // there's no separate "raw" map to unwrap to via `.getMap()`, so just use
+  // the wrapper as-is.
+  const getMap = useCallback(() => mapRef.current, [])
   const mapOpenKey = `cave.latLngMap.mapOpen.${prop.id ?? prop.name}`
   const [showMap, setShowMapState] = useState(() => readStoredFlag(mapOpenKey))
   const setShowMap = (open) => {
@@ -92,6 +116,27 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
   }
 
   const mapStyle = prop.mapStyle ?? 'mapbox://styles/mapbox/dark-v11'
+
+  const coordsKey = `cave.latLngMap.showCoords.${prop.id ?? prop.name}`
+  const {
+    coordsEnabled,
+    setCoordsEnabled,
+    cursorPosition,
+    cursorDisplayRef,
+    handleMapMouseMove,
+    handleMapMouseLeave,
+  } = useCoordinateReadout(coordsKey)
+
+  const { dragPosition, suppressClickAwayRef, registerDrag, endDrag } =
+    useDragAutoPan({ getMap, setViewState })
+  // While a drag is in progress, the dragged marker's rendered position is
+  // driven by this instead of `value` - the underlying Marker wrapper
+  // forcibly re-syncs to its `longitude`/`latitude` props on every render
+  // (not just on mount), so leaving it pointed at the stale `value` while
+  // other state changes mid-drag (e.g. `viewState` updating from the
+  // auto-pan loop) would fight the live drag and snap the marker back to
+  // where it started.
+  const markerPosition = dragPosition ?? value
 
   const { ReactMapGl, Marker, NavigationControl } = useMapApi()
 
@@ -110,14 +155,32 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
     onChange([newValue])
   }
 
-  const handleDragEnd = useCallback(
+  const handleDrag = useCallback(
     (event) => {
       if (!enabled) return
-      onChange([[event.lngLat.lng, event.lngLat.lat]])
-      setValue([event.lngLat.lng, event.lngLat.lat])
-      setViewState({ latitude: event.lngLat.lat, longitude: event.lngLat.lng })
+      registerDrag(event, [event.lngLat.lng, event.lngLat.lat])
     },
-    [enabled, onChange]
+    [enabled, registerDrag]
+  )
+
+  const handleDragEnd = useCallback(
+    (event) => {
+      endDrag()
+      if (!enabled) return
+      // Clamped here, at drop time, same as the manual-entry commit above -
+      // auto-pan makes it routine to drag well past `maxBounds`, and
+      // clamping only the final value (not mid-drag) avoids feeding a
+      // bounded position back into the pan/delta math driving the camera
+      // and the live marker.
+      const bounded = [
+        R.clamp(lngMin, lngMax, event.lngLat.lng),
+        R.clamp(latMin, latMax, event.lngLat.lat),
+      ]
+      onChange([bounded])
+      setValue(bounded)
+      setViewState({ latitude: bounded[1], longitude: bounded[0] })
+    },
+    [enabled, endDrag, latMax, latMin, lngMax, lngMin, onChange]
   )
   return (
     <Stack
@@ -130,6 +193,10 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
         onClickAway={(event) => {
           // TODO: Find a better workaround for https://github.com/mui/material-ui/issues/25578.
           if (sessionStorage.getItem('mui-select-open-flag') === '1') return
+          if (suppressClickAwayRef.current) {
+            suppressClickAwayRef.current = false
+            return
+          }
           if (isEventInside(event, containerRef.current)) return
           setShowMap(false)
         }}
@@ -145,16 +212,32 @@ const PropLatLngMap = ({ prop, currentVal, sx = [], onChange }) => {
           }}
         >
           <ReactMapGl
+            ref={mapRef}
             mapboxAccessToken={mapboxToken}
             style={styles.map}
             {...{ mapStyle, minZoom, maxZoom, maxBounds, ...viewState }}
             onMove={(event) => setViewState(event.viewState)}
+            onMouseMove={handleMapMouseMove}
+            onMouseLeave={handleMapMouseLeave}
           >
+            <Box sx={styles.mapControls}>
+              <CoordinateToggleButton
+                enabled={enabled}
+                selected={coordsEnabled}
+                onToggle={setCoordsEnabled}
+              />
+            </Box>
+            <CoordinateReadout
+              active={Boolean(cursorPosition)}
+              position={cursorDisplayRef.current}
+              numberFormatProps={numberFormatProps}
+            />
             <Marker
               draggable={enabled}
               anchor="center"
-              longitude={value[0]}
-              latitude={value[1]}
+              longitude={markerPosition[0]}
+              latitude={markerPosition[1]}
+              onDrag={handleDrag}
               onDragEnd={handleDragEnd}
             />
             <NavigationControl />
