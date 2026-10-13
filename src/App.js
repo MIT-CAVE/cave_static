@@ -48,10 +48,22 @@ const styles = {
     minWidth: 0,
     minHeight: 0,
   },
-  content: {
+  // Wraps everything below DockBar (Dashboard, Panes, AppModal, Draggables).
+  // `contain: 'layout'` makes this box the containing block for every
+  // `position: fixed` descendant (CSS Containment spec) — Drawer's paper
+  // (wall panes), Modal's root, etc. — so they all anchor here, i.e. below
+  // the dock bar, instead of to the viewport. This is one general fix
+  // instead of a per-component `position`/`top` override.
+  workspace: {
     position: 'relative',
+    contain: 'layout',
     flex: '1 1 auto',
     minHeight: 0,
+    minWidth: 0,
+  },
+  content: {
+    position: 'relative',
+    height: '100%',
     minWidth: 0,
     overflow: 'hidden',
   },
@@ -201,12 +213,14 @@ const App = () => {
 
               <ErrorBoundary fallback={<SessionPane />}>
                 {anyDraggableDocked && <DockBar />}
-                <Box sx={styles.content}>
-                  <Dashboard />
+                <Box sx={styles.workspace}>
+                  <Box sx={styles.content}>
+                    <Dashboard />
+                  </Box>
+                  <Panes />
+                  <AppModal />
+                  <Draggables />
                 </Box>
-                <Panes />
-                <AppModal />
-                <Draggables />
               </ErrorBoundary>
             </Box>
           </LocalizationProvider>

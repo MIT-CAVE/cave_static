@@ -1,6 +1,5 @@
 import { Box, Drawer, IconButton, Stack, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 import { MdPushPin, MdOutlinePushPin } from 'react-icons/md'
 
 import FetchedIcon from './FetchedIcon'
@@ -57,14 +56,7 @@ const PaneRoot = ({
   ...props
 }) => (
   <Drawer
-    sx={[
-      R.assocPath(
-        ['& .MuiDrawer-paper', side],
-        `${APP_BAR_WIDTH + 1}px`,
-        styles.drawer
-      ),
-      ...forceArray(sx),
-    ]}
+    sx={[styles.drawer, ...forceArray(sx)]}
     anchor={side}
     variant={open ? 'permanent' : 'persistent'} // 'temporary'
     {...{ disabled, elevation, open, ...props }}
