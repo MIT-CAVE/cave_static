@@ -37,6 +37,7 @@ export const propVariant = {
   COLUMN: 'column',
   DATE: 'date',
   DATETIME: 'datetime',
+  AUDIO: 'audio',
   COMBOBOX: 'combobox',
   COMBOBOX_MULTI: 'comboboxMulti',
   DROPDOWN: 'dropdown',

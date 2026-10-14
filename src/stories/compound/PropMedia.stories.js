@@ -1,5 +1,6 @@
 import React from 'react'
 
+import PropAudio from '../../ui/compound/PropAudio'
 import PropPicture from '../../ui/compound/PropPicture'
 import PropVideo from '../../ui/compound/PropVideo'
 
@@ -106,4 +107,16 @@ export const PictureWideFitWidth = {
   render: pictureRender,
   decorators: [fixedCell],
   args: pictureArgs(wideUrl, 'fitWidth'),
+}
+
+export const Audio = {
+  render: (args) => <PropAudio {...args} />,
+  args: {
+    prop: {
+      // Satie's "Gymnopédie No. 1" (CC0, Wikimedia Commons)
+      value:
+        'https://upload.wikimedia.org/wikipedia/commons/b/b7/Gymnopedie_No._1..ogg',
+      helperText: 'Erik Satie: Gymnopédie No. 1',
+    },
+  },
 }

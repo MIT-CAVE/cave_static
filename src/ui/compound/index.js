@@ -6,6 +6,7 @@ export {
   PropButtonOutlined,
   PropButtonText,
 } from './PropButton'
+export { default as PropAudio } from './PropAudio'
 export { PropDate, PropDateTime, PropTime } from './PropDate'
 export { PropHeadColumn, PropHeadRow } from './PropHead'
 export { PropText, PropTextArea } from './PropText'

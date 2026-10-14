@@ -10,6 +10,7 @@ import {
 } from '../../../utils/enums'
 
 import {
+  PropAudio,
   PropCheckbox,
   PropComboBox,
   PropComboBoxMulti,
@@ -68,6 +69,7 @@ const getTogglePropRenderFn = R.cond([
   [R.T, invalidVariant('toggle')],
 ])
 const getMediaPropRenderFn = R.cond([
+  [R.equals(propVariant.AUDIO), R.always(PropAudio)],
   [R.equals(propVariant.PICTURE), R.always(PropPicture)],
   [R.equals(propVariant.VIDEO), R.always(PropVideo)],
   [R.T, invalidVariant('media')],
