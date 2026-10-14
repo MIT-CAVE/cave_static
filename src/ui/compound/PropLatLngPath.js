@@ -143,6 +143,7 @@ const displayPath = (
         return (
           <Chip
             key={idx}
+            disabled={!enabled}
             avatar={<Avatar>{idx + 1}</Avatar>}
             label={`(${NumberFormat.format(lat, numberFormatProps)}, ${NumberFormat.format(lng, numberFormatProps)})`}
             color={selected ? 'primary' : 'default'}
