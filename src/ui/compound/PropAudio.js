@@ -43,7 +43,9 @@ const PropAudio = ({
       aria-label={helperText}
       sx={styles.audio}
     />
-    {helperText && <FormHelperText>{helperText}</FormHelperText>}
+    {helperText && (
+      <FormHelperText sx={{ pt: 0.75, pl: 1 }}>{helperText}</FormHelperText>
+    )}
   </Box>
 )
 PropAudio.propTypes = {
