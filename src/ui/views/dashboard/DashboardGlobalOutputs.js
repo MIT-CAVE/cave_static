@@ -68,24 +68,32 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const actualGlobalOutputRaw = forcePath(
     R.propOr([], 'globalOutput', chartObj)
   )
-  const globalOutputData = R.pipe(
-    R.values,
-    R.head,
-    R.pathOr({}, ['data', 'globalOutputs', 'props']),
-    R.pick(actualGlobalOutputRaw)
-  )(globalOutputs)
+  const associatedProps = R.pathOr(
+    {},
+    ['data', 'globalOutputs', 'props'],
+    R.head(R.values(globalOutputs))
+  )
+  const allProps = R.mergeRight(R.propOr({}, 'props', items), associatedProps)
+  const globalOutputData = R.pick(actualGlobalOutputRaw, allProps)
 
-  const selectedGlobalOutputKeys = R.keys(globalOutputData)
+  const selectedGlobalOutputKeys = actualGlobalOutputRaw.filter(
+    (key) => globalOutputData[key] != null
+  )
 
   const tableData = formattedGlobalOutputs.map((session) => {
+    if (Array.isArray(session.value) && !session.children) {
+      return session
+    }
     const valuesById = Object.fromEntries(
-      session.children.map(({ id, value }) => [id, value[0]])
+      (session.children || []).map(({ id, value }) => [id, value[0]])
     )
     return {
       name: session.name,
-      value: selectedGlobalOutputKeys.map(
-        (key) => valuesById[globalOutputData[key]?.id ?? key] ?? null
-      ),
+      value: Array.isArray(session.value)
+        ? session.value
+        : selectedGlobalOutputKeys.map(
+            (key) => valuesById[globalOutputData[key]?.id ?? key] ?? null
+          ),
     }
   })
 

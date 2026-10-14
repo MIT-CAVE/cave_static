@@ -496,6 +496,92 @@ describe('Chart Data Serializers', () => {
         },
       ])
     })
+
+    it('serializes global outputs for Table charts without children and aligned values', () => {
+      const globalOutputFunc = selectMemoizedGlobalOutputFunc(mockState)
+      const chartObj = {
+        chartType: chartVariant.TABLE,
+        globalOutput: ['kpiRevenue', 'kpiCost'],
+        sessions: ['Scenario A', 'Scenario B'],
+      }
+
+      const result = globalOutputFunc(chartObj)
+      expect(result).toEqual([
+        {
+          name: 'Scenario A',
+          value: [1000, 600],
+        },
+        {
+          name: 'Scenario B',
+          value: [1200, 700],
+        },
+      ])
+    })
+
+    it('preserves alignment with null when a session is missing a global output in Table chart', () => {
+      const stateWithMissingKpi = {
+        data: {
+          associated: {
+            data: {
+              session_1: {
+                name: 'Scenario A',
+                data: {
+                  globalOutputs: {
+                    props: {
+                      kpiRevenue: {
+                        id: 'kpiRevenue',
+                        name: 'Total Revenue',
+                        value: 1000,
+                      },
+                      kpiCost: {
+                        id: 'kpiCost',
+                        name: 'Total Cost',
+                        value: 600,
+                      },
+                    },
+                  },
+                },
+              },
+              session_2: {
+                name: 'Scenario B',
+                data: {
+                  globalOutputs: {
+                    props: {
+                      // kpiRevenue is missing
+                      kpiCost: {
+                        id: 'kpiCost',
+                        name: 'Total Cost',
+                        value: 700,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      const globalOutputFunc =
+        selectMemoizedGlobalOutputFunc(stateWithMissingKpi)
+      const chartObj = {
+        chartType: chartVariant.TABLE,
+        globalOutput: ['kpiRevenue', 'kpiCost'],
+        sessions: ['Scenario A', 'Scenario B'],
+      }
+
+      const result = globalOutputFunc(chartObj)
+      expect(result).toEqual([
+        {
+          name: 'Scenario A',
+          value: [1000, 600],
+        },
+        {
+          name: 'Scenario B',
+          value: [null, 700],
+        },
+      ])
+    })
   })
 
   describe('7. Chart Utilities and Edge Case Defensive Handling', () => {

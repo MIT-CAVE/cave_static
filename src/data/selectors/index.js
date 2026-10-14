@@ -2445,6 +2445,7 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
         const selectedGlobalOutputs = forcePath(obj?.globalOutput ?? [])
         const sessionsFilter = obj?.sessions ?? []
         const formattedGlobalOutputs = []
+        const isMultiStat = obj?.chartType in chartStatUses
 
         if (associatedData) {
           for (const val of Object.values(associatedData)) {
@@ -2453,30 +2454,47 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
               const props = globalOutputs?.props ?? {}
               const values = globalOutputs?.values ?? {}
               const combined = addValuesToProps(props, values)
-              const children = []
-              for (let i = 0; i < selectedGlobalOutputs.length; i++) {
-                const k = selectedGlobalOutputs[i]
-                const item = combined[k]
-                if (item && item.value != null) {
-                  let numVal = item.value
-                  if (typeof numVal === 'string' && numVal.includes(',')) {
-                    numVal = numVal.replace(/,/g, '')
-                  }
-                  children.push({
-                    id: item.id ?? k,
-                    name: item.name || item.id || k,
-                    value: [parseFloat(numVal)],
-                  })
+              if (isMultiStat) {
+                const sessionItem = {
+                  name: val.name,
+                  value: selectedGlobalOutputs.map((k) => {
+                    const item = combined[k]
+                    if (item == null || item.value == null) return null
+                    let numVal = item.value
+                    if (typeof numVal === 'string') {
+                      numVal = numVal.replace(/,/g, '')
+                    }
+                    const parsed = parseFloat(numVal)
+                    return isNaN(parsed) ? null : parsed
+                  }),
                 }
+                formattedGlobalOutputs.push(sessionItem)
+              } else {
+                const children = []
+                for (let i = 0; i < selectedGlobalOutputs.length; i++) {
+                  const k = selectedGlobalOutputs[i]
+                  const item = combined[k]
+                  if (item && item.value != null) {
+                    let numVal = item.value
+                    if (typeof numVal === 'string' && numVal.includes(',')) {
+                      numVal = numVal.replace(/,/g, '')
+                    }
+                    const parsed = parseFloat(numVal)
+                    if (!isNaN(parsed)) {
+                      children.push({
+                        id: item.id ?? k,
+                        name: item.name || item.id || k,
+                        value: [parsed],
+                      })
+                    }
+                  }
+                }
+                const sessionItem = {
+                  name: val.name,
+                  children,
+                }
+                formattedGlobalOutputs.push(sessionItem)
               }
-              const sessionItem = {
-                name: val.name,
-                children,
-              }
-              if (obj?.chartType in chartStatUses) {
-                sessionItem.value = children.flatMap((c) => c.value)
-              }
-              formattedGlobalOutputs.push(sessionItem)
             }
           }
         }
@@ -2487,6 +2505,13 @@ export const selectMemoizedGlobalOutputFunc = createSelector(
             let sum = 0
             for (let i = 0; i < item.children.length; i++) {
               sum += getValue(item.children[i])
+            }
+            return sum
+          }
+          if (Array.isArray(item?.value)) {
+            let sum = 0
+            for (let i = 0; i < item.value.length; i++) {
+              sum += item.value[i] || 0
             }
             return sum
           }
