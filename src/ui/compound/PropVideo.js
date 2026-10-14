@@ -1,8 +1,6 @@
 import { Box, FormHelperText } from '@mui/material'
 import PropTypes from 'prop-types'
 
-import { getScaleModeStyle } from '../../utils/mediaScaleMode'
-
 import { forceArray } from '../../utils'
 
 const styles = {
@@ -24,6 +22,12 @@ const styles = {
   },
 }
 
+const scaleModeStyles = {
+  fitWidth: { maxWidth: '100%', width: '100%' },
+  fitHeight: { maxHeight: '100%', height: '100%' },
+  fitContainer: { height: '100%', width: '100%' },
+}
+
 const PropVideo = ({
   prop: { value: url, scaleMode, fullWidth, helperText, propStyle = [] },
   sx = [],
@@ -31,7 +35,8 @@ const PropVideo = ({
   <Box
     sx={[
       styles.root,
-      getScaleModeStyle({ scaleMode, fullWidth }),
+      // `scaleMode` takes precedence over `fullWidth`
+      scaleModeStyles[scaleMode ?? (fullWidth ? 'fitWidth' : undefined)],
       ...forceArray(sx),
       ...forceArray(propStyle),
     ]}

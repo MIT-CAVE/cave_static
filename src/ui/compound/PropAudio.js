@@ -1,8 +1,6 @@
 import { Box, FormHelperText } from '@mui/material'
 import PropTypes from 'prop-types'
 
-import { getScaleModeStyle } from '../../utils/mediaScaleMode'
-
 import { forceArray } from '../../utils'
 
 const styles = {
@@ -21,17 +19,15 @@ const styles = {
 
 const defaultWidth = { width: '300px' }
 
-// Audio height is fixed by the native controls, so only the width is flexible
+// Audio height is fixed by the native controls, so only `fullWidth` applies
 const PropAudio = ({
-  prop: { value: url, scaleMode, fullWidth, helperText, propStyle = [] },
+  prop: { value: url, fullWidth, helperText, propStyle = [] },
   sx = [],
 }) => (
   <Box
     sx={[
       styles.root,
-      getScaleModeStyle({ scaleMode, fullWidth }) != null
-        ? { width: '100%' }
-        : defaultWidth,
+      fullWidth ? { width: '100%' } : defaultWidth,
       ...forceArray(sx),
       ...forceArray(propStyle),
     ]}

@@ -69,7 +69,7 @@ const PropPicture = ({
   const frameRef = useRef(null)
   const helperRef = useRef(null)
 
-  // `scaleMode` takes precedence over `fullWidth` (alias of `fitWidth`)
+  // `scaleMode` takes precedence over `fullWidth`, which is equivalent to `fitWidth`
   const mode = scaleMode ?? (fullWidth ? 'fitWidth' : undefined)
   const isScaled = mode in scaleModeRootStyles
 
