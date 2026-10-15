@@ -6,6 +6,7 @@ import {
 import dayjs from 'dayjs'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
+import { useState } from 'react'
 
 import { forceArray } from '../../utils'
 
@@ -22,18 +23,26 @@ const DateTimeBase = ({
   currentVal,
   format,
   parseFormat,
+  valueFormat,
   sx = [],
   onChange,
 }) => {
   const value = R.defaultTo(defaultValue)(currentVal)
+  // Intermediate selections are held locally and only committed on accept.
+  // The draft is tied to the value it was made from, so it is discarded as
+  // soon as the incoming value changes.
+  const [draft, setDraft] = useState(null)
+  const pickerValue =
+    draft?.base === value ? draft.picked : dayjs(value, parseFormat)
   return (
     <Component
       disabled={!enabled}
-      value={dayjs(value, parseFormat)}
+      value={pickerValue}
       sx={[...forceArray(sx), propStyle]}
       slotProps={{ textField: { fullWidth } }}
-      {...{ readOnly, views, format, onChange }}
-      onAccept={onChange}
+      {...{ readOnly, views, format }}
+      onChange={(val) => setDraft({ base: value, picked: val })}
+      onAccept={(picked) => onChange(picked.format(valueFormat))}
     />
   )
 }
@@ -43,6 +52,7 @@ DateTimeBase.propTypes = {
   currentVal: PropTypes.string,
   format: PropTypes.string,
   parseFormat: PropTypes.string,
+  valueFormat: PropTypes.string,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -53,18 +63,30 @@ DateTimeBase.propTypes = {
   onChange: PropTypes.func,
 }
 
+// NOTE: `valueFormat` is the string format the server stores and validates
 const PropDate = (props) => (
-  <DateTimeBase component={DatePicker} format="MM-DD-YYYY" {...props} />
+  <DateTimeBase
+    component={DatePicker}
+    format="MM-DD-YYYY"
+    valueFormat="YYYY-MM-DD"
+    {...props}
+  />
 )
 
 const PropTime = (props) => (
-  <DateTimeBase component={TimePicker} parseFormat="HH:mm:ss" {...props} />
+  <DateTimeBase
+    component={TimePicker}
+    parseFormat="HH:mm:ss"
+    valueFormat="HH:mm:ss"
+    {...props}
+  />
 )
 
 const PropDateTime = (props) => (
   <DateTimeBase
     component={DateTimePicker}
     format="MM-DD-YYYY hh:mm:ss A"
+    valueFormat="YYYY-MM-DD[T]HH:mm:ss"
     {...props}
   />
 )

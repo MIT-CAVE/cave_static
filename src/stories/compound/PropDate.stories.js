@@ -60,10 +60,10 @@ export const DateTime = {
   args: {
     prop: {
       enabled: true,
-      value: '2026-07-09 09:00:00',
+      value: '2026-07-09T09:00:00',
       readOnly: false,
     },
-    currentVal: '2026-07-09 09:00:00',
+    currentVal: '2026-07-09T09:00:00',
     onChange: () => {},
   },
 }
