@@ -126,3 +126,112 @@ export const Disabled = {
   },
   play: undefined,
 }
+
+export const DateWithBounds = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: {
+      ...Date.args.prop,
+      label: 'Delivery date',
+      minDate: '2026-07-05',
+      maxDate: '2026-07-20',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(dialog.getByRole('gridcell', { name: '4' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '10' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '21' })).toBeDisabled()
+  },
+}
+
+// NOTE: Bounds accept several formats, including a full date-time string
+export const DateWithFlexibleBounds = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: {
+      ...Date.args.prop,
+      minDate: '2026-07-05T00:00:00',
+      maxDate: '2026-07-20 12:00:00',
+    },
+  },
+  play: undefined,
+}
+
+export const DateDisablePast = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: { ...Date.args.prop, disablePast: true },
+  },
+  play: undefined,
+}
+
+export const TimeWithBounds = {
+  ...Time,
+  args: {
+    ...Time.args,
+    prop: { ...Time.args.prop, minTime: '09:00', maxTime: '17:00:00' },
+  },
+}
+
+export const DateTimeWithBounds = {
+  ...DateTime,
+  args: {
+    ...DateTime.args,
+    prop: {
+      ...DateTime.args.prop,
+      label: 'Appointment',
+      minDate: '2026-07-05',
+      maxDate: '2026-07-20',
+      minTime: '09:00',
+      maxTime: '17:00',
+    },
+  },
+}
+
+// NOTE: Unlike `minDate` with `minTime`, which limit the day and the time of
+// day independently, these are a single cutoff. So, `08:00` on the 6th can
+// still be selected, but nothing before `09:00` on the 5th.
+export const DateTimeWithDateTimeBounds = {
+  ...DateTime,
+  args: {
+    ...DateTime.args,
+    prop: {
+      ...DateTime.args.prop,
+      minDateTime: '2026-07-05T09:00:00',
+      maxDateTime: '2026-07-20 17:00:00',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(dialog.getByRole('gridcell', { name: '4' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '5' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '20' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '21' })).toBeDisabled()
+  },
+}
+
+// NOTE: A date-only string has no time, so it is ignored
+export const DateTimeWithInvalidDateTimeBound = {
+  ...DateTime,
+  args: {
+    ...DateTime.args,
+    prop: { ...DateTime.args.prop, minDateTime: '2026-07-05' },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(dialog.getByRole('gridcell', { name: '4' })).toBeEnabled()
+  },
+}

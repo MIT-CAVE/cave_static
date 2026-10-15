@@ -42,6 +42,7 @@ export default defineConfig((env) => {
           'react',
           'react-dom',
           '@mui/x-data-grid',
+          'dayjs/plugin/customParseFormat',
           'earcut',
           'echarts-for-react/lib/core',
           'echarts/charts',
