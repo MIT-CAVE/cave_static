@@ -24,6 +24,7 @@ const DateTimeBase = ({
   format,
   parseFormat,
   valueFormat,
+  defaultViews,
   sx = [],
   onChange,
 }) => {
@@ -40,7 +41,8 @@ const DateTimeBase = ({
       value={pickerValue}
       sx={[...forceArray(sx), propStyle]}
       slotProps={{ textField: { fullWidth } }}
-      {...{ readOnly, views, format }}
+      views={R.defaultTo(defaultViews)(views)}
+      {...{ readOnly, format }}
       onChange={(val) => setDraft({ base: value, picked: val })}
       onAccept={(picked) => onChange(picked.format(valueFormat))}
     />
@@ -53,6 +55,7 @@ DateTimeBase.propTypes = {
   format: PropTypes.string,
   parseFormat: PropTypes.string,
   valueFormat: PropTypes.string,
+  defaultViews: PropTypes.arrayOf(PropTypes.string),
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -63,12 +66,15 @@ DateTimeBase.propTypes = {
   onChange: PropTypes.func,
 }
 
-// NOTE: `valueFormat` is the string format the server stores and validates
+// NOTE:
+// - `valueFormat` is the string format the server stores and validates
+// - `defaultViews` match the defaults documented in `cave_utils`
 const PropDate = (props) => (
   <DateTimeBase
     component={DatePicker}
     format="MM-DD-YYYY"
     valueFormat="YYYY-MM-DD"
+    defaultViews={['year', 'day']}
     {...props}
   />
 )
@@ -78,6 +84,7 @@ const PropTime = (props) => (
     component={TimePicker}
     parseFormat="HH:mm:ss"
     valueFormat="HH:mm:ss"
+    defaultViews={['hours', 'minutes']}
     {...props}
   />
 )
@@ -87,6 +94,7 @@ const PropDateTime = (props) => (
     component={DateTimePicker}
     format="MM-DD-YYYY hh:mm:ss A"
     valueFormat="YYYY-MM-DD[T]HH:mm:ss"
+    defaultViews={['year', 'day', 'hours', 'minutes']}
     {...props}
   />
 )
