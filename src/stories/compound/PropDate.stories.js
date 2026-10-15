@@ -1,5 +1,6 @@
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import dayjs from 'dayjs'
 import React from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
@@ -234,4 +235,51 @@ export const DateTimeWithInvalidDateTimeBound = {
     const dialog = within(await within(document.body).findByRole('dialog'))
     await expect(dialog.getByRole('gridcell', { name: '4' })).toBeEnabled()
   },
+}
+
+// NOTE: These two timezones are 25 hours apart, so their calendar dates always
+// differ. With `disableFuture`, the day that is "today" in the further ahead
+// zone is only in the future for the zone that is behind.
+const AHEAD_ZONE = 'Pacific/Kiritimati' // UTC+14
+const BEHIND_ZONE = 'Pacific/Pago_Pago' // UTC-11
+
+const getAheadToday = () => dayjs().tz(AHEAD_ZONE).format('YYYY-MM-DD')
+
+const timezoneStory = (timezone, isTodayDisabled) => ({
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: {
+      ...Date.args.prop,
+      value: getAheadToday(),
+      timezone,
+      disableFuture: true,
+    },
+    currentVal: getAheadToday(),
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    const aheadDay = dayjs(getAheadToday()).format('D')
+    const cell = dialog.getByRole('gridcell', { name: aheadDay })
+    await (isTodayDisabled
+      ? expect(cell).toBeDisabled()
+      : expect(cell).toBeEnabled())
+  },
+})
+
+export const DisableFutureInSameTimezone = timezoneStory(AHEAD_ZONE, false)
+
+export const DisableFutureInBehindTimezone = timezoneStory(BEHIND_ZONE, true)
+
+// NOTE: An unknown timezone is ignored, using the browser's timezone
+export const InvalidTimezone = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: { ...Date.args.prop, timezone: 'Mars/Olympus_Mons' },
+  },
+  play: undefined,
 }
