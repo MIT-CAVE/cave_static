@@ -19,6 +19,7 @@ const DEFAULT_SIZE = '18px'
 const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
   const {
     enabled,
+    readOnly,
     options,
     placeholder,
     helperText,
@@ -98,6 +99,7 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
       options={optionsList}
       sx={[...forceArray(sx), propStyle]}
       {...{
+        readOnly,
         indexedOptions,
         value,
         placeholder,

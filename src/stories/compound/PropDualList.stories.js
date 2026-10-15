@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
+import { expect, fn, within } from 'storybook/test'
 
 import PropDualList from '../../ui/compound/PropDualList'
 
@@ -48,6 +49,10 @@ const mockOptions = {
   opt12: { name: 'Nectarine', color: '#ff5722', icon: 'md/MdApple' },
 }
 
+// NOTE: The tooltip's label is on the span that wraps the button
+const getTransferButton = (canvas, title) =>
+  within(canvas.getByLabelText(title)).getByRole('button')
+
 export const Standard = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)
@@ -74,6 +79,13 @@ export const Standard = {
     },
     currentVal: ['opt1', 'opt2', 'opt3'],
     onChange: () => {},
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getAllByTitle('Add item').length).toBeGreaterThan(0)
+    await expect(
+      getTransferButton(canvas, 'Move all to selected')
+    ).toBeEnabled()
   },
 }
 
@@ -130,5 +142,27 @@ export const Disabled = {
     },
     currentVal: ['opt1', 'opt2'],
     onChange: () => {},
+  },
+}
+
+export const ReadOnly = {
+  ...Standard,
+  args: {
+    ...Standard.args,
+    prop: { ...Standard.args.prop, readOnly: true },
+    onChange: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.queryAllByTitle(/^(Add|Remove) item$/)).toHaveLength(0)
+    for (const name of [
+      'Move all to selected',
+      'Move checked to selected',
+      'Move checked to available',
+      'Remove all selected',
+    ]) {
+      await expect(getTransferButton(canvas, name)).toBeDisabled()
+    }
+    await expect(args.onChange).not.toHaveBeenCalled()
   },
 }

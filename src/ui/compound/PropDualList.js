@@ -16,6 +16,7 @@ import {
 const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
   const {
     enabled,
+    readOnly,
     options,
     availableTitle,
     selectedTitle,
@@ -56,6 +57,7 @@ const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
       value={currentVal ?? prop.value ?? []}
       sx={[...forceArray(sx), propStyle]}
       {...{
+        readOnly,
         availableTitle,
         selectedTitle,
         height,

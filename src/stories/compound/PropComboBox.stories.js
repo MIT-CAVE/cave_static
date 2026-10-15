@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import React from 'react'
 import { Provider } from 'react-redux'
+import { expect, fn, userEvent, within } from 'storybook/test'
 
 import PropComboBox from '../../ui/compound/PropComboBox'
 import PropComboBoxMulti from '../../ui/compound/PropComboBoxMulti'
@@ -90,6 +91,28 @@ export const Single = {
     currentVal: ['opt1'],
     onChange: () => {},
   },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('combobox'))
+    await expect(
+      await within(document.body).findByRole('listbox')
+    ).toBeVisible()
+  },
+}
+
+export const SingleReadOnly = {
+  ...Single,
+  args: {
+    ...Single.args,
+    prop: { ...Single.args.prop, readOnly: true },
+    onChange: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const input = within(canvasElement).getByRole('combobox')
+    await expect(input).toHaveAttribute('readonly')
+    await userEvent.click(input)
+    await expect(within(document.body).queryByRole('listbox')).toBeNull()
+    await expect(args.onChange).not.toHaveBeenCalled()
+  },
 }
 
 export const Multi = {
@@ -120,6 +143,27 @@ export const Multi = {
     },
     currentVal: ['opt1', 'opt2'],
     onChange: () => {},
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByText(/Apple/))
+    // Only unselected options are exclusive to the open popup
+    await expect(
+      await within(document.body).findByText('Cherry')
+    ).toBeInTheDocument()
+  },
+}
+
+export const MultiReadOnly = {
+  ...Multi,
+  args: {
+    ...Multi.args,
+    prop: { ...Multi.args.prop, readOnly: true },
+    onChange: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByText(/Apple/))
+    await expect(within(document.body).queryByText('Cherry')).toBeNull()
+    await expect(args.onChange).not.toHaveBeenCalled()
   },
 }
 

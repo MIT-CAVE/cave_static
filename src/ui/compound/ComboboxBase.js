@@ -71,7 +71,7 @@ const ComboboxBase = ({
     handleSelectionChange,
   } = useVirtualKeyboard({
     keyboardLayout: 'default',
-    disabled,
+    disabled: disabled || readOnly,
     onBlur: () => {
       // component-specific blur logic
       setKeyboardValue(valueName)
@@ -304,6 +304,7 @@ const ComboboxBase = ({
       inputValue={valueText ?? ''}
       {...{
         disabled,
+        readOnly,
         options,
         value,
         fullWidth,

@@ -16,6 +16,7 @@ import {
 const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
   const {
     enabled,
+    readOnly,
     options,
     placeholder,
     helperText,
@@ -59,6 +60,7 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
       numVisibleTags={numVisibleTags}
       sx={[...forceArray(sx), propStyle]}
       {...{
+        readOnly,
         indexedOptions,
         placeholder,
         helperText,
