@@ -283,3 +283,59 @@ export const InvalidTimezone = {
   },
   play: undefined,
 }
+
+export const DateOpensToYear = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: {
+      ...Date.args.prop,
+      views: ['year', 'month', 'day'],
+      defaultView: 'year',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(
+      await dialog.findByRole('radio', { name: '2026' })
+    ).toBeInTheDocument()
+    await expect(dialog.queryAllByRole('gridcell')).toHaveLength(0)
+  },
+}
+
+export const TimeOpensToMinutes = {
+  ...Time,
+  args: {
+    ...Time.args,
+    prop: { ...Time.args.prop, defaultView: 'minutes' },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose time/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    const [firstOption] = await dialog.findAllByRole('option')
+    await expect(firstOption.getAttribute('aria-label')).toMatch(/minutes/)
+  },
+}
+
+// NOTE: A `defaultView` that isn't one of the `views` is ignored
+export const DefaultViewNotInViews = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: { ...Date.args.prop, defaultView: 'hours' },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(
+      await dialog.findByRole('gridcell', { name: '9' })
+    ).toBeInTheDocument()
+  },
+}

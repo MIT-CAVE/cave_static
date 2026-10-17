@@ -50,7 +50,7 @@ const toTimezone = (date, timezone) =>
     : date
 
 const parseBound = (bound, key, timezone) => {
-  const formats = R.includes(key, DATETIME_BOUND_KEYS)
+  const formats = R.includes(key)(DATETIME_BOUND_KEYS)
     ? DATETIME_BOUND_FORMATS
     : BOUND_FORMATS
   const parsed = dayjs(bound, formats, true)
@@ -63,7 +63,7 @@ const getConstraints = (prop, keys, timezone) =>
   R.pipe(
     R.pick(keys),
     R.mapObjIndexed((bound, key) =>
-      R.is(String, bound) ? parseBound(bound, key, timezone) : bound
+      R.is(String)(bound) ? parseBound(bound, key, timezone) : bound
     ),
     R.reject(R.isNil)
   )(prop)
@@ -86,9 +86,11 @@ const DateTimeBase = ({
     readOnly,
     label,
     views,
+    defaultView,
     propStyle,
     fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
   } = prop
+  const pickerViews = R.defaultTo(defaultViews)(views)
   const value = R.defaultTo(defaultValue)(currentVal)
   const timezone = getTimezone(prop.timezone)
   // Intermediate selections are held locally and only committed on accept.
@@ -105,7 +107,9 @@ const DateTimeBase = ({
       value={pickerValue}
       sx={[...forceArray(sx), propStyle]}
       slotProps={{ textField: { fullWidth } }}
-      views={R.defaultTo(defaultViews)(views)}
+      views={pickerViews}
+      // NOTE: The picker can only open to one of its views
+      openTo={R.includes(defaultView)(pickerViews) ? defaultView : undefined}
       {...{ label, readOnly, format, timezone }}
       {...getConstraints(prop, constraintKeys, timezone)}
       onChange={(val) => setDraft({ base: value, picked: val })}
