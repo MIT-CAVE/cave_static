@@ -5,6 +5,8 @@ import React from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { PropDate, PropDateTime, PropTime } from '../../ui/compound/PropDate'
+import { getRendererFn } from '../../ui/views/common/renderProp'
+import { propId } from '../../utils/enums'
 
 const datePickerDecorator = (Story) => (
   <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -645,5 +647,17 @@ export const DateTimeWithDisabledTimes = {
       'aria-disabled',
       'true'
     )
+  },
+}
+
+// NOTE: Props with no `variant` are rendered as the `'date'` variant
+export const DateWithoutVariant = {
+  ...Date,
+  render: withLocalState(getRendererFn(propId.DATE)(undefined)),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(dialog.getByRole('gridcell', { name: '9' })).toBeEnabled()
+    // There is no time part
+    await expect(dialog.queryByRole('tab', { name: /time/i })).toBeNull()
   },
 }

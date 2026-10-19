@@ -106,7 +106,7 @@ const getSelectorPropRenderFn = R.cond([
   [R.T, invalidVariant('selector')],
 ])
 const getDatePropRenderFn = R.cond([
-  [R.isNil, R.always(PropDateTime)],
+  [R.isNil, R.always(PropDate)],
   [R.equals(propVariant.DATE), R.always(PropDate)],
   [R.equals(propVariant.DATETIME), R.always(PropDateTime)],
   [R.equals(propVariant.TIME), R.always(PropTime)],
