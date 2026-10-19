@@ -661,3 +661,111 @@ export const DateWithoutVariant = {
     await expect(dialog.queryByRole('tab', { name: /time/i })).toBeNull()
   },
 }
+
+// NOTE: The sections of the field are spinbuttons, in the order they display
+const getFieldSections = (canvasElement) =>
+  within(canvasElement)
+    .getAllByRole('spinbutton')
+    .map((section) => section.getAttribute('aria-label'))
+
+export const DateOrderDayFirst = {
+  ...Date,
+  args: { ...Date.args, prop: { ...Date.args.prop, dateOrder: 'dmy' } },
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual([
+      'Day',
+      'Month',
+      'Year',
+    ])
+  },
+}
+
+export const DateOrderYearFirst = {
+  ...Date,
+  args: { ...Date.args, prop: { ...Date.args.prop, dateOrder: 'ymd' } },
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual([
+      'Year',
+      'Month',
+      'Day',
+    ])
+  },
+}
+
+// NOTE: An unrecognized `dateOrder` falls back to month first
+export const DateOrderInvalid = {
+  ...Date,
+  args: { ...Date.args, prop: { ...Date.args.prop, dateOrder: 'dym' } },
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual([
+      'Month',
+      'Day',
+      'Year',
+    ])
+  },
+}
+
+export const TimeTwelveHours = {
+  ...Time,
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual([
+      'Hours',
+      'Minutes',
+      'Meridiem',
+    ])
+  },
+}
+
+export const TimeTwentyFourHours = {
+  ...Time,
+  args: {
+    ...Time.args,
+    prop: { ...Time.args.prop, value: '15:30:00', hour24: true },
+    currentVal: '15:30:00',
+  },
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual(['Hours', 'Minutes'])
+    // The clock offers the 24 hours
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose time/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(await dialog.findAllByRole('option')).toHaveLength(24)
+  },
+}
+
+export const TimeWithSecondsTwentyFourHours = {
+  ...TimeTwentyFourHours,
+  args: {
+    ...TimeTwentyFourHours.args,
+    prop: {
+      ...TimeTwentyFourHours.args.prop,
+      views: ['hours', 'minutes', 'seconds'],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual([
+      'Hours',
+      'Minutes',
+      'Seconds',
+    ])
+  },
+}
+
+// NOTE: Seconds are only displayed if the `seconds` view is available
+export const DateTimeFormat = {
+  ...DateTime,
+  args: {
+    ...DateTime.args,
+    prop: { ...DateTime.args.prop, dateOrder: 'ymd', hour24: true },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(getFieldSections(canvasElement)).toEqual([
+      'Year',
+      'Month',
+      'Day',
+      'Hours',
+      'Minutes',
+    ])
+  },
+}

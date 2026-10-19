@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getDisabledDateProps,
   getDisabledTimeProps,
+  getDisplayFormat,
   getTimeConstraintProps,
   getTimeStepProps,
   toMonthIndex,
@@ -308,5 +309,56 @@ describe('getTimeConstraintProps', () => {
       disabledTimes: [['12:00', '13:00']],
     })
     expect(shouldDisableTime(at('12:00:00'), 'hours')).toBe(true)
+  })
+})
+
+describe('getDisplayFormat', () => {
+  it('orders the date part', () => {
+    const hasDate = true
+    expect(getDisplayFormat({ hasDate })).toBe('MM-DD-YYYY')
+    expect(getDisplayFormat({ hasDate, dateOrder: 'mdy' })).toBe('MM-DD-YYYY')
+    expect(getDisplayFormat({ hasDate, dateOrder: 'dmy' })).toBe('DD-MM-YYYY')
+    expect(getDisplayFormat({ hasDate, dateOrder: 'ymd' })).toBe('YYYY-MM-DD')
+  })
+
+  it('uses a 12-hour clock unless `hour24` is true', () => {
+    const hasTime = true
+    expect(getDisplayFormat({ hasTime })).toBe('hh:mm A')
+    expect(getDisplayFormat({ hasTime, hour24: false })).toBe('hh:mm A')
+    expect(getDisplayFormat({ hasTime, hour24: true })).toBe('HH:mm')
+  })
+
+  it('displays seconds only if the `seconds` view is available', () => {
+    const hasTime = true
+    const views = ['hours', 'minutes', 'seconds']
+    expect(getDisplayFormat({ hasTime, views })).toBe('hh:mm:ss A')
+    expect(getDisplayFormat({ hasTime, views, hour24: true })).toBe('HH:mm:ss')
+    expect(getDisplayFormat({ hasTime, views: ['hours', 'minutes'] })).toBe(
+      'hh:mm A'
+    )
+  })
+
+  it('joins the date and the time', () => {
+    const base = { hasDate: true, hasTime: true }
+    expect(getDisplayFormat(base)).toBe('MM-DD-YYYY hh:mm A')
+    expect(
+      getDisplayFormat({
+        ...base,
+        dateOrder: 'ymd',
+        hour24: true,
+        views: ['year', 'day', 'hours', 'minutes', 'seconds'],
+      })
+    ).toBe('YYYY-MM-DD HH:mm:ss')
+  })
+
+  it.each(['ymd ', 'YMD', 'iso', '', null, 1])(
+    'falls back to the default order for %j',
+    (dateOrder) => {
+      expect(getDisplayFormat({ hasDate: true, dateOrder })).toBe('MM-DD-YYYY')
+    }
+  )
+
+  it.each(['true', 1, null])('falls back to 12 hours for %j', (hour24) => {
+    expect(getDisplayFormat({ hasTime: true, hour24 })).toBe('hh:mm A')
   })
 })

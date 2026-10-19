@@ -216,3 +216,39 @@ export const getTimeConstraintProps = (prop) => {
     }),
   }
 }
+
+// The order of the day, month and year in the field of a `date` prop
+const DATE_FORMATS = {
+  mdy: 'MM-DD-YYYY',
+  dmy: 'DD-MM-YYYY',
+  ymd: 'YYYY-MM-DD',
+}
+
+/**
+ * Gets the format in which the field of a `date` prop displays its value. The
+ * value that is stored and sent to the server has its own, fixed format.
+ *
+ * The date part follows the `dateOrder` and the time part follows `hour24`. The
+ * time part displays seconds only if `seconds` is one of the `views`. Anything
+ * unrecognized falls back to the defaults, which are `'mdy'` and `false`.
+ */
+export const getDisplayFormat = ({
+  hasDate = false,
+  hasTime = false,
+  dateOrder,
+  hour24,
+  views = [],
+}) => {
+  const is12Hour = hour24 !== true
+  const time = [
+    is12Hour ? 'hh' : 'HH',
+    'mm',
+    ...(R.includes('seconds')(views) ? ['ss'] : []),
+  ].join(':')
+  return R.join(' ')(
+    R.reject(R.isNil)([
+      hasDate ? (DATE_FORMATS[dateOrder] ?? DATE_FORMATS.mdy) : undefined,
+      hasTime ? time + (is12Hour ? ' A' : '') : undefined,
+    ])
+  )
+}

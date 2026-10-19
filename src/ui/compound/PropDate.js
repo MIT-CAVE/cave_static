@@ -13,6 +13,7 @@ import { useState } from 'react'
 
 import {
   getDisabledDateProps,
+  getDisplayFormat,
   getTimeConstraintProps,
 } from '../../utils/dateConstraints'
 
@@ -77,7 +78,6 @@ const DateTimeBase = ({
   component: Component,
   prop,
   currentVal,
-  format,
   parseFormat,
   valueFormat,
   defaultViews,
@@ -94,6 +94,8 @@ const DateTimeBase = ({
     label,
     views,
     defaultView,
+    dateOrder,
+    hour24,
     propStyle,
     fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
   } = prop
@@ -117,7 +119,15 @@ const DateTimeBase = ({
       views={pickerViews}
       // NOTE: The picker can only open to one of its views
       openTo={R.includes(defaultView)(pickerViews) ? defaultView : undefined}
-      {...{ label, readOnly, format, timezone }}
+      {...{ label, readOnly, timezone }}
+      format={getDisplayFormat({
+        hasDate,
+        hasTime,
+        dateOrder,
+        hour24,
+        views: pickerViews,
+      })}
+      {...(hasTime && { ampm: hour24 !== true })}
       {...getConstraints(prop, constraintKeys, timezone)}
       {...(hasDate && getDisabledDateProps(prop))}
       {...(hasTime && getTimeConstraintProps(prop))}
@@ -130,7 +140,6 @@ DateTimeBase.propTypes = {
   component: PropTypes.object,
   prop: PropTypes.object,
   currentVal: PropTypes.string,
-  format: PropTypes.string,
   parseFormat: PropTypes.string,
   valueFormat: PropTypes.string,
   defaultViews: PropTypes.arrayOf(PropTypes.string),
@@ -148,6 +157,8 @@ DateTimeBase.propTypes = {
 }
 
 // NOTE:
+// - `hasDate` and `hasTime` also set the format of the field, which is separate
+//   from the `valueFormat`
 // - `valueFormat` is the string format the server stores and validates
 // - `defaultViews` match the defaults documented in `cave_utils`
 // - `constraintKeys` are the prop attributes that apply to each variant
@@ -156,7 +167,6 @@ DateTimeBase.propTypes = {
 const PropDate = (props) => (
   <DateTimeBase
     component={DatePicker}
-    format="MM-DD-YYYY"
     valueFormat="YYYY-MM-DD"
     defaultViews={['year', 'day']}
     hasDate
@@ -180,7 +190,6 @@ const PropTime = (props) => (
 const PropDateTime = (props) => (
   <DateTimeBase
     component={DateTimePicker}
-    format="MM-DD-YYYY hh:mm:ss A"
     valueFormat="YYYY-MM-DD[T]HH:mm:ss"
     defaultViews={['year', 'day', 'hours', 'minutes']}
     hasDate
