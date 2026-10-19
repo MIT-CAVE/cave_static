@@ -339,3 +339,93 @@ export const DefaultViewNotInViews = {
     ).toBeInTheDocument()
   },
 }
+
+// NOTE: The hours and seconds steps are emulated by disabling the values that
+// aren't a multiple of the step. The minutes step is native to the picker.
+const getClockOptions = async (canvasElement) => {
+  await userEvent.click(
+    within(canvasElement).getByRole('button', { name: /Choose time/ })
+  )
+  const dialog = within(await within(document.body).findByRole('dialog'))
+  const options = await dialog.findAllByRole('option')
+  const labelsWhere = (isDisabled) =>
+    options
+      .filter(
+        (o) => (o.getAttribute('aria-disabled') === 'true') === isDisabled
+      )
+      .map((o) => o.getAttribute('aria-label'))
+  return { enabled: labelsWhere(false), disabled: labelsWhere(true) }
+}
+
+const stepsStory = (defaultView) => ({
+  ...Time,
+  args: {
+    ...Time.args,
+    prop: {
+      ...Time.args.prop,
+      value: '10:30:00',
+      views: ['hours', 'minutes', 'seconds'],
+      defaultView,
+      hoursStep: 2,
+      minutesStep: 15,
+      secondsStep: 30,
+    },
+    currentVal: '10:30:00',
+  },
+})
+
+export const TimeStepsHours = {
+  ...stepsStory('hours'),
+  play: async ({ canvasElement }) => {
+    const { enabled, disabled } = await getClockOptions(canvasElement)
+    // The 12 on the clock is hour `0` or `12`, both multiples of the step
+    await expect(enabled).toEqual([
+      '2 hours',
+      '4 hours',
+      '6 hours',
+      '8 hours',
+      '10 hours',
+      '12 hours',
+    ])
+    await expect(disabled).toHaveLength(6)
+  },
+}
+
+export const TimeStepsMinutes = {
+  ...stepsStory('minutes'),
+  play: async ({ canvasElement }) => {
+    const { enabled } = await getClockOptions(canvasElement)
+    await expect(enabled).toEqual([
+      '15 minutes',
+      '30 minutes',
+      '45 minutes',
+      '00 minutes',
+    ])
+  },
+}
+
+export const TimeStepsSeconds = {
+  ...stepsStory('seconds'),
+  play: async ({ canvasElement }) => {
+    const { enabled } = await getClockOptions(canvasElement)
+    await expect(enabled).toEqual(['30 seconds', '00 seconds'])
+  },
+}
+
+// NOTE: Steps that don't divide their unit evenly are ignored
+export const TimeStepsInvalid = {
+  ...stepsStory('minutes'),
+  args: {
+    ...stepsStory('minutes').args,
+    prop: {
+      ...stepsStory('minutes').args.prop,
+      hoursStep: 5,
+      minutesStep: 7,
+      secondsStep: 1,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const { disabled } = await getClockOptions(canvasElement)
+    await expect(disabled).toHaveLength(0)
+  },
+}

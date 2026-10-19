@@ -11,6 +11,8 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useState } from 'react'
 
+import { getTimeStepProps } from '../../utils/dateConstraints'
+
 import { forceArray } from '../../utils'
 
 dayjs.extend(customParseFormat)
@@ -77,6 +79,7 @@ const DateTimeBase = ({
   valueFormat,
   defaultViews,
   constraintKeys,
+  hasTime = false,
   sx = [],
   onChange,
 }) => {
@@ -112,6 +115,7 @@ const DateTimeBase = ({
       openTo={R.includes(defaultView)(pickerViews) ? defaultView : undefined}
       {...{ label, readOnly, format, timezone }}
       {...getConstraints(prop, constraintKeys, timezone)}
+      {...(hasTime && getTimeStepProps(prop))}
       onChange={(val) => setDraft({ base: value, picked: val })}
       onAccept={(picked) => onChange(picked.format(valueFormat))}
     />
@@ -126,6 +130,7 @@ DateTimeBase.propTypes = {
   valueFormat: PropTypes.string,
   defaultViews: PropTypes.arrayOf(PropTypes.string),
   constraintKeys: PropTypes.arrayOf(PropTypes.string),
+  hasTime: PropTypes.bool,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
@@ -140,6 +145,7 @@ DateTimeBase.propTypes = {
 // - `valueFormat` is the string format the server stores and validates
 // - `defaultViews` match the defaults documented in `cave_utils`
 // - `constraintKeys` are the prop attributes that apply to each variant
+// - `hasTime` variants also apply the `*Step`s
 const PropDate = (props) => (
   <DateTimeBase
     component={DatePicker}
@@ -157,6 +163,7 @@ const PropTime = (props) => (
     parseFormat="HH:mm:ss"
     valueFormat="HH:mm:ss"
     defaultViews={['hours', 'minutes']}
+    hasTime
     constraintKeys={['minTime', 'maxTime', 'disablePast', 'disableFuture']}
     {...props}
   />
@@ -168,6 +175,7 @@ const PropDateTime = (props) => (
     format="MM-DD-YYYY hh:mm:ss A"
     valueFormat="YYYY-MM-DD[T]HH:mm:ss"
     defaultViews={['year', 'day', 'hours', 'minutes']}
+    hasTime
     constraintKeys={[
       'minDate',
       'maxDate',
