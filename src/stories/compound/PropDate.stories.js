@@ -357,6 +357,116 @@ const getClockOptions = async (canvasElement) => {
   return { enabled: labelsWhere(false), disabled: labelsWhere(true) }
 }
 
+const openDateDialog = async (canvasElement) => {
+  await userEvent.click(
+    within(canvasElement).getByRole('button', { name: /Choose date/ })
+  )
+  return within(await within(document.body).findByRole('dialog'))
+}
+
+const disabledStory = (disabled, extra = {}) => ({
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: { ...Date.args.prop, ...disabled, ...extra },
+  },
+})
+
+// NOTE: July 2026 starts on a Wednesday, so the 5th is a Sunday
+// and the 9th (the value) is a Thursday
+export const DateWithDisabledWeekdays = {
+  ...disabledStory({ disabledWeekdays: [0, 'Mon', 'tuesday'] }),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(dialog.getByRole('gridcell', { name: '5' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '6' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '7' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '8' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '9' })).toBeEnabled()
+  },
+}
+
+export const DateWithDisabledDates = {
+  ...disabledStory({
+    disabledDates: ['2026-07-10', '2026-07-14T10:00:00', '2026-07-15 10:00:00'],
+  }),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(dialog.getByRole('gridcell', { name: '10' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '11' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '14' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '15' })).toBeDisabled()
+  },
+}
+
+// NOTE: Entries that can't be recognized are ignored
+export const DateWithInvalidDisabledEntries = {
+  ...disabledStory({
+    disabledDates: ['07/10/2026', '2026-07'],
+    disabledWeekdays: ['Thur', 7],
+    disabledMonths: ['Sept', 0, '2026-07'],
+  }),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(dialog.getByRole('gridcell', { name: '9' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '10' })).toBeEnabled()
+  },
+}
+
+export const DateWithDisabledMonth = {
+  ...disabledStory({ disabledMonths: ['Jul'] }),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    // A disabled month disables its days
+    await expect(dialog.getByRole('gridcell', { name: '10' })).toBeDisabled()
+  },
+}
+
+export const DateWithDisabledMonths = {
+  ...disabledStory(
+    { disabledMonths: [12, 'Feb', 'March'] },
+    { views: ['year', 'month', 'day'], defaultView: 'month' }
+  ),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(
+      await dialog.findByRole('radio', { name: 'December' })
+    ).toBeDisabled()
+    await expect(dialog.getByRole('radio', { name: 'February' })).toBeDisabled()
+    await expect(dialog.getByRole('radio', { name: 'March' })).toBeDisabled()
+    await expect(dialog.getByRole('radio', { name: 'July' })).toBeEnabled()
+  },
+}
+
+export const DateWithDisabledYears = {
+  ...disabledStory({ disabledYears: [2025, 2027] }, { defaultView: 'year' }),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(
+      await dialog.findByRole('radio', { name: '2025' })
+    ).toBeDisabled()
+    await expect(dialog.getByRole('radio', { name: '2027' })).toBeDisabled()
+    await expect(dialog.getByRole('radio', { name: '2026' })).toBeEnabled()
+  },
+}
+
+export const DateTimeWithDisabledWeekdays = {
+  ...DateTime,
+  args: {
+    ...DateTime.args,
+    prop: { ...DateTime.args.prop, disabledWeekdays: ['Su', 'Sat'] },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(dialog.getByRole('gridcell', { name: '4' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '5' })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '6' })).toBeEnabled()
+  },
+}
+
 const stepsStory = (defaultView) => ({
   ...Time,
   args: {

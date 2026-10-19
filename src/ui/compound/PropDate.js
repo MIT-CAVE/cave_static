@@ -11,7 +11,10 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useState } from 'react'
 
-import { getTimeStepProps } from '../../utils/dateConstraints'
+import {
+  getDisabledDateProps,
+  getTimeStepProps,
+} from '../../utils/dateConstraints'
 
 import { forceArray } from '../../utils'
 
@@ -79,6 +82,7 @@ const DateTimeBase = ({
   valueFormat,
   defaultViews,
   constraintKeys,
+  hasDate = false,
   hasTime = false,
   sx = [],
   onChange,
@@ -115,6 +119,7 @@ const DateTimeBase = ({
       openTo={R.includes(defaultView)(pickerViews) ? defaultView : undefined}
       {...{ label, readOnly, format, timezone }}
       {...getConstraints(prop, constraintKeys, timezone)}
+      {...(hasDate && getDisabledDateProps(prop))}
       {...(hasTime && getTimeStepProps(prop))}
       onChange={(val) => setDraft({ base: value, picked: val })}
       onAccept={(picked) => onChange(picked.format(valueFormat))}
@@ -130,6 +135,7 @@ DateTimeBase.propTypes = {
   valueFormat: PropTypes.string,
   defaultViews: PropTypes.arrayOf(PropTypes.string),
   constraintKeys: PropTypes.arrayOf(PropTypes.string),
+  hasDate: PropTypes.bool,
   hasTime: PropTypes.bool,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
@@ -145,6 +151,7 @@ DateTimeBase.propTypes = {
 // - `valueFormat` is the string format the server stores and validates
 // - `defaultViews` match the defaults documented in `cave_utils`
 // - `constraintKeys` are the prop attributes that apply to each variant
+// - `hasDate` variants also apply the `disabled*` dates, weekdays, months, years
 // - `hasTime` variants also apply the `*Step`s
 const PropDate = (props) => (
   <DateTimeBase
@@ -152,6 +159,7 @@ const PropDate = (props) => (
     format="MM-DD-YYYY"
     valueFormat="YYYY-MM-DD"
     defaultViews={['year', 'day']}
+    hasDate
     constraintKeys={['minDate', 'maxDate', 'disablePast', 'disableFuture']}
     {...props}
   />
@@ -175,6 +183,7 @@ const PropDateTime = (props) => (
     format="MM-DD-YYYY hh:mm:ss A"
     valueFormat="YYYY-MM-DD[T]HH:mm:ss"
     defaultViews={['year', 'day', 'hours', 'minutes']}
+    hasDate
     hasTime
     constraintKeys={[
       'minDate',
