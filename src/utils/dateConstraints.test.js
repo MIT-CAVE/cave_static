@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getDisabledDateProps,
+  getDisabledTimeProps,
+  getTimeConstraintProps,
   getTimeStepProps,
   toMonthIndex,
+  toSecondsOfDay,
   toWeekdayIndex,
 } from './dateConstraints'
 
@@ -182,5 +185,128 @@ describe('getDisabledDateProps', () => {
     })
     expect(shouldDisableDate(on('2026-07-09'))).toBe(true)
     expect(shouldDisableDate(on('2026-08-09'))).toBe(false)
+  })
+})
+
+describe('toSecondsOfDay', () => {
+  it.each([
+    ['00:00', 0],
+    ['12:00', 43200],
+    ['12:00:30', 43230],
+    ['23:59:59', 86399],
+    ['2026-07-09T01:02:03', 3723],
+    ['2026-07-09 01:02:03', 3723],
+  ])('reads %j as %j', (time, seconds) => {
+    expect(toSecondsOfDay(time)).toBe(seconds)
+    expect(toSecondsOfDay(time, true)).toBe(seconds)
+  })
+
+  it('only accepts the end of the day as an end', () => {
+    expect(toSecondsOfDay('24:00', true)).toBe(86400)
+    expect(toSecondsOfDay('24:00:00', true)).toBe(86400)
+    expect(toSecondsOfDay('24:00')).toBeUndefined()
+    expect(toSecondsOfDay('24:00:00')).toBeUndefined()
+  })
+
+  it.each(['25:00', '12:60', '12 PM', '12', '2026-07-09', '', null, 12])(
+    'does not recognize %j',
+    (time) => {
+      expect(toSecondsOfDay(time)).toBeUndefined()
+      expect(toSecondsOfDay(time, true)).toBeUndefined()
+    }
+  )
+})
+
+describe('getDisabledTimeProps', () => {
+  const at = (time) => dayjs(`2026-07-09T${time}`)
+
+  it('adds nothing without usable windows', () => {
+    expect(getDisabledTimeProps({})).toEqual({})
+    const unusable = [
+      ['13:00', '12:00'],
+      ['12:00'],
+      ['x', 'y'],
+      ['12:00', '12:00'],
+    ]
+    expect(getDisabledTimeProps({ disabledTimes: unusable })).toEqual({})
+  })
+
+  it('includes the start of a window and excludes its end', () => {
+    const { shouldDisableTime } = getDisabledTimeProps({
+      disabledTimes: [['12:00', '12:00:05']],
+    })
+    expect(shouldDisableTime(at('11:59:59'), 'seconds')).toBe(false)
+    expect(shouldDisableTime(at('12:00:00'), 'seconds')).toBe(true)
+    expect(shouldDisableTime(at('12:00:04'), 'seconds')).toBe(true)
+    expect(shouldDisableTime(at('12:00:05'), 'seconds')).toBe(false)
+  })
+
+  it('disables an hour or minute only if all of it is covered', () => {
+    const { shouldDisableTime } = getDisabledTimeProps({
+      disabledTimes: [['12:00', '13:30']],
+    })
+    expect(shouldDisableTime(at('12:45:00'), 'hours')).toBe(true)
+    expect(shouldDisableTime(at('13:45:00'), 'hours')).toBe(false)
+    expect(shouldDisableTime(at('13:29:10'), 'minutes')).toBe(true)
+    expect(shouldDisableTime(at('13:30:10'), 'minutes')).toBe(false)
+  })
+
+  it('combines windows that touch or overlap', () => {
+    const { shouldDisableTime } = getDisabledTimeProps({
+      disabledTimes: [
+        ['12:30', '14:00'],
+        ['12:00', '12:30'],
+        ['13:00', '13:15'],
+      ],
+    })
+    expect(shouldDisableTime(at('12:00:00'), 'hours')).toBe(true)
+    expect(shouldDisableTime(at('13:00:00'), 'hours')).toBe(true)
+    expect(shouldDisableTime(at('14:00:00'), 'hours')).toBe(false)
+  })
+
+  it('reaches the end of the day', () => {
+    const { shouldDisableTime } = getDisabledTimeProps({
+      disabledTimes: [['22:00', '24:00']],
+    })
+    expect(shouldDisableTime(at('23:00:00'), 'hours')).toBe(true)
+    expect(shouldDisableTime(at('21:00:00'), 'hours')).toBe(false)
+  })
+
+  it('ignores the unknown views', () => {
+    const { shouldDisableTime } = getDisabledTimeProps({
+      disabledTimes: [['00:00', '24:00']],
+    })
+    expect(shouldDisableTime(at('12:00:00'), 'meridiem')).toBe(false)
+  })
+})
+
+describe('getTimeConstraintProps', () => {
+  const at = (time) => dayjs(`2026-07-09T${time}`)
+
+  it('adds nothing without constraints', () => {
+    expect(getTimeConstraintProps({})).toEqual({})
+  })
+
+  it('keeps the native minutes step', () => {
+    expect(getTimeConstraintProps({ minutesStep: 15 })).toEqual({
+      minutesStep: 15,
+    })
+  })
+
+  it('disables what a step or a window disables, in one predicate', () => {
+    const { shouldDisableTime } = getTimeConstraintProps({
+      hoursStep: 2,
+      disabledTimes: [['12:00', '14:00']],
+    })
+    expect(shouldDisableTime(at('01:00:00'), 'hours')).toBe(true) // off step
+    expect(shouldDisableTime(at('12:00:00'), 'hours')).toBe(true) // window
+    expect(shouldDisableTime(at('10:00:00'), 'hours')).toBe(false)
+  })
+
+  it('works with only windows', () => {
+    const { shouldDisableTime } = getTimeConstraintProps({
+      disabledTimes: [['12:00', '13:00']],
+    })
+    expect(shouldDisableTime(at('12:00:00'), 'hours')).toBe(true)
   })
 })

@@ -539,3 +539,111 @@ export const TimeStepsInvalid = {
     await expect(disabled).toHaveLength(0)
   },
 }
+
+const disabledTimesStory = (defaultView, disabledTimes, extra = {}) => ({
+  ...Time,
+  args: {
+    ...Time.args,
+    prop: {
+      ...Time.args.prop,
+      value: '10:30:00',
+      views: ['hours', 'minutes', 'seconds'],
+      defaultView,
+      disabledTimes,
+      ...extra,
+    },
+    currentVal: '10:30:00',
+  },
+})
+
+// NOTE: An hour is disabled only if the windows cover all of it, so `09` (from
+// `09:00` to `10:00`) and `02` and `03` (`02:00` to `04:00`) are disabled, while
+// `10` (only partly covered by the second window) is not
+export const TimeWithDisabledHours = {
+  ...disabledTimesStory('hours', [
+    ['02:00', '04:00'],
+    ['09:00', '10:00'],
+    ['10:15', '10:30'],
+  ]),
+  play: async ({ canvasElement }) => {
+    const { disabled } = await getClockOptions(canvasElement)
+    await expect(disabled).toEqual(['2 hours', '3 hours', '9 hours'])
+  },
+}
+
+export const TimeWithDisabledMinutes = {
+  ...disabledTimesStory('minutes', [['10:15', '10:40']]),
+  play: async ({ canvasElement }) => {
+    const { disabled, enabled } = await getClockOptions(canvasElement)
+    await expect(disabled).toEqual([
+      '15 minutes',
+      '20 minutes',
+      '25 minutes',
+      '30 minutes',
+      '35 minutes',
+    ])
+    // The end of a window is not included
+    await expect(enabled).toContain('40 minutes')
+  },
+}
+
+export const TimeWithDisabledSeconds = {
+  ...disabledTimesStory('seconds', [['10:30:15', '10:30:30']]),
+  play: async ({ canvasElement }) => {
+    const { disabled } = await getClockOptions(canvasElement)
+    await expect(disabled).toEqual(['15 seconds', '20 seconds', '25 seconds'])
+  },
+}
+
+// NOTE: The windows and the steps are applied together
+export const TimeWithDisabledHoursAndSteps = {
+  ...disabledTimesStory('hours', [['06:00', '08:00']], { hoursStep: 2 }),
+  play: async ({ canvasElement }) => {
+    const { enabled } = await getClockOptions(canvasElement)
+    await expect(enabled).toEqual([
+      '2 hours',
+      '4 hours',
+      '8 hours',
+      '10 hours',
+      '12 hours',
+    ])
+  },
+}
+
+// NOTE: Windows that can't be recognized are ignored
+export const TimeWithInvalidDisabledTimes = {
+  ...disabledTimesStory('hours', [
+    ['03:00', '02:00'],
+    ['09:00'],
+    ['9 AM', '10 AM'],
+  ]),
+  play: async ({ canvasElement }) => {
+    const { disabled } = await getClockOptions(canvasElement)
+    await expect(disabled).toEqual([])
+  },
+}
+
+export const DateTimeWithDisabledTimes = {
+  ...DateTime,
+  args: {
+    ...DateTime.args,
+    prop: {
+      ...DateTime.args.prop,
+      defaultView: 'hours',
+      disabledTimes: [['02:00', '04:00']],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole('button', { name: /Choose date/ })
+    )
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await userEvent.click(await dialog.findByRole('tab', { name: /time/i }))
+    const hour = (name) => dialog.findByRole('option', { name })
+    await expect(await hour('2 hours')).toHaveAttribute('aria-disabled', 'true')
+    await expect(await hour('5 hours')).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    )
+  },
+}

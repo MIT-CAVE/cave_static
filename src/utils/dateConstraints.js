@@ -134,3 +134,85 @@ export const getDisabledDateProps = (prop) => {
       dates.has(value.format('YYYY-MM-DD')),
   }
 }
+
+// Formats accepted for the boundaries of a `disabledTimes` window, of which
+// only the time part is used
+const TIME_OF_DAY_FORMATS = [
+  'HH:mm:ss',
+  'HH:mm',
+  'YYYY-MM-DDTHH:mm:ss',
+  'YYYY-MM-DD HH:mm:ss',
+]
+const SECONDS_PER_DAY = 24 * 60 * 60
+
+// Converts a window boundary into seconds since midnight, or `undefined` if it
+// is not recognized. Only the end of a window can be the end of the day.
+export const toSecondsOfDay = (time, isEnd = false) => {
+  if (isEnd && (time === '24:00' || time === '24:00:00')) return SECONDS_PER_DAY
+  const parsed = R.is(String)(time)
+    ? dayjs(time, TIME_OF_DAY_FORMATS, true)
+    : undefined
+  return parsed?.isValid()
+    ? parsed.hour() * 3600 + parsed.minute() * 60 + parsed.second()
+    : undefined
+}
+
+// Merges the windows that overlap or touch, so that a span is covered
+// by the windows if a single merged window contains it
+const mergeWindows = (windows) =>
+  R.sortBy(R.head)(windows).reduce((merged, [start, end]) => {
+    const last = R.last(merged)
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end)
+    else merged.push([start, end])
+    return merged
+  }, [])
+
+/**
+ * Gets the picker props that apply the `disabledTimes` of a `date` prop.
+ *
+ * In the `hours` and `minutes` views, an option is disabled only if the
+ * windows cover all of it, e.g. with `[['12:00', '12:30']]`, `12` is still
+ * available, as `12:30` to `12:59` can be selected. Windows that can't be
+ * recognized are ignored.
+ */
+export const getDisabledTimeProps = (prop) => {
+  const windows = mergeWindows(
+    forceList(prop.disabledTimes)
+      .filter((window) => Array.isArray(window) && window.length === 2)
+      .map(([start, end]) => [toSecondsOfDay(start), toSecondsOfDay(end, true)])
+      .filter(([start, end]) => !R.isNil(start) && !R.isNil(end) && start < end)
+  )
+  if (R.isEmpty(windows)) return {}
+  const isCovered = (from, to) =>
+    windows.some(([start, end]) => start <= from && to <= end)
+  const spans = {
+    hours: (value) => [value.hour() * 3600, 3600],
+    minutes: (value) => [value.hour() * 3600 + value.minute() * 60, 60],
+    seconds: (value) => [
+      value.hour() * 3600 + value.minute() * 60 + value.second(),
+      1,
+    ],
+  }
+  return {
+    shouldDisableTime: (value, view) => {
+      const [from, length] = spans[view]?.(value) ?? []
+      return !R.isNil(from) && isCovered(from, from + length)
+    },
+  }
+}
+
+/**
+ * Gets the picker props that apply the time constraints of a `date` prop: its
+ * steps and its `disabledTimes`, which share the picker's `shouldDisableTime`.
+ */
+export const getTimeConstraintProps = (prop) => {
+  const { shouldDisableTime: isOffStep, ...steps } = getTimeStepProps(prop)
+  const { shouldDisableTime: isInWindow } = getDisabledTimeProps(prop)
+  return {
+    ...steps,
+    ...((isOffStep || isInWindow) && {
+      shouldDisableTime: (value, view) =>
+        Boolean(isOffStep?.(value, view)) || Boolean(isInWindow?.(value, view)),
+    }),
+  }
+}

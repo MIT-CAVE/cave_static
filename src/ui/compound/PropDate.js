@@ -13,7 +13,7 @@ import { useState } from 'react'
 
 import {
   getDisabledDateProps,
-  getTimeStepProps,
+  getTimeConstraintProps,
 } from '../../utils/dateConstraints'
 
 import { forceArray } from '../../utils'
@@ -120,7 +120,7 @@ const DateTimeBase = ({
       {...{ label, readOnly, format, timezone }}
       {...getConstraints(prop, constraintKeys, timezone)}
       {...(hasDate && getDisabledDateProps(prop))}
-      {...(hasTime && getTimeStepProps(prop))}
+      {...(hasTime && getTimeConstraintProps(prop))}
       onChange={(val) => setDraft({ base: value, picked: val })}
       onAccept={(picked) => onChange(picked.format(valueFormat))}
     />
@@ -152,7 +152,7 @@ DateTimeBase.propTypes = {
 // - `defaultViews` match the defaults documented in `cave_utils`
 // - `constraintKeys` are the prop attributes that apply to each variant
 // - `hasDate` variants also apply the `disabled*` dates, weekdays, months, years
-// - `hasTime` variants also apply the `*Step`s
+// - `hasTime` variants also apply the `*Step`s and `disabledTimes`
 const PropDate = (props) => (
   <DateTimeBase
     component={DatePicker}
