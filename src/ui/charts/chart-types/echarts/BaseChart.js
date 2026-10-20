@@ -27,8 +27,8 @@ import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
 import { memo, useCallback, useContext, useEffect, useRef } from 'react'
 
+import ChartContext from './ChartContext'
 import ChartControls from './ChartControls'
-import ChartTitleContext from './ChartTitleContext'
 import FlexibleContainer from './FlexibleContainer'
 
 import {
@@ -191,9 +191,7 @@ const withChartTitle = (title, option) => {
 const FlexibleChart = memo(
   ({
     options,
-    chartHoverOrder,
-    path,
-    xAxisOrder,
+    sortable,
     syncAxes,
     onSyncAxesChange,
     numBuckets,
@@ -201,7 +199,12 @@ const FlexibleChart = memo(
     ...restProps
   }) => {
     const echartsRef = useRef(null)
-    const chartTitle = useContext(ChartTitleContext)
+    const {
+      title: chartTitle,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+    } = useContext(ChartContext)
 
     const handleResize = useCallback(({ width, height }) => {
       const chart = echartsRef.current?.getEchartsInstance?.()
@@ -258,6 +261,7 @@ const FlexibleChart = memo(
         </FlexibleContainer>
         <ChartControls
           {...{
+            sortable,
             path,
             xAxisOrder,
             syncAxes,
@@ -283,12 +287,12 @@ const EchartsPlot = ({
   colors,
   distribution = false,
   showNA,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
+  sortable,
   numBuckets,
   onNumBucketsChange,
 }) => {
+  const { chartHoverOrder } = useContext(ChartContext)
+
   if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
@@ -512,9 +516,7 @@ const EchartsPlot = ({
     <FlexibleChart
       {...{
         options,
-        chartHoverOrder,
-        path,
-        xAxisOrder,
+        sortable,
         numBuckets,
         onNumBucketsChange,
       }}

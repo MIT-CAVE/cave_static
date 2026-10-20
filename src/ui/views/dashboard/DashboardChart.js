@@ -16,7 +16,7 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
-import ChartTitleContext from '../../charts/chart-types/echarts/ChartTitleContext'
+import ChartContext from '../../charts/chart-types/echarts/ChartContext'
 
 import {
   BarPlot,
@@ -118,6 +118,16 @@ const DashboardChart = ({ chartObj, path }) => {
     cleanedChartObj
   )
   const xAxisOrder = R.propOr('default', 'xAxisOrder', cleanedChartObj)
+
+  const chartContextValue = useMemo(
+    () => ({
+      title: chartObj.title ?? '',
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+    }),
+    [chartObj.title, path, chartHoverOrder, xAxisOrder]
+  )
 
   useEffect(() => {
     let isCancelled = false
@@ -349,7 +359,7 @@ const DashboardChart = ({ chartObj, path }) => {
   }
 
   return (
-    <ChartTitleContext.Provider value={chartObj.title ?? ''}>
+    <ChartContext.Provider value={chartContextValue}>
       <Box
         sx={{
           display: 'flex',
@@ -375,9 +385,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -388,9 +395,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -402,9 +406,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -415,9 +416,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -428,9 +426,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -441,9 +436,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -454,31 +446,20 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
               ...labels,
             }}
           />
         ) : chartType === chartVariant.SUNBURST ? (
-          <Sunburst
-            data={formattedData}
-            {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
-          />
+          <Sunburst data={formattedData} {...{ colors, numberFormat }} />
         ) : chartType === chartVariant.TREEMAP ? (
-          <Treemap
-            data={formattedData}
-            {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
-          />
+          <Treemap data={formattedData} {...{ colors, numberFormat }} />
         ) : chartType === chartVariant.GAUGE ? (
           <GaugeChart
             data={formattedData}
             {...{ colors, numberFormat, ...labels }}
           />
         ) : chartType === chartVariant.HEATMAP ? (
-          <Heatmap
-            data={formattedData}
-            {...{ numberFormat, chartHoverOrder, path, xAxisOrder, ...labels }}
-          />
+          <Heatmap data={formattedData} {...{ numberFormat, ...labels }} />
         ) : chartType === chartVariant.AREA ? (
           <LinePlot
             area
@@ -487,9 +468,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -502,9 +480,6 @@ const DashboardChart = ({ chartObj, path }) => {
               colors,
               numberFormat,
               showNA,
-              chartHoverOrder,
-              path,
-              xAxisOrder,
               ...labels,
             }}
           />
@@ -513,7 +488,7 @@ const DashboardChart = ({ chartObj, path }) => {
           <ScatterPlot
             data={formattedData}
             labelProps={R.dissoc(3)(labelProps)}
-            {...{ colors, numberFormat: numberFormats, chartHoverOrder }}
+            {...{ colors, numberFormat: numberFormats }}
           />
         ) : chartType === chartVariant.DISTRIBUTION ? (
           <DistributionChart
@@ -529,12 +504,12 @@ const DashboardChart = ({ chartObj, path }) => {
                   : 'Cumulative Density'
             }
             xAxisTitle={yAxisTitle}
-            {...{ colors, numberFormat, chartHoverOrder }}
+            {...{ colors, numberFormat }}
           />
         ) : chartType === chartVariant.MIXED ? (
           <MixedChart
             data={formattedData}
-            {...{ labelProps, colors, chartHoverOrder, path, xAxisOrder }}
+            {...{ labelProps, colors }}
             leftVariant={leftVariant}
             rightVariant={rightVariant}
           />
@@ -545,14 +520,13 @@ const DashboardChart = ({ chartObj, path }) => {
               labelProps,
               colors,
               numberFormat: numberFormats,
-              chartHoverOrder,
             }}
           />
         ) : (
           <></>
         )}
       </Box>
-    </ChartTitleContext.Provider>
+    </ChartContext.Provider>
   )
 }
 

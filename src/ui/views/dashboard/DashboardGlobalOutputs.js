@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -13,7 +13,7 @@ import {
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
-import ChartTitleContext from '../../charts/chart-types/echarts/ChartTitleContext'
+import ChartContext from '../../charts/chart-types/echarts/ChartContext'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
@@ -45,6 +45,16 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
 
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder', chartObj)
   const xAxisOrder = R.propOr('default', 'xAxisOrder', chartObj)
+
+  const chartContextValue = useMemo(
+    () => ({
+      title: chartObj.title ?? '',
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+    }),
+    [chartObj.title, path, chartHoverOrder, xAxisOrder]
+  )
 
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
@@ -131,7 +141,7 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const numberFormat = R.map(getNumberFormat)(globalOutputData)
 
   return (
-    <ChartTitleContext.Provider value={chartObj.title ?? ''}>
+    <ChartContext.Provider value={chartContextValue}>
       <Box
         sx={[
           styles.root,
@@ -163,7 +173,7 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
             data={formattedGlobalOutputs}
             xAxisTitle="Sessions"
             yAxisTitle={R.join(', ')(globalOutputUnits)}
-            {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
+            {...{ numberFormat }}
             // The data structure of the globalOutput chart is the same
             // as that of a statistics chart with subgrouped data
             subGrouped
@@ -171,13 +181,13 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
         ) : chartObj.chartType === chartVariant.LINE ? (
           <LinePlot
             data={formattedGlobalOutputs}
-            {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
+            {...{ numberFormat }}
             xAxisTitle="Sessions"
             yAxisTitle={R.join(', ')(globalOutputUnits)}
           />
         ) : null}
       </Box>
-    </ChartTitleContext.Provider>
+    </ChartContext.Provider>
   )
 }
 

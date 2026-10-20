@@ -10,14 +10,7 @@ import {
 
 // import { exampleNestedData } from './testData'
 
-const Sunburst = ({
-  data,
-  colors,
-  numberFormat = {},
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-}) => {
+const Sunburst = ({ data, colors, numberFormat = {} }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const findNames = (data) =>
@@ -128,7 +121,7 @@ const Sunburst = ({
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 export { Sunburst }

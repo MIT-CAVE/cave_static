@@ -9,13 +9,7 @@ import {
   getChartItemColor,
 } from '../../../../utils'
 
-const BubblePlot = ({
-  data,
-  labelProps,
-  numberFormat = {},
-  colors,
-  chartHoverOrder,
-}) => {
+const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
   const labels = R.pluck('label')(labelProps)
   if (
     R.isNil(data) ||
@@ -127,7 +121,7 @@ const BubblePlot = ({
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { BubblePlot }

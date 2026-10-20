@@ -42,9 +42,6 @@ const MixedChart = ({
   labelProps,
   leftVariant,
   rightVariant,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
   colors,
 }) => {
   const [syncAxes, setSyncAxes] = useState(true)
@@ -243,7 +240,8 @@ const MixedChart = ({
   }
   return (
     <FlexibleChart
-      {...{ options, chartHoverOrder, path, xAxisOrder, syncAxes }}
+      sortable
+      {...{ options, syncAxes }}
       onSyncAxesChange={setSyncAxes}
     />
   )

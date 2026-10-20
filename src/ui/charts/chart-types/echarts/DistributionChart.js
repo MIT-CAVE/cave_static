@@ -28,7 +28,6 @@ const DistributionChart = ({
   counts,
   stack = false,
   area = false,
-  chartHoverOrder,
 }) => {
   const [numBuckets, setNumBuckets] = useState(10)
 
@@ -190,7 +189,6 @@ const DistributionChart = ({
         xAxisTitle,
         yAxisTitle,
         chartType,
-        chartHoverOrder,
         numBuckets,
       }}
     />

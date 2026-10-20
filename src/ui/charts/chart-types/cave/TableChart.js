@@ -5,7 +5,7 @@ import { memo, useContext, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
-import ChartTitleContext from '../echarts/ChartTitleContext'
+import ChartContext from '../echarts/ChartContext'
 
 // Convert chart object to flat list of row arrays
 const flattenChartTree = (data) => {
@@ -53,7 +53,7 @@ const styles = {
 }
 
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
-  const chartTitle = useContext(ChartTitleContext)
+  const { title: chartTitle } = useContext(ChartContext)
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
   const rows = useMemo(() => {

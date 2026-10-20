@@ -4,15 +4,7 @@ import { FlexibleChart } from './BaseChart'
 
 import { NumberFormat, findSubgroupLabels } from '../../../../utils'
 
-const Heatmap = ({
-  data,
-  xAxisTitle,
-  yAxisTitle,
-  numberFormat = {},
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-}) => {
+const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -115,7 +107,7 @@ const Heatmap = ({
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 export { Heatmap }
