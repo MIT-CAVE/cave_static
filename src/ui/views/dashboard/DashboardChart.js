@@ -16,6 +16,7 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import ChartTitleContext from '../../charts/chart-types/echarts/ChartTitleContext'
 
 import {
   BarPlot,
@@ -348,208 +349,210 @@ const DashboardChart = ({ chartObj, path }) => {
   }
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        position: 'relative',
-        flex: '1 1 auto',
-        minHeight: 0,
-        minWidth: 0,
-        overflow: 'hidden',
-      }}
-    >
-      {chartType === chartVariant.TABLE &&
-      cleanedChartObj.groupingId &&
-      cleanedChartObj.groupingId[0] ? (
-        <TableChart
-          data={formattedData}
-          numberFormat={numberFormats}
-          {...{ labelProps }}
-        />
-      ) : chartType === chartVariant.BOX_PLOT ? (
-        <BoxPlot
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.BAR ? (
-        <BarPlot
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.STACKED_BAR ? (
-        <BarPlot
-          stack="x"
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.STACKED_WATERFALL ? (
-        <StackedWaterfallChart
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.LINE ? (
-        <LinePlot
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.WATERFALL ? (
-        <WaterfallChart
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.CUMULATIVE_LINE ? (
-        <CumulativeLineChart
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.SUNBURST ? (
-        <Sunburst
-          data={formattedData}
-          {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
-        />
-      ) : chartType === chartVariant.TREEMAP ? (
-        <Treemap
-          data={formattedData}
-          {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
-        />
-      ) : chartType === chartVariant.GAUGE ? (
-        <GaugeChart
-          data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
-        />
-      ) : chartType === chartVariant.HEATMAP ? (
-        <Heatmap
-          data={formattedData}
-          {...{ numberFormat, chartHoverOrder, path, xAxisOrder, ...labels }}
-        />
-      ) : chartType === chartVariant.AREA ? (
-        <LinePlot
-          area
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.STACKED_AREA ? (
-        <LinePlot
-          area
-          stack="x"
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.SCATTER &&
-        R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
-        <ScatterPlot
-          data={formattedData}
-          labelProps={R.dissoc(3)(labelProps)}
-          {...{ colors, numberFormat: numberFormats, chartHoverOrder }}
-        />
-      ) : chartType === chartVariant.DISTRIBUTION ? (
-        <DistributionChart
-          data={formattedData}
-          cumulative={distributionType === distributionTypes.CDF}
-          chartType={distributionVariant}
-          counts={distributionYAxis === distributionYAxes.COUNTS}
-          yAxisTitle={
-            distributionYAxis === distributionYAxes.COUNTS
-              ? 'Counts'
-              : distributionType === distributionTypes.PDF
-                ? 'Probability Density'
-                : 'Cumulative Density'
-          }
-          xAxisTitle={yAxisTitle}
-          {...{ colors, numberFormat, chartHoverOrder }}
-        />
-      ) : chartType === chartVariant.MIXED ? (
-        <MixedChart
-          data={formattedData}
-          {...{ labelProps, colors, chartHoverOrder, path, xAxisOrder }}
-          leftVariant={leftVariant}
-          rightVariant={rightVariant}
-        />
-      ) : chartType === chartVariant.SCATTER ? (
-        <BubblePlot
-          data={formattedData}
-          {...{
-            labelProps,
-            colors,
-            numberFormat: numberFormats,
-            chartHoverOrder,
-          }}
-        />
-      ) : (
-        <></>
-      )}
-    </Box>
+    <ChartTitleContext.Provider value={chartObj.title ?? ''}>
+      <Box
+        sx={{
+          display: 'flex',
+          position: 'relative',
+          flex: '1 1 auto',
+          minHeight: 0,
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
+      >
+        {chartType === chartVariant.TABLE &&
+        cleanedChartObj.groupingId &&
+        cleanedChartObj.groupingId[0] ? (
+          <TableChart
+            data={formattedData}
+            numberFormat={numberFormats}
+            {...{ labelProps }}
+          />
+        ) : chartType === chartVariant.BOX_PLOT ? (
+          <BoxPlot
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.BAR ? (
+          <BarPlot
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.STACKED_BAR ? (
+          <BarPlot
+            stack="x"
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.STACKED_WATERFALL ? (
+          <StackedWaterfallChart
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.LINE ? (
+          <LinePlot
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.WATERFALL ? (
+          <WaterfallChart
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.CUMULATIVE_LINE ? (
+          <CumulativeLineChart
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.SUNBURST ? (
+          <Sunburst
+            data={formattedData}
+            {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
+          />
+        ) : chartType === chartVariant.TREEMAP ? (
+          <Treemap
+            data={formattedData}
+            {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
+          />
+        ) : chartType === chartVariant.GAUGE ? (
+          <GaugeChart
+            data={formattedData}
+            {...{ colors, numberFormat, ...labels }}
+          />
+        ) : chartType === chartVariant.HEATMAP ? (
+          <Heatmap
+            data={formattedData}
+            {...{ numberFormat, chartHoverOrder, path, xAxisOrder, ...labels }}
+          />
+        ) : chartType === chartVariant.AREA ? (
+          <LinePlot
+            area
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.STACKED_AREA ? (
+          <LinePlot
+            area
+            stack="x"
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              chartHoverOrder,
+              path,
+              xAxisOrder,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.SCATTER &&
+          R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
+          <ScatterPlot
+            data={formattedData}
+            labelProps={R.dissoc(3)(labelProps)}
+            {...{ colors, numberFormat: numberFormats, chartHoverOrder }}
+          />
+        ) : chartType === chartVariant.DISTRIBUTION ? (
+          <DistributionChart
+            data={formattedData}
+            cumulative={distributionType === distributionTypes.CDF}
+            chartType={distributionVariant}
+            counts={distributionYAxis === distributionYAxes.COUNTS}
+            yAxisTitle={
+              distributionYAxis === distributionYAxes.COUNTS
+                ? 'Counts'
+                : distributionType === distributionTypes.PDF
+                  ? 'Probability Density'
+                  : 'Cumulative Density'
+            }
+            xAxisTitle={yAxisTitle}
+            {...{ colors, numberFormat, chartHoverOrder }}
+          />
+        ) : chartType === chartVariant.MIXED ? (
+          <MixedChart
+            data={formattedData}
+            {...{ labelProps, colors, chartHoverOrder, path, xAxisOrder }}
+            leftVariant={leftVariant}
+            rightVariant={rightVariant}
+          />
+        ) : chartType === chartVariant.SCATTER ? (
+          <BubblePlot
+            data={formattedData}
+            {...{
+              labelProps,
+              colors,
+              numberFormat: numberFormats,
+              chartHoverOrder,
+            }}
+          />
+        ) : (
+          <></>
+        )}
+      </Box>
+    </ChartTitleContext.Provider>
   )
 }
 

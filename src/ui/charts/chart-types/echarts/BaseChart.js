@@ -25,9 +25,10 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import { memo, useCallback, useEffect, useRef } from 'react'
+import { memo, useCallback, useContext, useEffect, useRef } from 'react'
 
 import ChartControls from './ChartControls'
+import ChartTitleContext from './ChartTitleContext'
 import FlexibleContainer from './FlexibleContainer'
 
 import {
@@ -148,6 +149,45 @@ const baseOptions = {
   },
 }
 
+// Vertical space (px) reserved for the chart title above the legend and grid
+// (only applied when the chart has a legend)
+const TITLE_OFFSET = 28
+
+// The base `legend` config is always merged in, so a legend is only shown
+// when it is not disabled and it lists data or the series are named.
+const hasLegend = ({ legend, series }) =>
+  R.is(Object, legend) &&
+  legend.show !== false &&
+  (!R.isEmpty(legend.data ?? []) ||
+    R.any(R.has('name'), R.filter(R.is(Object), [series].flat())))
+
+const withChartTitle = (title, option) => {
+  if (!title || option.title) return option
+  const shiftLegendAndGrid = hasLegend(option)
+  const shiftTop = R.over(R.lensProp('top'), (top) =>
+    R.is(Number, top) ? top + TITLE_OFFSET : top
+  )
+  return R.pipe(
+    R.assoc('title', {
+      text: title,
+      left: 'center',
+      top: 16,
+      textStyle: { fontSize: 16 },
+    }),
+    R.when(
+      R.always(shiftLegendAndGrid),
+      R.over(R.lensProp('legend'), shiftTop)
+    ),
+    R.when(
+      R.both(
+        R.always(shiftLegendAndGrid),
+        R.propSatisfies(R.both(R.is(Object), R.complement(R.is(Array))), 'grid')
+      ),
+      R.over(R.lensProp('grid'), shiftTop)
+    )
+  )(option)
+}
+
 const FlexibleChart = memo(
   ({
     options,
@@ -161,6 +201,7 @@ const FlexibleChart = memo(
     ...restProps
   }) => {
     const echartsRef = useRef(null)
+    const chartTitle = useContext(ChartTitleContext)
 
     const handleResize = useCallback(({ width, height }) => {
       const chart = echartsRef.current?.getEchartsInstance?.()
@@ -203,9 +244,12 @@ const FlexibleChart = memo(
           <ReactEChartsCore
             ref={echartsRef}
             echarts={echarts}
-            option={R.mergeDeepRight(
-              R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-            )(options)}
+            option={withChartTitle(
+              chartTitle,
+              R.mergeDeepRight(
+                R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
+              )(options)
+            )}
             notMerge
             theme="dark"
             {...restProps}

@@ -13,6 +13,7 @@ import {
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
+import ChartTitleContext from '../../charts/chart-types/echarts/ChartTitleContext'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
@@ -130,51 +131,53 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const numberFormat = R.map(getNumberFormat)(globalOutputData)
 
   return (
-    <Box
-      sx={[
-        styles.root,
-        chartObj.chartType === chartVariant.OVERVIEW && styles.overview,
-      ]}
-    >
-      {chartObj.chartType === chartVariant.OVERVIEW ? (
-        <Box
-          sx={{
-            position: 'absolute',
-            maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
-            maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
-            // Override the `Paper` ancestor's `textAlign: 'center'` (see
-            // `Dashboard.js`'s `styles.paper`) so props render with their
-            // usual left alignment instead of inheriting it.
-            textAlign: 'left',
-          }}
-        >
-          {renderPropsLayout({
-            layout,
-            items: props,
-            onChangeProp: () => null,
-          })}
-        </Box>
-      ) : chartObj.chartType === chartVariant.TABLE ? (
-        <TableChart data={tableData} {...{ labelProps, numberFormat }} />
-      ) : chartObj.chartType === chartVariant.BAR ? (
-        <BarPlot
-          data={formattedGlobalOutputs}
-          xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(globalOutputUnits)}
-          {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
-          // The data structure of the globalOutput chart is the same
-          // as that of a statistics chart with subgrouped data
-          subGrouped
-        />
-      ) : chartObj.chartType === chartVariant.LINE ? (
-        <LinePlot
-          data={formattedGlobalOutputs}
-          {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
-          xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(globalOutputUnits)}
-        />
-      ) : null}
-    </Box>
+    <ChartTitleContext.Provider value={chartObj.title ?? ''}>
+      <Box
+        sx={[
+          styles.root,
+          chartObj.chartType === chartVariant.OVERVIEW && styles.overview,
+        ]}
+      >
+        {chartObj.chartType === chartVariant.OVERVIEW ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
+              maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
+              // Override the `Paper` ancestor's `textAlign: 'center'` (see
+              // `Dashboard.js`'s `styles.paper`) so props render with their
+              // usual left alignment instead of inheriting it.
+              textAlign: 'left',
+            }}
+          >
+            {renderPropsLayout({
+              layout,
+              items: props,
+              onChangeProp: () => null,
+            })}
+          </Box>
+        ) : chartObj.chartType === chartVariant.TABLE ? (
+          <TableChart data={tableData} {...{ labelProps, numberFormat }} />
+        ) : chartObj.chartType === chartVariant.BAR ? (
+          <BarPlot
+            data={formattedGlobalOutputs}
+            xAxisTitle="Sessions"
+            yAxisTitle={R.join(', ')(globalOutputUnits)}
+            {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
+            // The data structure of the globalOutput chart is the same
+            // as that of a statistics chart with subgrouped data
+            subGrouped
+          />
+        ) : chartObj.chartType === chartVariant.LINE ? (
+          <LinePlot
+            data={formattedGlobalOutputs}
+            {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
+            xAxisTitle="Sessions"
+            yAxisTitle={R.join(', ')(globalOutputUnits)}
+          />
+        ) : null}
+      </Box>
+    </ChartTitleContext.Provider>
   )
 }
 

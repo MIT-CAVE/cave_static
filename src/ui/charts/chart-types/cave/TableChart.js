@@ -1,10 +1,11 @@
-import { Box, Button } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
+import { memo, useContext, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
+import ChartTitleContext from '../echarts/ChartTitleContext'
 
 // Convert chart object to flat list of row arrays
 const flattenChartTree = (data) => {
@@ -38,7 +39,21 @@ const flattenChartTree = (data) => {
   return result
 }
 
+const styles = {
+  title: {
+    p: 1,
+    mb: '1px',
+    bgcolor: 'background.paper',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#eee',
+  },
+}
+
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
+  const chartTitle = useContext(ChartTitleContext)
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
   const rows = useMemo(() => {
@@ -83,17 +98,32 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
 
   return (
     <>
-      <FlexibleContainer>
-        <DataGrid
-          {...{ rows, columns }}
-          pageSizeOptions={[25, 50, 100]}
-          sx={{
-            minWidth: 0,
-            height: '100%',
-            bgcolor: 'background.paper',
-          }}
-        />
-      </FlexibleContainer>
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          minHeight: 0,
+        }}
+      >
+        {chartTitle && (
+          <Typography align="center" noWrap sx={styles.title}>
+            {chartTitle}
+          </Typography>
+        )}
+        <FlexibleContainer>
+          <DataGrid
+            {...{ rows, columns }}
+            pageSizeOptions={[25, 50, 100]}
+            sx={{
+              minWidth: 0,
+              height: '100%',
+              bgcolor: 'background.paper',
+            }}
+          />
+        </FlexibleContainer>
+      </Box>
       <Box
         sx={{
           position: 'absolute',

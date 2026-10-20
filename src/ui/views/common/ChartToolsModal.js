@@ -1,4 +1,4 @@
-import { Card } from '@mui/material'
+import { Card, Stack } from '@mui/material'
 import * as R from 'ramda'
 import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
@@ -18,9 +18,20 @@ import GlobalOutputsToolbar from '../dashboard/GlobalOutputsToolbar'
 import GroupedOutputsToolbar from '../dashboard/GroupedOutputsToolbar'
 import MapToolbar from '../dashboard/MapToolbar'
 
-import { Select } from '../../compound'
+import { Select, TextInput } from '../../compound'
 
 const styles = {
+  // Title and viz type split the row 3:2 (60%/40%); viz type fills it alone on map
+  vizType: { flex: 2, minWidth: 'max-content' },
+  // Match the height and square corners of the neighboring viz type `Select`
+  titleInput: {
+    flex: 3,
+    minWidth: 0,
+    '& .MuiOutlinedInput-root': {
+      height: '100%',
+      borderRadius: 0,
+    },
+  },
   content: {
     padding: 1,
     height: '100%',
@@ -80,13 +91,26 @@ const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
     vizTypeOptions.find((opt) => opt.value === chartObj?.type)?.value ??
     vizTypeOptions[0]?.value ??
     ''
+  const showTitle = vizType !== 'map'
   const handleSelectVizType = useMutateStateWithSync(
     (value) => ({
       path: ['pages', 'data', currentPage, 'charts', index],
       value: R.pipe(
         R.when(R.always(value === 'map'), R.dissoc('chartType')),
-        R.assoc('type', value)
+        R.assoc('type', value),
+        R.when(
+          R.always(R.isNotNil(chartObj?.title)),
+          R.assoc('title', chartObj?.title)
+        )
       )(CHART_DEFAULTS),
+    }),
+    [currentPage, index, chartObj?.title]
+  )
+
+  const handleChangeTitle = useMutateStateWithSync(
+    (value) => ({
+      path: ['pages', 'data', currentPage, 'charts', index, 'title'],
+      value,
     }),
     [currentPage, index]
   )
@@ -97,11 +121,23 @@ const ChartToolsModal = ({ index, label, labelExtra, onClose }) => {
       slotProps={styles.modalSlots}
       {...{ label, labelExtra, onClose }}
     >
-      <Select
-        value={vizType}
-        optionsList={vizTypeOptions}
-        onSelect={handleSelectVizType}
-      />
+      <Stack direction="row" spacing={2}>
+        <Select
+          value={vizType}
+          optionsList={vizTypeOptions}
+          slotProps={{ formControl: { sx: styles.vizType } }}
+          onSelect={handleSelectVizType}
+        />
+        {showTitle && (
+          <TextInput
+            placeholder="Chart title"
+            value={chartObj?.title ?? ''}
+            sx={styles.titleInput}
+            slotProps={{ htmlInput: { 'aria-label': 'Title' } }}
+            onClickAway={handleChangeTitle}
+          />
+        )}
+      </Stack>
       <Card sx={styles.content}>
         {index != null &&
           (vizType === 'groupedOutput' ? (
