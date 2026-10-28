@@ -1,6 +1,8 @@
 import React from 'react'
+import { expect, within } from 'storybook/test'
 
 import { TableChart } from '../../ui/charts'
+import ChartContext from '../../ui/charts/chart-types/echarts/ChartContext'
 
 const tableChartDecorator = (Story) => (
   <div
@@ -77,5 +79,35 @@ export const GroupedHierarchicalTable = {
       revenue: { precision: 0, unit: '$' },
       sites: { precision: 0 },
     },
+  },
+}
+
+// Raw boolean values are shown with their declared `valueNames`, or capitalized
+export const BooleanValuesWithValueNames = {
+  decorators: [
+    (Story) => (
+      <ChartContext.Provider
+        value={{ title: 'Sales by Type', valueNames: { true: 'Organic' } }}
+      >
+        <Story />
+      </ChartContext.Provider>
+    ),
+  ],
+  args: {
+    data: [
+      { name: 'true', value: [320] },
+      { name: 'false', value: [450] },
+    ],
+    labelProps: [
+      { label: 'Type', key: 'name', type: 'string' },
+      { label: 'Sales', key: 'sales', type: 'number' },
+    ],
+    numberFormat: { sales: { precision: 0 } },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    expect(await canvas.findByText('Organic')).toBeInTheDocument()
+    expect(await canvas.findByText('False')).toBeInTheDocument()
+    expect(canvas.queryByText('true')).toBeNull()
   },
 }

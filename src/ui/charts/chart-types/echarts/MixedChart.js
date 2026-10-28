@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import { useMemo, useState } from 'react'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import { findColoring, getChartItemColor } from '../../../../utils'
 
@@ -44,6 +45,7 @@ const MixedChart = ({
   rightVariant,
   colors,
 }) => {
+  const getDisplayName = useValueDisplayName()
   const [syncAxes, setSyncAxes] = useState(true)
   const hasSubgroups = Boolean(data && data[0] && 'children' in data[0])
   const xLabels = data ? R.pluck('name', data) : []
@@ -237,6 +239,19 @@ const MixedChart = ({
       createYAxis(rightLabel, -90, calcData.rightMin, calcData.rightMax),
     ],
     series: calcData.series,
+    tooltip: {
+      formatter: (params) =>
+        `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
+          ${params
+            .map(
+              ({ marker, seriesName, value }) =>
+                `<div style="display: flex">
+                  <div style="flex: 1 1 auto; margin-right: 32px">${marker} ${getDisplayName(seriesName)}</div>
+                  <div><strong>${value}</strong></div>
+                </div>`
+            )
+            .join('')}`,
+    },
   }
   return (
     <FlexibleChart
