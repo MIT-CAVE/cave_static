@@ -22,6 +22,21 @@ const RICH_TEXT_PATTERN = /[*_`[\]$\\]/
 export const mayContainRichText = (text) =>
   typeof text === 'string' && RICH_TEXT_PATTERN.test(text)
 
+const isWordChar = (char) => char !== undefined && /[\p{L}\p{N}]/u.test(char)
+
+const stripMarkers = (text) =>
+  text
+    // Code, bold and italic markers (unescaped only)
+    .replace(/(?<!\\)(\*\*|\*|`)/g, '')
+    // Like in markdown, underscores inside a word (`snake_case`) are not markers
+    .replace(/(?<!\\)_+/g, (run, offset, string) =>
+      isWordChar(string[offset - 1]) && isWordChar(string[offset + run.length])
+        ? run
+        : ''
+    )
+    // Backslash escapes: \* -> *
+    .replace(/\\([\\`*_[\]$()#+\-.!>~|{}])/g, '$1')
+
 /**
  * Strip inline markdown/math syntax from a label, keeping its readable text.
  * Use it wherever the label is not rendered as a React node: filtering,
@@ -35,12 +50,14 @@ export const toPlainText = (text) => {
     text
       // Links and images: [label](url) -> label
       .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-      // Inline/display math: $x^2$ or $$x^2$$ -> x^2
-      .replace(/\$\$?([^$]+)\$\$?/g, '$1')
-      // Code, bold and italic markers (unescaped only)
-      .replace(/(?<!\\)(\*\*|__|\*|_|`)/g, '')
-      // Backslash escapes: \* -> *
-      .replace(/\\([\\`*_[\]$()#+\-.!>~|{}])/g, '$1')
+      // Math is kept as is, as its symbols are not markers: $x_{i}^2$ -> x_{i}^2
+      .split(/((?<!\\)\$\$?[^$]+\$\$?)/)
+      .map((part, index) =>
+        index % 2 === 1
+          ? part.replace(/^\$\$?|\$\$?$/g, '')
+          : stripMarkers(part)
+      )
+      .join('')
   )
 }
 

@@ -4,10 +4,12 @@ import { memo, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import CopyButton from './CopyButton'
+import sanitizeSchema, { getSanitizedHref } from './sanitizeSchema'
 
 const styles = {
   codeBlock: {
@@ -38,6 +40,11 @@ const styles = {
     '&:hover': { opacity: 0.9 },
   },
 }
+
+const remarkPlugins = [remarkMath, remarkGfm]
+// NOTE: The order matters. HTML is parsed first, so it can be sanitized, and
+// formulas are rendered last, as their output would not pass the sanitizer
+const rehypePlugins = [rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]
 
 const StyledContainer = styled(Box)(({ theme }) => ({
   color: theme.palette.text.primary,
@@ -119,6 +126,11 @@ const StyledContainer = styled(Box)(({ theme }) => ({
 const MarkdownContent = ({ content, innerRef, sx = [] }) => {
   const components = useMemo(
     () => ({
+      a: ({ href, children, ...props }) => (
+        <a {...props} href={getSanitizedHref(href)}>
+          {children}
+        </a>
+      ),
       code: ({ className, children, ...props }) => {
         const isBlock = Boolean(className) || String(children).includes('\n')
         if (!isBlock) {
@@ -151,11 +163,7 @@ const MarkdownContent = ({ content, innerRef, sx = [] }) => {
   )
   return (
     <StyledContainer ref={innerRef} {...{ sx }}>
-      <ReactMarkdown
-        remarkPlugins={[remarkMath, remarkGfm]}
-        rehypePlugins={[rehypeKatex, rehypeRaw]}
-        {...{ components }}
-      >
+      <ReactMarkdown {...{ remarkPlugins, rehypePlugins }} {...{ components }}>
         {content}
       </ReactMarkdown>
     </StyledContainer>

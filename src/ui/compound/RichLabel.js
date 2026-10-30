@@ -2,7 +2,10 @@ import PropTypes from 'prop-types'
 import { Fragment, memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
+import rehypeSanitize from 'rehype-sanitize'
 import remarkMath from 'remark-math'
+
+import sanitizeSchema from './sanitizeSchema'
 
 import { mayContainRichText } from '../../utils/richText'
 
@@ -49,7 +52,8 @@ const RichLink = ({ children, ...props }) => (
 
 const components = { p: Fragment, a: RichLink }
 const remarkPlugins = [remarkMath]
-const rehypePlugins = [rehypeKatex]
+// Labels do not parse raw HTML, so this is just a second layer of defense
+const rehypePlugins = [[rehypeSanitize, sanitizeSchema], rehypeKatex]
 
 // Rendered labels, keyed by their source text. Labels are mounted often
 // (legends, option lists, marquee duplicates) but rarely change.

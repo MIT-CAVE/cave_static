@@ -38,6 +38,28 @@ describe('toPlainText', () => {
     )
   })
 
+  it('keeps underscores inside words, as markdown does', () => {
+    expect(toPlainText('test_units.py')).toBe('test_units.py')
+    expect(toPlainText('a_b_c and CO_2')).toBe('a_b_c and CO_2')
+    expect(toPlainText('my__var')).toBe('my__var')
+    expect(toPlainText('x_1 and _italic_')).toBe('x_1 and italic')
+    expect(toPlainText('__init__ and __bold__')).toBe('init and bold')
+    expect(toPlainText('_a_ then snake_case')).toBe('a then snake_case')
+    expect(toPlainText('snake_case **bold**')).toBe('snake_case bold')
+  })
+
+  it('does not treat math symbols as markers', () => {
+    expect(toPlainText('Area $x_{i}^2$ and snake_case')).toBe(
+      'Area x_{i}^2 and snake_case'
+    )
+    expect(toPlainText('$$a_1 * b_2$$')).toBe('a_1 * b_2')
+    expect(toPlainText('**Bold** $E = mc^2$')).toBe('Bold E = mc^2')
+  })
+
+  it('does not pair escaped dollar signs as math', () => {
+    expect(toPlainText('\\$5 and \\$6')).toBe('$5 and $6')
+  })
+
   it('unwraps math and keeps escaped characters', () => {
     expect(toPlainText('Area $m^2$')).toBe('Area m^2')
     expect(toPlainText('Cost \\$5')).toBe('Cost $5')
