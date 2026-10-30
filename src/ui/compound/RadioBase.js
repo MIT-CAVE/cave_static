@@ -10,6 +10,9 @@ import * as R from 'ramda'
 import { useMemo } from 'react'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
 
 import { getActiveDefaults, getOrDefault, withIndex } from '../../utils'
 
@@ -105,7 +108,10 @@ const RadioBase = ({
           return (
             <FormControlLabel
               key={key}
-              {...{ disabled, label, labelPlacement }}
+              {...{ disabled, labelPlacement }}
+              label={
+                <RichLabel text={label} rich={propAttrs.richText === true} />
+              }
               slotProps={{
                 typography: {
                   sx: [
@@ -120,7 +126,7 @@ const RadioBase = ({
                     isHorizontal ? horizontalAlignment : verticalAlignment,
                     styles.getRadio({ color, size, activeColor, activeSize }),
                   ]}
-                  name={label}
+                  name={labelText(label, propAttrs.richText)}
                   {...{ checked, value }}
                   {...(icon && {
                     icon: <FetchedIcon iconName={icon} {...{ color, size }} />,
@@ -145,7 +151,10 @@ const RadioBase = ({
         })(indexedOptions)}
       </RadioGroup>
       <FormHelperText>
-        {value in options ? options[value]?.helperText : helperText}
+        <RichLabel
+          text={value in options ? options[value]?.helperText : helperText}
+          rich={propAttrs.richText === true}
+        />
       </FormHelperText>
     </FormControl>
   )

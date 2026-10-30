@@ -9,6 +9,7 @@ const TextBase = ({
   rows,
   placeholder,
   label,
+  richText,
   fullWidth,
   propStyle,
   currentVal,
@@ -19,7 +20,7 @@ const TextBase = ({
   <TextInput
     disabled={!enabled}
     sx={[...forceArray(sx), propStyle]}
-    {...{ multiline, readOnly, rows, placeholder, label, fullWidth }}
+    {...{ multiline, readOnly, rows, placeholder, label, richText, fullWidth }}
     value={currentVal ?? value ?? ''}
     onClickAway={(newValue) => {
       if (enabled) onChange(newValue)

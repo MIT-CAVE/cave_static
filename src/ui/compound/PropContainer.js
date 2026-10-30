@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 
 import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 
 import { PROP_MIN_WIDTH } from '../../utils/constants'
 import { propContainer } from '../../utils/enums'
@@ -41,9 +42,24 @@ const styles = {
   },
 }
 
+// Labels are only rich when `richText` is explicitly `true`
+const Label = ({ text, richText, marquee = true }) => {
+  const rich = richText === true
+  return marquee ? (
+    <OverflowText {...{ text }}>
+      {rich && <RichLabel {...{ text }} />}
+    </OverflowText>
+  ) : rich ? (
+    <RichLabel {...{ text }} />
+  ) : (
+    text
+  )
+}
+
 const BaseContainer = ({
   title,
   tooltipContent,
+  richText,
   elevation,
   style,
   sx = [],
@@ -55,7 +71,12 @@ const BaseContainer = ({
     {...{ elevation, ...props }}
   >
     {tooltipContent && (
-      <HelpTooltip {...{ title }} content={tooltipContent} sx={styles.info} />
+      <HelpTooltip
+        {...{ title }}
+        content={tooltipContent}
+        {...{ richText }}
+        sx={styles.info}
+      />
     )}
     {children}
   </Paper>
@@ -65,6 +86,7 @@ const PropHeader = ({
   title,
   subtitle,
   unit,
+  richText,
   marquee = true,
   titleVariant = 'subtitle1',
   ...props
@@ -73,20 +95,20 @@ const PropHeader = ({
     <Grid container sx={{ alignSelf: 'center' }} {...props}>
       <Grid size="grow">
         <Typography noWrap={marquee} variant={titleVariant}>
-          {marquee ? <OverflowText text={title} /> : title}
+          <Label text={title} {...{ richText, marquee }} />
         </Typography>
       </Grid>
       {unit && (
         <Grid sx={{ maxWidth: '33.33%' }}>
           <Typography variant="subtitle2" sx={styles.unit}>
-            <OverflowText text={unit} />
+            <Label text={unit} {...{ richText }} />
           </Typography>
         </Grid>
       )}
     </Grid>
     {subtitle && (
       <Typography variant="subtitle2" sx={styles.subtitle}>
-        <OverflowText text={subtitle} />
+        <Label text={subtitle} {...{ richText }} />
       </Typography>
     )}
   </>
@@ -98,10 +120,11 @@ const HorizontalContainer = ({
   marquee,
   tooltipContent,
   unit,
+  richText,
   children,
   ...props
 }) => (
-  <BaseContainer {...{ title, tooltipContent, ...props }}>
+  <BaseContainer {...{ title, tooltipContent, richText, ...props }}>
     <Grid
       container
       sx={{
@@ -113,7 +136,7 @@ const HorizontalContainer = ({
       }}
     >
       <Grid size="grow" sx={{ minWidth: '5ch', pl: 1 }}>
-        <PropHeader {...{ title, subtitle, marquee, unit }} />
+        <PropHeader {...{ title, subtitle, marquee, unit, richText }} />
       </Grid>
       <Grid size={7.5}>{children}</Grid>
     </Grid>
@@ -126,12 +149,13 @@ const VerticalContainer = ({
   marquee,
   tooltipContent,
   unit,
+  richText,
   sx = [],
   children,
   ...props
 }) => (
   <BaseContainer
-    {...{ title, tooltipContent, ...props }}
+    {...{ title, tooltipContent, richText, ...props }}
     sx={[{ p: 1 }, ...forceArray(sx)]}
   >
     <Grid container spacing={1} direction="column" sx={{ flexGrow: 1 }}>
@@ -143,7 +167,7 @@ const VerticalContainer = ({
           width: '100%',
         }}
       >
-        <PropHeader {...{ title, subtitle, marquee, unit }} />
+        <PropHeader {...{ title, subtitle, marquee, unit, richText }} />
       </Grid>
       <Grid
         container
@@ -195,6 +219,7 @@ const PropContainer = ({
   marquee,
   tooltipContent,
   unit,
+  richText,
   elevation,
   style,
   sx = [],
@@ -227,6 +252,7 @@ const PropContainer = ({
         marquee,
         tooltipContent,
         unit,
+        richText,
         elevation,
         style,
         sx,
@@ -243,6 +269,7 @@ PropContainer.propTypes = {
   marquee: PropTypes.bool,
   tooltipContent: PropTypes.string,
   unit: PropTypes.string,
+  richText: PropTypes.bool,
   type: PropTypes.oneOf(Object.values(propContainer)),
   elevation: PropTypes.oneOf([...Array(25).keys()]),
   style: PropTypes.object,

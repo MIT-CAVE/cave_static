@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 
 import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
@@ -138,6 +139,7 @@ const StepperBase = ({
   )
 
   const lastIndex = optionsList.length - 1
+  const rich = propAttrs.richText === true
 
   const isOptionEnabled = useCallback(
     (idx) => getOrDefault(options[optionsList[idx]]?.enabled, true),
@@ -177,14 +179,16 @@ const StepperBase = ({
             value: markIndex,
             // Only hstepper marquees overflowing labels
             label: isVertical ? (
-              label
+              <RichLabel text={label} {...{ rich }} />
             ) : (
-              <OverflowText text={label} sx={{ maxWidth: '100%' }} />
+              <OverflowText text={label} sx={{ maxWidth: '100%' }}>
+                {rich && <RichLabel text={label} />}
+              </OverflowText>
             ),
           }
         })
       )(options),
-    [index, isVertical, lastIndex, options]
+    [index, isVertical, lastIndex, options, rich]
   )
 
   const currentMaxSize = useMemo(
@@ -347,7 +351,9 @@ const StepperBase = ({
         onChange={handleChange}
         onChangeCommitted={handleChangeComitted}
       />
-      <FormHelperText>{helperText}</FormHelperText>
+      <FormHelperText>
+        <RichLabel text={helperText} {...{ rich }} />
+      </FormHelperText>
     </FormControl>
   )
 }

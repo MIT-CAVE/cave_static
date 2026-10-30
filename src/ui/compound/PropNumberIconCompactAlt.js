@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
@@ -43,7 +44,7 @@ const styles = {
 }
 
 const PropNumberIconCompactAlt = ({ prop, sx = [] }) => {
-  const { name, value, icon, color = 'text.secondary', style } = prop
+  const { name, value, icon, color = 'text.secondary', style, richText } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
     <Card elevation={2} sx={[styles.root, style, ...forceArray(sx)]}>
@@ -52,7 +53,7 @@ const PropNumberIconCompactAlt = ({ prop, sx = [] }) => {
       </Box>
       <Box sx={styles.text}>
         <Typography variant="caption" color="text.secondary" sx={styles.name}>
-          {name}
+          <RichLabel text={name} rich={richText === true} />
         </Typography>
         <Typography variant="h6" sx={styles.value}>
           {NumberFormat.format(value, numberFormatProps)}

@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
 import { selectNumberFormat } from '../../../data/selectors'
@@ -8,6 +9,7 @@ import {
   propPlacements,
   propVariant,
 } from '../../../utils/enums'
+import { warnIfHelpNeedsRichText } from '../../../utils/richText'
 
 import {
   PropAudio,
@@ -178,10 +180,15 @@ const getContainerFn = R.cond([
 
 export const PropWrapper = ({ prop, children }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
+  // Development aid for the planned `help` opt-in (see `utils/richText.js`)
+  useEffect(() => {
+    warnIfHelpNeedsRichText(prop.id, prop.help, prop.richText)
+  }, [prop.id, prop.help, prop.richText])
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     subtitle: R.prop('subtitle'),
     tooltipContent: R.prop('help'),
+    richText: R.prop('richText'),
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
     type: getContainerFn,
     marquee: R.prop('marquee'),

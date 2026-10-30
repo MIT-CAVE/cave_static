@@ -7,6 +7,8 @@ import { IoSquareSharp } from 'react-icons/io5'
 import ComboboxBase from './ComboboxBase'
 import FetchedIcon from './FetchedIcon'
 
+import { labelText } from '../../utils/richText'
+
 import {
   forceArray,
   getActiveDefaults,
@@ -86,11 +88,13 @@ const PropComboBox = ({ prop, currentVal, sx = [], onChange }) => {
   const getOptionLabel = useCallback(
     (option) => {
       const currentOpt = options[option]
-      return option === value
-        ? (getOrDefault(currentOpt?.activeName, currentOpt?.name) ?? option)
-        : (currentOpt?.name ?? option)
+      const label =
+        option === value
+          ? (getOrDefault(currentOpt?.activeName, currentOpt?.name) ?? option)
+          : (currentOpt?.name ?? option)
+      return labelText(label, prop.richText)
     },
-    [options, value]
+    [options, prop.richText, value]
   )
 
   return (

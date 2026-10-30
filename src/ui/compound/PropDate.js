@@ -11,6 +11,8 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useState } from 'react'
 
+import RichLabel from './RichLabel'
+
 import {
   getDisabledDateProps,
   getDisplayFormat,
@@ -92,6 +94,7 @@ const DateTimeBase = ({
     value: defaultValue,
     readOnly,
     label,
+    richText,
     views,
     defaultView,
     dateOrder,
@@ -119,7 +122,8 @@ const DateTimeBase = ({
       views={pickerViews}
       // NOTE: The picker can only open to one of its views
       openTo={R.includes(defaultView)(pickerViews) ? defaultView : undefined}
-      {...{ label, readOnly, timezone }}
+      label={label && <RichLabel text={label} rich={richText === true} />}
+      {...{ readOnly, timezone }}
       format={getDisplayFormat({
         hasDate,
         hasTime,

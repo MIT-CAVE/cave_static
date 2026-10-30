@@ -29,6 +29,9 @@ import {
 } from 'react-icons/md'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
 
 import { forceArray, getContrastText } from '../../utils'
 
@@ -215,6 +218,7 @@ const ComboboxMultiBase = ({
   indexedOptions = {},
   value = [],
   numVisibleTags = 1,
+  richText,
   fullWidth = true,
   sx = [],
   getActiveAttrs = R.identity,
@@ -233,9 +237,9 @@ const ComboboxMultiBase = ({
     return options.filter((key) => {
       const opt = indexedOptions[key]
       const label = opt?.name ?? key
-      return String(label).toLowerCase().includes(query)
+      return String(labelText(label, richText)).toLowerCase().includes(query)
     })
-  }, [indexedOptions, options, search])
+  }, [indexedOptions, options, richText, search])
 
   const allFilteredSelected = useMemo(() => {
     if (filteredOptions.length === 0) return false
@@ -309,7 +313,12 @@ const ComboboxMultiBase = ({
                   <Chip
                     key={key}
                     size="small"
-                    label={activeName ?? opt.name ?? key}
+                    label={
+                      <RichLabel
+                        text={activeName ?? opt.name ?? key}
+                        rich={richText === true}
+                      />
+                    }
                     {...(activeIcon && {
                       icon: (
                         <FetchedIcon
@@ -362,7 +371,9 @@ const ComboboxMultiBase = ({
         </Box>
       </Box>
 
-      <FormHelperText>{helperText}</FormHelperText>
+      <FormHelperText>
+        <RichLabel text={helperText} rich={richText === true} />
+      </FormHelperText>
 
       <Popover
         open={open && Boolean(containerRef.current)}
@@ -452,7 +463,12 @@ const ComboboxMultiBase = ({
                     <Chip
                       key={key}
                       size="small"
-                      label={activeName ?? opt.name ?? key}
+                      label={
+                        <RichLabel
+                          text={activeName ?? opt.name ?? key}
+                          rich={richText === true}
+                        />
+                      }
                       {...(activeIcon && {
                         icon: (
                           <FetchedIcon
@@ -552,7 +568,12 @@ const ComboboxMultiBase = ({
                           />
                         ) : null}
                         <ListItemText
-                          primary={currentLabel}
+                          primary={
+                            <RichLabel
+                              text={currentLabel}
+                              rich={richText === true}
+                            />
+                          }
                           primaryTypographyProps={{
                             noWrap: true,
                             variant: 'body2',
@@ -574,6 +595,7 @@ const ComboboxMultiBase = ({
 
 ComboboxMultiBase.propTypes = {
   disabled: PropTypes.bool,
+  richText: PropTypes.bool,
   readOnly: PropTypes.bool,
   placeholder: PropTypes.string,
   helperText: PropTypes.string,
