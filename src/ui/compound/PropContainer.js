@@ -39,6 +39,10 @@ const styles = {
   },
   subtitle: {
     color: 'text.secondary',
+    // The subtitle takes the width of its prop and scrolls (marquee) when it
+    // does not fit. `contain: inline-size` keeps it from setting that width, as
+    // the columns of a layout are at least as wide as their widest content.
+    contain: 'inline-size',
   },
 }
 

@@ -416,3 +416,116 @@ export const CacheIsBoundedByWeight = {
     await expect(getRichNode(text(count))).toBe(last)
   },
 }
+
+const SUBTITLES = {
+  plain: "This example uses the `num`'s `slider` variant",
+  log: "This example uses the `num`'s `slider` variant with logarithmic scaling ($\\log_{10}$)",
+  exp: "This example uses the `num`'s `slider` variant with exponential scaling ($2^x$)",
+  subAndSuperscript: 'Growth is $O(n \\log n)$ and $x_{i}^{2}$',
+}
+
+const FORMULAS = [
+  '$\\log_{10}$',
+  '$x_{i}^{2}$',
+  '$O(n \\log n)$',
+  '$\\frac{a}{b}$',
+  '$\\sqrt{x}$',
+  '$\\sum_{i=1}^{n} x_i$',
+  '$\\frac{\\partial f}{\\partial x}$',
+  '$\\int_0^1 x^2 dx$',
+  '$\\binom{n}{k}$',
+  '$\\sqrt{\\frac{a}{b}}$',
+]
+
+const FORMULA_SUBTITLES = Object.fromEntries(
+  FORMULAS.map((formula) => [formula, `Text ${formula} text`])
+)
+
+const getSubtitle = (row) => row.querySelector('.MuiTypography-subtitle2')
+
+const getMarquee = (subtitle) => subtitle.firstElementChild.children[0]
+
+const getLines = (element) =>
+  element.getBoundingClientRect().height /
+  parseFloat(getComputedStyle(element).lineHeight)
+
+// Formulas can be taller than the line box of a label (e.g. subscripts), which
+// must not make a subtitle that fits scroll as a marquee or get a scrollbar
+export const SubtitlesFitTheirLine = {
+  render: () => (
+    <div style={{ width: 900 }}>
+      {Object.entries({ ...SUBTITLES, ...FORMULA_SUBTITLES }).map(
+        ([key, subtitle]) => (
+          <div key={key} data-key={key}>
+            <PropContainer title={key} {...{ subtitle }} richText>
+              <span />
+            </PropContainer>
+          </div>
+        )
+      )}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const row of canvasElement.querySelectorAll('[data-key]')) {
+      const subtitle = getSubtitle(row)
+      // Fits, so it is shown as text and not as a marquee
+      await expect(getComputedStyle(getMarquee(subtitle)).display).toBe('none')
+      await expect(getLines(subtitle)).toBeLessThan(1.5)
+    }
+  },
+}
+
+// A subtitle that does not fit scrolls on a single line, without a scrollbar
+export const SubtitlesScrollWhenTheyDoNotFit = {
+  render: () => (
+    <div style={{ width: 300 }}>
+      <div data-key="log">
+        <PropContainer
+          title="Signal Strength"
+          subtitle={SUBTITLES.log}
+          richText
+        >
+          <span />
+        </PropContainer>
+      </div>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const subtitle = getSubtitle(canvasElement.querySelector('[data-key]'))
+    const marquee = getMarquee(subtitle)
+    await waitFor(() =>
+      expect(getComputedStyle(marquee).display).not.toBe('none')
+    )
+    await expect(getComputedStyle(marquee).overflowY).toBe('hidden')
+    await expect(getLines(subtitle)).toBeLessThan(1.5)
+    await expect(subtitle.scrollWidth).toBeLessThanOrEqual(subtitle.clientWidth)
+  },
+}
+
+// The columns of a layout are sized by their widest (`max-content`) content
+export const SubtitlesDoNotWidenGridColumns = {
+  render: () => (
+    <div
+      data-key="grid"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(max-content, 1fr)',
+        width: 'max-content',
+      }}
+    >
+      <PropContainer title="Signal Strength" subtitle={SUBTITLES.exp} richText>
+        <span />
+      </PropContainer>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const grid = canvasElement.querySelector('[data-key]')
+    const subtitle = getSubtitle(grid)
+    // The subtitle is far wider than the column, so it scrolls
+    await expect(grid.getBoundingClientRect().width).toBeLessThan(320)
+    await waitFor(() =>
+      expect(getComputedStyle(getMarquee(subtitle)).display).not.toBe('none')
+    )
+    await expect(getLines(subtitle)).toBeLessThan(1.5)
+  },
+}
