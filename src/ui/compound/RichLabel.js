@@ -5,6 +5,7 @@ import rehypeKatex from 'rehype-katex'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkMath from 'remark-math'
 
+import InlineCode from './InlineCode'
 import sanitizeSchema from './sanitizeSchema'
 
 import { mayContainRichText } from '../../utils/richText'
@@ -50,7 +51,7 @@ const RichLink = ({ children, ...props }) => (
   </a>
 )
 
-const components = { p: Fragment, a: RichLink }
+const components = { p: Fragment, a: RichLink, code: InlineCode }
 const remarkPlugins = [remarkMath]
 // Labels do not parse raw HTML, so this is just a second layer of defense
 const rehypePlugins = [[rehypeSanitize, sanitizeSchema], rehypeKatex]

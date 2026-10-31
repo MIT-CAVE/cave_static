@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import CopyButton from './CopyButton'
+import InlineCode from './InlineCode'
 import sanitizeSchema, { getSanitizedHref } from './sanitizeSchema'
 
 const styles = {
@@ -23,13 +24,11 @@ const styles = {
     lineHeight: 1.5,
     overflowX: 'auto',
   },
+  // Spacing of inline code in a text block (`InlineCode` is tighter for labels)
   inlineCode: {
-    bgcolor: 'action.hover',
     px: 0.75,
     py: 0.25,
-    borderRadius: '4px',
     fontSize: '0.95em',
-    fontFamily: 'Consolas, monospace',
   },
   copyButton: {
     position: 'absolute',
@@ -135,9 +134,9 @@ const MarkdownContent = ({ content, innerRef, sx = [] }) => {
         const isBlock = Boolean(className) || String(children).includes('\n')
         if (!isBlock) {
           return (
-            <Box component="code" sx={styles.inlineCode} {...props}>
+            <InlineCode sx={styles.inlineCode} {...props}>
               {children}
-            </Box>
+            </InlineCode>
           )
         }
         const codeText = String(children).trim()

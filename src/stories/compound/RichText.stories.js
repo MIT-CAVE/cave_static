@@ -3,6 +3,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import ReactMarkdown from 'react-markdown'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
+import MarkdownContent from '../../ui/compound/MarkdownContent'
 import { PropButtonFilled } from '../../ui/compound/PropButton'
 import PropComboBox from '../../ui/compound/PropComboBox'
 import PropComboBoxMulti from '../../ui/compound/PropComboBoxMulti'
@@ -527,5 +528,44 @@ export const SubtitlesDoNotWidenGridColumns = {
       expect(getComputedStyle(getMarquee(subtitle)).display).not.toBe('none')
     )
     await expect(getLines(subtitle)).toBeLessThan(1.5)
+  },
+}
+
+// Inline code is highlighted with a subtle background, in labels and in `help`
+const expectHighlightedCode = async (code) => {
+  const style = getComputedStyle(code)
+  await expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+  await expect(style.fontFamily).toMatch(/monospace/)
+  return style
+}
+
+export const InlineCodeIsHighlighted = {
+  render: () => (
+    <div data-key="code">
+      <PropContainer
+        title="A `code` title"
+        subtitle="With `inline code`"
+        unit="`kg`"
+        richText
+      >
+        <span />
+      </PropContainer>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const codes = canvasElement.querySelectorAll('[data-key="code"] code')
+    // The title, subtitle and unit, which are rendered twice by `OverflowText`
+    await expect(codes.length).toBeGreaterThanOrEqual(3)
+    for (const code of codes) await expectHighlightedCode(code)
+  },
+}
+
+export const HelpInlineCodeKeepsItsLook = {
+  render: () => <MarkdownContent content="Some `inline code` in help" />,
+  play: async ({ canvasElement }) => {
+    const code = canvasElement.querySelector('code')
+    const style = await expectHighlightedCode(code)
+    // `help` has more room around its code than labels do
+    await expect(parseFloat(style.paddingLeft)).toBeGreaterThan(4)
   },
 }
