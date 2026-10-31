@@ -12,6 +12,7 @@ import {
   findSubgroupLabels,
   findColoring,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 /**
  * Estimates the parameters needed to render a single bar at an arbitrary
@@ -212,30 +213,28 @@ const WaterfallChart = ({
     tooltip: {
       formatter: (params) =>
         params.length === 1
-          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ? markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
                 ${params
                   .map(({ marker, value }) =>
                     R.isNil(value) && !showNA
                       ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
+                      : markup`<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${safeHtml(marker)}</div>
                         <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                  .filter(R.identity)}`.toString()
+          : markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
           ${params
             .map(({ marker, seriesName, value }) =>
               R.isNil(value) && !showNA
                 ? false
-                : `<div style="display: flex">
-                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
+                : markup`<div style="display: flex">
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${seriesName}</div>
                   <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
-            .filter(R.identity)
-            .join('')}`,
+            .filter(R.identity)}`.toString(),
     },
     xAxis: {
       name: xAxisTitle,
@@ -595,30 +594,28 @@ const StackedWaterfallChart = ({
     tooltip: {
       formatter: (params) =>
         params.length === 3
-          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ? markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
                 ${params
                   .map(({ marker, value }) =>
                     R.isNil(value) && !showNA
                       ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
+                      : markup`<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${safeHtml(marker)}</div>
                         <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                  .filter(R.identity)}`.toString()
+          : markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
           ${params
             .map(({ marker, seriesName, value, seriesType }) =>
               R.isNil(value) && !showNA
                 ? false
-                : `<div style="display: flex">
-                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesType === 'graph' ? '' : seriesName}</div>
+                : markup`<div style="display: flex">
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${seriesType === 'graph' ? '' : seriesName}</div>
                   <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
-            .filter(R.identity)
-            .join('')}`,
+            .filter(R.identity)}`.toString(),
     },
   }
 

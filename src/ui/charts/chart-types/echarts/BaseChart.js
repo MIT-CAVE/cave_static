@@ -40,6 +40,7 @@ import {
   getYExtremes,
   NumberFormat,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 // Register the required components
 echarts.use([
@@ -440,8 +441,8 @@ const EchartsPlot = ({
   const renderSeriesTitle = (marker, seriesName, isSingle) => {
     const cleanName = isSingle ? '' : cleanSeriesName(seriesName)
     return cleanName
-      ? `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${cleanName}</div>`
-      : `<div style="text-align: center; flex: 1 1 auto">${marker}</div>`
+      ? markup`<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${cleanName}</div>`
+      : markup`<div style="text-align: center; flex: 1 1 auto">${safeHtml(marker)}</div>`
   }
 
   const sortParams = (params) => {
@@ -477,35 +478,33 @@ const EchartsPlot = ({
         ? {
             formatter: (params) => {
               const isSingle = params.length === 1
-              return `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+              return markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
                 ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesId, seriesName, value }) =>
                     R.isNil(getChartValue(value)) && !showNA
                       ? false
-                      : `<div style="display: flex">
+                      : markup`<div style="display: flex">
                         ${renderSeriesTitle(marker, seriesName, isSingle)}
                         <div><strong>${getNumberFormat(seriesId, value, seriesName)}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`
+                  .filter(R.identity)}`.toString()
             },
           }
         : {
             formatter: (params) => {
               const isSingle = params.length === 1
-              return `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+              return markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
                 ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesName, value }) =>
                     R.isNil(getChartValue(value)) && !showNA
                       ? false
-                      : `<div style="display: flex">
+                      : markup`<div style="display: flex">
                         ${renderSeriesTitle(marker, seriesName, isSingle)}
                         <div><strong>${NumberFormat.format(getChartValue(value), numberFormat ?? {})}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`
+                  .filter(R.identity)}`.toString()
             },
           }),
     },
