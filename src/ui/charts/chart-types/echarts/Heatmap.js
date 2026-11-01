@@ -1,10 +1,12 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import { NumberFormat, findSubgroupLabels } from '../../../../utils'
 
 const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -102,8 +104,8 @@ const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
       },
     },
     tooltip: {
-      valueFormatter: (value) =>
-        NumberFormat.format(value, resolvedNumberFormat),
+      formatter: ({ marker, data: [x, y, value] }) =>
+        `${marker} ${getDisplayName(xLabels[x])}, ${getDisplayName(subGroupLabels[y])}: <strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong>`,
     },
   }
 

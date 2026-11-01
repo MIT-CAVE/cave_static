@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -49,6 +50,7 @@ const EchartsBoxPlot = ({
   colors,
   showNA,
 }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
@@ -220,7 +222,7 @@ const EchartsBoxPlot = ({
     tooltip: {
       formatter: (params) => {
         return params.length === 1
-          ? `<div style="margin-bottom: 3px">${params[0].marker}<strong>${params[0].name}</strong></div>
+          ? `<div style="margin-bottom: 3px">${params[0].marker}<strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ value }) =>
               R.any(isNaN)(value) && !showNA
@@ -229,12 +231,12 @@ const EchartsBoxPlot = ({
             )
             .filter(R.identity)
             .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          : `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ marker, seriesName, value }) =>
               R.any(isNaN)(value) && !showNA
                 ? false
-                : `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} <strong>${seriesName}</strong></div>
+                : `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} <strong>${getDisplayName(seriesName)}</strong></div>
                   ${mapValuesForTooltip(value)}
                 `
             )
