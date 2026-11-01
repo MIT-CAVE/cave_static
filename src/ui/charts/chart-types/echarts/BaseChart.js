@@ -38,7 +38,10 @@ import {
   getDecimalScaleFactor,
   getDecimalScaleLabel,
   getYExtremes,
+  getTintedItemStyle,
+  CHART_FILL_ALPHA_HOVER,
   NumberFormat,
+  tintColor,
 } from '../../../../utils'
 
 // Register the required components
@@ -332,6 +335,8 @@ const EchartsPlot = ({
     (item) => findColoring(item, colors) ?? getChartItemColor(item)
   )(xLabels)
 
+  const isBar = chartType === 'bar'
+
   const series = hasSubObjects
     ? R.pipe(
         R.addIndex(R.map)((d, idx) =>
@@ -355,12 +360,23 @@ const EchartsPlot = ({
               dataArr[item.index] = item.value?.[0]
             }
           }
+          const seriesColor =
+            findColoring(headItem?.name, colors) ??
+            getChartItemColor(headItem?.name)
           return R.mergeRight(baseObject, {
             id: headItem?.id,
             name: headItem?.name,
-            color:
-              findColoring(headItem?.name, colors) ??
-              getChartItemColor(headItem?.name),
+            color: seriesColor,
+            ...(isBar && {
+              itemStyle: getTintedItemStyle(seriesColor),
+              emphasis: {
+                focus: 'series',
+                itemStyle: getTintedItemStyle(
+                  seriesColor,
+                  CHART_FILL_ALPHA_HOVER
+                ),
+              },
+            }),
             data: dataArr,
           })
         }),
@@ -381,6 +397,22 @@ const EchartsPlot = ({
             name: '',
             colorBy: 'data',
             color,
+            // Callbacks index the color list directly (bars have one value per
+            // category) since the palette color is not passed to them
+            ...(isBar && {
+              itemStyle: {
+                color: ({ dataIndex }) => tintColor(color[dataIndex]),
+                borderColor: ({ dataIndex }) => color[dataIndex],
+                borderWidth: 1,
+              },
+              emphasis: {
+                focus: 'series',
+                itemStyle: {
+                  color: ({ dataIndex }) =>
+                    tintColor(color[dataIndex], CHART_FILL_ALPHA_HOVER),
+                },
+              },
+            }),
           }
         ),
       ]

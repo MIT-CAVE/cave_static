@@ -10,6 +10,7 @@ import {
   getChartItemColor,
   findColoring,
   getQuartiles,
+  tintColor,
 } from '../../../../utils'
 
 // // sort array ascending
@@ -35,6 +36,10 @@ import {
 //   const q3 = quantile(data, 0.75)
 //   return [min, q1, median, q3, max]
 // }
+
+// Box plot uses a lighter fill than the other bar-like charts
+const BOX_FILL_ALPHA = 0.5
+const BOX_FILL_ALPHA_HOVER = 0.75
 
 const EchartsBoxPlot = ({
   data,
@@ -66,6 +71,10 @@ const EchartsBoxPlot = ({
     typeof yValues[0][0] === 'object' &&
     yValues[0][0] !== null
 
+  const boxColors = R.map(
+    (item) => findColoring(item, colors) ?? getChartItemColor(item)
+  )(xLabels)
+
   const series = hasSubObjects
     ? R.pipe(
         R.addIndex(R.map)((d, idx) =>
@@ -90,15 +99,24 @@ const EchartsBoxPlot = ({
           for (let i = 0; i <= maxIdx; i++) {
             dataArr[i] = getQuartiles(lookup.get(i))
           }
+          const seriesColor =
+            findColoring(headItem?.name, colors) ??
+            getChartItemColor(headItem?.name)
           return {
             name: headItem?.name,
             type: chartType,
             smooth: true,
-            color:
-              findColoring(headItem?.name, colors) ??
-              getChartItemColor(headItem?.name),
+            color: seriesColor,
+            itemStyle: {
+              color: tintColor(seriesColor, BOX_FILL_ALPHA),
+              borderColor: seriesColor,
+              borderWidth: 2,
+            },
             emphasis: {
               focus: 'series',
+              itemStyle: {
+                color: tintColor(seriesColor, BOX_FILL_ALPHA_HOVER),
+              },
             },
             data: dataArr,
           }
@@ -114,12 +132,24 @@ const EchartsBoxPlot = ({
             focus: 'series',
           },
           colorBy: 'data',
-          color: R.map(
-            (item) => findColoring(item, colors) ?? getChartItemColor(item)
-          )(xLabels),
-          data: R.map((item) => {
+          color: boxColors,
+          // Per-box styles are set explicitly: itemStyle callbacks do not
+          // receive the per-data palette color for boxplots
+          data: R.addIndex(R.map)((item, idx) => {
             const raw = Array.isArray(item) ? item : [item]
-            return getQuartiles(raw)
+            return {
+              value: getQuartiles(raw),
+              itemStyle: {
+                color: tintColor(boxColors[idx], BOX_FILL_ALPHA),
+                borderColor: boxColors[idx],
+                borderWidth: 2,
+              },
+              emphasis: {
+                itemStyle: {
+                  color: tintColor(boxColors[idx], BOX_FILL_ALPHA_HOVER),
+                },
+              },
+            }
           }, yValues),
         },
       ]
@@ -129,7 +159,7 @@ const EchartsBoxPlot = ({
     const sData = series[s]?.data
     if (Array.isArray(sData)) {
       for (let i = 0; i < sData.length; i++) {
-        const item = sData[i]
+        const item = Array.isArray(sData[i]) ? sData[i] : sData[i]?.value
         if (Array.isArray(item)) {
           for (let j = 0; j < item.length; j++) {
             const val = item[j]

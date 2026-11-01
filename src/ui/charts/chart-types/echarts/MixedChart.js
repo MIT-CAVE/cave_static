@@ -3,7 +3,12 @@ import { useMemo, useState } from 'react'
 
 import { FlexibleChart } from './BaseChart'
 
-import { findColoring, getChartItemColor } from '../../../../utils'
+import {
+  CHART_FILL_ALPHA_HOVER,
+  findColoring,
+  getChartItemColor,
+  getTintedItemStyle,
+} from '../../../../utils'
 
 const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const leftDataMin = Math.min(...R.filter(R.is(Number), leftData))
@@ -72,6 +77,15 @@ const MixedChart = ({
       cumulative_line: 'line',
       bar: 'bar',
     }
+    const barStyle = (variant, color) =>
+      variant === 'bar'
+        ? {
+            itemStyle: getTintedItemStyle(color),
+            emphasis: {
+              itemStyle: getTintedItemStyle(color, CHART_FILL_ALPHA_HOVER),
+            },
+          }
+        : {}
     const smoothLeft = variantType[leftVariant] === 'line' ? true : undefined
     const smoothRight = variantType[rightVariant] === 'line' ? true : undefined
 
@@ -137,6 +151,10 @@ const MixedChart = ({
             data: sg.leftData,
             yAxisIndex: 0,
             smooth: smoothLeft,
+            ...barStyle(
+              variantType[leftVariant],
+              findColoring(sg.name, colors) ?? getChartItemColor(sg.name)
+            ),
           })),
           subGroups.map((sg) => ({
             color: findColoring(sg.name, colors) ?? getChartItemColor(sg.name),
@@ -145,6 +163,10 @@ const MixedChart = ({
             data: sg.rightData,
             yAxisIndex: 1,
             smooth: smoothRight,
+            ...barStyle(
+              variantType[rightVariant],
+              findColoring(sg.name, colors) ?? getChartItemColor(sg.name)
+            ),
           })),
         ]),
         leftMin,
@@ -171,6 +193,11 @@ const MixedChart = ({
             data: leftData,
             yAxisIndex: 0,
             smooth: smoothLeft,
+            ...barStyle(
+              variantType[leftVariant],
+              findColoring(leftLabelWithoutUnits, colors) ??
+                getChartItemColor(leftLabelWithoutUnits)
+            ),
           },
           {
             color:
@@ -181,6 +208,11 @@ const MixedChart = ({
             data: rightData,
             yAxisIndex: 1,
             smooth: smoothRight,
+            ...barStyle(
+              variantType[rightVariant],
+              findColoring(rightLabelWithoutUnits, colors) ??
+                getChartItemColor(rightLabelWithoutUnits)
+            ),
           },
         ],
         leftMin,

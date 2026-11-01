@@ -568,6 +568,21 @@ export const rgbStrToArray = (str) => str.match(/[.\d]+/g)
 
 export const getColorString = (rawColor) => colord(rawColor).toRgbString()
 
+// Translucent chart fills (bar, waterfall) keep a solid outline of the same
+// color. 0.7 matches ECharts' default area opacity.
+export const CHART_FILL_ALPHA = 0.7
+export const CHART_FILL_ALPHA_HOVER = 0.85
+
+export const tintColor = (color, alpha = CHART_FILL_ALPHA) =>
+  colord(color).alpha(alpha).toRgbString()
+
+// ECharts `itemStyle` for a translucent fill with a solid border of `color`
+export const getTintedItemStyle = (color, alpha) => ({
+  color: tintColor(color, alpha),
+  borderColor: color,
+  borderWidth: 1,
+})
+
 export const getContrastText = (bgColor) => {
   const background = colord(bgColor).rgba
   // luminance is calculated using the formula provided in WCAG 2.0 guidelines,

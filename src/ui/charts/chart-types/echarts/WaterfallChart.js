@@ -11,6 +11,7 @@ import {
   getMinMax,
   findSubgroupLabels,
   findColoring,
+  tintColor,
 } from '../../../../utils'
 
 /**
@@ -117,7 +118,9 @@ const WaterfallChart = ({
             height: startCoord[1] - endCoord[1],
           },
           style: {
-            fill: api.visual('color'),
+            fill: tintColor(api.visual('color')),
+            stroke: api.visual('color'),
+            lineWidth: 1,
           },
         },
         // Dashed line connecting the bars
@@ -378,7 +381,9 @@ const StackedWaterfallChart = ({
         height: endCoord[1] - startCoord[1],
       },
       style: {
-        fill: api.visual('color'),
+        fill: tintColor(api.visual('color')),
+        stroke: api.visual('color'),
+        lineWidth: 1,
       },
     }
 

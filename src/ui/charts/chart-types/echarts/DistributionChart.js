@@ -180,7 +180,7 @@ const DistributionChart = ({
     <EchartsPlot
       distribution={true}
       data={calcDistributionData}
-      seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
+      seriesObj={area ? { areaStyle: {}, smooth: !stack } : {}}
       onNumBucketsChange={setNumBuckets}
       {...{
         numberFormat,

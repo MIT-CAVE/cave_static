@@ -21,7 +21,7 @@ const LinePlot = ({
     <EchartsPlot
       sortable
       chartType="line"
-      seriesObj={area ? { areaStyle: { opacity: 1 }, smooth: !stack } : {}}
+      seriesObj={area ? { areaStyle: {}, smooth: !stack } : {}}
       {...{
         data,
         xAxisTitle,
