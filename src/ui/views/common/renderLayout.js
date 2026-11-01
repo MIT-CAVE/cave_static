@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import Prop from './renderProp'
 
 import { layoutType } from '../../../utils/enums'
+import { resolveRichText } from '../../../utils/richText'
 
 import {
   getAllValuesForKey,
@@ -11,12 +12,20 @@ import {
   sortedListById,
 } from '../../../utils'
 
-const renderPropItem = ({ layoutItem, prop, getCurrentVal, onChangeProp }) => {
+const renderPropItem = ({
+  layoutItem,
+  prop,
+  richText,
+  getCurrentVal,
+  onChangeProp,
+}) => {
   const { container, elevation, marquee } = layoutItem
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
   const currentProp = {
     ...prop,
     value: currentValue,
+    // `richText` cascades: prop > layout item > ancestor grids > caller
+    richText: resolveRichText(prop.richText, layoutItem.richText, richText),
     ...(container ? { container, elevation, marquee } : {}),
   }
   return (
@@ -74,7 +83,7 @@ const getLayoutItems = ({ data, fillerItems, ...other }) =>
     })
   )(data)
 
-const renderGrid = ({ layout, unusedItems, ...other }) => {
+const renderGrid = ({ layout, unusedItems, richText, ...other }) => {
   const {
     numColumns = 'auto',
     numRows = 'auto',
@@ -162,7 +171,13 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
           ...style,
         }}
       >
-        {getLayoutItems({ data, fillerItems, unusedItems, ...other })}
+        {getLayoutItems({
+          data,
+          fillerItems,
+          unusedItems,
+          richText: resolveRichText(layout.richText, richText),
+          ...other,
+        })}
       </Box>
     ),
   }

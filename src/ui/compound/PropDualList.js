@@ -64,6 +64,7 @@ const PropDualList = ({ prop, currentVal, sx = [], onChange }) => {
         helperText,
         fullWidth,
         indexedOptions,
+        richText: prop.richText,
         getActiveAttrs,
         getBaseAttrs,
         onChange,

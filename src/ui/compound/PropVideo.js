@@ -1,6 +1,10 @@
 import { Box, FormHelperText } from '@mui/material'
 import PropTypes from 'prop-types'
 
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
+
 import { forceArray } from '../../utils'
 
 const styles = {
@@ -29,7 +33,14 @@ const scaleModeStyles = {
 }
 
 const PropVideo = ({
-  prop: { value: url, scaleMode, fullWidth, helperText, propStyle = [] },
+  prop: {
+    value: url,
+    scaleMode,
+    fullWidth,
+    helperText,
+    richText,
+    propStyle = [],
+  },
   sx = [],
 }) => (
   <Box
@@ -44,14 +55,18 @@ const PropVideo = ({
     <Box sx={styles.frame}>
       <iframe
         credentialless={true}
-        title={helperText || 'Embedded Video'}
+        title={labelText(helperText, richText) || 'Embedded Video'}
         src={url}
         style={styles.iframe}
         allowFullScreen
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; cross-origin-isolated"
       />
     </Box>
-    {helperText && <FormHelperText>{helperText}</FormHelperText>}
+    {helperText && (
+      <FormHelperText>
+        <RichLabel text={helperText} rich={richText === true} />
+      </FormHelperText>
+    )}
   </Box>
 )
 PropVideo.propTypes = {

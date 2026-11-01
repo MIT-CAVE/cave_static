@@ -10,6 +10,7 @@ import * as R from 'ramda'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { forceArray, getActiveDefaults, getOrDefault } from '../../utils'
 
@@ -175,7 +176,9 @@ const PropNested = ({ prop, currentVal, sx = [], onChange }) => {
         }}
         disabled={!enabled}
       />
-      <FormHelperText>{helperText}</FormHelperText>
+      <FormHelperText>
+        <RichLabel text={helperText} rich={propAttrs.richText === true} />
+      </FormHelperText>
     </Box>
   )
 }
@@ -256,7 +259,9 @@ const PropNestedHelper = ({
           <Fragment key={key}>
             <FormControlLabel
               disabled={nodeDisabled}
-              label={label}
+              label={
+                <RichLabel text={label} rich={propAttrs.richText === true} />
+              }
               sx={{ pl: 1, ml: depth * 5 }}
               control={
                 <Checkbox

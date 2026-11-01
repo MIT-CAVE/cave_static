@@ -20,6 +20,7 @@ import { IoSquareSharp } from 'react-icons/io5'
 import { useDispatch } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { setInputValue } from '../../data/utilities/virtualKeyboardSlice'
 import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
@@ -219,11 +220,14 @@ const ComboboxBase = ({
               style={markerStyle}
             />
           ) : null}
-          {currentLabel ?? option}
+          <RichLabel
+            text={currentLabel ?? option}
+            rich={propAttrs.richText === true}
+          />
         </Stack>
       )
     },
-    [activeDefaults, indexedOptions, labelPlacement, value]
+    [activeDefaults, indexedOptions, labelPlacement, propAttrs.richText, value]
   )
 
   const getOptionDisabled = useCallback(
@@ -235,8 +239,17 @@ const ComboboxBase = ({
     (params) => (
       // The placeholder in the API serves as a label in the context of the MUI component.
       <TextField
-        label={placeholder}
-        {...{ inputRef, fullWidth, helperText, ...params }}
+        label={
+          placeholder && (
+            <RichLabel text={placeholder} rich={propAttrs.richText === true} />
+          )
+        }
+        helperText={
+          helperText && (
+            <RichLabel text={helperText} rich={propAttrs.richText === true} />
+          )
+        }
+        {...{ inputRef, fullWidth, ...params }}
         onSelect={handleSelectionChange}
         slotProps={{
           ...params.slotProps,
@@ -269,6 +282,7 @@ const ComboboxBase = ({
       helperText,
       inputRef,
       placeholder,
+      propAttrs.richText,
       readOnly,
       slotProps,
       startAdornments,

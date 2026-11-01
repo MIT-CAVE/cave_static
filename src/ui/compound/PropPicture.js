@@ -3,7 +3,10 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useEffect, useRef, useState } from 'react'
 
+import RichLabel from './RichLabel'
 import RippleBox from './RippleBox'
+
+import { labelText } from '../../utils/richText'
 
 import { forceArray } from '../../utils'
 
@@ -60,7 +63,7 @@ const scaleModeRootStyles = {
 }
 
 const PropPicture = ({
-  prop: { value: url, scaleMode, fullWidth, helperText, propStyle },
+  prop: { value: url, scaleMode, fullWidth, helperText, richText, propStyle },
   sx = [],
 }) => {
   const [expanded, setExpanded] = useState(false)
@@ -141,7 +144,7 @@ const PropPicture = ({
           >
             <img
               src={url}
-              alt={helperText ?? ''}
+              alt={labelText(helperText, richText) ?? ''}
               style={isScaled ? styles.coverImg : styles.defaultImg}
               onLoad={({ target }) => {
                 setNatural({
@@ -153,7 +156,9 @@ const PropPicture = ({
           </RippleBox>
         </Box>
         {helperText && (
-          <FormHelperText ref={helperRef}>{helperText}</FormHelperText>
+          <FormHelperText ref={helperRef}>
+            <RichLabel text={helperText} rich={richText === true} />
+          </FormHelperText>
         )}
       </Box>
       <Dialog
@@ -164,7 +169,7 @@ const PropPicture = ({
           setExpanded(false)
         }}
       >
-        <img src={url} alt={helperText ?? ''} />
+        <img src={url} alt={labelText(helperText, richText) ?? ''} />
       </Dialog>
     </>
   )

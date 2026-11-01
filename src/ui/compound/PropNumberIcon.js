@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 import { PROP_MIN_WIDTH } from '../../utils/constants'
@@ -73,7 +74,7 @@ const styles = {
 // }
 
 const PropNumberIcon = ({ prop, sx = [], ...props }) => {
-  const { name, value, icon, style } = prop
+  const { name, value, icon, style, richText } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
     <Paper
@@ -83,7 +84,9 @@ const PropNumberIcon = ({ prop, sx = [], ...props }) => {
     >
       <Grid container spacing={3} sx={{ flexDirection: 'column' }}>
         <Grid sx={styles.title}>
-          <OverflowText text={name} />
+          <OverflowText text={name}>
+            {richText === true && <RichLabel text={name} />}
+          </OverflowText>
         </Grid>
         <Grid container spacing={1} wrap="nowrap">
           {icon && (

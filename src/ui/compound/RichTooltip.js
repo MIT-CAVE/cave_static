@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react'
 
 import CopyButton from './CopyButton'
 import MarkdownContent from './MarkdownContent'
+import RichLabel from './RichLabel'
 
 const StyledTooltip = styled(({ className, ...props }) => (
   <Tooltip {...props} classes={{ popper: className }} />
@@ -36,7 +37,9 @@ const HeaderBox = styled(Box)(({ theme }) => ({
   borderTopRightRadius: theme.shape.borderRadius,
 }))
 
-const RichTooltip = ({ title, content, children, ...props }) => {
+// `richText` is tri-state: `help` is markdown unless explicitly set to `false`.
+// NOTE: The next major version will make markdown fully opt-in (`richText: true`).
+const RichTooltip = ({ title, content, richText, children, ...props }) => {
   const contentRef = useRef(null)
   const getRawText = useCallback(() => content, [content])
   return (
@@ -53,7 +56,14 @@ const RichTooltip = ({ title, content, children, ...props }) => {
               component="span"
               sx={{ flexGrow: 1 }}
             >
-              {`Help \u203A ${title}`}
+              {richText === true ? (
+                <>
+                  {'Help \u203A '}
+                  <RichLabel text={title} />
+                </>
+              ) : (
+                `Help \u203A ${title}`
+              )}
             </Typography>
 
             <CopyButton
@@ -61,7 +71,16 @@ const RichTooltip = ({ title, content, children, ...props }) => {
               tooltip="Copy content to clipboard"
             />
           </HeaderBox>
-          <MarkdownContent {...{ content }} innerRef={contentRef} />
+          {richText === false ? (
+            <Typography
+              variant="body1"
+              sx={{ p: 2, whiteSpace: 'pre-wrap', overflowY: 'auto' }}
+            >
+              {content}
+            </Typography>
+          ) : (
+            <MarkdownContent {...{ content }} innerRef={contentRef} />
+          )}
         </div>
       }
       {...props}
@@ -73,6 +92,7 @@ const RichTooltip = ({ title, content, children, ...props }) => {
 
 RichTooltip.propTypes = {
   content: PropTypes.string.isRequired,
+  richText: PropTypes.bool,
   children: PropTypes.node.isRequired,
 }
 

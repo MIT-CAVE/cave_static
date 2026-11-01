@@ -4,10 +4,13 @@ import { useEffect, useState, useCallback } from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
 import { useDispatch } from 'react-redux'
 
+import RichLabel from './RichLabel'
+
 import {
   setInputValue,
   setIsTextArea,
 } from '../../data/utilities/virtualKeyboardSlice'
+import { labelText } from '../../utils/richText'
 import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
 
 import { getStatusIcon } from '../../utils'
@@ -24,6 +27,7 @@ const TextInput = ({
   label,
   placeholder,
   help,
+  richText,
   value: defaultValue,
   color = 'default',
   statusIcon,
@@ -123,8 +127,6 @@ const TextInput = ({
       {...{
         disabled,
         inputRef,
-        label,
-        placeholder,
         multiline,
         rows,
         sx,
@@ -133,6 +135,8 @@ const TextInput = ({
         fullWidth,
         onKeyDown,
       }}
+      label={label && <RichLabel text={label} rich={richText === true} />}
+      placeholder={labelText(placeholder, richText)}
       name={multiline ? 'cave-textarea-input' : 'cave-text-input'}
       color={color === 'default' ? 'primary' : color}
       focused={color !== 'default'}
@@ -144,7 +148,7 @@ const TextInput = ({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      helperText={help}
+      helperText={help && <RichLabel text={help} rich={richText === true} />}
       slotProps={{
         ...slotProps,
         input: {
@@ -176,6 +180,7 @@ TextInput.propTypes = {
   disabled: PropTypes.bool,
   readOnly: PropTypes.bool,
   help: PropTypes.string,
+  richText: PropTypes.bool,
   placeholder: PropTypes.string,
   value: PropTypes.string,
   sx: PropTypes.oneOfType([

@@ -16,8 +16,15 @@ const styles = {
   },
 }
 
-const HelpTooltip = ({ title, content, size = 22, sx = [], ...props }) => (
-  <RichTooltip {...{ title, content, ...props }}>
+const HelpTooltip = ({
+  title,
+  content,
+  richText,
+  size = 22,
+  sx = [],
+  ...props
+}) => (
+  <RichTooltip {...{ title, content, richText, ...props }}>
     <IconButton
       aria-label="info"
       size="small"
@@ -31,6 +38,7 @@ const HelpTooltip = ({ title, content, size = 22, sx = [], ...props }) => (
 HelpTooltip.propTypes = {
   title: PropTypes.string,
   content: PropTypes.string.isRequired,
+  richText: PropTypes.bool,
   size: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(

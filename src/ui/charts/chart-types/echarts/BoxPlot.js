@@ -12,6 +12,7 @@ import {
   getQuartiles,
   tintColor,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 // // sort array ascending
 // const asc = (arr) => arr.sort((a, b) => a - b)
@@ -197,10 +198,9 @@ const EchartsBoxPlot = ({
     return value
       .map(
         (val, idx) =>
-          `<div>${tooltipOrder[idx]}${NumberFormat.format(val, resolvedNumberFormat)}</div>`
+          markup`<div>${tooltipOrder[idx]}${NumberFormat.format(val, resolvedNumberFormat)}</div>`
       )
       .slice(1)
-      .join('')
   }
 
   const options = {
@@ -220,26 +220,24 @@ const EchartsBoxPlot = ({
     tooltip: {
       formatter: (params) => {
         return params.length === 1
-          ? `<div style="margin-bottom: 3px">${params[0].marker}<strong>${params[0].name}</strong></div>
+          ? markup`<div style="margin-bottom: 3px">${safeHtml(params[0].marker)}<strong>${params[0].name}</strong></div>
           ${params
             .map(({ value }) =>
               R.any(isNaN)(value) && !showNA
                 ? false
-                : `${mapValuesForTooltip(value)}`
+                : markup`${mapValuesForTooltip(value)}`
             )
-            .filter(R.identity)
-            .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+            .filter(R.identity)}`.toString()
+          : markup`<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
           ${params
             .map(({ marker, seriesName, value }) =>
               R.any(isNaN)(value) && !showNA
                 ? false
-                : `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} <strong>${seriesName}</strong></div>
+                : markup`<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} <strong>${seriesName}</strong></div>
                   ${mapValuesForTooltip(value)}
                 `
             )
-            .filter(R.identity)
-            .join('')}`
+            .filter(R.identity)}`.toString()
       },
     },
   }
