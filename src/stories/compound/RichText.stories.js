@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import MarkdownContent from '../../ui/compound/MarkdownContent'
+import PropAudio from '../../ui/compound/PropAudio'
 import { PropButtonFilled } from '../../ui/compound/PropButton'
 import PropComboBox from '../../ui/compound/PropComboBox'
 import PropComboBoxMulti from '../../ui/compound/PropComboBoxMulti'
@@ -17,13 +18,15 @@ import PropNumberField from '../../ui/compound/PropNumberField'
 import PropNumberIcon from '../../ui/compound/PropNumberIcon'
 import PropNumberIconCompact from '../../ui/compound/PropNumberIconCompact'
 import PropNumberIconCompactAlt from '../../ui/compound/PropNumberIconCompactAlt'
+import PropPicture from '../../ui/compound/PropPicture'
 import PropRadio from '../../ui/compound/PropRadio'
-import { PropText } from '../../ui/compound/PropText'
+import { PropText, PropTextArea } from '../../ui/compound/PropText'
 import {
   PropToggleButton,
   PropToggleCheckbox,
   PropToggleSwitch,
 } from '../../ui/compound/PropToggle'
+import PropVideo from '../../ui/compound/PropVideo'
 import RichLabel, {
   MAX_CACHE_SIZE,
   MAX_CACHE_WEIGHT,
@@ -567,5 +570,110 @@ export const HelpInlineCodeKeepsItsLook = {
     const style = await expectHighlightedCode(code)
     // `help` has more room around its code than labels do
     await expect(parseFloat(style.paddingLeft)).toBeGreaterThan(4)
+  },
+}
+
+// The helper text of text, number and media props
+const HELPER = '**Bold** helper and `code`'
+
+const expectRichHelperText = async (canvasElement) => {
+  const helper = canvasElement.querySelector('.MuiFormHelperText-root')
+  await expect(helper).not.toBeNull()
+  await expect(helper.querySelector('strong')?.textContent).toBe('Bold')
+  await expect(helper.querySelector('code')).not.toBeNull()
+}
+
+export const TextHelperTextRich = {
+  ...renderProp(
+    PropText,
+    { label: 'Name', helperText: HELPER, value: '' },
+    { currentVal: '' }
+  ),
+  play: async ({ canvasElement }) => expectRichHelperText(canvasElement),
+}
+
+export const TextAreaHelperTextRich = {
+  ...renderProp(
+    PropTextArea,
+    { label: 'Notes', helperText: HELPER, value: '' },
+    { currentVal: '' }
+  ),
+  play: async ({ canvasElement }) => expectRichHelperText(canvasElement),
+}
+
+export const NumberFieldHelperTextRich = {
+  ...renderProp(
+    PropNumberField,
+    { label: 'Volume', helperText: HELPER, value: 5 },
+    { currentVal: 5 }
+  ),
+  play: async ({ canvasElement }) => expectRichHelperText(canvasElement),
+}
+
+// Without `richText`, the helper text is shown as it is written
+export const HelperTextIsPlainByDefault = {
+  render: () => (
+    <div>
+      <PropText
+        prop={{ enabled: true, helperText: HELPER, value: '' }}
+        currentVal=""
+        onChange={() => {}}
+      />
+      <PropNumberField
+        prop={{ enabled: true, helperText: HELPER, value: 5 }}
+        currentVal={5}
+        onChange={() => {}}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const helpers = canvasElement.querySelectorAll('.MuiFormHelperText-root')
+    await expect(helpers).toHaveLength(2)
+    for (const helper of helpers) {
+      await expect(helper.querySelector('strong')).toBeNull()
+      await expect(helper).toHaveTextContent(HELPER)
+    }
+  },
+}
+
+// The visible text is rich, but attributes can't hold markup, so they are plain
+const MEDIA_HELPER = '**Bold** caption (_note_)'
+const MEDIA_HELPER_PLAIN = 'Bold caption (note)'
+const IMAGE =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+export const PictureHelperTextRich = {
+  ...renderProp(PropPicture, { value: IMAGE, helperText: MEDIA_HELPER }),
+  play: async ({ canvasElement }) => {
+    await expectRich(canvasElement)
+    await expect(canvasElement.querySelector('img')).toHaveAttribute(
+      'alt',
+      MEDIA_HELPER_PLAIN
+    )
+  },
+}
+
+export const VideoHelperTextRich = {
+  ...renderProp(PropVideo, {
+    value: 'about:blank',
+    helperText: MEDIA_HELPER,
+  }),
+  play: async ({ canvasElement }) => {
+    await expectRich(canvasElement)
+    await expect(canvasElement.querySelector('iframe')).toHaveAttribute(
+      'title',
+      MEDIA_HELPER_PLAIN
+    )
+  },
+}
+
+export const AudioHelperTextRich = {
+  ...renderProp(PropAudio, { value: '', helperText: MEDIA_HELPER }),
+  play: async ({ canvasElement }) => {
+    await expectRich(canvasElement)
+    await expect(canvasElement.querySelector('audio')).toHaveAttribute(
+      'aria-label',
+      MEDIA_HELPER_PLAIN
+    )
   },
 }
