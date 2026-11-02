@@ -10,7 +10,8 @@ import {
   useMemo,
   useState,
 } from 'react'
-import ReactGridLayout from 'react-grid-layout'
+// eslint-disable-next-line import/no-unresolved
+import ReactGridLayout from 'react-grid-layout/legacy'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 import { AutoSizer } from 'react-virtualized-auto-sizer'
@@ -81,7 +82,8 @@ const styles = {
   },
 }
 
-// TODO: Currently using `react-grid-layout` v1. Migrate to v2, or
+// TODO: Currently using `react-grid-layout` v2's `/legacy` (v1-compatible) API.
+// Migrate to the full v2 API, or
 // evaluate `gridstack.js` (https://github.com/gridstack/gridstack.js)
 // if it better suits our long-term needs.
 
@@ -254,6 +256,15 @@ DashboardItem.propTypes = {
 
 const Dashboard = () => {
   const [cursor, setCursor] = useState()
+  // Bumped on every drag/resize move so grid items repaint at the pointer
+  // position. `react-grid-layout` v2 draws the in-flight pixel position from a
+  // ref and its memoized `GridItem` only re-renders when its props change, so
+  // without this the item would only update when a grid cell boundary is crossed.
+  const [interactionTick, setInteractionTick] = useState(0)
+  const handleInteractionMove = useCallback(
+    () => setInteractionTick((tick) => tick + 1),
+    []
+  )
 
   const pageLayout = useSelector(selectPageLayout)
   const charts = useSelector(selectCharts)
@@ -539,6 +550,46 @@ const Dashboard = () => {
     [pageLayout, translateLayoutToGrid]
   )
 
+  // Per-item grid props (position, static, drag/resize flags) are passed through
+  // the `layout` prop rather than `data-grid`: `react-grid-layout/legacy` ignores
+  // `data-grid` once a `layout` prop is given. Each `i` must equal the child key.
+  const renderedItems = gridLayout
+    .filter(
+      (gridItem) => R.isNil(maximizedChart) || gridItem.i === maximizedChart
+    )
+    .map((gridItem) => {
+      const index = gridItem.i
+      const chartObj = charts[index]
+      const key =
+        index !== 'null' ? `${index}` : `${gridItem.x}x${gridItem.y}null`
+      const itemGrid = R.isNil(maximizedChart)
+        ? gridItem
+        : {
+            x: 0,
+            y: 0,
+            w: lineLength,
+            h: lineLength,
+            static: true,
+          }
+      return {
+        index,
+        chartObj,
+        key,
+        layoutItem: {
+          ...itemGrid,
+          i: key,
+          isDraggable: chartObj != null && editLayoutMode,
+          isResizable: chartObj != null && editLayoutMode,
+          resizeHandles: findResizeHandles(
+            chartObj,
+            gridItem,
+            index,
+            gridLayout
+          ),
+        },
+      }
+    })
+
   return (
     <>
       {/* Shared Modals */}
@@ -596,7 +647,7 @@ const Dashboard = () => {
                   margin={R.isNil(maximizedChart) ? [8, 8] : [0, 0]}
                   cols={lineLength}
                   maxRows={lineLength}
-                  layout={gridLayout}
+                  layout={R.pluck('layoutItem', renderedItems)}
                   rowHeight={
                     (height -
                       (R.isNil(maximizedChart) ? 8 * (lineLength + 1) : 0)) /
@@ -608,43 +659,21 @@ const Dashboard = () => {
                     setCursor('grabbing')
                   }}
                   onDragStop={handleDragStop}
+                  onDrag={handleInteractionMove}
+                  onResize={handleInteractionMove}
                   onResizeStop={handleResizeStop}
                 >
-                  {gridLayout.map((gridItem) => {
-                    if (
-                      R.isNotNil(maximizedChart) &&
-                      gridItem.i !== maximizedChart
-                    )
-                      return null
-                    const index = gridItem.i
-                    const chartObj = charts[index]
-
-                    const dataGrid = R.isNil(maximizedChart)
-                      ? gridItem
-                      : {
-                          x: 0,
-                          y: 0,
-                          w: lineLength,
-                          h: lineLength,
-                          static: true,
-                        }
+                  {renderedItems.map(({ index, chartObj, key, layoutItem }) => {
                     return (
                       <Box
-                        key={
-                          index !== 'null'
-                            ? `${index}`
-                            : `${gridItem.x}x${gridItem.y}null`
-                        }
-                        data-grid={R.mergeLeft({
-                          isDraggable: chartObj != null && editLayoutMode,
-                          isResizable: chartObj != null && editLayoutMode,
-                          resizeHandles: findResizeHandles(
-                            chartObj,
-                            gridItem,
-                            index,
-                            gridLayout
-                          ),
-                        })(dataGrid)}
+                        key={key}
+                        // The grid's own `layout` prop is the source of truth; this
+                        // prop only gives the element a new identity whenever the
+                        // layout item changes. `GridItem` is `React.memo`'d and its
+                        // comparator ignores `resizeHandles`/`layout`, so a stable
+                        // (React Compiler-cached) child would skip those updates.
+                        data-grid={layoutItem}
+                        data-interaction-tick={interactionTick}
                         sx={{
                           display: 'flex',
                           cursor: `${cursor} !important`,

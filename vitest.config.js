@@ -106,6 +106,7 @@ export default defineConfig((env) => {
             },
           },
           {
+            extends: false,
             test: {
               name: 'unit',
               include: ['src/**/*.test.js'],
