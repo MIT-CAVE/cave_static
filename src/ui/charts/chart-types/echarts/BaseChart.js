@@ -41,7 +41,6 @@ import {
   getTintedItemStyle,
   CHART_FILL_ALPHA_HOVER,
   NumberFormat,
-  tintColor,
 } from '../../../../utils'
 
 // Register the required components
@@ -389,7 +388,21 @@ const EchartsPlot = ({
             'data',
             R.pipe(
               R.unnest,
-              visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
+              visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity,
+              // Only the fill supports style callbacks in ECharts, so the
+              // per-bar border color is set on each data item instead
+              isBar
+                ? R.addIndex(R.map)((value, idx) => ({
+                    value,
+                    itemStyle: getTintedItemStyle(color[idx]),
+                    emphasis: {
+                      itemStyle: getTintedItemStyle(
+                        color[idx],
+                        CHART_FILL_ALPHA_HOVER
+                      ),
+                    },
+                  }))
+                : R.identity
             )(yValues),
             baseObject
           ),
@@ -397,22 +410,6 @@ const EchartsPlot = ({
             name: '',
             colorBy: 'data',
             color,
-            // Callbacks index the color list directly (bars have one value per
-            // category) since the palette color is not passed to them
-            ...(isBar && {
-              itemStyle: {
-                color: ({ dataIndex }) => tintColor(color[dataIndex]),
-                borderColor: ({ dataIndex }) => color[dataIndex],
-                borderWidth: 1,
-              },
-              emphasis: {
-                focus: 'series',
-                itemStyle: {
-                  color: ({ dataIndex }) =>
-                    tintColor(color[dataIndex], CHART_FILL_ALPHA_HOVER),
-                },
-              },
-            }),
           }
         ),
       ]

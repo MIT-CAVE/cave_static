@@ -1116,7 +1116,12 @@ export const getYExtremes = (series) => {
     const sData = series[s]?.data
     if (Array.isArray(sData)) {
       for (let i = 0; i < sData.length; i++) {
-        const item = sData[i]
+        const rawItem = sData[i]
+        // Items may be wrapped as { value } to carry per-item styles
+        const item =
+          R.is(Object, rawItem) && !Array.isArray(rawItem)
+            ? rawItem.value
+            : rawItem
         const val = Array.isArray(item) ? item[1] : item
         if (typeof val === 'number' && !isNaN(val)) {
           if (val > yMax) yMax = val
