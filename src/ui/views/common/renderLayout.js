@@ -43,14 +43,16 @@ const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
   if (R.isNil(itemId)) throw Error("Missing 'itemId' property in layout item")
 
   const item = items[itemId]
+  const layoutWidth = containerStyle?.width ?? width
+  const layoutHeight = containerStyle?.height ?? height
   const prop = R.mergeLeft({
     id: itemId,
     key: layoutItem.id,
     layoutStyle: {
       gridColumnStart: column,
       gridRowStart: row,
-      width,
-      height,
+      ...(layoutWidth != null && { width: layoutWidth }),
+      ...(layoutHeight != null && { height: layoutHeight }),
     },
     // NOTE: `propStyle` will be renamed to `style` in v4.0.0
     propStyle: propStyle ?? item.propStyle,
