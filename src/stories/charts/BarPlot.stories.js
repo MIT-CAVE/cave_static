@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import { expect } from 'storybook/test'
 
 import { BarPlot } from '../../ui/charts'
+import ChartContext from '../../ui/charts/chart-types/echarts/ChartContext'
 
 const mockStore = configureStore({
   reducer: {
@@ -142,5 +143,47 @@ export const MixedRangeBar = {
     xAxisTitle: 'Month',
     yAxisTitle: 'Net Income ($)',
     numberFormat: { precision: 1, unit: '$' },
+  },
+}
+
+// Display names (`valueNames`) replace raw boolean values in the legend,
+// tooltip and ticks without changing the underlying names
+export const BooleanSubgroupsWithValueNames = {
+  decorators: [
+    (Story) => (
+      <ChartContext.Provider
+        value={{
+          title: '',
+          valueNames: { true: 'Organic', false: 'Conventional' },
+        }}
+      >
+        <Story />
+      </ChartContext.Provider>
+    ),
+  ],
+  args: {
+    data: [
+      {
+        name: 'Red',
+        children: [
+          { id: 'true', name: 'true', value: [320] },
+          { id: 'false', name: 'false', value: [450] },
+        ],
+      },
+      {
+        name: 'Purple',
+        children: [
+          { id: 'true', name: 'true', value: [380] },
+          { id: 'false', name: 'false', value: [520] },
+        ],
+      },
+    ],
+    xAxisTitle: 'Color',
+    yAxisTitle: 'Sales',
+    numberFormat: { precision: 0, unit: 'units' },
+  },
+  play: async ({ canvasElement }) => {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(canvasElement.querySelector('canvas')).not.toBeNull()
   },
 }

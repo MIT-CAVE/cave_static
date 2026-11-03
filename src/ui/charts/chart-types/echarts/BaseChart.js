@@ -27,7 +27,7 @@ import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
 import { memo, useCallback, useContext, useEffect, useRef } from 'react'
 
-import ChartContext from './ChartContext'
+import ChartContext, { useValueDisplayName } from './ChartContext'
 import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
 
@@ -37,6 +37,7 @@ import {
   getChartItemColor,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
+  getValueDisplayName,
   getYExtremes,
   getTintedItemStyle,
   CHART_FILL_ALPHA_HOVER,
@@ -190,6 +191,34 @@ const withChartTitle = (title, option) => {
   )(option)
 }
 
+// Shows the display names of grouping level values (`valueNames`) on category
+// axes and in the legend, leaving the underlying names untouched
+const withValueNames = (valueNames, option) => {
+  const format = getValueDisplayName(valueNames)
+  const addFormatter = (path) =>
+    R.when(
+      R.both(
+        R.pipe(R.path(R.dropLast(1, path)), R.is(Object)),
+        R.pipe(R.path(path), R.isNil)
+      ),
+      R.assocPath(path, format)
+    )
+  return R.pipe(
+    R.when(
+      R.pathEq('category', ['xAxis', 'type']),
+      addFormatter(['xAxis', 'axisLabel', 'formatter'])
+    ),
+    R.when(
+      R.pathEq('category', ['yAxis', 'type']),
+      addFormatter(['yAxis', 'axisLabel', 'formatter'])
+    ),
+    R.when(
+      R.propSatisfies(R.is(Object), 'legend'),
+      addFormatter(['legend', 'formatter'])
+    )
+  )(option)
+}
+
 const FlexibleChart = memo(
   ({
     options,
@@ -206,6 +235,7 @@ const FlexibleChart = memo(
       path,
       chartHoverOrder,
       xAxisOrder,
+      valueNames,
     } = useContext(ChartContext)
 
     const handleResize = useCallback(({ width, height }) => {
@@ -249,11 +279,18 @@ const FlexibleChart = memo(
           <ReactEChartsCore
             ref={echartsRef}
             echarts={echarts}
-            option={withChartTitle(
-              chartTitle,
-              R.mergeDeepRight(
-                R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-              )(options)
+            option={withValueNames(
+              valueNames,
+              withChartTitle(
+                chartTitle,
+                R.mergeDeepRight(
+                  R.assocPath(
+                    ['tooltip', 'order'],
+                    chartHoverOrder,
+                    baseOptions
+                  )
+                )(options)
+              )
             )}
             notMerge
             theme="dark"
@@ -294,6 +331,7 @@ const EchartsPlot = ({
   onNumBucketsChange,
 }) => {
   const { chartHoverOrder } = useContext(ChartContext)
+  const getDisplayName = useValueDisplayName()
 
   if (R.isNil(data) || R.isEmpty(data)) return null
 
@@ -469,7 +507,7 @@ const EchartsPlot = ({
   const renderSeriesTitle = (marker, seriesName, isSingle) => {
     const cleanName = isSingle ? '' : cleanSeriesName(seriesName)
     return cleanName
-      ? `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${cleanName}</div>`
+      ? `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${getDisplayName(cleanName)}</div>`
       : `<div style="text-align: center; flex: 1 1 auto">${marker}</div>`
   }
 
@@ -506,7 +544,7 @@ const EchartsPlot = ({
         ? {
             formatter: (params) => {
               const isSingle = params.length === 1
-              return `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+              return `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
                 ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesId, seriesName, value }) =>
                     R.isNil(getChartValue(value)) && !showNA
@@ -523,7 +561,7 @@ const EchartsPlot = ({
         : {
             formatter: (params) => {
               const isSingle = params.length === 1
-              return `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+              return `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
                 ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesName, value }) =>
                     R.isNil(getChartValue(value)) && !showNA

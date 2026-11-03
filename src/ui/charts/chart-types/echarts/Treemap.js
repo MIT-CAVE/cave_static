@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -11,6 +12,7 @@ import {
 // import { exampleNestedData } from './testData'
 
 const Treemap = ({ data, colors, numberFormat = {} }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const findNames = (data) =>
@@ -82,6 +84,7 @@ const Treemap = ({ data, colors, numberFormat = {} }) => {
     series: {
       label: {
         show: true,
+        formatter: ({ name }) => getDisplayName(name),
       },
       itemStyle: {
         borderRadius: 10,
@@ -131,13 +134,13 @@ const Treemap = ({ data, colors, numberFormat = {} }) => {
     },
     tooltip: {
       trigger: 'item',
-      valueFormatter: (value) =>
-        NumberFormat.format(
+      formatter: ({ marker, name, value }) =>
+        `${marker} ${getDisplayName(name)}: <strong>${NumberFormat.format(
           value,
           R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat)
             ? R.values(numberFormat)[0]
             : (numberFormat ?? {})
-        ),
+        )}</strong>`,
     },
   }
 

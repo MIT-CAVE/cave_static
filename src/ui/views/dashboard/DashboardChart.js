@@ -119,14 +119,32 @@ const DashboardChart = ({ chartObj, path }) => {
   )
   const xAxisOrder = R.propOr('default', 'xAxisOrder', cleanedChartObj)
 
+  // Display names for the values of every grouping level used by the chart
+  const valueNames = useMemo(() => {
+    const { groupingId = [], groupingLevel = [] } = cleanedChartObj
+    let result = {}
+    groupingId.forEach((gId, idx) => {
+      const levels = categories?.[gId]?.levels ?? {}
+      for (
+        let level = groupingLevel[idx];
+        levels[level];
+        level = levels[level].parent
+      ) {
+        result = { ...result, ...levels[level].valueNames }
+      }
+    })
+    return result
+  }, [categories, cleanedChartObj])
+
   const chartContextValue = useMemo(
     () => ({
       title: chartObj.title ?? '',
       path,
       chartHoverOrder,
       xAxisOrder,
+      valueNames,
     }),
-    [chartObj.title, path, chartHoverOrder, xAxisOrder]
+    [chartObj.title, path, chartHoverOrder, xAxisOrder, valueNames]
   )
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -10,6 +11,7 @@ import {
 } from '../../../../utils'
 
 const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
+  const getDisplayName = useValueDisplayName()
   const labels = R.pluck('label')(labelProps)
   if (
     R.isNil(data) ||
@@ -100,7 +102,7 @@ const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
     tooltip: {
       trigger: 'item',
       formatter: function (params) {
-        return `<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
+        return `<div style="margin-bottom: 3px"><b>${getDisplayName(params.seriesName)}</b></div>
                 <div style="display: flex">
                   <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: center; margin-right: 30px">
                     <div>${labelsExcludingUnits[1]}</div>
