@@ -161,6 +161,71 @@ describe('getDisabledDateProps', () => {
     expect(shouldDisableDate(on('2026-07-09'))).toBe(false)
   })
 
+  it('disables the date ranges, including both ends', () => {
+    const { shouldDisableDate } = getDisabledDateProps({
+      disabledDates: [
+        ['2026-12-24', '2026-12-26'],
+        ['2026-07-10T10:00:00', '2026-07-10 23:00:00'],
+      ],
+    })
+    expect(shouldDisableDate(on('2026-12-23'))).toBe(false)
+    expect(shouldDisableDate(on('2026-12-24'))).toBe(true)
+    expect(shouldDisableDate(on('2026-12-25'))).toBe(true)
+    expect(shouldDisableDate(on('2026-12-26'))).toBe(true)
+    expect(shouldDisableDate(on('2026-12-27'))).toBe(false)
+    expect(shouldDisableDate(on('2026-07-10'))).toBe(true)
+  })
+
+  it('mixes single dates and ranges', () => {
+    const { shouldDisableDate } = getDisabledDateProps({
+      disabledDates: ['2026-07-10', ['2026-07-14', '2026-07-16']],
+    })
+    expect(shouldDisableDate(on('2026-07-10'))).toBe(true)
+    expect(shouldDisableDate(on('2026-07-11'))).toBe(false)
+    expect(shouldDisableDate(on('2026-07-15'))).toBe(true)
+  })
+
+  it('ignores the ranges that are not recognized', () => {
+    const { shouldDisableDate } = getDisabledDateProps({
+      disabledDates: [
+        ['2026-07-12', '2026-07-10'],
+        ['2026-07-10'],
+        ['07/10/2026', '07/12/2026'],
+        'x',
+      ],
+    })
+    expect(shouldDisableDate(on('2026-07-11'))).toBe(false)
+  })
+
+  it('disables the months and years that the ranges cover completely', () => {
+    const props = getDisabledDateProps({
+      disabledDates: [
+        ['2026-02-01', '2026-02-15'],
+        ['2026-02-16', '2026-03-31'],
+        ['2027-01-01', '2027-12-30'],
+      ],
+    })
+    // Consecutive ranges are combined
+    expect(props.shouldDisableMonth(on('2026-02-01'))).toBe(true)
+    expect(props.shouldDisableMonth(on('2026-03-01'))).toBe(true)
+    expect(props.shouldDisableMonth(on('2026-04-01'))).toBe(false)
+    expect(props.shouldDisableMonth(on('2027-12-01'))).toBe(false)
+    expect(props.shouldDisableMonth(on('2027-11-01'))).toBe(true)
+    expect(props.shouldDisableYear(on('2026-01-01'))).toBe(false)
+    expect(props.shouldDisableYear(on('2027-01-01'))).toBe(false)
+  })
+
+  it('disables a year that the ranges cover completely', () => {
+    const props = getDisabledDateProps({
+      disabledDates: [
+        ['2027-01-01', '2027-06-30'],
+        ['2027-07-01', '2027-12-31'],
+      ],
+    })
+    expect(props.shouldDisableYear(on('2027-05-05'))).toBe(true)
+    expect(props.shouldDisableYear(on('2026-05-05'))).toBe(false)
+  })
+
   it('disables the months in any notation, in every year', () => {
     const { shouldDisableMonth } = getDisabledDateProps({
       disabledMonths: [12, 'Feb', 'March'],

@@ -55,6 +55,9 @@ const toTimezone = (date, timezone) =>
     ? dayjs.tz(date.format('YYYY-MM-DDTHH:mm:ss'), timezone)
     : date
 
+// The present, as the wall-clock date and time in the `timezone`
+const now = (timezone) => (timezone ? dayjs().tz(timezone) : dayjs())
+
 const parseBound = (bound, key, timezone) => {
   const formats = R.includes(key)(DATETIME_BOUND_KEYS)
     ? DATETIME_BOUND_FORMATS
@@ -82,6 +85,7 @@ const DateTimeBase = ({
   valueFormat,
   defaultViews,
   constraintKeys,
+  shortcut,
   hasDate = false,
   hasTime = false,
   sx = [],
@@ -115,7 +119,14 @@ const DateTimeBase = ({
       disabled={!enabled}
       value={pickerValue}
       sx={[...forceArray(sx), propStyle]}
-      slotProps={{ textField: { fullWidth } }}
+      slotProps={{
+        textField: { fullWidth },
+        // NOTE: The picker disables the shortcut if its value isn't valid
+        shortcuts: {
+          items: [{ label: shortcut, getValue: () => now(timezone) }],
+          changeImportance: 'set',
+        },
+      }}
       views={pickerViews}
       // NOTE: The picker can only open to one of its views
       openTo={R.includes(defaultView)(pickerViews) ? defaultView : undefined}
@@ -144,6 +155,7 @@ DateTimeBase.propTypes = {
   valueFormat: PropTypes.string,
   defaultViews: PropTypes.arrayOf(PropTypes.string),
   constraintKeys: PropTypes.arrayOf(PropTypes.string),
+  shortcut: PropTypes.string,
   hasDate: PropTypes.bool,
   hasTime: PropTypes.bool,
   sx: PropTypes.oneOfType([
@@ -162,11 +174,13 @@ DateTimeBase.propTypes = {
 // - `valueFormat` is the string format the server stores and validates
 // - `defaultViews` match the defaults documented in `cave_utils`
 // - `constraintKeys` are the prop attributes that apply to each variant
+// - `shortcut` is the label of the quick pick of the present
 // - `hasDate` variants also apply the `disabled*` dates, weekdays, months, years
 // - `hasTime` variants also apply the `*Step`s and `disabledTimes`
 const PropDate = (props) => (
   <DateTimeBase
     component={DatePicker}
+    shortcut="Today"
     valueFormat="YYYY-MM-DD"
     defaultViews={['year', 'day']}
     hasDate
@@ -179,6 +193,7 @@ const PropTime = (props) => (
   <DateTimeBase
     component={TimePicker}
     parseFormat="HH:mm:ss"
+    shortcut="Now"
     valueFormat="HH:mm:ss"
     defaultViews={['hours', 'minutes']}
     hasTime
@@ -190,6 +205,7 @@ const PropTime = (props) => (
 const PropDateTime = (props) => (
   <DateTimeBase
     component={DateTimePicker}
+    shortcut="Now"
     valueFormat="YYYY-MM-DD[T]HH:mm:ss"
     defaultViews={['year', 'day', 'hours', 'minutes']}
     hasDate

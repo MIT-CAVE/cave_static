@@ -769,3 +769,112 @@ export const DateTimeFormat = {
     ])
   },
 }
+
+// NOTE: The shortcut of the present is a chip, which the picker disables
+// if the present isn't valid (e.g. out of bounds)
+const getShortcut = async (canvasElement, buttonName, name) => {
+  await userEvent.click(
+    within(canvasElement).getByRole('button', { name: buttonName })
+  )
+  const dialog = within(await within(document.body).findByRole('dialog'))
+  return dialog.findByRole('button', { name })
+}
+
+// NOTE: Like any other selection, the shortcut is only committed on accept
+export const DateShortcut = {
+  ...Date,
+  play: async ({ args, canvasElement }) => {
+    const shortcut = await getShortcut(canvasElement, /Choose date/, 'Today')
+    await expect(shortcut).not.toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(shortcut)
+    await expect(args.onChange).not.toHaveBeenCalled()
+
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await userEvent.click(dialog.getByRole('button', { name: 'OK' }))
+    await waitFor(() => expect(args.onChange).toHaveBeenCalledTimes(1))
+    await expect(args.onChange).toHaveBeenCalledWith(
+      dayjs().format('YYYY-MM-DD')
+    )
+  },
+}
+
+export const DateShortcutDisabledByBounds = {
+  ...Date,
+  args: {
+    ...Date.args,
+    prop: { ...Date.args.prop, maxDate: '2000-01-01' },
+  },
+  play: async ({ canvasElement }) => {
+    const shortcut = await getShortcut(canvasElement, /Choose date/, 'Today')
+    await expect(shortcut).toHaveAttribute('aria-disabled', 'true')
+  },
+}
+
+export const TimeShortcut = {
+  ...Time,
+  play: async ({ canvasElement }) => {
+    const shortcut = await getShortcut(canvasElement, /Choose time/, 'Now')
+    await expect(shortcut).not.toHaveAttribute('aria-disabled', 'true')
+  },
+}
+
+export const TimeShortcutDisabledByWindow = {
+  ...Time,
+  args: {
+    ...Time.args,
+    prop: { ...Time.args.prop, disabledTimes: [['00:00', '24:00']] },
+  },
+  play: async ({ canvasElement }) => {
+    const shortcut = await getShortcut(canvasElement, /Choose time/, 'Now')
+    await expect(shortcut).toHaveAttribute('aria-disabled', 'true')
+  },
+}
+
+export const DateTimeShortcut = {
+  ...DateTime,
+  play: async ({ canvasElement }) => {
+    const shortcut = await getShortcut(canvasElement, /Choose date/, 'Now')
+    await expect(shortcut).not.toHaveAttribute('aria-disabled', 'true')
+  },
+}
+
+// NOTE: Dates and ranges can be mixed, and both ends of a range are disabled
+export const DateWithDisabledDateRanges = {
+  ...disabledStory({
+    disabledDates: [
+      '2026-07-20',
+      ['2026-07-13', '2026-07-17'],
+      ['2026-07-22T10:00:00', '2026-07-23 10:00:00'],
+    ],
+  }),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(dialog.getByRole('gridcell', { name: '12' })).toBeEnabled()
+    for (const day of ['13', '15', '17', '20', '22', '23'])
+      await expect(dialog.getByRole('gridcell', { name: day })).toBeDisabled()
+    await expect(dialog.getByRole('gridcell', { name: '18' })).toBeEnabled()
+    await expect(dialog.getByRole('gridcell', { name: '24' })).toBeEnabled()
+  },
+}
+
+// NOTE: A year that the ranges cover completely can't be selected either
+export const DateWithDisabledYearRange = {
+  ...disabledStory(
+    {
+      disabledDates: [
+        ['2025-01-01', '2025-06-30'],
+        ['2025-07-01', '2025-12-31'],
+        ['2027-01-01', '2027-12-30'],
+      ],
+    },
+    { defaultView: 'year' }
+  ),
+  play: async ({ canvasElement }) => {
+    const dialog = await openDateDialog(canvasElement)
+    await expect(
+      await dialog.findByRole('radio', { name: '2025' })
+    ).toBeDisabled()
+    await expect(dialog.getByRole('radio', { name: '2026' })).toBeEnabled()
+    await expect(dialog.getByRole('radio', { name: '2027' })).toBeEnabled()
+  },
+}

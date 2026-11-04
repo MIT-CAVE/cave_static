@@ -92,13 +92,44 @@ const toIndexSet = (entries, toIndex) =>
 
 const forceList = (entries) => (Array.isArray(entries) ? entries : [])
 
+const DATE_KEY_FORMAT = 'YYYY-MM-DD'
+
+const toDateKey = (date) => {
+  const parsed = dayjs(date, DISABLED_DATE_FORMATS, true)
+  return parsed.isValid() ? parsed.format(DATE_KEY_FORMAT) : undefined
+}
+
+// Gets the inclusive ranges of date keys (which sort like dates) from the
+// `disabledDates`, whose entries are dates or `[start, end]` pairs, merging the
+// ranges that overlap or are consecutive. Entries that can't be recognized are
+// ignored.
+const getDateRanges = (entries) =>
+  R.sortBy(R.head)(
+    forceList(entries)
+      .map((entry) => (Array.isArray(entry) ? entry : [entry, entry]))
+      .filter((range) => range.length === 2)
+      .map(([start, end]) => [toDateKey(start), toDateKey(end)])
+      .filter(
+        ([start, end]) => !R.isNil(start) && !R.isNil(end) && start <= end
+      )
+  ).reduce((merged, [start, end]) => {
+    const last = R.last(merged)
+    const dayAfterLast =
+      last && dayjs(last[1]).add(1, 'day').format(DATE_KEY_FORMAT)
+    if (last && start <= dayAfterLast) last[1] = R.max(last[1], end)
+    else merged.push([start, end])
+    return merged
+  }, [])
+
 /**
- * Gets the picker props that apply the `disabledDates`, `disabledWeekdays`,
- * `disabledMonths` and `disabledYears` of a `date` prop.
+ * Gets the picker props that apply the `disabledDates` (dates and ranges of
+ * dates), `disabledWeekdays`, `disabledMonths` and `disabledYears` of a `date`
+ * prop.
  *
  * All the predicates are derived from the same rules so the views can't
  * disagree: a disabled year disables its months and days, and a disabled month
- * disables its days. Entries that can't be recognized are ignored.
+ * disables its days. A year or month that the dates cover completely is
+ * disabled too. Entries that can't be recognized are ignored.
  */
 export const getDisabledDateProps = (prop) => {
   const { disabledDates, disabledWeekdays, disabledMonths, disabledYears } =
@@ -112,26 +143,33 @@ export const getDisabledDateProps = (prop) => {
     ])
   )
     return {}
-  const dates = new Set(
-    forceList(disabledDates)
-      .map((entry) => dayjs(entry, DISABLED_DATE_FORMATS, true))
-      .filter((parsed) => parsed.isValid())
-      .map((parsed) => parsed.format('YYYY-MM-DD'))
-  )
+  const ranges = getDateRanges(disabledDates)
+  const isCovered = (value, unit) => {
+    const from = value.startOf(unit).format(DATE_KEY_FORMAT)
+    const to = value.endOf(unit).format(DATE_KEY_FORMAT)
+    return ranges.some(([start, end]) => start <= from && to <= end)
+  }
   const weekdays = toIndexSet(disabledWeekdays, toWeekdayIndex)
   const months = toIndexSet(disabledMonths, toMonthIndex)
   const years = new Set(forceList(disabledYears).filter(Number.isInteger))
 
-  const isYearDisabled = (value) => years.has(value.year())
+  const isYearDisabled = (value) =>
+    years.has(value.year()) || (ranges.length > 0 && isCovered(value, 'year'))
   const isMonthDisabled = (value) =>
-    isYearDisabled(value) || months.has(value.month())
+    isYearDisabled(value) ||
+    months.has(value.month()) ||
+    (ranges.length > 0 && isCovered(value, 'month'))
   return {
     shouldDisableYear: isYearDisabled,
     shouldDisableMonth: isMonthDisabled,
-    shouldDisableDate: (value) =>
-      isMonthDisabled(value) ||
-      weekdays.has(value.day()) ||
-      dates.has(value.format('YYYY-MM-DD')),
+    shouldDisableDate: (value) => {
+      const key = value.format(DATE_KEY_FORMAT)
+      return (
+        isMonthDisabled(value) ||
+        weekdays.has(value.day()) ||
+        ranges.some(([start, end]) => start <= key && key <= end)
+      )
+    },
   }
 }
 
