@@ -16,10 +16,13 @@ import {
   selectLocalizedArcTypes,
   selectLocalizedNodeTypes,
   selectLocalizedGeoTypes,
+  selectRichTextDefault,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
+import { resolveRichText } from '../../../utils/richText'
 import ClusterModal from '../../compound/ClusterModal'
+import RichLabel from '../../compound/RichLabel'
 
 import { addValuesToProps, includesPath } from '../../../utils'
 
@@ -80,7 +83,7 @@ const useHadFocusedInputOnMouseDown = (paperRef) => {
   return hadFocusedInputRef
 }
 
-const GeneralModal = ({ title, children }) => {
+const GeneralModal = ({ title, richText, children }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
   const paperRef = useRef(null)
@@ -114,7 +117,9 @@ const GeneralModal = ({ title, children }) => {
       }}
     >
       <Box ref={paperRef} sx={styles.paper}>
-        <Box sx={styles.header}>{title}</Box>
+        <Box sx={styles.header}>
+          <RichLabel text={title} rich={richText === true} />
+        </Box>
         {children}
       </Box>
     </Modal>
@@ -205,7 +210,8 @@ const PaneModal = () => {
   const modal = useSelector(selectOpenModalData)
   const dispatch = useDispatch()
 
-  const { layout, name, props, values } = modal
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const { layout, name, props, values, richText } = modal
   const propsWithValues = addValuesToProps(props, values)
   const modalLayout = R.pipe(
     R.defaultTo({ type: layoutType.GRID }),
@@ -229,10 +235,14 @@ const PaneModal = () => {
   }
 
   return (
-    <GeneralModal title={name}>
+    <GeneralModal
+      title={name}
+      richText={resolveRichText(richText, richTextDefault)}
+    >
       {renderPropsLayout({
         layout: modalLayout,
         items: propsWithValues,
+        richText,
         onChangeProp,
       })}
     </GeneralModal>

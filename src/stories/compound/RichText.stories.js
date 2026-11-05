@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import MarkdownContent from '../../ui/compound/MarkdownContent'
+import { PaneHeader } from '../../ui/compound/Pane'
 import PropAudio from '../../ui/compound/PropAudio'
 import { PropButtonFilled } from '../../ui/compound/PropButton'
 import PropComboBox from '../../ui/compound/PropComboBox'
@@ -32,6 +33,10 @@ import RichLabel, {
   MAX_CACHE_WEIGHT,
   getRichNode,
 } from '../../ui/compound/RichLabel'
+import { AppModal } from '../../ui/views/common/Modal'
+import OptionsPane from '../../ui/views/common/OptionsPane'
+import renderAppPane from '../../ui/views/common/Pane'
+import Prop from '../../ui/views/common/renderProp'
 
 const richTextStories = {
   title: 'Compound/RichText',
@@ -675,5 +680,169 @@ export const AudioHelperTextRich = {
       'aria-label',
       MEDIA_HELPER_PLAIN
     )
+  },
+}
+
+// The `richText` cascade: prop > layout item > grids > pane or global outputs >
+// `settings.defaults.richText`
+const ICON_URL = 'https://react-icons.mitcave.com/5.4.0'
+const withDefault = (richText) => ({
+  settings: { iconUrl: ICON_URL, defaults: { richText } },
+})
+
+const textProp = (prop) => ({
+  id: 'p',
+  type: 'text',
+  name: '**Bold** name',
+  value: '',
+  ...prop,
+})
+
+const renderTextProp = (prop) => () => (
+  <Prop prop={textProp(prop)} currentVal="" onChange={() => {}} />
+)
+
+export const GlobalDefaultMakesLabelsRich = {
+  parameters: { initData: withDefault(true) },
+  render: renderTextProp(),
+  play: async ({ canvasElement }) => expectRich(canvasElement),
+}
+
+export const PropOverridesTheGlobalDefault = {
+  parameters: { initData: withDefault(true) },
+  render: renderTextProp({ richText: false }),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('strong')).toBeNull()
+    await expect(
+      within(canvasElement).getAllByText('**Bold** name').length
+    ).toBeGreaterThan(0)
+  },
+}
+
+const headProp = { type: 'head', variant: 'column', help: '# Heading' }
+
+const expectHelpHeading = async (canvasElement, expected) => {
+  await userEvent.hover(within(canvasElement).getByLabelText('info'))
+  const tooltip = await within(document.body).findByRole('tooltip')
+  await expect(tooltip.querySelector('h1') !== null).toBe(expected)
+}
+
+// Without any `richText`, `help` is markdown, as before
+export const HelpStaysMarkdownWithoutADefault = {
+  render: renderTextProp(headProp),
+  play: ({ canvasElement }) => expectHelpHeading(canvasElement, true),
+}
+
+export const GlobalDefaultFalseMakesHelpPlain = {
+  parameters: { initData: withDefault(false) },
+  render: renderTextProp(headProp),
+  play: ({ canvasElement }) => expectHelpHeading(canvasElement, false),
+}
+
+const PANE = {
+  name: '**Bold** pane',
+  props: {
+    rich: { type: 'text', name: '**Bold** prop' },
+    plain: { type: 'text', name: '**Plain** prop', richText: false },
+  },
+  values: { rich: '', plain: '' },
+}
+
+export const PaneRootCascadesToItsProps = {
+  render: () => <OptionsPane open="p" pane={{ ...PANE, richText: true }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const bold of canvas.getAllByText('Bold')) {
+      await expect(bold.tagName).toBe('STRONG')
+    }
+    // A prop overrides the root of its pane
+    await expect(canvas.getAllByText('**Plain** prop').length).toBeGreaterThan(
+      0
+    )
+  },
+}
+
+export const PaneTitleIsRich = {
+  render: () => <PaneHeader title="**Bold** pane" richText />,
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('h6 strong')).not.toBeNull()
+  },
+}
+
+export const PaneTitleIsPlainByDefault = {
+  render: () => <PaneHeader title="**Bold** pane" />,
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('h6 strong')).toBeNull()
+    await expect(
+      within(canvasElement).getByText('**Bold** pane')
+    ).toBeInTheDocument()
+  },
+}
+
+const renderPane = (pane) => () =>
+  renderAppPane({
+    open: 'p',
+    openPanesData: pane,
+    pane,
+    side: 'left',
+  })
+
+export const AppPaneUsesItsOwnRichText = {
+  render: renderPane({ ...PANE, richText: true }),
+  play: async ({ canvasElement }) => {
+    await waitFor(() =>
+      expect(canvasElement.querySelector('h6 strong')).not.toBeNull()
+    )
+  },
+}
+
+export const AppPaneFollowsTheGlobalDefault = {
+  parameters: { initData: withDefault(true) },
+  render: renderPane(PANE),
+  play: async ({ canvasElement }) => {
+    await waitFor(() =>
+      expect(canvasElement.querySelector('h6 strong')).not.toBeNull()
+    )
+  },
+}
+
+export const AppPaneCanOptOutOfTheGlobalDefault = {
+  parameters: { initData: withDefault(true) },
+  render: renderPane({ ...PANE, richText: false }),
+  play: async ({ canvasElement }) => {
+    await waitFor(() =>
+      expect(canvasElement.querySelector('h6')).not.toBeNull()
+    )
+    await expect(canvasElement.querySelector('h6 strong')).toBeNull()
+  },
+}
+
+const MODAL_DATA = (richText) => ({
+  settings: { iconUrl: ICON_URL },
+  panes: {
+    paneState: { center: { type: 'pane', open: 'p' } },
+    data: {
+      p: {
+        ...PANE,
+        name: '**Bold** modal',
+        props: { rich: { type: 'text', name: '_Emphasis_ prop' } },
+        values: { rich: '' },
+        richText,
+      },
+    },
+  },
+})
+
+export const ModalTitleAndPropsAreRich = {
+  parameters: { initData: MODAL_DATA(true) },
+  render: () => <AppModal />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // The title is rich (once), and so are the labels of its props
+    await waitFor(() => expect(canvas.getAllByText('Bold')).toHaveLength(1))
+    await expect(canvas.getByText('Bold').tagName).toBe('STRONG')
+    for (const emphasis of canvas.getAllByText('Emphasis')) {
+      await expect(emphasis.tagName).toBe('EM')
+    }
   },
 }

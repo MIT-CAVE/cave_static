@@ -2,14 +2,20 @@ import * as R from 'ramda'
 import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../../data/selectors'
+import {
+  selectNumberFormat,
+  selectRichTextDefault,
+} from '../../../data/selectors'
 import {
   propContainer,
   propId,
   propPlacements,
   propVariant,
 } from '../../../utils/enums'
-import { warnIfHelpNeedsRichText } from '../../../utils/richText'
+import {
+  resolveRichText,
+  warnIfHelpNeedsRichText,
+} from '../../../utils/richText'
 
 import {
   PropAudio,
@@ -217,7 +223,15 @@ export const placementStyles = {
 }
 
 const Prop = (props) => {
-  const prop = R.propOr({}, 'prop')(props)
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const propWithoutDefault = R.propOr({}, 'prop')(props)
+  // The app-wide default is the root of the `richText` cascade, so it is
+  // resolved here, for the container and for every prop component below
+  const richText = resolveRichText(propWithoutDefault.richText, richTextDefault)
+  const prop =
+    richText === propWithoutDefault.richText
+      ? propWithoutDefault
+      : { ...propWithoutDefault, richText }
   const {
     type,
     variant,
@@ -242,6 +256,7 @@ const Prop = (props) => {
           placement && placementStyles[placement],
         ]}
         {...R.pipe(
+          R.assoc('prop', prop),
           R.assocPath(['prop', 'enabled'], enabled),
           R.assocPath(['prop', 'style'], propStyle)
         )(props)}

@@ -18,9 +18,24 @@ describe('mayContainRichText', () => {
 
   it('detects markdown and math syntax', () => {
     expect(mayContainRichText('**bold**')).toBe(true)
-    expect(mayContainRichText('CO_2')).toBe(true)
     expect(mayContainRichText('$x^2$')).toBe(true)
     expect(mayContainRichText('[docs](https://example.com)')).toBe(true)
+    expect(mayContainRichText('`code`')).toBe(true)
+  })
+
+  it('skips underscores inside words, as markdown does', () => {
+    expect(mayContainRichText('snake_case')).toBe(false)
+    expect(mayContainRichText('a_b_c and CO_2')).toBe(false)
+    expect(mayContainRichText('prop_id_1')).toBe(false)
+    expect(mayContainRichText('número_dos')).toBe(false)
+  })
+
+  it('detects underscores at the edge of a word', () => {
+    expect(mayContainRichText('_italic_')).toBe(true)
+    expect(mayContainRichText('__init__')).toBe(true)
+    expect(mayContainRichText('trailing_')).toBe(true)
+    expect(mayContainRichText('_leading')).toBe(true)
+    expect(mayContainRichText('snake_case and _italic_')).toBe(true)
   })
 })
 

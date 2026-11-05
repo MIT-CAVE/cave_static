@@ -5,7 +5,10 @@ import { useSelector } from 'react-redux'
 
 import { Draggable, useDraggable } from '.'
 
-import { selectGlobalOutputProps } from '../../data/selectors'
+import {
+  selectGlobalOutputProps,
+  selectGlobalOutputsRichText,
+} from '../../data/selectors'
 import { draggableId, layoutType, propVariant } from '../../utils/enums'
 import { Carousel } from '../compound'
 import { renderPropsLayout } from '../views/common/renderLayout'
@@ -25,6 +28,7 @@ const styles = {
 const GlobalOutputsDockedSection = () => {
   const draggable = useDraggable(draggableId.GLOBAL_OUTPUTS)
   const props = useSelector(selectGlobalOutputProps)
+  const richText = useSelector(selectGlobalOutputsRichText)
 
   const slides = useMemo(
     () =>
@@ -36,11 +40,12 @@ const GlobalOutputsDockedSection = () => {
           renderPropsLayout({
             layout: { type: layoutType.ITEM, id: prop.id, itemId: prop.id },
             items: { [prop.id]: prop },
+            richText,
             onChangeProp: () => null,
           })
         )
       )(props),
-    [props]
+    [props, richText]
   )
 
   return (

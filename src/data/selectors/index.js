@@ -570,6 +570,11 @@ export const selectSettingsIconUrl = createSelector(
 export const selectNumberFormat = createSelector(selectSettings, (settings) =>
   pickPaths(NUMBER_FORMAT_KEY_PATHS, settings?.defaults ?? {})
 )
+// The root of the `richText` cascade (see `utils/richText.js`)
+export const selectRichTextDefault = createSelector(
+  selectSettings,
+  (settings) => settings?.defaults?.richText
+)
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
   (numberFormat) => (prop) => ({
@@ -1180,6 +1185,10 @@ export const selectMergedGlobalOutputs = createSelector(
     !localGlobalOutputs || Object.keys(localGlobalOutputs).length === 0
       ? globalOutputsData || {}
       : deepMerge(globalOutputsData || {}, localGlobalOutputs)
+)
+export const selectGlobalOutputsRichText = createSelector(
+  selectMergedGlobalOutputs,
+  (merged) => merged?.richText
 )
 export const selectAnyGlobalOutputData = createSelector(
   selectMergedGlobalOutputs,

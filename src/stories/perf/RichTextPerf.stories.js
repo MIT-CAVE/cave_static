@@ -132,6 +132,16 @@ const runBenchmark = () => ({
       unit: 'units',
     })
   ),
+  // Common in CAVE: names and id fallbacks like `prop_name_12`, which render
+  // unchanged, so they should not need the markdown parser
+  [`${PROPS} props, richText, snake_case labels`]: measure(
+    propsLayout({
+      richText: true,
+      title: (i) => `truck_load_capacity_${i}`,
+      subtitle: (i) => `max_weight_in_kg_${i}`,
+      unit: 'kg_per_pallet',
+    })
+  ),
   [`${PROPS} props, richText, markdown labels (unique)`]: measure(
     propsLayout({
       richText: true,

@@ -11,8 +11,10 @@
 /**
  * Characters that can trigger inline markdown (emphasis, code, links,
  * escapes) or math. Labels without any of these skip the parser entirely.
+ * Like in markdown, an underscore between two word characters (`snake_case`)
+ * is not a marker, so those labels skip the parser too.
  */
-const RICH_TEXT_PATTERN = /[*_`[\]$\\]/
+const RICH_TEXT_PATTERN = /[*`[\]$\\]|(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])/u
 
 /**
  * Cheap check used to skip the markdown pipeline for plain labels.
