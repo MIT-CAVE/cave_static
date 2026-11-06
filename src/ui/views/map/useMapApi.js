@@ -11,9 +11,12 @@ import { useSelector } from 'react-redux'
 
 import {
   selectCurrentMapStyleIdFunc,
+  selectMapRichText,
   selectMapStyleOptions,
 } from '../../../data/selectors'
 import { DARK_GLOBE_FOG, LIGHT_GLOBE_FOG } from '../../../utils/constants'
+import { useRichText } from '../../../utils/hooks'
+import { labelText } from '../../../utils/richText'
 
 import { normalizeFog } from '../../../utils'
 
@@ -26,13 +29,16 @@ export const MapContext = createContext({
 const useMapApi = (mapId) => {
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const currentMapStyleId = useSelector(selectCurrentMapStyleIdFunc)(mapId)
+  const richText = useRichText(
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
 
   const mapStyleOption = mapStyleOptions[currentMapStyleId]
   const mapStyle = mapStyleOption?.spec
 
   const isDarkStyle = useMemo(() => {
     const styleIdLower = currentMapStyleId?.toLowerCase()
-    const styleName = mapStyleOption?.name?.toLowerCase()
+    const styleName = labelText(mapStyleOption?.name, richText)?.toLowerCase()
     return !(
       mapStyleOption?.light ||
       styleName?.includes('light') ||
@@ -40,7 +46,7 @@ const useMapApi = (mapId) => {
       styleIdLower?.includes('light') ||
       styleIdLower?.includes('day')
     )
-  }, [currentMapStyleId, mapStyleOption?.light, mapStyleOption?.name])
+  }, [currentMapStyleId, mapStyleOption?.light, mapStyleOption?.name, richText])
 
   const fog = useMemo(() => {
     const defaultFog = isDarkStyle ? DARK_GLOBE_FOG : LIGHT_GLOBE_FOG

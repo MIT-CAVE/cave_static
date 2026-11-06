@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import { useCallback, useMemo, useState } from 'react'
 
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 
 import { forceArray } from '../../utils'
 
@@ -51,6 +52,7 @@ export const useSizeSlider = (onChangeSize, unit = 'px') => {
 
 const SizeSlider = ({
   sizeLabel,
+  sizeRichText,
   value,
   unit = 'px',
   min: minValue = 1,
@@ -69,7 +71,11 @@ const SizeSlider = ({
     () => [
       {
         value: value[0],
-        label: <OverflowText text={sizeLabel} sx={{ maxWidth: '64px' }} />,
+        label: (
+          <OverflowText text={sizeLabel} sx={{ maxWidth: '64px' }}>
+            {sizeRichText && <RichLabel text={sizeLabel} />}
+          </OverflowText>
+        ),
       },
       ...(range[0] > minValue + 15 || (!isRange && value[0] > minValue + 15)
         ? [{ value: minValue, label: `${minValue}${unit ?? ''}` }]
@@ -84,7 +90,7 @@ const SizeSlider = ({
         ? [{ value: maxValue, label: `${maxValue}${unit ?? ''}` }]
         : []),
     ],
-    [isRange, maxValue, minValue, range, sizeLabel, unit, value]
+    [isRange, maxValue, minValue, range, sizeLabel, sizeRichText, unit, value]
   )
   return (
     <Slider

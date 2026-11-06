@@ -1038,6 +1038,12 @@ export const selectMapName = createSelector(
   (mapData, mapId) => mapData?.[mapId]?.name ?? '',
   { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
+// The `richText` flag of a map, the root of the cascade for its own text
+export const selectMapRichText = createSelector(
+  [selectMergedMapData, (state, mapId) => mapId],
+  (mapData, mapId) => mapData?.[mapId]?.richText,
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
+)
 
 export const selectDefaultViewportFunc = createSelector(
   selectCurrentMergedMapDataByMap,

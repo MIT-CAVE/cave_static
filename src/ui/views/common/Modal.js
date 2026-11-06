@@ -20,6 +20,7 @@ import {
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
+import { useRichText } from '../../../utils/hooks'
 import { resolveRichText } from '../../../utils/richText'
 import ClusterModal from '../../compound/ClusterModal'
 import RichLabel from '../../compound/RichLabel'
@@ -133,6 +134,7 @@ const MapFeatureModal = () => {
   const nodeData = useSelector(selectLocalizedNodeTypes)
   const geoData = useSelector(selectLocalizedGeoTypes)
   const dispatch = useDispatch()
+  const richText = useRichText(open.richText)
   const { cluster_id, feature, type, layout, props, mapId } = open
   const key = JSON.parse(R.prop('key', open))
   const featureData =
@@ -189,15 +191,17 @@ const MapFeatureModal = () => {
       {renderPropsLayout({
         layout,
         items: props,
+        richText: open.richText,
         getCurrentVal,
         onChangeProp,
       })}
     </ClusterModal>
   ) : (
-    <GeneralModal title={type}>
+    <GeneralModal title={type} richText={richText}>
       {renderPropsLayout({
         layout,
         items: props,
+        richText: open.richText,
         getCurrentVal,
         onChangeProp,
       })}
