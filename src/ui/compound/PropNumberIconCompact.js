@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import FormattedNumber from './FormattedNumber'
 import OverflowText from './OverflowText'
 import RichLabel from './RichLabel'
 
@@ -51,7 +52,14 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
           <OverflowText
             sx={styles.value}
             text={NumberFormat.format(value, numberFormatProps)}
-          />
+          >
+            {richText === true && (
+              <FormattedNumber
+                {...{ value, richText }}
+                numberFormat={numberFormatProps}
+              />
+            )}
+          </OverflowText>
         </Grid>
       </Grid>
     </Box>

@@ -3,11 +3,12 @@ import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import FormattedNumber from './FormattedNumber'
 import RichLabel from './RichLabel'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
-import { NumberFormat, forceArray } from '../../utils'
+import { forceArray } from '../../utils'
 
 const styles = {
   root: {
@@ -56,7 +57,10 @@ const PropNumberIconCompactAlt = ({ prop, sx = [] }) => {
           <RichLabel text={name} rich={richText === true} />
         </Typography>
         <Typography variant="h6" sx={styles.value}>
-          {NumberFormat.format(value, numberFormatProps)}
+          <FormattedNumber
+            {...{ value, richText }}
+            numberFormat={numberFormatProps}
+          />
         </Typography>
       </Box>
     </Card>

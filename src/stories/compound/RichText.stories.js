@@ -846,3 +846,59 @@ export const ModalTitleAndPropsAreRich = {
     }
   },
 }
+
+// The unit is part of the value of the number icons, so it is rich text too
+const unitIconProp = {
+  name: 'Output',
+  value: 1250,
+  icon: 'md/MdApple',
+  unit: '$m^3$/h',
+  precision: 0,
+}
+
+const expectRichUnit = async (canvasElement) => {
+  await waitFor(() =>
+    expect(canvasElement.querySelector('.katex')).not.toBeNull()
+  )
+  // The number is still formatted, and the unit follows it
+  await expect(canvasElement.textContent).toContain('1,250')
+  await expect(canvasElement.textContent).not.toContain('$m^3$')
+}
+
+export const NumberIconUnitIsRich = {
+  ...renderProp(PropNumberIcon, unitIconProp),
+  play: async ({ canvasElement }) => expectRichUnit(canvasElement),
+}
+
+export const NumberIconCompactUnitIsRich = {
+  ...renderProp(PropNumberIconCompact, unitIconProp),
+  play: async ({ canvasElement }) => expectRichUnit(canvasElement),
+}
+
+export const NumberIconCompactAltUnitIsRich = {
+  ...renderProp(PropNumberIconCompactAlt, unitIconProp),
+  play: async ({ canvasElement }) => expectRichUnit(canvasElement),
+}
+
+export const NumberIconUnitIsPlainByDefault = {
+  ...renderProp(PropNumberIcon, { ...unitIconProp, richText: undefined }),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.katex')).toBeNull()
+    // The unit is shown as it is written, after the number
+    await expect(canvasElement.textContent).toContain('1,250 $m^3$/h')
+  },
+}
+
+export const NumberIconUnitBeforeTheNumberIsRich = {
+  ...renderProp(PropNumberIcon, {
+    ...unitIconProp,
+    unit: '**USD**',
+    unitPlacement: 'beforeWithSpace',
+  }),
+  play: async ({ canvasElement }) => {
+    const unit = await within(canvasElement).findByText('USD')
+    await expect(unit.tagName).toBe('STRONG')
+    // The unit goes before the number, separated by a space
+    await expect(unit.parentElement).toHaveTextContent('USD 1,250')
+  },
+}

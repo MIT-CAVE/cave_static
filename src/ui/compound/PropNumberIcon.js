@@ -3,13 +3,14 @@ import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import FormattedNumber from './FormattedNumber'
 import OverflowText from './OverflowText'
 import RichLabel from './RichLabel'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 import { PROP_MIN_WIDTH } from '../../utils/constants'
 
-import { NumberFormat, forceArray } from '../../utils'
+import { forceArray } from '../../utils'
 
 const styles = {
   root: {
@@ -96,7 +97,10 @@ const PropNumberIcon = ({ prop, sx = [], ...props }) => {
           )}
           {value != null && (
             <Typography sx={styles.value}>
-              {NumberFormat.format(value, numberFormatProps)}
+              <FormattedNumber
+                {...{ value, richText }}
+                numberFormat={numberFormatProps}
+              />
             </Typography>
           )}
         </Grid>
