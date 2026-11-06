@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import downloadFile from './downloadFile'
+import handleAuthStatus from './handleAuthStatus'
 
 import { mutateData, overwriteData } from '../data/data'
 import { updateLoading } from '../data/utilities/loadingSlice'
@@ -26,6 +27,8 @@ const onMessage = (dispatch) => (payload) => {
   } else if (R.prop('event', payload) === 'export') {
     const { data, name } = R.prop('data', payload)
     downloadFile(data, name)
+  } else if (R.prop('event', payload) === 'auth_status') {
+    handleAuthStatus(payload)
   } else {
     console.log('Unknown event: ', payload)
   }
