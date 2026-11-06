@@ -64,6 +64,24 @@ export const toPlainText = (text) => {
 }
 
 /**
+ * Escape a plain text so it renders as is inside a rich text composed of
+ * several pieces (e.g. `**Name** [unit]`, where only some pieces are rich).
+ * @param {string} text
+ * @returns {string}
+ */
+export const escapeRichText = (text) =>
+  typeof text === 'string' ? text.replace(/[\\*_`[\]$]/g, '\\$&') : text
+
+/**
+ * A piece of a rich text composed of several pieces: rich pieces are kept as
+ * they are and literal ones are escaped.
+ * @param {string} text
+ * @param {boolean} rich
+ * @returns {string}
+ */
+export const richPiece = (text, rich) => (rich ? text : escapeRichText(text))
+
+/**
  * Resolve a cascading `richText` flag: the closest defined value wins.
  * @param {...(boolean|undefined|null)} levels - From most to least specific
  * @returns {boolean|undefined} `undefined` when no level defines the flag

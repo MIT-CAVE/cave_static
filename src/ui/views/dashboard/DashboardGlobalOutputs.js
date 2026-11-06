@@ -10,9 +10,15 @@ import {
   selectMemoizedGlobalOutputFunc,
   selectGlobalOutputsLayout,
   selectMergedGlobalOutputs,
+  selectRichTextDefault,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
+import {
+  escapeRichText,
+  labelText,
+  resolveRichText,
+} from '../../../utils/richText'
 import ChartContext from '../../charts/chart-types/echarts/ChartContext'
 import { renderPropsLayout } from '../common/renderLayout'
 
@@ -43,17 +49,23 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const items = useSelector(selectMergedGlobalOutputs)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const chartRichText = resolveRichText(chartObj.richText, richTextDefault)
+
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder', chartObj)
   const xAxisOrder = R.propOr('default', 'xAxisOrder', chartObj)
 
   const chartContextValue = useMemo(
     () => ({
-      title: chartObj.title ?? '',
+      // Canvas text can't render markup, so the title is its plain twin
+      title: labelText(chartObj.title ?? '', chartRichText),
+      richTitle: chartObj.title ?? '',
+      richText: chartRichText,
       path,
       chartHoverOrder,
       xAxisOrder,
     }),
-    [chartObj.title, path, chartHoverOrder, xAxisOrder]
+    [chartObj.title, chartRichText, path, chartHoverOrder, xAxisOrder]
   )
 
   const props = addValuesToProps(
@@ -116,14 +128,23 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const labelProps =
     chartObj.chartType === chartVariant.TABLE
       ? R.pipe(
-          R.zipWith(
-            (globalOutputKey, unit) => ({
+          R.zipWith((globalOutputKey, unit) => {
+            // prop > global outputs root > app default
+            const richText = resolveRichText(
+              globalOutputData[globalOutputKey]?.richText,
+              items?.richText,
+              richTextDefault
+            )
+            const name = getLabelFn(globalOutputData)(globalOutputKey)
+            return {
               type: 'number',
               key: globalOutputKey,
-              label: `${getLabelFn(globalOutputData)(globalOutputKey)}${unit ? ` [${unit}]` : ''} `,
-            }),
-            selectedGlobalOutputKeys
-          ),
+              label: `${labelText(name, richText)}${unit ? ` [${labelText(unit, richText)}]` : ''} `,
+              ...(richText === true && {
+                richLabel: `${name}${unit ? ` ${escapeRichText('[')}${unit}${escapeRichText(']')}` : ''}`,
+              }),
+            }
+          }, selectedGlobalOutputKeys),
           R.prepend({
             type: 'string',
             key: 'session',

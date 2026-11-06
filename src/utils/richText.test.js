@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  escapeRichText,
   helpLooksLikeMarkdown,
   labelText,
   mayContainRichText,
@@ -125,5 +126,17 @@ describe('warnIfHelpNeedsRichText', () => {
     expect(warn).toHaveBeenCalledTimes(1)
     expect(warn.mock.calls[0][0]).toContain('"warnMe"')
     warn.mockRestore()
+  })
+})
+
+describe('escapeRichText', () => {
+  it('escapes markers so the text is shown as written', () => {
+    expect(escapeRichText('a_b *c* [d] $e$ `f` \\')).toBe(
+      'a\\_b \\*c\\* \\[d\\] \\$e\\$ \\`f\\` \\\\'
+    )
+  })
+  it('round-trips through toPlainText', () => {
+    const text = 'Total [kg] *raw*'
+    expect(toPlainText(escapeRichText(text))).toBe(text)
   })
 })

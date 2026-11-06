@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import { memo, useContext, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
+import RichLabel from '../../../compound/RichLabel'
 import { FlexibleContainer } from '../echarts'
 import ChartContext from '../echarts/ChartContext'
 
@@ -53,7 +54,11 @@ const styles = {
 }
 
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
-  const { title: chartTitle } = useContext(ChartContext)
+  const {
+    title: chartTitle,
+    richTitle,
+    richText: titleRichText,
+  } = useContext(ChartContext)
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
   const rows = useMemo(() => {
@@ -77,8 +82,13 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
 
   const columns = useMemo(
     () =>
-      labelProps.map(({ label, key: field, type }) => ({
+      labelProps.map(({ label, richLabel, key: field, type }) => ({
+        // The plain text is used for the tooltip, the column menu and the CSV
         headerName: label,
+        // `richLabel` is only set when some part of the header is rich text
+        ...(richLabel != null && {
+          renderHeader: () => <RichLabel text={richLabel} rich />,
+        }),
         type,
         field,
         minWidth: 150,
@@ -109,7 +119,10 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
       >
         {chartTitle && (
           <Typography align="center" noWrap sx={styles.title}>
-            {chartTitle}
+            <RichLabel
+              text={richTitle ?? chartTitle}
+              rich={titleRichText === true}
+            />
           </Typography>
         )}
         <FlexibleContainer>
