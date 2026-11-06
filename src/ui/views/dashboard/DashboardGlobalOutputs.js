@@ -163,6 +163,7 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
             {renderPropsLayout({
               layout,
               items: props,
+              richText: items?.richText,
               onChangeProp: () => null,
             })}
           </Box>

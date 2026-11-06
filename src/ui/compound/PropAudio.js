@@ -1,6 +1,10 @@
 import { Box, FormHelperText } from '@mui/material'
 import PropTypes from 'prop-types'
 
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
+
 import { forceArray } from '../../utils'
 
 const styles = {
@@ -21,7 +25,7 @@ const defaultWidth = { width: '300px' }
 
 // Audio height is fixed by the native controls, so only `fullWidth` applies
 const PropAudio = ({
-  prop: { value: url, fullWidth, helperText, propStyle = [] },
+  prop: { value: url, fullWidth, helperText, richText, propStyle = [] },
   sx = [],
 }) => (
   <Box
@@ -36,11 +40,13 @@ const PropAudio = ({
       component="audio"
       controls
       src={url}
-      aria-label={helperText}
+      aria-label={labelText(helperText, richText)}
       sx={styles.audio}
     />
     {helperText && (
-      <FormHelperText sx={{ pt: 0.75, pl: 1 }}>{helperText}</FormHelperText>
+      <FormHelperText sx={{ pt: 0.75, pl: 1 }}>
+        <RichLabel text={helperText} rich={richText === true} />
+      </FormHelperText>
     )}
   </Box>
 )

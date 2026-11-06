@@ -73,6 +73,7 @@ export default defineConfig((env) => {
           'react-window',
           'rehype-katex',
           'rehype-raw',
+          'rehype-sanitize',
           'remark-gfm',
           'remark-math',
           'three',

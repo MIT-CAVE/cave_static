@@ -45,10 +45,15 @@ import {
   selectLegendWidth,
   selectShowLegendGroupNames,
   selectShowLegendAdvancedControls,
+  selectMapRichText,
 } from '../../../data/selectors'
 import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
 import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
-import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
+import {
+  useMutateStateWithSync,
+  useRichText,
+  useToggle,
+} from '../../../utils/hooks'
 import { useSizeSlider } from '../../compound/SizeSlider'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
@@ -57,6 +62,7 @@ import {
   FetchedIcon,
   ShapePicker,
   OverflowText,
+  RichLabel,
   OptionalWrapper,
 } from '../../compound'
 
@@ -123,6 +129,8 @@ const LegendRowDetails = ({
   id,
   icon,
   name,
+  richText,
+  nameRichText,
   value,
   allowGrouping,
   colorBy,
@@ -157,6 +165,10 @@ const LegendRowDetails = ({
   getRange,
 }) => {
   const { mapId } = useContext(MapContext)
+  // The `richText` of the map is the root of the text that belongs to the map
+  const mapRichText = useRichText(
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -288,7 +300,9 @@ const LegendRowDetails = ({
             </Grid>
             <Grid size="grow">
               <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
-                <OverflowText text={name} />
+                <OverflowText text={name}>
+                  {nameRichText === true && <RichLabel text={name} />}
+                </OverflowText>
               </Typography>
             </Grid>
             <Grid size="auto">
@@ -324,7 +338,21 @@ const LegendRowDetails = ({
               <DataGridModal
                 open={filterOpen}
                 label="Chart Data Filter"
-                labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${name})`}
+                labelExtra={
+                  <>
+                    (
+                    {labelStart && (
+                      <>
+                        <RichLabel
+                          text={labelStart}
+                          rich={mapRichText === true}
+                        />
+                        {' \u279D '}
+                      </>
+                    )}
+                    <RichLabel text={name} rich={nameRichText === true} />)
+                  </>
+                }
                 onClose={handleCloseFilter}
               >
                 <GridFilter
@@ -404,6 +432,7 @@ const LegendRowDetails = ({
                     colorBy,
                     colorByOptions,
                     featureTypeProps,
+                    richText,
                   }}
                   hasAnyNullValue={hasAnyNullValue(colorBy)}
                   groupCalcValue={groupCalcByColor}
@@ -428,6 +457,7 @@ const LegendRowDetails = ({
                     sizeBy,
                     sizeByOptions,
                     featureTypeProps,
+                    richText,
                   }}
                   hasAnyNullValue={hasAnyNullValue(sizeBy)}
                   groupCalcValue={groupCalcBySize}
@@ -448,6 +478,7 @@ const LegendRowDetails = ({
                     heightBy,
                     heightByOptions,
                     featureTypeProps,
+                    richText,
                   }}
                   hasAnyNullValue={hasAnyNullValue(heightBy)}
                   icon={<FetchedIcon iconName={icon} />}
@@ -470,13 +501,17 @@ const LegendRow = ({ id, mapFeaturesBy, ...props }) => {
     () => R.pluck('values')(mapFeatures),
     [mapFeatures]
   )
+  // The `richText` of the feature type, with the app default as its root
+  const richText = useRichText(mapFeatures[0]?.richText)
   if (mapFeatures.length === 0) return null
 
   return (
     <LegendRowDetails
       name={mapFeatures[0].name ?? id}
+      // The `id` used when there is no `name` is not rich text
+      nameRichText={mapFeatures[0].name != null && richText}
       featureTypeProps={mapFeatures[0].props}
-      {...{ id, featureTypeValues, ...props }}
+      {...{ id, richText, featureTypeValues, ...props }}
     />
   )
 }
@@ -498,6 +533,11 @@ const LegendGroup = ({
   showLegendGroupNames,
   legendLayout,
 }) => {
+  const { mapId } = useContext(MapContext)
+  const richText = useRichText(
+    legendGroup.richText,
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
   const [
     expandedLegendGroup,
     handleToggleExpandedLegendGroup,
@@ -558,7 +598,9 @@ const LegendGroup = ({
           wrap
           wrapperProps={{ expandIcon: <MdExpandMore size={24} /> }}
         >
-          <Typography variant="h6">{legendGroup.name}</Typography>
+          <Typography variant="h6">
+            <RichLabel text={legendGroup.name} rich={richText === true} />
+          </Typography>
         </OptionalWrapper>
       )}
       <OptionalWrapper

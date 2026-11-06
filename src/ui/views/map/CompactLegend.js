@@ -44,10 +44,15 @@ import {
   selectNodeTypeKeys,
   selectShowLegendAdvancedControls,
   selectShowLegendGroupNames,
+  selectMapRichText,
 } from '../../../data/selectors'
 import { LEGEND_SLIM_WIDTH, LEGEND_WIDE_WIDTH } from '../../../utils/constants'
 import { legendLayouts, legendWidths, statId } from '../../../utils/enums'
-import { useMutateStateWithSync, useToggle } from '../../../utils/hooks'
+import {
+  useMutateStateWithSync,
+  useRichText,
+  useToggle,
+} from '../../../utils/hooks'
 import { useSizeSlider } from '../../compound/SizeSlider'
 import { DataGridModal } from '../common/BaseModal'
 import GridFilter from '../common/GridFilter'
@@ -56,6 +61,7 @@ import {
   FetchedIcon,
   OptionalWrapper,
   OverflowText,
+  RichLabel,
   ShapePicker,
 } from '../../compound'
 
@@ -104,6 +110,8 @@ const LegendRowDetails = ({
   id,
   icon,
   name,
+  richText,
+  nameRichText,
   value,
   allowGrouping,
   colorBy,
@@ -136,6 +144,10 @@ const LegendRowDetails = ({
   onChangeVisibility,
 }) => {
   const { mapId } = useContext(MapContext)
+  // The `richText` of the map is the root of the text that belongs to the map
+  const mapRichText = useRichText(
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
   const legendLayout = useSelector(selectLegendLayout)[mapId]
   const showLegendAdvancedControls = useSelector(
     selectShowLegendAdvancedControls
@@ -230,7 +242,9 @@ const LegendRowDetails = ({
         </Grid>
         <Grid size="grow">
           <Typography variant="subtitle1" sx={{ textAlign: 'start' }}>
-            <OverflowText text={name} />
+            <OverflowText text={name}>
+              {nameRichText === true && <RichLabel text={name} />}
+            </OverflowText>
           </Typography>
         </Grid>
         <Grid size="auto">
@@ -265,7 +279,18 @@ const LegendRowDetails = ({
           <DataGridModal
             open={filterOpen}
             label="Chart Data Filter"
-            labelExtra={`(${labelStart ? `${labelStart} \u279D ` : ''}${name})`}
+            labelExtra={
+              <>
+                (
+                {labelStart && (
+                  <>
+                    <RichLabel text={labelStart} rich={mapRichText === true} />
+                    {' \u279D '}
+                  </>
+                )}
+                <RichLabel text={name} rich={nameRichText === true} />)
+              </>
+            }
             onClose={handleCloseFilter}
           >
             <GridFilter
@@ -342,6 +367,7 @@ const LegendRowDetails = ({
                 colorBy,
                 colorByOptions,
                 featureTypeProps,
+                richText,
               }}
               anyNullValue={hasAnyNullValue(colorBy)}
               groupCalcValue={groupCalcByColor}
@@ -366,6 +392,7 @@ const LegendRowDetails = ({
                 sizeBy,
                 sizeByOptions,
                 featureTypeProps,
+                richText,
               }}
               anyNullValue={hasAnyNullValue(sizeBy)}
               groupCalcValue={groupCalcBySize}
@@ -386,6 +413,7 @@ const LegendRowDetails = ({
                 heightBy,
                 heightByOptions,
                 featureTypeProps,
+                richText,
               }}
               anyNullValue={hasAnyNullValue(heightBy)}
               icon={<FetchedIcon iconName={icon} />}
@@ -412,6 +440,10 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
   const firstFeature = mapFeatures[0] ?? {}
   const featureTypeProps = firstFeature.props
   const name = firstFeature.name ?? id
+  // The `richText` of the feature type, with the app default as its root. The
+  // `id` used when there is no `name` is not rich text
+  const richText = useRichText(firstFeature.richText)
+  const nameRichText = firstFeature.name != null && richText
 
   const numActiveFilters = useMemo(
     () => getNumActiveFilters(filters),
@@ -468,7 +500,9 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
           <FetchedIcon iconName={icon} size={20} />
         </Grid>
         <Grid size="grow" sx={{ textAlign: 'start' }}>
-          <Typography variant="caption">{name}</Typography>
+          <Typography variant="caption">
+            <RichLabel text={name} rich={nameRichText === true} />
+          </Typography>
         </Grid>
         <Grid size="auto">
           <LegendPopper
@@ -495,6 +529,8 @@ const LegendRow = ({ mapFeaturesBy, anchorEl, onOpen, onClose, ...props }) => {
             <LegendRowDetails
               {...{
                 name,
+                richText,
+                nameRichText,
                 featureTypeProps,
                 featureTypeValues,
                 ...props,
@@ -560,6 +596,10 @@ const LegendGroup = ({
 }) => {
   const { mapId } = useContext(MapContext)
   const showLegendGroupNames = useSelector(selectShowLegendGroupNames)[mapId]
+  const richText = useRichText(
+    legendGroup.richText,
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
   const legendGroupData = useMemo(
     () => withIndex(legendGroup.data || {}),
     [legendGroup]
@@ -572,7 +612,7 @@ const LegendGroup = ({
           sx={{ alignItems: 'center', px: 1, my: 1 }}
           variant="subtitle1"
         >
-          {legendGroup.name}
+          <RichLabel text={legendGroup.name} rich={richText === true} />
         </Typography>
       )}
       <Stack sx={{ width: '100%' }} divider={<Divider flexItem />}>

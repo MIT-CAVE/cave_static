@@ -14,7 +14,7 @@ const OptionsPane = ({ open, pane }) => {
   const dispatch = useDispatch()
   const time = useSelector(selectCurrentTime)
 
-  const { layout, props: items, values } = pane
+  const { layout, props: items, values, richText } = pane
   // The root elements of an options pane should be arranged in a single
   // column by default, unless explicitly set otherwise by the API designers
   const optsPaneLayout = useMemo(
@@ -54,6 +54,7 @@ const OptionsPane = ({ open, pane }) => {
   return renderPropsLayout({
     layout: optsPaneLayout,
     items: propsWithValues,
+    richText,
     onChangeProp,
   })
 }

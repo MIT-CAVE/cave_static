@@ -8,6 +8,7 @@ import {
   getMinMax,
   getChartItemColor,
 } from '../../../../utils'
+import { markup } from '../../../../utils/html'
 
 const ScatterPlot = ({ data, labelProps, numberFormat = {}, colors }) => {
   const labels = R.pluck('label')(labelProps)
@@ -81,7 +82,7 @@ const ScatterPlot = ({ data, labelProps, numberFormat = {}, colors }) => {
     tooltip: {
       trigger: 'item',
       formatter: function (params) {
-        return `<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
+        return markup`<div style="margin-bottom: 3px"><b>${params.seriesName}</b></div>
                 <div style="display: flex">
                   <div style="display: flex; flex-direction:column; flex-basis: 40%; align-items: center; margin-right: 30px">
                     <div>${labelsExcludingUnits[1]}</div>
@@ -92,7 +93,7 @@ const ScatterPlot = ({ data, labelProps, numberFormat = {}, colors }) => {
                   <div>${getNumberFormat(labelKeys[2], params.value[1])}</div>
                   </div>
                 </div>
-              `
+              `.toString()
       },
     },
   }

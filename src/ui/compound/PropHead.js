@@ -5,6 +5,7 @@ import * as R from 'ramda'
 import FetchedIcon from './FetchedIcon'
 import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 
 import { PROP_MIN_WIDTH } from '../../utils/constants'
 
@@ -39,6 +40,7 @@ const BaseContainer = ({
     id,
     name,
     help,
+    richText,
     icon,
     color,
     size,
@@ -64,11 +66,13 @@ const BaseContainer = ({
         </Grid>
       )}
       <Grid component={Typography} variant="h5" sx={styles.title} size="grow">
-        <OverflowText text={title} />
+        <OverflowText text={title}>
+          {richText === true && <RichLabel text={title} />}
+        </OverflowText>
       </Grid>
       {help && (
         <Grid sx={{ p: 0.5, pr: 1 }}>
-          <HelpTooltip {...{ title }} content={help} size={26} />
+          <HelpTooltip {...{ title, richText }} content={help} size={26} />
         </Grid>
       )}
       {children}

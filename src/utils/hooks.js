@@ -7,9 +7,21 @@ import {
   readStoredFlag,
   writeStoredFlag,
 } from '.'
+import { resolveRichText } from './richText'
 
 import { mutateLocal } from '../data/local'
-import { selectSync } from '../data/selectors'
+import { selectRichTextDefault, selectSync } from '../data/selectors'
+
+/**
+ * Resolve the `richText` cascade, from the most to the least specific level,
+ * with `settings.defaults.richText` as its root.
+ * @param {...(boolean|undefined|null)} levels
+ * @returns {boolean|undefined}
+ */
+export const useRichText = (...levels) => {
+  const richTextDefault = useSelector(selectRichTextDefault)
+  return resolveRichText(...levels, richTextDefault)
+}
 
 export const useToggle = (defaultValue, stopPropagation = false) => {
   const [value, setValue] = useState(defaultValue)

@@ -21,8 +21,10 @@ import Spinner, {
 
 import { selectVirtualKeyboard } from '../../data/selectors'
 import { setInputValue as SetKeyboardInputValue } from '../../data/utilities/virtualKeyboardSlice'
+import { labelText } from '../../utils/richText'
 import KeyboardToggle from '../compound/KeyboardToggle'
 import OverflowText from '../compound/OverflowText'
+import RichLabel from '../compound/RichLabel'
 
 import { forceArray, getStatusIcon, NumberFormat } from '../../utils'
 
@@ -79,6 +81,7 @@ const NumberField = ({
   largeStep,
   color = 'default',
   helperText,
+  richText,
   marqueeLabel = true,
   sx = [],
   fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
@@ -249,7 +252,13 @@ const NumberField = ({
             ...forceArray(slotProps?.label?.sx),
           ]}
         >
-          {marqueeLabel ? <OverflowText text={label} /> : label}
+          {marqueeLabel ? (
+            <OverflowText text={label}>
+              {richText === true && <RichLabel text={label} />}
+            </OverflowText>
+          ) : (
+            <RichLabel text={label} rich={richText === true} />
+          )}
         </InputLabel>
         <BaseNumberField.Input
           id={id}
@@ -270,11 +279,12 @@ const NumberField = ({
                       : color
                   }
                   {...{
-                    label,
-                    placeholder,
                     readOnly,
                     fullWidth,
                   }}
+                  // The notched outline needs the label as plain text
+                  label={labelText(label, richText)}
+                  placeholder={labelText(placeholder, richText)}
                   value={state.inputValue}
                   sx={[
                     styles.inputComponent,
@@ -440,7 +450,7 @@ const NumberField = ({
           }}
         />
         <FormHelperText sx={{ ml: 0, '&:empty': { mt: 0 } }}>
-          {helperText}
+          <RichLabel text={helperText} rich={richText === true} />
         </FormHelperText>
       </BaseNumberField.Root>
     </Field.Root>
@@ -470,6 +480,7 @@ NumberField.propTypes = {
   numberFormat: PropTypes.object,
   color: PropTypes.string,
   helperText: PropTypes.string,
+  richText: PropTypes.bool,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

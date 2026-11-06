@@ -13,6 +13,7 @@ import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 import WrappedText from './WrappedText'
 
 import { selectVirtualKeyboard } from '../../data/selectors'
@@ -57,6 +58,8 @@ const styles = {
  * @param iconOnlyOnSelect
  * @param disabled
  * @param getLabel
+ * @param richText - Whether the labels are rich text. It can be a function of the
+ * value of an option, when it depends on the option
  * @param onClickAway
  * @param onSelect
  * @param props
@@ -74,6 +77,7 @@ const Select = ({
   size,
   slotProps = {},
   getLabel = (label) => label,
+  richText,
   onClickAway = () => {},
   onSelect = () => {},
   ...props
@@ -84,6 +88,8 @@ const Select = ({
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
 
   const labelId = rawLabelId ?? `cave-select-label-${label}`
+  const isRich = (optionValue) =>
+    (typeof richText === 'function' ? richText(optionValue) : richText) === true
   return (
     <FormControl {...{ size }} fullWidth {...slotProps.formControl}>
       {label && <InputLabel id={labelId}>{label}</InputLabel>}
@@ -123,7 +129,11 @@ const Select = ({
                 <FetchedIcon iconName={item.iconName} size={iconSize} />
               )}
               {(item || value) && !iconOnlyOnSelect && (
-                <OverflowText text={getLabel(item?.label ?? value)} />
+                <OverflowText text={getLabel(item?.label ?? value)}>
+                  {isRich(value) && (
+                    <RichLabel text={getLabel(item?.label ?? value)} />
+                  )}
+                </OverflowText>
               )}
             </Stack>
           )
@@ -161,7 +171,15 @@ const Select = ({
                     }
                   : {})}
               >
-                <WrappedText text={getLabel(label || value || item)} />
+                <WrappedText
+                  text={
+                    isRich(value || label || item) ? (
+                      <RichLabel text={getLabel(label || value || item)} />
+                    ) : (
+                      getLabel(label || value || item)
+                    )
+                  }
+                />
               </span>
               {subOptions ? (
                 <div style={{ marginLeft: 'auto' }}>
@@ -204,6 +222,7 @@ Select.propTypes = {
     PropTypes.object,
   ]),
   getLabel: PropTypes.func,
+  richText: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
 }

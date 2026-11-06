@@ -8,16 +8,18 @@ import {
   GroupCalcSelector,
   PropIcon,
   ScaleSelector,
+  GradientLabel,
   useGradient,
   WithEditBadge,
 } from './Legend'
 
 import { selectLegendNumberFormatFunc } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
+import { resolveRichText } from '../../../utils/richText'
 import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 import NumberField from '../../prototypes/NumberField'
 
-import { OverflowText, Select } from '../../compound'
+import { OverflowText, RichLabel, Select } from '../../compound'
 
 import { capitalize, orderEntireDict, parseGradient } from '../../../utils'
 
@@ -71,6 +73,7 @@ const NumericalSizeLegend = ({
   numberFormat,
   sizeSlider,
   // anyNullValue, // TODO: Implement `fallback` UI
+  richText,
   onChangeValueAt,
 }) => {
   const [defaultEditValue, setDefaultEditValue] = useState(null)
@@ -104,6 +107,7 @@ const NumericalSizeLegend = ({
     minAuto,
     maxAuto,
     getLabel,
+    isServerLabelAt,
     getAdjustedLabel,
     getAttrLabelAt: getSizeLabelAt,
     getValueLabelAt,
@@ -117,6 +121,7 @@ const NumericalSizeLegend = ({
     gradient: valueRange.gradient,
     numberFormat,
     group,
+    richText,
     onChangeValueAt,
   })
 
@@ -183,7 +188,7 @@ const NumericalSizeLegend = ({
                       color={selected ? 'warning' : 'default'}
                       noWrap
                     >
-                      <OverflowText
+                      <GradientLabel
                         text={getAdjustedLabel(
                           index < 1
                             ? 'Min'
@@ -194,6 +199,14 @@ const NumericalSizeLegend = ({
                                 : `\u2063`, // This preserves the alignment of the icons
                           index
                         )}
+                        rawLabel={getLabel(index)}
+                        rich={
+                          richText === true &&
+                          index > 0 &&
+                          index < lastIndex &&
+                          labels[index] != null &&
+                          isServerLabelAt(index)
+                        }
                       />
                     </Typography>
                   )}
@@ -276,6 +289,7 @@ const CategoricalSizeLegend = ({
   icon,
   sizeSlider,
   anyNullValue,
+  richText,
 }) => {
   const {
     showSizeSlider,
@@ -317,6 +331,15 @@ const CategoricalSizeLegend = ({
     [sizeOptions, type]
   )
 
+  // Only the names set in the data are rich text, not the generated ones
+  const isCategoryRich = useCallback(
+    (option) =>
+      richText === true &&
+      (type === propId.SELECTOR || type === propId.TOGGLE) &&
+      Boolean(sizeOptions[option]?.name),
+    [richText, sizeOptions, type]
+  )
+
   const handleChangeComitted = useCallback(
     (event, value) => {
       const option = sizeSliderProps.key
@@ -353,7 +376,10 @@ const CategoricalSizeLegend = ({
                 />
               </WithEditBadge>
               <Typography variant="caption">
-                {getCategoryLabel(option)}
+                <RichLabel
+                  text={getCategoryLabel(option)}
+                  rich={isCategoryRich(option)}
+                />
               </Typography>
             </Stack>
           ))}
@@ -363,6 +389,7 @@ const CategoricalSizeLegend = ({
         <SizeSlider
           sx={{ mb: 4 }}
           sizeLabel={getCategoryLabel(sizeSliderProps.key)}
+          sizeRichText={isCategoryRich(sizeSliderProps.key)}
           value={sizeSliderProps.value}
           onClose={handleClose}
           onChange={handleChange}
@@ -386,11 +413,14 @@ const SizeLegend = ({
   onChangeLegendAttr,
   onChangePropAttr,
   onChangeSize,
+  richText,
 }) => {
   const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
   const sizeByProp = featureTypeProps[sizeBy]
   const numberFormat = legendNumberFormatFunc(sizeByProp)
   const isCategorical = sizeByProp.type !== propId.NUMBER
+  // The `richText` of the prop overrides the one of its feature type
+  const propRichText = resolveRichText(sizeByProp.richText, richText)
 
   const sizeSlider = useSizeSlider(onChangeSize)
 
@@ -411,6 +441,10 @@ const SizeLegend = ({
             value={sizeBy}
             optionsList={sizeByOptions}
             getLabel={(option) => featureTypeProps[option].name || option}
+            richText={(option) =>
+              resolveRichText(featureTypeProps[option]?.richText, richText) ===
+              true
+            }
             onSelect={onSelectProp(
               'sizeBy',
               'groupCalcBySize',
@@ -422,7 +456,11 @@ const SizeLegend = ({
         {numberFormat.unit && (
           <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
-              <OverflowText text={numberFormat.unit} />
+              <OverflowText text={numberFormat.unit}>
+                {propRichText === true && (
+                  <RichLabel text={numberFormat.unit} />
+                )}
+              </OverflowText>
             </Typography>
           </Grid>
         )}
@@ -430,6 +468,7 @@ const SizeLegend = ({
       {isCategorical ? (
         <CategoricalSizeLegend
           {...{ icon, sizeByProp, sizeSlider, anyNullValue }}
+          richText={propRichText}
         />
       ) : (
         <>
@@ -442,6 +481,7 @@ const SizeLegend = ({
               sizeSlider,
               anyNullValue,
             }}
+            richText={propRichText}
             onChangeValueAt={(dataIndex) =>
               onChangePropAttr([sizeBy, 'gradient', 'data', dataIndex, 'value'])
             }

@@ -6,6 +6,7 @@ import { GiEmptyChessboard } from 'react-icons/gi'
 import { IoSquareSharp } from 'react-icons/io5'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 import { SimpleDropdown } from './SimpleDropdown'
 
 import { getActiveDefaults, getOrDefault, withIndex } from '../../utils'
@@ -106,11 +107,14 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
               style={styles.marker}
             />
           ) : null}
-          {currentLabel ?? option}
+          <RichLabel
+            text={currentLabel ?? option}
+            rich={propAttrs.richText === true}
+          />
         </Stack>
       )
     },
-    [activeDefaults, labelPlacement, options, value]
+    [activeDefaults, labelPlacement, options, propAttrs.richText, value]
   )
 
   const getOptionDisabled = useCallback(
@@ -132,7 +136,9 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
           paper: { elevation: 0, sx: styles.paper },
         }}
       />
-      <FormHelperText>{helperText}</FormHelperText>
+      <FormHelperText>
+        <RichLabel text={helperText} rich={propAttrs.richText === true} />
+      </FormHelperText>
     </FormControl>
   )
 }
