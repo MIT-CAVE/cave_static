@@ -172,7 +172,7 @@ const Map = ({ mapId }) => {
 
     try {
       map.setFog?.(fog)
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }, [fog])
@@ -212,7 +212,7 @@ const Map = ({ mapId }) => {
             try {
               map.addImage(iconName, cachedImg, { sdf: true })
               updated = true
-            } catch (e) {
+            } catch {
               // Ignore
             }
           }
@@ -221,7 +221,7 @@ const Map = ({ mapId }) => {
       if (updated) {
         refreshNodeSources(map)
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }, [allIcons, refreshNodeSources])
@@ -254,7 +254,7 @@ const Map = ({ mapId }) => {
                   map.addImage(iconName, iconImage, { sdf: true })
                 }
                 updated = true
-              } catch (e) {
+              } catch {
                 // Ignore
               }
             }
@@ -262,7 +262,7 @@ const Map = ({ mapId }) => {
           if (updated) {
             refreshNodeSources(map)
           }
-        } catch (e) {
+        } catch {
           // Ignore
         }
       }
@@ -343,7 +343,7 @@ const Map = ({ mapId }) => {
         try {
           map.addImage(iconName, cached, { sdf: true })
           refreshNodeSources(map)
-        } catch (err) {
+        } catch {
           // Ignore
         }
       } else {
@@ -351,7 +351,7 @@ const Map = ({ mapId }) => {
         if (loadingImg && !map.hasImage(iconName)) {
           try {
             map.addImage(iconName, loadingImg, { sdf: true })
-          } catch (err) {
+          } catch {
             // Ignore
           }
         }
@@ -378,7 +378,7 @@ const Map = ({ mapId }) => {
                   activeMap.addImage(iconName, img, { sdf: true })
                 }
                 refreshNodeSources(activeMap)
-              } catch (err) {
+              } catch {
                 // Ignore
               }
             }
@@ -536,7 +536,7 @@ const Map = ({ mapId }) => {
           if (mapRef.current.getSource?.(highlight.current.source)) {
             mapRef.current.setFeatureState(highlight.current, { hover: false })
           }
-        } catch (err) {
+        } catch {
           // Ignore
         }
         highlight.current = null
@@ -551,7 +551,7 @@ const Map = ({ mapId }) => {
             mapRef.current.setFeatureState({ source, id }, { hover: true })
             highlight.current = { source, id }
           }
-        } catch (err) {
+        } catch {
           // Ignore
         }
         if (canvas.style.cursor === 'auto') canvas.style.cursor = 'pointer'
@@ -571,7 +571,7 @@ const Map = ({ mapId }) => {
           if (mapRef.current?.getSource?.(highlight.current.source)) {
             mapRef.current.setFeatureState(highlight.current, { hover: false })
           }
-        } catch (err) {
+        } catch {
           // Ignore
         }
         highlight.current = null
@@ -600,7 +600,7 @@ const Map = ({ mapId }) => {
         if (mapRef.current?.getSource?.(highlight.current.source)) {
           mapRef.current.setFeatureState(highlight.current, { hover: false })
         }
-      } catch (err) {
+      } catch {
         // Ignore
       }
       highlight.current = null

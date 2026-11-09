@@ -20,7 +20,7 @@ function measure(name, fn, iterations = 1) {
   // Warmup
   try {
     fn()
-  } catch (e) {
+  } catch {
     /* ignore warmup error */
   }
 

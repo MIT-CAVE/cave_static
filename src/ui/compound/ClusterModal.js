@@ -152,6 +152,7 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
                           })
                         )
                       }}
+                      // eslint-disable-next-line jsx-a11y/role-has-required-aria-props
                       role="checkbox"
                       tabIndex={-1}
                       key={row.id}

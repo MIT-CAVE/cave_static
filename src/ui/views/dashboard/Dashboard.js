@@ -10,8 +10,7 @@ import {
   useMemo,
   useState,
 } from 'react'
-// eslint-disable-next-line import/no-unresolved
-import ReactGridLayout from 'react-grid-layout/legacy'
+import { ReactGridLayout } from 'react-grid-layout/legacy'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 import { AutoSizer } from 'react-virtualized-auto-sizer'
@@ -41,7 +40,7 @@ import Map from '../map/Map'
 import { getFreeName, getNumActiveFilters } from '../../../utils'
 
 import 'react-grid-layout/css/styles.css'
-// eslint-disable-next-line import/no-extraneous-dependencies
+// eslint-disable-next-line import-js/no-extraneous-dependencies
 import 'react-resizable/css/styles.css'
 
 const DashboardChart = lazy(() => import('./DashboardChart'))

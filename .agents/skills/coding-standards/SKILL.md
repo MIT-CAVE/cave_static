@@ -1,6 +1,6 @@
 ---
 name: coding-standards
-description: Enforce coding conventions, including ESLint import order, prop-types validation, and formatting.
+description: Enforce coding conventions, including Oxlint import order, prop-types validation, and formatting.
 ---
 
 # Coding Standards
@@ -22,7 +22,7 @@ Follow these strict patterns to maintain codebase consistency and ensure the aut
   }
   ```
 
-## 2. Formatting (Prettier & ESLint)
+## 2. Formatting (Prettier & Oxlint)
 
 - **Semicolons**: Do not use semicolons (enforced by Prettier `semi: false`).
 - **Quotes**: Use single quotes (`singleQuote: true`).

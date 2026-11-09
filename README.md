@@ -17,11 +17,11 @@ npm run setup
 - Notes:
   - you may need to `chown` and `chmod` your project folder to be able to execute from inside these files.
     - `sudo chown -R your-username . && sudo chmod -R 700 .`
-  - To ensure good practices and a consistent style code, the following packages for the Atom IDE are strongly suggested: `linter`,` linter-eslint`.
+  - To ensure good practices and a consistent style code, the following packages for the Atom IDE are strongly suggested: `linter`, `linter-oxlint`.
 
 ## Clean Code
 
-[ESLint](https://github.com/eslint/eslint) and [Prettier](https://github.com/prettier/prettier) automatically lint your staged changes before committing.
+[Oxlint](https://oxc.rs/docs/guide/usage/linter) and [Prettier](https://github.com/prettier/prettier) automatically lint your staged changes before committing.
 
 At any time, you can apply the `lint` command to format your code to our standards by running:
 

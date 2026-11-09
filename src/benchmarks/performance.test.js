@@ -20,7 +20,7 @@ import Supercluster from '../utils/supercluster'
 function measure(fn, iterations = 1) {
   try {
     fn()
-  } catch (e) {
+  } catch {
     /* ignore */
   }
   const start = performance.now()

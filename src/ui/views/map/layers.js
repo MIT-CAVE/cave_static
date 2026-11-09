@@ -67,7 +67,7 @@ const getTypeFromFeature = (f) => {
     const parsed = JSON.parse(caveName)[0]
     f.properties._parsedType = parsed
     return parsed
-  } catch (e) {
+  } catch {
     return null
   }
 }
@@ -234,7 +234,7 @@ const MapboxLayer = memo(
             if (map.getLayer(id)) map.removeLayer(id)
             if (map.getSource(id)) map.removeSource(id)
           }
-        } catch (e) {
+        } catch {
           // Ignore
         }
       }
@@ -279,14 +279,14 @@ const MapboxLayer = memo(
                 styleLayer.recalculate({
                   zoom: map.getZoom ? map.getZoom() : 0,
                 })
-              } catch (e) {
+              } catch {
                 // Ignore
               }
             }
             prevLayoutRef.current = layoutRef.current
             prevPaintRef.current = paintRef.current
           }
-        } catch (e) {
+        } catch {
           // Ignore
         }
       }
@@ -383,7 +383,7 @@ const MapboxLayer = memo(
                 styleLayer.recalculate({
                   zoom: map.getZoom ? map.getZoom() : 0,
                 })
-              } catch (e) {
+              } catch {
                 // Ignore
               }
             }
@@ -391,7 +391,7 @@ const MapboxLayer = memo(
             prevPaintRef.current = paintRef.current
           }
         }
-      } catch (e) {
+      } catch {
         // Ignore
       }
     }, [id, type, data, layout, paint, mapRef, mapLoaded])
@@ -488,7 +488,7 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
       if (isNaN(idx)) {
         try {
           idx = parseInt(JSON.parse(f.properties?.cave_name)?.[1])
-        } catch (e) {
+        } catch {
           idx = NaN
         }
       }
@@ -1015,7 +1015,7 @@ export const MapLayers = () => {
             map.moveLayer(currentId, nextId)
           }
         }
-      } catch (e) {
+      } catch {
         // Ignore
       } finally {
         isReordering = false

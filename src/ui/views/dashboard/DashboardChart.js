@@ -138,7 +138,7 @@ const DashboardChart = ({ chartObj, path }) => {
           setFormattedData(computedData || [])
           setLoading(false)
         }
-      } catch (err) {
+      } catch {
         if (!isCancelled) {
           setFormattedData([])
           setLoading(false)

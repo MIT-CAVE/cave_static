@@ -230,7 +230,7 @@ export const getSvgMarkup = (RootNode, fillColor, size) => {
         const xml = elementToXml(res)
         if (xml) return xml
       }
-    } catch (e) {
+    } catch {
       // Fall back to React root render
     }
 

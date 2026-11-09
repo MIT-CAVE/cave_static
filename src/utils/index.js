@@ -680,7 +680,7 @@ export const fetchResource = async ({
       try {
         activeCache = cache || (await caches.open(cacheName))
         response = await activeCache.match(url)
-      } catch (e) {
+      } catch {
         // Ignore CacheStorage failure in restricted environments
       }
     }
@@ -692,7 +692,7 @@ export const fetchResource = async ({
       if (activeCache) {
         try {
           await activeCache.put(url, res.clone())
-        } catch (e) {
+        } catch {
           // Ignore cache put error
         }
       }
