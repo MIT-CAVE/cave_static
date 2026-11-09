@@ -242,6 +242,49 @@ export const LegendContentsAreRich = {
   },
 }
 
+// The contents of the compact legend are in a popper that opens on click
+const openCompactRow = async (canvasElement) => {
+  const canvas = within(canvasElement)
+  await waitForLegend(canvas)
+  await userEvent.click(
+    await canvas.findByRole('button', { name: /Warehouses/ })
+  )
+  return within(canvasElement.ownerDocument.body)
+}
+
+export const CompactLegendContentsAreRich = {
+  render: renderStage(
+    buildData({ type: { richText: true } }),
+    <CompactLegend />
+  ),
+  play: async ({ canvasElement }) => {
+    const body = await openCompactRow(canvasElement)
+    await expectAll(body, 'Capacity', 'STRONG')
+    await waitFor(() =>
+      expect(
+        canvasElement.ownerDocument.body.querySelector('.katex')
+      ).not.toBeNull()
+    )
+    await expectAll(body, 'Low', 'STRONG')
+  },
+}
+
+export const CompactLegendPropOverridesTheFeatureType = {
+  render: renderStage(
+    buildData({ type: { richText: true }, capacity: { richText: false } }),
+    <CompactLegend />
+  ),
+  play: async ({ canvasElement }) => {
+    const body = await openCompactRow(canvasElement)
+    await waitFor(() =>
+      expect(body.getAllByText('**Capacity**').length).toBeGreaterThan(0)
+    )
+    await expect(
+      canvasElement.ownerDocument.body.querySelector('.katex')
+    ).toBeNull()
+  },
+}
+
 export const PropOverridesTheFeatureType = {
   render: renderStage(
     buildData({

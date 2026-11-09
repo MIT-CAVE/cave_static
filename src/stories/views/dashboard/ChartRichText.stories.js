@@ -1,6 +1,7 @@
 import { expect, waitFor, within } from 'storybook/test'
 
 import GroupsFilter from '../../../ui/views/common/GroupsFilter'
+import DashboardChart from '../../../ui/views/dashboard/DashboardChart'
 import GroupedOutputsToolbar from '../../../ui/views/dashboard/GroupedOutputsToolbar'
 
 const chartRichTextStories = {
@@ -145,5 +146,81 @@ export const GroupsFilterNamesAreRich = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expectAll(canvas, 'Location', 'STRONG')
+  },
+}
+
+// The headers of a table chart are composed of the names of the stat and
+// the grouping, each one rich as its own cascade says
+const tableChart = (options) => ({
+  render: () => (
+    <div style={{ height: 400, display: 'flex', flexDirection: 'column' }}>
+      <DashboardChart
+        path={['pages', 'data', 'page_1', 'charts', 'chart_1']}
+        chartObj={{
+          type: 'groupedOutput',
+          chartType: 'table',
+          dataset: 'salesData',
+          stats: [{ statId: 'sales', aggregationType: 'sum' }],
+          groupingId: ['location'],
+          groupingLevel: ['state'],
+        }}
+      />
+    </div>
+  ),
+  parameters: {
+    layoutWidth: 'full',
+    preloadedState: { data: buildState(options) },
+  },
+})
+
+const waitForHeaders = (canvasElement) =>
+  waitFor(() =>
+    expect(
+      canvasElement.querySelectorAll('[role="columnheader"]').length
+    ).toBeGreaterThan(1)
+  )
+
+export const TableHeadersAreRich = {
+  ...tableChart({ dataset: { richText: true }, grouping: { richText: true } }),
+  play: async ({ canvasElement }) => {
+    await waitForHeaders(canvasElement)
+    const stat = canvasElement.querySelector('[data-field="sales"]')
+    await expect(stat.querySelector('strong')?.textContent).toBe('Sales')
+    // The unit is part of the header, as plain text next to the name
+    await expect(stat.textContent).toContain('[units]')
+    const grouping = canvasElement.querySelector('[data-field="grouping0"]')
+    await expect(grouping.querySelector('strong')?.textContent).toBe('Location')
+    await expect(grouping.querySelector('em')?.textContent).toBe('State')
+  },
+}
+
+export const TableHeadersFollowTheirOwnCascade = {
+  ...tableChart({
+    dataset: { richText: true },
+    sales: { richText: false },
+    grouping: { richText: true },
+  }),
+  play: async ({ canvasElement }) => {
+    await waitForHeaders(canvasElement)
+    const stat = canvasElement.querySelector('[data-field="sales"]')
+    // The stat opts out, while the grouping is still rich
+    await expect(stat.textContent).toContain('**Sales**')
+    await expect(stat.querySelector('strong')).toBeNull()
+    await expect(
+      canvasElement.querySelector('[data-field="grouping0"] strong')
+    ).not.toBeNull()
+  },
+}
+
+export const TableHeadersArePlainByDefault = {
+  ...tableChart(),
+  play: async ({ canvasElement }) => {
+    await waitForHeaders(canvasElement)
+    await expect(
+      canvasElement.querySelector('[role="columnheader"] strong')
+    ).toBeNull()
+    await expect(
+      canvasElement.querySelector('[data-field="sales"]').textContent
+    ).toContain('**Sales** [units]')
   },
 }
