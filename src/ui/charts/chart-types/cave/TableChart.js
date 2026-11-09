@@ -87,13 +87,7 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
         headerName: label,
         // `richLabel` is only set when some part of the header is rich text
         ...(richLabel != null && {
-          // The span keeps the spaces next to formatted text, which the flex
-          // container of the header title would otherwise drop
-          renderHeader: () => (
-            <span>
-              <RichLabel text={richLabel} rich />
-            </span>
-          ),
+          renderHeader: () => <RichLabel text={richLabel} rich />,
         }),
         type,
         field,

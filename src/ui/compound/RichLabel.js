@@ -113,8 +113,15 @@ export const getRichNode = (text) => {
  * Inline label with markdown (bold, italic, code, links) and math support.
  * Plain strings skip the parser entirely.
  */
+// NOTE: The rich label is wrapped in a `span` so it is a single child of its
+// parent. In a flex container (e.g. a `MenuItem`, or a header of a `DataGrid`),
+// the spaces between text and elements (`_Cost_ per unit`) would be dropped.
 const RichLabel = ({ text, rich = true }) =>
-  rich && mayContainRichText(text) ? getRichNode(text) : (text ?? null)
+  rich && mayContainRichText(text) ? (
+    <span>{getRichNode(text)}</span>
+  ) : (
+    (text ?? null)
+  )
 RichLabel.propTypes = {
   text: PropTypes.string,
   rich: PropTypes.bool,

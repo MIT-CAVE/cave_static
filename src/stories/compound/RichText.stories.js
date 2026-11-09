@@ -899,6 +899,9 @@ export const NumberIconUnitBeforeTheNumberIsRich = {
     const unit = await within(canvasElement).findByText('USD')
     await expect(unit.tagName).toBe('STRONG')
     // The unit goes before the number, separated by a space
-    await expect(unit.parentElement).toHaveTextContent('USD 1,250')
+    // (the parent of the label is its wrapper)
+    await expect(unit.parentElement.parentElement).toHaveTextContent(
+      'USD 1,250'
+    )
   },
 }
