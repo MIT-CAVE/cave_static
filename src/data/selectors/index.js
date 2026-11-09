@@ -1979,15 +1979,21 @@ export const selectChartColors = createSelector(
 )
 
 export const selectFilterableStats = createSelector(
-  selectGroupedOutputTypes,
-  (groupedOutputTypes) => {
+  [selectGroupedOutputTypes, selectGroupedOutputsData],
+  (groupedOutputTypes, datasets) => {
     if (!groupedOutputTypes) return {}
     const result = {}
-    for (const group of Object.values(groupedOutputTypes)) {
+    for (const [dataset, group] of Object.entries(groupedOutputTypes)) {
       if (group && typeof group === 'object') {
         for (const [key, statObj] of Object.entries(group)) {
           if (statObj?.allowFiltering !== false) {
-            result[key] = { ...statObj, type: 'num' }
+            // The `richText` of the stat, or else of its dataset
+            const richText = statObj?.richText ?? datasets?.[dataset]?.richText
+            result[key] = {
+              ...statObj,
+              type: 'num',
+              ...(richText != null && { richText }),
+            }
           }
         }
       }

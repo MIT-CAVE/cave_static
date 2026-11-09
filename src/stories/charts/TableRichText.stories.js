@@ -86,3 +86,31 @@ export const PlainTitleStaysAsWritten = {
     await expect(title.querySelector('strong')).toBeNull()
   },
 }
+
+// The title of a column header is a flex container, which drops the space
+// between an element and the text that follows it (`_Cost_ per unit`)
+export const HeaderKeepsTheSpaceAfterFormattedText = {
+  render: renderTable({
+    labelProps: [
+      {
+        key: 'a',
+        type: 'number',
+        label: 'Cost per unit',
+        richLabel: '_Cost_ per unit',
+      },
+    ],
+  }),
+  play: async ({ canvasElement }) => {
+    const header = await headerOf(within(canvasElement), /Cost/)
+    const em = header.querySelector('em')
+    await expect(em?.textContent).toBe('Cost')
+    const range = document.createRange()
+    // The range starts at the first letter, as the space itself has no gap
+    const text = em.nextSibling
+    range.setStart(text, text.textContent.search(/\S/))
+    range.setEnd(text, text.textContent.length)
+    const gap =
+      range.getBoundingClientRect().left - em.getBoundingClientRect().right
+    await expect(gap).toBeGreaterThan(1)
+  },
+}

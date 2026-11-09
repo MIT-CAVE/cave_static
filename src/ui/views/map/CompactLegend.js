@@ -296,6 +296,7 @@ const LegendRowDetails = ({
             <GridFilter
               {...{ filterableExtraProps }}
               filterables={filterableProps}
+              richText={richText}
               defaultFilters={filters}
               onSave={handleSaveFilters}
             />

@@ -10,7 +10,13 @@ import {
 import { resolveRichText } from './richText'
 
 import { mutateLocal } from '../data/local'
-import { selectRichTextDefault, selectSync } from '../data/selectors'
+import {
+  selectGroupedOutputsData,
+  selectGroupedOutputTypes,
+  selectRichTextDefault,
+  selectSlimStatGroupings,
+  selectSync,
+} from '../data/selectors'
 
 /**
  * Resolve the `richText` cascade, from the most to the least specific level,
@@ -21,6 +27,41 @@ import { selectRichTextDefault, selectSync } from '../data/selectors'
 export const useRichText = (...levels) => {
   const richTextDefault = useSelector(selectRichTextDefault)
   return resolveRichText(...levels, richTextDefault)
+}
+
+/**
+ * Resolve the `richText` cascade of the names of a chart (the names of the
+ * `groupedOutputs`). Closest wins: for a stat `stat` > `dataset`, for a grouping
+ * `level` > `grouping`, and `settings.defaults` as their root.
+ * @returns {{
+ *   getStatRichText: (dataset: string, statId: string) => (boolean|undefined),
+ *   getGroupingRichText: (groupingId: string, level?: string) => (boolean|undefined),
+ * }}
+ */
+export const useChartRichText = () => {
+  const statisticTypes = useSelector(selectGroupedOutputTypes)
+  const datasets = useSelector(selectGroupedOutputsData)
+  const categories = useSelector(selectSlimStatGroupings)
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const getStatRichText = useCallback(
+    (dataset, statId) =>
+      resolveRichText(
+        statisticTypes[dataset]?.[statId]?.richText,
+        datasets[dataset]?.richText,
+        richTextDefault
+      ),
+    [datasets, richTextDefault, statisticTypes]
+  )
+  const getGroupingRichText = useCallback(
+    (groupingId, level) =>
+      resolveRichText(
+        categories[groupingId]?.levels?.[level]?.richText,
+        categories[groupingId]?.richText,
+        richTextDefault
+      ),
+    [categories, richTextDefault]
+  )
+  return { getStatRichText, getGroupingRichText }
 }
 
 export const useToggle = (defaultValue, stopPropagation = false) => {

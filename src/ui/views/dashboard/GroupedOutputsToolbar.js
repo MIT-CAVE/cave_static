@@ -26,6 +26,7 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import { useChartRichText } from '../../../utils/hooks'
 
 import { Select, SelectAccordion, SelectAccordionList } from '../../compound'
 
@@ -154,6 +155,7 @@ const GroupedOutputsToolbar = ({ index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const chartObj = useSelector((state) => selectChartById(state, index))
   const sync = useSelector(selectSync)
+  const { getStatRichText, getGroupingRichText } = useChartRichText()
 
   const path = ['pages', 'data', currentPage, 'charts', index]
   if (!chartObj) return null
@@ -223,6 +225,8 @@ const GroupedOutputsToolbar = ({ index }) => {
       })
     )
   }
+
+  const isStatRich = (stat) => getStatRichText(chartObj.dataset, stat)
 
   const getStatName = (stat) =>
     getGroupLabelFn(allowedStats, [chartObj.dataset, stat])
@@ -380,6 +384,7 @@ const GroupedOutputsToolbar = ({ index }) => {
       value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
       optionsList={statNames}
       getLabel={getStatName}
+      richText={isStatRich}
       onSelect={(value) => {
         updateChartObj(
           R.assoc(
@@ -407,6 +412,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           value={value}
           optionsList={statNames}
           getLabel={getStatName}
+          richText={isStatRich}
           onSelect={(newVal) => {
             if (R.equals(value, newVal)) {
               handleDeleteStatistic(index)
@@ -435,6 +441,7 @@ const GroupedOutputsToolbar = ({ index }) => {
         fullWidth
         disabled={isDatasetNotSelected}
         getLabel={getStatName}
+        richText={isStatRich}
         value={statId || ' '}
         optionsList={statId ? statNames : unusedOptions}
         onSelect={(value) => {
@@ -535,6 +542,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
           optionsList={statNames}
           getLabel={getStatName}
+          richText={isStatRich}
           onSelect={(value) =>
             updateChartObj(
               R.assocPath(['stats', index, 'statIdDivisor'], value, chartObj)
@@ -557,6 +565,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           ]}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
+          richText={getGroupingRichText}
           onSelect={(item, value) =>
             updateChartObj(
               R.pipe(
@@ -672,6 +681,7 @@ const GroupedOutputsToolbar = ({ index }) => {
             maxGrouping={chartMaxGrouping[chartObj.chartType]}
             getLabel={getLabelFn(categories)}
             getSubLabel={getSubLabelFn(categories)}
+            richText={getGroupingRichText}
             onAddGroup={handleAddGroup}
             onChangeGroupIndex={handleChangeGroupIndexFn}
             onDeleteGroup={handleDeleteGroupFn}

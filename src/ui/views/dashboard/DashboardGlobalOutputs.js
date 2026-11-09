@@ -120,21 +120,32 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
     }
   })
 
+  // prop > global outputs root > app default
+  const getOutputRichText = (globalOutputKey) =>
+    resolveRichText(
+      globalOutputData[globalOutputKey]?.richText,
+      items?.richText,
+      richTextDefault
+    )
+
   const globalOutputUnits = R.map((item) => {
     const globalOutput = R.propOr({}, item)(globalOutputData)
     return globalOutput.unit || numberFormatDefault.unit
   })(selectedGlobalOutputKeys)
 
+  // Canvas text can't render markup, so the axis title uses the plain units
+  const plainGlobalOutputUnits = R.zipWith(
+    (globalOutputKey, unit) =>
+      labelText(unit, getOutputRichText(globalOutputKey)),
+    selectedGlobalOutputKeys,
+    globalOutputUnits
+  )
+
   const labelProps =
     chartObj.chartType === chartVariant.TABLE
       ? R.pipe(
           R.zipWith((globalOutputKey, unit) => {
-            // prop > global outputs root > app default
-            const richText = resolveRichText(
-              globalOutputData[globalOutputKey]?.richText,
-              items?.richText,
-              richTextDefault
-            )
+            const richText = getOutputRichText(globalOutputKey)
             const name = getLabelFn(globalOutputData)(globalOutputKey)
             return {
               type: 'number',
@@ -194,7 +205,7 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
           <BarPlot
             data={formattedGlobalOutputs}
             xAxisTitle="Sessions"
-            yAxisTitle={R.join(', ')(globalOutputUnits)}
+            yAxisTitle={R.join(', ')(plainGlobalOutputUnits)}
             {...{ numberFormat }}
             // The data structure of the globalOutput chart is the same
             // as that of a statistics chart with subgrouped data
@@ -205,7 +216,7 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
             data={formattedGlobalOutputs}
             {...{ numberFormat }}
             xAxisTitle="Sessions"
-            yAxisTitle={R.join(', ')(globalOutputUnits)}
+            yAxisTitle={R.join(', ')(plainGlobalOutputUnits)}
           />
         ) : null}
       </Box>

@@ -15,7 +15,11 @@ import GridEditMultiSelectCell, {
   GridMultiSelectCell,
 } from './GridEditMultiSelectCell'
 
-import { selectNumberFormatPropsFn } from '../../../data/selectors'
+import {
+  selectNumberFormatPropsFn,
+  selectRichTextDefault,
+} from '../../../data/selectors'
+import { resolveRichText } from '../../../utils/richText'
 
 import { OverflowText, Select } from '../../compound'
 
@@ -221,12 +225,20 @@ const GridFilter = ({
   sourceHeaderName = 'Source',
   filterables,
   filterableExtraProps,
+  richText,
   onSave,
 }) => {
   const [rows, setRows] = useState([])
   const [editingId, setEditingId] = useState(-1)
 
   const getNumberFormat = useSelector(selectNumberFormatPropsFn)
+  const richTextDefault = useSelector(selectRichTextDefault)
+  // The names of the source are rich as set in the filterable (or in its parent)
+  const isSourceRich = useCallback(
+    (key) =>
+      resolveRichText(filterables?.[key]?.richText, richText, richTextDefault),
+    [filterables, richText, richTextDefault]
+  )
 
   const counts = useMemo(
     () =>
@@ -483,6 +495,7 @@ const GridFilter = ({
                 onSelect={(value) => handleRowChange(row.id, 'source', value)}
                 sx={styles.select}
                 optionsList={sourceValueOpts}
+                richText={isSourceRich}
               />
             )
           )
@@ -677,6 +690,7 @@ const GridFilter = ({
     handleAddRow,
     handleDeleteGroup,
     handleDeleteRow,
+    isSourceRich,
     numberFormatProps,
     resetEditing,
     sourceHeaderName,

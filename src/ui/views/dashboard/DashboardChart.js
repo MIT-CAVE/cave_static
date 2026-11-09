@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
-  selectGroupedOutputsData,
   selectGroupedOutputTypes,
   selectNumberFormat,
   selectRichTextDefault,
@@ -18,6 +17,7 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import { useChartRichText } from '../../../utils/hooks'
 import {
   escapeRichText,
   labelText,
@@ -60,7 +60,6 @@ const DashboardChart = ({ chartObj, path }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectSlimStatGroupings)
-  const groupedOutputsData = useSelector(selectGroupedOutputsData)
   const richTextDefault = useSelector(selectRichTextDefault)
   const chartRichText = resolveRichText(chartObj.richText, richTextDefault)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
@@ -182,25 +181,7 @@ const DashboardChart = ({ chartObj, path }) => {
   // Canvas text can't render markup, so it uses the plain twin of the names.
   // Table headers are composed of rich and literal pieces: the literal ones are
   // escaped so they are shown as they are.
-  const getStatRichText = useCallback(
-    (dataset, statId) =>
-      resolveRichText(
-        statisticTypes[dataset]?.[statId]?.richText,
-        groupedOutputsData[dataset]?.richText,
-        richTextDefault
-      ),
-    [groupedOutputsData, richTextDefault, statisticTypes]
-  )
-  const getGroupingRichText = useCallback(
-    (groupingId, level) =>
-      resolveRichText(
-        categories[groupingId]?.levels?.[level]?.richText,
-        categories[groupingId]?.richText,
-        richTextDefault
-      ),
-    [categories, richTextDefault]
-  )
-
+  const { getStatRichText, getGroupingRichText } = useChartRichText()
   const getGroupingTitle = useCallback(
     (groupingId, level, rich = false, alwaysSub = false) => {
       const flag = getGroupingRichText(groupingId, level)
