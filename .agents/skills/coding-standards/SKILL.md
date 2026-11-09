@@ -22,9 +22,9 @@ Follow these strict patterns to maintain codebase consistency and ensure the aut
   }
   ```
 
-## 2. Formatting (Prettier & Oxlint)
+## 2. Formatting (Oxfmt & Oxlint)
 
-- **Semicolons**: Do not use semicolons (enforced by Prettier `semi: false`).
+- **Semicolons**: Do not use semicolons (enforced by Oxfmt `semi: false`).
 - **Quotes**: Use single quotes (`singleQuote: true`).
 - **Trailing Commas**: ES5 trailing commas (`trailingComma: 'es5'`).
 - **No Anonymous Exports**: Every default export must be named:

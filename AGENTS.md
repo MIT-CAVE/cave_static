@@ -26,7 +26,7 @@ Refer to these skills in `.agents/skills/` for detailed guides and conventions:
 | [styling](.agents/skills/styling/SKILL.md)                   | Styling components using Emotion JS object syntax, MUI `sx` prop, and dark mode theme variables.       |
 | [state-management](.agents/skills/state-management/SKILL.md) | Reading/writing from the Redux store, defining slices, adding memoized selectors, or using WebSockets. |
 | [add-prop](.agents/skills/add-prop/SKILL.md)                 | Implementing a new server-driven prop control component.                                               |
-| [lint](.agents/skills/lint/SKILL.md)                         | Formatting and linting files using Prettier and Oxlint.                                                |
+| [lint](.agents/skills/lint/SKILL.md)                         | Formatting and linting files using Oxfmt and Oxlint.                                                   |
 | [deploy](.agents/skills/deploy/SKILL.md)                     | Compiling the app and deploying to AWS S3/CloudFront.                                                  |
 | [testing](.agents/skills/testing/SKILL.md)                   | Writing component stories, testing components programmatically, and running Vitest browser tests.      |
 
@@ -170,8 +170,8 @@ src/
 public/                  # Static assets served as-is
 vite.config.js           # Vite config: jsxInJs plugin, React Compiler (Babel), envPrefix
 .oxlintrc.json           # Oxlint config (native rules + JS plugins: import, ramda, compat, storybook)
-prettier.config.js       # Prettier: no semis, single quotes, ES5 trailing commas
-lint-staged.config.js    # Pre-commit: prettier + oxlint on staged .js/.jsx files
+.oxfmtrc.json            # Oxfmt: no semis, single quotes, ES5 trailing commas, width 80
+lint-staged.config.js    # Pre-commit: oxfmt + oxlint on staged .js/.jsx files
 .simple-git-hooks.js     # Git hook: pre-commit → lint-staged
 .browserslistrc          # Target browser support (used by eslint-plugin-compat, run via Oxlint)
 .env                     # Local env vars (not committed): BASE_URL, BUILD_PATH, etc.

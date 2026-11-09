@@ -21,7 +21,7 @@ npm run setup
 
 ## Clean Code
 
-[Oxlint](https://oxc.rs/docs/guide/usage/linter) and [Prettier](https://github.com/prettier/prettier) automatically lint your staged changes before committing.
+[Oxlint](https://oxc.rs/docs/guide/usage/linter) and [Oxfmt](https://oxc.rs/docs/guide/usage/formatter) automatically lint your staged changes before committing.
 
 At any time, you can apply the `lint` command to format your code to our standards by running:
 
