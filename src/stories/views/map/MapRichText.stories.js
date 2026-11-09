@@ -417,3 +417,31 @@ export const ClusterTitleAndHeadersAreRich = {
     await expectAll(within(canvasElement), 'Capacity', 'STRONG')
   },
 }
+
+// The nodes take the name of their feature type, so their rows are rich too
+export const ClusterRowNamesAreRich = {
+  render: renderStage(clusterData({ richText: true }), <FirstCluster />),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canvas.findByRole('heading', { name: /Grouped/ })
+    const cells = await waitFor(() => {
+      const found = canvasElement.querySelectorAll('tbody td strong')
+      expect(found.length).toBeGreaterThan(0)
+      return found
+    })
+    for (const cell of cells) await expect(cell.textContent).toBe('Warehouses')
+  },
+}
+
+export const ClusterRowNamesArePlainByDefault = {
+  render: renderStage(clusterData({}), <FirstCluster />),
+  play: async ({ canvasElement }) => {
+    await within(canvasElement).findByRole('heading', { name: /Grouped/ })
+    await waitFor(() =>
+      expect(
+        within(canvasElement).getAllByText('**Warehouses**').length
+      ).toBeGreaterThan(1)
+    )
+    await expect(canvasElement.querySelector('tbody td strong')).toBeNull()
+  },
+}

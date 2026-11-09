@@ -100,7 +100,13 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
 
   // generate table rows for given cluster's node data
   const createData = (node) => {
-    const data = { name: R.propOr(node[0], 'name', node[1]), id: node[0] }
+    // The `name` of a node is the name of its feature type, so it is rich as the
+    // type is. Without a name, the id of the node is shown as it is
+    const data = {
+      name: R.propOr(node[0], 'name', node[1]),
+      nameRich: R.has('name', node[1]) && typeRichText === true,
+      id: node[0],
+    }
     for (const prop of Object.keys(node[1].props)) {
       data[prop] = node[1].values[prop].toString()
     }
@@ -181,9 +187,13 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
                         const value = row[column.id]
                         return (
                           <TableCell key={column.id} align={column.align}>
-                            {column.format && typeof value === 'number'
-                              ? column.format(value)
-                              : value}
+                            {column.id === 'name' ? (
+                              <RichLabel text={value} rich={row.nameRich} />
+                            ) : column.format && typeof value === 'number' ? (
+                              column.format(value)
+                            ) : (
+                              value
+                            )}
                           </TableCell>
                         )
                       })}
