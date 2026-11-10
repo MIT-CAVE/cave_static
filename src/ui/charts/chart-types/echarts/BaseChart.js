@@ -67,6 +67,16 @@ echarts.use([
   ScatterChart,
 ])
 
+// Shared grid line style so every axis with grid lines looks the same
+const splitLine = {
+  lineStyle: {
+    type: [2, 5],
+    dashOffset: 2,
+    color: '#aaa',
+    opacity: 0.7,
+  },
+}
+
 const baseOptions = {
   hoverLayerThreshold: Infinity,
   backgroundColor: '#4a4a4a',
@@ -112,14 +122,7 @@ const baseOptions = {
         // opacity: 0.7,
       },
     },
-    splitLine: {
-      lineStyle: {
-        type: [2, 5],
-        dashOffset: 2,
-        color: '#aaa',
-        opacity: 0.7,
-      },
-    },
+    splitLine,
   },
   legend: {
     // We might deal better with legend overlapping in the future.
@@ -554,4 +557,4 @@ const EchartsPlot = ({
 }
 
 export default memo(EchartsPlot)
-export { FlexibleChart }
+export { FlexibleChart, splitLine }
