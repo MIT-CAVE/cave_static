@@ -349,6 +349,33 @@ const initData = {
             },
             help: 'Select multiple options from the combobox',
           },
+          dualListItemExample: {
+            name: 'Dual List Example',
+            type: 'selector',
+            variant: 'dualList',
+            availableTitle: 'Available Items',
+            selectedTitle: 'Selected Items',
+            options: {
+              option_a: {
+                name: 'Option A',
+                color: '#f44336',
+              },
+              option_b: {
+                name: 'Option B',
+                color: '#66bb6a',
+              },
+              option_c: {
+                name: 'Option C',
+                color: '#29b6f6',
+              },
+              option_d: {
+                name: 'Option D',
+                color: '#ffa726',
+              },
+              option_e: { name: 'Option E' },
+            },
+            help: 'Transfer items between available and selected lists',
+          },
           nestedItemExample: {
             name: 'Nested Item Example',
             type: 'selector',
@@ -436,12 +463,6 @@ const initData = {
             type: 'head',
             help: 'Some help for Coordinate Props',
           },
-          latLngInputExample: {
-            name: 'Lat/Lng Input Example',
-            type: 'coordinate',
-            variant: 'latLngInput',
-            help: 'Help for the latLngInput example',
-          },
           latLngMapExample: {
             name: 'Lat/Lng Map Example',
             type: 'coordinate',
@@ -477,6 +498,7 @@ const initData = {
           hradioItemExample: ['option_c'],
           comboBoxItemExample: ['option_b'],
           comboBoxMultiExample: ['option_a', 'option_b'],
+          dualListItemExample: ['option_b', 'option_c'],
           nestedItemExample: [
             't1_b1_tw1',
             't1_b1_tw2',
@@ -487,7 +509,6 @@ const initData = {
           dateItemExample: '1969-07-20',
           timeItemExample: '20:17:40',
           dateTimeItemExample: '1969-07-20T20:17:40',
-          latLngInputExample: [[-71.092003, 42.360001]],
           latLngMapExample: [[-71.092003, 42.360001]],
           latLngPathExample: [
             [-71.092003, 42.360001],
@@ -637,6 +658,12 @@ const initData = {
               row: 10,
               itemId: 'nestedItemExample',
             },
+            col4Row11: {
+              type: 'item',
+              column: 4,
+              row: 11,
+              itemId: 'dualListItemExample',
+            },
             col5Row1: {
               type: 'item',
               column: 5,
@@ -671,18 +698,12 @@ const initData = {
               type: 'item',
               column: 6,
               row: 2,
-              itemId: 'latLngInputExample',
+              itemId: 'latLngMapExample',
             },
             col6Row3: {
               type: 'item',
               column: 6,
               row: 3,
-              itemId: 'latLngMapExample',
-            },
-            col6Row4: {
-              type: 'item',
-              column: 6,
-              row: 4,
               itemId: 'latLngPathExample',
             },
           },

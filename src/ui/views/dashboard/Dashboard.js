@@ -1,14 +1,17 @@
 import { Container, Paper, Fab, CircularProgress, Box } from '@mui/material'
+import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import {
   lazy,
+  memo,
   Suspense,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from 'react'
-import ReactGridLayout from 'react-grid-layout'
+// eslint-disable-next-line import/no-unresolved
+import ReactGridLayout from 'react-grid-layout/legacy'
 import { MdAdd } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 import { AutoSizer } from 'react-virtualized-auto-sizer'
@@ -60,8 +63,13 @@ const styles = {
     width: (theme) => `calc(100% - ${theme.spacing(3)})`,
     p: 0.5,
     color: 'text.secondary',
+    // Inherited by DashboardChart's "Empty Chart Data" placeholder;
+    // reset locally rather than removing (see DashboardGlobalOutputs)
     textAlign: 'center',
     flex: '1 1 auto',
+    minHeight: 0,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   loader: {
     mx: 'auto',
@@ -74,148 +82,189 @@ const styles = {
   },
 }
 
-// TODO: Currently using `react-grid-layout` v1. Migrate to v2, or
+// TODO: Currently using `react-grid-layout` v2's `/legacy` (v1-compatible) API.
+// Migrate to the full v2 API, or
 // evaluate `gridstack.js` (https://github.com/gridstack/gridstack.js)
 // if it better suits our long-term needs.
 
-const DashboardItem = ({
-  index,
-  chartToolsOpen,
-  colorChangeOpen,
-  filterOpen,
-  onOpenChartTools,
-  onOpenColorChange,
-  onOpenFilter,
-  onRemoveChart,
-}) => {
-  const lockedLayout = useSelector(selectDashboardLockedLayout)
-  const editLayoutMode = useSelector(selectEditLayoutMode)
-  const currentPage = useSelector(selectCurrentPage)
-  const chartObj = useSelector((state) => selectChartById(state, index))
-  const mapExists = useSelector((state) =>
-    selectMapExistsById(state, chartObj.mapId)
-  )
+const DashboardItem = memo(
+  ({
+    index,
+    chartToolsOpen,
+    colorChangeOpen,
+    filterOpen,
+    onOpenChartTools,
+    onOpenColorChange,
+    onOpenFilter,
+    onRemoveChart,
+  }) => {
+    const lockedLayout = useSelector(selectDashboardLockedLayout)
+    const editLayoutMode = useSelector(selectEditLayoutMode)
+    const currentPage = useSelector(selectCurrentPage)
+    const chartObj = useSelector((state) => selectChartById(state, index))
+    const mapExists = useSelector((state) =>
+      selectMapExistsById(state, chartObj?.mapId)
+    )
 
-  const isMaximized = R.propOr(false, 'maximized')(chartObj)
-  const vizType = R.propOr('groupedOutput', 'type')(chartObj)
-  const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
-  const showNA = R.propOr(false, 'showNA')(chartObj)
-  const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
-  const chartType = R.propOr(chartVariant.BAR, 'chartType')(chartObj)
+    const isMaximized = R.propOr(false, 'maximized')(chartObj)
+    const vizType = R.propOr('groupedOutput', 'type')(chartObj)
+    const defaultToZero = R.propOr(false, 'defaultToZero')(chartObj)
+    const showNA = R.propOr(false, 'showNA')(chartObj)
+    const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
+    const chartType = R.propOr(chartVariant.BAR, 'chartType')(chartObj)
 
-  const path = useMemo(
-    () => ['pages', 'data', currentPage, 'charts', index],
-    [currentPage, index]
-  )
+    const path = useMemo(
+      () => ['pages', 'data', currentPage, 'charts', index],
+      [currentPage, index]
+    )
 
-  // Allow session_mutate to perform non-object value update
-  const handleChartHover = useMutateStateWithSync(
-    (value) => ({
-      path,
-      value: R.assoc('chartHoverOrder', value)(chartObj),
-    }),
-    [chartObj, path]
-  )
+    // Allow session_mutate to perform non-object value update
+    const handleChartHover = useMutateStateWithSync(
+      (value) => ({
+        path,
+        value: R.assoc('chartHoverOrder', value)(chartObj),
+      }),
+      [chartObj, path]
+    )
 
-  const handleToggleMaximize = useMutateStateWithSync(
-    () => ({
-      path,
-      value: R.assoc('maximized', !isMaximized)(chartObj),
-    }),
-    [chartObj, isMaximized, path]
-  )
+    const handleToggleMaximize = useMutateStateWithSync(
+      () => ({
+        path,
+        value: R.assoc('maximized', !isMaximized)(chartObj),
+      }),
+      [chartObj, isMaximized, path]
+    )
 
-  const handleDefaultToZero = useMutateStateWithSync(
-    () => ({
-      path,
-      value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
-    }),
-    [chartObj, defaultToZero, path]
-  )
+    const handleDefaultToZero = useMutateStateWithSync(
+      () => ({
+        path,
+        value: R.assoc('defaultToZero', !defaultToZero)(chartObj),
+      }),
+      [chartObj, defaultToZero, path]
+    )
 
-  const handleToggleShowNA = useMutateStateWithSync(
-    () => ({
-      path,
-      value: R.assoc('showNA', !showNA)(chartObj),
-    }),
-    [chartObj, path, showNA]
-  )
+    const handleToggleShowNA = useMutateStateWithSync(
+      () => ({
+        path,
+        value: R.assoc('showNA', !showNA)(chartObj),
+      }),
+      [chartObj, path, showNA]
+    )
 
-  const [statFilters, groupingFilters] = useMemo(
-    () =>
-      R.partition(
-        R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
-      )(chartObj?.filters ?? []),
-    [chartObj?.filters]
-  )
-  const numActiveStatFilters = useMemo(
-    () => getNumActiveFilters(statFilters),
-    [statFilters]
-  )
-  const numGroupingFilters = useMemo(
-    () =>
-      R.pipe(
-        R.filter(R.propEq('exc', 'option')),
-        R.chain(R.pipe(R.prop('value'), R.length)),
-        R.sum
-      )(groupingFilters),
-    [groupingFilters]
-  )
+    const [statFilters, groupingFilters] = useMemo(
+      () =>
+        R.partition(
+          R.propSatisfies(R.either(R.isNil, R.equals('stat')), 'format')
+        )(chartObj?.filters ?? []),
+      [chartObj?.filters]
+    )
+    const numActiveStatFilters = useMemo(
+      () => getNumActiveFilters(statFilters),
+      [statFilters]
+    )
+    const numGroupingFilters = useMemo(
+      () =>
+        R.pipe(
+          R.filter(R.propEq('exc', 'option')),
+          R.chain(R.pipe(R.prop('value'), R.length)),
+          R.sum
+        )(groupingFilters),
+      [groupingFilters]
+    )
 
-  return (
-    <Paper
-      sx={[
-        styles.paper,
-        isMaximized && { p: 0 },
-        editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
-        (chartToolsOpen || filterOpen || colorChangeOpen) && {
-          outline: 'none',
-          borderColor: '#9ecaed',
-          boxShadow: '0 0 10px #9ecaed',
-          border: '3px solid #dadada',
-          borderRadius: '7px',
-        },
-      ]}
-      elevation={editLayoutMode && !isMaximized ? 24 : 5}
-    >
-      {!lockedLayout && !chartObj.lockedLayout && (
-        <ChartMenu
-          {...{
-            isMaximized,
-            chartHoverOrder,
-            vizType,
-            chartType,
-            defaultToZero,
-            showNA,
-            onOpenFilter,
-            onOpenColorChange,
-            onOpenChartTools,
-            onRemoveChart,
-          }}
-          numFilters={numActiveStatFilters + numGroupingFilters}
-          onToggleMaximize={handleToggleMaximize}
-          onToggleDefaultToZero={handleDefaultToZero}
-          onToggleShowNA={handleToggleShowNA}
-          onChartHover={handleChartHover}
-        />
-      )}
-      {vizType === 'groupedOutput' ? (
-        chartObj.stats && (
-          <Suspense fallback={<CircularProgress sx={styles.loader} />}>
-            <DashboardChart {...{ chartObj, path }} />
-          </Suspense>
-        )
-      ) : vizType === 'map' && mapExists ? (
-        <Map mapId={chartObj.mapId} />
-      ) : vizType === 'globalOutput' ? (
-        <DashboardGlobalOutput {...{ chartObj, path }} />
-      ) : null}
-    </Paper>
-  )
+    const handleOpenChartTools = useCallback(
+      () => onOpenChartTools(index),
+      [onOpenChartTools, index]
+    )
+    const handleOpenColorChange = useCallback(
+      () => onOpenColorChange(index),
+      [onOpenColorChange, index]
+    )
+    const handleOpenFilter = useCallback(
+      () => onOpenFilter(index),
+      [onOpenFilter, index]
+    )
+    const handleRemoveCurrentChart = useCallback(
+      () => onRemoveChart(index),
+      [onRemoveChart, index]
+    )
+
+    return (
+      <Paper
+        sx={[
+          styles.paper,
+          isMaximized && { p: 0 },
+          editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
+          (chartToolsOpen || filterOpen || colorChangeOpen) && {
+            outline: 'none',
+            borderColor: '#9ecaed',
+            boxShadow: '0 0 10px #9ecaed',
+            border: '3px solid #dadada',
+            borderRadius: '7px',
+          },
+        ]}
+        elevation={editLayoutMode && !isMaximized ? 24 : 5}
+      >
+        {!lockedLayout && !chartObj?.lockedLayout && (
+          <ChartMenu
+            {...{
+              isMaximized,
+              chartHoverOrder,
+              vizType,
+              chartType,
+              defaultToZero,
+              showNA,
+            }}
+            numFilters={numActiveStatFilters + numGroupingFilters}
+            onOpenFilter={handleOpenFilter}
+            onOpenColorChange={handleOpenColorChange}
+            onOpenChartTools={handleOpenChartTools}
+            onRemoveChart={handleRemoveCurrentChart}
+            onToggleMaximize={handleToggleMaximize}
+            onToggleDefaultToZero={handleDefaultToZero}
+            onToggleShowNA={handleToggleShowNA}
+            onChartHover={handleChartHover}
+          />
+        )}
+        {vizType === 'groupedOutput' ? (
+          chartObj?.stats && (
+            <Suspense fallback={<CircularProgress sx={styles.loader} />}>
+              <DashboardChart {...{ chartObj, path }} />
+            </Suspense>
+          )
+        ) : vizType === 'map' && mapExists ? (
+          <Map mapId={chartObj?.mapId} />
+        ) : vizType === 'globalOutput' ? (
+          <DashboardGlobalOutput {...{ chartObj, path }} />
+        ) : null}
+      </Paper>
+    )
+  }
+)
+DashboardItem.displayName = 'DashboardItem'
+
+DashboardItem.propTypes = {
+  index: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  chartToolsOpen: PropTypes.bool,
+  colorChangeOpen: PropTypes.bool,
+  filterOpen: PropTypes.bool,
+  onOpenChartTools: PropTypes.func,
+  onOpenColorChange: PropTypes.func,
+  onOpenFilter: PropTypes.func,
+  onRemoveChart: PropTypes.func,
 }
 
 const Dashboard = () => {
   const [cursor, setCursor] = useState()
+  // Bumped on every drag/resize move so grid items repaint at the pointer
+  // position. `react-grid-layout` v2 draws the in-flight pixel position from a
+  // ref and its memoized `GridItem` only re-renders when its props change, so
+  // without this the item would only update when a grid cell boundary is crossed.
+  const [interactionTick, setInteractionTick] = useState(0)
+  const handleInteractionMove = useCallback(
+    () => setInteractionTick((tick) => tick + 1),
+    []
+  )
 
   const pageLayout = useSelector(selectPageLayout)
   const charts = useSelector(selectCharts)
@@ -383,88 +432,91 @@ const Dashboard = () => {
     [handleUpdateLayout, lineLength, pageLayout, translateLayoutToGrid]
   )
 
-  const findResizeHandles = (chartObj, gridItem, index, gridLayout) => {
-    if (
-      chartObj == null ||
-      gridItem == null ||
-      index == null ||
-      gridLayout == null ||
-      !editLayoutMode
-    )
-      return []
-    if (chartObj.maximized) return []
-    const { x, y, w, h } = gridItem
-    const pageIndex = x + y * lineLength
-    const resizeHandles = []
-    // can always shrink from a side if larger than 1x1
-    if (w >= 2 || h >= 2) {
-      if (h >= 2 && y === 0) resizeHandles.push('n')
-      else if (h >= 2 && y === 1) resizeHandles.push('s')
+  const findResizeHandles = useCallback(
+    (chartObj, gridItem, index, gridLayout) => {
+      if (
+        chartObj == null ||
+        gridItem == null ||
+        index == null ||
+        gridLayout == null ||
+        !editLayoutMode
+      )
+        return []
+      if (chartObj.maximized) return []
+      const { x, y, w, h } = gridItem
+      const pageIndex = x + y * lineLength
+      const resizeHandles = []
+      // can always shrink from a side if larger than 1x1
+      if (w >= 2 || h >= 2) {
+        if (h >= 2 && y === 0) resizeHandles.push('n')
+        else if (h >= 2 && y === 1) resizeHandles.push('s')
 
-      if (w >= 2 && x === 0) resizeHandles.push('w')
-      else if (w >= 2 && x === 1) resizeHandles.push('e')
-    }
-    // for simple 2x2 grid, can only grow if there is a null space - can never be 2x2
-    if (lineLength === 2) {
-      if (resizeHandles.length > 0) return resizeHandles
-      // find empty blocks by checking if they are defined in pageLayout
-      const blanks = R.pipe(
-        R.filter((item) => item.i === 'null'),
-        R.values
-      )(gridLayout)
-      if (R.any((item) => y === item.y && item.x === 1, blanks))
-        resizeHandles.push('e')
-      if (R.any((item) => x === item.x && item.y === 1, blanks))
-        resizeHandles.push('s')
-      if (R.any((item) => y === item.y && item.x === 0, blanks))
-        resizeHandles.push('w')
-      if (R.any((item) => x === item.x && item.y === 0, blanks))
-        resizeHandles.push('n')
+        if (w >= 2 && x === 0) resizeHandles.push('w')
+        else if (w >= 2 && x === 1) resizeHandles.push('e')
+      }
+      // for simple 2x2 grid, can only grow if there is a null space - can never be 2x2
+      if (lineLength === 2) {
+        if (resizeHandles.length > 0) return resizeHandles
+        // find empty blocks by checking if they are defined in pageLayout
+        const blanks = R.pipe(
+          R.filter((item) => item.i === 'null'),
+          R.values
+        )(gridLayout)
+        if (R.any((item) => y === item.y && item.x === 1, blanks))
+          resizeHandles.push('e')
+        if (R.any((item) => x === item.x && item.y === 1, blanks))
+          resizeHandles.push('s')
+        if (R.any((item) => y === item.y && item.x === 0, blanks))
+          resizeHandles.push('w')
+        if (R.any((item) => x === item.x && item.y === 0, blanks))
+          resizeHandles.push('n')
+        return resizeHandles
+      }
+      // can only grow if there is a null space
+      let growW, growE, growN, growS
+      growW = growE = growN = growS = true
+      // check over entire height
+      for (let i = 0; i < h; i++) {
+        if (
+          x === 0 ||
+          x + w >= lineLength ||
+          pageLayout[pageIndex + w + i * lineLength] !== null
+        ) {
+          growE = false
+        }
+        if (
+          x === lineLength - 1 ||
+          x - 1 < 0 ||
+          pageLayout[pageIndex - 1 + i * lineLength] !== null
+        ) {
+          growW = false
+        }
+      }
+      // check over entire width
+      for (let i = 0; i < w; i++) {
+        if (
+          y === 0 ||
+          y + h >= lineLength ||
+          pageLayout[pageIndex + i + h * lineLength] !== null
+        ) {
+          growS = false
+        }
+        if (
+          y === lineLength - 1 ||
+          y - 1 < 0 ||
+          pageLayout[pageIndex + i - lineLength] !== null
+        ) {
+          growN = false
+        }
+      }
+      if (growW) resizeHandles.push('w')
+      if (growE) resizeHandles.push('e')
+      if (growN) resizeHandles.push('n')
+      if (growS) resizeHandles.push('s')
       return resizeHandles
-    }
-    // can only grow if there is a null space
-    let growW, growE, growN, growS
-    growW = growE = growN = growS = true
-    // check over entire height
-    for (let i = 0; i < h; i++) {
-      if (
-        x === 0 ||
-        x + w >= lineLength ||
-        pageLayout[pageIndex + w + i * lineLength] !== null
-      ) {
-        growE = false
-      }
-      if (
-        x === lineLength - 1 ||
-        x - 1 < 0 ||
-        pageLayout[pageIndex - 1 + i * lineLength] !== null
-      ) {
-        growW = false
-      }
-    }
-    // check over entire width
-    for (let i = 0; i < w; i++) {
-      if (
-        y === 0 ||
-        y + h >= lineLength ||
-        pageLayout[pageIndex + i + h * lineLength] !== null
-      ) {
-        growS = false
-      }
-      if (
-        y === lineLength - 1 ||
-        y - 1 < 0 ||
-        pageLayout[pageIndex + i - lineLength] !== null
-      ) {
-        growN = false
-      }
-    }
-    if (growW) resizeHandles.push('w')
-    if (growE) resizeHandles.push('e')
-    if (growN) resizeHandles.push('n')
-    if (growS) resizeHandles.push('s')
-    return resizeHandles
-  }
+    },
+    [editLayoutMode, lineLength, pageLayout]
+  )
 
   const hasGroupedOutputChart = useMemo(
     () =>
@@ -492,6 +544,51 @@ const Dashboard = () => {
     handleOpenModal: handleOpenChartTools,
     handleCloseModal: handleCloseChartTools,
   } = useIndexedModal()
+
+  const gridLayout = useMemo(
+    () => translateLayoutToGrid(pageLayout),
+    [pageLayout, translateLayoutToGrid]
+  )
+
+  // Per-item grid props (position, static, drag/resize flags) are passed through
+  // the `layout` prop rather than `data-grid`: `react-grid-layout/legacy` ignores
+  // `data-grid` once a `layout` prop is given. Each `i` must equal the child key.
+  const renderedItems = gridLayout
+    .filter(
+      (gridItem) => R.isNil(maximizedChart) || gridItem.i === maximizedChart
+    )
+    .map((gridItem) => {
+      const index = gridItem.i
+      const chartObj = charts[index]
+      const key =
+        index !== 'null' ? `${index}` : `${gridItem.x}x${gridItem.y}null`
+      const itemGrid = R.isNil(maximizedChart)
+        ? gridItem
+        : {
+            x: 0,
+            y: 0,
+            w: lineLength,
+            h: lineLength,
+            static: true,
+          }
+      return {
+        index,
+        chartObj,
+        key,
+        layoutItem: {
+          ...itemGrid,
+          i: key,
+          isDraggable: chartObj != null && editLayoutMode,
+          isResizable: chartObj != null && editLayoutMode,
+          resizeHandles: findResizeHandles(
+            chartObj,
+            gridItem,
+            index,
+            gridLayout
+          ),
+        },
+      }
+    })
 
   return (
     <>
@@ -526,21 +623,31 @@ const Dashboard = () => {
           { p: 0 },
           leftBar && rightBar
             ? { width: `calc(100vw - ${2 * APP_BAR_WIDTH + 2}px)` }
-            : { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` },
+            : leftBar || rightBar
+              ? { width: `calc(100vw - ${APP_BAR_WIDTH + 1}px)` }
+              : { width: '100%' },
         ]}
         disableGutters
       >
-        <div style={{ flex: '1 1 auto', overflow: 'hidden' }}>
+        <div
+          style={{
+            flex: '1 1 auto',
+            overflow: 'hidden',
+            width: '100%',
+            height: '100%',
+          }}
+        >
           <AutoSizer
+            style={{ width: '100%', height: '100%' }}
             renderProp={({ height, width }) =>
-              R.isNotEmpty(pageLayout) && (
+              Boolean(height && width && R.isNotEmpty(pageLayout)) && (
                 <ReactGridLayout
                   className="layout"
                   {...{ width }}
                   margin={R.isNil(maximizedChart) ? [8, 8] : [0, 0]}
                   cols={lineLength}
                   maxRows={lineLength}
-                  layout={translateLayoutToGrid(pageLayout)}
+                  layout={R.pluck('layoutItem', renderedItems)}
                   rowHeight={
                     (height -
                       (R.isNil(maximizedChart) ? 8 * (lineLength + 1) : 0)) /
@@ -552,46 +659,27 @@ const Dashboard = () => {
                     setCursor('grabbing')
                   }}
                   onDragStop={handleDragStop}
+                  onDrag={handleInteractionMove}
+                  onResize={handleInteractionMove}
                   onResizeStop={handleResizeStop}
                 >
-                  {translateLayoutToGrid(pageLayout).map((gridItem) => {
-                    if (
-                      R.isNotNil(maximizedChart) &&
-                      gridItem.i !== maximizedChart
-                    )
-                      return null
-                    const index = gridItem.i
-                    const chartObj = charts[index]
-
-                    const dataGrid = R.isNil(maximizedChart)
-                      ? gridItem
-                      : {
-                          x: 0,
-                          y: 0,
-                          w: lineLength,
-                          h: lineLength,
-                          static: true,
-                        }
+                  {renderedItems.map(({ index, chartObj, key, layoutItem }) => {
                     return (
                       <Box
-                        key={
-                          index !== 'null'
-                            ? `${index}`
-                            : `${gridItem.x}x${gridItem.y}null`
-                        }
-                        data-grid={R.mergeLeft({
-                          isDraggable: chartObj != null && editLayoutMode,
-                          isResizable: chartObj != null && editLayoutMode,
-                          resizeHandles: findResizeHandles(
-                            chartObj,
-                            gridItem,
-                            index,
-                            translateLayoutToGrid(pageLayout)
-                          ),
-                        })(dataGrid)}
+                        key={key}
+                        // The grid's own `layout` prop is the source of truth; this
+                        // prop only gives the element a new identity whenever the
+                        // layout item changes. `GridItem` is `React.memo`'d and its
+                        // comparator ignores `resizeHandles`/`layout`, so a stable
+                        // (React Compiler-cached) child would skip those updates.
+                        data-grid={layoutItem}
+                        data-interaction-tick={interactionTick}
                         sx={{
                           display: 'flex',
                           cursor: `${cursor} !important`,
+                          minHeight: 0,
+                          minWidth: 0,
+                          overflow: 'hidden',
                         }}
                       >
                         {chartObj != null && (
@@ -600,12 +688,10 @@ const Dashboard = () => {
                             filterOpen={filterIndex === index}
                             colorChangeOpen={colorChangeIndex === index}
                             chartToolsOpen={chartToolsIndex === index}
-                            onOpenChartTools={() => handleOpenChartTools(index)}
-                            onOpenColorChange={() =>
-                              handleOpenColorChange(index)
-                            }
-                            onOpenFilter={() => handleOpenFilter(index)}
-                            onRemoveChart={() => handleRemoveChart(index)}
+                            onOpenChartTools={handleOpenChartTools}
+                            onOpenColorChange={handleOpenColorChange}
+                            onOpenFilter={handleOpenFilter}
+                            onRemoveChart={handleRemoveChart}
                           />
                         )}
                       </Box>

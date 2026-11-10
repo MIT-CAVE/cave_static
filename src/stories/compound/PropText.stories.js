@@ -1,4 +1,5 @@
 import React from 'react'
+import { expect, fn, userEvent, within } from 'storybook/test'
 
 import { PropText, PropTextArea } from '../../ui/compound/PropText'
 
@@ -32,7 +33,15 @@ export const SingleLine = {
       fullWidth: true,
     },
     currentVal: 'JohnDoe',
-    onChange: () => {},
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const input = within(canvasElement).getByRole('textbox')
+    await userEvent.clear(input)
+    // Enter should commit and release focus (like the virtual keyboard's submit)
+    await userEvent.type(input, 'Jane{Enter}')
+    await expect(args.onChange).toHaveBeenLastCalledWith('Jane')
+    await expect(input).not.toHaveFocus()
   },
 }
 
@@ -60,6 +69,14 @@ export const MultiLine = {
       fullWidth: true,
     },
     currentVal: 'Initial comment text...',
-    onChange: () => {},
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const input = within(canvasElement).getAllByRole('textbox')[0]
+    await userEvent.clear(input)
+    // Multiline: Enter inserts a newline and keeps focus
+    await userEvent.type(input, 'a{Enter}b')
+    await userEvent.click(document.body)
+    await expect(args.onChange).toHaveBeenLastCalledWith('a\nb')
   },
 }

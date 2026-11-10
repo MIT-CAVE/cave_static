@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -11,7 +12,9 @@ import {
   getMinMax,
   findSubgroupLabels,
   findColoring,
+  tintColor,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 /**
  * Estimates the parameters needed to render a single bar at an arbitrary
@@ -64,13 +67,11 @@ const WaterfallChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
 }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -120,7 +121,9 @@ const WaterfallChart = ({
             height: startCoord[1] - endCoord[1],
           },
           style: {
-            fill: api.visual('color'),
+            fill: tintColor(api.visual('color')),
+            stroke: api.visual('color'),
+            lineWidth: 1,
           },
         },
         // Dashed line connecting the bars
@@ -157,21 +160,24 @@ const WaterfallChart = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) =>
-        R.mergeDeepLeft(baseData, {
-          name: R.head(d).name,
+      R.map((d) => {
+        const headItem = R.head(d)
+        const maxIdx = Math.max(...R.pluck('index', d))
+        const data = new Array(maxIdx + 1)
+        for (let i = 0; i < d.length; i++) {
+          const item = d[i]
+          if (item && item.index != null) {
+            data[item.index] = item.value?.[0]
+          }
+        }
+        return R.mergeDeepLeft(baseData, {
+          name: headItem.name,
           color:
-            findColoring(R.head(d).name, colors) ??
-            getChartItemColor(R.head(d).name),
-          data: R.map(
-            // Sort by index, ensuring that empty data is set to undefined
-            R.pipe(
-              (idx) => R.find(R.propEq(idx, 'index'), d),
-              R.when(R.isNotNil, R.path(['value', 0]))
-            )
-          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+            findColoring(headItem.name, colors) ??
+            getChartItemColor(headItem.name),
+          data,
         })
-      ),
+      }),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
     (d) => [
@@ -200,34 +206,40 @@ const WaterfallChart = ({
   const scaleFactor = getDecimalScaleFactor(yMax)
   const scaleLabel = getDecimalScaleLabel(yMax)
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const options = {
     tooltip: {
       formatter: (params) =>
         params.length === 1
-          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ? markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
                 ${params
                   .map(({ marker, value }) =>
                     R.isNil(value) && !showNA
                       ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                      : markup`<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${safeHtml(marker)}</div>
+                        <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                  .filter(R.identity)}`.toString()
+          : markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ marker, seriesName, value }) =>
               R.isNil(value) && !showNA
                 ? false
-                : `<div style="display: flex">
-                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                  <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                : markup`<div style="display: flex">
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${getDisplayName(seriesName)}</div>
+                  <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
-            .filter(R.identity)
-            .join('')}`,
+            .filter(R.identity)}`.toString(),
     },
     xAxis: {
       name: xAxisTitle,
@@ -248,20 +260,18 @@ const WaterfallChart = ({
     series,
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 const StackedWaterfallChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
 }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -328,9 +338,16 @@ const StackedWaterfallChart = ({
       categoryBounds[params.dataIndexInside]
     )
 
-    const storedSeriesIndex = R.findIndex(R.propEq(params.seriesName, 'name'))(
-      yValues[index]
-    )
+    let storedSeriesIndex = -1
+    const yValGroup = yValues[index]
+    if (Array.isArray(yValGroup)) {
+      for (let i = 0; i < yValGroup.length; i++) {
+        if (yValGroup[i]?.name === params.seriesName) {
+          storedSeriesIndex = i
+          break
+        }
+      }
+    }
 
     const previousVal =
       storedSeriesIndex !== 0 && storedSeriesIndex !== -1
@@ -366,7 +383,9 @@ const StackedWaterfallChart = ({
         height: endCoord[1] - startCoord[1],
       },
       style: {
-        fill: api.visual('color'),
+        fill: tintColor(api.visual('color')),
+        stroke: api.visual('color'),
+        lineWidth: 1,
       },
     }
 
@@ -414,21 +433,24 @@ const StackedWaterfallChart = ({
       R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
       R.flatten,
       R.collectBy(R.prop('name')),
-      R.map((d) =>
-        R.mergeDeepLeft(baseData, {
-          name: R.head(d).name,
+      R.map((d) => {
+        const headItem = R.head(d)
+        const maxIdx = Math.max(...R.pluck('index', d))
+        const data = new Array(maxIdx + 1)
+        for (let i = 0; i < d.length; i++) {
+          const item = d[i]
+          if (item && item.index != null) {
+            data[item.index] = item.value?.[0]
+          }
+        }
+        return R.mergeDeepLeft(baseData, {
+          name: headItem.name,
           color:
-            findColoring(R.head(d).name, colors) ??
-            getChartItemColor(R.head(d).name),
-          data: R.map(
-            // Sort by index, ensuring that empty data is set to undefined
-            R.pipe(
-              (idx) => R.find(R.propEq(idx, 'index'), d),
-              R.when(R.isNotNil, R.path(['value', 0]))
-            )
-          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
+            findColoring(headItem.name, colors) ??
+            getChartItemColor(headItem.name),
+          data,
         })
-      ),
+      }),
       R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
     ),
     (d) => [
@@ -478,6 +500,14 @@ const StackedWaterfallChart = ({
     getYDomain
   )(yValues)
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const getGraphSeries = (nodesData) => ({
     type: 'graph',
     coordinateSystem: 'cartesian2d',
@@ -510,7 +540,8 @@ const StackedWaterfallChart = ({
     },
     nodes: nodesData,
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      valueFormatter: (value) =>
+        NumberFormat.format(value, resolvedNumberFormat),
     },
   })
 
@@ -571,34 +602,32 @@ const StackedWaterfallChart = ({
     tooltip: {
       formatter: (params) =>
         params.length === 3
-          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ? markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
                 ${params
                   .map(({ marker, value }) =>
                     R.isNil(value) && !showNA
                       ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                      : markup`<div style="display: flex">
+                        <div style="text-align: center; flex: 1 1 auto">${safeHtml(marker)}</div>
+                        <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+                  .filter(R.identity)}`.toString()
+          : markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ marker, seriesName, value, seriesType }) =>
               R.isNil(value) && !showNA
                 ? false
-                : `<div style="display: flex">
-                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesType === 'graph' ? '' : seriesName}</div>
-                  <div><strong>${NumberFormat.format(value, numberFormat)}</strong></div>
+                : markup`<div style="display: flex">
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${seriesType === 'graph' ? '' : getDisplayName(seriesName)}</div>
+                  <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
-            .filter(R.identity)
-            .join('')}`,
+            .filter(R.identity)}`.toString(),
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 export { WaterfallChart, StackedWaterfallChart }

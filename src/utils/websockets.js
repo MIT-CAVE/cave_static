@@ -1,6 +1,8 @@
 import { decode as msgpackDecoder } from '@msgpack/msgpack'
 import * as R from 'ramda'
 
+import postToParent from './PostToParent'
+
 class socket {
   connect(token, onMessage, wsPath, wsEncoding) {
     return new Promise((resolve) => {
@@ -26,6 +28,7 @@ class socket {
 
       this.ws.onopen = () => {
         console.log('App Socket Connection Established!')
+        postToParent({ event: 'ws_status', status: 'connected' })
         resolve('Connection established')
       }
 
@@ -45,6 +48,15 @@ class socket {
       }
 
       this.ws.onclose = (e) => {
+        if (e.code === 4401) {
+          postToParent({
+            event: 'ws_status',
+            status: 'unauthorized',
+            redirect: '/cave/auth/login/',
+          })
+        } else {
+          postToParent({ event: 'ws_status', status: 'disconnected' })
+        }
         console.log(
           'App Socket disconnected. Attempting to reconnect in 1 second...'
         )
@@ -72,4 +84,5 @@ class socket {
 
 const socketInstance = new socket()
 
+export { socket }
 export default socketInstance

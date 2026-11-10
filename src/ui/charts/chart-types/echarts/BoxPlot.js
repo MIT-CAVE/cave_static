@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -10,7 +11,9 @@ import {
   getChartItemColor,
   findColoring,
   getQuartiles,
+  tintColor,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 // // sort array ascending
 // const asc = (arr) => arr.sort((a, b) => a - b)
@@ -36,76 +39,141 @@ import {
 //   return [min, q1, median, q3, max]
 // }
 
+// Box plot uses a lighter fill than the other bar-like charts
+const BOX_FILL_ALPHA = 0.5
+const BOX_FILL_ALPHA_HOVER = 0.75
+
 const EchartsBoxPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
 }) => {
-  if (R.isNil(data) || R.isEmpty(data)) return []
+  const getDisplayName = useValueDisplayName()
+  if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
 
-  const yValues = R.has('children', R.head(data))
-    ? R.pluck('children', data)
-    : R.pluck('value', data)
+  const headData = R.head(data)
+  const yValues =
+    headData && R.has('children', headData)
+      ? R.pluck('children', data)
+      : R.pluck('value', data)
 
   const subGroupLabels = findSubgroupLabels(yValues)
 
   const chartType = 'boxplot'
 
-  const series = R.ifElse(
-    (val) => R.type(R.head(R.head(val))) === 'Object',
-    R.pipe(
-      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
-      R.flatten,
-      R.collectBy(R.prop('name')),
-      R.map((d) => ({
-        name: R.head(d).name,
-        type: chartType,
-        smooth: true,
-        color:
-          findColoring(R.head(d).name, colors) ??
-          getChartItemColor(R.head(d).name),
-        emphasis: {
-          focus: 'series',
-        },
-        data: R.map(
-          R.pipe(
-            (idx) => R.find(R.propEq(idx, 'index'), d),
-            R.when(R.isNotNil, R.prop('value')),
-            getQuartiles
-          )
-        )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-      })),
-      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
-    ),
-    (d) => [
-      R.assoc('data', R.map(getQuartiles, d), {
-        type: chartType,
-        smooth: true,
-        emphasis: {
-          focus: 'series',
-        },
-        colorBy: 'data',
-        color: R.map(
-          (item) => findColoring(item, colors) ?? getChartItemColor(item)
-        )(xLabels),
-      }),
-    ]
-  )(yValues)
+  const hasSubObjects =
+    Array.isArray(yValues) &&
+    yValues.length > 0 &&
+    Array.isArray(yValues[0]) &&
+    yValues[0].length > 0 &&
+    typeof yValues[0][0] === 'object' &&
+    yValues[0][0] !== null
 
-  const yMax = R.pipe(
-    R.pluck('data'),
-    R.flatten,
-    R.filter(R.isNotNil),
-    R.apply(Math.max)
-  )(series)
+  const boxColors = R.map(
+    (item) => findColoring(item, colors) ?? getChartItemColor(item)
+  )(xLabels)
+
+  const series = hasSubObjects
+    ? R.pipe(
+        R.addIndex(R.map)((d, idx) =>
+          Array.isArray(d) ? R.map(R.assoc('index', idx))(d) : []
+        ),
+        R.flatten,
+        R.filter((item) => item && item.name != null),
+        R.collectBy(R.prop('name')),
+        R.map((d) => {
+          if (!d || d.length === 0) return null
+          const headItem = R.head(d)
+          const indices = R.pluck('index', d).filter(
+            (i) => typeof i === 'number' && !isNaN(i)
+          )
+          const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+          if (maxIdx < 0) return null
+          const dataArr = new Array(maxIdx + 1)
+          const lookup = new Map()
+          for (let i = 0; i < d.length; i++) {
+            lookup.set(d[i].index, d[i].value)
+          }
+          for (let i = 0; i <= maxIdx; i++) {
+            dataArr[i] = getQuartiles(lookup.get(i))
+          }
+          const seriesColor =
+            findColoring(headItem?.name, colors) ??
+            getChartItemColor(headItem?.name)
+          return {
+            name: headItem?.name,
+            type: chartType,
+            smooth: true,
+            color: seriesColor,
+            itemStyle: {
+              color: tintColor(seriesColor, BOX_FILL_ALPHA),
+              borderColor: seriesColor,
+              borderWidth: 2,
+            },
+            emphasis: {
+              focus: 'series',
+              itemStyle: {
+                color: tintColor(seriesColor, BOX_FILL_ALPHA_HOVER),
+              },
+            },
+            data: dataArr,
+          }
+        }),
+        R.filter(Boolean),
+        R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+      )(yValues)
+    : [
+        {
+          type: chartType,
+          smooth: true,
+          emphasis: {
+            focus: 'series',
+          },
+          colorBy: 'data',
+          color: boxColors,
+          // Per-box styles are set explicitly: itemStyle callbacks do not
+          // receive the per-data palette color for boxplots
+          data: R.addIndex(R.map)((item, idx) => {
+            const raw = Array.isArray(item) ? item : [item]
+            return {
+              value: getQuartiles(raw),
+              itemStyle: {
+                color: tintColor(boxColors[idx], BOX_FILL_ALPHA),
+                borderColor: boxColors[idx],
+                borderWidth: 2,
+              },
+              emphasis: {
+                itemStyle: {
+                  color: tintColor(boxColors[idx], BOX_FILL_ALPHA_HOVER),
+                },
+              },
+            }
+          }, yValues),
+        },
+      ]
+
+  let yMax = 0
+  for (let s = 0; s < series.length; s++) {
+    const sData = series[s]?.data
+    if (Array.isArray(sData)) {
+      for (let i = 0; i < sData.length; i++) {
+        const item = Array.isArray(sData[i]) ? sData[i] : sData[i]?.value
+        if (Array.isArray(item)) {
+          for (let j = 0; j < item.length; j++) {
+            const val = item[j]
+            if (typeof val === 'number' && !isNaN(val) && val > yMax) {
+              yMax = val
+            }
+          }
+        }
+      }
+    }
+  }
 
   const legend = R.isEmpty(subGroupLabels)
     ? null
@@ -120,14 +188,21 @@ const EchartsBoxPlot = ({
 
   const tooltipOrder = ['Drop', 'Min: ', 'Q1: ', 'Median: ', 'Q3: ', 'Max: ']
 
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const mapValuesForTooltip = (value) => {
     return value
       .map(
         (val, idx) =>
-          `<div>${tooltipOrder[idx]}${NumberFormat.format(val, numberFormat)}</div>`
+          markup`<div>${tooltipOrder[idx]}${NumberFormat.format(val, resolvedNumberFormat)}</div>`
       )
       .slice(1)
-      .join('')
   }
 
   const options = {
@@ -147,31 +222,29 @@ const EchartsBoxPlot = ({
     tooltip: {
       formatter: (params) => {
         return params.length === 1
-          ? `<div style="margin-bottom: 3px">${params[0].marker}<strong>${params[0].name}</strong></div>
+          ? markup`<div style="margin-bottom: 3px">${safeHtml(params[0].marker)}<strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ value }) =>
               R.any(isNaN)(value) && !showNA
                 ? false
-                : `${mapValuesForTooltip(value)}`
+                : markup`${mapValuesForTooltip(value)}`
             )
-            .filter(R.identity)
-            .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+            .filter(R.identity)}`.toString()
+          : markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ marker, seriesName, value }) =>
               R.any(isNaN)(value) && !showNA
                 ? false
-                : `<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} <strong>${seriesName}</strong></div>
+                : markup`<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} <strong>${getDisplayName(seriesName)}</strong></div>
                   ${mapValuesForTooltip(value)}
                 `
             )
-            .filter(R.identity)
-            .join('')}`
+            .filter(R.identity)}`.toString()
       },
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 export { EchartsBoxPlot as BoxPlot }

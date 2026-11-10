@@ -5,7 +5,10 @@ import { useSelector } from 'react-redux'
 
 import { Draggable, DragHandle, useDraggable } from '.'
 
-import { selectGlobalOutputProps } from '../../data/selectors'
+import {
+  selectGlobalOutputProps,
+  selectGlobalOutputsRichText,
+} from '../../data/selectors'
 import { draggableId, layoutType, propVariant } from '../../utils/enums'
 import { renderPropsLayout } from '../views/common/renderLayout'
 
@@ -34,12 +37,13 @@ const styles = {
 const GlobalOutputsDraggable = () => {
   const draggable = useDraggable(draggableId.GLOBAL_OUTPUTS)
   const props = useSelector(selectGlobalOutputProps)
+  const richText = useSelector(selectGlobalOutputsRichText)
 
   const globalOutputs = useMemo(
     () =>
       R.pipe(
         R.map(R.assoc('variant', propVariant.ICON_COMPACT)),
-        R.filter(R.prop('draggable'))
+        R.filter(R.prop('quickView'))
       )(props),
     [props]
   )
@@ -77,6 +81,7 @@ const GlobalOutputsDraggable = () => {
         {renderPropsLayout({
           layout,
           items: globalOutputs,
+          richText,
           onChangeProp: () => null,
         })}
       </Box>

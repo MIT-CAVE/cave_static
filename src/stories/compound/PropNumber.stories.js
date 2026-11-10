@@ -1,8 +1,10 @@
 import React from 'react'
+import { expect, fn, userEvent, within } from 'storybook/test'
 
 import PropNumberField from '../../ui/compound/PropNumberField'
 import PropNumberIcon from '../../ui/compound/PropNumberIcon'
 import PropNumberIconCompact from '../../ui/compound/PropNumberIconCompact'
+import PropNumberIconCompactAlt from '../../ui/compound/PropNumberIconCompactAlt'
 import PropNumberSlider from '../../ui/compound/PropNumberSlider'
 
 const propNumberStories = {
@@ -38,7 +40,38 @@ export const NumberField = {
       step: 10,
     },
     currentVal: 125,
-    onChange: () => {},
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+    // Click into the input box
+    await userEvent.click(input)
+    // Select all and type 1500 (over max 1000)
+    await userEvent.clear(input)
+    await userEvent.type(input, '1500')
+    // Now backspace to 150 (within range)
+    await userEvent.keyboard('{Backspace}')
+    // Click away (blur)
+    await userEvent.click(document.body)
+    await expect(args.onChange).toHaveBeenLastCalledWith(150)
+    await expect(input.value).toBe('150.00')
+  },
+}
+
+export const NumberFieldEnterCommits = {
+  ...NumberField,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+    await userEvent.click(input)
+    await userEvent.clear(input)
+    // Over max (1000): Enter should clamp, commit, and release focus,
+    // matching the virtual keyboard's submit button.
+    await userEvent.type(input, '1500{Enter}')
+    await expect(args.onChange).toHaveBeenLastCalledWith(1000)
+    await expect(input).not.toHaveFocus()
+    await expect(input.value).toBe('1,000.00')
   },
 }
 
@@ -66,7 +99,22 @@ export const NumberSlider = {
       color: '#42a5f5',
     },
     currentVal: 75,
-    onChange: () => {},
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+    // Click into the input box
+    await userEvent.click(input)
+    // Select all and type 150 (over max 100)
+    await userEvent.clear(input)
+    await userEvent.type(input, '150')
+    // Now backspace to 15 (within range [0, 100])
+    await userEvent.keyboard('{Backspace}')
+    // Click away (blur)
+    await userEvent.click(document.body)
+    await expect(args.onChange).toHaveBeenLastCalledWith(15)
+    await expect(input.value).toBe('15.00')
   },
 }
 
@@ -93,6 +141,32 @@ export const NumberIconCompact = {
       icon: 'md/MdDeviceThermostat',
       precision: 1,
       unit: '°C',
+    },
+  },
+}
+
+export const NumberIconCompactAlt = {
+  render: (args) => <PropNumberIconCompactAlt {...args} />,
+  args: {
+    prop: {
+      name: 'Total Revenue',
+      value: 1250000,
+      icon: 'md/MdTrendingUp',
+      precision: 2,
+      unit: '$',
+      color: '#2e7d32',
+    },
+  },
+}
+
+export const NumberIconCompactAltNeutral = {
+  render: (args) => <PropNumberIconCompactAlt {...args} />,
+  args: {
+    prop: {
+      name: 'Units Shipped',
+      value: 18400,
+      icon: 'md/MdLocalShipping',
+      precision: 0,
     },
   },
 }

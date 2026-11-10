@@ -1,4 +1,4 @@
-import { Stack } from '@mui/material'
+import { FormControl, FormHelperText, Stack } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useMemo } from 'react'
@@ -6,9 +6,10 @@ import { GiEmptyChessboard } from 'react-icons/gi'
 import { IoSquareSharp } from 'react-icons/io5'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 import { SimpleDropdown } from './SimpleDropdown'
 
-import { forceArray, getCurrentAttr, withIndex } from '../../utils'
+import { getActiveDefaults, getOrDefault, withIndex } from '../../utils'
 
 const styles = {
   root: {
@@ -34,12 +35,20 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
     enabled,
     options,
     labelPlacement = 'end',
+    placeholder,
+    helperText,
     fullWidth,
     propStyle,
+    ...propAttrs
   } = prop
   const [value] = currentVal ?? prop.value ?? []
 
   const optionsListRaw = useMemo(() => withIndex(options), [options])
+
+  const activeDefaults = useMemo(
+    () => getActiveDefaults(propAttrs),
+    [propAttrs]
+  )
 
   const getLabel = useCallback(
     (option) => {
@@ -62,10 +71,16 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
             : ''
 
       const selected = option === value
-      const currentLabel = getCurrentAttr(selected, name, activeName)
-      const currentIcon = getCurrentAttr(selected, icon, activeIcon)
-      const currentColor = getCurrentAttr(selected, color, activeColor)
-      const currentSize = getCurrentAttr(selected, size, activeSize)
+      const currentLabel = selected ? getOrDefault(activeName, name) : name
+      const currentIcon = selected
+        ? (getOrDefault(activeIcon, icon) ?? activeDefaults.icon)
+        : icon
+      const currentColor = selected
+        ? (getOrDefault(activeColor, color) ?? activeDefaults.color)
+        : color
+      const currentSize = selected
+        ? (getOrDefault(activeSize, size) ?? activeDefaults.size)
+        : size
 
       return (
         <Stack
@@ -92,26 +107,39 @@ const PropDropdown = ({ prop, currentVal, sx = [], onChange }) => {
               style={styles.marker}
             />
           ) : null}
-          {currentLabel ?? option}
+          <RichLabel
+            text={currentLabel ?? option}
+            rich={propAttrs.richText === true}
+          />
         </Stack>
       )
     },
-    [labelPlacement, options, value]
+    [activeDefaults, labelPlacement, options, propAttrs.richText, value]
+  )
+
+  const getOptionDisabled = useCallback(
+    (option) => !getOrDefault(options[option]?.enabled, true),
+    [options]
   )
 
   return (
-    <SimpleDropdown
-      disabled={!enabled}
-      optionsList={R.pluck('id')(optionsListRaw)}
-      {...{ value, fullWidth, getLabel }}
-      sx={[styles.root, ...forceArray(sx), propStyle]}
-      onSelect={(val) => {
-        if (enabled) onChange([val])
-      }}
-      slotProps={{
-        paper: { elevation: 0, sx: styles.paper },
-      }}
-    />
+    <FormControl fullWidth {...{ sx }}>
+      <SimpleDropdown
+        disabled={!enabled}
+        optionsList={R.pluck('id')(optionsListRaw)}
+        {...{ value, fullWidth, placeholder, getLabel, getOptionDisabled }}
+        sx={[styles.root, propStyle]}
+        onSelect={(val) => {
+          if (enabled) onChange([val])
+        }}
+        slotProps={{
+          paper: { elevation: 0, sx: styles.paper },
+        }}
+      />
+      <FormHelperText>
+        <RichLabel text={helperText} rich={propAttrs.richText === true} />
+      </FormHelperText>
+    </FormControl>
   )
 }
 PropDropdown.propTypes = {

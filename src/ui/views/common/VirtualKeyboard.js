@@ -7,11 +7,13 @@ import 'react-simple-keyboard/build/css/index.css'
 
 import { selectVirtualKeyboard } from '../../../data/selectors'
 import {
+  setIsOpen,
   setLayout,
   setInputValue,
   setCaretPosition,
   setEnter,
   setLastKeyPress,
+  setActiveFieldId,
 } from '../../../data/utilities/virtualKeyboardSlice'
 import RippleBox from '../../compound/RippleBox'
 
@@ -488,7 +490,18 @@ const VirtualKeyboard = () => {
       }
 
       if (event.key === 'Enter') {
+        // Let an Autocomplete select its highlighted option natively
+        if (event.target?.getAttribute?.('aria-activedescendant')) return
+
         event.preventDefault()
+        if (virtualKeyboard.isTextArea) {
+          // Mirror the on-screen `{enter}` key: insert a newline
+          const newValue = `${virtualKeyboard.inputValue}\n`
+          dispatch(setInputValue(newValue))
+          keyboardRef.current?.setInput(newValue)
+          keyboardRef.current?.setCaretPosition(newValue.length)
+          return
+        }
         dispatch(setEnter(true))
         return
       }
@@ -516,8 +529,40 @@ const VirtualKeyboard = () => {
     virtualKeyboard.isOpen,
     virtualKeyboard.inputValue,
     virtualKeyboard.layout,
+    virtualKeyboard.isTextArea,
     dispatch,
   ])
+
+  // Close virtual keyboard on global clickaway (without blocking interaction on the clicked element)
+  useEffect(() => {
+    if (!virtualKeyboard.isOpen) return
+
+    const handlePointerDownGlobal = (event) => {
+      // If clicking inside the virtual keyboard itself, do not close
+      if (boxRef.current?.contains(event.target)) return
+
+      // If clicking inside an active text input or keyboard toggle, let it handle focus
+      const target = event.target
+      const isInsideInput =
+        target.closest(
+          'input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="color"]):not([type="file"]):not([type="hidden"])'
+        ) ||
+        target.closest('textarea') ||
+        target.closest('[role="combobox"]') ||
+        target.closest('[role="textbox"]') ||
+        target.closest('button[aria-label*="keyboard" i]')
+
+      if (isInsideInput) return
+
+      dispatch(setIsOpen(false))
+      dispatch(setActiveFieldId(null))
+    }
+
+    window.addEventListener('pointerdown', handlePointerDownGlobal, true)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDownGlobal, true)
+    }
+  }, [virtualKeyboard.isOpen, dispatch])
 
   return (
     <Box

@@ -55,58 +55,116 @@ const DARKEN_FILL_ON_HOVER = [
 ]
 
 const getTypeFromFeature = (f) => {
+  if (!f || !f.properties) return null
+  if (f.properties._parsedType !== undefined) return f.properties._parsedType
+  if (f.properties.type) {
+    f.properties._parsedType = f.properties.type
+    return f.properties.type
+  }
+  const caveName = f.properties.cave_name
+  if (!caveName) return null
   try {
-    return JSON.parse(f.properties.cave_name)[0]
+    const parsed = JSON.parse(caveName)[0]
+    f.properties._parsedType = parsed
+    return parsed
   } catch (e) {
     return null
   }
 }
 
+const areFeaturesEqual = (data1, data2) => {
+  if (data1 === data2) return true
+  if (!data1 || !data2) return false
+  const feats1 = data1.features || data1
+  const feats2 = data2.features || data2
+  if (feats1 === feats2) return true
+  if (!Array.isArray(feats1) || !Array.isArray(feats2)) return false
+  if (feats1.length !== feats2.length) return false
+  if (feats1.length === 0 && feats2.length === 0) return true
+  return R.equals(feats1, feats2)
+}
+
 const useTypeFilteredFeatures = (features, type) => {
-  const ref = useRef([])
-  const filtered = useMemo(() => {
-    const safeFeatures = Array.isArray(features) ? features : []
-    const nextFiltered = safeFeatures.filter(
-      (f) => getTypeFromFeature(f) === type
-    )
-    if (R.equals(ref.current, nextFiltered)) {
-      return ref.current
+  const prevResultRef = useRef([])
+  const prevSourceRef = useRef(null)
+  const prevTypeRef = useRef(type)
+
+  return useMemo(() => {
+    if (
+      prevTypeRef.current === type &&
+      prevSourceRef.current === features &&
+      prevResultRef.current
+    ) {
+      return prevResultRef.current
     }
-    ref.current = nextFiltered
-    return nextFiltered
+    prevTypeRef.current = type
+    prevSourceRef.current = features
+
+    const safeFeatures = Array.isArray(features) ? features : []
+    const filtered = safeFeatures.filter((f) => getTypeFromFeature(f) === type)
+    if (R.equals(prevResultRef.current, filtered)) {
+      return prevResultRef.current
+    }
+    prevResultRef.current = filtered
+    return filtered
   }, [features, type])
-  return filtered
 }
 
 const useTypeFilteredGeoJson = (selectGeoJsonFunc, mapId, type) => {
-  return useSelector((state) => {
-    const allGeoJson = selectGeoJsonFunc(state)(mapId)
+  const allGeoJson = useSelector((state) => selectGeoJsonFunc(state)(mapId))
+  const prevResultRef = useRef([])
+  const prevSourceRef = useRef(null)
+  const prevMapIdRef = useRef(mapId)
+  const prevTypeRef = useRef(type)
+
+  return useMemo(() => {
+    if (
+      prevMapIdRef.current === mapId &&
+      prevTypeRef.current === type &&
+      prevSourceRef.current === allGeoJson &&
+      prevResultRef.current
+    ) {
+      return prevResultRef.current
+    }
+    prevMapIdRef.current = mapId
+    prevTypeRef.current = type
+    prevSourceRef.current = allGeoJson
+
     const safeFeatures = Array.isArray(allGeoJson) ? allGeoJson : []
-    return safeFeatures.filter((f) => getTypeFromFeature(f) === type)
-  }, R.equals)
+    const filtered = safeFeatures.filter((f) => getTypeFromFeature(f) === type)
+    if (R.equals(prevResultRef.current, filtered)) {
+      return prevResultRef.current
+    }
+    prevResultRef.current = filtered
+    return filtered
+  }, [allGeoJson, mapId, type])
 }
 
 const useMapFeature = () => {
   const { mapId } = useContext(MapContext)
   const isGlobe = true
 
-  const useHandleClickFactory = (feature) =>
-    useMutateStateWithSync(
-      ({ cave_name: caveName, cave_obj: caveObj }) => ({
-        path: ['panes', 'paneState', 'center'],
-        value: {
-          open: {
-            ...(caveObj || {}),
-            key: caveName,
-            mapId,
-            feature,
-            type: caveObj.name ?? JSON.parse(caveName),
-          },
-          type: 'feature',
+  const handleClick = useMutateStateWithSync(
+    (feature, { cave_name: caveName, cave_obj: caveObj } = {}) => ({
+      path: ['panes', 'paneState', 'center'],
+      value: {
+        open: {
+          ...(caveObj || {}),
+          key: caveName,
+          mapId,
+          feature,
+          type: caveObj?.name ?? (caveName ? JSON.parse(caveName) : undefined),
         },
-      }),
-      [mapId]
-    )
+        type: 'feature',
+      },
+    }),
+    [mapId]
+  )
+
+  const createHandleClick = useCallback(
+    (feature) => (params) => handleClick(feature, params),
+    [handleClick]
+  )
 
   const arcProps = useMemo(
     () => ({
@@ -136,7 +194,7 @@ const useMapFeature = () => {
   return {
     arcProps,
     mapId,
-    createHandleClick: useHandleClickFactory,
+    createHandleClick,
   }
 }
 
@@ -147,57 +205,32 @@ const MapboxLayer = memo(
     const dataRef = useRef(data)
     const layoutRef = useRef(layout)
     const paintRef = useRef(paint)
+    const beforeIdRef = useRef(beforeId)
+
+    const prevDataRef = useRef(null)
+    const prevLayoutRef = useRef({})
+    const prevPaintRef = useRef({})
 
     useEffect(() => {
-      dataRef.current = data
-      layoutRef.current = layout
-      paintRef.current = paint
-    }, [data, layout, paint])
+      beforeIdRef.current = beforeId
+    }, [beforeId])
 
     useEffect(() => {
-      const map = mapRef.current?.getMap
-        ? mapRef.current.getMap()
-        : mapRef.current
-      if (!map || !mapLoaded) return
+      prevDataRef.current = null
+      prevLayoutRef.current = {}
+      prevPaintRef.current = {}
+    }, [id])
 
-      const addLayer = () => {
-        if (!map.getSource(id)) {
-          map.addSource(id, {
-            type: 'geojson',
-            data: dataRef.current,
-            generateId: true,
-          })
-        }
-        if (!map.getLayer(id)) {
-          const safeBeforeId =
-            beforeId && map.getLayer(beforeId) ? beforeId : undefined
-          map.addLayer(
-            {
-              id,
-              type,
-              source: id,
-              layout: layoutRef.current,
-              paint: paintRef.current,
-            },
-            safeBeforeId
-          )
-        }
-      }
-
-      if (map.isStyleLoaded()) {
-        addLayer()
-      }
-
-      const handleStyleData = () => {
-        addLayer()
-      }
-
-      map.on('styledata', handleStyleData)
-
+    // Cleanup layer and source from Mapbox map instance on unmount
+    useEffect(() => {
+      const currentMapRef = mapRef.current
       return () => {
-        map.off('styledata', handleStyleData)
+        const map = currentMapRef?.getMap
+          ? currentMapRef.getMap()
+          : currentMapRef
+        if (!map || map._removed) return
         try {
-          if (map.getStyle()) {
+          if (map.getStyle && map.getStyle()) {
             if (map.getLayer(id)) map.removeLayer(id)
             if (map.getSource(id)) map.removeSource(id)
           }
@@ -205,41 +238,163 @@ const MapboxLayer = memo(
           // Ignore
         }
       }
-    }, [id, type, mapRef, mapLoaded, beforeId])
+    }, [id, mapRef])
 
     useEffect(() => {
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
-      try {
-        const source = map.getSource(id)
-        if (source && typeof source.setData === 'function') {
-          source.setData(data)
+      if (!map) return
+
+      const addLayer = () => {
+        try {
+          if (!map.getStyle || !map.getStyle()) return
+          if (!map.getSource(id)) {
+            map.addSource(id, {
+              type: 'geojson',
+              data: dataRef.current,
+              generateId: true,
+            })
+            prevDataRef.current = dataRef.current
+          }
+          if (!map.getLayer(id)) {
+            const currentBeforeId = beforeIdRef.current
+            const safeBeforeId =
+              currentBeforeId && map.getLayer(currentBeforeId)
+                ? currentBeforeId
+                : undefined
+            map.addLayer(
+              {
+                id,
+                type,
+                source: id,
+                layout: layoutRef.current,
+                paint: paintRef.current,
+              },
+              safeBeforeId
+            )
+            const styleLayer = map.style?._layers?.[id]
+            if (styleLayer && typeof styleLayer.recalculate === 'function') {
+              try {
+                styleLayer.recalculate({
+                  zoom: map.getZoom ? map.getZoom() : 0,
+                })
+              } catch (e) {
+                // Ignore
+              }
+            }
+            prevLayoutRef.current = layoutRef.current
+            prevPaintRef.current = paintRef.current
+          }
+        } catch (e) {
+          // Ignore
         }
-      } catch (e) {
-        // Ignore
       }
-    }, [id, data, mapRef, mapLoaded])
+
+      addLayer()
+
+      const handleStyleData = () => {
+        addLayer()
+      }
+
+      map.on('styledata', handleStyleData)
+      map.on('load', handleStyleData)
+      map.on('style.load', handleStyleData)
+
+      return () => {
+        map.off('styledata', handleStyleData)
+        map.off('load', handleStyleData)
+        map.off('style.load', handleStyleData)
+      }
+    }, [id, type, mapRef, mapLoaded])
 
     useEffect(() => {
+      layoutRef.current = layout
+      paintRef.current = paint
+      dataRef.current = data
+
       const map = mapRef.current?.getMap
         ? mapRef.current.getMap()
         : mapRef.current
-      if (!map || !mapLoaded) return
+      if (!map) return
+
       try {
         if (map.getLayer(id)) {
-          Object.keys(layout).forEach((key) => {
-            map.setLayoutProperty(id, key, layout[key])
+          const prevLayout = prevLayoutRef.current || {}
+          Object.keys(layout || {}).forEach((key) => {
+            if (!R.equals(prevLayout[key], layout[key])) {
+              map.setLayoutProperty(id, key, layout[key])
+            }
           })
-          Object.keys(paint).forEach((key) => {
-            map.setPaintProperty(id, key, paint[key])
+          prevLayoutRef.current = layout
+
+          const prevPaint = prevPaintRef.current || {}
+          Object.keys(paint || {}).forEach((key) => {
+            if (!R.equals(prevPaint[key], paint[key])) {
+              map.setPaintProperty(id, key, paint[key])
+            }
           })
+          prevPaintRef.current = paint
+
+          const source = map.getSource(id)
+          if (source && typeof source.setData === 'function') {
+            if (!areFeaturesEqual(prevDataRef.current, data)) {
+              source.setData(data)
+              prevDataRef.current = data
+            }
+          }
+        } else if (map.getStyle && map.getStyle()) {
+          if (!map.getSource(id)) {
+            map.addSource(id, {
+              type: 'geojson',
+              data,
+              generateId: true,
+            })
+            prevDataRef.current = data
+          } else {
+            const source = map.getSource(id)
+            if (
+              source &&
+              typeof source.setData === 'function' &&
+              !areFeaturesEqual(prevDataRef.current, data)
+            ) {
+              source.setData(data)
+              prevDataRef.current = data
+            }
+          }
+          if (!map.getLayer(id)) {
+            const safeBeforeId =
+              beforeIdRef.current && map.getLayer(beforeIdRef.current)
+                ? beforeIdRef.current
+                : undefined
+            map.addLayer(
+              {
+                id,
+                type,
+                source: id,
+                layout: layoutRef.current,
+                paint: paintRef.current,
+              },
+              safeBeforeId
+            )
+            const styleLayer = map.style?._layers?.[id]
+            if (styleLayer && typeof styleLayer.recalculate === 'function') {
+              try {
+                styleLayer.recalculate({
+                  zoom: map.getZoom ? map.getZoom() : 0,
+                })
+              } catch (e) {
+                // Ignore
+              }
+            }
+            prevLayoutRef.current = layoutRef.current
+            prevPaintRef.current = paintRef.current
+          }
         }
       } catch (e) {
         // Ignore
       }
-    }, [id, layout, paint, mapRef, mapLoaded])
+    }, [id, type, data, layout, paint, mapRef, mapLoaded])
 
     return null
   }
@@ -326,21 +481,35 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   const moveCoordinates = useCallback(
     (f) => {
-      if (f.properties.cave_isCluster) {
-        return f.geometry.coordinates
+      if (f.properties?.cave_isCluster) {
+        return f.geometry?.coordinates
       }
-      const idx = parseInt(f.properties.cave_obj.id)
-      if (isNaN(idx) || idx >= latitudes.length) {
-        return f.geometry.coordinates
+      let idx = parseInt(f.properties?.cave_obj?.id)
+      if (isNaN(idx)) {
+        try {
+          idx = parseInt(JSON.parse(f.properties?.cave_name)?.[1])
+        } catch (e) {
+          idx = NaN
+        }
+      }
+      if (isNaN(idx) || idx >= latitudes.length || idx < 0) {
+        return f.geometry?.coordinates
       }
 
-      if (R.equals([null], definedNodeTimes[idx])) {
-        return f.geometry.coordinates
+      if (
+        !definedNodeTimes[idx] ||
+        R.equals([null], definedNodeTimes[idx]) ||
+        definedNodeTimes[idx].length === 0
+      ) {
+        return f.geometry?.coordinates
       }
       const definedNodeTime = definedNodeTimes[idx]
       let visible = true
 
-      if (idx in visibilityInfo.visibilities) {
+      if (
+        idx in visibilityInfo.visibilities &&
+        Array.isArray(visibilityInfo.visibilityTimes[idx])
+      ) {
         for (const time of visibilityInfo.visibilityTimes[idx]) {
           if (currentTimeInSeconds > time) {
             visible = !visible
@@ -350,19 +519,29 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
         }
       }
 
-      if (currentTimeInSeconds >= Math.max(...definedNodeTime)) {
-        if (visible) {
-          return [
-            longitudes[idx][longitudes[idx].length - 1],
-            latitudes[idx][latitudes[idx].length - 1],
-          ]
+      const getLat = (i) =>
+        Array.isArray(latitudes[idx]) ? latitudes[idx][i] : latitudes[idx]
+      const getLng = (i) =>
+        Array.isArray(longitudes[idx]) ? longitudes[idx][i] : longitudes[idx]
+
+      const maxTime = Math.max(...definedNodeTime)
+      if (currentTimeInSeconds >= maxTime) {
+        if (
+          visible &&
+          latitudes[idx] !== undefined &&
+          longitudes[idx] !== undefined
+        ) {
+          const lastIdx = Array.isArray(latitudes[idx])
+            ? latitudes[idx].length - 1
+            : 0
+          return [getLng(lastIdx), getLat(lastIdx)]
         } else {
-          return []
+          return null
         }
       }
 
       if (!visible) {
-        return []
+        return null
       }
       const lowerControlTime = R.last(
         R.filter((t) => t <= currentTimeInSeconds, definedNodeTime)
@@ -370,20 +549,38 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
       const upperControlTime = R.head(
         R.filter((t) => t > currentTimeInSeconds, definedNodeTime)
       )
+      if (
+        lowerControlTime === undefined ||
+        upperControlTime === undefined ||
+        lowerControlTime === upperControlTime
+      ) {
+        const targetTime = lowerControlTime ?? upperControlTime
+        const targetIndex = R.indexOf(targetTime, definedNodeTime)
+        if (
+          targetIndex >= 0 &&
+          longitudes[idx] !== undefined &&
+          latitudes[idx] !== undefined
+        ) {
+          return [getLng(targetIndex), getLat(targetIndex)]
+        }
+        return f.geometry?.coordinates
+      }
       const t =
         (currentTimeInSeconds - lowerControlTime) /
         (upperControlTime - lowerControlTime)
+      const lowerIdx = R.indexOf(lowerControlTime, definedNodeTime)
+      const upperIdx = R.indexOf(upperControlTime, definedNodeTime)
+      if (
+        lowerIdx < 0 ||
+        upperIdx < 0 ||
+        longitudes[idx] === undefined ||
+        latitudes[idx] === undefined
+      ) {
+        return f.geometry?.coordinates
+      }
       return [
-        lerp(
-          longitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
-          longitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
-          t
-        ),
-        lerp(
-          latitudes[idx][R.indexOf(lowerControlTime, definedNodeTime)],
-          latitudes[idx][R.indexOf(upperControlTime, definedNodeTime)],
-          t
-        ),
+        lerp(getLng(lowerIdx), getLng(upperIdx), t),
+        lerp(getLat(lowerIdx), getLat(upperIdx), t),
       ]
     },
     [
@@ -396,22 +593,53 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
     ]
   )
 
+  const hasAnimation = useMemo(() => {
+    return Object.values(definedNodeTimes).some(
+      (times) =>
+        Array.isArray(times) &&
+        times.length > 0 &&
+        !R.equals([null], times) &&
+        times.some((t) => t !== null && t !== undefined)
+    )
+  }, [definedNodeTimes])
+
   useEffect(() => {
+    if (!hasAnimation) return
     const requestId = window.requestAnimationFrame(() => {
-      setAnimatedNodeGeoJson(
-        nodeGeoJson.map((f) =>
-          R.assocPath(['geometry', 'coordinates'], moveCoordinates(f), f)
-        )
-      )
+      const updated = []
+      const safeGeoJson = Array.isArray(nodeGeoJson) ? nodeGeoJson : []
+      for (const f of safeGeoJson) {
+        const coords = moveCoordinates(f)
+        if (
+          coords &&
+          Array.isArray(coords) &&
+          coords.length === 2 &&
+          isFinite(coords[0]) &&
+          isFinite(coords[1])
+        ) {
+          updated.push(R.assocPath(['geometry', 'coordinates'], coords, f))
+        }
+      }
+      setAnimatedNodeGeoJson(updated)
     })
     return () => window.cancelAnimationFrame(requestId)
-  }, [currentTimeInSeconds, nodeGeoJson, moveCoordinates])
+  }, [hasAnimation, currentTimeInSeconds, nodeGeoJson, moveCoordinates])
+
+  const data = useMemo(() => {
+    const rawFeatures = hasAnimation ? animatedNodeGeoJson : nodeGeoJson
+    const safeFeatures = Array.isArray(rawFeatures) ? rawFeatures : []
+    return {
+      type: 'FeatureCollection',
+      features: safeFeatures,
+    }
+  }, [hasAnimation, animatedNodeGeoJson, nodeGeoJson])
 
   const layout = useMemo(
     () => ({
       'icon-image': ['get', 'icon'],
       'icon-size': ['get', 'size'],
       'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
       visibility: isGlobe ? 'visible' : 'none',
     }),
     [isGlobe]
@@ -424,19 +652,9 @@ const NodeIconLayerInstance = memo(({ type, mapId, beforeId }) => {
     []
   )
 
-  const data = useMemo(() => {
-    const safeAnimatedNodeGeoJson = Array.isArray(animatedNodeGeoJson)
-      ? animatedNodeGeoJson
-      : []
-    return {
-      type: 'FeatureCollection',
-      features: safeAnimatedNodeGeoJson,
-    }
-  }, [animatedNodeGeoJson])
-
   return (
     <MapboxLayer
-      id={`nodeIconLayer-${type}`}
+      id={`nodeIconLayer-${mapId}-${type}`}
       type="symbol"
       data={data}
       layout={layout}
@@ -473,7 +691,7 @@ const ArcLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   return (
     <MapboxLayer
-      id={`arcLayerSolid-${type}`}
+      id={`arcLayerSolid-${mapId}-${type}`}
       type="line"
       data={data}
       layout={arcProps.layout}
@@ -490,81 +708,87 @@ ArcLayerInstance.propTypes = {
   beforeId: PropTypes.string,
 }
 
-const MultiArcLayerInstance = memo(({ type, allFetchedArcs, beforeId }) => {
-  const { arcProps } = useMapFeature()
+const MultiArcLayerInstance = memo(
+  ({ type, mapId, allFetchedArcs, beforeId }) => {
+    const { arcProps } = useMapFeature()
 
-  const filteredFeatures = useTypeFilteredFeatures(allFetchedArcs, type)
+    const filteredFeatures = useTypeFilteredFeatures(allFetchedArcs, type)
 
-  const data = useMemo(
-    () => ({
-      type: 'FeatureCollection',
-      features: filteredFeatures,
-    }),
-    [filteredFeatures]
-  )
+    const data = useMemo(
+      () => ({
+        type: 'FeatureCollection',
+        features: filteredFeatures,
+      }),
+      [filteredFeatures]
+    )
 
-  return (
-    <MapboxLayer
-      id={`multiArcLayerSolid-${type}`}
-      type="line"
-      data={data}
-      layout={arcProps.layout}
-      paint={arcProps.paint}
-      beforeId={beforeId}
-    />
-  )
-})
+    return (
+      <MapboxLayer
+        id={`multiArcLayerSolid-${mapId}-${type}`}
+        type="line"
+        data={data}
+        layout={arcProps.layout}
+        paint={arcProps.paint}
+        beforeId={beforeId}
+      />
+    )
+  }
+)
 MultiArcLayerInstance.displayName = 'MultiArcLayerInstance'
 
 MultiArcLayerInstance.propTypes = {
   type: PropTypes.string.isRequired,
+  mapId: PropTypes.string.isRequired,
   allFetchedArcs: PropTypes.array.isRequired,
   beforeId: PropTypes.string,
 }
 
-const GeographyLayerInstance = memo(({ type, allFetchedGeos, beforeId }) => {
-  const isGlobe = true
+const GeographyLayerInstance = memo(
+  ({ type, mapId, allFetchedGeos, beforeId }) => {
+    const isGlobe = true
 
-  const filteredFeatures = useTypeFilteredFeatures(allFetchedGeos, type)
+    const filteredFeatures = useTypeFilteredFeatures(allFetchedGeos, type)
 
-  const data = useMemo(
-    () => ({
-      type: 'FeatureCollection',
-      features: filteredFeatures,
-    }),
-    [filteredFeatures]
-  )
+    const data = useMemo(
+      () => ({
+        type: 'FeatureCollection',
+        features: filteredFeatures,
+      }),
+      [filteredFeatures]
+    )
 
-  const layout = useMemo(
-    () => ({
-      visibility: isGlobe ? 'visible' : 'none',
-    }),
-    [isGlobe]
-  )
+    const layout = useMemo(
+      () => ({
+        visibility: isGlobe ? 'visible' : 'none',
+      }),
+      [isGlobe]
+    )
 
-  const paint = useMemo(
-    () => ({
-      'fill-color': DARKEN_FILL_ON_HOVER,
-      'fill-opacity': 0.4,
-    }),
-    []
-  )
+    const paint = useMemo(
+      () => ({
+        'fill-color': DARKEN_FILL_ON_HOVER,
+        'fill-opacity': 0.4,
+      }),
+      []
+    )
 
-  return (
-    <MapboxLayer
-      id={`geographyLayer-${type}`}
-      type="fill"
-      data={data}
-      layout={layout}
-      paint={paint}
-      beforeId={beforeId}
-    />
-  )
-})
+    return (
+      <MapboxLayer
+        id={`geographyLayer-${mapId}-${type}`}
+        type="fill"
+        data={data}
+        layout={layout}
+        paint={paint}
+        beforeId={beforeId}
+      />
+    )
+  }
+)
 GeographyLayerInstance.displayName = 'GeographyLayerInstance'
 
 GeographyLayerInstance.propTypes = {
   type: PropTypes.string.isRequired,
+  mapId: PropTypes.string.isRequired,
   allFetchedGeos: PropTypes.array.isRequired,
   beforeId: PropTypes.string,
 }
@@ -594,7 +818,7 @@ const IncludedGeographyLayerInstance = memo(({ type, mapId, beforeId }) => {
 
   return (
     <MapboxLayer
-      id={`includedGeographyLayer-${type}`}
+      id={`includedGeographyLayer-${mapId}-${type}`}
       type="fill"
       data={data}
       paint={paint}
@@ -611,7 +835,7 @@ IncludedGeographyLayerInstance.propTypes = {
 }
 
 export const MapLayers = () => {
-  const { mapId, mapRef, mapLoaded } = useContext(MapContext)
+  const { mapId, mapRef } = useContext(MapContext)
 
   const [loadedGeoJson, setLoadedGeoJson] = useState([])
   const [lineGeoJsonObject, setLineGeoJsonObject] = useState([])
@@ -655,14 +879,14 @@ export const MapLayers = () => {
     // 1. Add all geo layers
     geoTypes.forEach((type, index) => {
       layers.push({
-        id: `geographyLayer-${type}`,
+        id: `geographyLayer-${mapId}-${type}`,
         type,
         category: 'geo',
         subOrder: 0,
         typeIndex: index,
       })
       layers.push({
-        id: `includedGeographyLayer-${type}`,
+        id: `includedGeographyLayer-${mapId}-${type}`,
         type,
         category: 'geo',
         subOrder: 1,
@@ -673,14 +897,14 @@ export const MapLayers = () => {
     // 2. Add all arc layers
     arcTypes.forEach((type, index) => {
       layers.push({
-        id: `multiArcLayerSolid-${type}`,
+        id: `multiArcLayerSolid-${mapId}-${type}`,
         type,
         category: 'arc',
         subOrder: 0,
         typeIndex: index,
       })
       layers.push({
-        id: `arcLayerSolid-${type}`,
+        id: `arcLayerSolid-${mapId}-${type}`,
         type,
         category: 'arc',
         subOrder: 1,
@@ -691,7 +915,7 @@ export const MapLayers = () => {
     // 3. Add all node layers
     nodeTypes.forEach((type, index) => {
       layers.push({
-        id: `nodeIconLayer-${type}`,
+        id: `nodeIconLayer-${mapId}-${type}`,
         type,
         category: 'node',
         subOrder: 0,
@@ -727,7 +951,7 @@ export const MapLayers = () => {
     })
 
     return layers.map((layer) => layer.id)
-  }, [geoTypes, arcTypes, nodeTypes, legendData])
+  }, [geoTypes, arcTypes, nodeTypes, legendData, mapId])
 
   const beforeIdMap = useMemo(() => {
     const mapping = {}
@@ -738,30 +962,76 @@ export const MapLayers = () => {
   }, [orderedLayerIds])
 
   useEffect(() => {
-    const map = mapRef.current?.getMap
+    const map = mapRef?.current?.getMap
       ? mapRef.current.getMap()
-      : mapRef.current
-    if (!map || !mapLoaded) return
+      : mapRef?.current
+    if (!map) return
+
+    let isReordering = false
 
     const reorder = () => {
-      const customLayersOnMap = orderedLayerIds.filter((id) => map.getLayer(id))
-      for (let i = 0; i < customLayersOnMap.length - 1; i++) {
-        const currentId = customLayersOnMap[i]
-        const nextId = customLayersOnMap[i + 1]
-        try {
-          map.moveLayer(currentId, nextId)
-        } catch (e) {
-          // Ignore
+      if (isReordering) return
+      isReordering = true
+      try {
+        if (
+          typeof map.getStyle !== 'function' ||
+          typeof map.getLayer !== 'function' ||
+          typeof map.moveLayer !== 'function'
+        ) {
+          return
         }
+        const style = map.getStyle()
+        if (!style || !style.layers) return
+
+        const customLayersOnMap = orderedLayerIds.filter((id) =>
+          map.getLayer(id)
+        )
+        if (customLayersOnMap.length < 2) return
+
+        const styleLayers = style.layers
+        const indexMap = new Map()
+        for (let i = 0; i < styleLayers.length; i++) {
+          indexMap.set(styleLayers[i].id, i)
+        }
+
+        let isOrdered = true
+        for (let i = 0; i < customLayersOnMap.length - 1; i++) {
+          const idxCurrent = indexMap.get(customLayersOnMap[i])
+          const idxNext = indexMap.get(customLayersOnMap[i + 1])
+          if (
+            idxCurrent === undefined ||
+            idxNext === undefined ||
+            idxCurrent > idxNext
+          ) {
+            isOrdered = false
+            break
+          }
+        }
+
+        if (!isOrdered) {
+          for (let i = customLayersOnMap.length - 2; i >= 0; i--) {
+            const currentId = customLayersOnMap[i]
+            const nextId = customLayersOnMap[i + 1]
+            map.moveLayer(currentId, nextId)
+          }
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        isReordering = false
       }
     }
 
     reorder()
-    map.on('styledata', reorder)
-    return () => {
-      map.off('styledata', reorder)
+    if (typeof map.on === 'function') {
+      map.on('styledata', reorder)
     }
-  }, [orderedLayerIds, mapRef, mapLoaded])
+    return () => {
+      if (typeof map.off === 'function') {
+        map.off('styledata', reorder)
+      }
+    }
+  }, [orderedLayerIds, mapRef])
 
   const safeLoadedGeoJson = Array.isArray(loadedGeoJson) ? loadedGeoJson : []
   const safeLineGeoJsonObject = Array.isArray(lineGeoJsonObject)
@@ -774,8 +1044,9 @@ export const MapLayers = () => {
         <GeographyLayerInstance
           key={type}
           type={type}
+          mapId={mapId}
           allFetchedGeos={safeLoadedGeoJson}
-          beforeId={beforeIdMap[`geographyLayer-${type}`]}
+          beforeId={beforeIdMap[`geographyLayer-${mapId}-${type}`]}
         />
       ))}
       {geoTypes.map((type) => (
@@ -783,15 +1054,16 @@ export const MapLayers = () => {
           key={type}
           type={type}
           mapId={mapId}
-          beforeId={beforeIdMap[`includedGeographyLayer-${type}`]}
+          beforeId={beforeIdMap[`includedGeographyLayer-${mapId}-${type}`]}
         />
       ))}
       {arcTypes.map((type) => (
         <MultiArcLayerInstance
           key={type}
           type={type}
+          mapId={mapId}
           allFetchedArcs={safeLineGeoJsonObject}
-          beforeId={beforeIdMap[`multiArcLayerSolid-${type}`]}
+          beforeId={beforeIdMap[`multiArcLayerSolid-${mapId}-${type}`]}
         />
       ))}
       {arcTypes.map((type) => (
@@ -799,7 +1071,7 @@ export const MapLayers = () => {
           key={type}
           type={type}
           mapId={mapId}
-          beforeId={beforeIdMap[`arcLayerSolid-${type}`]}
+          beforeId={beforeIdMap[`arcLayerSolid-${mapId}-${type}`]}
         />
       ))}
       {nodeTypes.map((type) => (
@@ -807,19 +1079,19 @@ export const MapLayers = () => {
           key={type}
           type={type}
           mapId={mapId}
-          beforeId={beforeIdMap[`nodeIconLayer-${type}`]}
+          beforeId={beforeIdMap[`nodeIconLayer-${mapId}-${type}`]}
         />
       ))}
     </>
   )
 }
 
-const Geo3DLayerInstance = memo(({ type, geos, onClick }) => {
+const Geo3DLayerInstance = memo(({ type, mapId, geos, onClick }) => {
   const filteredGeos = useTypeFilteredFeatures(geos, type)
 
   return (
     <GeosWithHeight
-      id={`geos-with-altitude-${type}`}
+      id={`geos-with-altitude-${mapId}-${type}`}
       geos={filteredGeos}
       onClick={onClick}
     />
@@ -829,16 +1101,17 @@ Geo3DLayerInstance.displayName = 'Geo3DLayerInstance'
 
 Geo3DLayerInstance.propTypes = {
   type: PropTypes.string.isRequired,
+  mapId: PropTypes.string.isRequired,
   geos: PropTypes.array.isRequired,
   onClick: PropTypes.func,
 }
 
-const Arc3DLineLayerInstance = memo(({ type, arcs, onClick }) => {
+const Arc3DLineLayerInstance = memo(({ type, mapId, arcs, onClick }) => {
   const filteredArcs = useTypeFilteredFeatures(arcs, type)
 
   return (
     <ArcsWithHeight
-      id={`geos-arcs-with-altitude-${type}`}
+      id={`geos-arcs-with-altitude-${mapId}-${type}`}
       arcs={filteredArcs}
       onClick={onClick}
     />
@@ -848,6 +1121,7 @@ Arc3DLineLayerInstance.displayName = 'Arc3DLineLayerInstance'
 
 Arc3DLineLayerInstance.propTypes = {
   type: PropTypes.string.isRequired,
+  mapId: PropTypes.string.isRequired,
   arcs: PropTypes.array.isRequired,
   onClick: PropTypes.func,
 }
@@ -883,6 +1157,7 @@ export const Geos = () => {
       <Geo3DLayerInstance
         key={type}
         type={type}
+        mapId={mapId}
         geos={!isGlobe ? safeLoadedGeoJson : []}
         onClick={createHandleClick('geos')}
       />
@@ -891,6 +1166,7 @@ export const Geos = () => {
       <Arc3DLineLayerInstance
         key={type}
         type={type}
+        mapId={mapId}
         arcs={!isGlobe ? safeLineGeoJsonObject : []}
         onClick={createHandleClick('arcs')}
       />
@@ -914,7 +1190,7 @@ const Node3DLayerInstance = memo(({ type, mapId, onClick }) => {
 
   return (
     <NodesWithHeight
-      id={`nodes-with-altitude-${type}`}
+      id={`nodes-with-altitude-${mapId}-${type}`}
       nodes={!isGlobe ? safeNodeGeoJson : []}
       onClick={onClick}
     />
@@ -956,7 +1232,7 @@ const Arc3DLayerInstance = memo(({ type, mapId, onClick }) => {
 
   return (
     <ArcsWithHeight
-      id={`arcs-with-altitude-${type}`}
+      id={`arcs-with-altitude-${mapId}-${type}`}
       arcs={!isGlobe ? safeArcLayerGeoJson : []}
       onClick={onClick}
     />
@@ -997,7 +1273,7 @@ const Arc3DModelLayerInstance = memo(({ type, mapId, onClick }) => {
 
   return (
     <ArcLayer3D
-      id={`3d-model-${type}`}
+      id={`3d-model-${mapId}-${type}`}
       features={safeArcLayerGeoJson}
       onClick={onClick}
     />

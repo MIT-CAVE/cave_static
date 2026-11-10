@@ -16,6 +16,7 @@ import {
   selectSync,
   selectCurrentPage,
   selectMapData,
+  selectChartById,
 } from '../../../data/selectors'
 import RippleBox from '../../compound/RippleBox'
 
@@ -59,12 +60,16 @@ const styles = {
   },
 }
 
-const MapToolbar = memo(({ chartObj, index }) => {
+const MapToolbar = memo(({ chartObj: chartObjProp, index }) => {
   const dispatch = useDispatch()
 
   const sync = useSelector(selectSync)
   const maps = useSelector(selectMapData)
   const currentPage = useSelector(selectCurrentPage)
+  const chartObjFromStore = useSelector((state) =>
+    selectChartById(state, index)
+  )
+  const chartObj = chartObjProp ?? chartObjFromStore
 
   const path = useMemo(
     () => ['pages', 'data', currentPage, 'charts', index],

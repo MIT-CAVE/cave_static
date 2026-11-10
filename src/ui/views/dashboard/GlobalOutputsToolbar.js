@@ -23,10 +23,12 @@ import {
   selectChartById,
   selectCurrentPage,
   selectMergedGlobalOutputs,
+  selectRichTextDefault,
 } from '../../../data/selectors'
 import { chartOption, chartVariant } from '../../../utils/enums'
+import { labelText, resolveRichText } from '../../../utils/richText'
 
-import { FetchedIcon } from '../../compound'
+import { FetchedIcon, RichLabel } from '../../compound'
 
 import { withIndex, includesPath, addValuesToProps } from '../../../utils'
 
@@ -66,6 +68,7 @@ const GlobalOutputsToolbar = ({ index }) => {
   const globalOutputs = useSelector(selectAssociatedData)
   const currentPage = useSelector(selectCurrentPage)
   const items = useSelector(selectMergedGlobalOutputs)
+  const richTextDefault = useSelector(selectRichTextDefault)
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
     R.propOr({}, 'values', items)
@@ -79,6 +82,8 @@ const GlobalOutputsToolbar = ({ index }) => {
     [currentPage, index]
   )
 
+  if (!chartObj) return null
+
   const handleSelectChart = (value) => {
     dispatch(
       mutateLocal({
@@ -89,12 +94,19 @@ const GlobalOutputsToolbar = ({ index }) => {
     )
   }
 
+  // The names follow the cascade: prop > global outputs > app default
+  const isOutputRich = (id) =>
+    resolveRichText(props[id]?.richText, items?.richText, richTextDefault) ===
+    true
+
   const globalOutputsOptions = R.pipe(
     R.reject(R.pipe(R.prop('value'), R.isNil)),
     withIndex,
     R.project(['id', 'name', 'icon']),
     R.map(R.renameKeys({ id: 'value', name: 'label', icon: 'iconName' }))
   )(props)
+  const getOutputLabel = (option) =>
+    R.find(({ value }) => value === option)(globalOutputsOptions)?.label
 
   return (
     <Box sx={styles.content}>
@@ -190,10 +202,8 @@ const GlobalOutputsToolbar = ({ index }) => {
                 )
               }}
               getOptionLabel={(option) => {
-                return R.pipe(
-                  R.find(({ value }) => value === option),
-                  R.prop('label')
-                )(globalOutputsOptions)
+                // The plain text is used to filter and for the tags
+                return labelText(getOutputLabel(option), isOutputRich(option))
               }}
               renderOption={(props, option, { selected }) => {
                 const { key, ...optionProps } = props
@@ -208,7 +218,13 @@ const GlobalOutputsToolbar = ({ index }) => {
                       checked={selected}
                     />
                     <FetchedIcon iconName={iconName} sx={{ marginRight: 1 }} />
-                    <Typography sx={{ marginLeft: 1 }}> {label} </Typography>
+                    <Typography sx={{ marginLeft: 1 }}>
+                      {' '}
+                      <RichLabel
+                        text={label}
+                        rich={isOutputRich(option)}
+                      />{' '}
+                    </Typography>
                   </li>
                 )
               }}

@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -10,9 +10,16 @@ import {
   selectMemoizedGlobalOutputFunc,
   selectGlobalOutputsLayout,
   selectMergedGlobalOutputs,
+  selectRichTextDefault,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
 import { chartVariant } from '../../../utils/enums'
+import {
+  escapeRichText,
+  labelText,
+  resolveRichText,
+} from '../../../utils/richText'
+import ChartContext from '../../charts/chart-types/echarts/ChartContext'
 import { renderPropsLayout } from '../common/renderLayout'
 
 import { BarPlot, LinePlot, TableChart } from '../../charts'
@@ -42,8 +49,24 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const items = useSelector(selectMergedGlobalOutputs)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const chartRichText = resolveRichText(chartObj.richText, richTextDefault)
+
   const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder', chartObj)
   const xAxisOrder = R.propOr('default', 'xAxisOrder', chartObj)
+
+  const chartContextValue = useMemo(
+    () => ({
+      // Canvas text can't render markup, so the title is its plain twin
+      title: labelText(chartObj.title ?? '', chartRichText),
+      richTitle: chartObj.title ?? '',
+      richText: chartRichText,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+    }),
+    [chartObj.title, chartRichText, path, chartHoverOrder, xAxisOrder]
+  )
 
   const props = addValuesToProps(
     R.map(R.assoc('enabled', false))(R.propOr({}, 'props', items)),
@@ -68,31 +91,71 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const actualGlobalOutputRaw = forcePath(
     R.propOr([], 'globalOutput', chartObj)
   )
-  const globalOutputData = R.pipe(
-    R.values,
-    R.head,
-    R.pathOr({}, ['data', 'globalOutputs', 'props']),
-    R.pick(actualGlobalOutputRaw)
-  )(globalOutputs)
+  const associatedProps = R.pathOr(
+    {},
+    ['data', 'globalOutputs', 'props'],
+    R.head(R.values(globalOutputs))
+  )
+  const allProps = R.mergeRight(R.propOr({}, 'props', items), associatedProps)
+  const globalOutputData = R.pick(actualGlobalOutputRaw, allProps)
 
-  const selectedGlobalOutputKeys = R.keys(globalOutputData)
+  const selectedGlobalOutputKeys = actualGlobalOutputRaw.filter(
+    (key) => globalOutputData[key] != null
+  )
+
+  const tableData = formattedGlobalOutputs.map((session) => {
+    if (Array.isArray(session.value) && !session.children) {
+      return session
+    }
+    const valuesById = Object.fromEntries(
+      (session.children || []).map(({ id, value }) => [id, value[0]])
+    )
+    return {
+      name: session.name,
+      value: Array.isArray(session.value)
+        ? session.value
+        : selectedGlobalOutputKeys.map(
+            (key) => valuesById[globalOutputData[key]?.id ?? key] ?? null
+          ),
+    }
+  })
+
+  // prop > global outputs root > app default
+  const getOutputRichText = (globalOutputKey) =>
+    resolveRichText(
+      globalOutputData[globalOutputKey]?.richText,
+      items?.richText,
+      richTextDefault
+    )
 
   const globalOutputUnits = R.map((item) => {
     const globalOutput = R.propOr({}, item)(globalOutputData)
     return globalOutput.unit || numberFormatDefault.unit
   })(selectedGlobalOutputKeys)
 
+  // Canvas text can't render markup, so the axis title uses the plain units
+  const plainGlobalOutputUnits = R.zipWith(
+    (globalOutputKey, unit) =>
+      labelText(unit, getOutputRichText(globalOutputKey)),
+    selectedGlobalOutputKeys,
+    globalOutputUnits
+  )
+
   const labelProps =
     chartObj.chartType === chartVariant.TABLE
       ? R.pipe(
-          R.zipWith(
-            (globalOutputKey, unit) => ({
+          R.zipWith((globalOutputKey, unit) => {
+            const richText = getOutputRichText(globalOutputKey)
+            const name = getLabelFn(globalOutputData)(globalOutputKey)
+            return {
               type: 'number',
               key: globalOutputKey,
-              label: `${getLabelFn(globalOutputData)(globalOutputKey)}${unit ? ` [${unit}]` : ''} `,
-            }),
-            selectedGlobalOutputKeys
-          ),
+              label: `${labelText(name, richText)}${unit ? ` [${labelText(unit, richText)}]` : ''} `,
+              ...(richText === true && {
+                richLabel: `${name}${unit ? ` ${escapeRichText('[')}${unit}${escapeRichText(']')}` : ''}`,
+              }),
+            }
+          }, selectedGlobalOutputKeys),
           R.prepend({
             type: 'string',
             key: 'session',
@@ -110,50 +173,54 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
   const numberFormat = R.map(getNumberFormat)(globalOutputData)
 
   return (
-    <Box
-      sx={[
-        styles.root,
-        chartObj.chartType === chartVariant.OVERVIEW && styles.overview,
-      ]}
-    >
-      {chartObj.chartType === chartVariant.OVERVIEW ? (
-        <Box
-          sx={{
-            position: 'absolute',
-            maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
-            maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
-          }}
-        >
-          {renderPropsLayout({
-            layout,
-            items: props,
-            onChangeProp: () => null,
-          })}
-        </Box>
-      ) : chartObj.chartType === chartVariant.TABLE ? (
-        <TableChart
-          data={formattedGlobalOutputs}
-          {...{ labelProps, numberFormat }}
-        />
-      ) : chartObj.chartType === chartVariant.BAR ? (
-        <BarPlot
-          data={formattedGlobalOutputs}
-          xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(globalOutputUnits)}
-          {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
-          // The data structure of the globalOutput chart is the same
-          // as that of a statistics chart with subgrouped data
-          subGrouped
-        />
-      ) : chartObj.chartType === chartVariant.LINE ? (
-        <LinePlot
-          data={formattedGlobalOutputs}
-          {...{ numberFormat, chartHoverOrder, path, xAxisOrder }}
-          xAxisTitle="Sessions"
-          yAxisTitle={R.join(', ')(globalOutputUnits)}
-        />
-      ) : null}
-    </Box>
+    <ChartContext.Provider value={chartContextValue}>
+      <Box
+        sx={[
+          styles.root,
+          chartObj.chartType === chartVariant.OVERVIEW && styles.overview,
+        ]}
+      >
+        {chartObj.chartType === chartVariant.OVERVIEW ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              maxHeight: (theme) => `calc(100% - ${theme.spacing(2)})`,
+              maxWidth: (theme) => `calc(100% - ${theme.spacing(2)})`,
+              // Override the `Paper` ancestor's `textAlign: 'center'` (see
+              // `Dashboard.js`'s `styles.paper`) so props render with their
+              // usual left alignment instead of inheriting it.
+              textAlign: 'left',
+            }}
+          >
+            {renderPropsLayout({
+              layout,
+              items: props,
+              richText: items?.richText,
+              onChangeProp: () => null,
+            })}
+          </Box>
+        ) : chartObj.chartType === chartVariant.TABLE ? (
+          <TableChart data={tableData} {...{ labelProps, numberFormat }} />
+        ) : chartObj.chartType === chartVariant.BAR ? (
+          <BarPlot
+            data={formattedGlobalOutputs}
+            xAxisTitle="Sessions"
+            yAxisTitle={R.join(', ')(plainGlobalOutputUnits)}
+            {...{ numberFormat }}
+            // The data structure of the globalOutput chart is the same
+            // as that of a statistics chart with subgrouped data
+            subGrouped
+          />
+        ) : chartObj.chartType === chartVariant.LINE ? (
+          <LinePlot
+            data={formattedGlobalOutputs}
+            {...{ numberFormat }}
+            xAxisTitle="Sessions"
+            yAxisTitle={R.join(', ')(plainGlobalOutputUnits)}
+          />
+        ) : null}
+      </Box>
+    </ChartContext.Provider>
   )
 }
 

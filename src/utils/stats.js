@@ -9,13 +9,21 @@ import { statFuncs, statId } from './enums'
 // EG: getMode([1, 2, 3, 1]) => '1'
 // EG: getMode([1, 'b','b','a','c']) => 'b'
 export const getMode = (arr) => {
-  return R.pipe(
-    forceArray,
-    R.countBy(R.identity),
-    R.toPairs,
-    R.reduce((a, b) => (a[1] < b[1] ? b : a), [NaN, 0]),
-    R.head
-  )(arr)
+  const safeArr = forceArray(arr)
+  if (!safeArr.length) return NaN
+  const counts = new Map()
+  let maxCount = 0
+  let modeVal = NaN
+  for (let i = 0; i < safeArr.length; i++) {
+    const val = String(safeArr[i])
+    const count = (counts.get(val) || 0) + 1
+    counts.set(val, count)
+    if (count > maxCount) {
+      maxCount = count
+      modeVal = val
+    }
+  }
+  return modeVal
 }
 
 // Calculate the max item in a list (returns a number, string or NaN)
@@ -27,21 +35,24 @@ export const getMode = (arr) => {
 // EG: getMax(['a', 'b', 'c', 'A']) => 'c'
 // EG: getMax(['a', 'b', 'c', 'A', 1]) => 1
 export const getMax = (arr) => {
-  return R.pipe(
-    forceArray,
-    R.groupBy(R.type),
-    R.cond([
-      [
-        R.pipe(R.prop('Number'), R.length, R.flip(R.gt)(0)),
-        R.pipe(R.prop('Number'), R.reduce(R.max, -Infinity)),
-      ],
-      [
-        R.pipe(R.prop('String'), R.length, R.flip(R.gt)(0)),
-        R.pipe(R.prop('String'), R.reduce(R.max, '')),
-      ],
-      [R.T, R.always(NaN)],
-    ])
-  )(arr)
+  const safeArr = forceArray(arr)
+  let maxNum = -Infinity
+  let maxStr = ''
+  let hasNum = false
+  let hasStr = false
+  for (let i = 0; i < safeArr.length; i++) {
+    const v = safeArr[i]
+    if (typeof v === 'number' && !Number.isNaN(v)) {
+      if (v > maxNum) maxNum = v
+      hasNum = true
+    } else if (typeof v === 'string') {
+      if (v > maxStr || !hasStr) maxStr = v
+      hasStr = true
+    }
+  }
+  if (hasNum) return maxNum
+  if (hasStr) return maxStr
+  return NaN
 }
 
 // Calculate the min item in a list (returns a number, string or NaN)
@@ -54,36 +65,60 @@ export const getMax = (arr) => {
 // EG: getMin(['a', 'b', 'c', 'A', 1]) => 'A'
 // EG: getMin(['a', 'b', 'c', 'A', 1, '1']) => '1'
 export const getMin = (arr) => {
-  return R.pipe(
-    forceArray,
-    R.groupBy(R.type),
-    R.cond([
-      [
-        R.pipe(R.prop('String'), R.length, R.flip(R.gt)(0)),
-        R.pipe(
-          R.prop('String'),
-          R.reduce((a, b) => (a < b ? a : b), NaN)
-        ),
-      ],
-      [
-        R.pipe(R.prop('Number'), R.length, R.flip(R.gt)(0)),
-        R.pipe(R.prop('Number'), R.reduce(R.min, Infinity)),
-      ],
-      [R.T, R.always(NaN)],
-    ])
-  )(arr)
+  const safeArr = forceArray(arr)
+  let minNum = Infinity
+  let minStr = ''
+  let hasNum = false
+  let hasStr = false
+  for (let i = 0; i < safeArr.length; i++) {
+    const v = safeArr[i]
+    if (typeof v === 'string') {
+      if (v < minStr || !hasStr) minStr = v
+      hasStr = true
+    } else if (typeof v === 'number' && !Number.isNaN(v)) {
+      if (v < minNum) minNum = v
+      hasNum = true
+    }
+  }
+  if (hasStr) return minStr
+  if (hasNum) return minNum
+  return NaN
 }
 
 // Calculate the mean of a list (returns a number or NaN)
 // This omits everything except numbers and returns NaN if there are no numbers
 export const getMean = (arr) => {
-  return R.mean(R.filter(R.is(Number), forceArray(arr)))
+  const safeArr = forceArray(arr)
+  let sum = 0
+  let count = 0
+  for (let i = 0; i < safeArr.length; i++) {
+    const v = safeArr[i]
+    if (typeof v === 'number' && !Number.isNaN(v)) {
+      sum += v
+      count++
+    }
+  }
+  return count === 0 ? NaN : sum / count
 }
 
 // Calculate the median of a list  (returns a number or NaN)
 // This omits everything except numbers and returns NaN if there are no numbers
 export const getMedian = (arr) => {
-  return R.median(R.filter(R.is(Number), forceArray(arr)))
+  const safeArr = forceArray(arr)
+  const nums = []
+  for (let i = 0; i < safeArr.length; i++) {
+    const v = safeArr[i]
+    if (typeof v === 'number' && !Number.isNaN(v)) {
+      nums.push(v)
+    }
+  }
+  if (nums.length === 0) return NaN
+  const width = nums.length
+  if (width === 1) return nums[0]
+  nums.sort((a, b) => a - b)
+  return width % 2 === 1
+    ? nums[(width - 1) / 2]
+    : (nums[width / 2 - 1] + nums[width / 2]) / 2
 }
 
 // Calculate the standard deviation of a list (returns a number or NaN)
@@ -101,20 +136,36 @@ export const getMedian = (arr) => {
 // Calculate the sum of a list (returns a number or NaN)
 // This omits everything except numbers and returns NaN if there are no numbers
 export const getSum = (arr) => {
-  return R.sum(R.filter(R.is(Number), forceArray(arr)))
+  const safeArr = forceArray(arr)
+  let sum = 0
+  for (let i = 0; i < safeArr.length; i++) {
+    const v = safeArr[i]
+    if (typeof v === 'number' && !Number.isNaN(v)) {
+      sum += v
+    }
+  }
+  return sum
 }
 
 // Calculate the count of all items a list (returns a number or NaN)
 export const getCount = (arr) => {
-  return R.length(forceArray(arr))
+  return forceArray(arr).length
 }
 
 export const getAnd = (arr) => {
-  return R.reduce(R.and, true)(forceArray(arr))
+  const safeArr = forceArray(arr)
+  for (let i = 0; i < safeArr.length; i++) {
+    if (!safeArr[i]) return false
+  }
+  return true
 }
 
 export const getOr = (arr) => {
-  return R.reduce(R.or, false)(forceArray(arr))
+  const safeArr = forceArray(arr)
+  for (let i = 0; i < safeArr.length; i++) {
+    if (safeArr[i]) return true
+  }
+  return false
 }
 
 // Map an `statId` to its related function

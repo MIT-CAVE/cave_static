@@ -1,71 +1,145 @@
-import { Box, Button } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
+import { memo, useContext, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
+import RichLabel from '../../../compound/RichLabel'
 import { FlexibleContainer } from '../echarts'
+import ChartContext, { useValueDisplayName } from '../echarts/ChartContext'
 
-const TableChart = ({ data, labelProps, numberFormat }) => {
-  // Convert chart object to nested arrays of values
-  const convertToList = (data, currentRow) =>
-    R.map((d) =>
-      R.has('children', d)
-        ? convertToList(
-            R.prop('children', d),
-            R.append(R.prop('name', d), currentRow)
-          )
-        : R.concat(R.append(R.prop('name', d), currentRow), R.prop('value', d))
-    )(data)
+// Convert chart object to flat list of row arrays
+const flattenChartTree = (data) => {
+  const result = []
+  const traverse = (nodes, currentPath = []) => {
+    if (!Array.isArray(nodes)) return
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      if (node == null) continue
+      const nextPath = currentPath.concat(node.name)
+      if (
+        node.children &&
+        Array.isArray(node.children) &&
+        node.children.length > 0
+      ) {
+        traverse(node.children, nextPath)
+      } else {
+        const row = nextPath.slice()
+        if (Array.isArray(node.value)) {
+          for (let j = 0; j < node.value.length; j++) {
+            row.push(node.value[j])
+          }
+        } else if (node.value !== undefined) {
+          row.push(node.value)
+        }
+        result.push(row)
+      }
+    }
+  }
+  traverse(data, [])
+  return result
+}
 
-  const rawList = convertToList(data, [])
-  const fields = R.pluck('key')(labelProps)
-  const rows = R.pipe(
-    R.flatten,
-    R.splitEvery(R.length(labelProps)),
-    R.addIndex(R.map)((row, index) =>
-      R.pipe(R.zipObj(fields), R.assoc('id', index))(row)
-    )
-  )(rawList)
+const styles = {
+  title: {
+    p: 1,
+    mb: '1px',
+    bgcolor: 'background.paper',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#eee',
+  },
+}
 
-  const multiNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
+const TableChart = ({ data, labelProps, numberFormat = {} }) => {
+  const {
+    title: chartTitle,
+    richTitle,
+    richText: titleRichText,
+  } = useContext(ChartContext)
+  const getDisplayName = useValueDisplayName()
+  const rawList = useMemo(() => flattenChartTree(data), [data])
+  const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
+  const types = useMemo(() => R.pluck('type')(labelProps), [labelProps])
+  const rows = useMemo(() => {
+    const numFields = fields.length
+    const result = new Array(rawList.length)
+    for (let i = 0; i < rawList.length; i++) {
+      const rawRow = rawList[i]
+      const rowObj = { id: i }
+      for (let j = 0; j < numFields; j++) {
+        rowObj[fields[j]] =
+          types[j] === 'number' ? rawRow[j] : getDisplayName(rawRow[j])
+      }
+      result[i] = rowObj
+    }
+    return result
+  }, [fields, types, rawList, getDisplayName])
 
-  const columns = labelProps.map(({ label, key: field, type }) => ({
-    headerName: label,
-    type,
-    field,
-    minWidth: 150,
-    flex: 1,
-    ...(type === 'number' && {
-      headerAlign: 'center',
-      align: 'center',
-      valueFormatter: (value) =>
-        NumberFormat.format(
-          value,
-          multiNumberFormat ? numberFormat[field] : numberFormat
-        ),
-    }),
-  }))
+  const multiNumberFormat = useMemo(
+    () => R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat),
+    [numberFormat]
+  )
 
-  const csv = R.concat([R.pluck('label', labelProps)], R.unnest(rawList)).join(
-    '\n'
+  const columns = useMemo(
+    () =>
+      labelProps.map(({ label, richLabel, key: field, type }) => ({
+        // The plain text is used for the tooltip, the column menu and the CSV
+        headerName: label,
+        // `richLabel` is only set when some part of the header is rich text
+        ...(richLabel != null && {
+          renderHeader: () => <RichLabel text={richLabel} rich />,
+        }),
+        type,
+        field,
+        minWidth: 150,
+        flex: 1,
+        ...(type === 'number' && {
+          headerAlign: 'center',
+          align: 'center',
+          valueFormatter: (value) =>
+            NumberFormat.format(
+              value,
+              (multiNumberFormat ? numberFormat?.[field] : numberFormat) ?? {}
+            ),
+        }),
+      })),
+    [labelProps, multiNumberFormat, numberFormat]
   )
 
   return (
     <>
-      <FlexibleContainer>
-        <DataGrid
-          {...{ rows, columns }}
-          pageSizeOptions={[25, 50, 100]}
-          sx={{
-            minWidth: 0,
-            bgcolor: 'background.paper',
-          }}
-        />
-      </FlexibleContainer>
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          minHeight: 0,
+        }}
+      >
+        {chartTitle && (
+          <Typography align="center" noWrap sx={styles.title}>
+            <RichLabel
+              text={richTitle ?? chartTitle}
+              rich={titleRichText === true}
+            />
+          </Typography>
+        )}
+        <FlexibleContainer>
+          <DataGrid
+            {...{ rows, columns }}
+            pageSizeOptions={[25, 50, 100]}
+            sx={{
+              minWidth: 0,
+              height: '100%',
+              bgcolor: 'background.paper',
+            }}
+          />
+        </FlexibleContainer>
+      </Box>
       <Box
         sx={{
           position: 'absolute',
@@ -80,14 +154,18 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
           variant="contained"
           sx={{}}
           onClick={() => {
+            const headerRow = R.pluck('label', labelProps)
+            const csvRows = [headerRow, ...rawList]
+            const csv = csvRows.map((row) => row.join(',')).join('\n')
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
-            link.href = URL.createObjectURL(
-              new Blob([csv], { type: 'text/csv' })
-            )
+            link.href = url
             link.setAttribute('download', 'data.csv')
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
+            URL.revokeObjectURL(url)
           }}
         >
           Download CSV
@@ -97,4 +175,4 @@ const TableChart = ({ data, labelProps, numberFormat }) => {
   )
 }
 
-export default TableChart
+export default memo(TableChart)

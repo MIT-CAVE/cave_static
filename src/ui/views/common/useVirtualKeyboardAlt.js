@@ -18,6 +18,32 @@ import { NumberFormat } from '../../../utils'
 
 const DELAY = 10
 
+const isTextInput = (el) => {
+  if (!el) return false
+  const tagName = el.tagName?.toLowerCase()
+  if (tagName === 'textarea') return true
+  if (tagName === 'input') {
+    const type = el.type?.toLowerCase() || 'text'
+    const nonTextTypes = [
+      'range',
+      'checkbox',
+      'radio',
+      'button',
+      'submit',
+      'reset',
+      'color',
+      'file',
+      'hidden',
+      'image',
+    ]
+    return !nonTextTypes.includes(type)
+  }
+  const role = el.getAttribute?.('role')
+  return (
+    role === 'combobox' || role === 'textbox' || Boolean(el.isContentEditable)
+  )
+}
+
 const useVirtualKeyboardAlt = ({
   keyboardLayout = 'default',
   disabled,
@@ -36,6 +62,21 @@ const useVirtualKeyboardAlt = ({
 }) => {
   const isTouchDragging = useRef(false)
   const isInternalChange = useRef(false)
+
+  const onBlurPropRef = useRef(onBlurProp)
+  onBlurPropRef.current = onBlurProp
+  const onChangePropRef = useRef(onChangeProp)
+  onChangePropRef.current = onChangeProp
+  const onFocusPropRef = useRef(onFocusProp)
+  onFocusPropRef.current = onFocusProp
+  const onTouchStartPropRef = useRef(onTouchStartProp)
+  onTouchStartPropRef.current = onTouchStartProp
+  const onTouchMovePropRef = useRef(onTouchMoveProp)
+  onTouchMovePropRef.current = onTouchMoveProp
+  const onTouchEndPropRef = useRef(onTouchEndProp)
+  onTouchEndPropRef.current = onTouchEndProp
+  const unformattedValueRef = useRef(unformattedValue)
+  unformattedValueRef.current = unformattedValue
 
   const virtualKeyboard = useSelector(selectVirtualKeyboard)
   const dispatch = useDispatch()
@@ -77,9 +118,9 @@ const useVirtualKeyboardAlt = ({
       if (disabled) return
       updateVirtualKeyboardValue(event.target.value)
       // console.log('Input change', { value: event.target.value, event })
-      onChangeProp?.(event)
+      onChangePropRef.current?.(event)
     },
-    [disabled, onChangeProp, updateVirtualKeyboardValue]
+    [disabled, updateVirtualKeyboardValue]
   )
 
   const handleFocus = useCallback(
@@ -89,17 +130,10 @@ const useVirtualKeyboardAlt = ({
       // VK internal buffer resets cleanly when focus moves between fields.
       dispatch(setActiveFieldId(fieldId))
       // Ensure virtual keyboard is up to date when focusing the input
-      updateVirtualKeyboardValue(unformattedValue)
-      onFocusProp?.(event)
+      updateVirtualKeyboardValue(unformattedValueRef.current)
+      onFocusPropRef.current?.(event)
     },
-    [
-      dispatch,
-      disabled,
-      fieldId,
-      onFocusProp,
-      unformattedValue,
-      updateVirtualKeyboardValue,
-    ]
+    [dispatch, disabled, fieldId, updateVirtualKeyboardValue]
   )
 
   const handleBlur = useCallback(
@@ -107,12 +141,7 @@ const useVirtualKeyboardAlt = ({
       if (disabled) return
 
       const nextFocus = event.relatedTarget || document.activeElement
-      const isClickingAnotherInput =
-        nextFocus?.tagName === 'INPUT' ||
-        nextFocus?.tagName === 'TEXTAREA' ||
-        nextFocus?.getAttribute('role') === 'combobox'
-
-      // console.log(isClickingAnotherInput, { nextFocus })
+      const isClickingAnotherInput = isTextInput(nextFocus)
 
       // Only sync from the VK buffer when the VK was actually in use and this
       // field owned it. Otherwise a stale redux `inputValue` (from a prior
@@ -122,7 +151,7 @@ const useVirtualKeyboardAlt = ({
       if (
         virtualKeyboard.isOpen &&
         virtualKeyboard.activeFieldId === fieldId &&
-        virtualKeyboard.inputValue !== unformattedValue
+        virtualKeyboard.inputValue !== unformattedValueRef.current
       ) {
         const rawValue = NumberFormat.parse(virtualKeyboard.inputValue)
         const fallback = isFinite(min) ? min : isFinite(max) ? max : 0
@@ -150,18 +179,16 @@ const useVirtualKeyboardAlt = ({
         dispatch(setActiveFieldId(null))
       }
 
-      onBlurProp?.(event)
+      onBlurPropRef.current?.(event)
       dispatch(setLastKeyPress('{blur}'))
     },
     [
       dispatch,
       disabled,
       fieldId,
-      onBlurProp,
       virtualKeyboard.activeFieldId,
       virtualKeyboard.isOpen,
       virtualKeyboard.inputValue,
-      unformattedValue,
       inputRef,
       min,
       max,
@@ -173,18 +200,18 @@ const useVirtualKeyboardAlt = ({
     (event) => {
       if (disabled) return
       isTouchDragging.current = false
-      onTouchStartProp?.(event)
+      onTouchStartPropRef.current?.(event)
     },
-    [disabled, onTouchStartProp]
+    [disabled]
   )
 
   const handleTouchMove = useCallback(
     (event) => {
       if (disabled) return
       isTouchDragging.current = true
-      onTouchMoveProp?.(event)
+      onTouchMovePropRef.current?.(event)
     },
-    [disabled, onTouchMoveProp]
+    [disabled]
   )
 
   const handleTouchEnd = useCallback(
@@ -198,9 +225,9 @@ const useVirtualKeyboardAlt = ({
           dispatch(setLayout(keyboardLayout))
         }, DELAY)
       }
-      onTouchEndProp?.(event)
+      onTouchEndPropRef.current?.(event)
     },
-    [disabled, virtualKeyboard.isOpen, onTouchEndProp, dispatch, keyboardLayout]
+    [disabled, virtualKeyboard.isOpen, dispatch, keyboardLayout]
   )
 
   // Update the field when user types on virtual keyboard

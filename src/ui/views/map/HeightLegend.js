@@ -4,8 +4,9 @@ import { useSelector } from 'react-redux'
 
 import { selectNumberFormatPropsFn } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
+import { resolveRichText } from '../../../utils/richText'
 
-import { OverflowText, Select } from '../../compound'
+import { OverflowText, RichLabel, Select } from '../../compound'
 
 const styles = {
   unit: {
@@ -25,6 +26,7 @@ const HeightLegend = ({
   heightBy,
   heightByOptions,
   featureTypeProps,
+  richText,
   icon,
   onSelectProp,
 }) => {
@@ -32,6 +34,8 @@ const HeightLegend = ({
   const heightByProp = featureTypeProps[heightBy]
   const numberFormat = getNumberFormatProps(heightByProp)
   const isCategorical = heightByProp.type !== propId.NUMBER
+  // The `richText` of the prop overrides the one of its feature type
+  const propRichText = resolveRichText(heightByProp.richText, richText)
 
   const renderNumericHeight = () => {
     return (
@@ -125,13 +129,21 @@ const HeightLegend = ({
             value={heightBy}
             optionsList={Object.keys(heightByOptions)}
             getLabel={(option) => featureTypeProps[option].name || option}
+            richText={(option) =>
+              resolveRichText(featureTypeProps[option]?.richText, richText) ===
+              true
+            }
             onSelect={onSelectProp}
           />
         </Grid>
         {numberFormat.unit && (
           <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
-              <OverflowText text={numberFormat.unit} />
+              <OverflowText text={numberFormat.unit}>
+                {propRichText === true && (
+                  <RichLabel text={numberFormat.unit} />
+                )}
+              </OverflowText>
             </Typography>
           </Grid>
         )}

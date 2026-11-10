@@ -8,10 +8,9 @@ const CumulativeLineChart = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   showNA,
-  chartHoverOrder,
 }) => {
   const yValues = R.has('children', R.head(data))
     ? R.pluck('children', data)
@@ -62,7 +61,6 @@ const CumulativeLineChart = ({
         numberFormat,
         colors,
         showNA,
-        chartHoverOrder,
       }}
     />
   )

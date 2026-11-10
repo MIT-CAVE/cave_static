@@ -25,18 +25,25 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
+import { memo, useCallback, useContext, useEffect, useRef } from 'react'
 
+import ChartContext, { useValueDisplayName } from './ChartContext'
 import ChartControls from './ChartControls'
 import FlexibleContainer from './FlexibleContainer'
 
 import {
-  NumberFormat,
+  findColoring,
   findSubgroupLabels,
+  getChartItemColor,
   getDecimalScaleFactor,
   getDecimalScaleLabel,
-  getChartItemColor,
-  findColoring,
+  getValueDisplayName,
+  getYExtremes,
+  getTintedItemStyle,
+  CHART_FILL_ALPHA_HOVER,
+  NumberFormat,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 // Register the required components
 echarts.use([
@@ -62,7 +69,18 @@ echarts.use([
   ScatterChart,
 ])
 
+// Shared grid line style so every axis with grid lines looks the same
+const splitLine = {
+  lineStyle: {
+    type: [2, 5],
+    dashOffset: 2,
+    color: '#aaa',
+    opacity: 0.7,
+  },
+}
+
 const baseOptions = {
+  hoverLayerThreshold: Infinity,
   backgroundColor: '#4a4a4a',
   grid: {
     top: 64,
@@ -106,14 +124,7 @@ const baseOptions = {
         // opacity: 0.7,
       },
     },
-    splitLine: {
-      lineStyle: {
-        type: [2, 5],
-        dashOffset: 2,
-        color: '#aaa',
-        opacity: 0.7,
-      },
-    },
+    splitLine,
   },
   legend: {
     // We might deal better with legend overlapping in the future.
@@ -145,68 +156,196 @@ const baseOptions = {
   },
 }
 
-const FlexibleChart = ({
-  options,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-  syncAxes,
-  onSyncAxesChange,
-  numBuckets,
-  onNumBucketsChange,
-  ...restProps
-}) => {
-  return (
-    <>
-      <FlexibleContainer>
-        <ReactEChartsCore
-          echarts={echarts}
-          option={R.mergeDeepRight(
-            R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-          )(options)}
-          notMerge
-          theme="dark"
-          {...restProps}
-        />
-      </FlexibleContainer>
-      <ChartControls
-        {...{
-          path,
-          xAxisOrder,
-          syncAxes,
-          onSyncAxesChange,
-          numBuckets,
-          onNumBucketsChange,
-        }}
-      />
-    </>
+// Vertical space (px) reserved for the chart title above the legend and grid
+// (only applied when the chart has a legend)
+const TITLE_OFFSET = 28
+
+// The base `legend` config is always merged in, so a legend is only shown
+// when it is not disabled and it lists data or the series are named.
+const hasLegend = ({ legend, series }) =>
+  R.is(Object, legend) &&
+  legend.show !== false &&
+  (!R.isEmpty(legend.data ?? []) ||
+    R.any(R.has('name'), R.filter(R.is(Object), [series].flat())))
+
+const withChartTitle = (title, option) => {
+  if (!title || option.title) return option
+  const shiftLegendAndGrid = hasLegend(option)
+  const shiftTop = R.over(R.lensProp('top'), (top) =>
+    R.is(Number, top) ? top + TITLE_OFFSET : top
   )
+  return R.pipe(
+    R.assoc('title', {
+      text: title,
+      left: 'center',
+      top: 16,
+      textStyle: { fontSize: 16 },
+    }),
+    R.when(
+      R.always(shiftLegendAndGrid),
+      R.over(R.lensProp('legend'), shiftTop)
+    ),
+    R.when(
+      R.both(
+        R.always(shiftLegendAndGrid),
+        R.propSatisfies(R.both(R.is(Object), R.complement(R.is(Array))), 'grid')
+      ),
+      R.over(R.lensProp('grid'), shiftTop)
+    )
+  )(option)
 }
+
+// Shows the display names of grouping level values (`valueNames`) on category
+// axes and in the legend, leaving the underlying names untouched
+const withValueNames = (valueNames, option) => {
+  const format = getValueDisplayName(valueNames)
+  const addFormatter = (path) =>
+    R.when(
+      R.both(
+        R.pipe(R.path(R.dropLast(1, path)), R.is(Object)),
+        R.pipe(R.path(path), R.isNil)
+      ),
+      R.assocPath(path, format)
+    )
+  return R.pipe(
+    R.when(
+      R.pathEq('category', ['xAxis', 'type']),
+      addFormatter(['xAxis', 'axisLabel', 'formatter'])
+    ),
+    R.when(
+      R.pathEq('category', ['yAxis', 'type']),
+      addFormatter(['yAxis', 'axisLabel', 'formatter'])
+    ),
+    R.when(
+      R.propSatisfies(R.is(Object), 'legend'),
+      addFormatter(['legend', 'formatter'])
+    )
+  )(option)
+}
+
+const FlexibleChart = memo(
+  ({
+    options,
+    sortable,
+    syncAxes,
+    onSyncAxesChange,
+    numBuckets,
+    onNumBucketsChange,
+    ...restProps
+  }) => {
+    const echartsRef = useRef(null)
+    const {
+      title: chartTitle,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+      valueNames,
+    } = useContext(ChartContext)
+
+    const handleResize = useCallback(({ width, height }) => {
+      const chart = echartsRef.current?.getEchartsInstance?.()
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize({ width, height })
+      }
+    }, [])
+
+    const handleChartReady = useCallback(
+      (chartInstance) => {
+        if (chartInstance && typeof chartInstance.resize === 'function') {
+          chartInstance.resize()
+        }
+        restProps.onChartReady?.(chartInstance)
+      },
+      [restProps]
+    )
+
+    useEffect(() => {
+      const chart = echartsRef.current?.getEchartsInstance?.()
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize()
+      }
+    })
+
+    return (
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
+        }}
+      >
+        <FlexibleContainer onResize={handleResize}>
+          <ReactEChartsCore
+            ref={echartsRef}
+            echarts={echarts}
+            option={withValueNames(
+              valueNames,
+              withChartTitle(
+                chartTitle,
+                R.mergeDeepRight(
+                  R.assocPath(
+                    ['tooltip', 'order'],
+                    chartHoverOrder,
+                    baseOptions
+                  )
+                )(options)
+              )
+            )}
+            notMerge
+            theme="dark"
+            {...restProps}
+            onChartReady={handleChartReady}
+          />
+        </FlexibleContainer>
+        <ChartControls
+          {...{
+            sortable,
+            path,
+            xAxisOrder,
+            syncAxes,
+            onSyncAxesChange,
+            numBuckets,
+            onNumBucketsChange,
+          }}
+        />
+      </div>
+    )
+  }
+)
+FlexibleChart.displayName = 'FlexibleChart'
 
 const EchartsPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   chartType,
   stack = false,
   seriesObj = {},
   colors,
   distribution = false,
   showNA,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
+  sortable,
   numBuckets,
   onNumBucketsChange,
 }) => {
-  if (R.isNil(data) || R.isEmpty(data)) return []
+  const { chartHoverOrder } = useContext(ChartContext)
+  const getDisplayName = useValueDisplayName()
+
+  if (R.isNil(data) || R.isEmpty(data)) return null
 
   const xLabels = R.pluck('name', data)
 
-  const yValues = R.has('children', R.head(data))
-    ? R.pluck('children', data)
-    : R.pluck('value', data)
+  const headData = R.head(data)
+  const yValues =
+    headData && R.has('children', headData)
+      ? R.pluck('children', data)
+      : R.pluck('value', data)
 
   const subGroupLabels = findSubgroupLabels(yValues)
 
@@ -222,64 +361,105 @@ const EchartsPlot = ({
     seriesObj
   )
 
+  const hasSubObjects =
+    Array.isArray(yValues) &&
+    yValues.length > 0 &&
+    Array.isArray(yValues[0]) &&
+    yValues[0].length > 0 &&
+    typeof yValues[0][0] === 'object' &&
+    yValues[0][0] !== null
+
   // Only true if using a line chart with 1 level of grouping
-  const visualMap =
-    chartType === 'line' && R.type(R.head(R.head(yValues))) !== 'Object'
+  const visualMap = chartType === 'line' && !hasSubObjects
 
   const color = R.map(
     (item) => findColoring(item, colors) ?? getChartItemColor(item)
   )(xLabels)
 
-  const series = R.ifElse(
-    (val) => R.type(R.head(R.head(val))) === 'Object',
-    R.pipe(
-      R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
-      R.flatten,
-      R.collectBy(R.prop('name')),
-      R.map((d) =>
-        R.mergeRight(baseObject, {
-          id: R.head(d).id,
-          name: R.head(d).name,
-          color:
-            findColoring(R.head(d).name, colors) ??
-            getChartItemColor(R.head(d).name),
-          data: R.map(
-            R.pipe(
-              (idx) => R.find(R.propEq(idx, 'index'), d),
-              R.when(R.isNotNil, R.path(['value', 0]))
-            )
-          )(R.range(0, Math.max(...R.pluck('index', d)) + 1)),
-        })
-      ),
-      R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
-    ),
-    (d) => [
-      R.mergeDeepLeft(
-        R.assoc(
-          'data',
-          R.pipe(
-            R.unnest,
-            visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity
-          )(d),
-          baseObject
+  const isBar = chartType === 'bar'
+
+  const series = hasSubObjects
+    ? R.pipe(
+        R.addIndex(R.map)((d, idx) =>
+          Array.isArray(d) ? R.map(R.assoc('index', idx))(d) : []
         ),
-        {
-          colorBy: 'data',
-          color,
-        }
-      ),
-    ]
-  )(yValues)
+        R.flatten,
+        R.filter((item) => item && item.name != null),
+        R.collectBy(R.prop('name')),
+        R.map((d) => {
+          if (!d || d.length === 0) return null
+          const headItem = R.head(d)
+          const indices = R.pluck('index', d).filter(
+            (i) => typeof i === 'number' && !isNaN(i)
+          )
+          const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+          if (maxIdx < 0) return null
+          const dataArr = new Array(maxIdx + 1)
+          for (let i = 0; i < d.length; i++) {
+            const item = d[i]
+            if (item && item.index != null) {
+              dataArr[item.index] = item.value?.[0]
+            }
+          }
+          const seriesColor =
+            findColoring(headItem?.name, colors) ??
+            getChartItemColor(headItem?.name)
+          return R.mergeRight(baseObject, {
+            id: headItem?.id,
+            name: headItem?.name,
+            color: seriesColor,
+            ...(isBar && {
+              itemStyle: getTintedItemStyle(seriesColor),
+              emphasis: {
+                focus: 'series',
+                itemStyle: getTintedItemStyle(
+                  seriesColor,
+                  CHART_FILL_ALPHA_HOVER
+                ),
+              },
+            }),
+            data: dataArr,
+          })
+        }),
+        R.filter(Boolean),
+        R.sortBy(({ name }) => R.indexOf(name, subGroupLabels))
+      )(yValues)
+    : [
+        R.mergeDeepLeft(
+          R.assoc(
+            'data',
+            R.pipe(
+              R.unnest,
+              visualMap ? R.addIndex(R.map)((a, b) => [b, a]) : R.identity,
+              // Only the fill supports style callbacks in ECharts, so the
+              // per-bar border color is set on each data item instead
+              isBar
+                ? R.addIndex(R.map)((value, idx) => ({
+                    value,
+                    itemStyle: getTintedItemStyle(color[idx]),
+                    emphasis: {
+                      itemStyle: getTintedItemStyle(
+                        color[idx],
+                        CHART_FILL_ALPHA_HOVER
+                      ),
+                    },
+                  }))
+                : R.identity
+            )(yValues),
+            baseObject
+          ),
+          {
+            name: '',
+            colorBy: 'data',
+            color,
+          }
+        ),
+      ]
 
-  const yMax = R.pipe(
-    R.pluck('data'),
-    R.flatten,
-    R.filter(R.isNotNil),
-    R.apply(Math.max)
-  )(series)
-
-  const scaleFactor = getDecimalScaleFactor(yMax)
-  const scaleLabel = getDecimalScaleLabel(yMax)
+  const [yMin, yMax] = getYExtremes(series)
+  const maxVal = Math.max(Math.abs(yMin), Math.abs(yMax))
+  const scaleFactor = getDecimalScaleFactor(maxVal)
+  const scaleLabel = getDecimalScaleLabel(maxVal)
 
   const lineMap = visualMap
     ? {
@@ -303,13 +483,42 @@ const EchartsPlot = ({
     R.equals('Object')
   )(numberFormat)
 
-  const getNumberFormat = (labelKey, value) =>
-    NumberFormat.format(value, numberFormat[labelKey])
+  const getChartValue = (value) => {
+    if (Array.isArray(value)) {
+      return visualMap || (value.length >= 2 && typeof value[0] === 'number')
+        ? value[1]
+        : value[0]
+    }
+    return value
+  }
+
+  const getNumberFormat = (labelKey, value, seriesName) =>
+    NumberFormat.format(
+      getChartValue(value),
+      numberFormat?.[labelKey] ??
+        numberFormat?.[seriesName] ??
+        (multiNumberFormat
+          ? R.is(Object, numberFormat)
+            ? R.values(numberFormat)[0]
+            : undefined
+          : numberFormat) ??
+        {}
+    )
+
+  const cleanSeriesName = (seriesName) =>
+    seriesName == null || /^series\d+$/i.test(seriesName) ? '' : seriesName
+
+  const renderSeriesTitle = (marker, seriesName, isSingle) => {
+    const cleanName = isSingle ? '' : cleanSeriesName(seriesName)
+    return cleanName
+      ? markup`<div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${getDisplayName(cleanName)}</div>`
+      : markup`<div style="text-align: center; flex: 1 1 auto">${safeHtml(marker)}</div>`
+  }
 
   const sortParams = (params) => {
     const handleByValue =
       chartHoverOrder === 'valueAsc' || chartHoverOrder === 'valueDesc'
-        ? R.sortBy(({ value }) => value)(params)
+        ? R.sortBy(({ value }) => getChartValue(value))(params)
         : params
     return chartHoverOrder === 'valueAsc' || chartHoverOrder === 'seriesAsc'
       ? handleByValue.reverse()
@@ -337,47 +546,36 @@ const EchartsPlot = ({
     tooltip: {
       ...(multiNumberFormat
         ? {
-            formatter: (params) =>
-              `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${sortParams(params)
+            formatter: (params) => {
+              const isSingle = params.length === 1
+              return markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
+                ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesId, seriesName, value }) =>
-                    R.isNil(value) && !showNA
+                    R.isNil(getChartValue(value)) && !showNA
                       ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                        <div><strong>${getNumberFormat(seriesId, value)}</strong></div>
+                      : markup`<div style="display: flex">
+                        ${renderSeriesTitle(marker, seriesName, isSingle)}
+                        <div><strong>${getNumberFormat(seriesId, value, seriesName)}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`,
+                  .filter(R.identity)}`.toString()
+            },
           }
         : {
-            formatter: (params) =>
-              params.length === 1
-                ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${params
-                  .map(({ marker, value }) =>
-                    R.isNil(value) && !showNA
-                      ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto">${marker}</div>
-                        <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
-                      </div>`
-                  )
-                  .filter(R.identity)
-                  .join('')}`
-                : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
-                ${sortParams(params)
+            formatter: (params) => {
+              const isSingle = params.length === 1
+              return markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
+                ${(isSingle ? params : sortParams(params))
                   .map(({ marker, seriesName, value }) =>
-                    R.isNil(value) && !showNA
+                    R.isNil(getChartValue(value)) && !showNA
                       ? false
-                      : `<div style="display: flex">
-                        <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
-                        <div><strong>${NumberFormat.format(visualMap ? value[1] : value, numberFormat)}</strong></div>
+                      : markup`<div style="display: flex">
+                        ${renderSeriesTitle(marker, seriesName, isSingle)}
+                        <div><strong>${NumberFormat.format(getChartValue(value), numberFormat ?? {})}</strong></div>
                       </div>`
                   )
-                  .filter(R.identity)
-                  .join('')}`,
+                  .filter(R.identity)}`.toString()
+            },
           }),
     },
     ...lineMap,
@@ -387,9 +585,7 @@ const EchartsPlot = ({
     <FlexibleChart
       {...{
         options,
-        chartHoverOrder,
-        path,
-        xAxisOrder,
+        sortable,
         numBuckets,
         onNumBucketsChange,
       }}
@@ -397,5 +593,5 @@ const EchartsPlot = ({
   )
 }
 
-export default EchartsPlot
-export { FlexibleChart }
+export default memo(EchartsPlot)
+export { FlexibleChart, splitLine }

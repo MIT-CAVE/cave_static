@@ -36,7 +36,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 
 import MapPortal from './MapPortal'
-import useMapApi, { MapContext } from './useMapApi'
+import { MapContext } from './useMapApi'
 
 import { mutateLocal } from '../../../data/local'
 import {
@@ -73,6 +73,7 @@ import {
   statFuncs,
 } from '../../../utils/enums'
 import { useMenu, useMutateStateWithSync } from '../../../utils/hooks'
+import { labelText } from '../../../utils/richText'
 import {
   getScaledValue,
   getScaleParamDefaults,
@@ -84,7 +85,7 @@ import RippleBox from '../../compound/RippleBox'
 import { EnhancedListbox, useIconDataLoader } from '../../compound/ShapePicker'
 import NumberField from '../../prototypes/NumberField'
 
-import { FetchedIcon, Select } from '../../compound'
+import { FetchedIcon, OverflowText, RichLabel, Select } from '../../compound'
 
 import {
   forceArray,
@@ -323,6 +324,7 @@ export const useGradient = ({
   gradient,
   numberFormat: numberFormatRaw,
   group,
+  richText,
   onChangeValueAt,
 }) => {
   const lastIndex = values.length - 1
@@ -340,14 +342,30 @@ export const useGradient = ({
     [numberFormat, values]
   )
 
-  const getLabel = useCallback(
+  // Whether the label of a stop is the one set in the data. Otherwise, it is a
+  // formatted number
+  const isServerLabelAt = useCallback(
     (index) => {
       const isLabelEmpty = labels[index] == null || labels[index] === ''
-      return group || isLabelEmpty || values[index] !== rawValues[index]
-        ? getFormattedValueAt(index)
-        : labels[index]
+      return !(group || isLabelEmpty || values[index] !== rawValues[index])
     },
-    [getFormattedValueAt, group, labels, rawValues, values]
+    [group, labels, rawValues, values]
+  )
+
+  const getLabel = useCallback(
+    (index) =>
+      isServerLabelAt(index) ? labels[index] : getFormattedValueAt(index),
+    [getFormattedValueAt, isServerLabelAt, labels]
+  )
+
+  // The label as plain text, for the labels made of several parts (that can
+  // not be rich text as a whole) and for the inputs of the edit mode
+  const getPlainLabel = useCallback(
+    (index) =>
+      isServerLabelAt(index)
+        ? labelText(labels[index], richText)
+        : getFormattedValueAt(index),
+    [getFormattedValueAt, isServerLabelAt, labels, richText]
   )
 
   const getAttrLabelAt = useCallback(
@@ -355,18 +373,18 @@ export const useGradient = ({
       const isLabelEmpty = labels[index] == null || labels[index] === ''
       return index > 0 && index < lastIndex // Within the bounds
         ? isStepScale
-          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${isLabelEmpty ? '' : ` "${getLabel(index)}"`}`
-          : `"${getLabel(index)}"`
+          ? `[${getFormattedValueAt(index - 1)}, ${getFormattedValueAt(index)})${isLabelEmpty ? '' : ` "${getPlainLabel(index)}"`}`
+          : `"${getPlainLabel(index)}"`
         : isStepScale
           ? `${index < 1 ? `(-\u221E, ${getFormattedValueAt(index)})` : `[${getFormattedValueAt(index - 1)}, \u221E)`}`
           : `${index < 1 ? 'Min' : 'Max'}`
     },
-    [getFormattedValueAt, getLabel, isStepScale, labels, lastIndex]
+    [getFormattedValueAt, getPlainLabel, isStepScale, labels, lastIndex]
   )
 
   const getValueLabelAt = useCallback(
     (index) => {
-      const label = getLabel(index)
+      const label = getPlainLabel(index)
       const isLabelEmpty = labels[index] == null || labels[index] === ''
       const isValueAdjusted = values[index] !== rawValues[index]
       return index > 0 && index < lastIndex // Within the bounds
@@ -397,7 +415,7 @@ export const useGradient = ({
     },
     [
       getFormattedValueAt,
-      getLabel,
+      getPlainLabel,
       isStepScale,
       labels,
       lastIndex,
@@ -435,6 +453,7 @@ export const useGradient = ({
     minAuto,
     maxAuto,
     getLabel,
+    isServerLabelAt,
     getAdjustedLabel,
     getAttrLabelAt,
     getValueLabelAt,
@@ -443,6 +462,16 @@ export const useGradient = ({
     handleSwapColorsAt,
   }
 }
+
+/**
+ * A label of the gradient of a legend. Only the labels set in the data are
+ * rich text, not the formatted numbers or the generated ones (e.g. `Min`).
+ */
+export const GradientLabel = ({ text, rawLabel = text, rich }) => (
+  <OverflowText {...{ text }}>
+    {rich && <RichLabel text={rawLabel} />}
+  </OverflowText>
+)
 
 const GradientColorMarker = ({ id, group, colorBy, colorByProp, getRange }) => {
   const { mapId } = useContext(MapContext)
@@ -1028,6 +1057,7 @@ export const LegendRowGeo = ({ LegendRowComponent, ...props }) => {
   return (
     <LegendRowComponent
       mapFeaturesBy={effectiveGeosBy}
+      icon={props.icon ?? 'md/MdOutlineHexagon'}
       {...{ getRange, ...props }}
     />
   )
@@ -1274,10 +1304,8 @@ export const LegendHeader = ({
 
 export const LegendRoot = (props) => {
   const { mapId } = useContext(MapContext)
-  const { isMapboxSelected } = useMapApi(mapId)
   const showPitchSlider = useSelector(selectPitchSliderToggleFunc)(mapId)
   const showBearingSlider = useSelector(selectBearingSliderToggleFunc)(mapId)
-  const attributionOffset = isMapboxSelected ? 0 : 16
   return (
     <Box
       key="map-legend"
@@ -1286,8 +1314,8 @@ export const LegendRoot = (props) => {
         {
           right: showPitchSlider ? 98 : 64,
           maxHeight: showBearingSlider
-            ? `calc(100% - ${165 + attributionOffset}px)`
-            : `calc(100% - ${88 + attributionOffset}px)`,
+            ? 'calc(100% - 165px)'
+            : 'calc(100% - 88px)',
           maxWidth: showPitchSlider
             ? 'calc(100% - 106px)'
             : 'calc(100% - 80px)',

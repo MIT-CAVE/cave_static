@@ -19,6 +19,7 @@ import {
 } from 'react-icons/md'
 
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 import SelectAccordion from './SelectAccordion'
 
 const styles = {
@@ -49,6 +50,7 @@ const SelectAccordionList = ({
   itemGroups = {},
   getLabel = R.identity,
   getSubLabel = R.identity,
+  richText,
   onClickAway = R.identity,
   onAddGroup,
   onChangeGroupIndex,
@@ -61,10 +63,25 @@ const SelectAccordionList = ({
 
   const options = useMemo(() => R.pipe(R.length, R.range(0))(values), [values])
 
+  const isRich = useCallback(
+    (item, subItem) =>
+      (typeof richText === 'function' ? richText(item, subItem) : richText) ===
+      true,
+    [richText]
+  )
+
   const getTagLabel = useCallback(
-    (value) =>
-      `${getLabel(value[0])} \u279D ${getSubLabel(value[0], value[1])}`,
-    [getLabel, getSubLabel]
+    (value) => (
+      <>
+        <RichLabel text={getLabel(value[0])} rich={isRich(value[0])} />
+        {' \u279D '}
+        <RichLabel
+          text={getSubLabel(value[0], value[1])}
+          rich={isRich(value[0], value[1])}
+        />
+      </>
+    ),
+    [getLabel, getSubLabel, isRich]
   )
 
   const handleClickAway = useCallback(
@@ -109,7 +126,7 @@ const SelectAccordionList = ({
             <Fragment key={key}>
               <li {...other}>
                 <SelectAccordion
-                  {...{ itemGroups, getLabel, getSubLabel }}
+                  {...{ itemGroups, getLabel, getSubLabel, richText }}
                   fullWidth
                   placeholder="Group By"
                   values={R.when(
@@ -242,6 +259,7 @@ SelectAccordionList.propTypes = {
   itemGroups: PropTypes.object,
   getLabel: PropTypes.func,
   getSubLabel: PropTypes.func,
+  richText: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
   onClickAway: PropTypes.func,
   onAddGroup: PropTypes.func,
   onChangeGroupIndex: PropTypes.func,

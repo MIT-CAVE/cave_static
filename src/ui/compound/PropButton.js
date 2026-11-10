@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { sendCommand } from '../../data/data'
 
@@ -102,7 +103,7 @@ const StandardButton = ({ prop, variant, sx = [] }) => {
       })}
       onClick={handleClick}
     >
-      {value ?? name}
+      <RichLabel text={value ?? name} rich={prop.richText === true} />
     </Button>
   )
 }

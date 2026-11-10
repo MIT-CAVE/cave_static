@@ -2,8 +2,15 @@ import * as R from 'ramda'
 import { useMemo, useState } from 'react'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
-import { findColoring, getChartItemColor } from '../../../../utils'
+import {
+  CHART_FILL_ALPHA_HOVER,
+  findColoring,
+  getChartItemColor,
+  getTintedItemStyle,
+} from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const leftDataMin = Math.min(...R.filter(R.is(Number), leftData))
@@ -42,15 +49,13 @@ const MixedChart = ({
   labelProps,
   leftVariant,
   rightVariant,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
   colors,
 }) => {
+  const getDisplayName = useValueDisplayName()
   const [syncAxes, setSyncAxes] = useState(true)
-  const hasSubgroups = R.has('children', R.head(data))
-  const xLabels = R.pluck('name', data)
-  const labels = R.pluck('label')(labelProps)
+  const hasSubgroups = Boolean(data && data[0] && 'children' in data[0])
+  const xLabels = data ? R.pluck('name', data) : []
+  const labels = R.pluck('label')(labelProps || [])
   const [xAxisLabel, leftLabel, rightLabel] = hasSubgroups
     ? R.props([0, 2, 3])(labels)
     : R.take(3)(labels)
@@ -75,42 +80,63 @@ const MixedChart = ({
       cumulative_line: 'line',
       bar: 'bar',
     }
+    const barStyle = (variant, color) =>
+      variant === 'bar'
+        ? {
+            itemStyle: getTintedItemStyle(color),
+            emphasis: {
+              itemStyle: getTintedItemStyle(color, CHART_FILL_ALPHA_HOVER),
+            },
+          }
+        : {}
     const smoothLeft = variantType[leftVariant] === 'line' ? true : undefined
     const smoothRight = variantType[rightVariant] === 'line' ? true : undefined
 
     if (hasSubgroups) {
-      const subGroups = R.reduce(
-        (acc, item) => {
-          R.forEach((child) => {
-            if (!R.find((sg) => sg.name === child.name, acc)) {
-              acc.push({ name: child.name, leftData: [], rightData: [] })
+      const subGroupsMap = new Map()
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i]
+        if (item.children) {
+          for (let j = 0; j < item.children.length; j++) {
+            const child = item.children[j]
+            if (child && !subGroupsMap.has(child.name)) {
+              subGroupsMap.set(child.name, {
+                name: child.name,
+                leftData: [],
+                rightData: [],
+              })
             }
-          }, item.children)
-          return acc
-        },
-        [],
-        data
-      )
+          }
+        }
+      }
+      const subGroups = Array.from(subGroupsMap.values())
 
-      R.forEach((item) => {
-        R.forEach((subgroup) => {
-          const child = R.find(
-            (child) => child.name === subgroup.name,
-            item.children
-          )
-          subgroup.leftData.push(child ? child.value[0] : undefined)
-          subgroup.rightData.push(child ? child.value[1] : undefined)
-        }, subGroups)
-      }, data)
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i]
+        const childMap = new Map()
+        if (item.children) {
+          for (let j = 0; j < item.children.length; j++) {
+            const child = item.children[j]
+            if (child) childMap.set(child.name, child)
+          }
+        }
+        for (let j = 0; j < subGroups.length; j++) {
+          const subgroup = subGroups[j]
+          const child = childMap.get(subgroup.name)
+          subgroup.leftData.push(child ? child.value?.[0] : undefined)
+          subgroup.rightData.push(child ? child.value?.[1] : undefined)
+        }
+      }
 
-      R.forEach((subgroup) => {
+      for (let i = 0; i < subGroups.length; i++) {
+        const subgroup = subGroups[i]
         if (isCumulative(leftVariant, subgroup.leftData)) {
           subgroup.leftData = accumulate(subgroup.leftData)
         }
         if (isCumulative(rightVariant, subgroup.rightData)) {
           subgroup.rightData = accumulate(subgroup.rightData)
         }
-      }, subGroups)
+      }
 
       const leftData = R.chain(R.prop('leftData'), subGroups)
       const rightData = R.chain(R.prop('rightData'), subGroups)
@@ -128,6 +154,10 @@ const MixedChart = ({
             data: sg.leftData,
             yAxisIndex: 0,
             smooth: smoothLeft,
+            ...barStyle(
+              variantType[leftVariant],
+              findColoring(sg.name, colors) ?? getChartItemColor(sg.name)
+            ),
           })),
           subGroups.map((sg) => ({
             color: findColoring(sg.name, colors) ?? getChartItemColor(sg.name),
@@ -136,6 +166,10 @@ const MixedChart = ({
             data: sg.rightData,
             yAxisIndex: 1,
             smooth: smoothRight,
+            ...barStyle(
+              variantType[rightVariant],
+              findColoring(sg.name, colors) ?? getChartItemColor(sg.name)
+            ),
           })),
         ]),
         leftMin,
@@ -162,6 +196,11 @@ const MixedChart = ({
             data: leftData,
             yAxisIndex: 0,
             smooth: smoothLeft,
+            ...barStyle(
+              variantType[leftVariant],
+              findColoring(leftLabelWithoutUnits, colors) ??
+                getChartItemColor(leftLabelWithoutUnits)
+            ),
           },
           {
             color:
@@ -172,6 +211,11 @@ const MixedChart = ({
             data: rightData,
             yAxisIndex: 1,
             smooth: smoothRight,
+            ...barStyle(
+              variantType[rightVariant],
+              findColoring(rightLabelWithoutUnits, colors) ??
+                getChartItemColor(rightLabelWithoutUnits)
+            ),
           },
         ],
         leftMin,
@@ -228,10 +272,22 @@ const MixedChart = ({
       createYAxis(rightLabel, -90, calcData.rightMin, calcData.rightMax),
     ],
     series: calcData.series,
+    tooltip: {
+      formatter: (params) =>
+        markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
+          ${params.map(
+            ({ marker, seriesName, value }) =>
+              markup`<div style="display: flex">
+                  <div style="flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${getDisplayName(seriesName)}</div>
+                  <div><strong>${value}</strong></div>
+                </div>`
+          )}`.toString(),
+    },
   }
   return (
     <FlexibleChart
-      {...{ options, chartHoverOrder, path, xAxisOrder, syncAxes }}
+      sortable
+      {...{ options, syncAxes }}
       onSyncAxesChange={setSyncAxes}
     />
   )

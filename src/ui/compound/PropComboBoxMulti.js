@@ -2,15 +2,24 @@ import PropTypes from 'prop-types'
 import * as R from 'ramda'
 import { useCallback, useMemo } from 'react'
 
-import ComboboxBase from './ComboboxBase'
+import ComboboxMultiBase from './ComboboxMultiBase'
 
-import { forceArray, getOrDefault, withIndex } from '../../utils'
+import {
+  forceArray,
+  getActiveDefaults,
+  getBaseDefaults,
+  getOptionActiveAttrs,
+  getOptionBaseAttrs,
+  withIndex,
+} from '../../utils'
 
 const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
   const {
     enabled,
+    readOnly,
     options,
     placeholder,
+    helperText,
     numVisibleTags,
     labelPlacement = 'end',
     fullWidth,
@@ -27,46 +36,41 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
   const indexedOptions = R.indexBy(R.prop('id'))(optionsListRaw)
 
   const activeDefaults = useMemo(
-    () => ({
-      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
-      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
-      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
-    }),
+    () => getActiveDefaults(propAttrs),
     [propAttrs]
   )
 
+  const baseDefaults = useMemo(() => getBaseDefaults(propAttrs), [propAttrs])
+
   const getActiveAttrs = useCallback(
-    (opt) => ({
-      activeName: getOrDefault(opt.activeName, opt.name),
-      activeIcon: getOrDefault(opt.activeIcon, opt.icon) ?? activeDefaults.icon,
-      activeColor:
-        getOrDefault(opt.activeColor, opt.color) ?? activeDefaults.color,
-      activeSize: getOrDefault(opt.activeSize, opt.size) ?? activeDefaults.size,
-    }),
-    [activeDefaults.color, activeDefaults.icon, activeDefaults.size]
+    (opt) => getOptionActiveAttrs(opt, activeDefaults),
+    [activeDefaults]
   )
 
-  const getOptionLabel = useCallback(
-    (option) => options[option]?.name,
-    [options]
+  const getBaseAttrs = useCallback(
+    (opt) => getOptionBaseAttrs(opt, baseDefaults),
+    [baseDefaults]
   )
 
   return (
-    <ComboboxBase
-      multiple
+    <ComboboxMultiBase
       disabled={!enabled}
       options={optionsList}
-      value={currentVal ?? prop.value ?? ''}
-      limitTags={numVisibleTags}
+      value={currentVal ?? prop.value ?? []}
+      numVisibleTags={numVisibleTags}
       sx={[...forceArray(sx), propStyle]}
       {...{
+        readOnly,
         indexedOptions,
         placeholder,
+        helperText,
         labelPlacement,
         fullWidth,
         slotProps,
+        propAttrs,
+        richText: prop.richText,
         getActiveAttrs,
-        getOptionLabel,
+        getBaseAttrs,
         onChange,
       }}
     />

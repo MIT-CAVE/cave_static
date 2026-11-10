@@ -12,6 +12,9 @@ import { memo, useState } from 'react'
 import { MdExpandMore } from 'react-icons/md'
 
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
 
 const styles = {
   select: {
@@ -53,6 +56,8 @@ const styles = {
  * @param itemGroups
  * @param getLabel
  * @param getSubLabel
+ * @param richText - Whether the labels are rich text. It can be a function of
+ * an item (and its sub-item for the sub labels), when it depends on them
  * @param onClickAway
  * @param onSelect
  * @param props
@@ -69,6 +74,7 @@ const SelectAccordion = ({
   onClose,
   getLabel = (label) => label,
   getSubLabel = (label) => label,
+  richText,
   onClickAway = () => {},
   onSelect = () => {},
   sx,
@@ -77,6 +83,9 @@ const SelectAccordion = ({
   const [openState, setOpenState] = useState(false)
 
   const controlled = open != null
+  const isRich = (item, subItem) =>
+    (typeof richText === 'function' ? richText(item, subItem) : richText) ===
+    true
 
   const SubItem = ({ item, subItem, ...props }) => (
     <MenuItem
@@ -87,7 +96,10 @@ const SelectAccordion = ({
       }}
       {...props}
     >
-      {getSubLabel(item, subItem)}
+      <RichLabel
+        text={getSubLabel(item, subItem)}
+        rich={isRich(item, subItem)}
+      />
     </MenuItem>
   )
 
@@ -106,7 +118,9 @@ const SelectAccordion = ({
             }}
           >
             <AccordionSummary expandIcon={<MdExpandMore />}>
-              <Typography sx={styles.heading}>{getLabel(item)}</Typography>
+              <Typography sx={styles.heading}>
+                <RichLabel text={getLabel(item)} rich={isRich(item)} />
+              </Typography>
             </AccordionSummary>
             <AccordionDetails sx={styles.getOrientation(layoutDirection)}>
               {subItems.map((subItem, idx) => (
@@ -148,11 +162,18 @@ const SelectAccordion = ({
       {...(values !== '' && {
         renderValue: (value) => (
           <OverflowText
-            text={`${getLabel(value[0])} \u279D ${getSubLabel(
-              value[0],
-              value[1]
+            text={`${labelText(getLabel(value[0]), isRich(value[0]))} \u279D ${labelText(
+              getSubLabel(value[0], value[1]),
+              isRich(value[0], value[1])
             )}`}
-          />
+          >
+            <RichLabel text={getLabel(value[0])} rich={isRich(value[0])} />
+            {' \u279D '}
+            <RichLabel
+              text={getSubLabel(value[0], value[1])}
+              rich={isRich(value[0], value[1])}
+            />
+          </OverflowText>
         ),
       })}
     >
@@ -219,6 +240,7 @@ SelectAccordion.propTypes = {
   itemGroups: PropTypes.object,
   getLabel: PropTypes.func,
   getSubLabel: PropTypes.func,
+  richText: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
   onOpen: PropTypes.func,

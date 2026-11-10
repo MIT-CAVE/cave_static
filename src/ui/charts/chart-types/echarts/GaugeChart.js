@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -10,7 +11,14 @@ import {
   findColoring,
 } from '../../../../utils'
 
-const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
+const GaugeChart = ({
+  data,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat = {},
+  colors,
+}) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -66,6 +74,14 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
     R.clamp(40, 115)
   )(xLabels)
   const calculateOffset = (idx) => (idx - (dataLength - 1) / 2) * labelSpacings
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
+
   const createSeriesData = (values) =>
     R.pipe(
       R.unnest,
@@ -74,13 +90,13 @@ const GaugeChart = ({ data, xAxisTitle, yAxisTitle, numberFormat, colors }) => {
           acc + 1,
           {
             value,
-            name: xLabels[acc],
+            name: getDisplayName(xLabels[acc]),
             title: {
               offsetCenter: [`${calculateOffset(acc)}%`, '90%'],
             },
             detail: {
               offsetCenter: [`${calculateOffset(acc)}%`, '103%'],
-              formatter: NumberFormat.format(value, numberFormat),
+              formatter: NumberFormat.format(value, resolvedNumberFormat),
             },
           },
         ],

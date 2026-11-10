@@ -1,6 +1,6 @@
 ---
 name: coding-standards
-description: Enforce coding conventions, including ESLint import order, prop-types validation, Ramda usage, and formatting.
+description: Enforce coding conventions, including ESLint import order, prop-types validation, and formatting.
 ---
 
 # Coding Standards
@@ -50,8 +50,14 @@ No circular imports or paths pointing directly to `index.js` (e.g. use `../../ut
 
 ## 4. Functional Programming (Ramda)
 
-Use Ramda (`import * as R from 'ramda'`) for data transformations instead of complex nested lodash or raw JS loops:
+Previoulsy we used Ramda (`import * as R from 'ramda'`) for data transformations instead of complex nested JS loops.
 
-- Use `R.pipe` instead of nested functional calls.
-- Use `R.pathOr` to safely traverse deeply nested objects.
-- Use `R.cond` instead of long if/else chains.
+Moving forward, we are migrating towards a pure JS. As you work through the codebase, refactor away from Ramda as appropriate to the task at hand, however do not refactor existing code that is already using Ramda unless it is necessary for the task.
+
+## 5. Performance Considerations
+
+Strive to write performant code. Avoid unnecessary re-renders, and use memoization techniques (e.g., `React.memo`, `useMemo`, `useCallback`) where appropriate. Always consider the impact of your code on the overall application performance.
+
+At the same time, work towards a more functional programming style, avoiding side effects and mutable state where possible. This will help maintain a clean and predictable codebase.
+
+Furthermore, strive to write code that is easy to read and understand, even if it means sacrificing minor (5-10%) performance. Prioritize reusability, clarity and maintainability over micro-optimizations.

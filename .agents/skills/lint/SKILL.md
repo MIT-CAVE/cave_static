@@ -5,7 +5,7 @@ description: Formats code and checks for syntax errors, styling violations, and 
 
 # Linting and Formatting
 
-The codebase uses Prettier and ESLint (incorporating plugins for React, Emotion object styles, Ramda, and imports) to maintain cleanliness.
+The codebase uses Prettier and ESLint (incorporating plugins for React, Emotion object styles, and imports) to maintain cleanliness.
 
 ## Formatting Commands
 
