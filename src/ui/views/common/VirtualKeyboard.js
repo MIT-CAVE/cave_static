@@ -490,7 +490,18 @@ const VirtualKeyboard = () => {
       }
 
       if (event.key === 'Enter') {
+        // Let an Autocomplete select its highlighted option natively
+        if (event.target?.getAttribute?.('aria-activedescendant')) return
+
         event.preventDefault()
+        if (virtualKeyboard.isTextArea) {
+          // Mirror the on-screen `{enter}` key: insert a newline
+          const newValue = `${virtualKeyboard.inputValue}\n`
+          dispatch(setInputValue(newValue))
+          keyboardRef.current?.setInput(newValue)
+          keyboardRef.current?.setCaretPosition(newValue.length)
+          return
+        }
         dispatch(setEnter(true))
         return
       }
@@ -518,6 +529,7 @@ const VirtualKeyboard = () => {
     virtualKeyboard.isOpen,
     virtualKeyboard.inputValue,
     virtualKeyboard.layout,
+    virtualKeyboard.isTextArea,
     dispatch,
   ])
 

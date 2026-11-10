@@ -131,7 +131,19 @@ const TextInput = ({
         size,
         autoFocus,
         fullWidth,
-        onKeyDown,
+      }}
+      onKeyDown={(e) => {
+        onKeyDown?.(e)
+        // Single-line: match the virtual keyboard's submit (commit via blur).
+        // Multiline keeps Enter as a newline.
+        if (
+          !multiline &&
+          e.key === 'Enter' &&
+          !e.nativeEvent?.isComposing &&
+          !e.defaultPrevented
+        ) {
+          e.target.blur()
+        }
       }}
       name={multiline ? 'cave-textarea-input' : 'cave-text-input'}
       color={color === 'default' ? 'primary' : color}

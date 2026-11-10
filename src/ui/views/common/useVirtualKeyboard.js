@@ -57,14 +57,6 @@ export function useVirtualKeyboard({
     }
   }, [virtualKeyboard.caretPosition])
 
-  useEffect(() => {
-    if (focused.current && virtualKeyboard.enter) {
-      inputRef.current.blur()
-      dispatch(setIsOpen(false))
-      dispatch(setEnter(false))
-    }
-  }, [dispatch, focused, inputRef, virtualKeyboard.enter])
-
   const handleFocus = useCallback(
     (event) => {
       if (disabled) return

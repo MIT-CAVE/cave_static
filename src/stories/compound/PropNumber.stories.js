@@ -59,6 +59,22 @@ export const NumberField = {
   },
 }
 
+export const NumberFieldEnterCommits = {
+  ...NumberField,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+    await userEvent.click(input)
+    await userEvent.clear(input)
+    // Over max (1000): Enter should clamp, commit, and release focus,
+    // matching the virtual keyboard's submit button.
+    await userEvent.type(input, '1500{Enter}')
+    await expect(args.onChange).toHaveBeenLastCalledWith(1000)
+    await expect(input).not.toHaveFocus()
+    await expect(input.value).toBe('1,000.00')
+  },
+}
+
 export const NumberSlider = {
   render: function Render(args) {
     const [currentVal, setCurrentVal] = React.useState(args.currentVal)

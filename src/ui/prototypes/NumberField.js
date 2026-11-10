@@ -293,6 +293,19 @@ const NumberField = ({
                         ? state.inputValue
                         : // Show formatted value when input is blurred
                           NumberFormat.format(state.value, numberFormat),
+                      // Match the virtual keyboard's submit: Enter commits (via
+                      // the blur path) and releases focus. Base UI treats Enter
+                      // as a navigation key and otherwise does nothing.
+                      onKeyDown: (e) => {
+                        props.onKeyDown?.(e)
+                        if (
+                          e.key === 'Enter' &&
+                          !e.nativeEvent?.isComposing &&
+                          !e.defaultPrevented
+                        ) {
+                          localInputRef.current?.blur()
+                        }
+                      },
                       ...slotProps?.input,
                       sx: [
                         spinner === 'leftAndRight' && { textAlign: 'center' },
@@ -413,7 +426,6 @@ const NumberField = ({
                     }
                   }}
                   onKeyUp={props.onKeyUp}
-                  onKeyDown={props.onKeyDown}
                 />
                 {showKeyboardToggle && (
                   <KeyboardToggle
