@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -69,6 +70,7 @@ const WaterfallChart = ({
   colors,
   showNA,
 }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -215,7 +217,7 @@ const WaterfallChart = ({
     tooltip: {
       formatter: (params) =>
         params.length === 1
-          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ? `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
                 ${params
                   .map(({ marker, value }) =>
                     R.isNil(value) && !showNA
@@ -227,13 +229,13 @@ const WaterfallChart = ({
                   )
                   .filter(R.identity)
                   .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          : `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ marker, seriesName, value }) =>
               R.isNil(value) && !showNA
                 ? false
                 : `<div style="display: flex">
-                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesName}</div>
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${getDisplayName(seriesName)}</div>
                   <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )
@@ -270,6 +272,7 @@ const StackedWaterfallChart = ({
   colors,
   showNA,
 }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -600,7 +603,7 @@ const StackedWaterfallChart = ({
     tooltip: {
       formatter: (params) =>
         params.length === 3
-          ? `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          ? `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
                 ${params
                   .map(({ marker, value }) =>
                     R.isNil(value) && !showNA
@@ -612,13 +615,13 @@ const StackedWaterfallChart = ({
                   )
                   .filter(R.identity)
                   .join('')}`
-          : `<div style="margin-bottom: 3px"><strong>${params[0].name}</strong></div>
+          : `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params
             .map(({ marker, seriesName, value, seriesType }) =>
               R.isNil(value) && !showNA
                 ? false
                 : `<div style="display: flex">
-                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesType === 'graph' ? '' : seriesName}</div>
+                  <div style="text-align: center; flex: 1 1 auto; margin-right: 32px">${marker} ${seriesType === 'graph' ? '' : getDisplayName(seriesName)}</div>
                   <div><strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong></div>
                 </div>`
             )

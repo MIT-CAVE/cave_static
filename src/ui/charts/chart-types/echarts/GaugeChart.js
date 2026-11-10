@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -17,6 +18,7 @@ const GaugeChart = ({
   numberFormat = {},
   colors,
 }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -88,7 +90,7 @@ const GaugeChart = ({
           acc + 1,
           {
             value,
-            name: xLabels[acc],
+            name: getDisplayName(xLabels[acc]),
             title: {
               offsetCenter: [`${calculateOffset(acc)}%`, '90%'],
             },

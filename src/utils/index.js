@@ -258,6 +258,13 @@ export const passLog = (val) => {
   console.log(val)
   return val
 }
+// Display name for a raw grouping level value: the declared `valueNames` entry
+// when there is one, otherwise a capitalized boolean, otherwise the raw value
+export const getValueDisplayName = R.curry((valueNames, value) => {
+  if (Object.prototype.hasOwnProperty.call(valueNames ?? {}, value))
+    return valueNames[value]
+  return value === 'true' ? 'True' : value === 'false' ? 'False' : value
+})
 export const getGroupLabelFn = R.curry((data, item) =>
   R.pathOr(R.last(item), [...item, 'name'])(data)
 )

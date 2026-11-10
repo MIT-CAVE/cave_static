@@ -5,7 +5,7 @@ import { memo, useContext, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
 import { FlexibleContainer } from '../echarts'
-import ChartContext from '../echarts/ChartContext'
+import ChartContext, { useValueDisplayName } from '../echarts/ChartContext'
 
 // Convert chart object to flat list of row arrays
 const flattenChartTree = (data) => {
@@ -54,8 +54,10 @@ const styles = {
 
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
   const { title: chartTitle } = useContext(ChartContext)
+  const getDisplayName = useValueDisplayName()
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
+  const types = useMemo(() => R.pluck('type')(labelProps), [labelProps])
   const rows = useMemo(() => {
     const numFields = fields.length
     const result = new Array(rawList.length)
@@ -63,12 +65,13 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
       const rawRow = rawList[i]
       const rowObj = { id: i }
       for (let j = 0; j < numFields; j++) {
-        rowObj[fields[j]] = rawRow[j]
+        rowObj[fields[j]] =
+          types[j] === 'number' ? rawRow[j] : getDisplayName(rawRow[j])
       }
       result[i] = rowObj
     }
     return result
-  }, [fields, rawList])
+  }, [fields, types, rawList, getDisplayName])
 
   const multiNumberFormat = useMemo(
     () => R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat),

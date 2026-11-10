@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { FlexibleChart, splitLine } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -10,6 +11,7 @@ import {
 } from '../../../../utils'
 
 const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
+  const getDisplayName = useValueDisplayName()
   const labels = R.pluck('label')(labelProps)
   if (
     R.isNil(data) ||
@@ -122,7 +124,7 @@ const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
               `<div style="display: flex; justify-content: space-between; gap: 30px"><span>${label}</span><strong>${value}</strong></div>`
           )
           .join('')
-        return `<div style="white-space: nowrap"><div style="margin-bottom: 3px"><strong>${params.seriesName}</strong></div>${rows}</div>`
+        return `<div style="white-space: nowrap"><div style="margin-bottom: 3px"><strong>${getDisplayName(params.seriesName)}</strong></div>${rows}</div>`
       },
     },
     legend: {
