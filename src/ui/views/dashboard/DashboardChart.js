@@ -484,7 +484,7 @@ const DashboardChart = ({ chartObj, path }) => {
             }}
           />
         ) : chartType === chartVariant.SCATTER &&
-          R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
+          R.isNil(R.path(['stats', 2, 'statId'], cleanedChartObj)) ? (
           <ScatterPlot
             data={formattedData}
             labelProps={R.dissoc(3)(labelProps)}
