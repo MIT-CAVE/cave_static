@@ -10,6 +10,7 @@ import {
   getChartItemColor,
   getTintedItemStyle,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const leftDataMin = Math.min(...R.filter(R.is(Number), leftData))
@@ -273,16 +274,14 @@ const MixedChart = ({
     series: calcData.series,
     tooltip: {
       formatter: (params) =>
-        `<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
-          ${params
-            .map(
-              ({ marker, seriesName, value }) =>
-                `<div style="display: flex">
-                  <div style="flex: 1 1 auto; margin-right: 32px">${marker} ${getDisplayName(seriesName)}</div>
+        markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
+          ${params.map(
+            ({ marker, seriesName, value }) =>
+              markup`<div style="display: flex">
+                  <div style="flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${getDisplayName(seriesName)}</div>
                   <div><strong>${value}</strong></div>
                 </div>`
-            )
-            .join('')}`,
+          )}`.toString(),
     },
   }
   return (

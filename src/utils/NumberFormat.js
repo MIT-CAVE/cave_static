@@ -192,7 +192,12 @@ class NumberFormat {
   // Units are handled outside the ECMAScript 2023 spec,
   // as custom units are not supported by this specification.
   // See: https://tc39.es/proposal-intl-enumeration/#sec-measurement-unit-identifiers
-  format(value, rawOptions = {}) {
+  //
+  // The formatted `value` split into the formatted number (`text`) and its
+  // `unit`, for when the unit is rendered separately (e.g. as rich text).
+  // `unitAfter` and `gap` tell how the unit is joined to the number. Values that
+  // are not numbers (e.g. the `fallbackValue`) are returned without a unit.
+  formatParts(value, rawOptions = {}) {
     let {
       precision = 2,
       trailingZeros = true,
@@ -203,13 +208,14 @@ class NumberFormat {
       unitPlacement = unitPlacements.AFTER_WITH_SPACE,
       showZeroExponent = false, // REVIEW: Should this be included in the API?
     } = typeof rawOptions === 'object' && rawOptions !== null ? rawOptions : {}
-    if (value == null) return fallbackValue
+    if (value == null) return { text: fallbackValue }
     if (Array.isArray(value)) {
       value =
         value.length >= 2 && typeof value[0] === 'number' ? value[1] : value[0]
     }
-    if (value == null) return fallbackValue
-    if (value === Infinity || value === -Infinity || isNaN(value)) return 'NaN'
+    if (value == null) return { text: fallbackValue }
+    if (value === Infinity || value === -Infinity || isNaN(value))
+      return { text: 'NaN' }
 
     if (typeof value === 'string') {
       value = +value
@@ -259,12 +265,23 @@ class NumberFormat {
       unitPlacement === unitPlacements.BEFORE_WITH_SPACE
         ? ' '
         : ''
+    return {
+      text: valueText,
+      unit,
+      gap,
+      unitAfter:
+        unitPlacement === unitPlacements.AFTER ||
+        unitPlacement === unitPlacements.AFTER_WITH_SPACE,
+    }
+  }
+
+  format(value, rawOptions = {}) {
+    const { text, unit, gap, unitAfter } = this.formatParts(value, rawOptions)
     return unit
-      ? unitPlacement === unitPlacements.AFTER ||
-        unitPlacement === unitPlacements.AFTER_WITH_SPACE
-        ? `${valueText}${gap}${unit}`
-        : `${unit}${gap}${valueText}`
-      : valueText
+      ? unitAfter
+        ? `${text}${gap}${unit}`
+        : `${unit}${gap}${text}`
+      : text
   }
 }
 

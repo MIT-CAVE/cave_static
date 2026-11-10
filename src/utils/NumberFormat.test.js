@@ -3,6 +3,63 @@ import { describe, it, expect } from 'vitest'
 import NumberFormat from './NumberFormat'
 
 describe('NumberFormat', () => {
+  describe('formatParts', () => {
+    it('splits the number from its unit', () => {
+      expect(
+        NumberFormat.formatParts(1250, { precision: 0, unit: 'kg' })
+      ).toEqual({ text: '1,250', unit: 'kg', gap: ' ', unitAfter: true })
+    })
+
+    it('tells where the unit goes and if there is a gap', () => {
+      expect(
+        NumberFormat.formatParts(5, {
+          precision: 0,
+          unit: '$',
+          unitPlacement: 'before',
+        })
+      ).toMatchObject({ text: '5', unit: '$', gap: '', unitAfter: false })
+      expect(
+        NumberFormat.formatParts(5, {
+          precision: 0,
+          unit: 'USD',
+          unitPlacement: 'beforeWithSpace',
+        })
+      ).toMatchObject({ unit: 'USD', gap: ' ', unitAfter: false })
+    })
+
+    it('returns values that are not numbers without a unit', () => {
+      expect(NumberFormat.formatParts(null, { unit: 'kg' })).toEqual({
+        text: 'N/A',
+      })
+      expect(NumberFormat.formatParts(NaN, { unit: 'kg' })).toEqual({
+        text: 'NaN',
+      })
+    })
+
+    it('is how format joins the number and the unit', () => {
+      const cases = [
+        [1250, { precision: 0, unit: 'kg' }],
+        [5, { precision: 1, unit: '$', unitPlacement: 'before' }],
+        [5, { precision: 1, unit: 'USD', unitPlacement: 'beforeWithSpace' }],
+        [5, { precision: 1, unit: '%', unitPlacement: 'after' }],
+        [5, { precision: 1 }],
+        [null, { unit: 'kg' }],
+      ]
+      for (const [value, options] of cases) {
+        const { text, unit, gap, unitAfter } = NumberFormat.formatParts(
+          value,
+          options
+        )
+        const joined = unit
+          ? unitAfter
+            ? `${text}${gap}${unit}`
+            : `${unit}${gap}${text}`
+          : text
+        expect(NumberFormat.format(value, options)).toBe(joined)
+      }
+    })
+  })
+
   describe('format - defensive options handling', () => {
     it('formats with default options when options is omitted', () => {
       expect(NumberFormat.format(1234.5678)).toBe('1,234.57')

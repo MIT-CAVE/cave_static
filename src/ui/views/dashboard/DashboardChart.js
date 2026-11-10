@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux'
 import {
   selectGroupedOutputTypes,
   selectNumberFormat,
+  selectRichTextDefault,
   selectMemoizedChartFunc,
   selectChartColors,
   selectSlimStatGroupings,
@@ -16,6 +17,13 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import { useChartRichText } from '../../../utils/hooks'
+import {
+  escapeRichText,
+  labelText,
+  resolveRichText,
+  richPiece,
+} from '../../../utils/richText'
 import ChartContext from '../../charts/chart-types/echarts/ChartContext'
 
 import {
@@ -52,6 +60,8 @@ const DashboardChart = ({ chartObj, path }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectSlimStatGroupings)
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const chartRichText = resolveRichText(chartObj.richText, richTextDefault)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
   const cleanedChartObj = useMemo(
@@ -138,13 +148,23 @@ const DashboardChart = ({ chartObj, path }) => {
 
   const chartContextValue = useMemo(
     () => ({
-      title: chartObj.title ?? '',
+      // Canvas text can't render markup, so the title is its plain twin
+      title: labelText(chartObj.title ?? '', chartRichText),
+      richTitle: chartObj.title ?? '',
+      richText: chartRichText,
       path,
       chartHoverOrder,
       xAxisOrder,
       valueNames,
     }),
-    [chartObj.title, path, chartHoverOrder, xAxisOrder, valueNames]
+    [
+      chartObj.title,
+      chartRichText,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+      valueNames,
+    ]
   )
 
   useEffect(() => {
@@ -181,40 +201,68 @@ const DashboardChart = ({ chartObj, path }) => {
     [cleanedChartObj]
   )
 
+  // Names are rich text when the closest `richText` is `true`: the stat (or
+  // its dataset), the grouping level (or its grouping), and the chart title.
+  // Canvas text can't render markup, so it uses the plain twin of the names.
+  // Table headers are composed of rich and literal pieces: the literal ones are
+  // escaped so they are shown as they are.
+  const { getStatRichText, getGroupingRichText } = useChartRichText()
+  const getGroupingTitle = useCallback(
+    (groupingId, level, rich = false, alwaysSub = false) => {
+      const flag = getGroupingRichText(groupingId, level)
+      const name = rich
+        ? richPiece(getLabelFn(categories)(groupingId), flag === true)
+        : labelText(getLabelFn(categories)(groupingId), flag)
+      if (!level && !alwaysSub) return { text: name, rich: flag === true }
+      const subName = getSubLabelFn(categories, groupingId, level)
+      return {
+        text: `${name}${rich ? escapeRichText(' ➝ ') : ' ➝ '}${
+          rich ? richPiece(subName, flag === true) : labelText(subName, flag)
+        }`,
+        rich: flag === true,
+      }
+    },
+    [categories, getGroupingRichText]
+  )
+
   const xAxisTitle = useMemo(
     () =>
       cleanedChartObj.groupingId
-        ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
-            cleanedChartObj.groupingLevel &&
-            R.pathOr('', ['groupingLevel', 0], cleanedChartObj)
-              ? ` \u279D ${getSubLabelFn(
-                  categories,
-                  R.path(['groupingId', 0], cleanedChartObj),
-                  R.path(['groupingLevel', 0], cleanedChartObj),
-                  cleanedChartObj
-                )}`
-              : ''
-          }`
+        ? getGroupingTitle(
+            R.pathOr('', ['groupingId', 0], cleanedChartObj),
+            R.path(['groupingLevel', 0], cleanedChartObj)
+          ).text
         : '',
-    [categories, cleanedChartObj]
+    [cleanedChartObj, getGroupingTitle]
   )
 
+  // `rich` returns the rich text, with `rich: false` its plain twin
   const getYAxisTitle = useCallback(
-    (statIdx) => {
+    (statIdx, rich = false) => {
+      let hasRichText = false
+      const lit = (text) => (rich ? escapeRichText(text) : text)
+      const piece = (text, flag) => {
+        if (flag === true) hasRichText = true
+        return rich ? richPiece(text, flag === true) : labelText(text, flag)
+      }
       // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
       const statDataset = cleanedChartObj.dataset
       const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
       const statId = R.propOr('', 'statId', statObject)
-      const statIdLabel = getGroupLabelFn(statisticTypes, [statDataset, statId])
+      const statFlag = getStatRichText(statDataset, statId)
+      const statIdLabel = piece(
+        getGroupLabelFn(statisticTypes, [statDataset, statId]),
+        statFlag
+      )
       const statUnit =
         R.pathOr({}, [statDataset, statId], statisticTypes).unit ||
         numberFormatDefault.unit
 
       const statDivisorId = R.propOr('', 'statIdDivisor', statObject)
-      const statDivisorIdLabel = getGroupLabelFn(statisticTypes, [
-        statDataset,
-        statDivisorId,
-      ])
+      const statDivisorIdLabel = piece(
+        getGroupLabelFn(statisticTypes, [statDataset, statDivisorId]),
+        getStatRichText(statDataset, statDivisorId)
+      )
       const statDivisorUnit =
         statisticTypes[statDataset]?.[statDivisorId]?.unit ||
         numberFormatDefault.unit
@@ -230,16 +278,6 @@ const DashboardChart = ({ chartObj, path }) => {
         'aggregationGroupingLevel',
         statObject
       )
-      const statAggregationGroupingLabel = getLabelFn(
-        categories,
-        statAggregationGroupingId
-      )
-      const statAggregationGroupingSubLabel = getSubLabelFn(
-        categories,
-        statAggregationGroupingId,
-        statAggregationGroupingLevel
-      )
-
       var yAxisTitle = ''
 
       // TODO: Consider adding sum back in for consistency...
@@ -248,28 +286,47 @@ const DashboardChart = ({ chartObj, path }) => {
         statAggregation !== '' &&
         statAggregation !== 'sum'
       ) {
-        yAxisTitle += `${statAggregation.toUpperCase()} of `
+        yAxisTitle += lit(`${statAggregation.toUpperCase()} of `)
       }
       // If the statAggregation is a divisor, add the statId and the divisor name to
       if (statAggregation === 'divisor') {
-        yAxisTitle += `${statIdLabel} / ${statDivisorIdLabel}`
+        yAxisTitle += `${statIdLabel}${lit(' / ')}${statDivisorIdLabel}`
         // If stat unit does not equal the divisor units, add the units to the yAxisTitle
         if (statUnit !== statDivisorUnit) {
           yAxisTitle += statUnit
-            ? `/n[${statUnit} ${statDivisorUnit ? `/ ${statDivisorUnit} ]` : ']'}`
+            ? `${lit('/n[')}${piece(statUnit, statFlag)}${lit(
+                ` ${statDivisorUnit ? '/ ' : ''}`
+              )}${statDivisorUnit ? piece(statDivisorUnit, statFlag) : ''}${lit(
+                statDivisorUnit ? ' ]' : ']'
+              )}`
             : ''
         }
       } else {
         yAxisTitle += statIdLabel
-        yAxisTitle += statUnit ? ` [${statUnit}]` : ''
+        yAxisTitle += statUnit
+          ? `${lit(' [')}${piece(statUnit, statFlag)}${lit(']')}`
+          : ''
       }
-      yAxisTitle += statAggregationGroupingId
-        ? `\nGrouped By ${statAggregationGroupingLabel} \u279D ${statAggregationGroupingSubLabel}`
-        : ''
+      if (statAggregationGroupingId) {
+        const { text, rich: groupingIsRich } = getGroupingTitle(
+          statAggregationGroupingId,
+          statAggregationGroupingLevel,
+          rich,
+          true
+        )
+        if (groupingIsRich) hasRichText = true
+        yAxisTitle += `${lit('\nGrouped By ')}${text}`
+      }
 
-      return yAxisTitle
+      return rich ? { text: yAxisTitle, hasRichText } : yAxisTitle
     },
-    [categories, cleanedChartObj, numberFormatDefault.unit, statisticTypes]
+    [
+      cleanedChartObj,
+      getGroupingTitle,
+      getStatRichText,
+      numberFormatDefault.unit,
+      statisticTypes,
+    ]
   )
 
   const yAxisTitle = useMemo(() => getYAxisTitle(0), [getYAxisTitle])
@@ -290,23 +347,26 @@ const DashboardChart = ({ chartObj, path }) => {
 
   const labelProps = useMemo(() => {
     const multiStatLabelProps = R.map((idx) => {
+      const { text, hasRichText } = getYAxisTitle(idx, true)
       return {
         type: 'number',
         key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
         label: getYAxisTitle(idx),
+        // Only set when some part of the header is rich text
+        ...(hasRichText && { richLabel: text }),
       }
     })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
 
-    const getGroupingLabel = (n) =>
-      `${getLabelFn(categories)(R.path(['groupingId', n], cleanedChartObj))}${
-        R.path(['groupingLevel', n], cleanedChartObj)
-          ? ` \u279D ${getSubLabelFn(
-              categories,
-              R.path(['groupingId', n], cleanedChartObj),
-              R.path(['groupingLevel', n], cleanedChartObj)
-            )}`
-          : ''
-      }`
+    const getGroupingLabelProps = (n) => {
+      const groupingId = R.path(['groupingId', n], cleanedChartObj)
+      const level = R.path(['groupingLevel', n], cleanedChartObj)
+      const plain = getGroupingTitle(groupingId, level)
+      const rich = getGroupingTitle(groupingId, level, true)
+      return {
+        label: plain.text,
+        ...(rich.rich && { richLabel: rich.text }),
+      }
+    }
 
     return R.reduce(
       (acc, value) =>
@@ -314,13 +374,13 @@ const DashboardChart = ({ chartObj, path }) => {
           {
             type: 'string',
             key: `grouping${value}`,
-            label: getGroupingLabel(value),
+            ...getGroupingLabelProps(value),
           },
           acc
         ),
       multiStatLabelProps
     )(groupingRange)
-  }, [categories, cleanedChartObj, getYAxisTitle, groupingRange])
+  }, [cleanedChartObj, getGroupingTitle, getYAxisTitle, groupingRange])
 
   const numberFormats = useMemo(() => {
     const getNumberFormat = R.pipe(

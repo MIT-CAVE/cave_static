@@ -1,15 +1,17 @@
 import { IconButton } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import AppSettingsPane from './AppSettingsPane'
 import OptionsPane from './OptionsPane'
 import SessionPane from './SessionPane'
 
 import { sendCommand } from '../../../data/data'
+import { selectRichTextDefault } from '../../../data/selectors'
 import { PANE_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
+import { resolveRichText } from '../../../utils/richText'
 import Pane from '../../compound/Pane'
 
 import { FetchedIcon } from '../../compound'
@@ -76,23 +78,27 @@ const RefreshButton = () => {
   )
 }
 
-const PaneWrapper = ({ open, pane, side, width, variant, ...props }) => (
-  <Pane
-    open={!!open}
-    name={R.propOr(open, 'name')(pane)}
-    iconName={R.propOr('bi/BiError', 'icon', pane)}
-    side={side}
-    style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
-    rightButton={
-      R.equals(variant, paneId.SESSION) ? (
-        <RefreshButton />
-      ) : (
-        pane.teamSync && <SyncButton {...{ open, pane }} />
-      )
-    }
-    {...{ width, ...props }}
-  />
-)
+const PaneWrapper = ({ open, pane, side, width, variant, ...props }) => {
+  const richTextDefault = useSelector(selectRichTextDefault)
+  return (
+    <Pane
+      open={!!open}
+      name={R.propOr(open, 'name')(pane)}
+      richText={resolveRichText(pane?.richText, richTextDefault)}
+      iconName={R.propOr('bi/BiError', 'icon', pane)}
+      side={side}
+      style={R.equals(variant, paneId.SESSION) ? { zIndex: 2001 } : []}
+      rightButton={
+        R.equals(variant, paneId.SESSION) ? (
+          <RefreshButton />
+        ) : (
+          pane.teamSync && <SyncButton {...{ open, pane }} />
+        )
+      }
+      {...{ width, ...props }}
+    />
+  )
+}
 PaneWrapper.propTypes = {
   open: PropTypes.string,
   pane: PropTypes.object,

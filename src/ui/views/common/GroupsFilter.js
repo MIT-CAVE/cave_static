@@ -19,6 +19,9 @@ import { MdArrowForwardIos, MdCheck, MdRestore } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
 import { selectSlimStatGroupings } from '../../../data/selectors'
+import { useChartRichText } from '../../../utils/hooks'
+import { labelText } from '../../../utils/richText'
+import RichLabel from '../../compound/RichLabel'
 
 import { getLabelFn, getSubLabelFn } from '../../../utils'
 
@@ -78,6 +81,7 @@ const styles = {
 // TODO: Work on a `PropNested`-improved solution
 const GroupsFilter = ({ defaultFilters, onSave }) => {
   const statGroupings = useSelector(selectSlimStatGroupings)
+  const { getGroupingRichText } = useChartRichText()
   // const defaultFilters = useSelector((state) =>
   //   selectGroupingFiltersById(state, index)
   // )
@@ -109,7 +113,12 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
     const resultGroupings = {}
     R.forEachObjIndexed((groupingProps, grouping) => {
       const groupingLabel = getLabelFn(statGroupings)(grouping)
-      if (containsSearchText(groupingLabel)) {
+      // The search is made on the text that is shown, without markup
+      if (
+        containsSearchText(
+          labelText(groupingLabel, getGroupingRichText(grouping))
+        )
+      ) {
         resultGroupings[grouping] = R.dissocPath(['data', 'id'])(groupingProps)
         return
       }
@@ -118,7 +127,11 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
       const getLevelLabel = getSubLabelFn(statGroupings, grouping)
       R.forEachObjIndexed((levelValues, level) => {
         const levelLabel = getLevelLabel(level)
-        if (containsSearchText(levelLabel)) {
+        if (
+          containsSearchText(
+            labelText(levelLabel, getGroupingRichText(grouping, level))
+          )
+        ) {
           resultGroupings[grouping].data[level] = groupingProps.data[level]
           return
         }
@@ -140,7 +153,7 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
       setExpanded(R.assoc(grouping, R.has(grouping)(resultGroupings)))
     })(statGroupings)
     return resultGroupings
-  }, [searchText, statGroupings])
+  }, [getGroupingRichText, searchText, statGroupings])
 
   const getValueChecked = useCallback(
     (grouping, level, value) =>
@@ -426,7 +439,12 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                     sx={[styles.accordSummary, { mr: 1 }]}
                   >
                     <FormControlLabel
-                      label={getLabelFn(statGroupings)(grouping)}
+                      label={
+                        <RichLabel
+                          text={getLabelFn(statGroupings)(grouping)}
+                          rich={getGroupingRichText(grouping) === true}
+                        />
+                      }
                       control={
                         <Checkbox
                           name="grid-filter-groups-grouping"
@@ -461,10 +479,18 @@ const GroupsFilter = ({ defaultFilters, onSave }) => {
                         return (
                           <Fragment key={level}>
                             <FormControlLabel
-                              label={getSubLabelFn(
-                                statGroupings,
-                                grouping
-                              )(level)}
+                              label={
+                                <RichLabel
+                                  text={getSubLabelFn(
+                                    statGroupings,
+                                    grouping
+                                  )(level)}
+                                  rich={
+                                    getGroupingRichText(grouping, level) ===
+                                    true
+                                  }
+                                />
+                              }
                               control={
                                 <Checkbox
                                   name="grid-filter-groups-level"

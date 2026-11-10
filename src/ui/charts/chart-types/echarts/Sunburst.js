@@ -8,6 +8,7 @@ import {
   findColoring,
   getChartItemColor,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 // import { exampleNestedData } from './testData'
 
@@ -115,12 +116,12 @@ const Sunburst = ({ data, colors, numberFormat = {} }) => {
     tooltip: {
       trigger: 'item',
       formatter: ({ marker, name, value }) =>
-        `${marker} ${getDisplayName(name)}: <strong>${NumberFormat.format(
+        markup`${safeHtml(marker)} ${getDisplayName(name)}: <strong>${NumberFormat.format(
           value,
           R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat)
             ? R.values(numberFormat)[0]
             : (numberFormat ?? {})
-        )}</strong>`,
+        )}</strong>`.toString(),
     },
   }
 

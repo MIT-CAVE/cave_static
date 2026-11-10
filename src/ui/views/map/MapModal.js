@@ -22,10 +22,11 @@ import {
   selectMapModal,
   selectMapStyleOptions,
   selectMapProjectionOptionsFunc,
+  selectMapRichText,
 } from '../../../data/selectors'
-import { useMutateStateWithSync } from '../../../utils/hooks'
+import { useMutateStateWithSync, useRichText } from '../../../utils/hooks'
 
-import { FetchedIcon } from '../../compound'
+import { FetchedIcon, RichLabel } from '../../compound'
 
 import { withIndex } from '../../../utils'
 
@@ -73,6 +74,7 @@ const styles = {
 
 const ListModal = ({
   title,
+  richText,
   options,
   defaultIcon: DefaultIcon,
   onClose,
@@ -100,7 +102,9 @@ const ListModal = ({
                 {icon ? <FetchedIcon iconName={icon} /> : <DefaultIcon />}
               </Avatar>
             </ListItemAvatar>
-            <ListItemText primary={name} />
+            <ListItemText
+              primary={<RichLabel text={name} rich={richText === true} />}
+            />
           </ListItemButton>
         ))}
       </List>
@@ -115,6 +119,11 @@ const MapModal = () => {
   const getOptionalViewports = useSelector(selectOptionalViewportsFunc)
   const mapStyleOptions = useSelector(selectMapStyleOptions)
   const getMapProjectionOptions = useSelector(selectMapProjectionOptionsFunc)
+  // The `richText` of the map is the root of the names of its viewports,
+  // styles and projections
+  const richText = useRichText(
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
   const dispatch = useDispatch()
 
   const optionalViewports = useMemo(
@@ -176,6 +185,7 @@ const MapModal = () => {
   return feature === 'viewports' ? (
     <ListModal
       title="Map Viewports"
+      richText={richText}
       options={optionalViewports}
       defaultIcon={MdGpsFixed}
       onSelect={handleSelectMapViewports}
@@ -184,6 +194,7 @@ const MapModal = () => {
   ) : feature === 'mapStyles' ? (
     <ListModal
       title="Map Styles"
+      richText={richText}
       defaultIcon={MdMap}
       options={mapStyleOptions}
       onSelect={handleSelectMapStyleId}
@@ -192,6 +203,7 @@ const MapModal = () => {
   ) : feature === 'mapProjections' ? (
     <ListModal
       title="Map Projections"
+      richText={richText}
       defaultIcon={PiPerspective}
       options={projectionOptions}
       onSelect={handleSelectProjection}

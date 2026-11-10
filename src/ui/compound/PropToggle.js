@@ -12,6 +12,7 @@ import * as R from 'ramda'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { getIconSvgDataUri } from '../../utils/svgBuilder'
 
@@ -152,7 +153,7 @@ const PropToggleButton = ({ prop, currentVal, sx = [], onChange }) => {
             color={getCurrentAttr(value, color, activeColor)}
           />
         )}
-        {currentLabel}
+        <RichLabel text={currentLabel} rich={prop.richText === true} />
       </Stack>
     </ToggleButton>
   )
@@ -222,7 +223,12 @@ const PropToggleCheckbox = ({ prop, currentVal, sx = [], onChange }) => {
       ]}
     >
       <FormControlLabel
-        label={getCurrentAttr(value, label, activeLabel)}
+        label={
+          <RichLabel
+            text={getCurrentAttr(value, label, activeLabel)}
+            rich={prop.richText === true}
+          />
+        }
         {...{ labelPlacement }}
         control={
           <Checkbox
@@ -331,7 +337,12 @@ const PropToggleSwitch = ({ prop, currentVal, sx = [], onChange }) => {
           labelPlacement === 'start' && { ml: 0.5, mr: 0 },
           labelPlacement === 'end' && { ml: 0, mr: 0.5 },
         ]}
-        label={getCurrentAttr(value, label, activeLabel)}
+        label={
+          <RichLabel
+            text={getCurrentAttr(value, label, activeLabel)}
+            rich={prop.richText === true}
+          />
+        }
         {...{ labelPlacement }}
         control={
           <CustomSwitch

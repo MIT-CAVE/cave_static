@@ -26,6 +26,7 @@ import { useSelector } from 'react-redux'
 import {
   GroupCalcSelector,
   ScaleSelector,
+  GradientLabel,
   useGradient,
   WithEditBadge,
 } from './Legend'
@@ -36,12 +37,13 @@ import {
 } from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
+import { labelText, resolveRichText } from '../../../utils/richText'
 import { getScaledValue } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 import RippleBox from '../../compound/RippleBox'
 import NumberField from '../../prototypes/NumberField'
 
-import { OverflowText, Select, TextInput } from '../../compound'
+import { OverflowText, RichLabel, Select, TextInput } from '../../compound'
 
 import {
   capitalize,
@@ -439,6 +441,7 @@ const NumericalColorLegend = ({
   // eslint-disable-next-line no-unused-vars
   anyNullValue, // TODO: Implement `fallback` UI
   colorPicker,
+  richText,
   onChangePropAttr,
 }) => {
   const parsedGradient = useSelector((state) =>
@@ -539,6 +542,7 @@ const NumericalColorLegend = ({
     minAuto,
     maxAuto,
     getLabel,
+    isServerLabelAt,
     getAttrLabelAt,
     getAdjustedLabel,
     getValueLabelAt,
@@ -552,6 +556,7 @@ const NumericalColorLegend = ({
     gradient,
     numberFormat,
     group,
+    richText,
     onChangeValueAt: handleChangeValueAt,
   })
 
@@ -598,7 +603,10 @@ const NumericalColorLegend = ({
             <OverflowText text={getAdjustedLabel('Min', 0)} />
           </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={getLabel(0)} />
+            <GradientLabel
+              text={getLabel(0)}
+              rich={richText === true && isServerLabelAt(0)}
+            />
           </Typography>
         </Grid>
         <Grid size="grow">
@@ -615,7 +623,10 @@ const NumericalColorLegend = ({
             <OverflowText text={getAdjustedLabel('Max', lastIndex)} />
           </Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            <OverflowText text={getLabel(lastIndex)} />
+            <GradientLabel
+              text={getLabel(lastIndex)}
+              rich={richText === true && isServerLabelAt(lastIndex)}
+            />
           </Typography>
         </Grid>
       </Grid>
@@ -645,7 +656,12 @@ const NumericalColorLegend = ({
   )
 }
 
-const CategoricalColorLegend = ({ colorByProp, colorPicker, anyNullValue }) => {
+const CategoricalColorLegend = ({
+  colorByProp,
+  colorPicker,
+  anyNullValue,
+  richText,
+}) => {
   const {
     colorPickerProps,
     showColorPicker,
@@ -682,6 +698,15 @@ const CategoricalColorLegend = ({ colorByProp, colorPicker, anyNullValue }) => {
       return label || capitalize(option)
     },
     [colorOptions, type]
+  )
+
+  // Only the names set in the data are rich text, not the generated ones
+  const isCategoryRich = useCallback(
+    (option) =>
+      richText === true &&
+      (type === propId.SELECTOR || type === propId.TOGGLE) &&
+      Boolean(colorOptions[option]?.name),
+    [colorOptions, richText, type]
   )
 
   const handleChange = useCallback(
@@ -722,7 +747,10 @@ const CategoricalColorLegend = ({ colorByProp, colorPicker, anyNullValue }) => {
                 onClick={handleOpen(option, value)}
               >
                 <Typography variant="caption">
-                  {getCategoryLabel(option)}
+                  <RichLabel
+                    text={getCategoryLabel(option)}
+                    rich={isCategoryRich(option)}
+                  />
                 </Typography>
               </RippleBox>
             </WithEditColorBadge>
@@ -731,7 +759,10 @@ const CategoricalColorLegend = ({ colorByProp, colorPicker, anyNullValue }) => {
       </OverflowText>
       {showColorPicker && (
         <ColorPicker
-          colorLabel={getCategoryLabel(colorPickerProps.key)}
+          colorLabel={labelText(
+            getCategoryLabel(colorPickerProps.key),
+            isCategoryRich(colorPickerProps.key)
+          )}
           value={colorPickerProps.value}
           onChange={handleChange}
           onClose={handleClose}
@@ -753,6 +784,7 @@ const ColorLegend = ({
   onChangeLegendAttr,
   onChangePropAttr,
   onChangeColor,
+  richText,
 }) => {
   const legendNumberFormatFunc = useSelector(selectLegendNumberFormatFunc)
 
@@ -761,6 +793,8 @@ const ColorLegend = ({
   const colorByProp = featureTypeProps[colorBy]
   const numberFormat = legendNumberFormatFunc(colorByProp)
   const isCategorical = colorByProp.type !== propId.NUMBER
+  // The `richText` of the prop overrides the one of its feature type
+  const propRichText = resolveRichText(colorByProp.richText, richText)
   return (
     <Paper
       elevation={3}
@@ -777,6 +811,10 @@ const ColorLegend = ({
             value={colorBy}
             optionsList={colorByOptions}
             getLabel={(prop) => featureTypeProps[prop].name || prop}
+            richText={(prop) =>
+              resolveRichText(featureTypeProps[prop]?.richText, richText) ===
+              true
+            }
             onSelect={onSelectProp(
               'colorBy',
               'groupCalcByColor',
@@ -788,7 +826,11 @@ const ColorLegend = ({
         {numberFormat.unit && (
           <Grid size={4}>
             <Typography variant="subtitle1" sx={styles.unit}>
-              <OverflowText text={numberFormat.unit} />
+              <OverflowText text={numberFormat.unit}>
+                {propRichText === true && (
+                  <RichLabel text={numberFormat.unit} />
+                )}
+              </OverflowText>
             </Typography>
           </Grid>
         )}
@@ -796,6 +838,7 @@ const ColorLegend = ({
       {isCategorical ? (
         <CategoricalColorLegend
           {...{ colorByProp, colorPicker, anyNullValue }}
+          richText={propRichText}
         />
       ) : (
         <>
@@ -810,6 +853,7 @@ const ColorLegend = ({
               colorPicker,
               onChangePropAttr,
             }}
+            richText={propRichText}
           />
           <ScaleSelector
             scale={valueRange.gradient.scale}

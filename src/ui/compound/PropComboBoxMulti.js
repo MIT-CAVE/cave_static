@@ -68,6 +68,7 @@ const PropComboBoxMulti = ({ prop, currentVal, sx = [], onChange }) => {
         fullWidth,
         slotProps,
         propAttrs,
+        richText: prop.richText,
         getActiveAttrs,
         getBaseAttrs,
         onChange,

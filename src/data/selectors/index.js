@@ -570,6 +570,11 @@ export const selectSettingsIconUrl = createSelector(
 export const selectNumberFormat = createSelector(selectSettings, (settings) =>
   pickPaths(NUMBER_FORMAT_KEY_PATHS, settings?.defaults ?? {})
 )
+// The root of the `richText` cascade (see `utils/richText.js`)
+export const selectRichTextDefault = createSelector(
+  selectSettings,
+  (settings) => settings?.defaults?.richText
+)
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
   (numberFormat) => (prop) => ({
@@ -1033,6 +1038,12 @@ export const selectMapName = createSelector(
   (mapData, mapId) => mapData?.[mapId]?.name ?? '',
   { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
 )
+// The `richText` flag of a map, the root of the cascade for its own text
+export const selectMapRichText = createSelector(
+  [selectMergedMapData, (state, mapId) => mapId],
+  (mapData, mapId) => mapData?.[mapId]?.richText,
+  { memoizeOptions: { maxSize: MAX_MEMOIZED_CHARTS } }
+)
 
 export const selectDefaultViewportFunc = createSelector(
   selectCurrentMergedMapDataByMap,
@@ -1180,6 +1191,10 @@ export const selectMergedGlobalOutputs = createSelector(
     !localGlobalOutputs || Object.keys(localGlobalOutputs).length === 0
       ? globalOutputsData || {}
       : deepMerge(globalOutputsData || {}, localGlobalOutputs)
+)
+export const selectGlobalOutputsRichText = createSelector(
+  selectMergedGlobalOutputs,
+  (merged) => merged?.richText
 )
 export const selectAnyGlobalOutputData = createSelector(
   selectMergedGlobalOutputs,
@@ -1964,15 +1979,21 @@ export const selectChartColors = createSelector(
 )
 
 export const selectFilterableStats = createSelector(
-  selectGroupedOutputTypes,
-  (groupedOutputTypes) => {
+  [selectGroupedOutputTypes, selectGroupedOutputsData],
+  (groupedOutputTypes, datasets) => {
     if (!groupedOutputTypes) return {}
     const result = {}
-    for (const group of Object.values(groupedOutputTypes)) {
+    for (const [dataset, group] of Object.entries(groupedOutputTypes)) {
       if (group && typeof group === 'object') {
         for (const [key, statObj] of Object.entries(group)) {
           if (statObj?.allowFiltering !== false) {
-            result[key] = { ...statObj, type: 'num' }
+            // The `richText` of the stat, or else of its dataset
+            const richText = statObj?.richText ?? datasets?.[dataset]?.richText
+            result[key] = {
+              ...statObj,
+              type: 'num',
+              ...(richText != null && { richText }),
+            }
           }
         }
       }

@@ -5,10 +5,14 @@ import { useSelector } from 'react-redux'
 
 import { Draggable, DragHandle, useDraggable } from '.'
 
-import { selectMapName, selectVirtualKeyboardValue } from '../../data/selectors'
+import {
+  selectMapName,
+  selectMapRichText,
+  selectVirtualKeyboardValue,
+} from '../../data/selectors'
 import { draggableId } from '../../utils/enums'
-import { useMutateStateWithSync } from '../../utils/hooks'
-import { TextInput } from '../compound'
+import { useMutateStateWithSync, useRichText } from '../../utils/hooks'
+import { RichLabel, TextInput } from '../compound'
 
 const styles = {
   dragRoot: {
@@ -41,6 +45,9 @@ const MapNameDraggable = ({ mapId }) => {
   const draggable = useDraggable(draggableId.MAP_NAMES)
   const keyboardValue = useSelector(selectVirtualKeyboardValue)
   const mapName = useSelector((state) => selectMapName(state, mapId))
+  const richText = useRichText(
+    useSelector((state) => selectMapRichText(state, mapId))
+  )
 
   const handleSaveName = useMutateStateWithSync(
     (newName) => ({
@@ -126,7 +133,11 @@ const MapNameDraggable = ({ mapId }) => {
           sx={styles.mapName}
           onClick={handleClickName}
         >
-          {mapName || mapId}
+          {/* The `mapId` used when there is no name is not rich text */}
+          <RichLabel
+            text={mapName || mapId}
+            rich={Boolean(mapName) && richText === true}
+          />
         </Typography>
       )}
     </Draggable>

@@ -9,6 +9,7 @@ import {
   getMinMax,
   getChartItemColor,
 } from '../../../../utils'
+import { markup } from '../../../../utils/html'
 
 const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
   const getDisplayName = useValueDisplayName()
@@ -118,13 +119,11 @@ const BubblePlot = ({ data, labelProps, numberFormat = {}, colors }) => {
             labelsExcludingUnits[3],
             getNumberFormat(labelKeys[3], params.value[2]),
           ],
-        ]
-          .map(
-            ([label, value]) =>
-              `<div style="display: flex; justify-content: space-between; gap: 30px"><span>${label}</span><strong>${value}</strong></div>`
-          )
-          .join('')
-        return `<div style="white-space: nowrap"><div style="margin-bottom: 3px"><strong>${getDisplayName(params.seriesName)}</strong></div>${rows}</div>`
+        ].map(
+          ([label, value]) =>
+            markup`<div style="display: flex; justify-content: space-between; gap: 30px"><span>${label}</span><strong>${value}</strong></div>`
+        )
+        return markup`<div style="white-space: nowrap"><div style="margin-bottom: 3px"><strong>${getDisplayName(params.seriesName)}</strong></div>${rows}</div>`.toString()
       },
     },
     legend: {

@@ -4,6 +4,7 @@ import { FlexibleChart } from './BaseChart'
 import { useValueDisplayName } from './ChartContext'
 
 import { NumberFormat, findSubgroupLabels } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
   const getDisplayName = useValueDisplayName()
@@ -104,8 +105,10 @@ const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
       },
     },
     tooltip: {
+      // Each cell is an item, as the formatter reads the data of a single cell
+      trigger: 'item',
       formatter: ({ marker, data: [x, y, value] }) =>
-        `${marker} ${getDisplayName(xLabels[x])}, ${getDisplayName(subGroupLabels[y])}: <strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong>`,
+        markup`${safeHtml(marker)} ${getDisplayName(xLabels[x])}, ${getDisplayName(subGroupLabels[y])}: <strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong>`.toString(),
     },
   }
 

@@ -32,6 +32,9 @@ import {
 
 import FetchedIcon from './FetchedIcon'
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
 
 import { forceArray, getContrastText } from '../../utils'
 
@@ -154,6 +157,7 @@ const DualListBase = ({
   availableTitle = 'Available',
   selectedTitle = 'Selected',
   height = DEFAULT_HEIGHT,
+  richText,
   helperText,
   fullWidth = true,
   sx = [],
@@ -179,9 +183,9 @@ const DualListBase = ({
     return availableKeys.filter((key) => {
       const opt = indexedOptions[key]
       const label = opt?.name ?? key
-      return String(label).toLowerCase().includes(query)
+      return String(labelText(label, richText)).toLowerCase().includes(query)
     })
-  }, [availableKeys, indexedOptions, leftSearch])
+  }, [availableKeys, indexedOptions, leftSearch, richText])
 
   const filteredSelected = useMemo(() => {
     if (!rightSearch) return selectedKeys
@@ -190,9 +194,9 @@ const DualListBase = ({
       const opt = indexedOptions[key]
       const { activeName } = getActiveAttrs(opt)
       const label = activeName ?? opt?.name ?? key
-      return String(label).toLowerCase().includes(query)
+      return String(labelText(label, richText)).toLowerCase().includes(query)
     })
-  }, [getActiveAttrs, indexedOptions, rightSearch, selectedKeys])
+  }, [getActiveAttrs, indexedOptions, richText, rightSearch, selectedKeys])
 
   // Disabled options are frozen on whichever side they sit
   const isEnabled = useCallback(
@@ -487,7 +491,9 @@ const DualListBase = ({
                         />
                       ) : null}
                       <ListItemText
-                        primary={label}
+                        primary={
+                          <RichLabel text={label} rich={richText === true} />
+                        }
                         primaryTypographyProps={{
                           noWrap: true,
                           variant: 'body2',
@@ -684,7 +690,9 @@ const DualListBase = ({
                         />
                       ) : null}
                       <ListItemText
-                        primary={label}
+                        primary={
+                          <RichLabel text={label} rich={richText === true} />
+                        }
                         primaryTypographyProps={{
                           noWrap: true,
                           variant: 'body2',
@@ -699,13 +707,16 @@ const DualListBase = ({
           </List>
         </Paper>
       </Box>
-      <FormHelperText>{helperText}</FormHelperText>
+      <FormHelperText>
+        <RichLabel text={helperText} rich={richText === true} />
+      </FormHelperText>
     </FormControl>
   )
 }
 
 DualListBase.propTypes = {
   disabled: PropTypes.bool,
+  richText: PropTypes.bool,
   readOnly: PropTypes.bool,
   helperText: PropTypes.string,
   options: PropTypes.array,
