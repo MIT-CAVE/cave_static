@@ -73,11 +73,11 @@ const styles = {
   btnGroup: {
     bgcolor: 'background.paper',
     borderRadius: 1,
-    '&> :first-child button': {
+    '&> :first-of-type button': {
       borderTopLeftRadius: '4px',
       borderBottomLeftRadius: '4px',
     },
-    '&> :last-child button': {
+    '&> :last-of-type button': {
       borderTopRightRadius: '4px',
       borderBottomRightRadius: '4px',
     },
@@ -85,11 +85,11 @@ const styles = {
   btnGroupVert: {
     bgcolor: 'background.paper',
     borderRadius: 1,
-    '&> :first-child button': {
+    '&> :first-of-type button': {
       borderTopLeftRadius: '4px',
       borderTopRightRadius: '4px',
     },
-    '&> :last-child button': {
+    '&> :last-of-type button': {
       borderBottomLeftRadius: '4px',
       borderBottomRightRadius: '4px',
     },
@@ -252,7 +252,7 @@ const MapNavButtons = memo(({ mapId }) => {
 
 const MapControls = ({ mapId }) => {
   const [hover, setHover] = useState(false)
-  const { isMapboxSelected, isDarkStyle } = useMapApi(mapId)
+  const { isDarkStyle } = useMapApi(mapId)
 
   const bearing = useSelector(selectBearingFunc)(mapId)
   const pitch = useSelector(selectPitchFunc)(mapId)
@@ -314,10 +314,9 @@ const MapControls = ({ mapId }) => {
   const rootStyle = useMemo(
     () => [
       styles.root,
-      !isMapboxSelected && { bottom: '40px' },
       { 'button,.MuiSlider-root': { opacity: hover ? 1 : 0.8 } },
     ],
-    [hover, isMapboxSelected]
+    [hover]
   )
 
   const handleClickMapLegendToggle = useCallback(
@@ -516,7 +515,7 @@ const MapControls = ({ mapId }) => {
       </Box>
 
       {showBearingSlider && (
-        <Box sx={[styles.bearing, !isMapboxSelected && { bottom: '80px' }]}>
+        <Box sx={styles.bearing}>
           <Slider
             sx={[styles.bearingSlider, !isDarkStyle && styles.lightSlider]}
             min={MIN_BEARING}

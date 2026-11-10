@@ -26,6 +26,7 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import { useChartRichText } from '../../../utils/hooks'
 
 import { Select, SelectAccordion, SelectAccordionList } from '../../compound'
 
@@ -154,8 +155,11 @@ const GroupedOutputsToolbar = ({ index }) => {
   const currentPage = useSelector(selectCurrentPage)
   const chartObj = useSelector((state) => selectChartById(state, index))
   const sync = useSelector(selectSync)
+  const { getStatRichText, getGroupingRichText } = useChartRichText()
 
   const path = ['pages', 'data', currentPage, 'charts', index]
+  if (!chartObj) return null
+
   const distributionType = R.propOr(
     distributionTypes.PDF,
     'distributionType',
@@ -221,6 +225,8 @@ const GroupedOutputsToolbar = ({ index }) => {
       })
     )
   }
+
+  const isStatRich = (stat) => getStatRichText(chartObj.dataset, stat)
 
   const getStatName = (stat) =>
     getGroupLabelFn(allowedStats, [chartObj.dataset, stat])
@@ -378,6 +384,7 @@ const GroupedOutputsToolbar = ({ index }) => {
       value={R.pathOr(' ', ['stats', 0, 'statId'], chartObj)}
       optionsList={statNames}
       getLabel={getStatName}
+      richText={isStatRich}
       onSelect={(value) => {
         updateChartObj(
           R.assoc(
@@ -405,6 +412,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           value={value}
           optionsList={statNames}
           getLabel={getStatName}
+          richText={isStatRich}
           onSelect={(newVal) => {
             if (R.equals(value, newVal)) {
               handleDeleteStatistic(index)
@@ -433,6 +441,7 @@ const GroupedOutputsToolbar = ({ index }) => {
         fullWidth
         disabled={isDatasetNotSelected}
         getLabel={getStatName}
+        richText={isStatRich}
         value={statId || ' '}
         optionsList={statId ? statNames : unusedOptions}
         onSelect={(value) => {
@@ -533,6 +542,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           value={R.pathOr(' ', ['stats', index, 'statIdDivisor'], chartObj)}
           optionsList={statNames}
           getLabel={getStatName}
+          richText={isStatRich}
           onSelect={(value) =>
             updateChartObj(
               R.assocPath(['stats', index, 'statIdDivisor'], value, chartObj)
@@ -555,6 +565,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           ]}
           getLabel={getLabelFn(categories)}
           getSubLabel={getSubLabelFn(categories)}
+          richText={getGroupingRichText}
           onSelect={(item, value) =>
             updateChartObj(
               R.pipe(
@@ -648,25 +659,10 @@ const GroupedOutputsToolbar = ({ index }) => {
       {showFull && chartObj.chartType === chartVariant.DISTRIBUTION && (
         <Box sx={styles.row}>
           <ChartDropdownWrapper sx={styles.field}>
-            <>
-              {R.map(
-                ({ selector: Selector, labelId }) => (
-                  <Selector key={labelId} />
-                ),
-                [
-                  {
-                    selector: DistributionTypeSelector,
-                    label: 'Type',
-                    labelId: 'distribution-type-label',
-                  },
-                  {
-                    selector: DistributionYAxisSelector,
-                    label: 'Y Axis',
-                    labelId: 'distribution-y-axis-label',
-                  },
-                ]
-              )}
-            </>
+            {DistributionTypeSelector}
+          </ChartDropdownWrapper>
+          <ChartDropdownWrapper sx={styles.field}>
+            {DistributionYAxisSelector}
           </ChartDropdownWrapper>
         </Box>
       )}
@@ -685,6 +681,7 @@ const GroupedOutputsToolbar = ({ index }) => {
             maxGrouping={chartMaxGrouping[chartObj.chartType]}
             getLabel={getLabelFn(categories)}
             getSubLabel={getSubLabelFn(categories)}
+            richText={getGroupingRichText}
             onAddGroup={handleAddGroup}
             onChangeGroupIndex={handleChangeGroupIndexFn}
             onDeleteGroup={handleDeleteGroupFn}

@@ -1,11 +1,12 @@
 import { Box, CircularProgress, Stack } from '@mui/material'
 import * as R from 'ramda'
-import { memo, useEffect, useState, useMemo } from 'react'
+import { memo, useCallback, useEffect, useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 
 import {
   selectGroupedOutputTypes,
   selectNumberFormat,
+  selectRichTextDefault,
   selectMemoizedChartFunc,
   selectChartColors,
   selectSlimStatGroupings,
@@ -16,6 +17,14 @@ import {
   distributionTypes,
   distributionYAxes,
 } from '../../../utils/enums'
+import { useChartRichText } from '../../../utils/hooks'
+import {
+  escapeRichText,
+  labelText,
+  resolveRichText,
+  richPiece,
+} from '../../../utils/richText'
+import ChartContext from '../../charts/chart-types/echarts/ChartContext'
 
 import {
   BarPlot,
@@ -45,14 +54,26 @@ import {
 const DashboardChart = ({ chartObj, path }) => {
   const [formattedData, setFormattedData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [prevChartObj, setPrevChartObj] = useState(null)
 
   const statisticTypes = useSelector(selectGroupedOutputTypes)
   const numberFormatDefault = useSelector(selectNumberFormat)
   const memoizedChartFunc = useSelector(selectMemoizedChartFunc)
   const categories = useSelector(selectSlimStatGroupings)
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const chartRichText = resolveRichText(chartObj.richText, richTextDefault)
   const numberFormatPropsFn = useSelector(selectNumberFormatPropsFn)
 
-  const cleanedChartObj = cleanUndefinedStats(chartObj)
+  const cleanedChartObj = useMemo(
+    () => cleanUndefinedStats(chartObj),
+    [chartObj]
+  )
+
+  if (cleanedChartObj !== prevChartObj) {
+    setPrevChartObj(cleanedChartObj)
+    setLoading(true)
+    setFormattedData([])
+  }
 
   const chartType = R.propOr(chartVariant.BAR, 'chartType', cleanedChartObj)
   const distributionType = R.propOr(
@@ -108,162 +129,285 @@ const DashboardChart = ({ chartObj, path }) => {
   )
   const xAxisOrder = R.propOr('default', 'xAxisOrder', cleanedChartObj)
 
-  // for some reason useLayoutEffect doesn't set the state before the chart is rendered
-  // so we use useMemo to trigger the loading state
-  useMemo(() => {
-    setLoading(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartType])
+  // Display names for the values of every grouping level used by the chart
+  const valueNames = useMemo(() => {
+    const { groupingId = [], groupingLevel = [] } = cleanedChartObj
+    let result = {}
+    groupingId.forEach((gId, idx) => {
+      const levels = categories?.[gId]?.levels ?? {}
+      for (
+        let level = groupingLevel[idx];
+        levels[level];
+        level = levels[level].parent
+      ) {
+        result = { ...result, ...levels[level].valueNames }
+      }
+    })
+    return result
+  }, [categories, cleanedChartObj])
+
+  const chartContextValue = useMemo(
+    () => ({
+      // Canvas text can't render markup, so the title is its plain twin
+      title: labelText(chartObj.title ?? '', chartRichText),
+      richTitle: chartObj.title ?? '',
+      richText: chartRichText,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+      valueNames,
+    }),
+    [
+      chartObj.title,
+      chartRichText,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+      valueNames,
+    ]
+  )
 
   useEffect(() => {
+    let isCancelled = false
     const runWorkers = async () => {
-      memoizedChartFunc(cleanedChartObj).then((computedData) => {
-        setFormattedData(computedData)
-        setLoading(false)
-      })
+      try {
+        const computedData = await memoizedChartFunc(cleanedChartObj)
+        if (!isCancelled) {
+          setFormattedData(computedData || [])
+          setLoading(false)
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setFormattedData([])
+          setLoading(false)
+        }
+      }
     }
-    setLoading(true)
     const workerRunner = setTimeout(runWorkers, 10)
-    return () => clearTimeout(workerRunner)
+    return () => {
+      isCancelled = true
+      clearTimeout(workerRunner)
+    }
   }, [cleanedChartObj, memoizedChartFunc])
 
-  const groupingRange = R.pipe(
-    R.prop('groupingId'),
-    R.length,
-    R.range(0),
-    R.reverse
-  )(cleanedChartObj)
+  const groupingRange = useMemo(
+    () =>
+      R.pipe(
+        R.prop('groupingId'),
+        R.length,
+        R.range(0),
+        R.reverse
+      )(cleanedChartObj),
+    [cleanedChartObj]
+  )
 
-  const xAxisTitle = cleanedChartObj.groupingId
-    ? `${getLabelFn(categories)(R.pathOr('', ['groupingId', 0], cleanedChartObj))}${
-        cleanedChartObj.groupingLevel &&
-        R.pathOr('', ['groupingLevel', 0], cleanedChartObj)
-          ? ` \u279D ${getSubLabelFn(
-              categories,
-              R.path(['groupingId', 0], cleanedChartObj),
-              R.path(['groupingLevel', 0], cleanedChartObj),
-              cleanedChartObj
-            )}`
-          : ''
-      }`
-    : ''
+  // Names are rich text when the closest `richText` is `true`: the stat (or
+  // its dataset), the grouping level (or its grouping), and the chart title.
+  // Canvas text can't render markup, so it uses the plain twin of the names.
+  // Table headers are composed of rich and literal pieces: the literal ones are
+  // escaped so they are shown as they are.
+  const { getStatRichText, getGroupingRichText } = useChartRichText()
+  const getGroupingTitle = useCallback(
+    (groupingId, level, rich = false, alwaysSub = false) => {
+      const flag = getGroupingRichText(groupingId, level)
+      const name = rich
+        ? richPiece(getLabelFn(categories)(groupingId), flag === true)
+        : labelText(getLabelFn(categories)(groupingId), flag)
+      if (!level && !alwaysSub) return { text: name, rich: flag === true }
+      const subName = getSubLabelFn(categories, groupingId, level)
+      return {
+        text: `${name}${rich ? escapeRichText(' ➝ ') : ' ➝ '}${
+          rich ? richPiece(subName, flag === true) : labelText(subName, flag)
+        }`,
+        rich: flag === true,
+      }
+    },
+    [categories, getGroupingRichText]
+  )
 
-  const getYAxisTitle = (statIdx) => {
-    // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
-    const statDataset = cleanedChartObj.dataset
-    const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
-    const statId = R.propOr('', 'statId', statObject)
-    const statIdLabel = getGroupLabelFn(statisticTypes, [statDataset, statId])
-    const statUnit =
-      R.pathOr({}, [statDataset, statId], statisticTypes).unit ||
-      numberFormatDefault.unit
+  const xAxisTitle = useMemo(
+    () =>
+      cleanedChartObj.groupingId
+        ? getGroupingTitle(
+            R.pathOr('', ['groupingId', 0], cleanedChartObj),
+            R.path(['groupingLevel', 0], cleanedChartObj)
+          ).text
+        : '',
+    [cleanedChartObj, getGroupingTitle]
+  )
 
-    const statDivisorId = R.propOr('', 'statIdDivisor', statObject)
-    const statDivisorIdLabel = getGroupLabelFn(statisticTypes, [
-      statDataset,
-      statDivisorId,
-    ])
-    const statDivisorUnit =
-      statisticTypes[statDataset]?.[statDivisorId]?.unit ||
-      numberFormatDefault.unit
+  // `rich` returns the rich text, with `rich: false` its plain twin
+  const getYAxisTitle = useCallback(
+    (statIdx, rich = false) => {
+      let hasRichText = false
+      const lit = (text) => (rich ? escapeRichText(text) : text)
+      const piece = (text, flag) => {
+        if (flag === true) hasRichText = true
+        return rich ? richPiece(text, flag === true) : labelText(text, flag)
+      }
+      // Given a cleanedChartObj and a statIdx, return the yAxisTitle for the chart
+      const statDataset = cleanedChartObj.dataset
+      const statObject = R.pathOr({}, ['stats', statIdx], cleanedChartObj)
+      const statId = R.propOr('', 'statId', statObject)
+      const statFlag = getStatRichText(statDataset, statId)
+      const statIdLabel = piece(
+        getGroupLabelFn(statisticTypes, [statDataset, statId]),
+        statFlag
+      )
+      const statUnit =
+        R.pathOr({}, [statDataset, statId], statisticTypes).unit ||
+        numberFormatDefault.unit
 
-    const statAggregation = R.propOr('', 'aggregationType', statObject)
-    const statAggregationGroupingId = R.propOr(
-      '',
-      'aggregationGroupingId',
-      statObject
-    )
-    const statAggregationGroupingLevel = R.propOr(
-      '',
-      'aggregationGroupingLevel',
-      statObject
-    )
-    const statAggregationGroupingLabel = getLabelFn(
-      categories,
-      statAggregationGroupingId
-    )
-    const statAggregationGroupingSubLabel = getSubLabelFn(
-      categories,
-      statAggregationGroupingId,
-      statAggregationGroupingLevel
-    )
+      const statDivisorId = R.propOr('', 'statIdDivisor', statObject)
+      const statDivisorIdLabel = piece(
+        getGroupLabelFn(statisticTypes, [statDataset, statDivisorId]),
+        getStatRichText(statDataset, statDivisorId)
+      )
+      const statDivisorUnit =
+        statisticTypes[statDataset]?.[statDivisorId]?.unit ||
+        numberFormatDefault.unit
 
-    var yAxisTitle = ''
+      const statAggregation = R.propOr('', 'aggregationType', statObject)
+      const statAggregationGroupingId = R.propOr(
+        '',
+        'aggregationGroupingId',
+        statObject
+      )
+      const statAggregationGroupingLevel = R.propOr(
+        '',
+        'aggregationGroupingLevel',
+        statObject
+      )
+      var yAxisTitle = ''
 
-    // TODO: Consider adding sum back in for consistency...
-    if (
-      statAggregation !== 'divisor' &&
-      statAggregation !== '' &&
-      statAggregation !== 'sum'
-    ) {
-      yAxisTitle += `${statAggregation.toUpperCase()} of `
-    }
-    // If the statAggregation is a divisor, add the statId and the divisor name to
-    if (statAggregation === 'divisor') {
-      yAxisTitle += `${statIdLabel} / ${statDivisorIdLabel}`
-      // If stat unit does not equal the divisor units, add the units to the yAxisTitle
-      if (statUnit !== statDivisorUnit) {
+      // TODO: Consider adding sum back in for consistency...
+      if (
+        statAggregation !== 'divisor' &&
+        statAggregation !== '' &&
+        statAggregation !== 'sum'
+      ) {
+        yAxisTitle += lit(`${statAggregation.toUpperCase()} of `)
+      }
+      // If the statAggregation is a divisor, add the statId and the divisor name to
+      if (statAggregation === 'divisor') {
+        yAxisTitle += `${statIdLabel}${lit(' / ')}${statDivisorIdLabel}`
+        // If stat unit does not equal the divisor units, add the units to the yAxisTitle
+        if (statUnit !== statDivisorUnit) {
+          yAxisTitle += statUnit
+            ? `${lit('/n[')}${piece(statUnit, statFlag)}${lit(
+                ` ${statDivisorUnit ? '/ ' : ''}`
+              )}${statDivisorUnit ? piece(statDivisorUnit, statFlag) : ''}${lit(
+                statDivisorUnit ? ' ]' : ']'
+              )}`
+            : ''
+        }
+      } else {
+        yAxisTitle += statIdLabel
         yAxisTitle += statUnit
-          ? `/n[${statUnit} ${statDivisorUnit ? `/ ${statDivisorUnit} ]` : ']'}`
+          ? `${lit(' [')}${piece(statUnit, statFlag)}${lit(']')}`
           : ''
       }
-    } else {
-      yAxisTitle += statIdLabel
-      yAxisTitle += statUnit ? ` [${statUnit}]` : ''
+      if (statAggregationGroupingId) {
+        const { text, rich: groupingIsRich } = getGroupingTitle(
+          statAggregationGroupingId,
+          statAggregationGroupingLevel,
+          rich,
+          true
+        )
+        if (groupingIsRich) hasRichText = true
+        yAxisTitle += `${lit('\nGrouped By ')}${text}`
+      }
+
+      return rich ? { text: yAxisTitle, hasRichText } : yAxisTitle
+    },
+    [
+      cleanedChartObj,
+      getGroupingTitle,
+      getStatRichText,
+      numberFormatDefault.unit,
+      statisticTypes,
+    ]
+  )
+
+  const yAxisTitle = useMemo(() => getYAxisTitle(0), [getYAxisTitle])
+
+  const labels = useMemo(
+    () => ({ xAxisTitle, yAxisTitle }),
+    [xAxisTitle, yAxisTitle]
+  )
+
+  const statPaths = useMemo(
+    () =>
+      R.pipe(
+        R.propOr([], 'stats'),
+        R.map((stat) => [cleanedChartObj.dataset, stat.statId])
+      )(cleanedChartObj),
+    [cleanedChartObj]
+  )
+
+  const labelProps = useMemo(() => {
+    const multiStatLabelProps = R.map((idx) => {
+      const { text, hasRichText } = getYAxisTitle(idx, true)
+      return {
+        type: 'number',
+        key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
+        label: getYAxisTitle(idx),
+        // Only set when some part of the header is rich text
+        ...(hasRichText && { richLabel: text }),
+      }
+    })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
+
+    const getGroupingLabelProps = (n) => {
+      const groupingId = R.path(['groupingId', n], cleanedChartObj)
+      const level = R.path(['groupingLevel', n], cleanedChartObj)
+      const plain = getGroupingTitle(groupingId, level)
+      const rich = getGroupingTitle(groupingId, level, true)
+      return {
+        label: plain.text,
+        ...(rich.rich && { richLabel: rich.text }),
+      }
     }
-    yAxisTitle += statAggregationGroupingId
-      ? `\nGrouped By ${statAggregationGroupingLabel} \u279D ${statAggregationGroupingSubLabel}`
-      : ''
 
-    return yAxisTitle
-  }
+    return R.reduce(
+      (acc, value) =>
+        R.prepend(
+          {
+            type: 'string',
+            key: `grouping${value}`,
+            ...getGroupingLabelProps(value),
+          },
+          acc
+        ),
+      multiStatLabelProps
+    )(groupingRange)
+  }, [cleanedChartObj, getGroupingTitle, getYAxisTitle, groupingRange])
 
-  const yAxisTitle = getYAxisTitle(0)
+  const numberFormats = useMemo(() => {
+    const getNumberFormat = R.pipe(
+      numberFormatPropsFn,
+      // `unit`s are excluded as they will be represented
+      // as part of the axis labels or column headers.
+      R.omit(['unit', 'unitPlacement'])
+    )
+    return R.reduce(
+      (acc, [dataset, statId]) =>
+        R.assoc(
+          statId,
+          getNumberFormat(
+            R.pathOr({}, [dataset, statId], statisticTypes), // current stat
+            statId
+          )
+        )(acc),
+      {}
+    )(statPaths)
+  }, [numberFormatPropsFn, statPaths, statisticTypes])
 
-  const labels = { xAxisTitle, yAxisTitle }
-
-  const statPaths = R.pipe(
-    R.propOr([], 'stats'),
-    R.map((stat) => [cleanedChartObj.dataset, stat.statId])
-  )(cleanedChartObj)
-
-  const multiStatLabelProps = R.map((idx) => {
-    return {
-      type: 'number',
-      key: R.pathOr('', ['stats', idx, 'statId'], cleanedChartObj),
-      label: getYAxisTitle(idx),
-    }
-  })(R.range(0, R.length(R.propOr([], 'stats', cleanedChartObj))))
-
-  const getGroupingLabel = (n) =>
-    `${getLabelFn(categories)(R.path(['groupingId', n], cleanedChartObj))}${
-      R.path(['groupingLevel', n], cleanedChartObj)
-        ? ` \u279D ${getSubLabelFn(
-            categories,
-            R.path(['groupingId', n], cleanedChartObj),
-            R.path(['groupingLevel', n], cleanedChartObj)
-          )}`
-        : ''
-    }`
-
-  const labelProps = R.reduce(
-    (acc, value) =>
-      R.prepend(
-        {
-          type: 'string',
-          key: `grouping${value}`,
-          label: getGroupingLabel(value),
-        },
-        acc
-      ),
-    multiStatLabelProps
-  )(groupingRange)
-
-  const getNumberFormat = R.pipe(
-    numberFormatPropsFn,
-    // `unit`s are excluded as they will be represented
-    // as part of the axis labels or column headers.
-    R.omit(['unit', 'unitPlacement'])
+  const numberFormat = useMemo(
+    () =>
+      R.keys(numberFormats).length > 1
+        ? numberFormats
+        : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? {}),
+    [cleanedChartObj.stats, numberFormats]
   )
 
   if (R.isEmpty(statisticTypes) || loading) {
@@ -292,219 +436,175 @@ const DashboardChart = ({ chartObj, path }) => {
     )
   }
 
-  const numberFormats = R.reduce(
-    (acc, [dataset, statId]) =>
-      R.assoc(
-        statId,
-        getNumberFormat(
-          R.pathOr({}, [dataset, statId], statisticTypes), // current stat
-          statId
-        )
-      )(acc),
-    {}
-  )(statPaths)
-
-  const numberFormat =
-    R.keys(numberFormats).length > 1
-      ? numberFormats
-      : (numberFormats[cleanedChartObj.stats?.[0]?.statId] ?? '')
-
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        position: 'relative',
-        flex: '1 1 auto',
-        minHeight: 0,
-      }}
-    >
-      {chartType === chartVariant.TABLE &&
-      cleanedChartObj.groupingId &&
-      cleanedChartObj.groupingId[0] ? (
-        <TableChart
-          data={formattedData}
-          numberFormat={numberFormats}
-          {...{ labelProps }}
-        />
-      ) : chartType === chartVariant.BOX_PLOT ? (
-        <BoxPlot
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.BAR ? (
-        <BarPlot
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.STACKED_BAR ? (
-        <BarPlot
-          stack="x"
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.STACKED_WATERFALL ? (
-        <StackedWaterfallChart
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.LINE ? (
-        <LinePlot
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.WATERFALL ? (
-        <WaterfallChart
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.CUMULATIVE_LINE ? (
-        <CumulativeLineChart
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.SUNBURST ? (
-        <Sunburst
-          data={formattedData}
-          {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
-        />
-      ) : chartType === chartVariant.TREEMAP ? (
-        <Treemap
-          data={formattedData}
-          {...{ colors, numberFormat, chartHoverOrder, path, xAxisOrder }}
-        />
-      ) : chartType === chartVariant.GAUGE ? (
-        <GaugeChart
-          data={formattedData}
-          {...{ colors, numberFormat, ...labels }}
-        />
-      ) : chartType === chartVariant.HEATMAP ? (
-        <Heatmap
-          data={formattedData}
-          {...{ numberFormat, chartHoverOrder, path, xAxisOrder, ...labels }}
-        />
-      ) : chartType === chartVariant.AREA ? (
-        <LinePlot
-          area
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.STACKED_AREA ? (
-        <LinePlot
-          area
-          stack="x"
-          data={formattedData}
-          {...{
-            colors,
-            numberFormat,
-            showNA,
-            chartHoverOrder,
-            path,
-            xAxisOrder,
-            ...labels,
-          }}
-        />
-      ) : chartType === chartVariant.SCATTER &&
-        R.isNil(R.path(['statId', 2], cleanedChartObj)) ? (
-        <ScatterPlot
-          data={formattedData}
-          labelProps={R.dissoc(3)(labelProps)}
-          {...{ colors, numberFormat, chartHoverOrder }}
-        />
-      ) : chartType === chartVariant.DISTRIBUTION ? (
-        <DistributionChart
-          data={formattedData}
-          cumulative={distributionType === distributionTypes.CDF}
-          chartType={distributionVariant}
-          counts={distributionYAxis === distributionYAxes.COUNTS}
-          yAxisTitle={
-            distributionYAxis === distributionYAxes.COUNTS
-              ? 'Counts'
-              : distributionType === distributionTypes.PDF
-                ? 'Probability Density'
-                : 'Cumulative Density'
-          }
-          xAxisTitle={yAxisTitle}
-          {...{ colors, numberFormat, chartHoverOrder }}
-        />
-      ) : chartType === chartVariant.MIXED ? (
-        <MixedChart
-          data={formattedData}
-          {...{ labelProps, colors, chartHoverOrder, path, xAxisOrder }}
-          leftVariant={leftVariant}
-          rightVariant={rightVariant}
-        />
-      ) : chartType === chartVariant.SCATTER ? (
-        <BubblePlot
-          data={formattedData}
-          {...{ labelProps, colors, numberFormat, chartHoverOrder }}
-        />
-      ) : (
-        <></>
-      )}
-    </Box>
+    <ChartContext.Provider value={chartContextValue}>
+      <Box
+        sx={{
+          display: 'flex',
+          position: 'relative',
+          flex: '1 1 auto',
+          minHeight: 0,
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
+      >
+        {chartType === chartVariant.TABLE &&
+        cleanedChartObj.groupingId &&
+        cleanedChartObj.groupingId[0] ? (
+          <TableChart
+            data={formattedData}
+            numberFormat={numberFormats}
+            {...{ labelProps }}
+          />
+        ) : chartType === chartVariant.BOX_PLOT ? (
+          <BoxPlot
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.BAR ? (
+          <BarPlot
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.STACKED_BAR ? (
+          <BarPlot
+            stack="x"
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.STACKED_WATERFALL ? (
+          <StackedWaterfallChart
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.LINE ? (
+          <LinePlot
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.WATERFALL ? (
+          <WaterfallChart
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.CUMULATIVE_LINE ? (
+          <CumulativeLineChart
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.SUNBURST ? (
+          <Sunburst data={formattedData} {...{ colors, numberFormat }} />
+        ) : chartType === chartVariant.TREEMAP ? (
+          <Treemap data={formattedData} {...{ colors, numberFormat }} />
+        ) : chartType === chartVariant.GAUGE ? (
+          <GaugeChart
+            data={formattedData}
+            {...{ colors, numberFormat, ...labels }}
+          />
+        ) : chartType === chartVariant.HEATMAP ? (
+          <Heatmap data={formattedData} {...{ numberFormat, ...labels }} />
+        ) : chartType === chartVariant.AREA ? (
+          <LinePlot
+            area
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.STACKED_AREA ? (
+          <LinePlot
+            area
+            stack="x"
+            data={formattedData}
+            {...{
+              colors,
+              numberFormat,
+              showNA,
+              ...labels,
+            }}
+          />
+        ) : chartType === chartVariant.SCATTER &&
+          R.isNil(R.path(['stats', 2, 'statId'], cleanedChartObj)) ? (
+          <ScatterPlot
+            data={formattedData}
+            labelProps={R.dissoc(3)(labelProps)}
+            {...{ colors, numberFormat: numberFormats }}
+          />
+        ) : chartType === chartVariant.DISTRIBUTION ? (
+          <DistributionChart
+            data={formattedData}
+            cumulative={distributionType === distributionTypes.CDF}
+            chartType={distributionVariant}
+            counts={distributionYAxis === distributionYAxes.COUNTS}
+            yAxisTitle={
+              distributionYAxis === distributionYAxes.COUNTS
+                ? 'Counts'
+                : distributionType === distributionTypes.PDF
+                  ? 'Probability Density'
+                  : 'Cumulative Density'
+            }
+            xAxisTitle={yAxisTitle}
+            {...{ colors, numberFormat }}
+          />
+        ) : chartType === chartVariant.MIXED ? (
+          <MixedChart
+            data={formattedData}
+            {...{ labelProps, colors }}
+            leftVariant={leftVariant}
+            rightVariant={rightVariant}
+          />
+        ) : chartType === chartVariant.SCATTER ? (
+          <BubblePlot
+            data={formattedData}
+            {...{
+              labelProps,
+              colors,
+              numberFormat: numberFormats,
+            }}
+          />
+        ) : (
+          <></>
+        )}
+      </Box>
+    </ChartContext.Provider>
   )
 }
 

@@ -7,6 +7,7 @@
 
 # testing
 /coverage
+/.vitest
 
 # production
 /build
@@ -29,3 +30,4 @@ yarn-error.log*
 
 *storybook.log
 storybook-static
+mapbox.tok

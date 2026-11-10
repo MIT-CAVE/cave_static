@@ -1,19 +1,48 @@
 import PropTypes from 'prop-types'
 import { useState, useEffect } from 'react'
+import { GenIcon } from 'react-icons'
 import { BiSolidSquareRounded } from 'react-icons/bi'
 import { useSelector } from 'react-redux'
 
 import { selectSettingsIconUrl } from '../../data/selectors'
 
-import { fetchIcon, addExtraProps, removeExtraProps } from '../../utils'
+import { fetchIcon, getCachedIconTree } from '../../utils'
 
 const FetchedIcon = ({ iconName = 'md/MdDownloading', ...props }) => {
   const iconUrl = useSelector(selectSettingsIconUrl)
-  const [icon, setIcon] = useState(<BiSolidSquareRounded />)
+  const cachedTree = iconName ? getCachedIconTree(iconName, iconUrl) : null
+  const downloadingTree = getCachedIconTree('md/MdDownloading', iconUrl)
+  const [IconComponent, setIconComponent] = useState(() =>
+    cachedTree?.tag
+      ? GenIcon(cachedTree)
+      : downloadingTree?.tag
+        ? GenIcon(downloadingTree)
+        : BiSolidSquareRounded
+  )
+
   useEffect(() => {
-    fetchIcon(iconName, iconUrl).then((item) => setIcon(item))
+    if (!iconName) return
+    let active = true
+    const currentCached = getCachedIconTree(iconName, iconUrl)
+    if (currentCached?.tag) {
+      setIconComponent(() => GenIcon(currentCached))
+      return
+    }
+    const currentDownloading = getCachedIconTree('md/MdDownloading', iconUrl)
+    if (currentDownloading?.tag) {
+      setIconComponent(() => GenIcon(currentDownloading))
+    }
+    fetchIcon(iconName, iconUrl).then((item) => {
+      if (active && typeof item === 'function') {
+        setIconComponent(() => item)
+      }
+    })
+    return () => {
+      active = false
+    }
   }, [iconName, iconUrl])
-  return removeExtraProps(addExtraProps(icon, props), ['$$typeof', 'type'])
+
+  return <IconComponent {...props} />
 }
 FetchedIcon.propTypes = { iconName: PropTypes.string }
 

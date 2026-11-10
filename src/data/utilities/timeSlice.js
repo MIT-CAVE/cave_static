@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import * as R from 'ramda'
 
 export const timeSlice = createSlice({
   name: 'time',
@@ -8,7 +7,7 @@ export const timeSlice = createSlice({
   },
   reducers: {
     updateAnimation: (state, action) => {
-      return R.assoc('animationInterval', action.payload, state)
+      state.animationInterval = action.payload
     },
   },
 })

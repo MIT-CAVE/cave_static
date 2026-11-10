@@ -12,7 +12,6 @@ const jsxInJs = () => ({
     return await transformWithOxc(code, id, {
       lang: 'jsx',
       target: 'es2022',
-      reactCompiler: true,
     })
   },
 })
@@ -35,7 +34,7 @@ export default defineConfig(({ mode, isPreview }) => {
   }
 
   return {
-    plugins: [jsxInJs(), react()],
+    plugins: [jsxInJs(), react({ compiler: true })],
     legacy: {
       // See: https://vite.dev/guide/migration#consistent-commonjs-interop
       inconsistentCjsInterop: true,

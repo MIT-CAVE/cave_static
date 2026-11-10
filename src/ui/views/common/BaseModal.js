@@ -85,6 +85,16 @@ const BaseModal = ({
   return (
     <Modal
       sx={[styles.root, sxRoot]}
+      // `disablePortal` keeps this modal inside App.js's `workspace` box
+      // instead of `document.body`, so its `position: fixed` root resolves
+      // against `workspace` (which `contain: layout` makes a containing
+      // block for `fixed` descendants) rather than the viewport. That's
+      // what confines it below DockBar instead of under it. The other two
+      // flags pair with `disablePortal` for focus handling, matching
+      // `GeneralModal`/`ClusterModal`.
+      disablePortal
+      disableEnforceFocus
+      disableAutoFocus
       {...{ open, ...rootProps }}
       onClose={handleClose}
     >
@@ -114,13 +124,10 @@ const DataGridModal = ({ open, slotProps = {}, ...props }) => (
   <BaseModal
     slotProps={{
       root: {
-        // Keep the component mounted to avoid losing `apiRef`
-        keepMounted: true,
+        keepMounted: false,
         ...slotProps.root,
       },
       paper: {
-        // Preserve `apiRef` using `visibility`
-        visibility: open ? 'visible' : 'hidden',
         ...slotProps.paper,
       },
     }}

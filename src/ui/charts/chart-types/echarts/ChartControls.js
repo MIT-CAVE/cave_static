@@ -129,8 +129,8 @@ const BucketsControl = ({ numBuckets, onNumBucketsChange }) => (
   >
     <Typography sx={{ whiteSpace: 'nowrap' }}>Number of Buckets</Typography>
     <CustomSlider
-      value={numBuckets}
-      onChange={(e) => onNumBucketsChange(e.target.value)}
+      value={numBuckets ?? 10}
+      onChange={(e, val) => onNumBucketsChange(val ?? e.target.value)}
       min={2}
       max={20}
       valueLabelDisplay="auto"
@@ -140,6 +140,7 @@ const BucketsControl = ({ numBuckets, onNumBucketsChange }) => (
 )
 
 const ChartControls = ({
+  sortable,
   path,
   xAxisOrder,
   syncAxes,
@@ -147,7 +148,7 @@ const ChartControls = ({
   numBuckets,
   onNumBucketsChange,
 }) => {
-  const showSort = path && xAxisOrder !== undefined
+  const showSort = sortable && path && xAxisOrder !== undefined
   const showSync = syncAxes !== undefined && onSyncAxesChange
   const showBuckets = numBuckets !== undefined && onNumBucketsChange
 

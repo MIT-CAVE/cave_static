@@ -13,7 +13,7 @@ import {
 } from '@mui/material'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
 import {
   MdCancelPresentation,
@@ -87,40 +87,11 @@ const SnackBar = ({ dragHandle }) => {
     handleCloseMenu: handleCloseLimit,
   } = useMenu()
 
-  const closingTimers = useRef({})
-
-  useEffect(
-    () => () => {
-      R.forEach((item) => clearTimeout(item), R.values(closingTimers.current))
-    },
-    []
-  )
-
-  useEffect(() => {
-    R.mapObjIndexed((message, messageId) => {
-      if (
-        R.has('duration', message) &&
-        !R.has(messageId, closingTimers.current)
-      ) {
-        closingTimers.current[messageId] = setTimeout(() => {
-          closingTimers.current = R.dissoc(messageId, closingTimers.current)
-          dispatch(removeMessage({ messageKey: messageId }))
-        }, message.duration * 1000)
-      }
-    }, messages)
-  }, [messages, dispatch])
-
   const handleClose = R.thunkify((messageKey) => {
-    if (R.has(messageKey, closingTimers.current)) {
-      clearTimeout(closingTimers.current[messageKey])
-      closingTimers.current = R.dissoc(messageKey, closingTimers.current)
-    }
     dispatch(removeMessage({ messageKey: messageKey }))
   })
 
   const handleClear = () => {
-    R.forEach((item) => clearTimeout(item), R.values(closingTimers.current))
-    closingTimers.current = {}
     dispatch(clearMessages())
   }
 

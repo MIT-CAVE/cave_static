@@ -1,6 +1,6 @@
 import { Box, Divider, IconButton, Tab, Tabs } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback, useRef, useState, useEffect } from 'react'
+import { memo, useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { sendCommand } from '../../../data/data'
@@ -324,4 +324,4 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   )
 }
 
-export default AppBar
+export default memo(AppBar)

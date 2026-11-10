@@ -3,7 +3,9 @@ import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import FormattedNumber from './FormattedNumber'
 import OverflowText from './OverflowText'
+import RichLabel from './RichLabel'
 
 import { selectNumberFormatPropsFn } from '../../data/selectors'
 
@@ -28,12 +30,14 @@ const styles = {
 }
 
 const PropNumberIconCompact = ({ prop, sx = [] }) => {
-  const { name, value, icon, style } = prop
+  const { name, value, icon, style, richText } = prop
   const numberFormatProps = useSelector(selectNumberFormatPropsFn)(prop)
   return (
     <Box sx={[styles.root, style, ...forceArray(sx)]}>
       <Typography sx={styles.name} variant="subtitle1">
-        <OverflowText text={name} />
+        <OverflowText text={name}>
+          {richText === true && <RichLabel text={name} />}
+        </OverflowText>
       </Typography>
       <Grid
         container
@@ -48,7 +52,14 @@ const PropNumberIconCompact = ({ prop, sx = [] }) => {
           <OverflowText
             sx={styles.value}
             text={NumberFormat.format(value, numberFormatProps)}
-          />
+          >
+            {richText === true && (
+              <FormattedNumber
+                {...{ value, richText }}
+                numberFormat={numberFormatProps}
+              />
+            )}
+          </OverflowText>
         </Grid>
       </Grid>
     </Box>

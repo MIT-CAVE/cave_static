@@ -1,18 +1,13 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
-import { NumberFormat, findSubgroupLabels, getMinMax } from '../../../../utils'
+import { NumberFormat, findSubgroupLabels } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
-const Heatmap = ({
-  data,
-  xAxisTitle,
-  yAxisTitle,
-  numberFormat,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-}) => {
+const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
+  const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const xLabels = R.pluck('name', data)
@@ -27,23 +22,47 @@ const Heatmap = ({
     R.addIndex(R.map)((d, idx) => R.map(R.assoc('index', idx))(d)),
     R.flatten,
     R.collectBy(R.prop('name')),
-    R.addIndex(R.map)((d, yidx) =>
-      R.map((xidx) =>
-        R.pipe(
-          (idx) => R.find(R.propEq(idx, 'index'), d),
-          R.when(R.isNotNil, (val) => [
-            xidx,
-            yidx,
-            R.pathOr(yValues[xidx][0], ['value', 0], val),
-          ])
-        )(xidx)
-      )(R.range(0, Math.max(...R.pluck('index', d)) + 1))
-    ),
-    R.unnest,
-    R.filter(R.isNotNil)
+    R.addIndex(R.map)((d, yidx) => {
+      const indices = R.pluck('index', d).filter(
+        (i) => typeof i === 'number' && !isNaN(i)
+      )
+      const maxIdx = indices.length > 0 ? Math.max(...indices) : -1
+      if (maxIdx < 0) return []
+      const lookup = new Map()
+      for (let i = 0; i < d.length; i++) {
+        lookup.set(d[i].index, d[i])
+      }
+      const points = []
+      for (let xidx = 0; xidx <= maxIdx; xidx++) {
+        const val = lookup.get(xidx)
+        if (val != null) {
+          points.push([xidx, yidx, val.value?.[0] ?? yValues[xidx]?.[0]])
+        }
+      }
+      return points
+    }),
+    R.unnest
   )(yValues)
 
-  const [yMin, yMax] = R.pipe(R.pluck(2), getMinMax)(series)
+  let yMin = Infinity
+  let yMax = -Infinity
+  for (let i = 0; i < series.length; i++) {
+    const val = series[i][2]
+    if (typeof val === 'number' && !isNaN(val)) {
+      if (val < yMin) yMin = val
+      if (val > yMax) yMax = val
+    }
+  }
+  if (yMin === Infinity) yMin = 0
+  if (yMax === -Infinity) yMax = 0
+
+  const resolvedNumberFormat = R.pipe(
+    R.values,
+    R.propOr([], 0),
+    R.is(Object)
+  )(numberFormat)
+    ? R.values(numberFormat)[0]
+    : (numberFormat ?? {})
 
   const options = {
     visualMap: {
@@ -75,7 +94,7 @@ const Heatmap = ({
       type: 'heatmap',
       label: {
         formatter: (params) =>
-          NumberFormat.format(params.data[2], numberFormat),
+          NumberFormat.format(params.data[2], resolvedNumberFormat),
         show: true,
       },
       emphasis: {
@@ -86,11 +105,14 @@ const Heatmap = ({
       },
     },
     tooltip: {
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      // Each cell is an item, as the formatter reads the data of a single cell
+      trigger: 'item',
+      formatter: ({ marker, data: [x, y, value] }) =>
+        markup`${safeHtml(marker)} ${getDisplayName(xLabels[x])}, ${getDisplayName(subGroupLabels[y])}: <strong>${NumberFormat.format(value, resolvedNumberFormat)}</strong>`.toString(),
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 export { Heatmap }

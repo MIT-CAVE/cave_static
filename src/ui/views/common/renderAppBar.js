@@ -1,7 +1,6 @@
-import '../../../App.css'
 import { ClickAwayListener, Box } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import AppBar from './AppBar'
@@ -29,16 +28,20 @@ import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
 
 import { includesPath } from '../../../utils'
 
+import '../../../App.css'
+
 const styles = {
   pane: {
     display: 'flex',
     position: 'absolute',
-    height: '100vh',
+    // Relative to App.js's `workspace` box, which already excludes DockBar's
+    // height, so the pane starts below the dock bar instead of behind it.
+    height: '100%',
     top: 0,
   },
 }
 
-const LeftAppBar = () => {
+const LeftAppBar = memo(() => {
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const leftGroupedAppBar = useSelector(selectLeftGroupedAppBar)
   const leftOpen = useSelector(selectLeftOpenPane)
@@ -58,9 +61,10 @@ const LeftAppBar = () => {
       )}
     </>
   )
-}
+})
+LeftAppBar.displayName = 'LeftAppBar'
 
-const RightAppBar = () => {
+const RightAppBar = memo(() => {
   const rightBar = useSelector(selectRightAppBarDisplay)
   const rightGroupedAppBar = useSelector(selectRightGroupedAppBar)
   const rightOpen = useSelector(selectRightOpenPane)
@@ -80,9 +84,10 @@ const RightAppBar = () => {
       )}
     </>
   )
-}
+})
+RightAppBar.displayName = 'RightAppBar'
 
-const Panes = () => {
+const Panes = memo(() => {
   const leftAppBarData = useSelector(selectLeftAppBarData)
   const leftBar = useSelector(selectLeftAppBarDisplay)
   const leftOpen = useSelector(selectLeftOpenPane)
@@ -207,6 +212,7 @@ const Panes = () => {
       </Box>
     </ClickAwayListener>
   )
-}
+})
+Panes.displayName = 'Panes'
 
 export { LeftAppBar, RightAppBar, Panes }

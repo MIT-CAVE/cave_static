@@ -1,15 +1,24 @@
 import * as R from 'ramda'
+import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
-import { selectNumberFormat } from '../../../data/selectors'
+import {
+  selectNumberFormat,
+  selectRichTextDefault,
+} from '../../../data/selectors'
 import {
   propContainer,
   propId,
   propPlacements,
   propVariant,
 } from '../../../utils/enums'
+import {
+  resolveRichText,
+  warnIfHelpNeedsRichText,
+} from '../../../utils/richText'
 
 import {
+  PropAudio,
   PropCheckbox,
   PropComboBox,
   PropComboBoxMulti,
@@ -17,13 +26,13 @@ import {
   PropDate,
   PropDateTime,
   PropDropdown,
+  PropDualList,
   PropHCheckbox,
   PropHRadio,
   PropHStepper,
   PropHeadColumn,
   PropHeadRow,
   PropIncSlider,
-  PropLatLngInput,
   PropLatLngMap,
   PropLatLngPath,
   PropNested,
@@ -38,8 +47,7 @@ import {
   PropVStepper,
   PropNumberIcon,
   PropNumberIconCompact,
-  IconHeadColumn,
-  IconHeadRow,
+  PropNumberIconCompactAlt,
   PropButtonFilled,
   PropButtonOutlined,
   PropButtonText,
@@ -69,6 +77,7 @@ const getTogglePropRenderFn = R.cond([
   [R.T, invalidVariant('toggle')],
 ])
 const getMediaPropRenderFn = R.cond([
+  [R.equals(propVariant.AUDIO), R.always(PropAudio)],
   [R.equals(propVariant.PICTURE), R.always(PropPicture)],
   [R.equals(propVariant.VIDEO), R.always(PropVideo)],
   [R.T, invalidVariant('media')],
@@ -85,6 +94,7 @@ const getNumberPropRenderFn = R.cond([
   [R.equals(propVariant.SLIDER), R.always(PropNumberSlider)],
   [R.equals(propVariant.ICON), R.always(PropNumberIcon)],
   [R.equals(propVariant.ICON_COMPACT), R.always(PropNumberIconCompact)],
+  [R.equals(propVariant.ICON_COMPACT_ALT), R.always(PropNumberIconCompactAlt)],
   [R.equals(propVariant.INCSLIDER), R.always(PropIncSlider)],
   [R.T, invalidVariant('num')],
 ])
@@ -94,6 +104,7 @@ const getSelectorPropRenderFn = R.cond([
   [R.equals(propVariant.COMBOBOX), R.always(PropComboBox)],
   [R.equals(propVariant.COMBOBOX_MULTI), R.always(PropComboBoxMulti)],
   [R.equals(propVariant.DROPDOWN), R.always(PropDropdown)],
+  [R.equals(propVariant.DUAL_LIST), R.always(PropDualList)],
   [R.equals(propVariant.HCHECKBOX), R.always(PropHCheckbox)],
   [R.equals(propVariant.HRADIO), R.always(PropHRadio)],
   [R.equals(propVariant.HSTEPPER), R.always(PropHStepper)],
@@ -103,7 +114,7 @@ const getSelectorPropRenderFn = R.cond([
   [R.T, invalidVariant('selector')],
 ])
 const getDatePropRenderFn = R.cond([
-  [R.isNil, R.always(PropDateTime)],
+  [R.isNil, R.always(PropDate)],
   [R.equals(propVariant.DATE), R.always(PropDate)],
   [R.equals(propVariant.DATETIME), R.always(PropDateTime)],
   [R.equals(propVariant.TIME), R.always(PropTime)],
@@ -113,14 +124,17 @@ const getHeaderPropRenderFn = R.cond([
   [R.isNil, R.always(PropHeadColumn)],
   [R.equals(propVariant.COLUMN), R.always(PropHeadColumn)],
   [R.equals(propVariant.ROW), R.always(PropHeadRow)],
-  [R.equals(propVariant.ICON), R.always(IconHeadColumn)],
-  [R.equals(propVariant.ICON_ROW), R.always(IconHeadRow)],
+  // `icon`/`iconRow` are aliases for `column`/`row`,
+  // as they render through the exact same components.
+  [R.equals(propVariant.ICON), R.always(PropHeadColumn)],
+  [R.equals(propVariant.ICON_ROW), R.always(PropHeadRow)],
 
   [R.T, invalidVariant('head')],
 ])
 const getCoordinatePropRenderFn = R.cond([
-  [R.isNil, R.always(PropLatLngInput)],
-  [R.equals(propVariant.LATLNG_INPUT), R.always(PropLatLngInput)],
+  [R.isNil, R.always(PropLatLngMap)],
+  // Deprecated alias of `latLngMap`; removed in 4.0.0.
+  [R.equals(propVariant.LATLNG_INPUT), R.always(PropLatLngMap)],
   [R.equals(propVariant.LATLNG_MAP), R.always(PropLatLngMap)],
   [R.equals(propVariant.LATLNG_PATH), R.always(PropLatLngPath)],
   [R.T, invalidVariant('coordinate')],
@@ -155,7 +169,11 @@ const getContainerFn = R.cond([
       ),
       R.pipe(
         R.prop('variant'),
-        R.includes(R.__, [propVariant.ICON, propVariant.ICON_COMPACT])
+        R.includes(R.__, [
+          propVariant.ICON,
+          propVariant.ICON_COMPACT,
+          propVariant.ICON_COMPACT_ALT,
+        ])
       )
     ),
     R.always(propContainer.NONE),
@@ -168,10 +186,15 @@ const getContainerFn = R.cond([
 
 export const PropWrapper = ({ prop, children }) => {
   const numberFormatDefault = useSelector(selectNumberFormat)
+  // Development aid for the planned `help` opt-in (see `utils/richText.js`)
+  useEffect(() => {
+    warnIfHelpNeedsRichText(prop.id, prop.help, prop.richText)
+  }, [prop.id, prop.help, prop.richText])
   const containerProps = R.applySpec({
     title: R.converge(R.defaultTo, [R.prop('id'), R.prop('name')]),
     subtitle: R.prop('subtitle'),
     tooltipContent: R.prop('help'),
+    richText: R.prop('richText'),
     unit: R.propOr(numberFormatDefault.unit, 'unit'),
     type: getContainerFn,
     marquee: R.prop('marquee'),
@@ -200,7 +223,15 @@ export const placementStyles = {
 }
 
 const Prop = (props) => {
-  const prop = R.propOr({}, 'prop')(props)
+  const richTextDefault = useSelector(selectRichTextDefault)
+  const propWithoutDefault = R.propOr({}, 'prop')(props)
+  // The app-wide default is the root of the `richText` cascade, so it is
+  // resolved here, for the container and for every prop component below
+  const richText = resolveRichText(propWithoutDefault.richText, richTextDefault)
+  const prop =
+    richText === propWithoutDefault.richText
+      ? propWithoutDefault
+      : { ...propWithoutDefault, richText }
   const {
     type,
     variant,
@@ -225,6 +256,7 @@ const Prop = (props) => {
           placement && placementStyles[placement],
         ]}
         {...R.pipe(
+          R.assoc('prop', prop),
           R.assocPath(['prop', 'enabled'], enabled),
           R.assocPath(['prop', 'style'], propStyle)
         )(props)}

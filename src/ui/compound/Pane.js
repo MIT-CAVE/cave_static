@@ -1,9 +1,9 @@
 import { Box, Drawer, IconButton, Stack, Typography } from '@mui/material'
 import PropTypes from 'prop-types'
-import * as R from 'ramda'
 import { MdPushPin, MdOutlinePushPin } from 'react-icons/md'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { APP_BAR_WIDTH, PANE_WIDTH } from '../../utils/constants'
 
@@ -57,14 +57,7 @@ const PaneRoot = ({
   ...props
 }) => (
   <Drawer
-    sx={[
-      R.assocPath(
-        ['& .MuiDrawer-paper', side],
-        `${APP_BAR_WIDTH + 1}px`,
-        styles.drawer
-      ),
-      ...forceArray(sx),
-    ]}
+    sx={[styles.drawer, ...forceArray(sx)]}
     anchor={side}
     variant={open ? 'permanent' : 'persistent'} // 'temporary'
     {...{ disabled, elevation, open, ...props }}
@@ -86,6 +79,7 @@ PaneRoot.propTypes = {
 
 const PaneHeader = ({
   title,
+  richText,
   iconName,
   leftButton,
   rightButton,
@@ -112,7 +106,9 @@ const PaneHeader = ({
       {pin != null && side === 'right' && pinButton}
       <Box sx={styles.leftButton}>{leftButton}</Box>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-        <Typography variant="h6">{title}</Typography>
+        <Typography variant="h6">
+          <RichLabel text={title} rich={richText === true} />
+        </Typography>
         <FetchedIcon {...{ iconName }} />
       </Stack>
       <Box sx={styles.rightButton}>{rightButton}</Box>
@@ -122,6 +118,7 @@ const PaneHeader = ({
 }
 PaneHeader.propTypes = {
   title: PropTypes.string,
+  richText: PropTypes.bool,
   iconName: PropTypes.string,
   color: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   sx: PropTypes.oneOfType([
@@ -139,6 +136,7 @@ PaneHeader.propTypes = {
 
 const Pane = ({
   name,
+  richText,
   iconName,
   leftButton,
   rightButton,
@@ -153,7 +151,7 @@ const Pane = ({
   <PaneRoot open={!!open} side={side} {...props}>
     <PaneHeader
       title={name}
-      {...{ iconName, leftButton, rightButton, pin, onPin, side }}
+      {...{ richText, iconName, leftButton, rightButton, pin, onPin, side }}
     />
     <Box sx={[{ minWidth: PANE_WIDTH, width }, styles.content]}>
       <Box sx={{ minWidth: 'max-content' }}>{children}</Box>
@@ -162,6 +160,7 @@ const Pane = ({
 )
 Pane.propTypes = {
   name: PropTypes.string,
+  richText: PropTypes.bool,
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   children: PropTypes.node,
   side: PropTypes.string,

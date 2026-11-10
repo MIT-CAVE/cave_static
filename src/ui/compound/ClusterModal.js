@@ -12,12 +12,17 @@ import * as R from 'ramda'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import RichLabel from './RichLabel'
+
 import { mutateLocal } from '../../data/local'
 import {
+  selectLocalizedNodeTypes,
   selectMergedNodes,
   selectNodeClustersAtZoomFunc,
   selectSync,
 } from '../../data/selectors'
+import { useRichText } from '../../utils/hooks'
+import { resolveRichText } from '../../utils/richText'
 
 import { includesPath } from '../../utils'
 
@@ -47,6 +52,8 @@ const styles = {
   },
 }
 
+// `title` is the id of the feature type of the cluster, which is used to find it.
+// The title of the modal shows the `name` of the type instead, when it has one.
 const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
@@ -70,16 +77,36 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       )
     )
   ) //.map(node => node[1])
+  const featureType = useSelector(selectLocalizedNodeTypes)[title]
+  // The `richText` of the feature type, with the app default as its root
+  const typeRichText = useRichText(featureType?.richText)
   // generate table columns for given cluster's props
   const tableColumns = [{ id: 'name', label: 'Name', minWidth: 170 }]
   for (const prop of Object.keys(nodeData[0][1].props)) {
-    const name = R.propOr(prop, 'name', nodeData[0][1].props[prop])
-    tableColumns.push({ id: prop, label: name, minWidth: 170, align: 'right' })
+    const propData = nodeData[0][1].props[prop]
+    const name = R.propOr(prop, 'name', propData)
+    tableColumns.push({
+      id: prop,
+      label: (
+        <RichLabel
+          text={name}
+          rich={resolveRichText(propData.richText, typeRichText) === true}
+        />
+      ),
+      minWidth: 170,
+      align: 'right',
+    })
   }
 
   // generate table rows for given cluster's node data
   const createData = (node) => {
-    const data = { name: R.propOr(node[0], 'name', node[1]), id: node[0] }
+    // The `name` of a node is the name of its feature type, so it is rich as the
+    // type is. Without a name, the id of the node is shown as it is
+    const data = {
+      name: R.propOr(node[0], 'name', node[1]),
+      nameRich: R.has('name', node[1]) && typeRichText === true,
+      id: node[0],
+    }
     for (const prop of Object.keys(node[1].props)) {
       data[prop] = node[1].values[prop].toString()
     }
@@ -160,9 +187,13 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
                         const value = row[column.id]
                         return (
                           <TableCell key={column.id} align={column.align}>
-                            {column.format && typeof value === 'number'
-                              ? column.format(value)
-                              : value}
+                            {column.id === 'name' ? (
+                              <RichLabel text={value} rich={row.nameRich} />
+                            ) : column.format && typeof value === 'number' ? (
+                              column.format(value)
+                            ) : (
+                              value
+                            )}
                           </TableCell>
                         )
                       })}
@@ -209,7 +240,11 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       <Box sx={styles.modal}>
         <Box sx={styles.header}>
           <Typography sx={styles.title} variant="h5">
-            Grouped {title}
+            Grouped{' '}
+            <RichLabel
+              text={featureType?.name ?? title}
+              rich={featureType?.name != null && typeRichText === true}
+            />
           </Typography>
         </Box>
         <Box sx={{ overflow: 'auto', maxHeight: '80vh', maxWidth: '90vw' }}>

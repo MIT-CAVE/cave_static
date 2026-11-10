@@ -21,8 +21,10 @@ import Spinner, {
 
 import { selectVirtualKeyboard } from '../../data/selectors'
 import { setInputValue as SetKeyboardInputValue } from '../../data/utilities/virtualKeyboardSlice'
+import { labelText } from '../../utils/richText'
 import KeyboardToggle from '../compound/KeyboardToggle'
 import OverflowText from '../compound/OverflowText'
+import RichLabel from '../compound/RichLabel'
 
 import { forceArray, getStatusIcon, NumberFormat } from '../../utils'
 
@@ -75,15 +77,11 @@ const NumberField = ({
   inverseScale = R.identity,
   numberFormat: numberFormatRaw,
   step,
-  smallStep = numberFormatRaw.precision != null
-    ? // Setting `smallStep` to a maximum of 3 decimal places `precision`
-      // is a safeguard against a bug in Base UI's `NumberField` where the
-      // spinner doesn't work for smaller step values (e.g. `0.0001`).
-      1 / 10 ** Math.min(3, numberFormatRaw.precision)
-    : undefined,
+  smallStep = 1 / 10 ** numberFormatRaw.precision,
   largeStep,
   color = 'default',
   helperText,
+  richText,
   marqueeLabel = true,
   sx = [],
   fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
@@ -118,6 +116,13 @@ const NumberField = ({
   const scaledMax = scale(max)
 
   useEffect(() => {
+    if (commitTimeoutRef.current !== -1) {
+      clearTimeout(commitTimeoutRef.current)
+      commitTimeoutRef.current = -1
+    }
+  }, [value])
+
+  useEffect(() => {
     return () => {
       if (commitTimeoutRef.current !== -1)
         clearTimeout(commitTimeoutRef.current)
@@ -140,11 +145,13 @@ const NumberField = ({
       // console.log('Virtual keyboard change', { value, newValue, event })
       dispatch(SetKeyboardInputValue(`${newValue}`))
     }
-    if (scaledValue === newValue) return
+    const parsedValue =
+      typeof newValue === 'string' ? NumberFormat.parse(newValue) : newValue
+    if (scaledValue === parsedValue) return
     // Guard against null (VK close) and NaN (invalid input like 'fish') during typing
-    if (newValue == null || !Number.isFinite(newValue)) return
+    if (parsedValue == null || !Number.isFinite(parsedValue)) return
 
-    onChange(event, inverseScale(newValue))
+    onChange?.(event, inverseScale(parsedValue))
   }
 
   const handleValueCommitted = (newValue, event) => {
@@ -168,10 +175,28 @@ const NumberField = ({
     const committedValue = Number.isFinite(safe) ? safe : fallback
 
     if (commitTimeoutRef.current !== -1) clearTimeout(commitTimeoutRef.current)
-    commitTimeoutRef.current = setTimeout(() => {
-      onChangeCommitted(event, inverseScale(committedValue))
+
+    // For blur or Enter events, commit immediately so that any subsequent interactions
+    // (e.g. moving a slider or clicking another control) are not overridden by a delayed timer.
+    const isBlurOrEnter =
+      event?.reason === 'input-blur' ||
+      event?.reason === 'keyboard' ||
+      event?.type === 'blur' ||
+      event?.type === 'focusout' ||
+      event?.key === 'Enter' ||
+      event?.event?.type === 'blur' ||
+      event?.event?.type === 'focusout' ||
+      event?.event?.key === 'Enter'
+
+    if (isBlurOrEnter) {
       commitTimeoutRef.current = -1
-    }, 500)
+      onChangeCommitted?.(event, inverseScale(committedValue))
+    } else {
+      commitTimeoutRef.current = setTimeout(() => {
+        onChangeCommitted?.(event, inverseScale(committedValue))
+        commitTimeoutRef.current = -1
+      }, 500)
+    }
   }
 
   const showKeyboardToggle = !(hideKeyboardToggle || readOnly || disabled)
@@ -208,6 +233,11 @@ const NumberField = ({
           smallStep,
           largeStep,
           readOnly,
+          // Without an explicit `format`, Base UI's `NumberField` falls back
+          // to `Intl.NumberFormat`'s own default of at most 3 fraction
+          // digits for the focused/live input buffer, silently truncating
+          // any configured `precision` greater than 3.
+          format: { maximumFractionDigits: numberFormatRaw.precision ?? 3 },
           ...rest,
         }}
         style={{ width: fullWidth ? '100%' : 'auto' }}
@@ -222,7 +252,13 @@ const NumberField = ({
             ...forceArray(slotProps?.label?.sx),
           ]}
         >
-          {marqueeLabel ? <OverflowText text={label} /> : label}
+          {marqueeLabel ? (
+            <OverflowText text={label}>
+              {richText === true && <RichLabel text={label} />}
+            </OverflowText>
+          ) : (
+            <RichLabel text={label} rich={richText === true} />
+          )}
         </InputLabel>
         <BaseNumberField.Input
           id={id}
@@ -243,11 +279,12 @@ const NumberField = ({
                       : color
                   }
                   {...{
-                    label,
-                    placeholder,
                     readOnly,
                     fullWidth,
                   }}
+                  // The notched outline needs the label as plain text
+                  label={labelText(label, richText)}
+                  placeholder={labelText(placeholder, richText)}
                   value={state.inputValue}
                   sx={[
                     styles.inputComponent,
@@ -266,6 +303,19 @@ const NumberField = ({
                         ? state.inputValue
                         : // Show formatted value when input is blurred
                           NumberFormat.format(state.value, numberFormat),
+                      // Match the virtual keyboard's submit: Enter commits (via
+                      // the blur path) and releases focus. Base UI treats Enter
+                      // as a navigation key and otherwise does nothing.
+                      onKeyDown: (e) => {
+                        props.onKeyDown?.(e)
+                        if (
+                          e.key === 'Enter' &&
+                          !e.nativeEvent?.isComposing &&
+                          !e.defaultPrevented
+                        ) {
+                          localInputRef.current?.blur()
+                        }
+                      },
                       ...slotProps?.input,
                       sx: [
                         spinner === 'leftAndRight' && { textAlign: 'center' },
@@ -342,15 +392,50 @@ const NumberField = ({
                         getStatusIcon(color)}
                     </InputAdornment>
                   }
-                  onChange={kbRef.current?.handleChange}
+                  onChange={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleChange(e)
+                    } else {
+                      props.onChange?.(e)
+                    }
+                  }}
                   onSelect={props.onSelect}
-                  onFocus={kbRef.current?.handleFocus}
-                  onBlur={kbRef.current?.handleBlur}
-                  onTouchStart={kbRef.current?.handleTouchStart}
-                  onTouchMove={kbRef.current?.handleTouchMove}
-                  onTouchEnd={kbRef.current?.handleTouchEnd}
+                  onFocus={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleFocus(e)
+                    } else {
+                      props.onFocus?.(e)
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleBlur(e)
+                    } else {
+                      props.onBlur?.(e)
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleTouchStart(e)
+                    } else {
+                      props.onTouchStart?.(e)
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleTouchMove(e)
+                    } else {
+                      props.onTouchMove?.(e)
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if (kbRef.current) {
+                      kbRef.current.handleTouchEnd(e)
+                    } else {
+                      props.onTouchEnd?.(e)
+                    }
+                  }}
                   onKeyUp={props.onKeyUp}
-                  onKeyDown={props.onKeyDown}
                 />
                 {showKeyboardToggle && (
                   <KeyboardToggle
@@ -377,7 +462,7 @@ const NumberField = ({
           }}
         />
         <FormHelperText sx={{ ml: 0, '&:empty': { mt: 0 } }}>
-          {helperText}
+          <RichLabel text={helperText} rich={richText === true} />
         </FormHelperText>
       </BaseNumberField.Root>
     </Field.Root>
@@ -407,6 +492,7 @@ NumberField.propTypes = {
   numberFormat: PropTypes.object,
   color: PropTypes.string,
   helperText: PropTypes.string,
+  richText: PropTypes.bool,
   sx: PropTypes.oneOfType([
     PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])

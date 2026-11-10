@@ -1,59 +1,59 @@
 import {
   Autocomplete,
-  Chip,
   IconButton,
   Stack,
   TextField,
   autocompleteClasses,
 } from '@mui/material'
-import * as R from 'ramda'
-import { useState, useEffect, useCallback, Children, cloneElement } from 'react'
+import PropTypes from 'prop-types'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  Children,
+  cloneElement,
+} from 'react'
 import { BiSolidKeyboard } from 'react-icons/bi'
 import { GiEmptyChessboard } from 'react-icons/gi'
 import { IoSquareSharp } from 'react-icons/io5'
 import { useDispatch } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
 import { setInputValue } from '../../data/utilities/virtualKeyboardSlice'
 import { useVirtualKeyboard } from '../views/common/useVirtualKeyboard'
 
-import { getContrastText, getCurrentAttr } from '../../utils'
+import { getActiveDefaults, getOrDefault } from '../../utils'
 
 const DEFAULT_SIZE = '18px'
-
-const styles = {
-  getChip: ({ activeColor, contrastText }) => ({
-    bgcolor: activeColor,
-    '.MuiChip-label, .MuiChip-deleteIcon': {
-      color: contrastText,
-      opacity: 0.7,
-    },
-  }),
-}
 
 const ComboboxBase = ({
   disabled,
   readOnly,
-  multiple,
   placeholder,
+  helperText,
   options,
   indexedOptions,
   value: defaultValue,
-  limitTags,
   labelPlacement,
   fullWidth = true, // NOTE: This will change to `false` in `v4.0.0`
   sx = [],
   slotProps,
   endAdornments,
   startAdornments,
-  getActiveAttrs,
+  propAttrs = {},
   getOptionLabel,
   onChange,
 }) => {
-  const [value, setValue] = useState(defaultValue ?? (multiple ? [] : ''))
+  const activeDefaults = useMemo(
+    () => getActiveDefaults(propAttrs),
+    [propAttrs]
+  )
+  const [value, setValue] = useState(defaultValue ?? '')
   const [justFocused, setJustFocused] = useState(false)
-  const valueName = multiple ? '' : getOptionLabel(value)
+  const valueName = getOptionLabel(value)
   const [valueText, setValueText] = useState(valueName)
   const dispatch = useDispatch()
 
@@ -72,7 +72,7 @@ const ComboboxBase = ({
     handleSelectionChange,
   } = useVirtualKeyboard({
     keyboardLayout: 'default',
-    disabled,
+    disabled: disabled || readOnly,
     onBlur: () => {
       // component-specific blur logic
       setKeyboardValue(valueName)
@@ -104,11 +104,11 @@ const ComboboxBase = ({
       return
 
     if (virtualKeyboard.inputValue === '') {
-      setValue(R.unless(R.always(multiple), R.always('')))
+      setValue('')
     }
 
     setValueText(virtualKeyboard.inputValue)
-  }, [disabled, focused, multiple, valueText, virtualKeyboard.inputValue])
+  }, [disabled, focused, valueText, virtualKeyboard.inputValue])
 
   // Delay update from focus to here so that focusing via
   // clicking the clear button can correctly clear text
@@ -167,10 +167,16 @@ const ComboboxBase = ({
             : ''
 
       const selected = option === value
-      const currentLabel = getCurrentAttr(selected, name, activeName)
-      const currentIcon = getCurrentAttr(selected, icon, activeIcon)
-      const currentColor = getCurrentAttr(selected, color, activeColor)
-      const currentSize = getCurrentAttr(selected, size, activeSize)
+      const currentLabel = selected ? getOrDefault(activeName, name) : name
+      const currentIcon = selected
+        ? (getOrDefault(activeIcon, icon) ?? activeDefaults.icon)
+        : icon
+      const currentColor = selected
+        ? (getOrDefault(activeColor, color) ?? activeDefaults.color)
+        : color
+      const currentSize = selected
+        ? (getOrDefault(activeSize, size) ?? activeDefaults.size)
+        : size
 
       const markerStyle = {
         verticalAlign: 'middle',
@@ -214,18 +220,35 @@ const ComboboxBase = ({
               style={markerStyle}
             />
           ) : null}
-          {currentLabel ?? option}
+          <RichLabel
+            text={currentLabel ?? option}
+            rich={propAttrs.richText === true}
+          />
         </Stack>
       )
     },
-    [indexedOptions, labelPlacement, value]
+    [activeDefaults, indexedOptions, labelPlacement, propAttrs.richText, value]
+  )
+
+  const getOptionDisabled = useCallback(
+    (option) => !getOrDefault(indexedOptions[option]?.enabled, true),
+    [indexedOptions]
   )
 
   const renderInput = useCallback(
     (params) => (
       // The placeholder in the API serves as a label in the context of the MUI component.
       <TextField
-        label={placeholder}
+        label={
+          placeholder && (
+            <RichLabel text={placeholder} rich={propAttrs.richText === true} />
+          )
+        }
+        helperText={
+          helperText && (
+            <RichLabel text={helperText} rich={propAttrs.richText === true} />
+          )
+        }
         {...{ inputRef, fullWidth, ...params }}
         onSelect={handleSelectionChange}
         slotProps={{
@@ -256,41 +279,14 @@ const ComboboxBase = ({
       disabled,
       fullWidth,
       handleSelectionChange,
+      helperText,
       inputRef,
       placeholder,
+      propAttrs.richText,
       readOnly,
       slotProps,
       startAdornments,
     ]
-  )
-
-  const renderValue = useCallback(
-    (value, getItemProps) =>
-      value.map((option, index) => {
-        const itemProps = getItemProps({ index })
-        const opt = indexedOptions[option]
-        const { activeIcon, activeSize, activeName, activeColor } =
-          getActiveAttrs(opt)
-        const contrastText = getContrastText(activeColor)
-        return (
-          <Chip
-            key={option}
-            {...(activeIcon && {
-              icon: (
-                <FetchedIcon
-                  iconName={activeIcon}
-                  color={contrastText}
-                  size={activeSize ?? DEFAULT_SIZE}
-                />
-              ),
-            })}
-            label={activeName}
-            sx={styles.getChip({ activeColor, contrastText })}
-            {...R.dissoc('key')(itemProps)}
-          />
-        )
-      }),
-    [getActiveAttrs, indexedOptions]
   )
 
   const handleInputChange = useCallback(
@@ -306,11 +302,11 @@ const ComboboxBase = ({
   const handleChange = useCallback(
     (event, newValue) => {
       if (disabled) return
-      onChange(multiple ? newValue : [newValue])
+      onChange([newValue])
       setValue(newValue)
-      if (!multiple) setKeyboardValue(getOptionLabel(newValue))
+      setKeyboardValue(getOptionLabel(newValue))
     },
-    [disabled, getOptionLabel, multiple, onChange, setKeyboardValue]
+    [disabled, getOptionLabel, onChange, setKeyboardValue]
   )
 
   return (
@@ -322,16 +318,15 @@ const ComboboxBase = ({
       inputValue={valueText ?? ''}
       {...{
         disabled,
-        multiple,
+        readOnly,
         options,
         value,
-        limitTags,
         fullWidth,
         sx,
         getOptionLabel,
+        getOptionDisabled,
         renderOption,
         renderInput,
-        ...(multiple && { renderValue }), // `ComboboxMulti` only, for now
       }}
       onInputChange={handleInputChange}
       onChange={handleChange}
@@ -342,6 +337,18 @@ const ComboboxBase = ({
       onTouchEnd={handleTouchEnd}
     />
   )
+}
+ComboboxBase.propTypes = {
+  helperText: PropTypes.string,
+  propAttrs: PropTypes.object,
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
+  onChange: PropTypes.func,
 }
 
 export default ComboboxBase

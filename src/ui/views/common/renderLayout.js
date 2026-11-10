@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import Prop from './renderProp'
 
 import { layoutType } from '../../../utils/enums'
+import { resolveRichText } from '../../../utils/richText'
 
 import {
   getAllValuesForKey,
@@ -11,16 +12,28 @@ import {
   sortedListById,
 } from '../../../utils'
 
-const renderPropItem = ({ layoutItem, prop, getCurrentVal, onChangeProp }) => {
+const renderPropItem = ({
+  layoutItem,
+  prop,
+  richText,
+  getCurrentVal,
+  onChangeProp,
+}) => {
   const { container, elevation, marquee } = layoutItem
   const currentValue = getCurrentVal ? getCurrentVal(prop.id) : prop.value
-  prop.value = currentValue
+  const currentProp = {
+    ...prop,
+    value: currentValue,
+    // `richText` cascades: prop > layout item > ancestor grids > caller
+    richText: resolveRichText(prop.richText, layoutItem.richText, richText),
+    ...(container ? { container, elevation, marquee } : {}),
+  }
   return (
     <Prop
       key={prop.key}
-      prop={container ? { container, elevation, marquee, ...prop } : prop}
+      prop={currentProp}
       currentVal={currentValue}
-      onChange={onChangeProp(prop, prop.id)}
+      onChange={onChangeProp(currentProp, currentProp.id)}
     />
   )
 }
@@ -39,14 +52,16 @@ const renderItem = ({ layout: layoutItem, items, unusedItems, ...other }) => {
   if (R.isNil(itemId)) throw Error("Missing 'itemId' property in layout item")
 
   const item = items[itemId]
+  const layoutWidth = containerStyle?.width ?? width
+  const layoutHeight = containerStyle?.height ?? height
   const prop = R.mergeLeft({
     id: itemId,
     key: layoutItem.id,
     layoutStyle: {
       gridColumnStart: column,
       gridRowStart: row,
-      width,
-      height,
+      ...(layoutWidth != null && { width: layoutWidth }),
+      ...(layoutHeight != null && { height: layoutHeight }),
     },
     // NOTE: `propStyle` will be renamed to `style` in v4.0.0
     propStyle: propStyle ?? item.propStyle,
@@ -70,7 +85,7 @@ const getLayoutItems = ({ data, fillerItems, ...other }) =>
     })
   )(data)
 
-const renderGrid = ({ layout, unusedItems, ...other }) => {
+const renderGrid = ({ layout, unusedItems, richText, ...other }) => {
   const {
     numColumns = 'auto',
     numRows = 'auto',
@@ -158,7 +173,13 @@ const renderGrid = ({ layout, unusedItems, ...other }) => {
           ...style,
         }}
       >
-        {getLayoutItems({ data, fillerItems, unusedItems, ...other })}
+        {getLayoutItems({
+          data,
+          fillerItems,
+          unusedItems,
+          richText: resolveRichText(layout.richText, richText),
+          ...other,
+        })}
       </Box>
     ),
   }

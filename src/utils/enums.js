@@ -37,9 +37,11 @@ export const propVariant = {
   COLUMN: 'column',
   DATE: 'date',
   DATETIME: 'datetime',
+  AUDIO: 'audio',
   COMBOBOX: 'combobox',
   COMBOBOX_MULTI: 'comboboxMulti',
   DROPDOWN: 'dropdown',
+  DUAL_LIST: 'dualList',
   FIELD: 'field',
   HCHECKBOX: 'hcheckbox',
   HRADIO: 'hradio',
@@ -62,6 +64,7 @@ export const propVariant = {
   ICON: 'icon',
   ICON_ROW: 'iconRow',
   ICON_COMPACT: 'iconCompact',
+  ICON_COMPACT_ALT: 'iconCompactAlt',
   FILLED: 'filled',
   OUTLINED: 'outlined',
 }
@@ -373,9 +376,3 @@ export const MAPBOX_PROJECTIONS = new Set(
     (projection) => projection !== MAP_PROJECTIONS.VERTICAL_PERSPECTIVE
   )
 )
-
-export const MAPLIBRE_PROJECTIONS = new Set([
-  MAP_PROJECTIONS.MERCATOR,
-  MAP_PROJECTIONS.GLOBE,
-  // MAP_PROJECTIONS.VERTICAL_PERSPECTIVE, // FIXME: Doesn't seem to work for now
-])

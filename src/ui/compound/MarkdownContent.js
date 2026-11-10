@@ -2,18 +2,33 @@ import { Box, styled } from '@mui/material'
 import PropTypes from 'prop-types'
 import { memo, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { materialDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import CopyButton from './CopyButton'
+import InlineCode from './InlineCode'
+import sanitizeSchema, { getSanitizedHref } from './sanitizeSchema'
 
 const styles = {
-  code: {
+  codeBlock: {
     position: 'relative',
+    my: 1,
+    p: 1.5,
+    borderRadius: 1.5,
+    bgcolor: 'action.hover',
+    fontFamily: 'Consolas, monospace',
+    fontSize: '0.9em',
+    lineHeight: 1.5,
+    overflowX: 'auto',
+  },
+  // Spacing of inline code in a text block (`InlineCode` is tighter for labels)
+  inlineCode: {
+    px: 0.75,
+    py: 0.25,
+    fontSize: '0.95em',
   },
   copyButton: {
     position: 'absolute',
@@ -24,6 +39,11 @@ const styles = {
     '&:hover': { opacity: 0.9 },
   },
 }
+
+const remarkPlugins = [remarkMath, remarkGfm]
+// NOTE: The order matters. HTML is parsed first, so it can be sanitized, and
+// formulas are rendered last, as their output would not pass the sanitizer
+const rehypePlugins = [rehypeRaw, [rehypeSanitize, sanitizeSchema], rehypeKatex]
 
 const StyledContainer = styled(Box)(({ theme }) => ({
   color: theme.palette.text.primary,
@@ -57,13 +77,6 @@ const StyledContainer = styled(Box)(({ theme }) => ({
     margin: '8px 0',
     fontSize: '1rem',
     lineHeight: 1.6,
-  },
-  '& code': {
-    backgroundColor: theme.palette.action.hover,
-    padding: '2px 6px',
-    borderRadius: 4,
-    fontSize: '0.95em',
-    fontFamily: 'Consolas, monospace',
   },
   '& pre code': {
     display: 'block',
@@ -112,29 +125,34 @@ const StyledContainer = styled(Box)(({ theme }) => ({
 const MarkdownContent = ({ content, innerRef, sx = [] }) => {
   const components = useMemo(
     () => ({
+      a: ({ href, children, ...props }) => (
+        <a {...props} href={getSanitizedHref(href)}>
+          {children}
+        </a>
+      ),
       code: ({ className, children, ...props }) => {
-        const match = /language-(\w+)/.exec(className || '')
-        if (match == null) {
-          return <code {...props}>{children}</code>
+        const isBlock = Boolean(className) || String(children).includes('\n')
+        if (!isBlock) {
+          return (
+            <InlineCode sx={styles.inlineCode} {...props}>
+              {children}
+            </InlineCode>
+          )
         }
-        const code = String(children).trim()
+        const codeText = String(children).trim()
         return (
-          <Box sx={styles.code}>
-            <SyntaxHighlighter
-              style={materialDark}
-              language={match[1]}
-              PreTag="div"
-              customStyle={{
-                margin: 0,
-                borderRadius: 6,
-                fontSize: '0.9em',
-                lineHeight: 1.5,
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
+          <Box sx={styles.codeBlock}>
+            <Box component="pre" sx={{ m: 0, p: 0, overflowX: 'auto' }}>
+              <Box component="code" {...props}>
+                {children}
+              </Box>
+            </Box>
             <Box sx={styles.copyButton}>
-              <CopyButton tooltip="Copy code" size={16} getText={() => code} />
+              <CopyButton
+                tooltip="Copy code"
+                size={16}
+                getText={() => codeText}
+              />
             </Box>
           </Box>
         )
@@ -144,11 +162,7 @@ const MarkdownContent = ({ content, innerRef, sx = [] }) => {
   )
   return (
     <StyledContainer ref={innerRef} {...{ sx }}>
-      <ReactMarkdown
-        remarkPlugins={[remarkMath, remarkGfm]}
-        rehypePlugins={[rehypeKatex, rehypeRaw]}
-        {...{ components }}
-      >
+      <ReactMarkdown {...{ remarkPlugins, rehypePlugins }} {...{ components }}>
         {content}
       </ReactMarkdown>
     </StyledContainer>
@@ -157,6 +171,13 @@ const MarkdownContent = ({ content, innerRef, sx = [] }) => {
 MarkdownContent.propTypes = {
   content: PropTypes.string.isRequired,
   innerRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+  sx: PropTypes.oneOfType([
+    PropTypes.arrayOf(
+      PropTypes.oneOfType([PropTypes.func, PropTypes.object, PropTypes.bool])
+    ),
+    PropTypes.func,
+    PropTypes.object,
+  ]),
 }
 
 export default memo(MarkdownContent)

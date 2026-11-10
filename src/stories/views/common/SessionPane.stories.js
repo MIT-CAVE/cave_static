@@ -1,4 +1,5 @@
 import React from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 
 import SessionPane from '../../../ui/views/common/SessionPane'
 
@@ -49,5 +50,64 @@ export const Default = {
         },
       },
     },
+  },
+}
+
+export const OverflowSessions = {
+  render: () => <SessionPane width={460} />,
+  parameters: {
+    layoutWidth: '460px',
+    layoutHeight: '700px',
+    preloadedState: {
+      utilities: {
+        sessions: {
+          session_id: 'session_1',
+          data: {
+            team_1: {
+              teamId: 'team_1',
+              teamName: 'Team Alpha',
+              sessions: Object.fromEntries(
+                Array.from({ length: 10 }, (_, i) => [
+                  `session_${i + 1}`,
+                  {
+                    sessionId: `session_${i + 1}`,
+                    sessionName: `Session ${i + 1}`,
+                    sessionDescription: `Description for session ${i + 1}`,
+                  },
+                ])
+              ),
+            },
+          },
+        },
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const scroller = canvasElement.querySelector('.MuiDataGrid-virtualScroller')
+    const footer = canvasElement.querySelector('.MuiDataGrid-footerContainer')
+
+    const scrollerCanvas = within(scroller)
+
+    // Verify DataGrid rows area is scrollable
+    expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight)
+    scroller.scrollTop = 100
+    expect(scroller.scrollTop).toBeGreaterThan(0)
+
+    // Verify initial pagination state (page 1)
+    expect(footer.textContent).toContain('1–5 of 10')
+    expect(scrollerCanvas.getByText('Session 1')).toBeInTheDocument()
+    expect(scrollerCanvas.getByText('Session 5')).toBeInTheDocument()
+    expect(scrollerCanvas.queryByText('Session 6')).toBeNull()
+
+    // Navigate to next page
+    const nextPageBtn = canvas.getByRole('button', { name: /next page/i })
+    await userEvent.click(nextPageBtn)
+
+    // Verify second page
+    expect(footer.textContent).toContain('6–10 of 10')
+    expect(scrollerCanvas.getByText('Session 6')).toBeInTheDocument()
+    expect(scrollerCanvas.getByText('Session 10')).toBeInTheDocument()
+    expect(scrollerCanvas.queryByText('Session 1')).toBeNull()
   },
 }

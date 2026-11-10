@@ -1,12 +1,12 @@
 export * from './NestedList'
 export * from './SimpleDropdown'
-export { IconHeadColumn, IconHeadRow } from './IconHead'
 export {
   PropButtonFilled,
   PropButtonIcon,
   PropButtonOutlined,
   PropButtonText,
 } from './PropButton'
+export { default as PropAudio } from './PropAudio'
 export { PropDate, PropDateTime, PropTime } from './PropDate'
 export { PropHeadColumn, PropHeadRow } from './PropHead'
 export { PropText, PropTextArea } from './PropText'
@@ -15,25 +15,31 @@ export {
   PropToggleCheckbox,
   PropToggleSwitch,
 } from './PropToggle'
+export { default as Carousel } from './Carousel'
+export { default as ComboboxBase } from './ComboboxBase'
+export { default as ComboboxMultiBase } from './ComboboxMultiBase'
+export { default as DualListBase } from './DualListBase'
 export { default as ErrorBoundary } from './ErrorBoundary'
 export { default as FetchedIcon } from './FetchedIcon'
 export { default as HelpTooltip } from './HelpTooltip'
 export { default as List } from './List'
 export { default as PropNumberIcon } from './PropNumberIcon'
 export { default as PropNumberIconCompact } from './PropNumberIconCompact'
+export { default as PropNumberIconCompactAlt } from './PropNumberIconCompactAlt'
 export { default as NumberInput } from './NumberInput'
 export { default as OptionalWrapper } from './OptionalWrapper'
 export { default as OverflowText } from './OverflowText'
+export { default as RichLabel } from './RichLabel'
 export { default as PropCheckbox } from './PropCheckbox'
 export { default as PropComboBox } from './PropComboBox'
 export { default as PropComboBoxMulti } from './PropComboBoxMulti'
 export { default as PropContainer } from './PropContainer'
 export { default as PropDropdown } from './PropDropdown'
+export { default as PropDualList } from './PropDualList'
 export { default as PropHCheckbox } from './PropHCheckbox'
 export { default as PropHRadio } from './PropHRadio'
 export { default as PropHStepper } from './PropHStepper'
 export { default as PropIncSlider } from './PropIncSlider'
-export { default as PropLatLngInput } from './PropLatLngInput'
 export { default as PropLatLngMap } from './PropLatLngMap'
 export { default as PropLatLngPath } from './PropLatLngPath'
 export { default as PropNested } from './PropNested'

@@ -1,12 +1,22 @@
-import { Box } from '@mui/material'
+import { Box, FormHelperText } from '@mui/material'
 import PropTypes from 'prop-types'
+
+import RichLabel from './RichLabel'
+
+import { labelText } from '../../utils/richText'
 
 import { forceArray } from '../../utils'
 
 const styles = {
   root: {
     display: 'flex',
+    flexDirection: 'column',
     position: 'relative',
+  },
+  frame: {
+    display: 'flex',
+    flex: '1 1 auto',
+    minHeight: 0,
   },
   iframe: {
     height: '100%',
@@ -23,25 +33,40 @@ const scaleModeStyles = {
 }
 
 const PropVideo = ({
-  prop: { value: url, scaleMode, propStyle = [] },
+  prop: {
+    value: url,
+    scaleMode,
+    fullWidth,
+    helperText,
+    richText,
+    propStyle = [],
+  },
   sx = [],
 }) => (
   <Box
     sx={[
       styles.root,
-      scaleModeStyles[scaleMode],
+      // `scaleMode` takes precedence over `fullWidth`
+      scaleModeStyles[scaleMode ?? (fullWidth ? 'fitWidth' : undefined)],
       ...forceArray(sx),
       ...forceArray(propStyle),
     ]}
   >
-    <iframe
-      credentialless="true"
-      title="Embedded Video"
-      src={url}
-      style={styles.iframe}
-      allowFullScreen
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; cross-origin-isolated"
-    />
+    <Box sx={styles.frame}>
+      <iframe
+        credentialless={true}
+        title={labelText(helperText, richText) || 'Embedded Video'}
+        src={url}
+        style={styles.iframe}
+        allowFullScreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; cross-origin-isolated"
+      />
+    </Box>
+    {helperText && (
+      <FormHelperText>
+        <RichLabel text={helperText} rich={richText === true} />
+      </FormHelperText>
+    )}
   </Box>
 )
 PropVideo.propTypes = {

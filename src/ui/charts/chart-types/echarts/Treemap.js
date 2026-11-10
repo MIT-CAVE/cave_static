@@ -1,27 +1,28 @@
 import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
+import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
   findColoring,
   getChartItemColor,
 } from '../../../../utils'
+import { markup, safeHtml } from '../../../../utils/html'
 
 // import { exampleNestedData } from './testData'
 
-const Treemap = ({
-  data,
-  colors,
-  numberFormat,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
-}) => {
+const Treemap = ({ data, colors, numberFormat = {} }) => {
+  const getDisplayName = useValueDisplayName()
+  if (R.isNil(data) || R.isEmpty(data)) return []
+
   const findNames = (data) =>
-    R.has('children', R.head(data))
-      ? R.map((d) => R.prepend(R.prop('name', d), findNames(d.children)), data)
-      : R.pluck('name', data)
+    data && data.length > 0 && R.has('children', R.head(data))
+      ? R.map(
+          (d) => R.prepend(R.prop('name', d), findNames(d?.children || [])),
+          data
+        )
+      : R.pluck('name', data || [])
   const xLabels = R.pipe(findNames, R.flatten)(data)
 
   const assignColors = () => {
@@ -84,6 +85,7 @@ const Treemap = ({
     series: {
       label: {
         show: true,
+        formatter: ({ name }) => getDisplayName(name),
       },
       itemStyle: {
         borderRadius: 10,
@@ -133,11 +135,17 @@ const Treemap = ({
     },
     tooltip: {
       trigger: 'item',
-      valueFormatter: (value) => NumberFormat.format(value, numberFormat),
+      formatter: ({ marker, name, value }) =>
+        markup`${safeHtml(marker)} ${getDisplayName(name)}: <strong>${NumberFormat.format(
+          value,
+          R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat)
+            ? R.values(numberFormat)[0]
+            : (numberFormat ?? {})
+        )}</strong>`.toString(),
     },
   }
 
-  return <FlexibleChart {...{ options, chartHoverOrder, path, xAxisOrder }} />
+  return <FlexibleChart sortable {...{ options }} />
 }
 
 export { Treemap }

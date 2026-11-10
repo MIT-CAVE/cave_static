@@ -173,6 +173,10 @@ const NumberInput = ({
       onSelect={handleSelectionChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={(e) => {
+        // Match the virtual keyboard's submit: Enter commits via blur
+        if (e.key === 'Enter' && !e.nativeEvent?.isComposing) e.target.blur()
+      }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

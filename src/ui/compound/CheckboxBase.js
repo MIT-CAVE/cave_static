@@ -10,8 +10,11 @@ import * as R from 'ramda'
 import { useMemo } from 'react'
 
 import FetchedIcon from './FetchedIcon'
+import RichLabel from './RichLabel'
 
-import { getOrDefault, withIndex } from '../../utils'
+import { labelText } from '../../utils/richText'
+
+import { getActiveDefaults, getOrDefault, withIndex } from '../../utils'
 
 const DEFAULT_SIZE = '20px'
 
@@ -43,11 +46,7 @@ const CheckboxBase = ({
 }) => {
   const indexedOptions = useMemo(() => withIndex(options), [options])
   const activeDefaults = useMemo(
-    () => ({
-      icon: getOrDefault(propAttrs.activeIcon, propAttrs.icon),
-      color: getOrDefault(propAttrs.activeColor, propAttrs.color),
-      size: getOrDefault(propAttrs.activeSize, propAttrs.size),
-    }),
+    () => getActiveDefaults(propAttrs),
     [propAttrs]
   )
   const currentMaxSize = useMemo(
@@ -109,7 +108,10 @@ const CheckboxBase = ({
           return (
             <FormControlLabel
               key={key}
-              {...{ disabled, label, labelPlacement }}
+              {...{ disabled, labelPlacement }}
+              label={
+                <RichLabel text={label} rich={propAttrs.richText === true} />
+              }
               control={
                 <Checkbox
                   sx={[
@@ -121,7 +123,7 @@ const CheckboxBase = ({
                       activeSize,
                     }),
                   ]}
-                  name={label}
+                  name={labelText(label, propAttrs.richText)}
                   {...{ checked, value }}
                   {...(icon && {
                     icon: <FetchedIcon iconName={icon} {...{ color, size }} />,
@@ -151,7 +153,9 @@ const CheckboxBase = ({
           )
         })(indexedOptions)}
       </FormGroup>
-      <FormHelperText>{helperText}</FormHelperText>
+      <FormHelperText>
+        <RichLabel text={helperText} rich={propAttrs.richText === true} />
+      </FormHelperText>
     </FormControl>
   )
 }

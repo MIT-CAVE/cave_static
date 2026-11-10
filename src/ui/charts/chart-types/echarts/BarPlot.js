@@ -6,17 +6,15 @@ const BarPlot = ({
   data,
   xAxisTitle,
   yAxisTitle,
-  numberFormat,
+  numberFormat = {},
   colors,
   stack = false,
   showNA,
-  chartHoverOrder,
-  path,
-  xAxisOrder,
 }) => {
   return (
     <EchartsPlot
       data={data}
+      sortable
       chartType="bar"
       {...{
         xAxisTitle,
@@ -25,9 +23,6 @@ const BarPlot = ({
         stack,
         colors,
         showNA,
-        chartHoverOrder,
-        path,
-        xAxisOrder,
       }}
     />
   )
