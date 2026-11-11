@@ -91,6 +91,9 @@ export default defineConfig((env) => {
             ],
             test: {
               name: 'storybook',
+              // Map stories wait on several WebGL maps in sequence, which is
+              // slow with software rendering (`--disable-gpu`) in headless
+              testTimeout: 40000,
               browser: {
                 enabled: true,
                 provider: playwright({

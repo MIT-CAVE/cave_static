@@ -174,10 +174,14 @@ const tableChart = (options) => ({
 })
 
 const waitForHeaders = (canvasElement) =>
-  waitFor(() =>
-    expect(
-      canvasElement.querySelectorAll('[role="columnheader"]').length
-    ).toBeGreaterThan(1)
+  // The DataGrid mounts its headers after layout, which is slower in headless
+  // runs than the 1s default of `waitFor`
+  waitFor(
+    () =>
+      expect(
+        canvasElement.querySelectorAll('[role="columnheader"]').length
+      ).toBeGreaterThan(1),
+    { timeout: 5000 }
   )
 
 export const TableHeadersAreRich = {
