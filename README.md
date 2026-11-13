@@ -2,11 +2,24 @@
 
 A react based static web app to be used as a data consumer for the `cave_app`.
 
+## Browse the components
+
+To explore the UI components in [Storybook](#visual-development-storybook) without running a CAVE app (requires the Node version listed under [Installation](#installation)):
+
+```sh
+git clone https://github.com/MIT-CAVE/cave_static.git
+cd cave_static
+npm ci
+npm run storybook
+```
+
+A Mapbox token is optional here: Storybook starts without a `mapbox.tok` file, which is only needed to display Mapbox map backgrounds.
+
 ## Installation
 
 Before you begin we suggest you use the version of node that this application version was developed on. We recommend using [NVM](https://github.com/nvm-sh/nvm#install--update-script) to manage node environments.
 
-- Current CAVE supported Node Version: node v22.12.0+
+- Current CAVE supported Node Version: node `^22.22.1` or `^24.3.0` (see `engines` in `package.json`)
 
 You can install all dependencies and run the app by running `npm run setup` from the root of the project.
 
