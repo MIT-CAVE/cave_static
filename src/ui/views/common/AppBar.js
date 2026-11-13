@@ -1,4 +1,4 @@
-import { Box, Divider, IconButton, Tab, Tabs } from '@mui/material'
+import { Box, Divider, IconButton, Tab, Tabs, Tooltip } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useRef, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -11,6 +11,7 @@ import {
   selectSessionLoading,
   selectIgnoreLoading,
   selectDataLoading,
+  selectPanesData,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { paneId } from '../../../utils/enums'
@@ -81,14 +82,33 @@ const nonSx = {
 }
 
 //Wrappers stop Tabs from passing props that cannot be read and cause errors
-const ButtonInTabs = ({ icon, color, disabled, onClick, sx = [] }) => (
-  <IconButton
-    size="large"
-    sx={[styles.tabBtn, ...forceArray(sx)]}
-    {...{ onClick, disabled }}
-  >
-    <FetchedIcon size={35} color={color} iconName={icon} />
-  </IconButton>
+const ButtonInTabs = ({
+  icon,
+  color,
+  disabled,
+  onClick,
+  label,
+  placement,
+  sx = [],
+}) => (
+  // Disabled buttons cannot trigger tooltips, so hide it while loading
+  <Tooltip title={disabled ? '' : label} {...{ placement }}>
+    <IconButton
+      size="large"
+      aria-label={label}
+      sx={[styles.tabBtn, ...forceArray(sx)]}
+      {...{ onClick, disabled }}
+    >
+      <FetchedIcon size={35} color={color} iconName={icon} />
+    </IconButton>
+  </Tooltip>
+)
+
+// Tooltip passes the props injected by Tabs through to the Tab
+const TabWithTooltip = ({ label, placement, ...props }) => (
+  <Tooltip title={props.disabled ? '' : label} {...{ placement }}>
+    <Tab aria-label={label} {...props} />
+  </Tooltip>
 )
 
 const getAppBarItem = ({
@@ -100,6 +120,8 @@ const getAppBarItem = ({
   sync,
   loading,
   dispatch,
+  label,
+  placement,
 }) => {
   const color = R.prop('color', obj)
   const type = R.prop('type', obj)
@@ -108,7 +130,8 @@ const getAppBarItem = ({
   const path = ['pages', 'currentPage']
 
   return key === paneId.SESSION || key === paneId.APP_SETTINGS ? (
-    <Tab
+    <TabWithTooltip
+      {...{ label, placement }}
       sx={styles.tab}
       key={key}
       value={key}
@@ -127,7 +150,7 @@ const getAppBarItem = ({
     variant === 'modal' ? (
       <ButtonInTabs
         key={key}
-        {...{ icon, color }}
+        {...{ icon, color, label, placement }}
         disabled={loading}
         onClick={() => {
           dispatch(
@@ -145,7 +168,8 @@ const getAppBarItem = ({
       />
     ) : (
       // default panes to wall
-      <Tab
+      <TabWithTooltip
+        {...{ label, placement }}
         sx={styles.tab}
         key={key}
         value={key}
@@ -164,7 +188,7 @@ const getAppBarItem = ({
   ) : type === 'button' ? (
     <ButtonInTabs
       key={key}
-      {...{ icon, color }}
+      {...{ icon, color, label, placement }}
       disabled={loading}
       onClick={() => {
         dispatch(
@@ -184,7 +208,7 @@ const getAppBarItem = ({
   ) : type === 'page' ? (
     <ButtonInTabs
       key={key}
-      {...{ icon, color }}
+      {...{ icon, color, label, placement }}
       disabled={loading}
       sx={[
         styles.navBtn,
@@ -215,6 +239,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
   const dataLoading = useSelector(selectDataLoading)
   const ignoreLoading = useSelector(selectIgnoreLoading)
   const sync = useSelector(selectSync)
+  const panesData = useSelector(selectPanesData)
 
   const waitTimeout = useRef(0)
   const [loading, setLoading] = useState(false)
@@ -277,6 +302,9 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         sync,
         loading,
         dispatch,
+        // Use the linked pane name when available, otherwise the item key
+        label: R.pathOr(key, [key, 'name'], panesData),
+        placement: side === 'right' ? 'left' : 'right',
       })
     ),
     R.values
