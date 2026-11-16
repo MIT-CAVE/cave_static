@@ -11,6 +11,7 @@ import {
   findColoring,
   getQuartiles,
   tintColor,
+  resolveNumberFormat,
 } from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 
@@ -186,13 +187,7 @@ const EchartsBoxPlot = ({
 
   const tooltipOrder = ['Drop', 'Min: ', 'Q1: ', 'Median: ', 'Q3: ', 'Max: ']
 
-  const resolvedNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
-    ? R.values(numberFormat)[0]
-    : (numberFormat ?? {})
+  const resolvedNumberFormat = resolveNumberFormat(numberFormat)
 
   const mapValuesForTooltip = (value) => {
     return value

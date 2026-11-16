@@ -7,6 +7,7 @@ import {
   NumberFormat,
   findColoring,
   getChartItemColor,
+  resolveNumberFormat,
 } from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 
@@ -118,9 +119,7 @@ const Sunburst = ({ data, colors, numberFormat = {} }) => {
       formatter: ({ marker, name, value }) =>
         markup`${safeHtml(marker)} ${getDisplayName(name)}: <strong>${NumberFormat.format(
           value,
-          R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat)
-            ? R.values(numberFormat)[0]
-            : (numberFormat ?? {})
+          resolveNumberFormat(numberFormat)
         )}</strong>`.toString(),
     },
   }

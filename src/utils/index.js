@@ -1119,7 +1119,7 @@ export const getDecimalScaleLabel = R.pipe(
 
 // `numberFormat` is either a single stat's format or an object of formats keyed
 // by stat id (the first stat drives the shared y-axis).
-const getFirstNumberFormat = (numberFormat) => {
+export const resolveNumberFormat = (numberFormat) => {
   const first = R.values(numberFormat ?? {})[0]
   return R.is(Object, first) && !Array.isArray(first)
     ? first
@@ -1130,7 +1130,7 @@ const getFirstNumberFormat = (numberFormat) => {
 // formatting was configured (the labels are then scaled automatically).
 // Each `yAxis*` attribute falls back to its plain counterpart.
 export const getYAxisNumberFormat = (numberFormat) => {
-  const format = getFirstNumberFormat(numberFormat)
+  const format = resolveNumberFormat(numberFormat)
   const {
     yAxisPrecision,
     yAxisTrailingZeros,

@@ -9,6 +9,9 @@ import {
   findColoring,
   getChartItemColor,
   getTintedItemStyle,
+  NumberFormat,
+  getYAxisLabelProps,
+  getYAxisNumberFormat,
 } from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 
@@ -50,6 +53,8 @@ const MixedChart = ({
   leftVariant,
   rightVariant,
   colors,
+  leftNumberFormat,
+  rightNumberFormat,
 }) => {
   const getDisplayName = useValueDisplayName()
   const [syncAxes, setSyncAxes] = useState(true)
@@ -237,9 +242,23 @@ const MixedChart = ({
   ])
   if (R.isNil(calcData)) return []
 
-  const createYAxis = (name, rotate, min, max) => ({
+  // Without `yAxis*` formatting, the labels remain unformatted
+  const getAxisLabel = (numberFormat, min, max) =>
+    getYAxisNumberFormat(numberFormat)
+      ? {
+          axisLabel: {
+            formatter: getYAxisLabelProps(
+              numberFormat,
+              Math.max(Math.abs(min), Math.abs(max))
+            ).formatter,
+          },
+        }
+      : {}
+
+  const createYAxis = (name, rotate, min, max, numberFormat) => ({
     type: 'value',
     name,
+    ...getAxisLabel(numberFormat, min, max),
     nameGap: 45,
     min: min,
     max: max,
@@ -268,18 +287,35 @@ const MixedChart = ({
       name: xAxisLabel,
     },
     yAxis: [
-      createYAxis(leftLabel, 90, calcData.leftMin, calcData.leftMax),
-      createYAxis(rightLabel, -90, calcData.rightMin, calcData.rightMax),
+      createYAxis(
+        leftLabel,
+        90,
+        calcData.leftMin,
+        calcData.leftMax,
+        leftNumberFormat
+      ),
+      createYAxis(
+        rightLabel,
+        -90,
+        calcData.rightMin,
+        calcData.rightMax,
+        rightNumberFormat
+      ),
     ],
     series: calcData.series,
     tooltip: {
       formatter: (params) =>
         markup`<div style="margin-bottom: 3px"><strong>${getDisplayName(params[0].name)}</strong></div>
           ${params.map(
-            ({ marker, seriesName, value }) =>
+            ({ marker, seriesName, seriesIndex, value }) =>
               markup`<div style="display: flex">
                   <div style="flex: 1 1 auto; margin-right: 32px">${safeHtml(marker)} ${getDisplayName(seriesName)}</div>
-                  <div><strong>${value}</strong></div>
+                  <div><strong>${NumberFormat.format(
+                    value,
+                    (calcData.series[seriesIndex]?.yAxisIndex === 1
+                      ? rightNumberFormat
+                      : leftNumberFormat) ?? {}
+                  )}</strong></div>
                 </div>`
           )}`.toString(),
     },

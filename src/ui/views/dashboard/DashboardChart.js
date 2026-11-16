@@ -590,6 +590,10 @@ const DashboardChart = ({ chartObj, path }) => {
             {...{ labelProps, colors }}
             leftVariant={leftVariant}
             rightVariant={rightVariant}
+            leftNumberFormat={numberFormats[cleanedChartObj.stats?.[0]?.statId]}
+            rightNumberFormat={
+              numberFormats[cleanedChartObj.stats?.[1]?.statId]
+            }
           />
         ) : chartType === chartVariant.SCATTER ? (
           <BubblePlot

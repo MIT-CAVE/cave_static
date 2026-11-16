@@ -9,6 +9,7 @@ import {
   getMinMax,
   getChartItemColor,
   findColoring,
+  resolveNumberFormat,
 } from '../../../../utils'
 
 const GaugeChart = ({
@@ -74,13 +75,7 @@ const GaugeChart = ({
     R.clamp(40, 115)
   )(xLabels)
   const calculateOffset = (idx) => (idx - (dataLength - 1) / 2) * labelSpacings
-  const resolvedNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
-    ? R.values(numberFormat)[0]
-    : (numberFormat ?? {})
+  const resolvedNumberFormat = resolveNumberFormat(numberFormat)
 
   const createSeriesData = (values) =>
     R.pipe(

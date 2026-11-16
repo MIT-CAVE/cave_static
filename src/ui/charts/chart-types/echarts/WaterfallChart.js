@@ -12,6 +12,7 @@ import {
   findSubgroupLabels,
   findColoring,
   tintColor,
+  resolveNumberFormat,
 } from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 
@@ -204,13 +205,7 @@ const WaterfallChart = ({
 
   const yAxisLabelProps = getYAxisLabelProps(numberFormat, yMax)
 
-  const resolvedNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
-    ? R.values(numberFormat)[0]
-    : (numberFormat ?? {})
+  const resolvedNumberFormat = resolveNumberFormat(numberFormat)
 
   const options = {
     tooltip: {
@@ -497,13 +492,7 @@ const StackedWaterfallChart = ({
     getYDomain
   )(yValues)
 
-  const resolvedNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
-    ? R.values(numberFormat)[0]
-    : (numberFormat ?? {})
+  const resolvedNumberFormat = resolveNumberFormat(numberFormat)
 
   const getGraphSeries = (nodesData) => ({
     type: 'graph',

@@ -3,7 +3,11 @@ import * as R from 'ramda'
 import { FlexibleChart } from './BaseChart'
 import { useValueDisplayName } from './ChartContext'
 
-import { NumberFormat, findSubgroupLabels } from '../../../../utils'
+import {
+  NumberFormat,
+  findSubgroupLabels,
+  resolveNumberFormat,
+} from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 
 const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
@@ -56,13 +60,7 @@ const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
   if (yMin === Infinity) yMin = 0
   if (yMax === -Infinity) yMax = 0
 
-  const resolvedNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.is(Object)
-  )(numberFormat)
-    ? R.values(numberFormat)[0]
-    : (numberFormat ?? {})
+  const resolvedNumberFormat = resolveNumberFormat(numberFormat)
 
   const options = {
     visualMap: {
