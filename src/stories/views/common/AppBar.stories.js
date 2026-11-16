@@ -69,3 +69,58 @@ export const Default = {
     )
   },
 }
+
+// An explicit `name` wins over the pane name, which wins over the item key
+const namedAppBar = {
+  upperLeft: {
+    filterPane: {
+      bar: 'upperLeft',
+      icon: 'md/MdFilterAlt',
+      type: 'pane',
+      name: 'Filter the data',
+    },
+    mapPage: { bar: 'upperLeft', icon: 'md/MdMap', type: 'page', name: 'Map' },
+  },
+  lowerLeft: {
+    myCommandButton: {
+      bar: 'lowerLeft',
+      icon: 'md/MdBolt',
+      type: 'button',
+      apiCommand: 'myCommand',
+      name: 'Run the model',
+    },
+  },
+}
+
+export const WithNames = {
+  render: () => (
+    <AppBar
+      appBar={namedAppBar}
+      open={false}
+      pin={false}
+      side="left"
+      source="left"
+    />
+  ),
+  parameters: {
+    initData: {
+      panes: { data: { filterPane: { name: 'Filters', props: {} } } },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(
+      canvas.getByRole('tab', { name: 'Filter the data' })
+    ).toBeVisible()
+    await expect(canvas.getByRole('button', { name: 'Map' })).toBeVisible()
+    const button = canvas.getByRole('button', { name: 'Run the model' })
+    await expect(button).toBeVisible()
+
+    await userEvent.hover(button)
+    await waitFor(() =>
+      expect(
+        within(document.body).getByRole('tooltip', { name: 'Run the model' })
+      ).toBeVisible()
+    )
+  },
+}

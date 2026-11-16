@@ -302,8 +302,9 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         sync,
         loading,
         dispatch,
-        // Use the linked pane name when available, otherwise the item key
-        label: R.pathOr(key, [key, 'name'], panesData),
+        // Use the item name, then the linked pane name, otherwise the item key
+        label:
+          R.propOr('', 'name', obj) || R.pathOr(key, [key, 'name'], panesData),
         placement: side === 'right' ? 'left' : 'right',
       })
     ),
