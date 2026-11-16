@@ -14,6 +14,7 @@ import {
   MIN_ZOOM,
 } from './constants'
 import { propId, scaleId, unitPlacements } from './enums'
+import NumberFormat from './NumberFormat'
 import { quantileSorted } from './quantile'
 import { getScaledValue, getScaleFunction } from './scales'
 import { renderIconTreeToSvg } from './svgBuilder'
@@ -1115,6 +1116,64 @@ export const getDecimalScaleLabel = R.pipe(
     [R.lte(1e3), R.always('thousands')],
   ])
 )
+
+// `numberFormat` is either a single stat's format or an object of formats keyed
+// by stat id (the first stat drives the shared y-axis).
+const getFirstNumberFormat = (numberFormat) => {
+  const first = R.values(numberFormat ?? {})[0]
+  return R.is(Object, first) && !Array.isArray(first)
+    ? first
+    : (numberFormat ?? {})
+}
+
+// The number format of the y-axis labels, or `null` when no `yAxis*`
+// formatting was configured (the labels are then scaled automatically).
+// Each `yAxis*` attribute falls back to its plain counterpart.
+export const getYAxisNumberFormat = (numberFormat) => {
+  const format = getFirstNumberFormat(numberFormat)
+  const {
+    yAxisPrecision,
+    yAxisTrailingZeros,
+    yAxisNotation,
+    yAxisNotationDisplay,
+  } = format
+  if (
+    [
+      yAxisPrecision,
+      yAxisTrailingZeros,
+      yAxisNotation,
+      yAxisNotationDisplay,
+    ].every(R.isNil)
+  )
+    return null
+  return {
+    ...R.omit(['unit', 'unitPlacement'], format),
+    precision: yAxisPrecision ?? format.precision,
+    trailingZeros: yAxisTrailingZeros ?? format.trailingZeros,
+    notation: yAxisNotation ?? format.notation,
+    // A `notationDisplay` only makes sense for the notation it was set for
+    notationDisplay: R.isNil(yAxisNotation)
+      ? (yAxisNotationDisplay ?? format.notationDisplay)
+      : yAxisNotationDisplay,
+  }
+}
+
+// The `name` suffix and `axisLabel.formatter` of a value y-axis
+export const getYAxisLabelProps = (numberFormat, yMax) => {
+  const yAxisFormat = getYAxisNumberFormat(numberFormat)
+  if (yAxisFormat)
+    return {
+      nameSuffix: '',
+      formatter: (value) => NumberFormat.format(+value, yAxisFormat),
+    }
+  const scaleFactor = getDecimalScaleFactor(yMax)
+  const scaleLabel = getDecimalScaleLabel(yMax)
+  return {
+    nameSuffix: scaleLabel ? ` (${scaleLabel})` : '',
+    formatter: (value) =>
+      scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
+  }
+}
 
 export const getYExtremes = (series) => {
   let yMin = Infinity

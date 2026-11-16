@@ -5,8 +5,7 @@ import { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
-  getDecimalScaleFactor,
-  getDecimalScaleLabel,
+  getYAxisLabelProps,
   findSubgroupLabels,
   getChartItemColor,
   findColoring,
@@ -183,8 +182,7 @@ const EchartsBoxPlot = ({
         top: 24,
       }
 
-  const scaleFactor = getDecimalScaleFactor(yMax)
-  const scaleLabel = getDecimalScaleLabel(yMax)
+  const yAxisLabelProps = getYAxisLabelProps(numberFormat, yMax)
 
   const tooltipOrder = ['Drop', 'Min: ', 'Q1: ', 'Median: ', 'Q3: ', 'Max: ']
 
@@ -211,10 +209,9 @@ const EchartsBoxPlot = ({
       data: xLabels,
     },
     yAxis: {
-      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
+      name: `${yAxisTitle}${yAxisLabelProps.nameSuffix}`,
       axisLabel: {
-        formatter: (value) =>
-          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
+        formatter: yAxisLabelProps.formatter,
       },
     },
     series,

@@ -35,8 +35,7 @@ import {
   findColoring,
   findSubgroupLabels,
   getChartItemColor,
-  getDecimalScaleFactor,
-  getDecimalScaleLabel,
+  getYAxisLabelProps,
   getValueDisplayName,
   getYExtremes,
   getTintedItemStyle,
@@ -458,8 +457,7 @@ const EchartsPlot = ({
 
   const [yMin, yMax] = getYExtremes(series)
   const maxVal = Math.max(Math.abs(yMin), Math.abs(yMax))
-  const scaleFactor = getDecimalScaleFactor(maxVal)
-  const scaleLabel = getDecimalScaleLabel(maxVal)
+  const yAxisLabelProps = getYAxisLabelProps(numberFormat, maxVal)
 
   const lineMap = visualMap
     ? {
@@ -536,10 +534,9 @@ const EchartsPlot = ({
       data: xLabels,
     },
     yAxis: {
-      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
+      name: `${yAxisTitle}${yAxisLabelProps.nameSuffix}`,
       axisLabel: {
-        formatter: (value) =>
-          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
+        formatter: yAxisLabelProps.formatter,
       },
     },
     series,

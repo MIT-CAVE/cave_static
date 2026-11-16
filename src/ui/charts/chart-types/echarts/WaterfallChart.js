@@ -7,8 +7,7 @@ import {
   NumberFormat,
   adjustMinMax,
   getChartItemColor,
-  getDecimalScaleFactor,
-  getDecimalScaleLabel,
+  getYAxisLabelProps,
   getMinMax,
   findSubgroupLabels,
   findColoring,
@@ -203,8 +202,7 @@ const WaterfallChart = ({
     getYDomain
   )(series)
 
-  const scaleFactor = getDecimalScaleFactor(yMax)
-  const scaleLabel = getDecimalScaleLabel(yMax)
+  const yAxisLabelProps = getYAxisLabelProps(numberFormat, yMax)
 
   const resolvedNumberFormat = R.pipe(
     R.values,
@@ -246,15 +244,14 @@ const WaterfallChart = ({
       data: xLabels,
     },
     yAxis: {
-      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
+      name: `${yAxisTitle}${yAxisLabelProps.nameSuffix}`,
       scale: true,
       // Add the maximum to do the scaling
       // As well as the min value
       min: yMin,
       max: yMax,
       axisLabel: {
-        formatter: (value) =>
-          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
+        formatter: yAxisLabelProps.formatter,
       },
     },
     series,
@@ -571,8 +568,7 @@ const StackedWaterfallChart = ({
     getGraphSeries(netChangeNodes, 'Net Change'),
   ]
 
-  const scaleFactor = getDecimalScaleFactor(yMax)
-  const scaleLabel = getDecimalScaleLabel(yMax)
+  const yAxisLabelProps = getYAxisLabelProps(numberFormat, yMax)
 
   const options = {
     xAxis: {
@@ -580,15 +576,14 @@ const StackedWaterfallChart = ({
       data: xLabels,
     },
     yAxis: {
-      name: `${yAxisTitle}${scaleLabel ? ` (${scaleLabel})` : ''}`,
+      name: `${yAxisTitle}${yAxisLabelProps.nameSuffix}`,
       scale: true,
       // Add the maximum to do the scaling
       // As well as the min value
       min: yMin,
       max: yMax,
       axisLabel: {
-        formatter: (value) =>
-          scaleLabel ? (+value / scaleFactor).toPrecision(3) : value,
+        formatter: yAxisLabelProps.formatter,
       },
     },
     series,

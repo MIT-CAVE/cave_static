@@ -33,6 +33,37 @@ const barPlotStories = {
 
 export default barPlotStories
 
+// Compact notation replaces the automatic `K`/`M`/`B` axis scaling
+export const CompactYAxis = {
+  args: {
+    data: [
+      { name: 'North', value: [1200000] },
+      { name: 'South', value: [2000000] },
+      { name: 'East', value: [1500000] },
+      { name: 'West', value: [800000] },
+    ],
+    xAxisTitle: 'Region',
+    yAxisTitle: 'Revenue',
+    numberFormat: {
+      precision: 0,
+      yAxisNotation: 'compact',
+      yAxisPrecision: 1,
+    },
+  },
+}
+
+export const ScientificYAxis = {
+  args: {
+    ...CompactYAxis.args,
+    numberFormat: {
+      precision: 0,
+      yAxisNotation: 'scientific',
+      yAxisNotationDisplay: 'x10^',
+      yAxisPrecision: 1,
+    },
+  },
+}
+
 export const SimpleBar = {
   args: {
     data: [
