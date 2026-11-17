@@ -762,6 +762,8 @@ export const ScaleSelector = ({
             scaleParamId
           )(scaleParams)}
           numberFormat={{}}
+          step={0.1}
+          smallStep={0.01}
           sx={{ fieldset: { borderRadius: 0 } }}
           onChangeCommitted={(event, newValue) =>
             onChangeScaleParamById(scaleParamId)(newValue)

@@ -77,7 +77,7 @@ const NumberField = ({
   inverseScale = R.identity,
   numberFormat: numberFormatRaw,
   step,
-  smallStep = 1 / 10 ** numberFormatRaw.precision,
+  smallStep = 1 / 10 ** (numberFormatRaw?.precision ?? 3),
   largeStep,
   color = 'default',
   helperText,
