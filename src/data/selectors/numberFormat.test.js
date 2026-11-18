@@ -75,4 +75,15 @@ describe('number format selectors', () => {
         .trailingZeros
     ).toBe(false)
   })
+
+  it('lets `gradient.precision: 0` override a non-zero prop precision', () => {
+    const getLegendFormat = selectLegendNumberFormatFunc.resultFunc(
+      selectNumberFormatPropsFn.resultFunc({ precision: 2 })
+    )
+    expect(
+      getLegendFormat({ precision: 3, gradient: { precision: 0 } }).precision
+    ).toBe(0)
+    // Falls back to the prop precision when the gradient has none
+    expect(getLegendFormat({ precision: 3, gradient: {} }).precision).toBe(3)
+  })
 })

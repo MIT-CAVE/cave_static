@@ -595,7 +595,8 @@ export const selectLegendNumberFormatFunc = createSelector(
       ...numberFormat,
       // Formatting hierarchy: `props.*gradient.<key>` -> `props.<key>` -> `settings.defaults.<key>`
       ...{
-        precision: numberFormat.gradient?.precision || numberFormat.precision,
+        // `0` is a valid precision, so `??` is used instead of `||`
+        precision: numberFormat.gradient?.precision ?? numberFormat.precision,
         notation: numberFormat.gradient?.notation || numberFormat.notation,
         notationDisplay:
           numberFormat.gradient?.notationDisplay ||
