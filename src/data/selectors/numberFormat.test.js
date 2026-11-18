@@ -19,9 +19,17 @@ describe('number format selectors', () => {
     const getFormat = selectNumberFormatPropsFn.resultFunc({ precision: 2 })
     expect(
       getFormat({
-        gradient: { precision: 0, notation: 'compact', scale: 'log' },
+        gradient: {
+          precision: 0,
+          notation: 'compact',
+          trailingZeros: true,
+          scale: 'log',
+        },
       })
-    ).toEqual({ precision: 2, gradient: { precision: 0, notation: 'compact' } })
+    ).toEqual({
+      precision: 2,
+      gradient: { precision: 0, notation: 'compact', trailingZeros: true },
+    })
   })
 
   it('resolves the legend format: gradient -> prop -> defaults', () => {
@@ -41,5 +49,30 @@ describe('number format selectors', () => {
       precision: 3,
       notation: 'compact',
     })
+  })
+
+  it('lets `gradient.trailingZeros` override the prop and the defaults, including `false`', () => {
+    const getLegendFormat = (defaults) =>
+      selectLegendNumberFormatFunc.resultFunc(
+        selectNumberFormatPropsFn.resultFunc(defaults)
+      )
+    expect(
+      getLegendFormat({ trailingZeros: true })({
+        gradient: { trailingZeros: false },
+      }).trailingZeros
+    ).toBe(false)
+    expect(
+      getLegendFormat({ trailingZeros: false })({
+        gradient: { trailingZeros: true },
+      }).trailingZeros
+    ).toBe(true)
+    // Falls back to the prop, then the defaults
+    expect(getLegendFormat({ trailingZeros: true })({}).trailingZeros).toBe(
+      true
+    )
+    expect(
+      getLegendFormat({ trailingZeros: true })({ trailingZeros: false })
+        .trailingZeros
+    ).toBe(false)
   })
 })

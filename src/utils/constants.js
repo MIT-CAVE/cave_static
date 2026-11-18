@@ -246,6 +246,7 @@ export const GRADIENT_FORMAT_KEY_PATHS = [
   ['gradient', 'precision'],
   ['gradient', 'notation'],
   ['gradient', 'notationDisplay'],
+  ['gradient', 'trailingZeros'],
 ]
 
 export const MESSAGE_SEVERITY_ORDER = ['error', 'warning', 'success', 'info']

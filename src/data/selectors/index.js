@@ -600,6 +600,9 @@ export const selectLegendNumberFormatFunc = createSelector(
         notationDisplay:
           numberFormat.gradient?.notationDisplay ||
           numberFormat.notationDisplay,
+        // `false` is a valid override, so `??` is used instead of `||`
+        trailingZeros:
+          numberFormat.gradient?.trailingZeros ?? numberFormat.trailingZeros,
       },
     }
   }
