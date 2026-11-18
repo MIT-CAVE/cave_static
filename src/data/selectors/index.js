@@ -15,6 +15,7 @@ import {
   MIN_BEARING,
   MAX_BEARING,
   MAX_MEMOIZED_CHARTS,
+  GRADIENT_FORMAT_KEY_PATHS,
   NUMBER_FORMAT_KEY_PATHS,
   ICON_RESOLUTION,
   DEFAULT_MAP_PROJECTION_OBJECTS,
@@ -579,7 +580,10 @@ export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
   (numberFormat) => (prop) => ({
     ...numberFormat,
-    ...pickPaths(NUMBER_FORMAT_KEY_PATHS, prop),
+    ...pickPaths(
+      [...NUMBER_FORMAT_KEY_PATHS, ...GRADIENT_FORMAT_KEY_PATHS],
+      prop
+    ),
   })
 )
 
@@ -589,7 +593,7 @@ export const selectLegendNumberFormatFunc = createSelector(
     const numberFormat = numberFormatPropsFn(prop)
     return {
       ...numberFormat,
-      // Formatting hierarchy: `props.*gradient.<key>` -> `settings.defaults.*gradient<key>` -> `props.<key>` -> `settings.defaults.<key>`
+      // Formatting hierarchy: `props.*gradient.<key>` -> `props.<key>` -> `settings.defaults.<key>`
       ...{
         precision: numberFormat.gradient?.precision || numberFormat.precision,
         notation: numberFormat.gradient?.notation || numberFormat.notation,

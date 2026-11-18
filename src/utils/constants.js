@@ -239,6 +239,10 @@ export const NUMBER_FORMAT_KEY_PATHS = [
   'yAxisTrailingZeros',
   'yAxisNotation',
   'yAxisNotationDisplay',
+]
+
+// Number format options that can only be set on a prop (not in `settings.defaults`)
+export const GRADIENT_FORMAT_KEY_PATHS = [
   ['gradient', 'precision'],
   ['gradient', 'notation'],
   ['gradient', 'notationDisplay'],
