@@ -577,10 +577,18 @@ export const selectRichTextDefault = createSelector(
 )
 export const selectNumberFormatPropsFn = createSelector(
   selectNumberFormat,
-  (numberFormat) => (prop) => ({
-    ...numberFormat,
-    ...pickPaths(NUMBER_FORMAT_KEY_PATHS, prop),
-  })
+  (numberFormat) => (prop) => {
+    const propFormat = pickPaths(NUMBER_FORMAT_KEY_PATHS, prop)
+    return {
+      ...numberFormat,
+      ...propFormat,
+      // Falls back per key to `settings.defaults.yAxis`, instead of
+      // letting the block of the prop replace the whole default block
+      ...((numberFormat.yAxis || propFormat.yAxis) && {
+        yAxis: { ...numberFormat.yAxis, ...propFormat.yAxis },
+      }),
+    }
+  }
 )
 
 export const selectLegendNumberFormatFunc = createSelector(

@@ -3,7 +3,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
 import { memo, useContext, useMemo } from 'react'
 
-import { NumberFormat } from '../../../../utils'
+import { NumberFormat, isMultiNumberFormat } from '../../../../utils'
 import RichLabel from '../../../compound/RichLabel'
 import { FlexibleContainer } from '../echarts'
 import ChartContext, { useValueDisplayName } from '../echarts/ChartContext'
@@ -79,7 +79,7 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
   }, [fields, types, rawList, getDisplayName])
 
   const multiNumberFormat = useMemo(
-    () => R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat),
+    () => isMultiNumberFormat(numberFormat),
     [numberFormat]
   )
 

@@ -46,8 +46,7 @@ export const CompactYAxis = {
     yAxisTitle: 'Revenue',
     numberFormat: {
       precision: 0,
-      yAxisNotation: 'compact',
-      yAxisPrecision: 1,
+      yAxis: { notation: 'compact', precision: 1 },
     },
   },
 }
@@ -57,9 +56,7 @@ export const ScientificYAxis = {
     ...CompactYAxis.args,
     numberFormat: {
       precision: 0,
-      yAxisNotation: 'scientific',
-      yAxisNotationDisplay: 'x10^',
-      yAxisPrecision: 1,
+      yAxis: { notation: 'scientific', notationDisplay: 'x10^', precision: 1 },
     },
   },
 }

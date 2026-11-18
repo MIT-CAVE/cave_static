@@ -55,11 +55,11 @@ export const SimpleMixedChart = {
   },
 }
 
-// Each axis takes the `yAxis*` formatting of its own stat
+// Each axis takes the `yAxis` formatting of its own stat
 export const FormattedYAxes = {
   args: {
     ...SimpleMixedChart.args,
-    leftNumberFormat: { yAxisNotation: 'compact', yAxisPrecision: 1 },
-    rightNumberFormat: { yAxisPrecision: 1, yAxisTrailingZeros: true },
+    leftNumberFormat: { yAxis: { notation: 'compact', precision: 1 } },
+    rightNumberFormat: { yAxis: { precision: 1, trailingZeros: true } },
   },
 }

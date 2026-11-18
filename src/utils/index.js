@@ -1117,44 +1117,42 @@ export const getDecimalScaleLabel = R.pipe(
   ])
 )
 
-// `numberFormat` is either a single stat's format or an object of formats keyed
-// by stat id (the first stat drives the shared y-axis).
-export const resolveNumberFormat = (numberFormat) => {
-  const first = R.values(numberFormat ?? {})[0]
+// Keys of a single number format that hold nested blocks of options
+const NESTED_NUMBER_FORMAT_KEYS = ['yAxis', 'gradient']
+
+// `numberFormat` is either a single format or an object of formats keyed
+// by stat id. The nested blocks of a single format are not stat ids.
+export const isMultiNumberFormat = (numberFormat) => {
+  const first = R.values(
+    R.omit(NESTED_NUMBER_FORMAT_KEYS, numberFormat ?? {})
+  )[0]
   return R.is(Object, first) && !Array.isArray(first)
-    ? first
-    : (numberFormat ?? {})
 }
 
-// The number format of the y-axis labels, or `null` when no `yAxis*`
+// The first stat's format drives shared axes and single-value tooltips
+export const resolveNumberFormat = (numberFormat) =>
+  isMultiNumberFormat(numberFormat)
+    ? R.values(R.omit(NESTED_NUMBER_FORMAT_KEYS, numberFormat))[0]
+    : (numberFormat ?? {})
+
+// The number format of the y-axis labels, or `null` when no `yAxis`
 // formatting was configured (the labels are then scaled automatically).
-// Each `yAxis*` attribute falls back to its plain counterpart.
+// Each `yAxis` key falls back to its plain counterpart.
 export const getYAxisNumberFormat = (numberFormat) => {
   const format = resolveNumberFormat(numberFormat)
-  const {
-    yAxisPrecision,
-    yAxisTrailingZeros,
-    yAxisNotation,
-    yAxisNotationDisplay,
-  } = format
-  if (
-    [
-      yAxisPrecision,
-      yAxisTrailingZeros,
-      yAxisNotation,
-      yAxisNotationDisplay,
-    ].every(R.isNil)
-  )
+  const { precision, trailingZeros, notation, notationDisplay } =
+    format.yAxis ?? {}
+  if ([precision, trailingZeros, notation, notationDisplay].every(R.isNil))
     return null
   return {
-    ...R.omit(['unit', 'unitPlacement'], format),
-    precision: yAxisPrecision ?? format.precision,
-    trailingZeros: yAxisTrailingZeros ?? format.trailingZeros,
-    notation: yAxisNotation ?? format.notation,
+    ...R.omit(['unit', 'unitPlacement', 'yAxis'], format),
+    precision: precision ?? format.precision,
+    trailingZeros: trailingZeros ?? format.trailingZeros,
+    notation: notation ?? format.notation,
     // A `notationDisplay` only makes sense for the notation it was set for
-    notationDisplay: R.isNil(yAxisNotation)
-      ? (yAxisNotationDisplay ?? format.notationDisplay)
-      : yAxisNotationDisplay,
+    notationDisplay: R.isNil(notation)
+      ? (notationDisplay ?? format.notationDisplay)
+      : notationDisplay,
   }
 }
 

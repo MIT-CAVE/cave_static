@@ -41,6 +41,7 @@ import {
   getTintedItemStyle,
   CHART_FILL_ALPHA_HOVER,
   NumberFormat,
+  isMultiNumberFormat,
 } from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 
@@ -474,12 +475,7 @@ const EchartsPlot = ({
       }
     : {}
 
-  const multiNumberFormat = R.pipe(
-    R.values,
-    R.propOr([], 0),
-    R.type,
-    R.equals('Object')
-  )(numberFormat)
+  const multiNumberFormat = isMultiNumberFormat(numberFormat)
 
   const getChartValue = (value) => {
     if (Array.isArray(value)) {
