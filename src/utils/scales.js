@@ -186,3 +186,69 @@ export const getScaledValue = R.curry(
     return result != null && !Number.isNaN(result) ? result : fallback
   }
 )
+
+/**
+ * Derives a new gradient stop (`value` and `color`) to insert at position `at`
+ * (0..values.length) of a gradient whose stops are `values` and `colors`.
+ *
+ * - Interior stops take the midpoint of their neighbors in the scale's
+ *   transformed space (e.g. the geometric mean for `'log'`).
+ * - Edge stops copy the edge color and extrapolate the value by the gap to
+ *   the next stop (or duplicate the value if there is only one stop).
+ * - The `'step'` scale is interpolated as `'linear'`.
+ */
+export const getNewGradientStop = ({
+  values,
+  colors,
+  at,
+  scale = scaleId.LINEAR,
+  scaleParams = {},
+}) => {
+  const lastIndex = values.length - 1
+  if (lastIndex < 0) return { value: 0, color: '#ffffff' }
+
+  const interpScale = scale === scaleId.STEP ? scaleId.LINEAR : scale
+  const params = {
+    ...scaleParams,
+    exponent:
+      scaleParams?.exponent ?? getScaleParamDefaults(scaleParamId.EXPONENT),
+  }
+  const transform = getScaleTransform(interpScale, params)
+  const inverse = getInverseScaleTransform(interpScale, params)
+  const isNum = (v) => typeof v === 'number' && Number.isFinite(v)
+
+  const isEdge = at <= 0 || at > lastIndex
+  const neighborIndex = at <= 0 ? 0 : Math.min(at, lastIndex + 1) - 1
+  const neighborValue = values[isEdge ? neighborIndex : at]
+  const edgeColor = colors[neighborIndex]
+
+  let value
+  if (!isEdge) {
+    const a = transform(values[at - 1])
+    const b = transform(values[at])
+    value = inverse((a + b) / 2)
+  } else if (lastIndex > 0) {
+    // Extrapolate away from the edge using the gap to the adjacent stop
+    const innerIndex = at <= 0 ? 1 : lastIndex - 1
+    const edge = transform(values[neighborIndex])
+    const gap = edge - transform(values[innerIndex])
+    value = inverse(edge + gap)
+  } else {
+    value = values[0]
+  }
+  if (!isNum(value)) value = isNum(neighborValue) ? neighborValue : 0
+
+  const color = isEdge
+    ? edgeColor
+    : getScaledValue(
+        values,
+        colors,
+        value,
+        interpScale,
+        params,
+        colors[Math.max(at - 1, 0)]
+      )
+  const resolved = color ?? edgeColor ?? '#ffffff'
+  const parsed = colord(resolved)
+  return { value, color: parsed.isValid() ? parsed.toHex() : resolved }
+}

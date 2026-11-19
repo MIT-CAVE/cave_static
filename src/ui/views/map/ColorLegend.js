@@ -38,7 +38,7 @@ import {
 import { propId, scaleId } from '../../../utils/enums'
 import { useMenu } from '../../../utils/hooks'
 import { labelText, resolveRichText } from '../../../utils/richText'
-import { getScaledValue } from '../../../utils/scales'
+import { getNewGradientStop, getScaledValue } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
 import RippleBox from '../../compound/RippleBox'
 import NumberField from '../../prototypes/NumberField'
@@ -178,7 +178,6 @@ const ColorMenu = ({
   )
 
   const dataIndex = dataIndices[index]
-  const nextDataIndex = dataIndices[index + 1]
 
   return (
     <div>
@@ -211,7 +210,7 @@ const ColorMenu = ({
           label="Add Color Above"
           reactIcon={TbRowInsertTop}
           onClick={(event) => {
-            onAddColorAt(dataIndex)()
+            onAddColorAt(index)
             handleCloseMenu(event)
           }}
         />
@@ -219,7 +218,7 @@ const ColorMenu = ({
           label="Add Color Below"
           reactIcon={TbRowInsertBottom}
           onClick={(event) => {
-            onAddColorAt(nextDataIndex)()
+            onAddColorAt(index + 1)
             handleCloseMenu(event)
           }}
         />
@@ -281,13 +280,26 @@ const ColorEditSection = ({
   )
 
   const handleAddColorAt = useCallback(
-    (dataIndex) => {
-      const index = dataIndices.indexOf(dataIndex)
-      setItemsOrder(R.insert(index, dataIndices.length))
-      setValues(R.insert(index, 0)) // FIXME: Move new gradient value logic here
-      return onAddColorAt(dataIndex)
+    (at) => {
+      const newStop = getNewGradientStop({
+        values: parsedGradient.values,
+        colors,
+        at,
+        scale: valueRange?.gradient?.scale,
+        scaleParams: valueRange?.gradient?.scaleParams,
+      })
+      setItemsOrder(R.insert(at, dataIndices.length))
+      setValues(R.insert(at, newStop.value))
+      return onAddColorAt(at, newStop)
     },
-    [dataIndices, onAddColorAt]
+    [
+      colors,
+      dataIndices.length,
+      onAddColorAt,
+      parsedGradient.values,
+      valueRange?.gradient?.scale,
+      valueRange?.gradient?.scaleParams,
+    ]
   )
 
   const handleRemoveColorAt = useCallback(
@@ -451,44 +463,15 @@ const NumericalColorLegend = ({
   const gradient = valueRange.gradient
 
   const handleAddColorAt = useCallback(
-    (dataIndex) => () => {
-      const scale = gradient.scale
-      // eslint-disable-next-line no-unused-vars
-      const scaleParams = gradient.scaleParams
-      // eslint-disable-next-line no-unused-vars
-      const isStepScale = scale === scaleId.STEP
-      const newItem = {
-        value: 0, // FIXME: Use getScaledValue
-        color: '#fff', // FIXME: Use getScaledValue
-      }
-
-      // const newItem = {
-      //   value: getScaledValue(
-      //     [dataIndices[dataIndex - 1], dataIndices[dataIndex]],
-      //     values,
-      //     dataIndex,
-      //     isStepScale ? scaleId.LINEAR : scale,
-      //     scaleParams
-      //   ),
-      //   color: getScaledValue(
-      //     dataIndices,
-      //     colors,
-      //     dataIndex,
-      //     isStepScale ? scaleId.LINEAR : scale,
-      //     scaleParams
-      //   ),
-      // }
-
-      const newGradientData = R.insert(dataIndex, newItem)(gradient.data)
+    (at, newStop) => {
+      // `at` is a position among color stops; map it to a `gradient.data` index
+      const lastColorIndex = dataIndices.length - 1
+      const insertIndex =
+        at <= lastColorIndex ? dataIndices[at] : dataIndices[lastColorIndex] + 1
+      const newGradientData = R.insert(insertIndex, newStop)(gradient.data)
       onChangePropAttr([colorBy, 'gradient', 'data'])(newGradientData)
     },
-    [
-      colorBy,
-      gradient?.data,
-      gradient?.scale,
-      gradient?.scaleParams,
-      onChangePropAttr,
-    ]
+    [colorBy, dataIndices, gradient?.data, onChangePropAttr]
   )
 
   const handleRemoveColorAt = useCallback(
