@@ -389,16 +389,23 @@ const NumericalSizeLegend = ({
               ]}
             >
               {icon && (
-                <WithEditBadge
-                  editing={showSizeSlider && selected}
-                  sx={{ flex: '1 1 auto', alignItems: 'center' }}
+                // The badge must wrap the icon tightly to sit at its corner, so
+                // the stretching and centering is done by this wrapper instead
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flex: '1 1 auto',
+                    alignItems: 'center',
+                  }}
                 >
-                  <PropIcon
-                    {...{ icon, selected }}
-                    size={value}
-                    onClick={handleOpen(index, sizes[index])}
-                  />
-                </WithEditBadge>
+                  <WithEditBadge editing={showSizeSlider && selected}>
+                    <PropIcon
+                      {...{ icon, selected }}
+                      size={value}
+                      onClick={handleOpen(index, sizes[index])}
+                    />
+                  </WithEditBadge>
+                </Box>
               )}
               <Stack>
                 {!isStepScale &&
