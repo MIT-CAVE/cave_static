@@ -453,6 +453,7 @@ export const useGradient = ({
     minAuto,
     maxAuto,
     getLabel,
+    getPlainLabel,
     isServerLabelAt,
     getAdjustedLabel,
     getAttrLabelAt,

@@ -54,6 +54,11 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Caps the width of `Min (label)`/`Max (label)` so a long label scrolls
+  // instead of widening its column
+  boundCaption: {
+    maxWidth: '128px',
+  },
   rangeLabel: {
     textAlign: 'center',
     maxWidth: '56px',
@@ -110,6 +115,7 @@ const NumericalSizeLegend = ({
     minAuto,
     maxAuto,
     getLabel,
+    getPlainLabel,
     isServerLabelAt,
     getAdjustedLabel,
     getAttrLabelAt: getSizeLabelAt,
@@ -250,34 +256,46 @@ const NumericalSizeLegend = ({
                   </WithEditBadge>
                 )}
                 <Stack>
-                  {!isStepScale && (
-                    <Typography
-                      variant="caption"
-                      color={selected ? 'warning' : 'default'}
-                      noWrap
-                    >
-                      <GradientLabel
-                        text={getAdjustedLabel(
-                          index < 1
-                            ? 'Min'
-                            : index === lastIndex
-                              ? 'Max'
-                              : labels[index] != null
-                                ? getLabel(index)
-                                : `\u2063`, // This preserves the alignment of the icons
-                          index
-                        )}
-                        rawLabel={getLabel(index)}
-                        rich={
-                          richText === true &&
-                          index > 0 &&
-                          index < lastIndex &&
-                          labels[index] != null &&
-                          isServerLabelAt(index)
-                        }
-                      />
-                    </Typography>
-                  )}
+                  {!isStepScale &&
+                    (index < 1 || index === lastIndex ? (
+                      // Bounds keep `Min`/`Max` and append their custom label
+                      <Typography
+                        variant="caption"
+                        color={selected ? 'warning' : 'default'}
+                        sx={styles.boundCaption}
+                        noWrap
+                      >
+                        <OverflowText
+                          text={
+                            isServerLabelAt(index)
+                              ? `${index < 1 ? 'Min' : 'Max'} (${getPlainLabel(index)})`
+                              : getAdjustedLabel(
+                                  index < 1 ? 'Min' : 'Max',
+                                  index
+                                )
+                          }
+                        />
+                      </Typography>
+                    ) : (
+                      <Typography
+                        variant="caption"
+                        color={selected ? 'warning' : 'default'}
+                        noWrap
+                      >
+                        <GradientLabel
+                          text={getAdjustedLabel(
+                            labels[index] != null ? getLabel(index) : `\u2063`, // This preserves the alignment of the icons
+                            index
+                          )}
+                          rawLabel={getLabel(index)}
+                          rich={
+                            richText === true &&
+                            labels[index] != null &&
+                            isServerLabelAt(index)
+                          }
+                        />
+                      </Typography>
+                    ))}
                   <Typography
                     variant="subtitle2"
                     color={selected ? 'warning' : 'default'}
