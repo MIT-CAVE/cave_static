@@ -12,7 +12,10 @@ import {
   useGradient,
   WithEditBadge,
 } from './Legend'
-import StopMenu from './StopMenu'
+import StopMenu, {
+  NEW_STOP_HIGHLIGHT_ANIMATION,
+  getNewStopHighlightSx,
+} from './StopMenu'
 
 import {
   selectLegendNumberFormatFunc,
@@ -35,34 +38,9 @@ import {
 } from '../../../utils'
 
 const styles = {
-  // Temporary highlight for a newly added color stop. It fades out on its
-  // own and the row clears its state on `animationend` (or on interaction).
-  newStop: {
-    position: 'relative',
-    isolation: 'isolate', // Keep the highlight behind the row's own content
-    // The highlight is a pseudo-element, so it adds no layout shift. Its
-    // inset sets a full-width rectangle around the fields.
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      // top right bottom left: the row's top edge already sits above the
-      // fields (label headroom), so the top starts inside the row
-      inset: '8px -8px -6px',
-      zIndex: -1,
-      pointerEvents: 'none',
-      borderRadius: 0,
-      animation: 'newStopHighlight 3.5s ease-in-out forwards',
-    },
-    '@keyframes newStopHighlight': {
-      // Hold the full highlight for a moment, then fade out
-      '0%, 40%': {
-        backgroundColor: 'rgb(255 167 38 / 0.35)',
-      },
-      '100%': {
-        backgroundColor: 'rgb(255 167 38 / 0)',
-      },
-    },
-  },
+  // Top starts inside the row, as its top edge already sits above the fields
+  // (label headroom)
+  newStop: getNewStopHighlightSx('8px -8px -6px'),
   legendSection: {
     height: '100%',
     width: '100%',
@@ -152,7 +130,7 @@ const ColorEditSection = ({
   // Child animations (e.g. ripples) bubble `animationend`; only react to ours
   const handleAnimationEnd = useCallback(
     (event) => {
-      if (event.animationName === 'newStopHighlight') clearHighlight()
+      if (event.animationName === NEW_STOP_HIGHLIGHT_ANIMATION) clearHighlight()
     },
     [clearHighlight]
   )

@@ -19,6 +19,37 @@ import {
 
 import { useMenu } from '../../../utils/hooks'
 
+export const NEW_STOP_HIGHLIGHT_ANIMATION = 'newStopHighlight'
+
+/**
+ * `sx` for a temporary highlight of a newly added stop. The highlight is a
+ * pseudo-element (no layout shift) that holds, then fades out on its own.
+ * Clear the highlighted state on `animationend` (checking the event's
+ * `animationName`, as child animations bubble) or on interaction.
+ *
+ * @param {string} inset - CSS `inset` (top right bottom left) of the
+ * highlight relative to the stop.
+ * @param {number|string} [borderRadius=0] - `sx` `borderRadius` of the
+ * highlight (numbers are multiplied by the theme's shape radius).
+ */
+export const getNewStopHighlightSx = (inset, borderRadius = 0) => ({
+  position: 'relative',
+  isolation: 'isolate', // Keep the highlight behind the stop's own content
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset,
+    zIndex: -1,
+    pointerEvents: 'none',
+    borderRadius,
+    animation: `${NEW_STOP_HIGHLIGHT_ANIMATION} 3.5s ease-in-out forwards`,
+  },
+  [`@keyframes ${NEW_STOP_HIGHLIGHT_ANIMATION}`]: {
+    '0%, 40%': { backgroundColor: 'rgb(255 167 38 / 0.35)' },
+    '100%': { backgroundColor: 'rgb(255 167 38 / 0)' },
+  },
+})
+
 const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
   <MenuItem {...{ disabled }}>
     <FormControlLabel

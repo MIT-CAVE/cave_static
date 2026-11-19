@@ -12,7 +12,10 @@ import {
   useGradient,
   WithEditBadge,
 } from './Legend'
-import StopMenu from './StopMenu'
+import StopMenu, {
+  NEW_STOP_HIGHLIGHT_ANIMATION,
+  getNewStopHighlightSx,
+} from './StopMenu'
 
 import { selectLegendNumberFormatFunc } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
@@ -39,7 +42,9 @@ const styles = {
     height: '100%',
     width: '100%',
     pt: 0.75,
+    px: 0.5, // Room for the highlight of the first and last stops
   },
+  newStop: getNewStopHighlightSx('-2px -4px', 4),
   unit: {
     display: 'flex',
     alignItems: 'center',
@@ -86,6 +91,16 @@ const NumericalSizeLegend = ({
 }) => {
   const [editValue, setEditValue] = useState(null)
   const [editLabelAt, setEditLabelAt] = useState({})
+  // Position of the most recently added stop, while highlighted
+  const [highlightedAt, setHighlightedAt] = useState(null)
+  const clearHighlight = useCallback(() => setHighlightedAt(null), [])
+  // Child animations (e.g. ripples) bubble `animationend`; only react to ours
+  const handleAnimationEnd = useCallback(
+    (event) => {
+      if (event.animationName === NEW_STOP_HIGHLIGHT_ANIMATION) clearHighlight()
+    },
+    [clearHighlight]
+  )
 
   const {
     showSizeSlider,
@@ -166,6 +181,7 @@ const NumericalSizeLegend = ({
       )
       // Select the new stop so it can be edited right away
       handleSelect(at, newStop.size)
+      setHighlightedAt(at)
     },
     [
       dataIndices,
@@ -190,6 +206,7 @@ const NumericalSizeLegend = ({
       } else {
         onChangeGradientAttr(['data'])(R.remove(dataIndex, 1)(gradient.data))
       }
+      setHighlightedAt(null)
       // Select the previous stop (or the new first one)
       const index = dataIndices.indexOf(dataIndex)
       handleSelect(Math.max(index - 1, 0), sizes[index > 0 ? index - 1 : 1])
@@ -236,9 +253,16 @@ const NumericalSizeLegend = ({
               <Stack
                 key={index}
                 spacing={0.5}
+                onAnimationEnd={
+                  index === highlightedAt ? handleAnimationEnd : undefined
+                }
+                onPointerDown={
+                  index === highlightedAt ? clearHighlight : undefined
+                }
                 sx={[
                   { alignItems: 'center' },
                   !isStepScale && { alignSelf: 'stretch' },
+                  index === highlightedAt && styles.newStop,
                 ]}
               >
                 {icon && (
