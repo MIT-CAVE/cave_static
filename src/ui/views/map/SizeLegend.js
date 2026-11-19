@@ -74,6 +74,11 @@ const styles = {
     width: 'max-content',
     minWidth: '100%',
   },
+  // Same relative width as the slider on its own, centered in its grid item
+  sliderInRow: { width: '85%', mx: 'auto' },
+  // The slider's track sits below its value label, so the button (centered in
+  // its grid row) is shifted down to center on the track
+  menuButton: { mt: '12px' },
   newStop: getNewStopHighlightSx('-2px -4px', 4),
   unit: {
     display: 'flex',
@@ -266,6 +271,19 @@ const NumericalSizeLegend = ({
   const selectedDataIndex = dataIndices[sizeSliderProps.key]
   const isLastStepItem = isStepScale && sizeSliderProps.key === lastIndex
 
+  const renderStopMenu = (buttonSx) => (
+    <StopMenu
+      {...{ dataIndices, editLabelAt }}
+      index={sizeSliderProps.key}
+      attr="Size"
+      horizontal
+      buttonSx={buttonSx}
+      onAddAt={handleAddSizeAt}
+      onRemoveAt={handleRemoveSizeAt}
+      onToggleEditLabelAt={handleToggleEditLabelAt}
+    />
+  )
+
   const stops = (
     <Stack
       direction="row"
@@ -415,14 +433,32 @@ const NumericalSizeLegend = ({
 
       {showSizeSlider && (
         <Stack useFlexGap>
-          <SizeSlider
-            value={sizeSliderProps.value}
-            onClose={handleClose}
-            onChange={handleChange}
-            onChangeCommitted={handleChangeComittedAt(
-              dataIndices[sizeSliderProps.key]
-            )}
-          />
+          {isLastStepItem ? (
+            // The value field is hidden here, so the menu goes next to the slider
+            <Grid container spacing={1} sx={{ alignItems: 'center' }}>
+              <Grid size="grow">
+                <SizeSlider
+                  sx={styles.sliderInRow}
+                  value={sizeSliderProps.value}
+                  onClose={handleClose}
+                  onChange={handleChange}
+                  onChangeCommitted={handleChangeComittedAt(
+                    dataIndices[sizeSliderProps.key]
+                  )}
+                />
+              </Grid>
+              <Grid size="auto">{renderStopMenu(styles.menuButton)}</Grid>
+            </Grid>
+          ) : (
+            <SizeSlider
+              value={sizeSliderProps.value}
+              onClose={handleClose}
+              onChange={handleChange}
+              onChangeCommitted={handleChangeComittedAt(
+                dataIndices[sizeSliderProps.key]
+              )}
+            />
+          )}
           <Grid container spacing={1} sx={{ alignItems: 'center' }}>
             <Grid container spacing={1} size="grow">
               {
@@ -477,18 +513,11 @@ const NumericalSizeLegend = ({
                 </Grid>
               )}
             </Grid>
-            <Grid size="auto">
-              <StopMenu
-                {...{ dataIndices, editLabelAt }}
-                index={sizeSliderProps.key}
-                attr="Size"
-                horizontal
-                buttonSx={{ mt: '20px !important' }}
-                onAddAt={handleAddSizeAt}
-                onRemoveAt={handleRemoveSizeAt}
-                onToggleEditLabelAt={handleToggleEditLabelAt}
-              />
-            </Grid>
+            {!isLastStepItem && (
+              <Grid size="auto">
+                {renderStopMenu({ mt: '20px !important' })}
+              </Grid>
+            )}
           </Grid>
         </Stack>
       )}
