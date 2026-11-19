@@ -284,6 +284,41 @@ const NumericalSizeLegend = ({
     />
   )
 
+  const renderAddButton = (at, visible = true) => (
+    <ToggleButton
+      // `color` only applies to the selected state of a `ToggleButton`
+      sx={{
+        p: '1px',
+        borderRadius: '50%',
+        color: 'warning.main',
+        // Hidden buttons keep their space, so stops do not shift
+        visibility: visible ? 'visible' : 'hidden',
+      }}
+      color="warning"
+      value="add-stop"
+      aria-label="Add size"
+      onClick={() => handleAddSizeAt(at)}
+    >
+      <MdAdd size={18} />
+    </ToggleButton>
+  )
+
+  // Both the `...` and the add button are centered in the same box
+  const renderAddSlot = (content) => (
+    <Typography
+      variant="h6"
+      component="div"
+      // `pb` offsets the captions below the icons so the content is
+      // centered with them
+      sx={{ pb: 5.75, display: 'flex', alignItems: 'center' }}
+    >
+      {content}
+    </Typography>
+  )
+
+  // Add buttons at the edges, shown only next to the selected edge stop
+  const showEdgeAddSlots = !isStepScale && showSizeSlider
+
   const stops = (
     <Stack
       direction="row"
@@ -296,42 +331,27 @@ const NumericalSizeLegend = ({
         showSizeSlider && styles.scrollContent,
       ]}
     >
+      {showEdgeAddSlots &&
+        renderAddSlot(renderAddButton(0, sizeSliderProps.key === 0))}
       {sizes.map((value, index) => {
         const selected = sizeSliderProps.key === index
         return (
           <Fragment key={index}>
-            {!isStepScale && index > 0 && (
-              // Both the `...` and the add button are centered in the same box
-              <Typography
-                variant="h6"
-                component="div"
-                // `pb` offsets the captions below the icons so the content is
-                // centered with them
-                sx={{ pb: 5.75, display: 'flex', alignItems: 'center' }}
-              >
-                {
-                  // The `...` next to the selected stop turns into an add button
-                  showSizeSlider &&
+            {!isStepScale &&
+              index > 0 &&
+              renderAddSlot(
+                // The `...` next to the selected stop turns into an add button
+                showSizeSlider &&
                   (sizeSliderProps.key === index ||
                     sizeSliderProps.key === index - 1) ? (
-                    <ToggleButton
-                      sx={{ p: '1px', borderRadius: '50%' }}
-                      color="warning"
-                      value="add-stop"
-                      aria-label="Add size between"
-                      onClick={() => handleAddSizeAt(index)}
-                    >
-                      <MdAdd size={18} />
-                    </ToggleButton>
-                  ) : (
-                    // A shape close to the `...` glyph, centered like the button
-                    <Box sx={{ display: 'flex', color: 'text.secondary' }}>
-                      <PiDotsThreeBold size={24} />
-                    </Box>
-                  )
-                }
-              </Typography>
-            )}
+                  renderAddButton(index)
+                ) : (
+                  // A shape close to the `...` glyph, centered like the button
+                  <Box sx={{ display: 'flex', color: 'text.secondary' }}>
+                    <PiDotsThreeBold size={24} />
+                  </Box>
+                )
+              )}
             <Stack
               ref={selected ? scrollIntoViewRef : undefined}
               spacing={0.5}
@@ -419,6 +439,10 @@ const NumericalSizeLegend = ({
           </Fragment>
         )
       })}
+      {showEdgeAddSlots &&
+        renderAddSlot(
+          renderAddButton(sizes.length, sizeSliderProps.key === lastIndex)
+        )}
     </Stack>
   )
 
