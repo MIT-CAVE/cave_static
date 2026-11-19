@@ -347,9 +347,7 @@ const NumericalSizeLegend = ({
       direction="row"
       spacing={2}
       sx={[
-        isStepScale
-          ? { justifyContent: 'center', alignItems: 'end' }
-          : styles.rangeRoot,
+        styles.rangeRoot,
         // Fill the scroll container, but never shrink the stops
         showSizeSlider && styles.scrollContent,
       ]}
@@ -384,17 +382,16 @@ const NumericalSizeLegend = ({
                 index === highlightedAt ? clearHighlight : undefined
               }
               sx={[
-                { alignItems: 'center' },
-                !isStepScale && { alignSelf: 'stretch' },
+                // Stretch the stops so the icons are centered in the space above
+                // the captions, as the add buttons are
+                { alignItems: 'center', alignSelf: 'stretch' },
                 index === highlightedAt && styles.newStop,
               ]}
             >
               {icon && (
                 <WithEditBadge
                   editing={showSizeSlider && selected}
-                  sx={
-                    !isStepScale && { flex: '1 1 auto', alignItems: 'center' }
-                  }
+                  sx={{ flex: '1 1 auto', alignItems: 'center' }}
                 >
                   <PropIcon
                     {...{ icon, selected }}
