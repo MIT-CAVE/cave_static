@@ -16,9 +16,8 @@ import {
   useMemo,
   useState,
 } from 'react'
-import { MdAdd } from 'react-icons/md'
 import { PiDotsThreeBold } from 'react-icons/pi'
-import { TbFocusAuto } from 'react-icons/tb'
+import { TbFocusAuto, TbPlus } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
 import {
@@ -284,40 +283,64 @@ const NumericalSizeLegend = ({
     />
   )
 
-  const renderAddButton = (at, visible = true) => (
-    <ToggleButton
-      // `color` only applies to the selected state of a `ToggleButton`
-      sx={{
-        p: '1px',
-        borderRadius: '50%',
-        color: 'warning.main',
-        // Hidden buttons keep their space, so stops do not shift
-        visibility: visible ? 'visible' : 'hidden',
-      }}
-      color="warning"
-      value="add-stop"
-      aria-label="Add size"
-      onClick={() => handleAddSizeAt(at)}
-    >
-      <MdAdd size={18} />
-    </ToggleButton>
-  )
+  // `active` buttons are next to the selected stop. The others keep their
+  // space, so stops do not shift: they are disabled on step scales (which have
+  // no `...` to fill the gaps) and hidden otherwise.
+  const renderAddButton = (at, active = true) => {
+    // A dashed border at the edges, as the new stop is extrapolated
+    const isEdge = at <= 0 || at >= sizes.length
+    const borderStyle = isEdge ? 'dashed' : 'solid'
+    return (
+      <ToggleButton
+        // `color` only applies to the selected state of a `ToggleButton`
+        sx={{
+          p: '1px',
+          borderRadius: '50%',
+          color: 'warning.main',
+          borderColor: 'warning.main',
+          borderStyle,
+          borderWidth: '2px',
+          // The disabled style resets the whole border, so it keeps the
+          // (grey) color of MUI but needs the style and width set again
+          '&.Mui-disabled': { borderStyle, borderWidth: '2px' },
+          visibility: active || isStepScale ? 'visible' : 'hidden',
+        }}
+        color="warning"
+        value="add-stop"
+        aria-label={isEdge ? 'Add size (extrapolated)' : 'Add size'}
+        disabled={!active}
+        onClick={() => handleAddSizeAt(at)}
+      >
+        <TbPlus size={16} />
+      </ToggleButton>
+    )
+  }
 
   // Both the `...` and the add button are centered in the same box
   const renderAddSlot = (content) => (
     <Typography
       variant="h6"
       component="div"
-      // `pb` offsets the captions below the icons so the content is
-      // centered with them
-      sx={{ pb: 5.75, display: 'flex', alignItems: 'center' }}
+      sx={{
+        // Offsets the captions below the icons (a single line on step scales)
+        // so the content is centered with the icons
+        pb: isStepScale ? 3.25 : 5.75,
+        display: 'flex',
+        alignItems: 'center',
+        alignSelf: 'stretch',
+      }}
     >
       {content}
     </Typography>
   )
 
+  // Whether the gap before the stop at `index` is next to the selected stop
+  const isNextToSelected = (index) =>
+    showSizeSlider &&
+    (sizeSliderProps.key === index || sizeSliderProps.key === index - 1)
+
   // Add buttons at the edges, shown only next to the selected edge stop
-  const showEdgeAddSlots = !isStepScale && showSizeSlider
+  const showEdgeAddSlots = showSizeSlider
 
   const stops = (
     <Stack
@@ -337,14 +360,13 @@ const NumericalSizeLegend = ({
         const selected = sizeSliderProps.key === index
         return (
           <Fragment key={index}>
-            {!isStepScale &&
-              index > 0 &&
+            {index > 0 &&
+              (showSizeSlider || !isStepScale) &&
               renderAddSlot(
-                // The `...` next to the selected stop turns into an add button
-                showSizeSlider &&
-                  (sizeSliderProps.key === index ||
-                    sizeSliderProps.key === index - 1) ? (
-                  renderAddButton(index)
+                // The `...` next to the selected stop turns into an add button.
+                // Step scales have no `...`, so their other slots stay empty
+                isStepScale || isNextToSelected(index) ? (
+                  renderAddButton(index, isNextToSelected(index))
                 ) : (
                   // A shape close to the `...` glyph, centered like the button
                   <Box sx={{ display: 'flex', color: 'text.secondary' }}>
