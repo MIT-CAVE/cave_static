@@ -12,14 +12,16 @@ import {
   useGradient,
   WithEditBadge,
 } from './Legend'
+import StopMenu from './StopMenu'
 
 import { selectLegendNumberFormatFunc } from '../../../data/selectors'
 import { propId } from '../../../utils/enums'
 import { resolveRichText } from '../../../utils/richText'
+import { getNewGradientStop } from '../../../utils/scales'
 import SizeSlider, { useSizeSlider } from '../../compound/SizeSlider'
 import NumberField from '../../prototypes/NumberField'
 
-import { OverflowText, RichLabel, Select } from '../../compound'
+import { OverflowText, RichLabel, Select, TextInput } from '../../compound'
 
 import { capitalize, orderEntireDict, parseGradient } from '../../../utils'
 
@@ -75,13 +77,16 @@ const NumericalSizeLegend = ({
   // anyNullValue, // TODO: Implement `fallback` UI
   richText,
   onChangeValueAt,
+  onChangeGradientAttr,
 }) => {
-  const [defaultEditValue, setDefaultEditValue] = useState(null)
+  const [editValue, setEditValue] = useState(null)
+  const [editLabelAt, setEditLabelAt] = useState({})
 
   const {
     showSizeSlider,
     sizeSliderProps,
     handleOpen,
+    handleSelect,
     handleClose,
     handleChange,
     handleChangeComitted: handleChangeComittedRaw,
@@ -92,14 +97,12 @@ const NumericalSizeLegend = ({
     [numberFormat.precision, valueRange]
   )
 
+  const selectedRawValue = rawValues[sizeSliderProps.key]
   useEffect(() => {
-    // Initialize `defaultEditValue` here once `sizeSliderProps.key`
-    // is available. The default value for the uncontrolled
-    // `NumberField` must not change once initialized.
-    setDefaultEditValue(
-      R.when(R.isNil, R.always(rawValues[sizeSliderProps.key]))
-    )
-  }, [rawValues, sizeSliderProps.key])
+    // Keep the edited value in sync with the selected stop, including after
+    // stops are added or removed
+    setEditValue(selectedRawValue ?? null)
+  }, [selectedRawValue, sizeSliderProps.key])
 
   const {
     isStepScale,
@@ -135,6 +138,71 @@ const NumericalSizeLegend = ({
     },
     [handleChangeComittedRaw]
   )
+
+  const gradient = valueRange.gradient
+
+  const handleAddSizeAt = useCallback(
+    (at) => {
+      const newStop = getNewGradientStop({
+        values,
+        attrs: sizes,
+        attr: 'size',
+        at,
+        scale: gradient.scale,
+        scaleParams: gradient.scaleParams,
+      })
+      // `at` is a position among size stops; map it to a `gradient.data` index
+      const lastSizeIndex = dataIndices.length - 1
+      const insertIndex =
+        at <= lastSizeIndex ? dataIndices[at] : dataIndices[lastSizeIndex] + 1
+      onChangeGradientAttr(['data'])(
+        R.insert(insertIndex, newStop)(gradient.data)
+      )
+      // Select the new stop so it can be edited right away
+      handleSelect(at, newStop.size)
+    },
+    [
+      dataIndices,
+      gradient.data,
+      gradient.scale,
+      gradient.scaleParams,
+      handleSelect,
+      onChangeGradientAttr,
+      sizes,
+      values,
+    ]
+  )
+
+  const handleRemoveSizeAt = useCallback(
+    (dataIndex) => {
+      const gradientItem = gradient.data[dataIndex]
+      if ('color' in gradientItem) {
+        // Keep the item for its color
+        onChangeGradientAttr(['data', dataIndex])(
+          R.dissoc('size')(gradientItem)
+        )
+      } else {
+        onChangeGradientAttr(['data'])(R.remove(dataIndex, 1)(gradient.data))
+      }
+      // Select the previous stop (or the new first one)
+      const index = dataIndices.indexOf(dataIndex)
+      handleSelect(Math.max(index - 1, 0), sizes[index > 0 ? index - 1 : 1])
+    },
+    [dataIndices, gradient.data, handleSelect, onChangeGradientAttr, sizes]
+  )
+
+  const handleToggleEditLabelAt = useCallback(
+    (dataIndex) => () => {
+      setEditLabelAt((oldValue) => ({
+        ...oldValue,
+        [dataIndex]: !oldValue[dataIndex],
+      }))
+    },
+    []
+  )
+
+  const selectedDataIndex = dataIndices[sizeSliderProps.key]
+  const isLastStepItem = isStepScale && sizeSliderProps.key === lastIndex
 
   return (
     <>
@@ -242,42 +310,73 @@ const NumericalSizeLegend = ({
               dataIndices[sizeSliderProps.key]
             )}
           />
-          {
-            // Do not display the max value for a step function
-            // scale, as it does not affect the function output
-            !(
-              (isStepScale && sizeSliderProps.key === lastIndex) ||
-              // Prevent transition between controlled and uncontrolled states
-              defaultEditValue == null
-            ) && (
-              // Using an uncontrolled `NumberField` for better performance
-              <NumberField
-                color="warning"
-                sx={styles.inputValue}
-                label={getValueLabelAt(sizeSliderProps.key)}
-                defaultValue={defaultEditValue}
-                {...{ numberFormat }}
-                onChangeCommitted={(event, newValue) => {
-                  onChangeValueAt(dataIndices[sizeSliderProps.key])(newValue)
-                }}
-                // Show auto min/max button if custom min/max values are set
-                endAdornments={
-                  (sizeSliderProps.key < 1 && !minAuto) ||
-                  (sizeSliderProps.key === lastIndex && !maxAuto) ? (
-                    <IconButton
-                      size="small"
-                      onClick={handleSetAutoValueAt(
-                        dataIndices[sizeSliderProps.key],
-                        sizeSliderProps.key
-                      )}
-                    >
-                      <TbFocusAuto />
-                    </IconButton>
-                  ) : null
-                }
+          <Grid container spacing={1} sx={{ alignItems: 'center' }}>
+            <Grid container spacing={1} size="grow">
+              {
+                // Do not display the max value for a step function
+                // scale, as it does not affect the function output
+                !(isLastStepItem || editValue == null) && (
+                  <Grid size={12}>
+                    <NumberField
+                      color="warning"
+                      sx={styles.inputValue}
+                      label={getValueLabelAt(sizeSliderProps.key)}
+                      value={editValue}
+                      {...{ numberFormat }}
+                      onChange={(event, newValue) => {
+                        setEditValue(newValue)
+                      }}
+                      onChangeCommitted={(event, newValue) => {
+                        onChangeValueAt(selectedDataIndex)(newValue)
+                      }}
+                      // Show auto min/max button if custom min/max values are set
+                      endAdornments={
+                        (sizeSliderProps.key < 1 && !minAuto) ||
+                        (sizeSliderProps.key === lastIndex && !maxAuto) ? (
+                          <IconButton
+                            size="small"
+                            onClick={handleSetAutoValueAt(
+                              selectedDataIndex,
+                              sizeSliderProps.key
+                            )}
+                          >
+                            <TbFocusAuto />
+                          </IconButton>
+                        ) : null
+                      }
+                    />
+                  </Grid>
+                )
+              }
+              {editLabelAt[selectedDataIndex] && (
+                <Grid size={12} sx={{ mt: 1 }}>
+                  <TextInput
+                    key={selectedDataIndex}
+                    color="warning"
+                    label={`Label${labels[sizeSliderProps.key] == null || labels[sizeSliderProps.key] === '' ? ` \u279D ${getSizeLabelAt(sizeSliderProps.key)}` : ''}`}
+                    value={labels[sizeSliderProps.key]}
+                    onClickAway={onChangeGradientAttr([
+                      'data',
+                      selectedDataIndex,
+                      'label',
+                    ])}
+                  />
+                </Grid>
+              )}
+            </Grid>
+            <Grid size="auto">
+              <StopMenu
+                {...{ dataIndices, editLabelAt }}
+                index={sizeSliderProps.key}
+                attr="Size"
+                horizontal
+                buttonSx={{ mt: '20px !important' }}
+                onAddAt={handleAddSizeAt}
+                onRemoveAt={handleRemoveSizeAt}
+                onToggleEditLabelAt={handleToggleEditLabelAt}
               />
-            )
-          }
+            </Grid>
+          </Grid>
         </Stack>
       )}
     </>
@@ -484,6 +583,9 @@ const SizeLegend = ({
             richText={propRichText}
             onChangeValueAt={(dataIndex) =>
               onChangePropAttr([sizeBy, 'gradient', 'data', dataIndex, 'value'])
+            }
+            onChangeGradientAttr={(pathTail) =>
+              onChangePropAttr([sizeBy, 'gradient', ...pathTail])
             }
           />
           <ScaleSelector

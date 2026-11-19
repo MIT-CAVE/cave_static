@@ -188,24 +188,30 @@ export const getScaledValue = R.curry(
 )
 
 /**
- * Derives a new gradient stop (`value` and `color`) to insert at position `at`
- * (0..values.length) of a gradient whose stops are `values` and `colors`.
+ * Derives a new gradient stop (`value` and `color` or `size`) to insert at
+ * position `at` (0..values.length) of a gradient whose stops are `values`
+ * and `attrs`, where `attr` is either `'color'` or `'size'`.
  *
  * - Interior stops take the midpoint of their neighbors in the scale's
  *   transformed space (e.g. the geometric mean for `'log'`).
- * - Edge stops copy the edge color and extrapolate the value by the gap to
- *   the next stop (or duplicate the value if there is only one stop).
+ * - Edge stops copy the edge attribute and extrapolate the value by the gap
+ *   to the next stop (or duplicate the value if there is only one stop).
  * - The `'step'` scale is interpolated as `'linear'`.
+ * - Sizes (e.g. `'12px'`) are interpolated numerically, rounded and kept
+ *   in `px`, with a minimum of `1px`.
  */
 export const getNewGradientStop = ({
   values,
-  colors,
+  attrs,
+  attr = 'color',
   at,
   scale = scaleId.LINEAR,
   scaleParams = {},
 }) => {
+  const isSize = attr === 'size'
+  const defaultAttr = isSize ? '12px' : '#ffffff'
   const lastIndex = values.length - 1
-  if (lastIndex < 0) return { value: 0, color: '#ffffff' }
+  if (lastIndex < 0) return { value: 0, [attr]: defaultAttr }
 
   const interpScale = scale === scaleId.STEP ? scaleId.LINEAR : scale
   const params = {
@@ -220,7 +226,7 @@ export const getNewGradientStop = ({
   const isEdge = at <= 0 || at > lastIndex
   const neighborIndex = at <= 0 ? 0 : Math.min(at, lastIndex + 1) - 1
   const neighborValue = values[isEdge ? neighborIndex : at]
-  const edgeColor = colors[neighborIndex]
+  const edgeAttr = attrs[neighborIndex]
 
   let value
   if (!isEdge) {
@@ -238,17 +244,35 @@ export const getNewGradientStop = ({
   }
   if (!isNum(value)) value = isNum(neighborValue) ? neighborValue : 0
 
+  if (isSize) {
+    const sizes = attrs.map(parseFloat)
+    const size = isEdge
+      ? sizes[neighborIndex]
+      : getScaledValue(
+          values,
+          sizes,
+          value,
+          interpScale,
+          params,
+          sizes[Math.max(at - 1, 0)]
+        )
+    return {
+      value,
+      size: isNum(size) ? `${Math.max(1, Math.round(size))}px` : defaultAttr,
+    }
+  }
+
   const color = isEdge
-    ? edgeColor
+    ? edgeAttr
     : getScaledValue(
         values,
-        colors,
+        attrs,
         value,
         interpScale,
         params,
-        colors[Math.max(at - 1, 0)]
+        attrs[Math.max(at - 1, 0)]
       )
-  const resolved = color ?? edgeColor ?? '#ffffff'
+  const resolved = color ?? edgeAttr ?? defaultAttr
   const parsed = colord(resolved)
   return { value, color: parsed.isValid() ? parsed.toHex() : resolved }
 }

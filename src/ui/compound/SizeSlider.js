@@ -24,6 +24,11 @@ export const useSizeSlider = (onChangeSize, unit = 'px') => {
     []
   )
 
+  // Unlike `handleOpen`, this selects `key` even if it is already selected
+  const handleSelect = useCallback((key, value) => {
+    setSizeSliderProps({ key, value: [parseInt(value)] })
+  }, [])
+
   const handleChange = useCallback((event, value) => {
     setSizeSliderProps(R.assoc('value', value))
   }, [])
@@ -44,6 +49,7 @@ export const useSizeSlider = (onChangeSize, unit = 'px') => {
     sizeSliderProps,
     showSizeSlider: R.isNotEmpty(sizeSliderProps),
     handleOpen,
+    handleSelect,
     handleClose,
     handleChange,
     handleChangeComitted,

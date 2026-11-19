@@ -1,26 +1,8 @@
-import {
-  Divider,
-  FormControlLabel,
-  Grid,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Paper,
-  Stack,
-  Switch,
-  ToggleButton,
-  Typography,
-} from '@mui/material'
+import { Grid, IconButton, Paper, Stack, Typography } from '@mui/material'
 import * as R from 'ramda'
 import { memo, useCallback, useMemo, useState } from 'react'
-import {
-  MdClose,
-  MdMoreVert,
-  // MdOutlineSwapVert,
-} from 'react-icons/md'
-import { TbFocusAuto, TbRowInsertBottom, TbRowInsertTop } from 'react-icons/tb'
+// import { MdOutlineSwapVert } from 'react-icons/md'
+import { TbFocusAuto } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
 import {
@@ -30,13 +12,13 @@ import {
   useGradient,
   WithEditBadge,
 } from './Legend'
+import StopMenu from './StopMenu'
 
 import {
   selectLegendNumberFormatFunc,
   selectParsedGradient,
 } from '../../../data/selectors'
 import { propId, scaleId } from '../../../utils/enums'
-import { useMenu } from '../../../utils/hooks'
 import { labelText, resolveRichText } from '../../../utils/richText'
 import { getNewGradientStop, getScaledValue } from '../../../utils/scales'
 import ColorPicker, { useColorPicker } from '../../compound/ColorPicker'
@@ -145,132 +127,6 @@ const WithEditColorBadge = ({ showBadge, ...props }) => (
   />
 )
 
-const ToggleMenuItem = ({ disabled, label, value, onClick }) => (
-  <MenuItem {...{ disabled }}>
-    <FormControlLabel
-      {...{ label }}
-      slotProps={{ typography: { variant: 'body2' } }}
-      control={
-        <Switch
-          sx={{ mr: 1 }}
-          size="small"
-          checked={value}
-          onChange={onClick}
-        />
-      }
-    />
-  </MenuItem>
-)
-
-const BaseMenuItem = ({ disabled, label, reactIcon: ReactIcon, onClick }) => (
-  <MenuItem {...{ disabled, onClick }}>
-    <ListItemIcon>
-      <ReactIcon size={20} />
-    </ListItemIcon>
-    <ListItemText slotProps={{ primary: { variant: 'body2' } }}>
-      {label}
-    </ListItemText>
-  </MenuItem>
-)
-
-const ColorMenu = ({
-  index,
-  dataIndices,
-  editLabelAt,
-  onAddColorAt,
-  onRemoveColorAt,
-  onToggleEditLabelAt,
-}) => {
-  const [menuIndex, setMenuIndex] = useState(null)
-
-  const {
-    anchorEl,
-    handleOpenMenu: handleOpenMenuRaw,
-    handleCloseMenu: handleCloseMenuRaw,
-  } = useMenu()
-
-  const handleOpenMenu = useCallback(
-    (index) => (event) => {
-      handleOpenMenuRaw(event)
-      setMenuIndex(index)
-    },
-    [handleOpenMenuRaw]
-  )
-
-  const handleCloseMenu = useCallback(
-    (event) => {
-      handleCloseMenuRaw(event)
-      setMenuIndex(null)
-    },
-    [handleCloseMenuRaw]
-  )
-
-  const dataIndex = dataIndices[index]
-
-  return (
-    <div>
-      <ToggleButton
-        sx={{
-          p: '1px',
-          mt: '20px !important',
-          borderRadius: '50%',
-        }}
-        color="warning"
-        value="color-menu"
-        selected={index === menuIndex}
-        onClick={handleOpenMenu(index)}
-      >
-        <MdMoreVert size={18} />
-      </ToggleButton>
-      <Menu
-        {...{ anchorEl }}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-        anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-        transformOrigin={{
-          horizontal: 'right',
-          vertical: 'top',
-        }}
-        slotProps={{ paper: { sx: { width: '21.5ch' } } }}
-        sx={{ p: 0 }}
-      >
-        <BaseMenuItem
-          label="Add Color Above"
-          reactIcon={TbRowInsertTop}
-          onClick={(event) => {
-            onAddColorAt(index)
-            handleCloseMenu(event)
-          }}
-        />
-        <BaseMenuItem
-          label="Add Color Below"
-          reactIcon={TbRowInsertBottom}
-          onClick={(event) => {
-            onAddColorAt(index + 1)
-            handleCloseMenu(event)
-          }}
-        />
-        <Divider />
-        <ToggleMenuItem
-          label="Edit Label"
-          onClick={onToggleEditLabelAt(dataIndex)}
-          value={editLabelAt[dataIndex]}
-        />
-        <Divider />
-        <BaseMenuItem
-          disabled={dataIndices.length < 3}
-          label="Remove Color"
-          reactIcon={MdClose}
-          onClick={(event) => {
-            onRemoveColorAt(dataIndex)()
-            handleCloseMenu(event)
-          }}
-        />
-      </Menu>
-    </div>
-  )
-}
-
 const ColorEditSection = ({
   colorByProp,
   valueRange,
@@ -324,7 +180,8 @@ const ColorEditSection = ({
     (at) => {
       const newStop = getNewGradientStop({
         values: parsedGradient.values,
-        colors,
+        attrs: colors,
+        attr: 'color',
         at,
         scale: valueRange?.gradient?.scale,
         scaleParams: valueRange?.gradient?.scaleParams,
@@ -477,10 +334,12 @@ const ColorEditSection = ({
               )}
             </Grid>
             <Grid size="auto">
-              <ColorMenu
+              <StopMenu
                 {...{ index, dataIndices, editLabelAt }}
-                onAddColorAt={handleAddColorAt}
-                onRemoveColorAt={handleRemoveColorAt}
+                attr="Color"
+                buttonSx={{ mt: '20px !important' }}
+                onAddAt={handleAddColorAt}
+                onRemoveAt={handleRemoveColorAt}
                 onToggleEditLabelAt={handleToggleEditLabelAt}
               />
             </Grid>
@@ -523,7 +382,7 @@ const NumericalColorLegend = ({
   )
 
   const handleRemoveColorAt = useCallback(
-    (dataIndex) => () => {
+    (dataIndex) => {
       const gradientItem = gradient.data[dataIndex]
       if ('size' in gradientItem) {
         const newItem = R.dissoc('color')(gradientItem)
