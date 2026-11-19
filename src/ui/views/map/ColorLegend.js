@@ -53,6 +53,34 @@ import {
 } from '../../../utils'
 
 const styles = {
+  // Temporary highlight for a newly added color stop. It fades out on its
+  // own and the row clears its state on `animationend` (or on interaction).
+  newStop: {
+    position: 'relative',
+    isolation: 'isolate', // Keep the highlight behind the row's own content
+    // The highlight is a pseudo-element, so it adds no layout shift. Its
+    // inset sets a full-width rectangle around the fields.
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      // top right bottom left: the row's top edge already sits above the
+      // fields (label headroom), so the top starts inside the row
+      inset: '8px -8px -6px',
+      zIndex: -1,
+      pointerEvents: 'none',
+      borderRadius: 0,
+      animation: 'newStopHighlight 3.5s ease-in-out forwards',
+    },
+    '@keyframes newStopHighlight': {
+      // Hold the full highlight for a moment, then fade out
+      '0%, 40%': {
+        backgroundColor: 'rgb(255 167 38 / 0.35)',
+      },
+      '100%': {
+        backgroundColor: 'rgb(255 167 38 / 0)',
+      },
+    },
+  },
   legendSection: {
     height: '100%',
     width: '100%',
@@ -262,6 +290,19 @@ const ColorEditSection = ({
   onClose,
 }) => {
   const [editLabelAt, setEditLabelAt] = useState({})
+  // `rawIndex` (React key) of the most recently added stop, while highlighted
+  const [highlightedRaw, setHighlightedRaw] = useState(null)
+  const clearHighlight = useCallback(() => setHighlightedRaw(null), [])
+  // Child animations (e.g. ripples) bubble `animationend`; only react to ours
+  const handleAnimationEnd = useCallback(
+    (event) => {
+      if (event.animationName === 'newStopHighlight') clearHighlight()
+    },
+    [clearHighlight]
+  )
+  const scrollIntoViewRef = useCallback((element) => {
+    element?.scrollIntoView?.({ block: 'nearest' })
+  }, [])
   const parsedGradient = useSelector((state) =>
     selectParsedGradient(state, 'color', colorByProp, valueRange)
   )
@@ -290,6 +331,7 @@ const ColorEditSection = ({
       })
       setItemsOrder(R.insert(at, dataIndices.length))
       setValues(R.insert(at, newStop.value))
+      setHighlightedRaw(dataIndices.length)
       return onAddColorAt(at, newStop)
     },
     [
@@ -362,12 +404,18 @@ const ColorEditSection = ({
             )} */
         const isLabelEmpty = labels[index] == null || labels[index] === ''
         const isLastStepScaleItem = isStepScale && index === lastIndex
+        const isHighlighted = rawIndex === highlightedRaw
         return (
           <Grid
             key={rawIndex}
             container
             spacing={1}
+            ref={isHighlighted ? scrollIntoViewRef : undefined}
+            onAnimationEnd={isHighlighted ? handleAnimationEnd : undefined}
+            onPointerDown={isHighlighted ? clearHighlight : undefined}
+            onFocus={isHighlighted ? clearHighlight : undefined}
             sx={{
+              ...(isHighlighted && styles.newStop),
               alignItems: 'center',
               // Make sure this component referred to by dataIndex is not re-rendered by
               // keeping it in the same DOM position while only changing the order in
