@@ -734,7 +734,12 @@ export const ScaleSelector = ({
       )(scaleIndexedOptions),
     [minDomainValue]
   )
+  const [draftScaleParam, setDraftScaleParam] = useState(null)
   const scaleParamId = scaleParamsById[scale]
+  const scaleParamValue = R.propOr(
+    getScaleParamDefaults(scaleParamId),
+    scaleParamId
+  )(scaleParams)
   return (
     <Stack direction="row" spacing={1}>
       <Select
@@ -758,17 +763,18 @@ export const ScaleSelector = ({
         <NumberField
           fullWidth
           label={getScaleParamLabel(scaleParamId)}
-          defaultValue={R.propOr(
-            getScaleParamDefaults(scaleParamId),
-            scaleParamId
-          )(scaleParams)}
+          // Show the stored value (that can change from outside, e.g. the
+          // other legend using the same prop) unless the user is typing
+          value={draftScaleParam ?? scaleParamValue}
+          onChange={(event, newValue) => setDraftScaleParam(newValue)}
           numberFormat={{}}
           step={0.1}
           smallStep={0.01}
           sx={{ fieldset: { borderRadius: 0 } }}
-          onChangeCommitted={(event, newValue) =>
+          onChangeCommitted={(event, newValue) => {
             onChangeScaleParamById(scaleParamId)(newValue)
-          }
+            setDraftScaleParam(null)
+          }}
         />
       )}
     </Stack>
