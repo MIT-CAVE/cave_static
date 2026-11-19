@@ -1,6 +1,23 @@
-import { Box, Grid, IconButton, Paper, Stack, Typography } from '@mui/material'
+import {
+  Box,
+  Grid,
+  IconButton,
+  Paper,
+  Stack,
+  ToggleButton,
+  Typography,
+} from '@mui/material'
 import * as R from 'ramda'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { MdAdd } from 'react-icons/md'
+import { PiDotsThreeBold } from 'react-icons/pi'
 import { TbFocusAuto } from 'react-icons/tb'
 import { useSelector } from 'react-redux'
 
@@ -260,96 +277,128 @@ const NumericalSizeLegend = ({
         // Fill the scroll container, but never shrink the stops
         showSizeSlider && styles.scrollContent,
       ]}
-      divider={
-        !isStepScale && (
-          <Typography variant="h6" sx={{ pb: 7 }}>{`\u2026`}</Typography>
-        )
-      }
     >
       {sizes.map((value, index) => {
         const selected = sizeSliderProps.key === index
         return (
-          <Stack
-            key={index}
-            ref={selected ? scrollIntoViewRef : undefined}
-            spacing={0.5}
-            onAnimationEnd={
-              index === highlightedAt ? handleAnimationEnd : undefined
-            }
-            onPointerDown={index === highlightedAt ? clearHighlight : undefined}
-            sx={[
-              { alignItems: 'center' },
-              !isStepScale && { alignSelf: 'stretch' },
-              index === highlightedAt && styles.newStop,
-            ]}
-          >
-            {icon && (
-              <WithEditBadge
-                editing={showSizeSlider && selected}
-                sx={!isStepScale && { flex: '1 1 auto', alignItems: 'center' }}
-              >
-                <PropIcon
-                  {...{ icon, selected }}
-                  size={value}
-                  onClick={handleOpen(index, sizes[index])}
-                />
-              </WithEditBadge>
-            )}
-            <Stack>
-              {!isStepScale &&
-                (index < 1 || index === lastIndex ? (
-                  // Bounds keep `Min`/`Max` and append their custom label
-                  <Typography
-                    variant="caption"
-                    color={selected ? 'warning' : 'default'}
-                    sx={styles.boundCaption}
-                    noWrap
-                  >
-                    <OverflowText
-                      text={
-                        isServerLabelAt(index)
-                          ? `${index < 1 ? 'Min' : 'Max'} (${getPlainLabel(index)})`
-                          : getAdjustedLabel(index < 1 ? 'Min' : 'Max', index)
-                      }
-                    />
-                  </Typography>
-                ) : (
-                  <Typography
-                    variant="caption"
-                    color={selected ? 'warning' : 'default'}
-                    noWrap
-                  >
-                    <GradientLabel
-                      text={getAdjustedLabel(
-                        labels[index] != null ? getLabel(index) : `\u2063`, // This preserves the alignment of the icons
-                        index
-                      )}
-                      rawLabel={getLabel(index)}
-                      rich={
-                        richText === true &&
-                        labels[index] != null &&
-                        isServerLabelAt(index)
-                      }
-                    />
-                  </Typography>
-                ))}
+          <Fragment key={index}>
+            {!isStepScale && index > 0 && (
+              // Both the `...` and the add button are centered in the same box
               <Typography
-                variant="subtitle2"
-                color={selected ? 'warning' : 'default'}
-                sx={{ fontWeight: 'bold' }}
+                variant="h6"
+                component="div"
+                // `pb` offsets the captions below the icons so the content is
+                // centered with them
+                sx={{ pb: 5.75, display: 'flex', alignItems: 'center' }}
               >
-                <OverflowText
-                  text={
-                    isStepScale
-                      ? getSizeLabelAt(index)
-                      : labels[index] != null
-                        ? getFormattedValueAt(index)
-                        : getLabel(index)
-                  }
-                />
+                {
+                  // The `...` next to the selected stop turns into an add button
+                  showSizeSlider &&
+                  (sizeSliderProps.key === index ||
+                    sizeSliderProps.key === index - 1) ? (
+                    <ToggleButton
+                      sx={{ p: '1px', borderRadius: '50%' }}
+                      color="warning"
+                      value="add-stop"
+                      aria-label="Add size between"
+                      onClick={() => handleAddSizeAt(index)}
+                    >
+                      <MdAdd size={18} />
+                    </ToggleButton>
+                  ) : (
+                    // A shape close to the `...` glyph, centered like the button
+                    <Box sx={{ display: 'flex', color: 'text.secondary' }}>
+                      <PiDotsThreeBold size={24} />
+                    </Box>
+                  )
+                }
               </Typography>
+            )}
+            <Stack
+              ref={selected ? scrollIntoViewRef : undefined}
+              spacing={0.5}
+              onAnimationEnd={
+                index === highlightedAt ? handleAnimationEnd : undefined
+              }
+              onPointerDown={
+                index === highlightedAt ? clearHighlight : undefined
+              }
+              sx={[
+                { alignItems: 'center' },
+                !isStepScale && { alignSelf: 'stretch' },
+                index === highlightedAt && styles.newStop,
+              ]}
+            >
+              {icon && (
+                <WithEditBadge
+                  editing={showSizeSlider && selected}
+                  sx={
+                    !isStepScale && { flex: '1 1 auto', alignItems: 'center' }
+                  }
+                >
+                  <PropIcon
+                    {...{ icon, selected }}
+                    size={value}
+                    onClick={handleOpen(index, sizes[index])}
+                  />
+                </WithEditBadge>
+              )}
+              <Stack>
+                {!isStepScale &&
+                  (index < 1 || index === lastIndex ? (
+                    // Bounds keep `Min`/`Max` and append their custom label
+                    <Typography
+                      variant="caption"
+                      color={selected ? 'warning' : 'default'}
+                      sx={styles.boundCaption}
+                      noWrap
+                    >
+                      <OverflowText
+                        text={
+                          isServerLabelAt(index)
+                            ? `${index < 1 ? 'Min' : 'Max'} (${getPlainLabel(index)})`
+                            : getAdjustedLabel(index < 1 ? 'Min' : 'Max', index)
+                        }
+                      />
+                    </Typography>
+                  ) : (
+                    <Typography
+                      variant="caption"
+                      color={selected ? 'warning' : 'default'}
+                      noWrap
+                    >
+                      <GradientLabel
+                        text={getAdjustedLabel(
+                          labels[index] != null ? getLabel(index) : `\u2063`, // This preserves the alignment of the icons
+                          index
+                        )}
+                        rawLabel={getLabel(index)}
+                        rich={
+                          richText === true &&
+                          labels[index] != null &&
+                          isServerLabelAt(index)
+                        }
+                      />
+                    </Typography>
+                  ))}
+                <Typography
+                  variant="subtitle2"
+                  color={selected ? 'warning' : 'default'}
+                  sx={{ fontWeight: 'bold' }}
+                >
+                  <OverflowText
+                    text={
+                      isStepScale
+                        ? getSizeLabelAt(index)
+                        : labels[index] != null
+                          ? getFormattedValueAt(index)
+                          : getLabel(index)
+                    }
+                  />
+                </Typography>
+              </Stack>
             </Stack>
-          </Stack>
+          </Fragment>
         )
       })}
     </Stack>
