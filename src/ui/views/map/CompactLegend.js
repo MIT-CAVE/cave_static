@@ -405,6 +405,7 @@ const LegendRowDetails = ({
           </Grid>
         )}
         {/* FIXME: `heightBy` is temporarily hidden */}
+        {/* eslint-disable-next-line no-constant-binary-expression -- intentionally hidden, see FIXME above */}
         {heightBy != null && false && (
           <Grid size="grow">
             <HeightLegend

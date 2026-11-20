@@ -1,6 +1,7 @@
 /**
  * Rules inherited from `eslint-config-react-app` (unmaintained, ESLint 8 only),
  * copied explicitly so the lint surface is unchanged after dropping it.
+ * Rules already enabled by `@eslint/js` recommended are omitted; see `eslint.config.js`.
  * Project-specific rules live in `eslint.config.js`.
  */
 export default {
@@ -19,25 +20,11 @@ export default {
   eqeqeq: ['warn', 'smart'],
   'no-array-constructor': ['warn'],
   'no-caller': ['warn'],
-  'no-cond-assign': ['warn', 'except-parens'],
-  'no-const-assign': ['warn'],
-  'no-control-regex': ['warn'],
-  'no-delete-var': ['warn'],
-  'no-dupe-args': ['warn'],
-  'no-dupe-class-members': ['warn'],
-  'no-dupe-keys': ['warn'],
-  'no-duplicate-case': ['warn'],
-  'no-empty-character-class': ['warn'],
-  'no-empty-pattern': ['warn'],
   'no-eval': ['warn'],
-  'no-ex-assign': ['warn'],
   'no-extend-native': ['warn'],
   'no-extra-bind': ['warn'],
   'no-extra-label': ['warn'],
-  'no-fallthrough': ['warn'],
-  'no-func-assign': ['warn'],
   'no-implied-eval': ['warn'],
-  'no-invalid-regexp': ['warn'],
   'no-iterator': ['warn'],
   'no-label-var': ['warn'],
   'no-labels': [
@@ -50,28 +37,16 @@ export default {
   'no-lone-blocks': ['warn'],
   'no-loop-func': ['warn'],
   'no-multi-str': ['warn'],
-  'no-global-assign': ['warn'],
-  'no-unsafe-negation': ['warn'],
   'no-new-func': ['warn'],
   'no-new-object': ['warn'],
-  'no-new-symbol': ['warn'],
   'no-new-wrappers': ['warn'],
-  'no-obj-calls': ['warn'],
-  'no-octal': ['warn'],
   'no-octal-escape': ['warn'],
-  'no-redeclare': ['warn'],
-  'no-regex-spaces': ['warn'],
   'no-restricted-syntax': ['warn', 'WithStatement'],
   'no-script-url': ['warn'],
-  'no-self-assign': ['warn'],
   'no-self-compare': ['warn'],
   'no-sequences': ['warn'],
-  'no-shadow-restricted-names': ['warn'],
-  'no-sparse-arrays': ['warn'],
   'no-template-curly-in-string': ['warn'],
-  'no-this-before-super': ['warn'],
   'no-throw-literal': ['warn'],
-  'no-undef': ['error'],
   'no-restricted-globals': [
     'error',
     'addEventListener',
@@ -133,7 +108,6 @@ export default {
     'toolbar',
     'top',
   ],
-  'no-unreachable': ['warn'],
   'no-unused-expressions': [
     'error',
     {
@@ -143,7 +117,6 @@ export default {
       enforceForJSX: false,
     },
   ],
-  'no-unused-labels': ['warn'],
   'no-use-before-define': [
     'warn',
     {
@@ -155,7 +128,6 @@ export default {
   'no-useless-computed-key': ['warn'],
   'no-useless-concat': ['warn'],
   'no-useless-constructor': ['warn'],
-  'no-useless-escape': ['warn'],
   'no-useless-rename': [
     'warn',
     {
@@ -164,12 +136,8 @@ export default {
       ignoreExport: false,
     },
   ],
-  'no-with': ['warn'],
-  'require-yield': ['warn'],
   strict: ['warn', 'never'],
   'unicode-bom': ['warn', 'never'],
-  'use-isnan': ['warn'],
-  'valid-typeof': ['warn'],
   'no-restricted-properties': [
     'error',
     {
@@ -185,7 +153,6 @@ export default {
         'Please use import() instead. More info: https://facebook.github.io/create-react-app/docs/code-splitting',
     },
   ],
-  'getter-return': ['warn'],
   'react/forbid-foreign-prop-types': [
     'warn',
     {
@@ -236,6 +203,4 @@ export default {
   'jsx-a11y/role-has-required-aria-props': ['warn'],
   'jsx-a11y/role-supports-aria-props': ['warn'],
   'jsx-a11y/scope': ['warn'],
-  'react/jsx-uses-vars': ['warn'],
-  'react/jsx-uses-react': ['warn'],
 }

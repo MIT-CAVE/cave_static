@@ -1,5 +1,6 @@
 import * as emotion from '@emotion/eslint-plugin'
 import { fixupPluginRules } from '@eslint/compat'
+import js from '@eslint/js'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import compat from 'eslint-plugin-compat'
 import importPlugin, { createNodeResolver } from 'eslint-plugin-import-x'
@@ -18,6 +19,7 @@ export default defineConfig([
   // `node_modules` is ignored by default; dotfiles are linted by default (no `!.*.js` needed)
   globalIgnores(['build/**', 'dist/**', 'storybook-static/**']),
 
+  js.configs.recommended,
   compat.configs['flat/recommended'],
   ...storybookConfigs['flat/recommended'],
 
