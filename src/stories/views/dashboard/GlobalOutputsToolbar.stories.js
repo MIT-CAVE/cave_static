@@ -1,5 +1,3 @@
-import React from 'react'
-
 import GlobalOutputsToolbar from '../../../ui/views/dashboard/GlobalOutputsToolbar'
 import { chartVariant } from '../../../utils/enums'
 

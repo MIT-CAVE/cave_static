@@ -1,5 +1,3 @@
-import React from 'react'
-
 import PropAudio from '../../ui/compound/PropAudio'
 import PropPicture from '../../ui/compound/PropPicture'
 import PropVideo from '../../ui/compound/PropVideo'

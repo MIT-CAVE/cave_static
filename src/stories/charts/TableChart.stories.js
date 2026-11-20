@@ -1,4 +1,3 @@
-import React from 'react'
 import { expect, within } from 'storybook/test'
 
 import { TableChart } from '../../ui/charts'

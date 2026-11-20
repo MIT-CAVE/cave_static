@@ -1,4 +1,3 @@
-import React from 'react'
 import { expect, userEvent, within } from 'storybook/test'
 
 import SessionPane from '../../../ui/views/common/SessionPane'

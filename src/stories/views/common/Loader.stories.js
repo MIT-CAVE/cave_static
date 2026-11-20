@@ -1,5 +1,3 @@
-import React from 'react'
-
 import Loader from '../../../ui/views/common/Loader'
 
 const loaderStories = {

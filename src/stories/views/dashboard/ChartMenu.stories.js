@@ -1,5 +1,4 @@
 import { Box } from '@mui/material'
-import React from 'react'
 
 import ChartMenu from '../../../ui/views/dashboard/ChartMenu'
 import { chartVariant } from '../../../utils/enums'

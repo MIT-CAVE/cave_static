@@ -1,5 +1,3 @@
-import React from 'react'
-
 import MapToolbar from '../../../ui/views/dashboard/MapToolbar'
 
 const mapToolbarStories = {
