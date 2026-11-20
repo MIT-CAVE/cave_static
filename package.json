@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --ext .js,.jsx --max-warnings 0 --fix .",
+    "lint": "prettier --cache --write . && eslint --cache --report-unused-disable-directives --max-warnings 0 --fix .",
     "preview": "vite preview",
     "reset": "npx rimraf ./package-lock.json && npm run setup",
     "setup": "npx rimraf ./node_modules && npm install && npx simple-git-hooks",
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^5.6.0",
     "@emotion/eslint-plugin": "^11.12.0",
+    "@eslint/compat": "^2.1.1",
     "@storybook/addon-a11y": "^10.6.7",
     "@storybook/addon-docs": "^10.6.7",
     "@storybook/addon-mcp": "^10.6.7",
@@ -68,17 +69,20 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.12",
     "@vitejs/plugin-react": "^6.3.0",
-    "@vitest/browser-playwright": "^5.1.0",
-    "@vitest/coverage-v8": "^5.1.0",
-    "eslint": "^8.57.1",
+    "@vitest/browser-playwright": "^5.1.1",
+    "@vitest/coverage-v8": "^5.1.1",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-config-react-app": "^7.0.1",
-    "eslint-plugin-compat": "^6.2.1",
+    "eslint-plugin-compat": "^7.0.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.5.7",
     "eslint-plugin-ramda": "^2.5.1",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.4.26",
-    "eslint-plugin-storybook": "^10.6.7",
+    "eslint-plugin-react-refresh": "^0.5.8",
+    "eslint-plugin-storybook": "^10.6.8",
+    "globals": "^17.14.0",
     "lint-staged": "^17.6.1",
     "oxc-transform-react": "^0.156.0",
     "playwright": "^1.65.1",
@@ -87,6 +91,14 @@
     "storybook": "^10.6.7",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "@emotion/eslint-plugin": {
+      "eslint": "$eslint",
+      "@typescript-eslint/utils": {
+        "eslint": "$eslint"
+      }
+    }
   },
   "engines": {
     "node": "^22.22.1 || ^24.3.0",
