@@ -25,8 +25,9 @@ export default defineConfig([
 
   {
     files: ['**/*.{js,jsx,cjs,mjs}'],
+    linterOptions: { reportUnusedDisableDirectives: 'error' },
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: 'latest',
       sourceType: 'module',
       parserOptions: { ecmaFeatures: { jsx: true } },
       // ES built-ins come from `ecmaVersion`; Node globals are scoped to tooling files below
