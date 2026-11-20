@@ -2161,8 +2161,8 @@ export const selectMemoizedChartFunc = createSafeDeepEqualSelector(
         // Calculates stat values without applying mergeFunc
         const calculatedStats = statObjs.map((stat) => {
           // Add the aggregationGroupingLevel to the groupBys
-          let finalGroupBy = []
-          let statParentLengths = []
+          let finalGroupBy
+          let statParentLengths
           if ('aggregationGroupingLevel' in stat) {
             const category = categoryFunc(
               stat.aggregationGroupingId,

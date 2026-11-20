@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Provider } from 'react-redux'
 import { userEvent, within, expect } from 'storybook/test'
 

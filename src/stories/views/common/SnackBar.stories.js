@@ -1,5 +1,3 @@
-import React from 'react'
-
 import SnackBar from '../../../ui/views/common/SnackBar'
 
 const snackBarStories = {

@@ -1,5 +1,3 @@
-import React from 'react'
-
 import TimeControl from '../../../ui/views/common/TimeControl'
 
 const timeControlStories = {

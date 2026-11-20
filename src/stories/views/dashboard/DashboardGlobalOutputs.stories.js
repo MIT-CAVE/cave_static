@@ -1,4 +1,3 @@
-import React from 'react'
 import { expect, waitFor } from 'storybook/test'
 
 import DashboardGlobalOutput from '../../../ui/views/dashboard/DashboardGlobalOutputs'

@@ -144,7 +144,7 @@ describe('NumberFormat', () => {
 
   describe('chart hover / tooltip formatting scenarios', () => {
     it('handles chart tooltip formatting when numberFormat is undefined', () => {
-      let numberFormat
+      const numberFormat = undefined
       expect(() => NumberFormat.format(150, numberFormat)).not.toThrow()
       expect(NumberFormat.format(150, numberFormat)).toBe('150.00')
     })

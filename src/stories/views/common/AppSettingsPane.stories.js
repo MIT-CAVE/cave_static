@@ -1,5 +1,3 @@
-import React from 'react'
-
 import AppSettingsPane from '../../../ui/views/common/AppSettingsPane'
 
 const appSettingsPaneStories = {

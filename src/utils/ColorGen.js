@@ -125,7 +125,7 @@ class ColorGenerator {
     const min = Math.min(r, g, b)
     const d = max - min
 
-    let h = 0
+    let h
     if (d === 0) {
       h = 0
     } else if (max === r) {
