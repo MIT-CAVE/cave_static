@@ -5,7 +5,6 @@ import {
   Marker as MapboxMarker,
   Layer as MapboxLayer,
   Source as MapboxSource,
-  // eslint-disable-next-line import/no-unresolved
 } from 'react-map-gl/mapbox'
 import { useSelector } from 'react-redux'
 

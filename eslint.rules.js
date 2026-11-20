@@ -4,11 +4,11 @@
  * Project-specific rules live in `eslint.config.js`.
  */
 export default {
-  'import/no-named-as-default-member': [1],
-  'import/no-duplicates': [1],
-  'import/no-unresolved': [2],
-  'import/default': [2],
-  'import/export': [2],
+  'import-x/no-named-as-default-member': [1],
+  'import-x/no-duplicates': [1],
+  'import-x/no-unresolved': [2],
+  'import-x/default': [2],
+  'import-x/export': [2],
   'array-callback-return': ['warn'],
   'default-case': [
     'warn',

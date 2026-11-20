@@ -2,14 +2,14 @@ import * as emotion from '@emotion/eslint-plugin'
 import { fixupPluginRules } from '@eslint/compat'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import compat from 'eslint-plugin-compat'
-import importPlugin from 'eslint-plugin-import'
+import importPlugin, { createNodeResolver } from 'eslint-plugin-import-x'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
 import prettierRecommended from 'eslint-plugin-prettier/recommended'
 import ramda from 'eslint-plugin-ramda'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import { reactRefresh } from 'eslint-plugin-react-refresh'
-import storybook from 'eslint-plugin-storybook'
+import { configs as storybookConfigs } from 'eslint-plugin-storybook'
 import globals from 'globals'
 
 import reactAppRules from './eslint.rules.js'
@@ -19,7 +19,7 @@ export default defineConfig([
   globalIgnores(['build/**', 'dist/**', 'storybook-static/**']),
 
   compat.configs['flat/recommended'],
-  ...storybook.configs['flat/recommended'],
+  ...storybookConfigs['flat/recommended'],
 
   {
     files: ['**/*.{js,jsx,cjs,mjs}'],
@@ -30,11 +30,14 @@ export default defineConfig([
       // ES built-ins come from `ecmaVersion`; Node globals are scoped to tooling files below
       globals: globals.browser,
     },
-    settings: { react: { version: 'detect' } },
+    settings: {
+      react: { version: 'detect' },
+      'import-x/resolver-next': [createNodeResolver()],
+    },
     plugins: {
-      import: importPlugin,
-      react,
-      'jsx-a11y': jsxA11y,
+      'import-x': importPlugin,
+      react: fixupPluginRules(react),
+      'jsx-a11y': fixupPluginRules(jsxA11y),
       '@emotion': fixupPluginRules(emotion),
       ramda: fixupPluginRules(ramda),
       'react-hooks': reactHooks,
@@ -47,9 +50,9 @@ export default defineConfig([
       /* Rules react-app enabled that we keep */
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      'import/first': 'error',
-      'import/no-amd': 'error',
-      'import/no-webpack-loader-syntax': 'error',
+      'import-x/first': 'error',
+      'import-x/no-amd': 'error',
+      'import-x/no-webpack-loader-syntax': 'error',
 
       /* ESLint (core) rules */
       'prefer-template': 'warn',
@@ -67,7 +70,7 @@ export default defineConfig([
       'no-restricted-imports': ['error', { patterns: ['@mui/*/*/*'] }],
 
       /* `eslint-plugin-import` rules */
-      'import/order': [
+      'import-x/order': [
         'error',
         {
           alphabetize: { order: 'asc', caseInsensitive: true },
@@ -83,24 +86,24 @@ export default defineConfig([
           'newlines-between': 'always',
         },
       ],
-      'import/named': 'error',
-      'import/namespace': 'error',
-      'import/no-absolute-path': 'error',
-      'import/no-dynamic-require': 'error',
-      'import/no-self-import': 'error',
-      'import/no-useless-path-segments': 'error',
-      'import/no-named-as-default': 'error',
-      'import/no-deprecated': 'warn',
-      'import/no-extraneous-dependencies': [
+      'import-x/named': 'error',
+      'import-x/namespace': 'error',
+      'import-x/no-absolute-path': 'error',
+      'import-x/no-dynamic-require': 'error',
+      'import-x/no-self-import': 'error',
+      'import-x/no-useless-path-segments': 'error',
+      'import-x/no-named-as-default': 'error',
+      'import-x/no-deprecated': 'warn',
+      'import-x/no-extraneous-dependencies': [
         'error',
         { peerDependencies: true },
       ],
-      'import/no-mutable-exports': 'error',
-      'import/newline-after-import': 'error',
-      'import/no-named-default': 'error',
-      'import/no-unassigned-import': ['error', { allow: ['**/*.css'] }],
-      'import/no-anonymous-default-export': 'error',
-      'import/no-cycle': 'error',
+      'import-x/no-mutable-exports': 'error',
+      'import-x/newline-after-import': 'error',
+      'import-x/no-named-default': 'error',
+      'import-x/no-unassigned-import': ['error', { allow: ['**/*.css'] }],
+      'import-x/no-anonymous-default-export': 'error',
+      'import-x/no-cycle': 'error',
 
       /* `@emotion/eslint-plugin` rules */
       '@emotion/no-vanilla': 'error',
@@ -115,7 +118,7 @@ export default defineConfig([
 
   {
     files: ['src/stories/**/*.js', 'vitest.config.js', '.storybook/**/*.js'],
-    rules: { 'import/no-unresolved': 'off' },
+    rules: { 'import-x/no-unresolved': 'off' },
   },
 
   {
@@ -133,8 +136,8 @@ export default defineConfig([
     // Flat config files import package subpaths via `exports`, which eslint-plugin-import can't resolve
     files: ['eslint.config.js', 'eslint.rules.js'],
     rules: {
-      'import/no-unresolved': 'off',
-      'import/no-anonymous-default-export': 'off',
+      'import-x/no-unresolved': 'off',
+      'import-x/no-anonymous-default-export': 'off',
     },
   },
 
