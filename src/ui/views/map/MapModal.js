@@ -25,6 +25,7 @@ import {
   selectMapRichText,
 } from '../../../data/selectors'
 import {
+  isVirtualKeyboardOpenOnPointerDown,
   useModalClickAway,
   useMutateStateWithSync,
   useRichText,
@@ -147,7 +148,12 @@ const MapModal = () => {
   )
 
   const handleCloseModal = useCallback(
-    () => dispatch(closeMapModal({ sync: false })),
+    (_event, reason) => {
+      if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
+        return
+      }
+      dispatch(closeMapModal({ sync: false }))
+    },
     [dispatch]
   )
 

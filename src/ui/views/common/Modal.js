@@ -20,7 +20,11 @@ import {
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
-import { useModalClickAway, useRichText } from '../../../utils/hooks'
+import {
+  isVirtualKeyboardOpenOnPointerDown,
+  useModalClickAway,
+  useRichText,
+} from '../../../utils/hooks'
 import { resolveRichText } from '../../../utils/richText'
 import ClusterModal from '../../compound/ClusterModal'
 import RichLabel from '../../compound/RichLabel'
@@ -92,6 +96,9 @@ const GeneralModal = ({ title, richText, children }) => {
   const hadFocusedInputRef = useHadFocusedInputOnMouseDown(paperRef)
 
   const handleClose = (event, reason) => {
+    if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
+      return
+    }
     // Swallow a backdrop click that also blurred an input inside the
     // modal — one click should only exit the input context, not the modal.
     if (reason === 'backdropClick' && hadFocusedInputRef.current) {

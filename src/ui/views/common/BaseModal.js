@@ -1,7 +1,10 @@
 import { Box, Modal, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
 
-import { useModalClickAway } from '../../../utils/hooks'
+import {
+  isVirtualKeyboardOpenOnPointerDown,
+  useModalClickAway,
+} from '../../../utils/hooks'
 
 const styles = {
   root: {
@@ -76,6 +79,9 @@ const BaseModal = ({
   }, [])
 
   const handleClose = (event, reason) => {
+    if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
+      return
+    }
     // Swallow a backdrop click that also blurred an input inside the modal —
     // one click should only exit the input context, not the modal.
     if (reason === 'backdropClick' && hadFocusedInputRef.current) {

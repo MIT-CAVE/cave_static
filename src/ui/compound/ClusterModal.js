@@ -21,7 +21,11 @@ import {
   selectNodeClustersAtZoomFunc,
   selectSync,
 } from '../../data/selectors'
-import { useModalClickAway, useRichText } from '../../utils/hooks'
+import {
+  isVirtualKeyboardOpenOnPointerDown,
+  useModalClickAway,
+  useRichText,
+} from '../../utils/hooks'
 import { resolveRichText } from '../../utils/richText'
 
 import { includesPath } from '../../utils'
@@ -59,15 +63,21 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const dispatch = useDispatch()
   const modalRef = useRef(null)
 
-  const handleClose = useCallback(() => {
-    dispatch(
-      mutateLocal({
-        path: ['panes', 'paneState', 'center'],
-        value: {},
-        sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
-      })
-    )
-  }, [dispatch, sync])
+  const handleClose = useCallback(
+    (_event, reason) => {
+      if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
+        return
+      }
+      dispatch(
+        mutateLocal({
+          path: ['panes', 'paneState', 'center'],
+          value: {},
+          sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+        })
+      )
+    },
+    [dispatch, sync]
+  )
 
   useModalClickAway({ modalRef, onClose: handleClose })
 

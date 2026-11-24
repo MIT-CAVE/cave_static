@@ -15,6 +15,10 @@ import {
   setLastKeyPress,
   setActiveFieldId,
 } from '../../../data/utilities/virtualKeyboardSlice'
+import {
+  scheduleResetVirtualKeyboardOpenOnPointerDown,
+  setVirtualKeyboardOpenOnPointerDown,
+} from '../../../utils/hooks'
 import RippleBox from '../../compound/RippleBox'
 
 import { DragHandle } from '../../draggables'
@@ -538,6 +542,8 @@ const VirtualKeyboard = () => {
     if (!virtualKeyboard.isOpen) return
 
     const handlePointerDownGlobal = (event) => {
+      setVirtualKeyboardOpenOnPointerDown(true)
+
       // If clicking inside the virtual keyboard itself, do not close
       if (boxRef.current?.contains(event.target)) return
 
@@ -554,8 +560,15 @@ const VirtualKeyboard = () => {
 
       if (isInsideInput) return
 
-      dispatch(setIsOpen(false))
-      dispatch(setActiveFieldId(null))
+      const active = document.activeElement
+      const hasFocusedInput =
+        active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')
+      if (hasFocusedInput) {
+        dispatch(setEnter(true))
+      } else {
+        dispatch(setIsOpen(false))
+        dispatch(setActiveFieldId(null))
+      }
     }
 
     window.addEventListener('pointerdown', handlePointerDownGlobal, true)
@@ -563,6 +576,26 @@ const VirtualKeyboard = () => {
       window.removeEventListener('pointerdown', handlePointerDownGlobal, true)
     }
   }, [virtualKeyboard.isOpen, dispatch])
+
+  useEffect(() => {
+    const handlePointerUpGlobal = () => {
+      scheduleResetVirtualKeyboardOpenOnPointerDown(100)
+    }
+
+    const handleClickGlobal = () => {
+      scheduleResetVirtualKeyboardOpenOnPointerDown(0)
+    }
+
+    window.addEventListener('pointerup', handlePointerUpGlobal, true)
+    window.addEventListener('pointercancel', handlePointerUpGlobal, true)
+    window.addEventListener('click', handleClickGlobal, true)
+    return () => {
+      window.removeEventListener('pointerup', handlePointerUpGlobal, true)
+      window.removeEventListener('pointercancel', handlePointerUpGlobal, true)
+      window.removeEventListener('click', handleClickGlobal, true)
+      setVirtualKeyboardOpenOnPointerDown(false)
+    }
+  }, [])
 
   return (
     <Box
