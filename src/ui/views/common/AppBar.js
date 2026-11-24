@@ -91,6 +91,7 @@ const ButtonInTabs = ({
   label,
   placement,
   sx = [],
+  ...props
 }) => (
   // Disabled buttons cannot trigger tooltips, so hide it while loading
   <Tooltip title={disabled ? '' : label} {...{ placement }}>
@@ -99,6 +100,7 @@ const ButtonInTabs = ({
       aria-label={label}
       sx={[styles.tabBtn, ...forceArray(sx)]}
       {...{ onClick, disabled }}
+      {...props}
     >
       <FetchedIcon size={35} color={color} iconName={icon} />
     </IconButton>
@@ -153,6 +155,9 @@ const getAppBarItem = ({
       <ButtonInTabs
         key={key}
         {...{ icon, color, label, placement }}
+        // Opts out of `useModalClickAway`: this button owns the toggle, so
+        // the click-away close and this handler can't race on one click
+        data-modal-toggle="true"
         disabled={loading}
         onClick={() => {
           dispatch(

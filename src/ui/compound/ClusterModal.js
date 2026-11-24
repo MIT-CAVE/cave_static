@@ -21,11 +21,7 @@ import {
   selectNodeClustersAtZoomFunc,
   selectSync,
 } from '../../data/selectors'
-import {
-  isVirtualKeyboardOpenOnPointerDown,
-  useModalClickAway,
-  useRichText,
-} from '../../utils/hooks'
+import { useModalClickAway, useRichText } from '../../utils/hooks'
 import { resolveRichText } from '../../utils/richText'
 
 import { includesPath } from '../../utils'
@@ -63,23 +59,20 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const dispatch = useDispatch()
   const modalRef = useRef(null)
 
-  const handleClose = useCallback(
-    (_event, reason) => {
-      if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
-        return
-      }
-      dispatch(
-        mutateLocal({
-          path: ['panes', 'paneState', 'center'],
-          value: {},
-          sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
-        })
-      )
-    },
-    [dispatch, sync]
-  )
+  const handleClose = useCallback(() => {
+    dispatch(
+      mutateLocal({
+        path: ['panes', 'paneState', 'center'],
+        value: {},
+        sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+      })
+    )
+  }, [dispatch, sync])
 
-  useModalClickAway({ modalRef, onClose: handleClose })
+  const handleModalClose = useModalClickAway({
+    modalRef,
+    onClose: handleClose,
+  })
 
   const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoomFunc)
   const targetCluster = R.find(
@@ -246,7 +239,7 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={handleClose}
+      onClose={handleModalClose}
       {...props}
     >
       <Box sx={styles.modal}>

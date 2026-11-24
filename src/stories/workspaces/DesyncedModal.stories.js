@@ -154,31 +154,42 @@ export const ClickAppBarClosesModalAndOpensPane = {
   },
   render: () => <App />,
   play: async ({ canvasElement }) => {
-    const body = within(document.body)
     const canvas = within(canvasElement)
+    // Scope to the modal root: the AppBar tooltip repeats the modal's name
+    const modalRoot = () => document.querySelector('.MuiModal-root')
+    const expectModalOpen = () =>
+      waitFor(() => expect(modalRoot()).not.toBeNull(), { timeout: 3000 })
+    const expectModalClosed = () =>
+      waitFor(() => expect(modalRoot()).toBeNull(), { timeout: 3000 })
 
     // 1. Initial State: Modal is open
-    await body.findByText('Example Modal', {}, { timeout: 3000 })
+    await expectModalOpen()
 
-    // 2. Click the same modal's AppBar button -> modal closes
+    // 2. Click the same modal's AppBar button -> modal closes (and stays closed)
+    // The AppBar is `aria-hidden` while a modal is open, so include hidden nodes
     const modalBtn = await canvas.findByRole('button', {
       name: 'Example Modal',
+      hidden: true,
     })
     await userEvent.click(modalBtn)
-    await waitFor(() => expect(body.queryByText('Example Modal')).toBeNull(), {
-      timeout: 3000,
-    })
+    await expectModalClosed()
 
     // 3. Reopen the modal, then click the wall pane's AppBar button ->
     //    modal closes AND the wall pane opens
     await userEvent.click(modalBtn)
-    await body.findByText('Example Modal', {}, { timeout: 3000 })
+    await expectModalOpen()
 
-    const paneTab = await canvas.findByRole('tab', { name: 'Example Pane' })
-    await userEvent.click(paneTab)
-    await waitFor(() => expect(body.queryByText('Example Modal')).toBeNull(), {
-      timeout: 3000,
+    const paneTab = await canvas.findByRole('tab', {
+      name: 'Example Pane',
+      hidden: true,
     })
-    await body.findByText('Example Pane', {}, { timeout: 3000 })
+    await userEvent.click(paneTab)
+    await expectModalClosed()
+    await waitFor(
+      () => expect(paneTab).toHaveAttribute('aria-selected', 'true'),
+      {
+        timeout: 3000,
+      }
+    )
   },
 }

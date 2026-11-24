@@ -25,7 +25,6 @@ import {
   selectMapRichText,
 } from '../../../data/selectors'
 import {
-  isVirtualKeyboardOpenOnPointerDown,
   useModalClickAway,
   useMutateStateWithSync,
   useRichText,
@@ -86,7 +85,7 @@ const ListModal = ({
   onSelect,
 }) => {
   const modalRef = useRef(null)
-  useModalClickAway({ modalRef, onClose })
+  const handleClose = useModalClickAway({ modalRef, onClose })
 
   return (
     <Modal
@@ -96,7 +95,7 @@ const ListModal = ({
       disableAutoFocus
       disableEnforceFocus
       sx={styles.modal}
-      {...{ onClose }}
+      onClose={handleClose}
     >
       <Box sx={styles.listPaper}>
         <Box sx={styles.flexSpaceBetween}>
@@ -148,12 +147,7 @@ const MapModal = () => {
   )
 
   const handleCloseModal = useCallback(
-    (_event, reason) => {
-      if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
-        return
-      }
-      dispatch(closeMapModal({ sync: false }))
-    },
+    () => dispatch(closeMapModal({ sync: false })),
     [dispatch]
   )
 
