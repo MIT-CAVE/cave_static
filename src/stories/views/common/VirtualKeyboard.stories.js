@@ -1,5 +1,3 @@
-import React from 'react'
-
 import VirtualKeyboard from '../../../ui/views/common/VirtualKeyboard'
 
 const virtualKeyboardStories = {

@@ -169,7 +169,8 @@ src/
 
 public/                  # Static assets served as-is
 vite.config.js           # Vite config: jsxInJs plugin, React Compiler (Babel), envPrefix
-.eslintrc.cjs            # ESLint config (react-app + import + ramda + emotion + compat)
+eslint.config.js         # ESLint flat config (import-x + ramda + emotion + compat + @eslint/js recommended)
+eslint.rules.js          # Rules inherited from the retired eslint-config-react-app, minus those in @eslint/js recommended
 prettier.config.js       # Prettier: no semis, single quotes, ES5 trailing commas
 lint-staged.config.js    # Pre-commit: prettier + eslint on staged .js/.jsx files
 .simple-git-hooks.js     # Git hook: pre-commit → lint-staged

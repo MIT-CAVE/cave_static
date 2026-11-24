@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit'
-import React from 'react'
 import { Provider } from 'react-redux'
 
 import { BoxPlot } from '../../ui/charts'

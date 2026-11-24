@@ -1,4 +1,3 @@
-import React from 'react'
 import { expect, within, userEvent, fireEvent, waitFor } from 'storybook/test'
 
 import App from '../../App'

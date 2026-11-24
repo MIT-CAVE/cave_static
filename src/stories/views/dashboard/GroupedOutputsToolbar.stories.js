@@ -1,5 +1,3 @@
-import React from 'react'
-
 import GroupedOutputsToolbar from '../../../ui/views/dashboard/GroupedOutputsToolbar'
 import { chartVariant } from '../../../utils/enums'
 
