@@ -4,7 +4,7 @@ import { StyledEngineProvider } from '@mui/material/styles'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import * as R from 'ramda'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector, useStore } from 'react-redux'
 
 import { mutateLocal } from './data/local'
@@ -22,6 +22,7 @@ import {
 import { ErrorBoundary } from './ui/compound'
 import DockBar from './ui/draggables/DockBar'
 import Draggables from './ui/draggables/Draggables'
+import { ModalContainerContext } from './ui/views/common/BaseModal'
 import Loader from './ui/views/common/Loader'
 import { AppModal } from './ui/views/common/Modal'
 import renderAppPane from './ui/views/common/Pane'
@@ -136,6 +137,8 @@ const SessionPane = () => (
 
 const App = () => {
   const dispatch = useDispatch()
+  // The element `BaseModal`s are portaled into (see `ModalContainerContext`)
+  const [workspace, setWorkspace] = useState(null)
   const currentPage = useSelector(selectCurrentPage)
   const appBarData = useSelector(selectAppBarData)
   const appBarViews = useSelector(selectDemoViews)
@@ -213,13 +216,15 @@ const App = () => {
 
               <ErrorBoundary fallback={<SessionPane />}>
                 {anyDraggableDocked && <DockBar />}
-                <Box sx={styles.workspace}>
-                  <Box sx={styles.content}>
-                    <Dashboard />
-                  </Box>
-                  <Panes />
-                  <AppModal />
-                  <Draggables />
+                <Box ref={setWorkspace} sx={styles.workspace}>
+                  <ModalContainerContext value={workspace}>
+                    <Box sx={styles.content}>
+                      <Dashboard />
+                    </Box>
+                    <Panes />
+                    <AppModal />
+                    <Draggables />
+                  </ModalContainerContext>
                 </Box>
               </ErrorBoundary>
             </Box>

@@ -1,7 +1,12 @@
 import { Box, Modal, Typography } from '@mui/material'
-import { useEffect, useRef } from 'react'
+import { createContext, useContext, useEffect, useRef } from 'react'
 
 import { useModalClickAway } from '../../../utils/hooks'
+
+// The element modals are portaled into. App.js provides its `workspace` box
+// (below `DockBar`). Without a provider (e.g., stories) modals use the default
+// container, `document.body`.
+export const ModalContainerContext = createContext(null)
 
 const styles = {
   root: {
@@ -56,6 +61,7 @@ const BaseModal = ({
     root: { sx: sxRoot, ...rootProps } = {},
     paper: { sx: sxPaper, ...paperProps } = {},
   } = slotProps
+  const modalContainer = useContext(ModalContainerContext)
   const modalRef = useRef(null)
   const paperRef = useRef(null)
   // By the time `onClose` fires for a backdrop click, native blur has already
@@ -95,14 +101,15 @@ const BaseModal = ({
     <Modal
       ref={modalRef}
       sx={[styles.root, sxRoot]}
-      // `disablePortal` keeps this modal inside App.js's `workspace` box
-      // instead of `document.body`, so its `position: fixed` root resolves
-      // against `workspace` (which `contain: layout` makes a containing
-      // block for `fixed` descendants) rather than the viewport. That's
-      // what confines it below DockBar instead of under it. The other two
-      // flags pair with `disablePortal` for focus handling, matching
-      // `GeneralModal`/`ClusterModal`.
-      disablePortal
+      // Portal into App.js's `workspace` box instead of `document.body`, so
+      // the `position: fixed` root resolves against `workspace` (which
+      // `contain: layout` makes a containing block for `fixed` descendants)
+      // rather than the viewport. That's what confines it below DockBar
+      // instead of under it. Portaling (vs. `disablePortal`) also keeps the
+      // root out of any transformed ancestor of the caller (e.g., the legend's
+      // `Popper`), which would otherwise become its containing block and
+      // shrink the modal.
+      container={modalContainer}
       disableEnforceFocus
       disableAutoFocus
       {...{ open, ...rootProps }}
