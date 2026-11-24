@@ -231,6 +231,8 @@ const GroupedOutputsToolbar = ({ index }) => {
   const getStatName = (stat) =>
     getGroupLabelFn(allowedStats, [chartObj.dataset, stat])
 
+  const getStatHelp = (stat) => allowedStats?.[chartObj.dataset]?.[stat]?.help
+
   const removeExtraLevels = (obj) => {
     if (!R.has(obj.chartType, chartMaxGrouping)) return obj
 
@@ -385,6 +387,7 @@ const GroupedOutputsToolbar = ({ index }) => {
       optionsList={statNames}
       getLabel={getStatName}
       richText={isStatRich}
+      getHelp={getStatHelp}
       onSelect={(value) => {
         updateChartObj(
           R.assoc(
@@ -413,6 +416,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           optionsList={statNames}
           getLabel={getStatName}
           richText={isStatRich}
+          getHelp={getStatHelp}
           onSelect={(newVal) => {
             if (R.equals(value, newVal)) {
               handleDeleteStatistic(index)
@@ -442,6 +446,7 @@ const GroupedOutputsToolbar = ({ index }) => {
         disabled={isDatasetNotSelected}
         getLabel={getStatName}
         richText={isStatRich}
+        getHelp={getStatHelp}
         value={statId || ' '}
         optionsList={statId ? statNames : unusedOptions}
         onSelect={(value) => {
@@ -543,6 +548,7 @@ const GroupedOutputsToolbar = ({ index }) => {
           optionsList={statNames}
           getLabel={getStatName}
           richText={isStatRich}
+          getHelp={getStatHelp}
           onSelect={(value) =>
             updateChartObj(
               R.assocPath(['stats', index, 'statIdDivisor'], value, chartObj)

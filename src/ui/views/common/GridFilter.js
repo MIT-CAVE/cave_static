@@ -496,6 +496,7 @@ const GridFilter = ({
                 sx={styles.select}
                 optionsList={sourceValueOpts}
                 richText={isSourceRich}
+                getHelp={(key) => filterables?.[key]?.help}
               />
             )
           )

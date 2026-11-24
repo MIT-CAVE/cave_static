@@ -1986,22 +1986,23 @@ export const selectChartColors = createSelector(
   }
 )
 
+// Filterable stats by dataset: `{ [dataset]: { [statId]: stat } }`
 export const selectFilterableStats = createSelector(
   [selectGroupedOutputTypes, selectGroupedOutputsData],
   (groupedOutputTypes, datasets) => {
     if (!groupedOutputTypes) return {}
     const result = {}
     for (const [dataset, group] of Object.entries(groupedOutputTypes)) {
-      if (group && typeof group === 'object') {
-        for (const [key, statObj] of Object.entries(group)) {
-          if (statObj?.allowFiltering !== false) {
-            // The `richText` of the stat, or else of its dataset
-            const richText = statObj?.richText ?? datasets?.[dataset]?.richText
-            result[key] = {
-              ...statObj,
-              type: 'num',
-              ...(richText != null && { richText }),
-            }
+      if (!group || typeof group !== 'object') continue
+      result[dataset] = {}
+      for (const [key, statObj] of Object.entries(group)) {
+        if (statObj?.allowFiltering !== false) {
+          // The `richText` of the stat, or else of its dataset
+          const richText = statObj?.richText ?? datasets?.[dataset]?.richText
+          result[dataset][key] = {
+            ...statObj,
+            type: 'num',
+            ...(richText != null && { richText }),
           }
         }
       }

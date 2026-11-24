@@ -12,6 +12,7 @@ import { useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import FetchedIcon from './FetchedIcon'
+import HelpTooltip from './HelpTooltip'
 import OverflowText from './OverflowText'
 import RichLabel from './RichLabel'
 import WrappedText from './WrappedText'
@@ -60,6 +61,8 @@ const styles = {
  * @param getLabel
  * @param richText - Whether the labels are rich text. It can be a function of the
  * value of an option, when it depends on the option
+ * @param getHelp - A function of the value of an option that returns its help
+ * text. When it returns a blank value, no help button is shown for the option.
  * @param onClickAway
  * @param onSelect
  * @param props
@@ -78,6 +81,7 @@ const Select = ({
   slotProps = {},
   getLabel = (label) => label,
   richText,
+  getHelp,
   onClickAway = () => {},
   onSelect = () => {},
   ...props
@@ -141,6 +145,7 @@ const Select = ({
       >
         {items.map((item, index) => {
           const { label, value, iconName, subOptions } = item
+          const help = getHelp?.(value || label || item)
           return (
             <MenuItem
               key={index}
@@ -181,6 +186,15 @@ const Select = ({
                   }
                 />
               </span>
+              {typeof help === 'string' && help.trim() !== '' && (
+                <HelpTooltip
+                  content={help}
+                  size={18}
+                  sx={{ ml: 'auto' }}
+                  // Do not select the option when opening the help
+                  onClick={(event) => event.stopPropagation()}
+                />
+              )}
               {subOptions ? (
                 <div style={{ marginLeft: 'auto' }}>
                   {(subOptions || []).map((subObj, idx) => (
@@ -223,6 +237,7 @@ Select.propTypes = {
   ]),
   getLabel: PropTypes.func,
   richText: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+  getHelp: PropTypes.func,
   onClickAway: PropTypes.func,
   onSelect: PropTypes.func,
 }

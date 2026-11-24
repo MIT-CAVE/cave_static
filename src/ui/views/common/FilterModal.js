@@ -8,6 +8,7 @@ import GridFilter from './GridFilter'
 import GroupsFilter from './GroupsFilter'
 
 import {
+  selectChartById,
   selectCurrentPage,
   selectFilterableStats,
   selectChartFiltersById,
@@ -30,7 +31,15 @@ const FilterModal = ({ index, label, labelExtra, onClose }) => {
     [filters]
   )
 
-  const filterableStats = useSelector(selectFilterableStats)
+  const chartDataset = useSelector(
+    (state) => selectChartById(state, index)?.dataset
+  )
+  const filterableStatsByDataset = useSelector(selectFilterableStats)
+  // Filters are applied to the dataset of the chart
+  const filterableStats = useMemo(
+    () => filterableStatsByDataset[chartDataset] ?? {},
+    [filterableStatsByDataset, chartDataset]
+  )
 
   const handleChangeTab = useCallback(() => {
     setFilterTab(
