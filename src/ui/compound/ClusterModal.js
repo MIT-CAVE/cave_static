@@ -9,7 +9,7 @@ import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import PropTypes from 'prop-types'
 import * as R from 'ramda'
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import RichLabel from './RichLabel'
@@ -21,7 +21,7 @@ import {
   selectNodeClustersAtZoomFunc,
   selectSync,
 } from '../../data/selectors'
-import { useRichText } from '../../utils/hooks'
+import { useModalClickAway, useRichText } from '../../utils/hooks'
 import { resolveRichText } from '../../utils/richText'
 
 import { includesPath } from '../../utils'
@@ -57,6 +57,22 @@ const styles = {
 const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+  const modalRef = useRef(null)
+
+  const handleClose = useCallback(() => {
+    dispatch(
+      mutateLocal({
+        path: ['panes', 'paneState', 'center'],
+        value: {},
+        sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+      })
+    )
+  }, [dispatch, sync])
+
+  const handleModalClose = useModalClickAway({
+    modalRef,
+    onClose: handleClose,
+  })
 
   const groupedNodesAtZoom = useSelector(selectNodeClustersAtZoomFunc)
   const targetCluster = R.find(
@@ -218,23 +234,12 @@ const ClusterModal = ({ title, cluster_id, mapId, ...props }) => {
 
   return (
     <Modal
+      ref={modalRef}
       disablePortal
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={() => {
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: {},
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
-          })
-        )
-      }}
+      onClose={handleModalClose}
       {...props}
     >
       <Box sx={styles.modal}>

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import {
@@ -431,4 +437,95 @@ export const useMutateWithSyncFactory = (getArgs, deps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sync, ...deps]
   )
+}
+
+let vkOpenOnPointerDown = false
+let vkResetTimeout = null
+
+export const setVirtualKeyboardOpenOnPointerDown = (isOpen) => {
+  if (vkResetTimeout != null) {
+    clearTimeout(vkResetTimeout)
+    vkResetTimeout = null
+  }
+  vkOpenOnPointerDown = Boolean(isOpen)
+}
+
+export const scheduleResetVirtualKeyboardOpenOnPointerDown = (delay = 0) => {
+  if (!vkOpenOnPointerDown) return
+  if (vkResetTimeout != null) clearTimeout(vkResetTimeout)
+  vkResetTimeout = setTimeout(() => {
+    vkOpenOnPointerDown = false
+    vkResetTimeout = null
+  }, delay)
+}
+
+export const isVirtualKeyboardOpenOnPointerDown = () => vkOpenOnPointerDown
+
+/**
+ * Closes a `disablePortal` modal when the user clicks outside its root
+ * (e.g., on the AppBar or DockBar, which sit outside `App.js`'s `workspace`
+ * container and are not covered by the modal's backdrop).
+ *
+ * Uses a capture-phase `click` listener so the modal closes before the target
+ * handler runs (e.g., opening a pane or switching to a different modal).
+ * Ignores clicks inside other MUI portals/poppers, the virtual keyboard, and
+ * elements marked `data-modal-toggle` (which handle their own toggling).
+ *
+ * Returns the `onClose` handler to give the modal.
+ */
+export const useModalClickAway = ({ open = true, modalRef, onClose }) => {
+  const mouseDownInsideRef = useRef(false)
+  // Reads the latest `onClose` without re-subscribing the document listeners
+  const onCloseRef = useRef(onClose)
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // Pass the returned handler to the modal's `onClose`: it ignores a backdrop
+  // click that is part of a virtual keyboard interaction.
+  const handleClose = useCallback(
+    (event, reason) => {
+      if (reason === 'backdropClick' && isVirtualKeyboardOpenOnPointerDown()) {
+        return
+      }
+      onClose?.(event, reason)
+    },
+    [onClose]
+  )
+
+  useEffect(() => {
+    if (!open) return
+    const handleMouseDown = (event) => {
+      const target = event.target
+      mouseDownInsideRef.current = Boolean(
+        target instanceof Element && modalRef.current?.contains(target)
+      )
+    }
+    const handleDocumentClick = (event) => {
+      const startedInside = mouseDownInsideRef.current
+      mouseDownInsideRef.current = false
+      if (startedInside) return
+      if (isVirtualKeyboardOpenOnPointerDown()) return
+
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (modalRef.current?.contains(target)) return
+      if (
+        target.closest(
+          '.MuiModal-root, .MuiPopper-root, [data-virtual-keyboard], [data-modal-toggle]'
+        )
+      ) {
+        return
+      }
+      onCloseRef.current?.(event, 'clickAway')
+    }
+    document.addEventListener('mousedown', handleMouseDown, true)
+    document.addEventListener('click', handleDocumentClick, true)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown, true)
+      document.removeEventListener('click', handleDocumentClick, true)
+    }
+  }, [open, modalRef])
+
+  return handleClose
 }

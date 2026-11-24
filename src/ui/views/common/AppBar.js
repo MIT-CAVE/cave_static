@@ -7,6 +7,7 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
+  selectOpenModal,
   selectSync,
   selectSessionLoading,
   selectIgnoreLoading,
@@ -90,6 +91,7 @@ const ButtonInTabs = ({
   label,
   placement,
   sx = [],
+  ...props
 }) => (
   // Disabled buttons cannot trigger tooltips, so hide it while loading
   <Tooltip title={disabled ? '' : label} {...{ placement }}>
@@ -98,6 +100,7 @@ const ButtonInTabs = ({
       aria-label={label}
       sx={[styles.tabBtn, ...forceArray(sx)]}
       {...{ onClick, disabled }}
+      {...props}
     >
       <FetchedIcon size={35} color={color} iconName={icon} />
     </IconButton>
@@ -116,6 +119,7 @@ const getAppBarItem = ({
   key,
   pin,
   currentPage,
+  openModal,
   changePane,
   sync,
   loading,
@@ -151,12 +155,15 @@ const getAppBarItem = ({
       <ButtonInTabs
         key={key}
         {...{ icon, color, label, placement }}
+        // Opts out of `useModalClickAway`: this button owns the toggle, so
+        // the click-away close and this handler can't race on one click
+        data-modal-toggle="true"
         disabled={loading}
         onClick={() => {
           dispatch(
             mutateLocal({
               path: ['panes', 'paneState', 'center'],
-              value: { open: key, type: 'pane' },
+              value: openModal === key ? {} : { open: key, type: 'pane' },
               sync: !includesPath(R.values(sync), [
                 'panes',
                 'paneState',
@@ -235,6 +242,7 @@ const getAppBarItem = ({
 const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
   const currentPage = useSelector(selectCurrentPage)
+  const openModal = useSelector(selectOpenModal)
   const sessionLoading = useSelector(selectSessionLoading)
   const dataLoading = useSelector(selectDataLoading)
   const ignoreLoading = useSelector(selectIgnoreLoading)
@@ -298,6 +306,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         pin,
         obj,
         currentPage,
+        openModal,
         changePane,
         sync,
         loading,

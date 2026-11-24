@@ -25,6 +25,7 @@ import {
   selectVirtualKeyboard,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, PANE_WIDTH } from '../../../utils/constants'
+import { isVirtualKeyboardOpenOnPointerDown } from '../../../utils/hooks'
 
 import { includesPath } from '../../../utils'
 
@@ -116,6 +117,9 @@ const Panes = memo(() => {
 
   const handlePaneClickAway = useCallback(
     (e) => {
+      if (virtualKeyboard.isOpen || isVirtualKeyboardOpenOnPointerDown()) {
+        return
+      }
       const xPosition = R.propOr(0, 'x', e)
 
       const overMin = xPosition > APP_BAR_WIDTH + PANE_WIDTH

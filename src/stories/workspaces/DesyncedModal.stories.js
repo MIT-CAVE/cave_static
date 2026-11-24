@@ -121,3 +121,75 @@ export const CloseDesyncedModalInteraction = {
     )
   },
 }
+
+export const ClickAppBarClosesModalAndOpensPane = {
+  parameters: {
+    initData: {
+      ...initData,
+      appBar: {
+        order: {
+          data: ['exampleModal', 'examplePane'],
+        },
+        data: {
+          ...initData.appBar.data,
+          examplePane: {
+            icon: 'fa/FaCog',
+            type: 'pane',
+            bar: 'upperLeft',
+          },
+        },
+      },
+      panes: {
+        ...initData.panes,
+        data: {
+          ...initData.panes.data,
+          examplePane: {
+            name: 'Example Pane',
+            props: {},
+            values: {},
+          },
+        },
+      },
+    },
+  },
+  render: () => <App />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Scope to the modal root: the AppBar tooltip repeats the modal's name
+    const modalRoot = () => document.querySelector('.MuiModal-root')
+    const expectModalOpen = () =>
+      waitFor(() => expect(modalRoot()).not.toBeNull(), { timeout: 3000 })
+    const expectModalClosed = () =>
+      waitFor(() => expect(modalRoot()).toBeNull(), { timeout: 3000 })
+
+    // 1. Initial State: Modal is open
+    await expectModalOpen()
+
+    // 2. Click the same modal's AppBar button -> modal closes (and stays closed)
+    // The AppBar is `aria-hidden` while a modal is open, so include hidden nodes
+    const modalBtn = await canvas.findByRole('button', {
+      name: 'Example Modal',
+      hidden: true,
+    })
+    await userEvent.click(modalBtn)
+    await expectModalClosed()
+
+    // 3. Reopen the modal, then click the wall pane's AppBar button ->
+    //    modal closes AND the wall pane opens
+    await userEvent.click(modalBtn)
+    await expectModalOpen()
+
+    const paneTab = await canvas.findByRole('tab', {
+      name: 'Example Pane',
+      hidden: true,
+    })
+    await userEvent.click(paneTab)
+    await expectModalClosed()
+    await waitFor(
+      () => expect(paneTab).toHaveAttribute('aria-selected', 'true'),
+      {
+        timeout: 3000,
+      }
+    )
+  },
+}

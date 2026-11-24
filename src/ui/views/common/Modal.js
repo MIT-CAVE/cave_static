@@ -20,7 +20,7 @@ import {
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH } from '../../../utils/constants'
 import { layoutType } from '../../../utils/enums'
-import { useRichText } from '../../../utils/hooks'
+import { useModalClickAway, useRichText } from '../../../utils/hooks'
 import { resolveRichText } from '../../../utils/richText'
 import ClusterModal from '../../compound/ClusterModal'
 import RichLabel from '../../compound/RichLabel'
@@ -87,35 +87,40 @@ const useHadFocusedInputOnMouseDown = (paperRef) => {
 const GeneralModal = ({ title, richText, children }) => {
   const sync = useSelector(selectSync)
   const dispatch = useDispatch()
+  const modalRef = useRef(null)
   const paperRef = useRef(null)
   const hadFocusedInputRef = useHadFocusedInputOnMouseDown(paperRef)
 
+  const handleClose = (event, reason) => {
+    // Swallow a backdrop click that also blurred an input inside the
+    // modal — one click should only exit the input context, not the modal.
+    if (reason === 'backdropClick' && hadFocusedInputRef.current) {
+      hadFocusedInputRef.current = false
+      return
+    }
+    dispatch(
+      mutateLocal({
+        path: ['panes', 'paneState', 'center'],
+        value: {},
+        sync: !includesPath(R.values(sync), ['panes', 'paneState', 'center']),
+      })
+    )
+  }
+
+  const handleModalClose = useModalClickAway({
+    modalRef,
+    onClose: handleClose,
+  })
+
   return (
     <Modal
+      ref={modalRef}
       sx={styles.modal}
       disablePortal
       disableEnforceFocus
       disableAutoFocus
       open
-      onClose={(event, reason) => {
-        // Swallow a backdrop click that also blurred an input inside the
-        // modal — one click should only exit the input context, not the modal.
-        if (reason === 'backdropClick' && hadFocusedInputRef.current) {
-          hadFocusedInputRef.current = false
-          return
-        }
-        dispatch(
-          mutateLocal({
-            path: ['panes', 'paneState', 'center'],
-            value: {},
-            sync: !includesPath(R.values(sync), [
-              'panes',
-              'paneState',
-              'center',
-            ]),
-          })
-        )
-      }}
+      onClose={handleModalClose}
     >
       <Box ref={paperRef} sx={styles.paper}>
         <Box sx={styles.header}>
