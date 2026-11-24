@@ -156,8 +156,12 @@ const baseOptions = {
 }
 
 // Vertical space (px) reserved for the chart title above the legend and grid
-// (only applied when the chart has a legend)
+// (only applied when the chart has a legend or a visual map)
 const TITLE_OFFSET = 28
+// Where a legend sits below the title, whichever `top` the chart gave it
+const LEGEND_TOP_WITH_TITLE = baseOptions.legend.top + TITLE_OFFSET
+// A horizontal visual map starts at `top: 5`, right under the centered title
+const VISUAL_MAP_OFFSET = 40
 
 // The base `legend` config is always merged in, so a legend is only shown
 // when it is not disabled and it lists data or the series are named.
@@ -167,29 +171,64 @@ const hasLegend = ({ legend, series }) =>
   (!R.isEmpty(legend.data ?? []) ||
     R.any(R.has('name'), R.filter(R.is(Object), [series].flat())))
 
+const hasVisualMap = ({ visualMap }) =>
+  R.any((item) => R.is(Object, item) && item.show !== false, [visualMap].flat())
+
+// Moves a numeric `top` (or a numeric string such as `'5'`) down by `offset`
+const shiftTop = (offset) =>
+  R.over(R.lensProp('top'), (top) => {
+    const value = R.is(String, top) && top.trim() !== '' ? Number(top) : top
+    return Number.isFinite(value) ? value + offset : top
+  })
+
+// Applies `fn` to an object, or to each item when given an array
+const overEach = (fn) =>
+  R.when(R.is(Object), R.ifElse(R.is(Array), R.map(fn), fn))
+
 const withChartTitle = (title, option) => {
-  if (!title || option.title) return option
-  const shiftLegendAndGrid = hasLegend(option)
-  const shiftTop = R.over(R.lensProp('top'), (top) =>
-    R.is(Number, top) ? top + TITLE_OFFSET : top
-  )
+  if (!title) return option
+  const legend = hasLegend(option)
+  const visualMap = hasVisualMap(option)
+  // Charts may place their own legend higher (e.g. scatter with a size stat), so
+  // shift by what is needed to keep the legend a fixed distance below the title
+  const legendTop = Number(option.legend?.top)
+  const offset =
+    legend && Number.isFinite(legendTop)
+      ? Math.max(TITLE_OFFSET, LEGEND_TOP_WITH_TITLE - legendTop)
+      : TITLE_OFFSET
+  const chartTitle = {
+    text: title,
+    left: 'center',
+    top: 16,
+    textStyle: { fontSize: 16 },
+  }
   return R.pipe(
-    R.assoc('title', {
-      text: title,
-      left: 'center',
-      top: 16,
-      textStyle: { fontSize: 16 },
-    }),
+    // Keep the titles a chart defines for itself (e.g. the scatter size title)
+    (opt) =>
+      R.assoc(
+        'title',
+        opt.title == null
+          ? chartTitle
+          : [chartTitle, ...R.map(shiftTop(offset), [opt.title].flat())],
+        opt
+      ),
     R.when(
-      R.always(shiftLegendAndGrid),
-      R.over(R.lensProp('legend'), shiftTop)
+      R.always(legend),
+      R.over(R.lensProp('legend'), overEach(shiftTop(offset)))
+    ),
+    R.when(
+      R.always(visualMap),
+      R.over(R.lensProp('visualMap'), overEach(shiftTop(VISUAL_MAP_OFFSET)))
     ),
     R.when(
       R.both(
-        R.always(shiftLegendAndGrid),
+        R.always(legend || visualMap),
         R.propSatisfies(R.both(R.is(Object), R.complement(R.is(Array))), 'grid')
       ),
-      R.over(R.lensProp('grid'), shiftTop)
+      R.over(
+        R.lensProp('grid'),
+        shiftTop(visualMap ? VISUAL_MAP_OFFSET : offset)
+      )
     )
   )(option)
 }
