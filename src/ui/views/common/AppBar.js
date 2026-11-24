@@ -7,6 +7,7 @@ import { sendCommand } from '../../../data/data'
 import { mutateLocal } from '../../../data/local'
 import {
   selectCurrentPage,
+  selectOpenModal,
   selectSync,
   selectSessionLoading,
   selectIgnoreLoading,
@@ -116,6 +117,7 @@ const getAppBarItem = ({
   key,
   pin,
   currentPage,
+  openModal,
   changePane,
   sync,
   loading,
@@ -156,7 +158,7 @@ const getAppBarItem = ({
           dispatch(
             mutateLocal({
               path: ['panes', 'paneState', 'center'],
-              value: { open: key, type: 'pane' },
+              value: openModal === key ? {} : { open: key, type: 'pane' },
               sync: !includesPath(R.values(sync), [
                 'panes',
                 'paneState',
@@ -235,6 +237,7 @@ const getAppBarItem = ({
 const AppBar = ({ appBar, open, pin, side, source }) => {
   const dispatch = useDispatch()
   const currentPage = useSelector(selectCurrentPage)
+  const openModal = useSelector(selectOpenModal)
   const sessionLoading = useSelector(selectSessionLoading)
   const dataLoading = useSelector(selectDataLoading)
   const ignoreLoading = useSelector(selectIgnoreLoading)
@@ -298,6 +301,7 @@ const AppBar = ({ appBar, open, pin, side, source }) => {
         pin,
         obj,
         currentPage,
+        openModal,
         changePane,
         sync,
         loading,

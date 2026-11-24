@@ -432,3 +432,74 @@ export const useMutateWithSyncFactory = (getArgs, deps) => {
     [sync, ...deps]
   )
 }
+
+let vkOpenOnPointerDown = false
+let vkResetTimeout = null
+
+export const setVirtualKeyboardOpenOnPointerDown = (isOpen) => {
+  if (vkResetTimeout != null) {
+    clearTimeout(vkResetTimeout)
+    vkResetTimeout = null
+  }
+  vkOpenOnPointerDown = Boolean(isOpen)
+}
+
+export const scheduleResetVirtualKeyboardOpenOnPointerDown = (delay = 0) => {
+  if (!vkOpenOnPointerDown) return
+  if (vkResetTimeout != null) clearTimeout(vkResetTimeout)
+  vkResetTimeout = setTimeout(() => {
+    vkOpenOnPointerDown = false
+    vkResetTimeout = null
+  }, delay)
+}
+
+export const isVirtualKeyboardOpenOnPointerDown = () => vkOpenOnPointerDown
+
+/**
+ * Closes a `disablePortal` modal when the user clicks outside its root
+ * (e.g., on the AppBar or DockBar, which sit outside `App.js`'s `workspace`
+ * container and are not covered by the modal's backdrop).
+ *
+ * Uses a capture-phase `click` listener so the modal closes before the target
+ * handler runs (e.g., opening a pane or switching to a different modal).
+ * Ignores clicks inside other MUI portals/poppers and the virtual keyboard.
+ */
+export const useModalClickAway = ({ open = true, modalRef, onClose }) => {
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const mouseDownInsideRef = useRef(false)
+
+  useEffect(() => {
+    if (!open) return
+    const handleMouseDown = (event) => {
+      const target = event.target
+      mouseDownInsideRef.current = Boolean(
+        target instanceof Element && modalRef.current?.contains(target)
+      )
+    }
+    const handleDocumentClick = (event) => {
+      const startedInside = mouseDownInsideRef.current
+      mouseDownInsideRef.current = false
+      if (startedInside) return
+      if (isVirtualKeyboardOpenOnPointerDown()) return
+
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (modalRef.current?.contains(target)) return
+      if (
+        target.closest(
+          '.MuiModal-root, .MuiPopper-root, [data-virtual-keyboard]'
+        )
+      ) {
+        return
+      }
+      onCloseRef.current?.(event, 'clickAway')
+    }
+    document.addEventListener('mousedown', handleMouseDown, true)
+    document.addEventListener('click', handleDocumentClick, true)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown, true)
+      document.removeEventListener('click', handleDocumentClick, true)
+    }
+  }, [open, modalRef])
+}

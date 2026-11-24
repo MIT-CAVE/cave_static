@@ -1,6 +1,8 @@
 import { Box, Modal, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
 
+import { useModalClickAway } from '../../../utils/hooks'
+
 const styles = {
   root: {
     display: 'flex',
@@ -54,6 +56,7 @@ const BaseModal = ({
     root: { sx: sxRoot, ...rootProps } = {},
     paper: { sx: sxPaper, ...paperProps } = {},
   } = slotProps
+  const modalRef = useRef(null)
   const paperRef = useRef(null)
   // By the time `onClose` fires for a backdrop click, native blur has already
   // moved focus off any input, so sample the focus state at mousedown instead.
@@ -82,8 +85,11 @@ const BaseModal = ({
     onClose?.(event, reason)
   }
 
+  useModalClickAway({ open: Boolean(open), modalRef, onClose: handleClose })
+
   return (
     <Modal
+      ref={modalRef}
       sx={[styles.root, sxRoot]}
       // `disablePortal` keeps this modal inside App.js's `workspace` box
       // instead of `document.body`, so its `position: fixed` root resolves

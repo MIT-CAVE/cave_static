@@ -121,3 +121,64 @@ export const CloseDesyncedModalInteraction = {
     )
   },
 }
+
+export const ClickAppBarClosesModalAndOpensPane = {
+  parameters: {
+    initData: {
+      ...initData,
+      appBar: {
+        order: {
+          data: ['exampleModal', 'examplePane'],
+        },
+        data: {
+          ...initData.appBar.data,
+          examplePane: {
+            icon: 'fa/FaCog',
+            type: 'pane',
+            bar: 'upperLeft',
+          },
+        },
+      },
+      panes: {
+        ...initData.panes,
+        data: {
+          ...initData.panes.data,
+          examplePane: {
+            name: 'Example Pane',
+            props: {},
+            values: {},
+          },
+        },
+      },
+    },
+  },
+  render: () => <App />,
+  play: async ({ canvasElement }) => {
+    const body = within(document.body)
+    const canvas = within(canvasElement)
+
+    // 1. Initial State: Modal is open
+    await body.findByText('Example Modal', {}, { timeout: 3000 })
+
+    // 2. Click the same modal's AppBar button -> modal closes
+    const modalBtn = await canvas.findByRole('button', {
+      name: 'Example Modal',
+    })
+    await userEvent.click(modalBtn)
+    await waitFor(() => expect(body.queryByText('Example Modal')).toBeNull(), {
+      timeout: 3000,
+    })
+
+    // 3. Reopen the modal, then click the wall pane's AppBar button ->
+    //    modal closes AND the wall pane opens
+    await userEvent.click(modalBtn)
+    await body.findByText('Example Modal', {}, { timeout: 3000 })
+
+    const paneTab = await canvas.findByRole('tab', { name: 'Example Pane' })
+    await userEvent.click(paneTab)
+    await waitFor(() => expect(body.queryByText('Example Modal')).toBeNull(), {
+      timeout: 3000,
+    })
+    await body.findByText('Example Pane', {}, { timeout: 3000 })
+  },
+}

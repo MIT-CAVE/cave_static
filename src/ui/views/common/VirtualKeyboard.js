@@ -569,6 +569,7 @@ const VirtualKeyboard = () => {
       ref={boxRef}
       component={Paper}
       elevation={12}
+      data-virtual-keyboard="true"
       sx={{
         position: 'fixed',
         bottom: `${position.y}px`,

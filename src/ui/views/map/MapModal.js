@@ -9,7 +9,7 @@ import {
   Box,
 } from '@mui/material'
 import * as R from 'ramda'
-import { useCallback, useContext, useMemo } from 'react'
+import { useCallback, useContext, useMemo, useRef } from 'react'
 import { MdGpsFixed, MdMap } from 'react-icons/md'
 import { PiPerspective } from 'react-icons/pi'
 import { useSelector, useDispatch } from 'react-redux'
@@ -24,7 +24,11 @@ import {
   selectMapProjectionOptionsFunc,
   selectMapRichText,
 } from '../../../data/selectors'
-import { useMutateStateWithSync, useRichText } from '../../../utils/hooks'
+import {
+  useModalClickAway,
+  useMutateStateWithSync,
+  useRichText,
+} from '../../../utils/hooks'
 
 import { FetchedIcon, RichLabel } from '../../compound'
 
@@ -79,38 +83,44 @@ const ListModal = ({
   defaultIcon: DefaultIcon,
   onClose,
   onSelect,
-}) => (
-  <Modal
-    open
-    disablePortal
-    disableAutoFocus
-    disableEnforceFocus
-    sx={styles.modal}
-    {...{ onClose }}
-  >
-    <Box sx={styles.listPaper}>
-      <Box sx={styles.flexSpaceBetween}>
-        <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
-          {title}
-        </Typography>
+}) => {
+  const modalRef = useRef(null)
+  useModalClickAway({ modalRef, onClose })
+
+  return (
+    <Modal
+      ref={modalRef}
+      open
+      disablePortal
+      disableAutoFocus
+      disableEnforceFocus
+      sx={styles.modal}
+      {...{ onClose }}
+    >
+      <Box sx={styles.listPaper}>
+        <Box sx={styles.flexSpaceBetween}>
+          <Typography id="viewports-pad-title" variant="h5" sx={styles.title}>
+            {title}
+          </Typography>
+        </Box>
+        <List>
+          {withIndex(options).map(({ id, name, icon }) => (
+            <ListItemButton key={id} onClick={() => onSelect(id)}>
+              <ListItemAvatar>
+                <Avatar>
+                  {icon ? <FetchedIcon iconName={icon} /> : <DefaultIcon />}
+                </Avatar>
+              </ListItemAvatar>
+              <ListItemText
+                primary={<RichLabel text={name} rich={richText === true} />}
+              />
+            </ListItemButton>
+          ))}
+        </List>
       </Box>
-      <List>
-        {withIndex(options).map(({ id, name, icon }) => (
-          <ListItemButton key={id} onClick={() => onSelect(id)}>
-            <ListItemAvatar>
-              <Avatar>
-                {icon ? <FetchedIcon iconName={icon} /> : <DefaultIcon />}
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary={<RichLabel text={name} rich={richText === true} />}
-            />
-          </ListItemButton>
-        ))}
-      </List>
-    </Box>
-  </Modal>
-)
+    </Modal>
+  )
+}
 
 const MapModal = () => {
   const { mapId } = useContext(MapContext)
