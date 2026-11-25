@@ -222,6 +222,11 @@ export const DEFAULT_MAP_PROJECTION_OBJECTS = {
 
 export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
 
+// The width that the menu in the top right corner of a chart covers (px): its
+// buttons (42) with their margins (2 x 4) and the padding of the menu (2 x 4),
+// and the 8px that the menu is moved from the edge when the layout is edited
+export const CHART_MENU_CLEARANCE = 66
+
 export const CHART_DEFAULTS = {
   chartType: chartVariant.BAR,
 }

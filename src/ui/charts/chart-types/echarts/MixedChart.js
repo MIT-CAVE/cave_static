@@ -13,12 +13,14 @@ import {
   getYAxisLabelProps,
   getYAxisNumberFormat,
 } from '../../../../utils'
+import { CHART_MENU_CLEARANCE } from '../../../../utils/constants'
 import { markup, safeHtml } from '../../../../utils/html'
 
 // The right y-axis (labels and name) is drawn about 71px past the plot, and the
-// chart menu covers the rightmost 50px of the chart. The default margin (10% of
-// the width) is not enough to keep them apart in all but the widest charts.
-const GRID_RIGHT = 71 + 50 + 9
+// chart menu covers the rightmost `CHART_MENU_CLEARANCE` px of the chart. The
+// default margin (10% of the width) is not enough to keep them apart in all but
+// the widest charts.
+const GRID_RIGHT = 71 + CHART_MENU_CLEARANCE + 4
 
 const calculateAxesBounds = (leftData, rightData, syncAxes) => {
   const leftDataMin = Math.min(...R.filter(R.is(Number), leftData))
