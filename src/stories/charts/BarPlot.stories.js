@@ -1,9 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
-import { expect } from 'storybook/test'
+import { expect, within } from 'storybook/test'
 
 import { BarPlot } from '../../ui/charts'
 import ChartContext from '../../ui/charts/chart-types/echarts/ChartContext'
+import { labelText } from '../../utils/richText'
 
 const mockStore = configureStore({
   reducer: {
@@ -215,5 +216,34 @@ export const BooleanSubgroupsWithValueNames = {
   play: async ({ canvasElement }) => {
     await new Promise((resolve) => setTimeout(resolve, 300))
     expect(canvasElement.querySelector('canvas')).not.toBeNull()
+  },
+}
+
+// With rich text, the title supports markdown and math. The chart itself
+// keeps drawing plain text, so the plain twin is only used as a fallback.
+const richTitle =
+  '**Revenue** by quarter, with growth $g = \\frac{R_{2025} - R_{2024}}{R_{2024}}$'
+
+export const RichTitle = {
+  decorators: [
+    (Story) => (
+      <ChartContext.Provider
+        value={{
+          title: labelText(richTitle, true),
+          richTitle,
+          richText: true,
+        }}
+      >
+        <Story />
+      </ChartContext.Provider>
+    ),
+  ],
+  args: GroupedAndSubgroupedBar.args,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const bold = await canvas.findByText('Revenue')
+    await expect(bold.tagName).toBe('STRONG')
+    await expect(canvasElement.querySelector('.katex')).not.toBeNull()
+    await expect(canvasElement.querySelector('canvas')).not.toBeNull()
   },
 }
