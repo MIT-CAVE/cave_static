@@ -1,4 +1,4 @@
-import { expect, within } from 'storybook/test'
+import { expect, userEvent, within } from 'storybook/test'
 
 import { TableChart } from '../../ui/charts'
 import ChartContext from '../../ui/charts/chart-types/echarts/ChartContext'
@@ -125,5 +125,107 @@ export const DownloadButtonIsCenteredInFooter = {
           center(footer.getBoundingClientRect())
       )
     ).toBeLessThanOrEqual(1)
+  },
+}
+
+// Runs `fn` while recording what the table downloads instead of saving files
+const recordDownloads = async (fn) => {
+  const { createObjectURL } = URL
+  const { click } = HTMLAnchorElement.prototype
+  const downloads = []
+  URL.createObjectURL = (blob) => {
+    downloads.push({ blob })
+    return 'blob:recorded'
+  }
+  HTMLAnchorElement.prototype.click = function () {
+    downloads[downloads.length - 1].name = this.download
+  }
+  try {
+    await fn(downloads)
+    return downloads
+  } finally {
+    URL.createObjectURL = createObjectURL
+    HTMLAnchorElement.prototype.click = click
+  }
+}
+
+// Downloads keep the raw values (`true`, not the display name `Organic`) and
+// are named after the chart title
+export const DownloadFormats = {
+  decorators: [
+    (Story) => (
+      <ChartContext.Provider
+        value={{ title: 'Sales by Type', valueNames: { true: 'Organic' } }}
+      >
+        <Story />
+      </ChartContext.Provider>
+    ),
+  ],
+  args: BooleanValuesWithValueNames.args,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    await canvas.findByText('Organic')
+    const iconOf = (name) =>
+      canvas.getByRole('button', { name }).querySelector(':scope > svg')
+    const csvIcon = iconOf('Download format: CSV').innerHTML
+
+    const pickFormat = async (current, next) => {
+      await userEvent.click(
+        canvas.getByRole('button', { name: `Download format: ${current}` })
+      )
+      await userEvent.click(await body.findByRole('menuitem', { name: next }))
+    }
+
+    const [csv, json, markdown] = await recordDownloads(async (downloads) => {
+      await userEvent.click(
+        canvas.getByRole('button', { name: 'Download CSV' })
+      )
+      // Choosing a format doesn't download, only the main button does
+      await pickFormat('CSV', 'JSON')
+      await expect(downloads).toHaveLength(1)
+      await userEvent.click(
+        canvas.getByRole('button', { name: 'Download JSON' })
+      )
+      await pickFormat('JSON', 'Markdown')
+      await expect(downloads).toHaveLength(2)
+      await userEvent.click(canvas.getByRole('button', { name: 'Download MD' }))
+    }).then((downloads) =>
+      Promise.all(
+        downloads.map(async ({ blob, name }) => ({
+          name,
+          text: await blob.text(),
+        }))
+      )
+    )
+
+    await expect(csv.name).toBe('Sales by Type.csv')
+    await expect(csv.text).toBe('Type,Sales\ntrue,320\nfalse,450')
+    await expect(json.name).toBe('Sales by Type.json')
+    await expect(JSON.parse(json.text).rows).toEqual([
+      { name: 'true', sales: 320 },
+      { name: 'false', sales: 450 },
+    ])
+    await expect(markdown.name).toBe('Sales by Type.md')
+    await expect(markdown.text).toBe(
+      '| Type | Sales |\n| --- | ---: |\n| true | 320 |\n| false | 450 |'
+    )
+    // The menu part shows the icon of the chosen format, and is compact
+    const formatButton = canvas.getByRole('button', {
+      name: 'Download format: MD',
+    })
+    await expect(formatButton.querySelector(':scope > svg')).not.toBeNull()
+    await expect(formatButton.querySelector(':scope > svg').innerHTML).not.toBe(
+      csvIcon
+    )
+    const style = getComputedStyle(formatButton)
+    await expect([style.paddingLeft, style.paddingRight]).toEqual([
+      '8px',
+      '8px',
+    ])
+    await expect(
+      getComputedStyle(formatButton.querySelector('.MuiButton-endIcon'))
+        .marginLeft
+    ).toBe('0px')
   },
 }

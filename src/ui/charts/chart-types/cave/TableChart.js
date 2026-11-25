@@ -1,12 +1,26 @@
-import { Box, Button } from '@mui/material'
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+} from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
-import { memo, useMemo } from 'react'
+import { memo, useContext, useMemo, useState } from 'react'
+import { MdArrowDropDown } from 'react-icons/md'
+import { TbCsv, TbJson, TbMarkdown } from 'react-icons/tb'
 
 import { NumberFormat } from '../../../../utils'
+import {
+  TABLE_EXPORT_FORMATS,
+  downloadTableExport,
+} from '../../../../utils/tableExport'
 import RichLabel from '../../../compound/RichLabel'
 import { FlexibleContainer } from '../echarts'
-import { useValueDisplayName } from '../echarts/ChartContext'
+import ChartContext, { useValueDisplayName } from '../echarts/ChartContext'
 import ChartTitle from '../echarts/ChartTitle'
 
 // Convert chart object to flat list of row arrays
@@ -44,7 +58,17 @@ const flattenChartTree = (data) => {
 // The height of the footer row of the `DataGrid` (not configurable in MUI X)
 const FOOTER_HEIGHT = 52
 
+const FORMAT_ICONS = {
+  csv: TbCsv,
+  json: TbJson,
+  md: TbMarkdown,
+}
+
 const styles = {
+  formatButton: {
+    px: 1,
+    '& .MuiButton-endIcon': { ml: 0 },
+  },
   // Frames the title as a header of the grid below it
   title: {
     // mb: '1px',
@@ -54,7 +78,13 @@ const styles = {
 }
 
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
+  const { title } = useContext(ChartContext)
   const getDisplayName = useValueDisplayName()
+  const [downloadFormat, setDownloadFormat] = useState('csv')
+  const [formatMenuAnchor, setFormatMenuAnchor] = useState(null)
+  const FormatIcon = FORMAT_ICONS[downloadFormat]
+  const downloadExtension =
+    TABLE_EXPORT_FORMATS[downloadFormat].extension.toUpperCase()
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
   const types = useMemo(() => R.pluck('type')(labelProps), [labelProps])
@@ -72,6 +102,10 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
     }
     return result
   }, [fields, types, rawList, getDisplayName])
+
+  // Downloads the raw values, as they are in the data
+  const download = (format) =>
+    downloadTableExport({ format, columns: labelProps, rows: rawList, title })
 
   const multiNumberFormat = useMemo(
     () => R.pipe(R.values, R.propOr([], 0), R.is(Object))(numberFormat),
@@ -139,26 +173,48 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
           alignItems: 'center',
         }}
       >
-        <Button
-          variant="contained"
-          sx={{}}
-          onClick={() => {
-            const headerRow = R.pluck('label', labelProps)
-            const csvRows = [headerRow, ...rawList]
-            const csv = csvRows.map((row) => row.join(',')).join('\n')
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.setAttribute('download', 'data.csv')
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(url)
-          }}
+        <ButtonGroup variant="contained">
+          <Button
+            aria-label={`Download ${downloadExtension}`}
+            onClick={() => download(downloadFormat)}
+          >
+            Download
+          </Button>
+          <Button
+            aria-label={`Download format: ${downloadExtension}`}
+            aria-haspopup="menu"
+            aria-expanded={Boolean(formatMenuAnchor)}
+            endIcon={<MdArrowDropDown />}
+            sx={styles.formatButton}
+            onClick={(event) => setFormatMenuAnchor(event.currentTarget)}
+          >
+            <FormatIcon size={20} />
+          </Button>
+        </ButtonGroup>
+        <Menu
+          anchorEl={formatMenuAnchor}
+          open={Boolean(formatMenuAnchor)}
+          onClose={() => setFormatMenuAnchor(null)}
         >
-          Download CSV
-        </Button>
+          {Object.entries(TABLE_EXPORT_FORMATS).map(([format, { label }]) => {
+            const Icon = FORMAT_ICONS[format]
+            return (
+              <MenuItem
+                key={format}
+                selected={format === downloadFormat}
+                onClick={() => {
+                  setDownloadFormat(format)
+                  setFormatMenuAnchor(null)
+                }}
+              >
+                <ListItemIcon>
+                  <Icon size={20} />
+                </ListItemIcon>
+                <ListItemText>{label}</ListItemText>
+              </MenuItem>
+            )
+          })}
+        </Menu>
       </Box>
     </>
   )
