@@ -45,6 +45,12 @@ import 'react-resizable/css/styles.css'
 
 const DashboardChart = lazy(() => import('./DashboardChart'))
 
+// The radius of the card of a chart (a `Paper`). The element that holds the card
+// has it too, as it hides the overflow of the shadow of the card, which would
+// otherwise be cut into a square.
+const getCardRadius = ({ editLayoutMode, isMaximized, isHighlighted }) =>
+  isHighlighted ? '7px' : editLayoutMode && !isMaximized ? 5 : 1
+
 const styles = {
   root: {
     display: 'flex',
@@ -69,6 +75,8 @@ const styles = {
     minHeight: 0,
     minWidth: 0,
     overflow: 'hidden',
+    // The one of the element that holds it (see `getCardRadius`)
+    borderRadius: 'inherit',
   },
   loader: {
     mx: 'auto',
@@ -193,13 +201,12 @@ const DashboardItem = memo(
         sx={[
           styles.paper,
           isMaximized && { p: 0 },
-          editLayoutMode && !isMaximized && { p: 1.5, borderRadius: 5 },
+          editLayoutMode && !isMaximized && { p: 1.5 },
           (chartToolsOpen || filterOpen || colorChangeOpen) && {
             outline: 'none',
             borderColor: '#9ecaed',
             boxShadow: '0 0 10px #9ecaed',
             border: '3px solid #dadada',
-            borderRadius: '7px',
           },
         ]}
         elevation={editLayoutMode && !isMaximized ? 24 : 5}
@@ -663,6 +670,15 @@ const Dashboard = () => {
                   onResizeStop={handleResizeStop}
                 >
                   {renderedItems.map(({ index, chartObj, key, layoutItem }) => {
+                    const borderRadius = getCardRadius({
+                      editLayoutMode,
+                      isMaximized: R.propOr(false, 'maximized')(chartObj),
+                      isHighlighted: [
+                        chartToolsIndex,
+                        filterIndex,
+                        colorChangeIndex,
+                      ].includes(index),
+                    })
                     return (
                       <Box
                         key={key}
@@ -679,6 +695,7 @@ const Dashboard = () => {
                           minHeight: 0,
                           minWidth: 0,
                           overflow: 'hidden',
+                          borderRadius,
                         }}
                       >
                         {chartObj != null && (
