@@ -1,7 +1,8 @@
 import * as R from 'ramda'
+import { useContext } from 'react'
 
 import { FlexibleChart } from './BaseChart'
-import { useValueDisplayName } from './ChartContext'
+import ChartContext, { useValueDisplayName } from './ChartContext'
 
 import {
   NumberFormat,
@@ -15,6 +16,7 @@ import { markup, safeHtml } from '../../../../utils/html'
 
 const Treemap = ({ data, colors, numberFormat = {} }) => {
   const getDisplayName = useValueDisplayName()
+  const { title } = useContext(ChartContext)
   if (R.isNil(data) || R.isEmpty(data)) return []
 
   const findNames = (data) =>
@@ -84,6 +86,10 @@ const Treemap = ({ data, colors, numberFormat = {} }) => {
     xAxis: null,
     yAxis: null,
     series: {
+      // ECharts leaves 50px above the treemap by default (and 50px below, which
+      // keeps clear of the breadcrumb). Match the 20px side margins when there
+      // is a title above the chart so they appear together.
+      ...(title && { top: 20 }),
       label: {
         show: true,
         formatter: ({ name }) => getDisplayName(name),

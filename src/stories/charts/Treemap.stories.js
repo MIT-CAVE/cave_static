@@ -1,6 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
 
+import { chartTitleDecorator, playChartTitle } from './chartTitleStory'
+
 import { Treemap } from '../../ui/charts'
 
 const mockStore = configureStore({
@@ -75,4 +77,11 @@ export const SimpleTreemap = {
     ],
     numberFormat: { precision: 0, unit: '$' },
   },
+}
+
+// The chart title is shown above the chart, with the treemap right below it
+export const WithTitle = {
+  decorators: [chartTitleDecorator],
+  args: SimpleTreemap.args,
+  play: playChartTitle,
 }
