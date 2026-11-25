@@ -41,6 +41,9 @@ const flattenChartTree = (data) => {
   return result
 }
 
+// The height of the footer row of the `DataGrid` (not configurable in MUI X)
+const FOOTER_HEIGHT = 52
+
 const styles = {
   // Frames the title as a header of the grid below it
   title: {
@@ -128,11 +131,12 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
       <Box
         sx={{
           position: 'absolute',
-          bottom: 0,
+          bottom: 1, // Clears the border around the `DataGrid`
           left: 0,
-          p: 1,
-          pb: 2,
-          pt: 2,
+          height: FOOTER_HEIGHT,
+          px: 1,
+          display: 'flex',
+          alignItems: 'center',
         }}
       >
         <Button

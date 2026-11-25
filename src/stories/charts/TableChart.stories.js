@@ -110,3 +110,20 @@ export const BooleanValuesWithValueNames = {
     expect(canvas.queryByText('true')).toBeNull()
   },
 }
+
+// The button sits on the footer row of the grid, so it must share its center
+export const DownloadButtonIsCenteredInFooter = {
+  args: SimpleTable.args,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const button = await canvas.findByRole('button', { name: /download csv/i })
+    const footer = canvasElement.querySelector('.MuiDataGrid-footerContainer')
+    const center = ({ top, height }) => top + height / 2
+    expect(
+      Math.abs(
+        center(button.getBoundingClientRect()) -
+          center(footer.getBoundingClientRect())
+      )
+    ).toBeLessThanOrEqual(1)
+  },
+}
