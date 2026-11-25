@@ -35,6 +35,8 @@ const OverflowText = ({
   ...props
 }) => {
   const [isOverflowing, setIsOverflowing] = useState(false)
+  // Counts the changes of the available width, to check for overflow after each
+  const [widthChanges, setWidthChanges] = useState(0)
   const checkedFalse = useRef(false)
   const parent = useRef(null)
   const node = useRef(null)
@@ -47,10 +49,25 @@ const OverflowText = ({
     setIsOverflowing(overflowX || overflowY)
   }, [])
 
-  // if the text or parent size changes, check again for overflow
+  // if the text changes, check again for overflow
   useLayoutEffect(() => {
     checkedFalse.current = false
-  }, [text, parent.offsetWidth, parent.offsetHeight])
+  }, [text])
+
+  // if the available width changes, show the text again (it can only be
+  // measured while it is shown) to check for overflow again
+  useEffect(() => {
+    const root = parent.current
+    let lastWidth = root.offsetWidth
+    const observer = new ResizeObserver(() => {
+      if (root.offsetWidth === lastWidth) return
+      lastWidth = root.offsetWidth
+      setIsOverflowing(false)
+      setWidthChanges((count) => count + 1)
+    })
+    observer.observe(root)
+    return () => observer.disconnect()
+  }, [])
 
   // This useEffect is needed to check if the text is overflowing.
   useEffect(() => {
@@ -68,7 +85,7 @@ const OverflowText = ({
     }
     // if the non-scrolling text is rendered, check if it overflows
     checkOverflow(node.current)
-  }, [text, checkOverflow, isOverflowing])
+  }, [text, checkOverflow, isOverflowing, widthChanges])
 
   return (
     <Box ref={parent} sx={[styles.root, ...forceArray(sx)]} {...props}>
