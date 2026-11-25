@@ -25,7 +25,14 @@ import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import ReactEChartsCore from 'echarts-for-react/lib/core'
 import * as R from 'ramda'
-import { memo, useCallback, useContext, useEffect, useRef } from 'react'
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 
 import ChartContext, { useValueDisplayName } from './ChartContext'
 import ChartControls from './ChartControls'
@@ -184,9 +191,13 @@ const withValueNames = (valueNames, option) => {
   )(option)
 }
 
+// `options` can be a function of the `{ width, height }` of the chart, for the
+// charts that lay out their own content (e.g., `GaugeChart`). `below` is
+// content that is shown between the plot and the controls of the chart.
 const FlexibleChart = memo(
   ({
     options,
+    below,
     syncAxes,
     onSyncAxesChange,
     numBuckets,
@@ -197,7 +208,16 @@ const FlexibleChart = memo(
     const { sortable, path, chartHoverOrder, xAxisOrder, valueNames } =
       useContext(ChartContext)
 
+    const [size, setSize] = useState(null)
+    const resolvedOptions =
+      typeof options === 'function' ? options(size) : options
+
     const handleResize = useCallback(({ width, height }) => {
+      setSize((prev) =>
+        prev?.width === width && prev?.height === height
+          ? prev
+          : { width, height }
+      )
       const chart = echartsRef.current?.getEchartsInstance?.()
       if (chart && typeof chart.resize === 'function') {
         chart.resize({ width, height })
@@ -243,7 +263,7 @@ const FlexibleChart = memo(
               valueNames,
               R.mergeDeepRight(
                 R.assocPath(['tooltip', 'order'], chartHoverOrder, baseOptions)
-              )(options)
+              )(resolvedOptions)
             )}
             notMerge
             theme="dark"
@@ -251,6 +271,7 @@ const FlexibleChart = memo(
             onChartReady={handleChartReady}
           />
         </FlexibleContainer>
+        {below}
         <ChartControls
           {...{
             sortable,
