@@ -25,7 +25,11 @@ import {
   selectMergedGlobalOutputs,
   selectRichTextDefault,
 } from '../../../data/selectors'
-import { chartOption, chartVariant } from '../../../utils/enums'
+import {
+  chartOption,
+  chartVariant,
+  sortableChartTypes,
+} from '../../../utils/enums'
 import { labelText, resolveRichText } from '../../../utils/richText'
 
 import { FetchedIcon, RichLabel } from '../../compound'
@@ -89,7 +93,14 @@ const GlobalOutputsToolbar = ({ index }) => {
       mutateLocal({
         path,
         sync: !includesPath(R.values(sync), path),
-        value: R.assoc('chartType', value)(chartObj),
+        value: R.pipe(
+          R.assoc('chartType', value),
+          // The order of the x-axis can only be changed with `Sort By`
+          R.unless(
+            R.always(sortableChartTypes.includes(value)),
+            R.dissoc('xAxisOrder')
+          )
+        )(chartObj),
       })
     )
   }

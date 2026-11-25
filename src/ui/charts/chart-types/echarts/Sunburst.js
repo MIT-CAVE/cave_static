@@ -124,7 +124,7 @@ const Sunburst = ({ data, colors, numberFormat = {} }) => {
     },
   }
 
-  return <FlexibleChart sortable {...{ options }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Sunburst }

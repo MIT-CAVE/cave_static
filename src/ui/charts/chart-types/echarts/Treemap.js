@@ -150,7 +150,7 @@ const Treemap = ({ data, colors, numberFormat = {} }) => {
     },
   }
 
-  return <FlexibleChart sortable {...{ options }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Treemap }

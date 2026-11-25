@@ -19,7 +19,6 @@ const LinePlot = ({
 }) => {
   return (
     <EchartsPlot
-      sortable
       chartType="line"
       seriesObj={area ? { areaStyle: {}, smooth: !stack } : {}}
       {...{

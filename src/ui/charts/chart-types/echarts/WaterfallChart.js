@@ -252,7 +252,7 @@ const WaterfallChart = ({
     series,
   }
 
-  return <FlexibleChart sortable {...{ options }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 const StackedWaterfallChart = ({
@@ -611,7 +611,7 @@ const StackedWaterfallChart = ({
     },
   }
 
-  return <FlexibleChart sortable {...{ options }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { WaterfallChart, StackedWaterfallChart }

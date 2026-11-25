@@ -110,7 +110,7 @@ const Heatmap = ({ data, xAxisTitle, yAxisTitle, numberFormat = {} }) => {
     },
   }
 
-  return <FlexibleChart sortable {...{ options }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { Heatmap }

@@ -13,7 +13,7 @@ import {
   selectRichTextDefault,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
-import { chartVariant } from '../../../utils/enums'
+import { chartVariant, sortableChartTypes } from '../../../utils/enums'
 import {
   escapeRichText,
   labelText,
@@ -64,8 +64,16 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
       path,
       chartHoverOrder,
       xAxisOrder,
+      sortable: sortableChartTypes.includes(chartObj.chartType),
     }),
-    [chartObj.title, chartRichText, path, chartHoverOrder, xAxisOrder]
+    [
+      chartObj.title,
+      chartObj.chartType,
+      chartRichText,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+    ]
   )
 
   const props = addValuesToProps(

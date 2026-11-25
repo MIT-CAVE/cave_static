@@ -187,7 +187,6 @@ const withValueNames = (valueNames, option) => {
 const FlexibleChart = memo(
   ({
     options,
-    sortable,
     syncAxes,
     onSyncAxesChange,
     numBuckets,
@@ -195,7 +194,7 @@ const FlexibleChart = memo(
     ...restProps
   }) => {
     const echartsRef = useRef(null)
-    const { path, chartHoverOrder, xAxisOrder, valueNames } =
+    const { sortable, path, chartHoverOrder, xAxisOrder, valueNames } =
       useContext(ChartContext)
 
     const handleResize = useCallback(({ width, height }) => {
@@ -280,7 +279,6 @@ const EchartsPlot = ({
   colors,
   distribution = false,
   showNA,
-  sortable,
   numBuckets,
   onNumBucketsChange,
 }) => {
@@ -534,7 +532,6 @@ const EchartsPlot = ({
     <FlexibleChart
       {...{
         options,
-        sortable,
         numBuckets,
         onNumBucketsChange,
       }}

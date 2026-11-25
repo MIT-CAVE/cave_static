@@ -282,6 +282,24 @@ export const chartMaxGrouping = {
   [chartVariant.MIXED]: 2,
 }
 
+// The charts whose x-axis can be sorted with the `Sort By` control
+export const sortableChartTypes = [
+  chartVariant.BAR,
+  chartVariant.STACKED_BAR,
+  chartVariant.LINE,
+  chartVariant.AREA,
+  chartVariant.STACKED_AREA,
+  chartVariant.CUMULATIVE_LINE,
+  chartVariant.BOX_PLOT,
+  chartVariant.GAUGE,
+  chartVariant.HEATMAP,
+  chartVariant.SUNBURST,
+  chartVariant.TREEMAP,
+  chartVariant.WATERFALL,
+  chartVariant.STACKED_WATERFALL,
+  chartVariant.MIXED,
+]
+
 // Stat limits for multistat charts
 export const chartStatUses = {
   [chartVariant.TABLE]: [],

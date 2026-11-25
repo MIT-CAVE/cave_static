@@ -327,11 +327,7 @@ const MixedChart = ({
     },
   }
   return (
-    <FlexibleChart
-      sortable
-      {...{ options, syncAxes }}
-      onSyncAxesChange={setSyncAxes}
-    />
+    <FlexibleChart {...{ options, syncAxes }} onSyncAxesChange={setSyncAxes} />
   )
 }
 

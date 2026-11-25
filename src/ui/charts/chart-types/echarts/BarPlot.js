@@ -14,7 +14,6 @@ const BarPlot = ({
   return (
     <EchartsPlot
       data={data}
-      sortable
       chartType="bar"
       {...{
         xAxisTitle,

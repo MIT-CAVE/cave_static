@@ -15,6 +15,7 @@ import {
 import {
   chartVariant,
   distributionTypes,
+  sortableChartTypes,
   distributionYAxes,
 } from '../../../utils/enums'
 import { useChartRichText } from '../../../utils/hooks'
@@ -156,6 +157,7 @@ const DashboardChart = ({ chartObj, path }) => {
       path,
       chartHoverOrder,
       xAxisOrder,
+      sortable: sortableChartTypes.includes(chartType),
       valueNames,
     }),
     [
@@ -164,6 +166,7 @@ const DashboardChart = ({ chartObj, path }) => {
       path,
       chartHoverOrder,
       xAxisOrder,
+      chartType,
       valueNames,
     ]
   )

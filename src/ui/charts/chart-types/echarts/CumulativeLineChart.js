@@ -55,7 +55,6 @@ const CumulativeLineChart = ({
     <EchartsPlot
       data={accumulate(data)}
       chartType="line"
-      sortable
       {...{
         xAxisTitle,
         yAxisTitle,

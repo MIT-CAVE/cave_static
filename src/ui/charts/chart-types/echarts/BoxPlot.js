@@ -236,7 +236,7 @@ const EchartsBoxPlot = ({
     },
   }
 
-  return <FlexibleChart sortable {...{ options }} />
+  return <FlexibleChart {...{ options }} />
 }
 
 export { EchartsBoxPlot as BoxPlot }

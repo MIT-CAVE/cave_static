@@ -25,6 +25,7 @@ import {
   chartVariant,
   distributionTypes,
   distributionYAxes,
+  sortableChartTypes,
 } from '../../../utils/enums'
 import { useChartRichText } from '../../../utils/hooks'
 import { getMixedChartType } from '../../../utils/mixedChartTypes'
@@ -310,6 +311,11 @@ const GroupedOutputsToolbar = ({ index }) => {
     updateChartObj(
       R.pipe(
         R.assoc('chartType', value),
+        // The order of the x-axis can only be changed with `Sort By`
+        R.unless(
+          R.always(sortableChartTypes.includes(value)),
+          R.dissoc('xAxisOrder')
+        ),
         R.when(R.always(statUsesChanged), R.dissoc('stats')),
         removeExtraLevels
       )(chartObj)
