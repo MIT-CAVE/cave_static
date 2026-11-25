@@ -2,6 +2,7 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 import { useValueDisplayName } from './ChartContext'
+import { DEFAULT_SIZE, getChartHeading } from './chartHeading'
 
 import {
   NumberFormat,
@@ -13,7 +14,13 @@ import { markup, safeHtml } from '../../../../utils/html'
 
 // import { exampleNestedData } from './testData'
 
-const Sunburst = ({ data, colors, numberFormat = {} }) => {
+const Sunburst = ({
+  data,
+  colors,
+  xAxisTitle,
+  yAxisTitle,
+  numberFormat = {},
+}) => {
   const getDisplayName = useValueDisplayName()
   if (R.isNil(data) || R.isEmpty(data)) return []
 
@@ -63,68 +70,80 @@ const Sunburst = ({ data, colors, numberFormat = {} }) => {
 
   const normalData = processDeepData(data)
 
-  const options = {
-    // visualMap: subGrouped
-    //   ? {
-    //       type: 'piecewise',
-    //       categories: yKeys,
-    //       showLabel: 'true',
-    //       inRange: {
-    //         color: R.map((val) => R.path([val], assignments), allKeys),
-    //       },
-    //       itemWidth: 20,
-    //       itemHeight: 20,
-    //       top: '5%',
-    //       right: '3%',
-    //       textStyle: {
-    //         fontSize: 20,
-    //       },
-    //     }
-    //   : null,
-    // : {
-    //     type: 'piecewise',
-    //     categories: allKeys,
-    //     showLabel: 'true',
-    //     inRange: {
-    //       color: R.map((val) => R.path([val], assignments), allKeys),
-    //     },
-    //     itemWidth: 20,
-    //     itemHeight: 20,
-    //     top: '5%',
-    //     right: '3%',
-    //     textStyle: {
-    //       fontSize: 20,
-    //     },
-    //   },
-    xAxis: null,
-    yAxis: null,
-    series: {
-      radius: [60, '90%'],
-      label: {
-        show: true,
-        formatter: ({ name }) => getDisplayName(name),
+  // The sunburst is placed in the room that the heading leaves
+  const getOptions = (size) => {
+    const { width, height } = size ?? DEFAULT_SIZE
+    const heading = getChartHeading({ width, height }, yAxisTitle, xAxisTitle)
+    const available = height - heading.height - heading.bottom
+    const outerRadius = Math.max(
+      30,
+      Math.round((0.9 * Math.min(width, available)) / 2)
+    )
+    return {
+      // visualMap: subGrouped
+      //   ? {
+      //       type: 'piecewise',
+      //       categories: yKeys,
+      //       showLabel: 'true',
+      //       inRange: {
+      //         color: R.map((val) => R.path([val], assignments), allKeys),
+      //       },
+      //       itemWidth: 20,
+      //       itemHeight: 20,
+      //       top: '5%',
+      //       right: '3%',
+      //       textStyle: {
+      //         fontSize: 20,
+      //       },
+      //     }
+      //   : null,
+      // : {
+      //     type: 'piecewise',
+      //     categories: allKeys,
+      //     showLabel: 'true',
+      //     inRange: {
+      //       color: R.map((val) => R.path([val], assignments), allKeys),
+      //     },
+      //     itemWidth: 20,
+      //     itemHeight: 20,
+      //     top: '5%',
+      //     right: '3%',
+      //     textStyle: {
+      //       fontSize: 20,
+      //     },
+      //   },
+      title: heading.title,
+      xAxis: null,
+      yAxis: null,
+      series: {
+        center: ['50%', Math.round(heading.height + available / 2)],
+        radius: [Math.min(60, Math.round(outerRadius * 0.4)), outerRadius],
+        label: {
+          show: true,
+          formatter: ({ name }) => getDisplayName(name),
+        },
+        itemStyle: {
+          borderRadius: 7,
+          borderWidth: 1,
+        },
+        colorAlpha: [0.8, 1],
+        type: 'sunburst',
+        sort: undefined,
+        data: normalData,
+        // data: exampleNestedData
       },
-      itemStyle: {
-        borderRadius: 7,
-        borderWidth: 1,
+      tooltip: {
+        trigger: 'item',
+        formatter: ({ marker, name, value }) =>
+          markup`${safeHtml(marker)} ${getDisplayName(name)}: <strong>${NumberFormat.format(
+            value,
+            resolveNumberFormat(numberFormat)
+          )}</strong>`.toString(),
       },
-      colorAlpha: [0.8, 1],
-      type: 'sunburst',
-      sort: undefined,
-      data: normalData,
-      // data: exampleNestedData
-    },
-    tooltip: {
-      trigger: 'item',
-      formatter: ({ marker, name, value }) =>
-        markup`${safeHtml(marker)} ${getDisplayName(name)}: <strong>${NumberFormat.format(
-          value,
-          resolveNumberFormat(numberFormat)
-        )}</strong>`.toString(),
-    },
+    }
   }
 
-  return <FlexibleChart {...{ options }} />
+  return <FlexibleChart options={getOptions} />
 }
 
 export { Sunburst }

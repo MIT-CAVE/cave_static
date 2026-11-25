@@ -532,9 +532,15 @@ const DashboardChart = ({ chartObj, path }) => {
             }}
           />
         ) : chartType === chartVariant.SUNBURST ? (
-          <Sunburst data={formattedData} {...{ colors, numberFormat }} />
+          <Sunburst
+            data={formattedData}
+            {...{ colors, numberFormat, xAxisTitle, yAxisTitle }}
+          />
         ) : chartType === chartVariant.TREEMAP ? (
-          <Treemap data={formattedData} {...{ colors, numberFormat }} />
+          <Treemap
+            data={formattedData}
+            {...{ colors, numberFormat, xAxisTitle, yAxisTitle }}
+          />
         ) : chartType === chartVariant.GAUGE ? (
           <GaugeChart
             data={formattedData}

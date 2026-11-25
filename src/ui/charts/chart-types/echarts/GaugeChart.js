@@ -3,6 +3,12 @@ import * as R from 'ramda'
 
 import { FlexibleChart } from './BaseChart'
 import { useValueDisplayName } from './ChartContext'
+import {
+  DEFAULT_SIZE,
+  MIN_LABEL_HEIGHT,
+  PADDING,
+  getChartHeading,
+} from './chartHeading'
 
 import {
   NumberFormat,
@@ -15,22 +21,11 @@ import {
 } from '../../../../utils'
 import { markup, safeHtml } from '../../../../utils/html'
 import OverflowText from '../../../compound/OverflowText'
-
-// Used until the chart has been measured
-const DEFAULT_SIZE = { width: 400, height: 300 }
-// The space kept on the sides of the chart
-const PADDING = 12
 // The unfilled part of the dial. ECharts' dark theme makes it almost black, so
 // it uses the translucent white that other lines have on the chart background.
 const DIAL_TRACK_COLOR = 'rgba(255, 255, 255, 0.04)'
-// The labels of the stat (heading) and the grouping (under the dial) are only
-// shown from this height up
-const MIN_HEADING_HEIGHT = 160
 // The size of the names of the axes in the other charts
 const GROUP_LABEL_FONT = 20
-// The color of the names of the axes in the dark theme of ECharts, which is also
-// the color of the stat label in the other charts (titles are brighter)
-const AXIS_NAME_COLOR = '#cbcbce'
 // The bottom margin of the grid, which the name of the x-axis is measured from
 const GRID_BOTTOM = 80
 
@@ -97,11 +92,8 @@ const getNiceScale = (min, max, maxIntervals) => {
 // does not shrink with the dial: the heading on top, the dial below it and the
 // grouping label at the bottom. The names and values of the gauges are not
 // drawn in the chart, but under it.
-const getLayout = ({ width, height }, hasGroupLabel) => {
-  const showHeading = height >= MIN_HEADING_HEIGHT
-  const headingFont = R.clamp(12, 20, Math.round(width / 20))
-  const headingHeight = showHeading ? 10 + headingFont * 1.2 + 8 : 4
-  const showGroupLabel = showHeading && hasGroupLabel
+const getLayout = ({ width, height }, hasGroupLabel, headingHeight) => {
+  const showGroupLabel = height >= MIN_LABEL_HEIGHT && hasGroupLabel
   const groupLabelHeight = showGroupLabel ? GROUP_LABEL_FONT * 1.2 + 10 : 0
 
   // The dial is its radius tall above its center, and about 0.75 radii below it
@@ -121,9 +113,7 @@ const getLayout = ({ width, height }, hasGroupLabel) => {
     radius - axisWidth - splitLength - labelDistance - tickFont / 2
 
   return {
-    showHeading,
     showGroupLabel,
-    headingFont,
     radius,
     pointerWidth,
     centerY: Math.round(headingHeight + radius),
@@ -244,7 +234,12 @@ const GaugeChart = ({
 
   const getOptions = (size) => {
     const { width } = size ?? DEFAULT_SIZE
-    const layout = getLayout(size ?? DEFAULT_SIZE, Boolean(xAxisTitle))
+    const heading = getChartHeading(size ?? DEFAULT_SIZE, yAxisTitle)
+    const layout = getLayout(
+      size ?? DEFAULT_SIZE,
+      Boolean(xAxisTitle),
+      heading.height
+    )
     const scale = getNiceScale(yMin > 0 ? 0 : yMin, yMax, layout.maxIntervals)
     // The progress and the needle of each gauge are a translucent fill with a
     // border of its color (as in the bars of the bar chart). They can be thinner
@@ -294,22 +289,7 @@ const GaugeChart = ({
           show: false,
         },
       },
-      title: layout.showHeading
-        ? {
-            text: yAxisTitle,
-            left: 'center',
-            top: 10,
-            textStyle: {
-              fontSize: layout.headingFont,
-              // Not the bold and brighter text of the titles, as the stat label
-              // of the other charts
-              fontWeight: 'normal',
-              color: AXIS_NAME_COLOR,
-              width: labelWidth,
-              overflow: 'truncate',
-            },
-          }
-        : { show: false },
+      title: heading.title,
       yAxis: {
         type: 'value',
         axisLine: {
