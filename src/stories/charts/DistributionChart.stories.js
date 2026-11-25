@@ -1,5 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit'
+import * as echarts from 'echarts/core'
 import { Provider } from 'react-redux'
+import { expect } from 'storybook/test'
+
+import { chartTitleDecorator, playChartTitle } from './chartTitleStory'
 
 import { DistributionChart } from '../../ui/charts'
 
@@ -46,5 +50,20 @@ export const SimpleDistribution = {
     xAxisTitle: 'Value Range',
     yAxisTitle: 'Distribution',
     numberFormat: { precision: 0 },
+  },
+}
+
+// The chart title is shown above the chart, with the plot right below it
+export const WithTitle = {
+  decorators: [chartTitleDecorator],
+  args: SimpleDistribution.args,
+  play: async (context) => {
+    await playChartTitle(context)
+    // No legend, so the plot is not kept 64px away from the title
+    const container = context.canvasElement.querySelector(
+      '[_echarts_instance_]'
+    )
+    const { grid } = echarts.getInstanceByDom(container).getOption()
+    expect(grid[0].top).toBeLessThan(64)
   },
 }

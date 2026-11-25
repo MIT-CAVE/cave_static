@@ -284,7 +284,7 @@ const EchartsPlot = ({
   numBuckets,
   onNumBucketsChange,
 }) => {
-  const { chartHoverOrder } = useContext(ChartContext)
+  const { title, chartHoverOrder } = useContext(ChartContext)
   const getDisplayName = useValueDisplayName()
 
   if (R.isNil(data) || R.isEmpty(data)) return null
@@ -475,11 +475,12 @@ const EchartsPlot = ({
   }
 
   const options = {
-    grid: distribution
-      ? {
-          bottom: '80',
-        }
-      : {},
+    grid: {
+      ...(distribution && { bottom: '80' }),
+      // Without subgroups there is no legend above the plot, so keep it close
+      // to the chart title instead of leaving the space the legend would use
+      ...(title && !hasSubObjects && { top: 24 }),
+    },
     xAxis: {
       name: xAxisTitle,
       data: xLabels,
