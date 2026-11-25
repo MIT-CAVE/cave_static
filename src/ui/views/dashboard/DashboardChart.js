@@ -18,6 +18,7 @@ import {
   distributionYAxes,
 } from '../../../utils/enums'
 import { useChartRichText } from '../../../utils/hooks'
+import { getMixedChartType } from '../../../utils/mixedChartTypes'
 import {
   escapeRichText,
   labelText,
@@ -91,8 +92,8 @@ const DashboardChart = ({ chartObj, path }) => {
     'distributionVariant',
     cleanedChartObj
   )
-  const leftVariant = R.propOr('line', 'leftVariant', cleanedChartObj)
-  const rightVariant = R.propOr('bar', 'rightVariant', cleanedChartObj)
+  const leftVariant = getMixedChartType(cleanedChartObj, 'left')
+  const rightVariant = getMixedChartType(cleanedChartObj, 'right')
   const showNA = R.propOr(false, 'showNA', cleanedChartObj)
 
   const getColors = useSelector(selectChartColors)

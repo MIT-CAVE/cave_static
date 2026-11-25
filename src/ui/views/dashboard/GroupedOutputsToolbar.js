@@ -27,6 +27,7 @@ import {
   distributionYAxes,
 } from '../../../utils/enums'
 import { useChartRichText } from '../../../utils/hooks'
+import { getMixedChartType } from '../../../utils/mixedChartTypes'
 
 import { Select, SelectAccordion, SelectAccordionList } from '../../compound'
 
@@ -327,8 +328,14 @@ const GroupedOutputsToolbar = ({ index }) => {
     updateChartObj(R.assoc('distributionVariant', value, chartObj))
   }
 
-  const handleSelectMixedVariant = (variant) => (value) => {
-    updateChartObj(R.assoc(`${variant}Variant`, value, chartObj))
+  const handleSelectMixedChartType = (side) => (value) => {
+    updateChartObj(
+      R.pipe(
+        R.assocPath(['chartOptions', `${side}ChartType`], value),
+        // Replaces the option of charts edited before
+        R.dissoc(`${side}Variant`)
+      )(chartObj)
+    )
   }
 
   const handleChangeDataset = (value) => {
@@ -605,9 +612,9 @@ const GroupedOutputsToolbar = ({ index }) => {
           key={variant}
           fullWidth
           sx={styles.item}
-          value={R.propOr('line', `${variant}Variant`, chartObj)}
+          value={getMixedChartType(chartObj, variant)}
           optionsList={MIXED_VARIANTS}
-          onSelect={handleSelectMixedVariant(variant)}
+          onSelect={handleSelectMixedChartType(variant)}
         />
       ),
     ['left', 'right']
