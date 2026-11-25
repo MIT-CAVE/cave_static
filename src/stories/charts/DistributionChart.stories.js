@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import * as echarts from 'echarts/core'
 import { Provider } from 'react-redux'
-import { expect } from 'storybook/test'
+import { expect, waitFor, within } from 'storybook/test'
 
 import { chartTitleDecorator, playChartTitle } from './chartTitleStory'
 
@@ -65,5 +65,26 @@ export const WithTitle = {
     )
     const { grid } = echarts.getInstanceByDom(container).getOption()
     expect(grid[0].top).toBeLessThan(64)
+  },
+}
+
+// The controls are a row below the chart, not drawn over its axis labels
+export const ControlsAreBelowTheChart = {
+  args: SimpleDistribution.args,
+  play: async ({ canvasElement }) => {
+    const controls = await within(canvasElement).findByRole('toolbar', {
+      name: 'Chart controls',
+    })
+    await waitFor(() =>
+      expect(canvasElement.querySelector('canvas')).not.toBeNull()
+    )
+    const canvas = canvasElement.querySelector('canvas')
+    await expect(controls.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      canvas.getBoundingClientRect().bottom - 1
+    )
+    // It shares the background of the chart (`#4a4a4a`)
+    await expect(getComputedStyle(controls).backgroundColor).toBe(
+      'rgb(74, 74, 74)'
+    )
   },
 }

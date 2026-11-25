@@ -6,7 +6,7 @@ import {
   Typography,
   styled,
 } from '@mui/material'
-import { memo, useMemo } from 'react'
+import { memo, useId, useMemo } from 'react'
 
 import { useMutateStateWithSync } from '../../../../utils/hooks'
 
@@ -20,6 +20,20 @@ const CustomSlider = styled(Slider)(() => ({
 }))
 
 const styles = {
+  // A row below the plot, so the controls never cover the axis labels. It has
+  // the background of the plot, instead of the (elevated) card behind it.
+  controls: {
+    flexShrink: 0,
+    bgcolor: 'background.paper',
+    display: 'flex',
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 2,
+    px: 2.5,
+    pt: 1,
+    pb: 0.5,
+  },
   sortItem: {
     display: 'flex',
     justifyContent: 'center',
@@ -39,6 +53,8 @@ const styles = {
 }
 
 const SortControl = memo(({ xAxisOrder, path }) => {
+  // The default id of the label has spaces, and there can be many charts
+  const labelId = useId()
   const validOrders = [
     'default',
     'value_ascending',
@@ -85,23 +101,17 @@ const SortControl = memo(({ xAxisOrder, path }) => {
   )
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-      }}
-    >
-      <Typography sx={{ whiteSpace: 'nowrap' }}>Sort By</Typography>
-      <Select
-        value={currentOrder}
-        onSelect={handleSelectOrder}
-        size="small"
-        iconSize="22px"
-        sx={styles.select}
-        {...{ optionsList }}
-      />
-    </Box>
+    <Select
+      label="Sort By"
+      {...{ labelId }}
+      value={currentOrder}
+      onSelect={handleSelectOrder}
+      size="small"
+      iconSize="22px"
+      sx={styles.select}
+      slotProps={{ formControl: { fullWidth: false } }}
+      {...{ optionsList }}
+    />
   )
 })
 
@@ -152,17 +162,11 @@ const ChartControls = ({
   const showSync = syncAxes !== undefined && onSyncAxesChange
   const showBuckets = numBuckets !== undefined && onNumBucketsChange
 
+  // Charts without controls keep the whole height for the plot
+  if (!showSort && !showSync && !showBuckets) return null
+
   return (
-    <Box
-      sx={{
-        position: 'absolute',
-        right: 20,
-        bottom: 5,
-        display: 'flex',
-        flexDirection: 'row-reverse',
-        gap: 2,
-      }}
-    >
+    <Box role="toolbar" aria-label="Chart controls" sx={styles.controls}>
       {showSort && <SortControl {...{ xAxisOrder, path }} />}
       {showSync && <SyncAxesControl {...{ syncAxes, onSyncAxesChange }} />}
       {showBuckets && (
