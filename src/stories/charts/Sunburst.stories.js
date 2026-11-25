@@ -1,6 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
 
+import { chartTitleDecorator, playChartTitle } from './chartTitleStory'
+
 import { Sunburst } from '../../ui/charts'
 
 const mockStore = configureStore({
@@ -75,4 +77,11 @@ export const SimpleSunburst = {
     ],
     numberFormat: { precision: 0, unit: '$' },
   },
+}
+
+// The chart title is shown above the chart, clear of the chart's own content
+export const WithTitle = {
+  decorators: [chartTitleDecorator],
+  args: SimpleSunburst.args,
+  play: playChartTitle,
 }

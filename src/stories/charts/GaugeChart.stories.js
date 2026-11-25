@@ -1,6 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
 
+import { chartTitleDecorator, playChartTitle } from './chartTitleStory'
+
 import { GaugeChart } from '../../ui/charts'
 
 const mockStore = configureStore({
@@ -41,4 +43,11 @@ export const SimpleGauge = {
     yAxisTitle: 'System Load (%)',
     numberFormat: { precision: 0, unit: '%' },
   },
+}
+
+// The chart title is shown above the chart, clear of the chart's own content
+export const WithTitle = {
+  decorators: [chartTitleDecorator],
+  args: SimpleGauge.args,
+  play: playChartTitle,
 }

@@ -1,12 +1,13 @@
-import { Box, Button, Typography } from '@mui/material'
+import { Box, Button } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import * as R from 'ramda'
-import { memo, useContext, useMemo } from 'react'
+import { memo, useMemo } from 'react'
 
 import { NumberFormat } from '../../../../utils'
 import RichLabel from '../../../compound/RichLabel'
 import { FlexibleContainer } from '../echarts'
-import ChartContext, { useValueDisplayName } from '../echarts/ChartContext'
+import { useValueDisplayName } from '../echarts/ChartContext'
+import ChartTitle from '../echarts/ChartTitle'
 
 // Convert chart object to flat list of row arrays
 const flattenChartTree = (data) => {
@@ -41,24 +42,15 @@ const flattenChartTree = (data) => {
 }
 
 const styles = {
+  // Frames the title as a header of the grid below it
   title: {
-    p: 1,
-    mb: '1px',
-    bgcolor: 'background.paper',
+    // mb: '1px',
     border: '1px solid rgba(255, 255, 255, 0.12)',
     borderRadius: 1,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#eee',
   },
 }
 
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
-  const {
-    title: chartTitle,
-    richTitle,
-    richText: titleRichText,
-  } = useContext(ChartContext)
   const getDisplayName = useValueDisplayName()
   const rawList = useMemo(() => flattenChartTree(data), [data])
   const fields = useMemo(() => R.pluck('key')(labelProps), [labelProps])
@@ -120,14 +112,7 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
           minHeight: 0,
         }}
       >
-        {chartTitle && (
-          <Typography align="center" noWrap sx={styles.title}>
-            <RichLabel
-              text={richTitle ?? chartTitle}
-              rich={titleRichText === true}
-            />
-          </Typography>
-        )}
+        <ChartTitle sx={styles.title} />
         <FlexibleContainer>
           <DataGrid
             {...{ rows, columns }}

@@ -1,10 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit'
-import * as echarts from 'echarts/core'
 import { Provider } from 'react-redux'
-import { expect } from 'storybook/test'
+
+import { chartTitleDecorator, playChartTitle } from './chartTitleStory'
 
 import { Heatmap } from '../../ui/charts'
-import ChartContext from '../../ui/charts/chart-types/echarts/ChartContext'
 
 const mockStore = configureStore({
   reducer: {
@@ -83,23 +82,9 @@ export const SimpleHeatmap = {
   },
 }
 
-// The chart title must not collide with the chart's own top controls
+// The chart title is shown above the chart, clear of the chart's own content
 export const WithTitle = {
-  decorators: [
-    (Story) => (
-      <ChartContext.Provider value={{ title: 'Sample Title' }}>
-        <Story />
-      </ChartContext.Provider>
-    ),
-  ],
+  decorators: [chartTitleDecorator],
   args: SimpleHeatmap.args,
-  play: async ({ canvasElement }) => {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    const container = canvasElement.querySelector('[_echarts_instance_]')
-    const option = echarts.getInstanceByDom(container).getOption()
-    expect(option.title[0].text).toBe('Sample Title')
-    // The color range control is moved below the title
-    expect(option.visualMap[0].top).toBeGreaterThan(option.title[0].top + 20)
-    expect(option.grid[0].top).toBeGreaterThan(64)
-  },
+  play: playChartTitle,
 }
