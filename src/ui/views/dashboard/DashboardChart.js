@@ -158,10 +158,12 @@ const DashboardChart = ({ chartObj, path }) => {
       chartHoverOrder,
       xAxisOrder,
       sortable: sortableChartTypes.includes(chartType),
+      maximized: Boolean(chartObj.maximized),
       valueNames,
     }),
     [
       chartObj.title,
+      chartObj.maximized,
       chartRichText,
       path,
       chartHoverOrder,

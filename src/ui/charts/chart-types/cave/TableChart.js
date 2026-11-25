@@ -78,7 +78,12 @@ const styles = {
 }
 
 const TableChart = ({ data, labelProps, numberFormat = {} }) => {
-  const { title } = useContext(ChartContext)
+  const { title, maximized } = useContext(ChartContext)
+  // No frame (border and rounded corners) on the title and the grid, so that
+  // they are as big as the charts (flat) when they are inside the padding of the
+  // card, except for the top border of the grid when there is a title above it.
+  // Their frame is kept when the chart is maximized.
+  const unframed = !maximized && { borderWidth: 0, borderRadius: 0 }
   const getDisplayName = useValueDisplayName()
   const [downloadFormat, setDownloadFormat] = useState('csv')
   const [formatMenuAnchor, setFormatMenuAnchor] = useState(null)
@@ -149,7 +154,12 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
           minHeight: 0,
         }}
       >
-        <ChartTitle sx={styles.title} />
+        <ChartTitle
+          sx={{
+            ...styles.title,
+            ...unframed,
+          }}
+        />
         <FlexibleContainer>
           <DataGrid
             {...{ rows, columns }}
@@ -158,6 +168,8 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
               minWidth: 0,
               height: '100%',
               bgcolor: 'background.paper',
+              ...unframed,
+              ...(!maximized && title && { borderTopWidth: 1 }),
             }}
           />
         </FlexibleContainer>
@@ -165,7 +177,7 @@ const TableChart = ({ data, labelProps, numberFormat = {} }) => {
       <Box
         sx={{
           position: 'absolute',
-          bottom: 1, // Clears the border around the `DataGrid`
+          bottom: maximized ? 1 : 0, // Clears the border of the `DataGrid`
           left: 0,
           height: FOOTER_HEIGHT,
           px: 1,

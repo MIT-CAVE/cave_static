@@ -65,10 +65,12 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
       chartHoverOrder,
       xAxisOrder,
       sortable: sortableChartTypes.includes(chartObj.chartType),
+      maximized: Boolean(chartObj.maximized),
     }),
     [
       chartObj.title,
       chartObj.chartType,
+      chartObj.maximized,
       chartRichText,
       path,
       chartHoverOrder,

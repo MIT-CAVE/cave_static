@@ -14,6 +14,8 @@ const ChartContext = createContext({
   xAxisOrder: undefined,
   // Whether the x-axis of the chart can be sorted (see `sortableChartTypes`)
   sortable: false,
+  // Whether the chart takes the whole card (the card has no padding then)
+  maximized: false,
   // Display names for the raw values of the grouping levels in use (`valueNames`)
   valueNames: {},
 })
