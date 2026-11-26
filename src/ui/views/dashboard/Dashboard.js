@@ -29,13 +29,14 @@ import {
   selectCharts,
   selectMapExistsById,
 } from '../../../data/selectors'
-import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
 import {
+  APP_BAR_WIDTH,
+  CHART_DEFAULTS,
+  CHART_TYPES_WITH_CONTROLS,
   DEFAULT_NUM_BUCKETS,
   DEFAULT_SYNC_AXES,
-  chartTypesWithControls,
-  chartVariant,
-} from '../../../utils/enums'
+} from '../../../utils/constants'
+import { chartVariant } from '../../../utils/enums'
 import { useIndexedModal, useMutateStateWithSync } from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
 import ColorChangeModal from '../common/ColorChangeModal'
@@ -146,7 +147,7 @@ const DashboardItem = memo(
     const showControls = controls.open
     const [controlValues, setControlValues] = useState({})
     const hasControls =
-      vizType !== 'map' && chartTypesWithControls.includes(chartType)
+      vizType !== 'map' && CHART_TYPES_WITH_CONTROLS.includes(chartType)
     const controlsModified =
       xAxisOrder !== 'default' ||
       (controlValues.syncAxes ?? DEFAULT_SYNC_AXES) !== DEFAULT_SYNC_AXES ||

@@ -5,7 +5,7 @@ import EchartsPlot from './BaseChart'
 import { useChartControl } from './ChartContext'
 
 import { findSubgroupLabels } from '../../../../utils'
-import { DEFAULT_NUM_BUCKETS } from '../../../../utils/enums'
+import { DEFAULT_NUM_BUCKETS } from '../../../../utils/constants'
 
 const formatToSignificantFigures = (num, sigFigs) => {
   if (num == null || typeof num !== 'number' || isNaN(num) || !isFinite(num)) {

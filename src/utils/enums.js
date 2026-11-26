@@ -282,35 +282,6 @@ export const chartMaxGrouping = {
   [chartVariant.MIXED]: 2,
 }
 
-// The charts whose x-axis can be sorted with the `Sort By` control
-export const sortableChartTypes = [
-  chartVariant.BAR,
-  chartVariant.STACKED_BAR,
-  chartVariant.LINE,
-  chartVariant.AREA,
-  chartVariant.STACKED_AREA,
-  chartVariant.CUMULATIVE_LINE,
-  chartVariant.BOX_PLOT,
-  chartVariant.GAUGE,
-  chartVariant.HEATMAP,
-  chartVariant.SUNBURST,
-  chartVariant.TREEMAP,
-  chartVariant.WATERFALL,
-  chartVariant.STACKED_WATERFALL,
-  chartVariant.MIXED,
-]
-
-// The charts with controls below them (see `ChartControls`): the ones with
-// `Sort By`, `Sync Axes?` (`mixed`) or `Number of Buckets` (`distribution`)
-export const chartTypesWithControls = [
-  ...sortableChartTypes,
-  chartVariant.DISTRIBUTION,
-]
-
-// The values of the controls of the charts that are not saved in them
-export const DEFAULT_SYNC_AXES = true
-export const DEFAULT_NUM_BUCKETS = 10
-
 // Stat limits for multistat charts
 export const chartStatUses = {
   [chartVariant.TABLE]: [],

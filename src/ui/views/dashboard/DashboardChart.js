@@ -12,10 +12,10 @@ import {
   selectSlimStatGroupings,
   selectNumberFormatPropsFn,
 } from '../../../data/selectors'
+import { SORTABLE_CHART_TYPES } from '../../../utils/constants'
 import {
   chartVariant,
   distributionTypes,
-  sortableChartTypes,
   distributionYAxes,
 } from '../../../utils/enums'
 import { useChartRichText } from '../../../utils/hooks'
@@ -163,7 +163,7 @@ const DashboardChart = ({
       path,
       chartHoverOrder,
       xAxisOrder,
-      sortable: sortableChartTypes.includes(chartType),
+      sortable: SORTABLE_CHART_TYPES.includes(chartType),
       maximized: Boolean(chartObj.maximized),
       controlsVisible: showControls,
       controlValues,

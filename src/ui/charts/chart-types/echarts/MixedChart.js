@@ -13,8 +13,10 @@ import {
   getYAxisLabelProps,
   getYAxisNumberFormat,
 } from '../../../../utils'
-import { CHART_MENU_CLEARANCE } from '../../../../utils/constants'
-import { DEFAULT_SYNC_AXES } from '../../../../utils/enums'
+import {
+  CHART_MENU_CLEARANCE,
+  DEFAULT_SYNC_AXES,
+} from '../../../../utils/constants'
 import { markup, safeHtml } from '../../../../utils/html'
 
 // The right y-axis (labels and name) is drawn about 71px past the plot, and the

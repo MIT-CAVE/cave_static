@@ -17,6 +17,7 @@ import {
   selectMergedStatGroupings,
   selectGroupedOutputsData,
 } from '../../../data/selectors'
+import { SORTABLE_CHART_TYPES } from '../../../utils/constants'
 import {
   chartAggrFunc,
   chartOption,
@@ -25,7 +26,6 @@ import {
   chartVariant,
   distributionTypes,
   distributionYAxes,
-  sortableChartTypes,
 } from '../../../utils/enums'
 import { useChartRichText } from '../../../utils/hooks'
 import { getMixedChartType } from '../../../utils/mixedChartTypes'
@@ -313,7 +313,7 @@ const GroupedOutputsToolbar = ({ index }) => {
         R.assoc('chartType', value),
         // The order of the x-axis can only be changed with `Sort By`
         R.unless(
-          R.always(sortableChartTypes.includes(value)),
+          R.always(SORTABLE_CHART_TYPES.includes(value)),
           R.dissoc('xAxisOrder')
         ),
         R.when(R.always(statUsesChanged), R.dissoc('stats')),

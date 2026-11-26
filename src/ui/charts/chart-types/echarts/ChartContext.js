@@ -12,7 +12,7 @@ const ChartContext = createContext({
   path: undefined,
   chartHoverOrder: undefined,
   xAxisOrder: undefined,
-  // Whether the x-axis of the chart can be sorted (see `sortableChartTypes`)
+  // Whether the x-axis of the chart can be sorted (see `SORTABLE_CHART_TYPES`)
   sortable: false,
   // Whether the chart takes the whole card (the card has no padding then)
   maximized: false,

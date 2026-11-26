@@ -227,6 +227,35 @@ export const LINE_TYPES = { solid: [1, 0], dashed: [7, 3], dotted: [2, 2] }
 // and the 8px that the menu is moved from the edge when the layout is edited
 export const CHART_MENU_CLEARANCE = 66
 
+// The values of the controls of the charts that are not saved in them
+export const DEFAULT_SYNC_AXES = true
+export const DEFAULT_NUM_BUCKETS = 10
+
+// The charts whose x-axis can be sorted with the `Sort By` control
+export const SORTABLE_CHART_TYPES = [
+  chartVariant.BAR,
+  chartVariant.STACKED_BAR,
+  chartVariant.LINE,
+  chartVariant.AREA,
+  chartVariant.STACKED_AREA,
+  chartVariant.CUMULATIVE_LINE,
+  chartVariant.BOX_PLOT,
+  chartVariant.GAUGE,
+  chartVariant.HEATMAP,
+  chartVariant.SUNBURST,
+  chartVariant.TREEMAP,
+  chartVariant.WATERFALL,
+  chartVariant.STACKED_WATERFALL,
+  chartVariant.MIXED,
+]
+
+// The charts with controls below them (see `ChartControls`): the ones with
+// `Sort By`, `Sync Axes?` (`mixed`) or `Number of Buckets` (`distribution`)
+export const CHART_TYPES_WITH_CONTROLS = [
+  ...SORTABLE_CHART_TYPES,
+  chartVariant.DISTRIBUTION,
+]
+
 export const CHART_DEFAULTS = {
   chartType: chartVariant.BAR,
 }

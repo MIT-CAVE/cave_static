@@ -25,11 +25,8 @@ import {
   selectMergedGlobalOutputs,
   selectRichTextDefault,
 } from '../../../data/selectors'
-import {
-  chartOption,
-  chartVariant,
-  sortableChartTypes,
-} from '../../../utils/enums'
+import { SORTABLE_CHART_TYPES } from '../../../utils/constants'
+import { chartOption, chartVariant } from '../../../utils/enums'
 import { labelText, resolveRichText } from '../../../utils/richText'
 
 import { FetchedIcon, RichLabel } from '../../compound'
@@ -97,7 +94,7 @@ const GlobalOutputsToolbar = ({ index }) => {
           R.assoc('chartType', value),
           // The order of the x-axis can only be changed with `Sort By`
           R.unless(
-            R.always(sortableChartTypes.includes(value)),
+            R.always(SORTABLE_CHART_TYPES.includes(value)),
             R.dissoc('xAxisOrder')
           )
         )(chartObj),
