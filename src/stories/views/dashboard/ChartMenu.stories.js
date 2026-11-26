@@ -1,4 +1,6 @@
 import { Box } from '@mui/material'
+import { useState } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 
 import ChartMenu from '../../../ui/views/dashboard/ChartMenu'
 import { chartVariant } from '../../../utils/enums'
@@ -119,5 +121,37 @@ export const Maximized = {
     onOpenFilter: () => {},
     onOpenChartTools: () => {},
     onOpenColorChange: () => {},
+  },
+}
+
+// The controls below the chart are toggled from the menu, which shows a dot
+// while any of them is not at its default
+const ToggleStory = (args) => {
+  const [visible, setVisible] = useState(false)
+  return (
+    <Box sx={{ position: 'relative', height: 300, width: '100%' }}>
+      <ChartMenu
+        {...args}
+        controlsVisible={visible}
+        onToggleControls={() => setVisible(!visible)}
+      />
+    </Box>
+  )
+}
+
+export const AdvancedControlsToggle = {
+  render: (args) => <ToggleStory {...args} />,
+  args: { ...BarChart.args, hasControls: true, controlsModified: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const button = await canvas.findByRole('button', {
+      name: 'Advanced controls',
+    })
+    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    await expect(button.querySelector('.MuiBadge-badge')).not.toHaveClass(
+      'MuiBadge-invisible'
+    )
+    await userEvent.click(button)
+    await expect(button).toHaveAttribute('aria-pressed', 'true')
   },
 }

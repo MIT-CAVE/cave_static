@@ -300,6 +300,17 @@ export const sortableChartTypes = [
   chartVariant.MIXED,
 ]
 
+// The charts with controls below them (see `ChartControls`): the ones with
+// `Sort By`, `Sync Axes?` (`mixed`) or `Number of Buckets` (`distribution`)
+export const chartTypesWithControls = [
+  ...sortableChartTypes,
+  chartVariant.DISTRIBUTION,
+]
+
+// The values of the controls of the charts that are not saved in them
+export const DEFAULT_SYNC_AXES = true
+export const DEFAULT_NUM_BUCKETS = 10
+
 // Stat limits for multistat charts
 export const chartStatUses = {
   [chartVariant.TABLE]: [],

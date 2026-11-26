@@ -30,7 +30,12 @@ import {
   selectMapExistsById,
 } from '../../../data/selectors'
 import { APP_BAR_WIDTH, CHART_DEFAULTS } from '../../../utils/constants'
-import { chartVariant } from '../../../utils/enums'
+import {
+  DEFAULT_NUM_BUCKETS,
+  DEFAULT_SYNC_AXES,
+  chartTypesWithControls,
+  chartVariant,
+} from '../../../utils/enums'
 import { useIndexedModal, useMutateStateWithSync } from '../../../utils/hooks'
 import ChartToolsModal from '../common/ChartToolsModal'
 import ColorChangeModal from '../common/ColorChangeModal'
@@ -119,6 +124,37 @@ const DashboardItem = memo(
     const showNA = R.propOr(false, 'showNA')(chartObj)
     const chartHoverOrder = R.propOr('seriesDesc', 'chartHoverOrder')(chartObj)
     const chartType = R.propOr(chartVariant.BAR, 'chartType')(chartObj)
+    const xAxisOrder = R.propOr('default', 'xAxisOrder')(chartObj)
+
+    // The controls below the chart are hidden until asked for. Maximizing the
+    // chart always shows them (there is room), and minimizing it goes back to
+    // `saved`: what they were before maximizing, or what the user chose while
+    // it was maximized. The values of the controls that are not saved in the
+    // chart are kept here to tell if any differs from its default.
+    const [controls, setControls] = useState({
+      open: isMaximized,
+      saved: false,
+      isMaximized,
+    })
+    if (controls.isMaximized !== isMaximized) {
+      setControls({
+        open: isMaximized || controls.saved,
+        saved: controls.open,
+        isMaximized,
+      })
+    }
+    const showControls = controls.open
+    const [controlValues, setControlValues] = useState({})
+    const hasControls =
+      vizType !== 'map' && chartTypesWithControls.includes(chartType)
+    const controlsModified =
+      xAxisOrder !== 'default' ||
+      (controlValues.syncAxes ?? DEFAULT_SYNC_AXES) !== DEFAULT_SYNC_AXES ||
+      (controlValues.numBuckets ?? DEFAULT_NUM_BUCKETS) !== DEFAULT_NUM_BUCKETS
+    const handleControlValueChange = useCallback(
+      (key, value) => setControlValues((prev) => ({ ...prev, [key]: value })),
+      []
+    )
 
     const path = useMemo(
       () => ['pages', 'data', currentPage, 'charts', index],
@@ -220,7 +256,17 @@ const DashboardItem = memo(
               chartType,
               defaultToZero,
               showNA,
+              hasControls,
+              controlsModified,
             }}
+            controlsVisible={showControls}
+            onToggleControls={() =>
+              setControls(({ open, saved }) => ({
+                open: !open,
+                saved: isMaximized ? !open : saved,
+                isMaximized,
+              }))
+            }
             numFilters={numActiveStatFilters + numGroupingFilters}
             onOpenFilter={handleOpenFilter}
             onOpenColorChange={handleOpenColorChange}
@@ -235,13 +281,19 @@ const DashboardItem = memo(
         {vizType === 'groupedOutput' ? (
           chartObj?.stats && (
             <Suspense fallback={<CircularProgress sx={styles.loader} />}>
-              <DashboardChart {...{ chartObj, path }} />
+              <DashboardChart
+                {...{ chartObj, path, showControls, controlValues }}
+                onControlValueChange={handleControlValueChange}
+              />
             </Suspense>
           )
         ) : vizType === 'map' && mapExists ? (
           <Map mapId={chartObj?.mapId} />
         ) : vizType === 'globalOutput' ? (
-          <DashboardGlobalOutput {...{ chartObj, path }} />
+          <DashboardGlobalOutput
+            {...{ chartObj, path, showControls, controlValues }}
+            onControlValueChange={handleControlValueChange}
+          />
         ) : null}
       </Paper>
     )

@@ -40,7 +40,13 @@ const styles = {
   },
 }
 
-const DashboardGlobalOutput = ({ chartObj, path }) => {
+const DashboardGlobalOutput = ({
+  chartObj,
+  path,
+  showControls = true,
+  controlValues,
+  onControlValueChange,
+}) => {
   const dispatch = useDispatch()
   const globalOutputs = useSelector(selectAssociatedData)
   const numberFormatDefault = useSelector(selectNumberFormat)
@@ -66,6 +72,9 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
       xAxisOrder,
       sortable: sortableChartTypes.includes(chartObj.chartType),
       maximized: Boolean(chartObj.maximized),
+      controlsVisible: showControls,
+      controlValues,
+      onControlValueChange,
     }),
     [
       chartObj.title,
@@ -75,6 +84,9 @@ const DashboardGlobalOutput = ({ chartObj, path }) => {
       path,
       chartHoverOrder,
       xAxisOrder,
+      showControls,
+      controlValues,
+      onControlValueChange,
     ]
   )
 

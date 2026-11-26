@@ -205,8 +205,14 @@ const FlexibleChart = memo(
     ...restProps
   }) => {
     const echartsRef = useRef(null)
-    const { sortable, path, chartHoverOrder, xAxisOrder, valueNames } =
-      useContext(ChartContext)
+    const {
+      sortable,
+      path,
+      chartHoverOrder,
+      xAxisOrder,
+      valueNames,
+      controlsVisible,
+    } = useContext(ChartContext)
 
     const [size, setSize] = useState(null)
     const resolvedOptions =
@@ -272,17 +278,19 @@ const FlexibleChart = memo(
           />
         </FlexibleContainer>
         {below}
-        <ChartControls
-          {...{
-            sortable,
-            path,
-            xAxisOrder,
-            syncAxes,
-            onSyncAxesChange,
-            numBuckets,
-            onNumBucketsChange,
-          }}
-        />
+        {controlsVisible && (
+          <ChartControls
+            {...{
+              sortable,
+              path,
+              xAxisOrder,
+              syncAxes,
+              onSyncAxesChange,
+              numBuckets,
+              onNumBucketsChange,
+            }}
+          />
+        )}
       </div>
     )
   }

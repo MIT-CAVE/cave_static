@@ -53,7 +53,13 @@ import {
   cleanUndefinedStats,
 } from '../../../utils'
 
-const DashboardChart = ({ chartObj, path }) => {
+const DashboardChart = ({
+  chartObj,
+  path,
+  showControls = true,
+  controlValues,
+  onControlValueChange,
+}) => {
   const [formattedData, setFormattedData] = useState([])
   const [loading, setLoading] = useState(true)
   const [prevChartObj, setPrevChartObj] = useState(null)
@@ -159,6 +165,9 @@ const DashboardChart = ({ chartObj, path }) => {
       xAxisOrder,
       sortable: sortableChartTypes.includes(chartType),
       maximized: Boolean(chartObj.maximized),
+      controlsVisible: showControls,
+      controlValues,
+      onControlValueChange,
       valueNames,
     }),
     [
@@ -169,6 +178,9 @@ const DashboardChart = ({ chartObj, path }) => {
       chartHoverOrder,
       xAxisOrder,
       chartType,
+      showControls,
+      controlValues,
+      onControlValueChange,
       valueNames,
     ]
   )

@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types'
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import EchartsPlot from './BaseChart'
+import { useChartControl } from './ChartContext'
 
 import { findSubgroupLabels } from '../../../../utils'
+import { DEFAULT_NUM_BUCKETS } from '../../../../utils/enums'
 
 const formatToSignificantFigures = (num, sigFigs) => {
   if (num == null || typeof num !== 'number' || isNaN(num) || !isFinite(num)) {
@@ -29,7 +31,10 @@ const DistributionChart = ({
   stack = false,
   area = false,
 }) => {
-  const [numBuckets, setNumBuckets] = useState(10)
+  const [numBuckets, setNumBuckets] = useChartControl(
+    'numBuckets',
+    DEFAULT_NUM_BUCKETS
+  )
 
   const calcDistributionData = useMemo(() => {
     if (!data || data.length === 0) return []
@@ -52,7 +57,9 @@ const DistributionChart = ({
     const maxValue = Math.max(...values)
     const validBuckets = Math.max(
       1,
-      typeof numBuckets === 'number' && !isNaN(numBuckets) ? numBuckets : 10
+      typeof numBuckets === 'number' && !isNaN(numBuckets)
+        ? numBuckets
+        : DEFAULT_NUM_BUCKETS
     )
     const bucketSize =
       maxValue === minValue ? 1 : (maxValue - minValue) / validBuckets

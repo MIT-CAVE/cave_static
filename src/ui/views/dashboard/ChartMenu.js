@@ -18,6 +18,7 @@ import {
   MdFullscreenExit,
   MdMoreVert,
   MdOutlineColorLens,
+  MdTune,
 } from 'react-icons/md'
 import { useSelector } from 'react-redux'
 
@@ -34,6 +35,12 @@ const styles = {
     top: '8px',
     right: 0,
     zIndex: 1,
+  },
+  // The look of a button that is pressed in
+  btnPressed: {
+    border: '1px inset rgb(128 128 128)',
+    bgcolor: 'action.selected',
+    opacity: 1,
   },
   btnGroupVert: {
     mx: 0.5,
@@ -76,6 +83,10 @@ const MainButtons = ({
   onOpenChartTools,
   onOpenColorChange,
   onOpenMenu,
+  hasControls,
+  controlsVisible,
+  controlsModified,
+  onToggleControls,
 }) => (
   <ButtonGroup
     variant="contained"
@@ -115,6 +126,24 @@ const MainButtons = ({
         onClick={onOpenColorChange}
       >
         <MdOutlineColorLens size={24} />
+      </TooltipButton>
+    )}
+
+    {hasControls && (
+      <TooltipButton
+        title={
+          controlsVisible ? 'Hide advanced controls' : 'Show advanced controls'
+        }
+        placement="bottom-start"
+        // A toggle button: its name stays the same and its state is `aria-pressed`
+        ariaLabel="Advanced controls"
+        aria-pressed={controlsVisible}
+        sx={controlsVisible && styles.btnPressed}
+        onClick={onToggleControls}
+      >
+        <Badge color="info" variant="dot" invisible={!controlsModified}>
+          <MdTune size={24} />
+        </Badge>
       </TooltipButton>
     )}
 
@@ -169,6 +198,10 @@ const ChartMenu = ({
   onOpenColorChange,
   vizType,
   chartType,
+  hasControls,
+  controlsVisible,
+  controlsModified,
+  onToggleControls,
 }) => {
   const editLayoutMode = useSelector(selectEditLayoutMode)
   const { anchorEl, handleOpenMenu, handleCloseMenu } = useMenu()
@@ -201,6 +234,10 @@ const ChartMenu = ({
           onOpenFilter,
           onOpenChartTools,
           onOpenColorChange,
+          hasControls,
+          controlsVisible,
+          controlsModified,
+          onToggleControls,
         }}
         onOpenMenu={handleOpenMenu}
       />

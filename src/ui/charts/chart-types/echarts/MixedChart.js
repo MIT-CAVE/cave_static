@@ -1,8 +1,8 @@
 import * as R from 'ramda'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import { FlexibleChart } from './BaseChart'
-import { useValueDisplayName } from './ChartContext'
+import { useChartControl, useValueDisplayName } from './ChartContext'
 
 import {
   CHART_FILL_ALPHA_HOVER,
@@ -14,6 +14,7 @@ import {
   getYAxisNumberFormat,
 } from '../../../../utils'
 import { CHART_MENU_CLEARANCE } from '../../../../utils/constants'
+import { DEFAULT_SYNC_AXES } from '../../../../utils/enums'
 import { markup, safeHtml } from '../../../../utils/html'
 
 // The right y-axis (labels and name) is drawn about 71px past the plot, and the
@@ -64,7 +65,7 @@ const MixedChart = ({
   rightNumberFormat,
 }) => {
   const getDisplayName = useValueDisplayName()
-  const [syncAxes, setSyncAxes] = useState(true)
+  const [syncAxes, setSyncAxes] = useChartControl('syncAxes', DEFAULT_SYNC_AXES)
   const hasSubgroups = Boolean(data && data[0] && 'children' in data[0])
   const xLabels = data ? R.pluck('name', data) : []
   const labels = R.pluck('label')(labelProps || [])
