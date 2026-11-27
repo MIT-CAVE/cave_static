@@ -19,6 +19,10 @@ const CustomSlider = styled(Slider)(() => ({
   },
 }))
 
+// Wide enough for the longest label (`Name (Desc)`, 95px) with its icon, so
+// that it doesn't marquee
+const SORT_SELECT_WIDTH = 175
+
 const styles = {
   // A row below the plot, so the controls never cover the axis labels. It has
   // the background of the plot, instead of the (elevated) card behind it.
@@ -42,7 +46,7 @@ const styles = {
   },
   select: {
     height: 30,
-    width: 140,
+    width: SORT_SELECT_WIDTH,
     '& .MuiSelect-select': {
       display: 'flex',
       justifyContent: 'center',
