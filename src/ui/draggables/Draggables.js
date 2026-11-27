@@ -1,7 +1,9 @@
 import * as R from 'ramda'
-import { useEffect, useRef } from 'react'
+import { useContext, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { OverlayContainerContext } from '.'
 import GlobalOutputsDraggable from './GlobalOutputsDraggable'
 import NotificationsDraggable, {
   NotificationsUnhide,
@@ -23,6 +25,7 @@ const Draggables = () => {
   const anyGlobalOutputQuickView = useSelector(selectAnyGlobalOutputQuickView)
   const messages = useSelector(selectMessages)
   const dispatch = useDispatch()
+  const overlay = useContext(OverlayContainerContext)
 
   const messageCountRef = useRef(0)
   const messageCount = R.keys(messages).length
@@ -61,6 +64,12 @@ const Draggables = () => {
     )
   }, [dispatch, draggables])
 
+  const notifications = notifOpen ? (
+    <NotificationsDraggable />
+  ) : (
+    messageCount > 0 && <NotificationsUnhide />
+  )
+
   return (
     // Either we specify a z-index for each Pad or
     // we sort them from lowest to highest priority
@@ -74,11 +83,10 @@ const Draggables = () => {
         !draggables[draggableId.TIME]?.docked && <TimeDraggable />}
       {draggables[draggableId.SESSION]?.open &&
         !draggables[draggableId.SESSION]?.docked && <SessionDraggable />}
-      {notifOpen ? (
-        <NotificationsDraggable />
-      ) : (
-        messageCount > 0 && <NotificationsUnhide />
-      )}
+      {/* Notifications must stay usable while the Loader overlay is shown */}
+      {overlay && notifications
+        ? createPortal(notifications, overlay)
+        : notifications}
     </>
   )
 }

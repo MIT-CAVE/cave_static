@@ -20,6 +20,7 @@ import {
   selectSync,
 } from './data/selectors'
 import { ErrorBoundary } from './ui/compound'
+import { OverlayContainerContext } from './ui/draggables'
 import DockBar from './ui/draggables/DockBar'
 import Draggables from './ui/draggables/Draggables'
 import { ModalContainerContext } from './ui/views/common/BaseModal'
@@ -61,6 +62,19 @@ const styles = {
     flex: '1 1 auto',
     minHeight: 0,
     minWidth: 0,
+  },
+  // Pass-through layer above the `Loader` backdrop (zIndex 2000). `workspace`
+  // is a stacking context painted below the backdrop, so anything that must
+  // stay usable while loading (the notifications) is portaled in here.
+  // `page` and `workspace` share their bottom/right edges, so draggables keep
+  // their anchor. `contain: 'layout'` keeps `position: fixed` descendants
+  // anchored to this box, as they are to `workspace`.
+  overlay: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 2001,
+    pointerEvents: 'none',
+    contain: 'layout',
   },
   content: {
     position: 'relative',
@@ -139,6 +153,8 @@ const App = () => {
   const dispatch = useDispatch()
   // The element `BaseModal`s are portaled into (see `ModalContainerContext`)
   const [workspace, setWorkspace] = useState(null)
+  // The element notifications are portaled into (see `OverlayContainerContext`)
+  const [overlay, setOverlay] = useState(null)
   const currentPage = useSelector(selectCurrentPage)
   const appBarData = useSelector(selectAppBarData)
   const appBarViews = useSelector(selectDemoViews)
@@ -213,6 +229,7 @@ const App = () => {
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={styles.page}>
               <Loader />
+              <Box ref={setOverlay} sx={styles.overlay} />
 
               <ErrorBoundary fallback={<SessionPane />}>
                 {anyDraggableDocked && <DockBar />}
@@ -223,7 +240,9 @@ const App = () => {
                     </Box>
                     <Panes />
                     <AppModal />
-                    <Draggables />
+                    <OverlayContainerContext value={overlay}>
+                      <Draggables />
+                    </OverlayContainerContext>
                   </ModalContainerContext>
                 </Box>
               </ErrorBoundary>

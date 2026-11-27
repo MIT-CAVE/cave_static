@@ -47,6 +47,10 @@ const styles = {
     flexDirection: 'column-reverse',
   },
   alert: { width: '700px' },
+  // Menus and popovers are portaled to `document.body` at the default modal
+  // zIndex (1300). Keep them above the Loader backdrop (2000) and the
+  // notifications panel (2001) so they stay usable while loading.
+  aboveLoader: { zIndex: 2002 },
   controlBar: {
     bgcolor: 'grey.800',
     p: 0.5,
@@ -173,6 +177,7 @@ const SnackBar = ({ dragHandle }) => {
           <MdFilterListAlt size={24} />
         </TooltipButton>
         <Menu
+          sx={styles.aboveLoader}
           anchorEl={filterAnchorEl}
           open={Boolean(filterAnchorEl)}
           onClose={handleCloseFilter}
@@ -202,6 +207,7 @@ const SnackBar = ({ dragHandle }) => {
           <MdFormatListNumbered size={24} />
         </TooltipButton>
         <Popover
+          sx={styles.aboveLoader}
           open={Boolean(limitAnchorEl)}
           anchorEl={limitAnchorEl}
           onClose={handleCloseLimit}

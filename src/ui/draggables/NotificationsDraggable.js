@@ -37,6 +37,8 @@ const styles = {
     right: '60px',
     border: 'none',
     bgcolor: 'transparent',
+    // The overlay they are portaled into is pass-through (see `App.js`)
+    pointerEvents: 'auto',
   },
   dragHandle: {
     p: 0.75,
@@ -50,6 +52,7 @@ const styles = {
     bottom: '80px',
     right: '60px',
     zIndex: 2001,
+    pointerEvents: 'auto',
   },
 }
 

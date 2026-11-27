@@ -9,7 +9,7 @@ import {
   Switch,
 } from '@mui/material'
 import PropTypes from 'prop-types'
-import { useMemo, useRef } from 'react'
+import { createContext, useMemo, useRef } from 'react'
 import ReactDraggable from 'react-draggable'
 import { MdDragIndicator, MdMoreVert, MdOutlineClose } from 'react-icons/md'
 import { useSelector } from 'react-redux'
@@ -48,6 +48,10 @@ const styles = {
     bgcolor: 'grey.800',
   },
 }
+
+// The element that draggables meant to stay usable while the `Loader` overlay
+// is shown (see `App.js`) are portaled into. `null` renders them inline.
+export const OverlayContainerContext = createContext(null)
 
 export const useDraggable = (id) => {
   const draggables = useSelector(selectMergedDraggables)
